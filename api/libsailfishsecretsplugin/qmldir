@@ -1,0 +1,3 @@
+module org.sailfishos.secrets
+plugin sailfishsecretsplugin
+UiView 1.0 UiView.qml
