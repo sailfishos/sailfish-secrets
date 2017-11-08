@@ -60,6 +60,7 @@ Provides a set of example secrets daemon plugins.
 %package tests
 Summary:    Unit tests for the libsailfishsecrets library.
 Group:      System/Libraries
+BuildRequires:  pkgconfig(Qt5Test)
 Requires:   %{name} = %{version}-%{release}
 
 %description tests
@@ -86,6 +87,7 @@ Requires:   libsailfishcrypto = %{version}-%{release}
 %package -n libsailfishcrypto-tests
 Summary:    Unit tests for the libsailfishcrypto library.
 Group:      System/Libraries
+BuildRequires:  pkgconfig(Qt5Test)
 Requires:   libsailfishcrypto = %{version}-%{release}
 
 %description -n libsailfishcrypto-tests
