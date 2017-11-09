@@ -11,7 +11,7 @@ BuildRequires:  pkgconfig(Qt5Sql)
 BuildRequires:  pkgconfig(Qt5DBus)
 
 %description
-%{summy}.
+%{summary}.
 
 %package devel
 Summary:    Development package for Sailfish OS secrets storage library.
@@ -67,7 +67,7 @@ Requires:   %{name} = %{version}-%{release}
 %{summary}.
 
 %package -n libsailfishcrypto
-Summary:    Sailfish OS cryptographic operations functionality library
+Summary:    Sailfish OS cryptographic operations library
 Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Sql)
@@ -77,7 +77,7 @@ BuildRequires:  pkgconfig(Qt5DBus)
 %{summary}.
 
 %package -n libsailfishcrypto-devel
-Summary:    Development package for Sailfish OS cryptographic operations functionality library
+Summary:    Development package for Sailfish OS cryptographic operations library
 Group:      System/Libraries
 Requires:   libsailfishcrypto = %{version}-%{release}
 
@@ -177,6 +177,12 @@ rm -rf %{buildroot}
 /sbin/ldconfig
 
 %postun
+/sbin/ldconfig
+
+%post -n libsailfishcrypto
+/sbin/ldconfig
+
+%postun -n libsailfishcrypto
 /sbin/ldconfig
 
 %post -n libsailfishsecretsplugin
