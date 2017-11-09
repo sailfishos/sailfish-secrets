@@ -11,7 +11,7 @@ BuildRequires:  pkgconfig(Qt5Sql)
 BuildRequires:  pkgconfig(Qt5DBus)
 
 %description
-%{summy}.
+%{summary}.
 
 %package devel
 Summary:    Development package for Sailfish OS secrets storage library.
@@ -60,13 +60,14 @@ Provides a set of example secrets daemon plugins.
 %package tests
 Summary:    Unit tests for the libsailfishsecrets library.
 Group:      System/Libraries
+BuildRequires:  pkgconfig(Qt5Test)
 Requires:   %{name} = %{version}-%{release}
 
 %description tests
 %{summary}.
 
 %package -n libsailfishcrypto
-Summary:    Sailfish OS cryptographic operations functionality library
+Summary:    Sailfish OS cryptographic operations library
 Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Sql)
@@ -76,7 +77,7 @@ BuildRequires:  pkgconfig(Qt5DBus)
 %{summary}.
 
 %package -n libsailfishcrypto-devel
-Summary:    Development package for Sailfish OS cryptographic operations functionality library
+Summary:    Development package for Sailfish OS cryptographic operations library
 Group:      System/Libraries
 Requires:   libsailfishcrypto = %{version}-%{release}
 
@@ -86,6 +87,7 @@ Requires:   libsailfishcrypto = %{version}-%{release}
 %package -n libsailfishcrypto-tests
 Summary:    Unit tests for the libsailfishcrypto library.
 Group:      System/Libraries
+BuildRequires:  pkgconfig(Qt5Test)
 Requires:   libsailfishcrypto = %{version}-%{release}
 
 %description -n libsailfishcrypto-tests
@@ -175,6 +177,12 @@ rm -rf %{buildroot}
 /sbin/ldconfig
 
 %postun
+/sbin/ldconfig
+
+%post -n libsailfishcrypto
+/sbin/ldconfig
+
+%postun -n libsailfishcrypto
 /sbin/ldconfig
 
 %post -n libsailfishsecretsplugin
