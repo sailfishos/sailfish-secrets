@@ -16,10 +16,14 @@ AUTHENTICATION_PLUGINS = \
 CRYPTO_PLUGINS = \
     opensslcryptoplugin
 
+CRYPTOKI_PLUGINS = \
+    cryptokiplugin
+
 SUBDIRS+=\
     $$STORAGE_PLUGINS \
     $$ENCRYPTION_PLUGINS \
     $$ENCRYPTEDSTORAGE_PLUGINS \
     $$AUTHENTICATION_PLUGINS \
     $$CRYPTO_PLUGINS \
+    $$CRYPTOKI_PLUGINS \
     testplugins
