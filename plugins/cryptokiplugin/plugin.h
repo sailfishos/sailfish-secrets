@@ -50,7 +50,7 @@ public:
     QString name() const Q_DECL_OVERRIDE { return QLatin1String("org.sailfishos.crypto.plugin.cryptoki"); }
     bool canStoreKeys() const Q_DECL_OVERRIDE { return false; }
 
-    Sailfish::Crypto::CryptoPlugin::EncryptionType encryptionType() const Q_DECL_OVERRIDE { return Sailfish::Crypto::CryptoPlugin::SoftwareEncryption; }
+    Sailfish::Crypto::CryptoPlugin::EncryptionType encryptionType() const Q_DECL_OVERRIDE { return Sailfish::Crypto::CryptoPlugin::SecurePeripheralEncryption; }
 
     //TODO: Add GOST in Algorithm
     QVector<Sailfish::Crypto::Key::Algorithm> supportedAlgorithms() const Q_DECL_OVERRIDE;

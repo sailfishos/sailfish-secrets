@@ -1,6 +1,6 @@
 TEMPLATE=lib
 CONFIG+=plugin
-TARGET=cryptoki
+TARGET=sailfishcrypto-cryptoki
 TARGET = $$qtLibraryTarget($$TARGET)
 
 include($$PWD/../../common.pri)

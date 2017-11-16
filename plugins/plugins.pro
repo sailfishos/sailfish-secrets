@@ -14,9 +14,7 @@ AUTHENTICATION_PLUGINS = \
     inappauthplugin
 
 CRYPTO_PLUGINS = \
-    opensslcryptoplugin
-
-CRYPTOKI_PLUGINS = \
+    opensslcryptoplugin \
     cryptokiplugin
 
 SUBDIRS+=\

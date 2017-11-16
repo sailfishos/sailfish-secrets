@@ -18,7 +18,6 @@
 #include <QtCore/QMap>
 #include <QtCore/QVector>
 #include <QtCore/QString>
-#include <QtCore/QUuid>
 #include <QtCore/QCryptographicHash>
 
 Q_PLUGIN_METADATA(IID Sailfish_Crypto_CryptoPlugin_IID)

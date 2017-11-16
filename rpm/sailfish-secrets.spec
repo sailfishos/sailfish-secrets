@@ -159,6 +159,7 @@ rm -rf %{buildroot}
 %files -n sailfishcryptodaemonplugins
 %defattr(-,root,root,-)
 %{_libdir}/sailfishcrypto/libsailfishcrypto-openssl.so
+%{_libdir}/sailfishcrypto/libsailfishcrypto-cryptoki.so
 
 %files tests
 %defattr(-,root,root,-)
