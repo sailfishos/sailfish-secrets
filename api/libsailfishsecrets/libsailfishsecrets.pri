@@ -1,7 +1,7 @@
 CONFIG += qt
 QT += dbus
 
-LIBS += -L$$PWD -lsailfishsecrets
+LIBS += -L$$shadowed($$PWD) -lsailfishsecrets
 
 INCLUDEPATH += $$PWD
 DEPENDPATH = $$INCLUDEPATH
