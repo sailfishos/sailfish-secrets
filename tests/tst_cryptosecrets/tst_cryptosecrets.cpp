@@ -79,6 +79,7 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
     keyTemplate.setSignaturePaddings(Sailfish::Crypto::Key::SignaturePaddingNone);
     keyTemplate.setDigests(Sailfish::Crypto::Key::DigestSha256);
     keyTemplate.setOperations(Sailfish::Crypto::Key::Encrypt | Sailfish::Crypto::Key::Decrypt);
+    keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
 
     // first, create the collection via the Secrets API.
     QDBusPendingReply<Sailfish::Secrets::Result> secretsreply = sm.createCollection(

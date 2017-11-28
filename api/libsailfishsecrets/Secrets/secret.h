@@ -24,6 +24,7 @@ namespace Secrets {
 
 class SAILFISH_SECRETS_API Secret {
 public:
+    static const QString FilterDataFieldType;
     static const QString TypeUnknown;
     static const QString TypeBlob;
     static const QString TypeCryptoKey;
@@ -70,15 +71,26 @@ public:
         QString m_collectionName;
     };
 
-    Secret(const Secret &other) : m_identifier(other.m_identifier), m_data(other.m_data) {}
+    class FilterData : public QMap<QString,QString> {
+    // this exists solely to prevent Qt's metatype system from erroring on duplicate registration
+    public:
+        FilterData(const QMap<QString,QString> &v) : QMap<QString,QString>(v) {}
+        FilterData() = default;
+        FilterData(const Sailfish::Secrets::Secret::FilterData &) = default;
+        FilterData(Sailfish::Secrets::Secret::FilterData &&) = default;
+        FilterData &operator=(const Sailfish::Secrets::Secret::FilterData &) = default;
+    };
+
+    Secret(const Secret &other) : m_filterData(other.m_filterData), m_identifier(other.m_identifier), m_data(other.m_data) {}
     Secret(const Sailfish::Secrets::Secret::Identifier &identifier)
         : m_identifier(identifier) { setType(TypeUnknown); }
-    Secret(const QByteArray &blob)
-        : m_data(blob) { setType(TypeBlob); }
+    Secret(const QByteArray &blob, const Sailfish::Secrets::Secret::FilterData &filterData = Sailfish::Secrets::Secret::FilterData())
+        : m_filterData(filterData), m_data(blob) { setType(TypeBlob); }
     Secret() = default;
     Secret(Sailfish::Secrets::Secret &&) = default;
 
     Secret &operator=(const Sailfish::Secrets::Secret &other) {
+        m_filterData = other.m_filterData;
         m_identifier = other.m_identifier;
         m_data = other.m_data;
         return *this;
@@ -93,10 +105,11 @@ public:
             return true;
         if ( m_data < other.m_data)
             return true;
+        return m_filterData.size() < other.m_filterData.size();
     }
 
-    QString type() const { return m_type; }
-    void setType(const QString &type) { m_type = type; }
+    QString type() const { return m_filterData.value(FilterDataFieldType, TypeUnknown); }
+    void setType(const QString &type) { m_filterData.insert(FilterDataFieldType, type); }
 
     Sailfish::Secrets::Secret::Identifier identifier() const { return m_identifier; }
     void setIdentifier(const Sailfish::Secrets::Secret::Identifier &identifier) { m_identifier = identifier; }
@@ -104,9 +117,15 @@ public:
     QByteArray data() const { return m_data; }
     void setData(const QByteArray &data) { m_data = data; }
 
+    Sailfish::Secrets::Secret::FilterData filterData() const { return m_filterData; }
+    void setFilterData(const Sailfish::Secrets::Secret::FilterData &filterData) { m_filterData = filterData; }
+    void setFilterData(const QString &field, const QString &value) { m_filterData.insert(field, value); }
+    QString filterData(const QString &field) const { return m_filterData.value(field); }
+    bool hasFilterData(const QString &field) const { return m_filterData.contains(field); }
+
 private:
+    Sailfish::Secrets::Secret::FilterData m_filterData;
     Sailfish::Secrets::Secret::Identifier m_identifier;
-    QString m_type;
     QByteArray m_data;
 };
 
@@ -120,6 +139,8 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
 
 } // namespace Sailfish
 
+Q_DECLARE_METATYPE(Sailfish::Secrets::Secret::FilterData);
+Q_DECLARE_TYPEINFO(Sailfish::Secrets::Secret::FilterData, Q_MOVABLE_TYPE);
 Q_DECLARE_METATYPE(Sailfish::Secrets::Secret::Identifier);
 Q_DECLARE_TYPEINFO(Sailfish::Secrets::Secret::Identifier, Q_MOVABLE_TYPE);
 Q_DECLARE_METATYPE(Sailfish::Secrets::Secret);

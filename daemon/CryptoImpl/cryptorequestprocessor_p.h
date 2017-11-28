@@ -158,7 +158,8 @@ public Q_SLOTS:
     void secretsStoredKeyCompleted(
             quint64 requestId,
             const Sailfish::Secrets::Result &result,
-            const QByteArray &serialisedKey);
+            const QByteArray &serialisedKey,
+            const QMap<QString, QString> &filterData);
 
     void secretsDeleteStoredKeyCompleted(
             quint64 requestId,
@@ -185,7 +186,8 @@ private:
     void storedKey2(
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
-            const QByteArray &serialisedKey);
+            const QByteArray &serialisedKey,
+            const QMap<QString, QString> &filterData);
 
     void generateStoredKey_inStoragePlugin(
             pid_t callerPid,

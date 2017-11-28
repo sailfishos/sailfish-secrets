@@ -91,6 +91,8 @@ void tst_secrets::writeReadDeleteDeviceLockCollectionSecret()
                     QLatin1String("testcollection")));
     testSecret.setData("testsecretvalue");
     testSecret.setType(Sailfish::Secrets::Secret::TypeBlob);
+    testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
+    testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
     reply = m.setSecret(
                 testSecret,
                 Sailfish::Secrets::SecretManager::InProcessUserInteractionMode);
@@ -105,6 +107,7 @@ void tst_secrets::writeReadDeleteDeviceLockCollectionSecret()
     QVERIFY(secretReply.isValid());
     QCOMPARE(secretReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
     QCOMPARE(secretReply.argumentAt<1>().data(), testSecret.data());
+    QCOMPARE(secretReply.argumentAt<1>().filterData(), testSecret.filterData());
 
     // delete the secret
     reply = m.deleteSecret(
@@ -137,6 +140,8 @@ void tst_secrets::writeReadDeleteStandaloneDeviceLockSecret()
     Sailfish::Secrets::Secret testSecret(Sailfish::Secrets::Secret::Identifier("testsecretname"));
     testSecret.setData("testsecretvalue");
     testSecret.setType(Sailfish::Secrets::Secret::TypeBlob);
+    testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
+    testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
     QDBusPendingReply<Sailfish::Secrets::Result> reply = m.setSecret(
                 Sailfish::Secrets::SecretManager::DefaultStoragePluginName,
                 Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName,
@@ -232,6 +237,8 @@ void tst_secrets::writeReadDeleteCustomLockCollectionSecret()
                     QLatin1String("testcollection")));
     testSecret.setData("testsecretvalue");
     testSecret.setType(Sailfish::Secrets::Secret::TypeBlob);
+    testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
+    testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
     reply = m.setSecret(
                 testSecret,
                 Sailfish::Secrets::SecretManager::InProcessUserInteractionMode);
@@ -283,6 +290,8 @@ void tst_secrets::writeReadDeleteStandaloneCustomLockSecret()
     Sailfish::Secrets::Secret testSecret(Sailfish::Secrets::Secret::Identifier(QLatin1String("testsecretname")));
     testSecret.setData("testsecretvalue");
     testSecret.setType(Sailfish::Secrets::Secret::TypeBlob);
+    testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
+    testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
     QDBusPendingReply<Sailfish::Secrets::Result> reply = m.setSecret(
                 Sailfish::Secrets::SecretManager::DefaultStoragePluginName,
                 Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName,

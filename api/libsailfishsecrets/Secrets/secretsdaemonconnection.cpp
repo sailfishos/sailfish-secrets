@@ -165,6 +165,7 @@ void Sailfish::Secrets::SecretsDaemonConnection::registerDBusTypes()
     qRegisterMetaType<Sailfish::Secrets::Result>("Sailfish::Secrets::Result");
     qRegisterMetaType<Sailfish::Secrets::Secret>("Sailfish::Secrets::Secret");
     qRegisterMetaType<Sailfish::Secrets::Secret::Identifier>("Sailfish::Secrets::Secret::Identifier");
+    qRegisterMetaType<Sailfish::Secrets::Secret::FilterData>("Sailfish::Secrets::Secret::FilterData");
     qRegisterMetaType<Sailfish::Secrets::UiRequest>("Sailfish::Secrets::UiRequest");
     qRegisterMetaType<Sailfish::Secrets::UiResponse>("Sailfish::Secrets::UiResponse");
 
@@ -184,6 +185,7 @@ void Sailfish::Secrets::SecretsDaemonConnection::registerDBusTypes()
     qDBusRegisterMetaType<Sailfish::Secrets::Secret>();
     qDBusRegisterMetaType<Sailfish::Secrets::Secret::Identifier>();
     qDBusRegisterMetaType<QVector<Sailfish::Secrets::Secret::Identifier> >();
+    qDBusRegisterMetaType<Sailfish::Secrets::Secret::FilterData>();
     qDBusRegisterMetaType<Sailfish::Secrets::UiRequest>();
     qDBusRegisterMetaType<Sailfish::Secrets::UiResponse>();
 }

@@ -71,6 +71,7 @@ void tst_crypto::generateKeyEncryptDecrypt()
     keyTemplate.setSignaturePaddings(Sailfish::Crypto::Key::SignaturePaddingNone);
     keyTemplate.setDigests(Sailfish::Crypto::Key::DigestSha256);
     keyTemplate.setOperations(Sailfish::Crypto::Key::Encrypt | Sailfish::Crypto::Key::Decrypt);
+    keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
 
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> reply = cm.generateKey(
             keyTemplate,
@@ -80,6 +81,7 @@ void tst_crypto::generateKeyEncryptDecrypt()
     QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
     Sailfish::Crypto::Key fullKey = reply.argumentAt<1>();
     QVERIFY(!fullKey.secretKey().isEmpty());
+    QCOMPARE(fullKey.filterData(), keyTemplate.filterData());
 
     // test encrypting some plaintext with the generated key
     QByteArray plaintext = "Test plaintext data";

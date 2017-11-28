@@ -9,6 +9,9 @@
 #include "Crypto/key_p.h"
 #include "Crypto/x509certificate.h"
 
+#define SAILFISH_SECRETS_SECRET_FILTERDATAFIELDTYPE QLatin1String("Type")
+#define SAILFISH_SECRETS_SECRET_TYPECRYPTOKEY QLatin1String("CryptoKey")
+
 Sailfish::Crypto::KeyData::KeyData()
     : m_origin(Sailfish::Crypto::Key::OriginUnknown)
     , m_algorithm(Sailfish::Crypto::Key::AlgorithmUnknown)
@@ -18,10 +21,12 @@ Sailfish::Crypto::KeyData::KeyData()
     , m_digests(Sailfish::Crypto::Key::DigestUnknown)
     , m_operations(Sailfish::Crypto::Key::OperationUnknown)
 {
+    m_filterData.insert(SAILFISH_SECRETS_SECRET_FILTERDATAFIELDTYPE, SAILFISH_SECRETS_SECRET_TYPECRYPTOKEY);
 }
 
 Sailfish::Crypto::KeyData::KeyData(const KeyData &other)
-    : m_customParameters(other.m_customParameters)
+    : m_filterData(other.m_filterData)
+    , m_customParameters(other.m_customParameters)
     , m_publicKey(other.m_publicKey)
     , m_privateKey(other.m_privateKey)
     , m_secretKey(other.m_secretKey)
@@ -41,6 +46,7 @@ Sailfish::Crypto::KeyData::KeyData(const KeyData &other)
 Sailfish::Crypto::KeyData &Sailfish::Crypto::KeyData::operator=(const KeyData &other)
 {
     if (this != &other) {
+        m_filterData = other.m_filterData;
         m_customParameters = other.m_customParameters;
         m_publicKey = other.m_publicKey;
         m_privateKey = other.m_privateKey;
@@ -61,7 +67,8 @@ Sailfish::Crypto::KeyData &Sailfish::Crypto::KeyData::operator=(const KeyData &o
 
 bool Sailfish::Crypto::KeyData::identical(const Sailfish::Crypto::KeyData &other) const
 {
-    return m_customParameters == other.m_customParameters
+    return m_filterData == other.m_filterData
+        && m_customParameters == other.m_customParameters
         && m_publicKey == other.m_publicKey
         && m_privateKey == other.m_privateKey
         && m_secretKey == other.m_secretKey
@@ -124,6 +131,7 @@ Sailfish::Crypto::Key::Key()
 Sailfish::Crypto::Key::Key(const Sailfish::Crypto::Key &other)
     : m_data(new Sailfish::Crypto::KeyData)
 {
+    setFilterData(other.filterData());
     setCustomParameters(other.customParameters());
     setPublicKey(other.publicKey());
     setPrivateKey(other.privateKey());
@@ -159,6 +167,7 @@ Sailfish::Crypto::Key::Key(const QString &name, const QString &collection)
 Sailfish::Crypto::Key& Sailfish::Crypto::Key::operator=(const Sailfish::Crypto::Key &other)
 {
     if (this != &other) {
+        setFilterData(other.filterData());
         setCustomParameters(other.customParameters());
         setPublicKey(other.publicKey());
         setPrivateKey(other.privateKey());
@@ -459,4 +468,65 @@ Sailfish::Crypto::Key::fromCertificate(const Sailfish::Crypto::Certificate &cert
     // etc.
 
     return retn;
+}
+
+/*!
+ * \brief Returns the filter data associated with this key.
+ *
+ * Other clients can use the filter data to find this key,
+ * if they have permission to access it.  The filter data
+ * is a simple map of string field to string value.
+ */
+Sailfish::Crypto::Key::FilterData
+Sailfish::Crypto::Key::filterData() const
+{
+    return m_data->m_filterData;
+}
+
+/*!
+ * \brief Returns the filter data value for the given \a field.
+ */
+QString
+Sailfish::Crypto::Key::filterData(const QString &field) const
+{
+    return m_data->m_filterData.value(field);
+}
+
+/*!
+ * \brief Replaces the filter data in this key with the given \a data.
+ *
+ * Note that the field "Type" will always have the value "CryptoKey"
+ * and this field value cannot be overwritten.
+ */
+void
+Sailfish::Crypto::Key::setFilterData(const Sailfish::Crypto::Key::FilterData &data)
+{
+    Sailfish::Crypto::Key::FilterData v(data);
+    v.insert(SAILFISH_SECRETS_SECRET_FILTERDATAFIELDTYPE, SAILFISH_SECRETS_SECRET_TYPECRYPTOKEY);
+    m_data->m_filterData = v;
+}
+
+/*!
+ * \brief Sets filter data for the given \a field to the given \a value.
+ *
+ * Note that the field "Type" will always have the value "CryptoKey"
+ * and this field value cannot be overwritten.
+ */
+void
+Sailfish::Crypto::Key::setFilterData(const QString &field, const QString &value)
+{
+    if (field.compare(SAILFISH_SECRETS_SECRET_FILTERDATAFIELDTYPE, Qt::CaseInsensitive) != 0) {
+        m_data->m_filterData.insert(field, value);
+    }
+}
+
+/*!
+ * \brief Returns true if the key has a filter data value specified for the given \a field.
+ *
+ * Note that this function will always return true for the field "Type".
+ */
+bool
+Sailfish::Crypto::Key::hasFilterData(const QString &field)
+{
+    return m_data->m_filterData.contains(field);
 }

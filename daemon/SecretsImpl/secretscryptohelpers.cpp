@@ -355,6 +355,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storeKey(
         quint64 cryptoRequestId,
         const Sailfish::Crypto::Key::Identifier &identifier,
         const QByteArray &serialisedKey,
+        const QMap<QString, QString> &filterData,
         const QString &storagePluginName)
 {
     // step one: check if the Collection is stored in the storagePluginName, else return fail.
@@ -369,6 +370,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storeKey(
 
     // step two: perform the "set collection secret" request, as a secrets-for-crypto request.
     Sailfish::Secrets::Secret secret(Sailfish::Secrets::Secret::Identifier(identifier.name(), identifier.collectionName()));
+    secret.setFilterData(filterData);
     secret.setType(Sailfish::Secrets::Secret::TypeCryptoKey);
     secret.setData(serialisedKey);
     QList<QVariant> inParams;
@@ -443,9 +445,11 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storedKey(
         pid_t callerPid,
         quint64 cryptoRequestId,
         const Sailfish::Crypto::Key::Identifier &identifier,
-        QByteArray *serialisedKey)
+        QByteArray *serialisedKey,
+        QMap<QString, QString> *filterData)
 {
     Q_UNUSED(serialisedKey); // this request is always asynchronous
+    Q_UNUSED(filterData);
 
     // perform the "get collection secret" request, as a secrets-for-crypto request.
     QList<QVariant> inParams;
@@ -481,7 +485,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::asynchronousCryptoReque
     switch (type) {
         case StoredKeyCryptoApiHelperRequest: {
             Sailfish::Secrets::Secret secret = parameters.size() ? parameters.first().value<Sailfish::Secrets::Secret>() : Sailfish::Secrets::Secret();
-            emit storedKeyCompleted(cryptoRequestId, result, secret.data());
+            emit storedKeyCompleted(cryptoRequestId, result, secret.data(), secret.filterData());
             break;
         }
         case DeleteStoredKeyCryptoApiHelperRequest: {

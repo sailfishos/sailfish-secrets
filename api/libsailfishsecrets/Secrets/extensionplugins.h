@@ -9,6 +9,7 @@
 #define LIBSAILFISHSECRETS_EXTENSIONPLUGINS_H
 
 #include "Secrets/secretsglobal.h"
+#include "Secrets/secret.h"
 #include "Secrets/result.h"
 
 #include <QtCore/QObject>
@@ -104,8 +105,8 @@ public:
 
     virtual Sailfish::Secrets::Result createCollection(const QString &collectionName) = 0;
     virtual Sailfish::Secrets::Result removeCollection(const QString &collectionName) = 0;
-    virtual Sailfish::Secrets::Result setSecret(const QString &collectionName, const QString &hashedSecretName, const QByteArray &encryptedSecretName, const QByteArray &secret) = 0;
-    virtual Sailfish::Secrets::Result getSecret(const QString &collectionName, const QString &hashedSecretName, QByteArray *encryptedSecretName, QByteArray *secret) = 0;
+    virtual Sailfish::Secrets::Result setSecret(const QString &collectionName, const QString &hashedSecretName, const QByteArray &encryptedSecretName, const QByteArray &secret, const Sailfish::Secrets::Secret::FilterData &filterData) = 0;
+    virtual Sailfish::Secrets::Result getSecret(const QString &collectionName, const QString &hashedSecretName, QByteArray *encryptedSecretName, QByteArray *secret, Sailfish::Secrets::Secret::FilterData *filterData) = 0;
     virtual Sailfish::Secrets::Result removeSecret(const QString &collectionName, const QString &hashedSecretName) = 0;
 
     virtual Sailfish::Secrets::Result reencryptSecrets(
@@ -157,12 +158,12 @@ public:
     virtual Sailfish::Secrets::Result setEncryptionKey(const QString &collectionName, const QByteArray &key) = 0;
     virtual Sailfish::Secrets::Result reencrypt(const QString &collectionName, const QByteArray &oldkey, const QByteArray &newkey) = 0;
 
-    virtual Sailfish::Secrets::Result setSecret(const QString &collectionName, const QString &hashedSecretName, const QString &secretName, const QByteArray &secret) = 0;
-    virtual Sailfish::Secrets::Result getSecret(const QString &collectionName, const QString &hashedSecretName, QString *secretName, QByteArray *secret) = 0;
+    virtual Sailfish::Secrets::Result setSecret(const QString &collectionName, const QString &hashedSecretName, const QString &secretName, const QByteArray &secret, const Sailfish::Secrets::Secret::FilterData &filterData) = 0;
+    virtual Sailfish::Secrets::Result getSecret(const QString &collectionName, const QString &hashedSecretName, QString *secretName, QByteArray *secret, Sailfish::Secrets::Secret::FilterData *filterData) = 0;
     virtual Sailfish::Secrets::Result removeSecret(const QString &collectionName, const QString &hashedSecretName) = 0;
 
-    virtual Sailfish::Secrets::Result setSecret(const QString &collectionName, const QString &hashedSecretName, const QString &secretName, const QByteArray &secret, const QByteArray &key) = 0;
-    virtual Sailfish::Secrets::Result accessSecret(const QString &collectionName, const QString &hashedSecretName, const QByteArray &key, QString *secretName, QByteArray *secret) = 0;
+    virtual Sailfish::Secrets::Result setSecret(const QString &collectionName, const QString &hashedSecretName, const QString &secretName, const QByteArray &secret, const Sailfish::Secrets::Secret::FilterData &filterData, const QByteArray &key) = 0;
+    virtual Sailfish::Secrets::Result accessSecret(const QString &collectionName, const QString &hashedSecretName, const QByteArray &key, QString *secretName, QByteArray *secret, Sailfish::Secrets::Secret::FilterData *filterData) = 0;
 };
 
 class EncryptedStoragePluginInfoPrivate;

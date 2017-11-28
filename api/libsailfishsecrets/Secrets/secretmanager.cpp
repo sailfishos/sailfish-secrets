@@ -25,9 +25,10 @@
 
 Q_LOGGING_CATEGORY(lcSailfishSecrets, "org.sailfishos.secrets")
 
+const QString Sailfish::Secrets::Secret::FilterDataFieldType = QStringLiteral("Type");
 const QString Sailfish::Secrets::Secret::TypeUnknown = QStringLiteral("Unknown");
 const QString Sailfish::Secrets::Secret::TypeBlob = QStringLiteral("Blob");
-const QString Sailfish::Secrets::Secret::TypeCryptoKey = QStringLiteral("CryptoKey");
+const QString Sailfish::Secrets::Secret::TypeCryptoKey = QStringLiteral("CryptoKey"); // Do not change this without updating Crypto::Key.cpp
 const QString Sailfish::Secrets::Secret::TypeCryptoCertificate = QStringLiteral("CryptoCertificate");
 const QString Sailfish::Secrets::Secret::TypeUsernamePassword = QStringLiteral("UsernamePassword");
 
@@ -375,6 +376,10 @@ Sailfish::Secrets::SecretManager::deleteCollection(
 /*!
  * \brief Requests the Secrets service to store the given \a secret into a particular collection.
  *
+ * Note that the filter data defined in the secret will be encrypted
+ * prior to storage only if the collection is stored by an EncryptedStoragePlugin;
+ * otherwise, only the identifier and data will be stored in encrypted form.
+ *
  * If the calling application is the creator of the collection specified in the
  * secret's identifier, or alternatively if the user has granted the application
  * permission to modify that collection and either there are no special access controls
@@ -441,6 +446,9 @@ Sailfish::Secrets::SecretManager::setSecret(
  * encrypted with an encryption key derived from the system device lock, which
  * will be locked and unlocked according to the given \a unlockSemantic.
  *
+ * Note that the filter data defined in the secret will not be encrypted
+ * prior to storage; only the identifier and data will be stored in encrypted form.
+ *
  * If the standalone secret already exists and was created by another application,
  * but the \a accessControlMode is \c OwnerOnlyMode, the request will fail,
  * as applications are not able to steal ownership from other applications.
@@ -501,6 +509,9 @@ Sailfish::Secrets::SecretManager::setSecret(
  * into the storage plugin identified by the given \a storagePluginName after ensuring
  * the secret is encrypted by the encryption plugin identified by the given
  * \a encryptionPluginName.
+ *
+ * Note that the filter data defined in the secret will not be encrypted
+ * prior to storage; only the identifier and data will be stored in encrypted form.
  *
  * If the standalone secret already exists and was created by another application,
  * but the \a accessControlMode is \c OwnerOnlyMode, the request will fail,

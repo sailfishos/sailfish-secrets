@@ -84,7 +84,7 @@ class SecretsDBusObject : public QObject, protected QDBusContext
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
     "      </method>\n"
     "      <method name=\"setSecret\">\n"
-    "          <arg name=\"secret\" type=\"((ss)ays)\" direction=\"in\" />\n"
+    "          <arg name=\"secret\" type=\"((ss)aya{sv})\" direction=\"in\" />\n"
     "          <arg name=\"userInteractionMode\" type=\"i\" direction=\"in\" />\n"
     "          <arg name=\"uiServiceAddress\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
@@ -95,7 +95,7 @@ class SecretsDBusObject : public QObject, protected QDBusContext
     "      <method name=\"setSecret\">\n"
     "          <arg name=\"storagePluginName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"encryptionPluginName\" type=\"s\" direction=\"in\" />\n"
-    "          <arg name=\"secret\" type=\"((ss)ays)\" direction=\"in\" />\n"
+    "          <arg name=\"secret\" type=\"((ss)aya{sv})\" direction=\"in\" />\n"
     "          <arg name=\"unlockSemantic\" type=\"i\" direction=\"in\" />\n"
     "          <arg name=\"accessControlMode\" type=\"i\" direction=\"in\" />\n"
     "          <arg name=\"userInteractionMode\" type=\"i\" direction=\"in\" />\n"
@@ -110,7 +110,7 @@ class SecretsDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"storagePluginName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"encryptionPluginName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"authenticationPluginName\" type=\"s\" direction=\"in\" />\n"
-    "          <arg name=\"secret\" type=\"((ss)ays)\" direction=\"in\" />\n"
+    "          <arg name=\"secret\" type=\"((ss)aya{sv})\" direction=\"in\" />\n"
     "          <arg name=\"unlockSemantic\" type=\"i\" direction=\"in\" />\n"
     "          <arg name=\"customLockTimeoutMs\" type=\"i\" direction=\"in\" />\n"
     "          <arg name=\"accessControlMode\" type=\"i\" direction=\"in\" />\n"
@@ -128,7 +128,7 @@ class SecretsDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"userInteractionMode\" type=\"i\" direction=\"in\" />\n"
     "          <arg name=\"uiServiceAddress\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
-    "          <arg name=\"secret\" type=\"((ss)ays)\" direction=\"out\" />\n"
+    "          <arg name=\"secret\" type=\"((ss)aya{sv})\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Secrets::Secret::Identifier\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Secrets::SecretManager::UserInteractionMode\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
@@ -274,13 +274,13 @@ public: // Crypto API helper methods.
     Sailfish::Secrets::Result addKeyEntry(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, const QString &cryptoPluginName, const QString &storagePluginName);
     Sailfish::Secrets::Result removeKeyEntry(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier);
     // the others are asynchronous methods:
-    Sailfish::Secrets::Result storedKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, QByteArray *serialisedKey);
-    Sailfish::Secrets::Result storeKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, const QByteArray &serialisedKey, const QString &storagePluginName);
+    Sailfish::Secrets::Result storedKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, QByteArray *serialisedKey, QMap<QString, QString> *filterData);
+    Sailfish::Secrets::Result storeKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, const QByteArray &serialisedKey, const QMap<QString, QString> &filterData, const QString &storagePluginName);
     Sailfish::Secrets::Result storeKeyMetadata(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, const QString &storagePluginName);
     Sailfish::Secrets::Result deleteStoredKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier);
     Sailfish::Secrets::Result deleteStoredKeyMetadata(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier);
 Q_SIGNALS:
-    void storedKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &serialisedKey);
+    void storedKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &serialisedKey, const QMap<QString,QString> &filterData);
     void storeKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
     void storeKeyMetadataCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
     void deleteStoredKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);

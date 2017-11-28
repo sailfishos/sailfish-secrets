@@ -204,7 +204,8 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::generateStoredKey(
                     callerPid,
                     requestId,
                     fullKey.identifier(),
-                    Sailfish::Crypto::Key::serialise(fullKey),
+                    Sailfish::Crypto::Key::serialise(fullKey, Sailfish::Crypto::Key::DoNotSerialiseFilterDataMode),
+                    fullKey.filterData(),
                     storageProviderName);
         if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
             // return storeKey error to the client.
@@ -439,7 +440,8 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::storedKey(
     }
 
     QByteArray serialisedKey;
-    secretsResult = m_secrets->storedKey(callerPid, requestId, identifier, &serialisedKey);
+    QMap<QString, QString> filterData;
+    secretsResult = m_secrets->storedKey(callerPid, requestId, identifier, &serialisedKey, &filterData);
     if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
         retn.setCode(Sailfish::Crypto::Result::Failed);
         retn.setErrorCode(Sailfish::Crypto::Result::StorageError);
@@ -459,6 +461,7 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::storedKey(
     }
 
     *key = Sailfish::Crypto::Key::deserialise(serialisedKey);
+    key->setFilterData(filterData);
     return retn;
 }
 
@@ -466,12 +469,16 @@ void
 Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::storedKey2(
         quint64 requestId,
         const Sailfish::Crypto::Result &result,
-        const QByteArray &serialisedKey)
+        const QByteArray &serialisedKey,
+        const QMap<QString, QString> &filterData)
 {
+    Sailfish::Crypto::Key retn(Sailfish::Crypto::Key::deserialise(serialisedKey));
+    retn.setFilterData(filterData);
+
     // finish the request.
     QList<QVariant> outParams;
     outParams << QVariant::fromValue<Sailfish::Crypto::Result>(result);
-    outParams << QVariant::fromValue<Sailfish::Crypto::Key>(Sailfish::Crypto::Key::deserialise(serialisedKey));
+    outParams << QVariant::fromValue<Sailfish::Crypto::Key>(retn);
     m_requestQueue->requestFinished(requestId, outParams);
 }
 
@@ -611,7 +618,8 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::sign(
         }
 
         QByteArray serialisedKey;
-        secretsResult = m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey);
+        QMap<QString, QString> filterData;
+        secretsResult = m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData);
         if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
             Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Failed);
             retn.setErrorCode(Sailfish::Crypto::Result::StorageError);
@@ -719,7 +727,8 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::verify(
         }
 
         QByteArray serialisedKey;
-        secretsResult = m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey);
+        QMap<QString, QString> filterData;
+        secretsResult = m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData);
         if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
             Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Failed);
             retn.setErrorCode(Sailfish::Crypto::Result::StorageError);
@@ -831,7 +840,8 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::encrypt(
         }
 
         QByteArray serialisedKey;
-        secretsResult = m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey);
+        QMap<QString, QString> filterData;
+        secretsResult = m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData);
         if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
             Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Failed);
             retn.setErrorCode(Sailfish::Crypto::Result::StorageError);
@@ -876,9 +886,16 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::encrypt2(
     QList<QVariant> outParams;
     QByteArray encrypted;
     if (result.code() == Sailfish::Crypto::Result::Succeeded) {
-        Sailfish::Crypto::Key fullKey = Sailfish::Crypto::Key::deserialise(serialisedKey);
-        Sailfish::Crypto::Result cryptoResult = m_cryptoPlugins[cryptoPluginName]->encrypt(data, fullKey, blockMode, padding, digest, &encrypted);
-        outParams << QVariant::fromValue<Sailfish::Crypto::Result>(cryptoResult);
+        bool ok = false;
+        Sailfish::Crypto::Key fullKey = Sailfish::Crypto::Key::deserialise(serialisedKey, &ok);
+        if (!ok) {
+            outParams << QVariant::fromValue<Sailfish::Crypto::Result>(Sailfish::Crypto::Result(
+                                                                           Sailfish::Crypto::Result::SerialisationError,
+                                                                           QLatin1String("Failed to deserialise key!")));
+        } else {
+            Sailfish::Crypto::Result cryptoResult = m_cryptoPlugins[cryptoPluginName]->encrypt(data, fullKey, blockMode, padding, digest, &encrypted);
+            outParams << QVariant::fromValue<Sailfish::Crypto::Result>(cryptoResult);
+        }
     } else {
         outParams << QVariant::fromValue<Sailfish::Crypto::Result>(result);
     }
@@ -945,7 +962,8 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::decrypt(
         }
 
         QByteArray serialisedKey;
-        secretsResult = m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey);
+        QMap<QString, QString> filterData;
+        secretsResult = m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData);
         if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
             Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Failed);
             retn.setErrorCode(Sailfish::Crypto::Result::StorageError);
@@ -1005,7 +1023,8 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::decrypt2(
 void Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
         quint64 requestId,
         const Sailfish::Secrets::Result &result,
-        const QByteArray &serialisedKey)
+        const QByteArray &serialisedKey,
+        const QMap<QString, QString> &filterData)
 {
     // look up the pending request in our list
     if (m_pendingRequests.contains(requestId)) {
@@ -1024,7 +1043,7 @@ void Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::secretsStoredKeyComple
         Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::PendingRequest pr = m_pendingRequests.take(requestId);
         switch (pr.requestType) {
             case StoredKeyRequest: {
-                storedKey2(requestId, returnResult, serialisedKey);
+                storedKey2(requestId, returnResult, serialisedKey, filterData);
                 break;
             }
             case SignRequest: {

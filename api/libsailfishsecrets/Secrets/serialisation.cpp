@@ -118,7 +118,7 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secret &secret)
 {
     argument.beginStructure();
-    argument << secret.identifier() << secret.data() << secret.type();
+    argument << secret.identifier() << secret.data() << secret.filterData();
     argument.endStructure();
     return argument;
 }
@@ -127,15 +127,15 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
 {
     Sailfish::Secrets::Secret::Identifier identifier;
     QByteArray data;
-    QString type;
+    QMap<QString,QString> metadata;
 
     argument.beginStructure();
-    argument >> identifier >> data >> type;
+    argument >> identifier >> data >> metadata;
     argument.endStructure();
 
     secret.setIdentifier(identifier);
     secret.setData(data);
-    secret.setType(type);
+    secret.setFilterData(Sailfish::Secrets::Secret::FilterData(metadata));
     return argument;
 }
 

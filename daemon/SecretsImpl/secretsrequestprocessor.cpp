@@ -1542,7 +1542,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithAut
                                                  QString::fromLatin1("The authentication key entered for collection %1 was incorrect").arg(secret.identifier().collectionName()));
             } else {
                 // successfully unlocked the encrypted storage collection.  write the secret.
-                pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->setSecret(secret.identifier().collectionName(), hashedSecretName, secret.identifier().name(), secret.data());
+                pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->setSecret(secret.identifier().collectionName(), hashedSecretName, secret.identifier().name(), secret.data(), secret.filterData());
             }
         }
     } else {
@@ -1556,7 +1556,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithAut
         if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
             pluginResult = m_encryptionPlugins[collectionEncryptionPluginName]->encryptSecret(secret.identifier().name().toUtf8(), m_collectionAuthenticationKeys.value(secret.identifier().collectionName()), &encryptedName);
             if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
-                pluginResult = m_storagePlugins[collectionStoragePluginName]->setSecret(secret.identifier().collectionName(), hashedSecretName, encryptedName, encrypted);
+                pluginResult = m_storagePlugins[collectionStoragePluginName]->setSecret(secret.identifier().collectionName(), hashedSecretName, encryptedName, encrypted, secret.filterData());
             }
         }
     }
@@ -1794,14 +1794,14 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSec
     Sailfish::Secrets::Result pluginResult;
     if (storagePluginName == encryptionPluginName) {
         // TODO: does the following work?  We'd need to add methods to the encrypted storage plugin: re-encryptStandaloneSecrets or something...
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, secret.identifier().name(), secret.data(), DeviceLockKey);
+        pluginResult = m_encryptedStoragePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, secret.identifier().name(), secret.data(), secret.filterData(), DeviceLockKey);
     } else {
         QByteArray encrypted, encryptedName;
         pluginResult = m_encryptionPlugins[encryptionPluginName]->encryptSecret(secret.data(), DeviceLockKey, &encrypted);
         if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
             pluginResult = m_encryptionPlugins[encryptionPluginName]->encryptSecret(secret.identifier().name().toUtf8(), DeviceLockKey, &encryptedName);
             if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
-                pluginResult = m_storagePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, encryptedName, encrypted);
+                pluginResult = m_storagePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, encryptedName, encrypted, secret.filterData());
                 if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
                     m_standaloneSecretAuthenticationKeys.insert(hashedSecretName, DeviceLockKey);
                 }
@@ -2166,14 +2166,14 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
     Sailfish::Secrets::Result pluginResult;
     if (storagePluginName == encryptionPluginName) {
         // TODO: does the following work?  We'd need to add methods to the encrypted storage plugin: re-encryptStandaloneSecrets or something...
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, secret.identifier().name(), secret.data(), authenticationKey);
+        pluginResult = m_encryptedStoragePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, secret.identifier().name(), secret.data(), secret.filterData(), authenticationKey);
     } else {
         QByteArray encrypted, encryptedName;
         pluginResult = m_encryptionPlugins[encryptionPluginName]->encryptSecret(secret.data(), authenticationKey, &encrypted);
         if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
             pluginResult = m_encryptionPlugins[encryptionPluginName]->encryptSecret(secret.identifier().name().toUtf8(), authenticationKey, &encryptedName);
             if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
-                pluginResult = m_storagePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, encryptedName, encrypted);
+                pluginResult = m_storagePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, encryptedName, encrypted, secret.filterData());
                 if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
                     m_standaloneSecretAuthenticationKeys.insert(hashedSecretName, authenticationKey);
                 }
@@ -2529,8 +2529,10 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithAut
         // successfully unlocked the encrypted storage collection.  read the secret.
         QString secretName;
         QByteArray secretData;
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->getSecret(identifier.collectionName(), hashedSecretName, &secretName, &secretData);
+        Sailfish::Secrets::Secret::FilterData secretFilterdata;
+        pluginResult = m_encryptedStoragePlugins[storagePluginName]->getSecret(identifier.collectionName(), hashedSecretName, &secretName, &secretData, &secretFilterdata);
         secret->setData(secretData);
+        secret->setFilterData(secretFilterdata);
     } else {
         if (!m_collectionAuthenticationKeys.contains(identifier.collectionName())) {
             // TODO: some way to "test" the authenticationKey!  also, if it's a custom lock, set the timeout, etc.
@@ -2538,12 +2540,14 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithAut
         }
 
         QByteArray encrypted, encryptedName;
-        pluginResult = m_storagePlugins[storagePluginName]->getSecret(identifier.collectionName(), hashedSecretName, &encryptedName, &encrypted);
+        Sailfish::Secrets::Secret::FilterData filterData;
+        pluginResult = m_storagePlugins[storagePluginName]->getSecret(identifier.collectionName(), hashedSecretName, &encryptedName, &encrypted, &filterData);
         if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
             QByteArray decrypted;
             pluginResult = m_encryptionPlugins[encryptionPluginName]->decryptSecret(encrypted, m_collectionAuthenticationKeys.value(identifier.collectionName()), &decrypted);
             secret->setData(decrypted);
             secret->setIdentifier(identifier);
+            secret->setFilterData(filterData);
         }
     }
 
@@ -2750,17 +2754,21 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithAut
     if (storagePluginName == encryptionPluginName) {
         QString secretName;
         QByteArray secretData;
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->accessSecret(collectionName, hashedSecretName, authenticationKey, &secretName, &secretData);
+        Sailfish::Secrets::Secret::FilterData secretFilterdata;
+        pluginResult = m_encryptedStoragePlugins[storagePluginName]->accessSecret(collectionName, hashedSecretName, authenticationKey, &secretName, &secretData, &secretFilterdata);
         secret->setIdentifier(identifier);
         secret->setData(secretData);
+        secret->setFilterData(secretFilterdata);
     } else {
         QByteArray encrypted, encryptedName;
-        pluginResult = m_storagePlugins[storagePluginName]->getSecret(collectionName, hashedSecretName, &encryptedName, &encrypted);
+        Sailfish::Secrets::Secret::FilterData filterData;
+        pluginResult = m_storagePlugins[storagePluginName]->getSecret(collectionName, hashedSecretName, &encryptedName, &encrypted, &filterData);
         if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
             QByteArray decrypted;
             pluginResult = m_encryptionPlugins[encryptionPluginName]->decryptSecret(encrypted, authenticationKey, &decrypted);
-            secret->setData(decrypted);
             secret->setIdentifier(identifier);
+            secret->setData(decrypted);
+            secret->setFilterData(filterData);
         }
     }
 
