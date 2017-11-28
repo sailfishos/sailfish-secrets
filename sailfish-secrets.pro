@@ -1,5 +1,5 @@
 TEMPLATE = subdirs
-SUBDIRS = api daemon plugins tests
+SUBDIRS = api daemon plugins tests 3rdparty
 
 daemon.depends = api
 plugins.depends = api
