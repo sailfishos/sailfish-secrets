@@ -143,6 +143,106 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretsreply);
     QVERIFY(secretsreply.isValid());
     QCOMPARE(secretsreply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
+
+    // ensure that the deletion was cascaded to the keyEntries internal database table.
+    decryptReply = cm.decrypt(
+            encrypted,
+            keyReference,
+            Sailfish::Crypto::Key::BlockModeCBC,
+            Sailfish::Crypto::Key::EncryptionPaddingNone,
+            Sailfish::Crypto::Key::DigestSha256,
+            QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"));
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
+    QVERIFY(decryptReply.isValid());
+    QCOMPARE(decryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Failed);
+    QCOMPARE(decryptReply.argumentAt<0>().errorCode(), Sailfish::Crypto::Result::InvalidKeyIdentifier);
+
+    // recreate the collection and the key, and encrypt/decrypt again, then delete via deleteStoredKey().
+    secretsreply = sm.createCollection(
+                QLatin1String("tst_cryptosecrets_gsked"),
+                Sailfish::Secrets::SecretManager::DefaultStoragePluginName,
+                Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName,
+                Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked,
+                Sailfish::Secrets::SecretManager::OwnerOnlyMode);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretsreply);
+    QVERIFY(secretsreply.isValid());
+    QCOMPARE(secretsreply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
+
+    reply = cm.generateStoredKey(
+                keyTemplate,
+                QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"),
+                QLatin1String("org.sailfishos.secrets.plugin.storage.sqlite"));
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
+    QVERIFY(reply.isValid());
+    QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
+    keyReference = reply.argumentAt<1>();
+    QVERIFY(keyReference.secretKey().isEmpty());
+    QVERIFY(keyReference.privateKey().isEmpty());
+
+    encryptReply = cm.encrypt(
+            plaintext,
+            keyReference,
+            Sailfish::Crypto::Key::BlockModeCBC,
+            Sailfish::Crypto::Key::EncryptionPaddingNone,
+            Sailfish::Crypto::Key::DigestSha256,
+            QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"));
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
+    QVERIFY(encryptReply.isValid());
+    QCOMPARE(encryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
+    encrypted = encryptReply.argumentAt<1>();
+    QVERIFY(!encrypted.isEmpty());
+    QVERIFY(encrypted != plaintext);
+
+    decryptReply = cm.decrypt(
+            encrypted,
+            keyReference,
+            Sailfish::Crypto::Key::BlockModeCBC,
+            Sailfish::Crypto::Key::EncryptionPaddingNone,
+            Sailfish::Crypto::Key::DigestSha256,
+            QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"));
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
+    QVERIFY(decryptReply.isValid());
+    QCOMPARE(decryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
+    decrypted = decryptReply.argumentAt<1>();
+    QVERIFY(!decrypted.isEmpty());
+    QCOMPARE(decrypted, plaintext);
+
+    // delete the key via deleteStoredKey, and test that the deletion worked.
+    QDBusPendingReply<Sailfish::Crypto::Result> deleteKeyReply = cm.deleteStoredKey(
+                keyReference.identifier());
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(deleteKeyReply);
+    QVERIFY(deleteKeyReply.isValid());
+    QCOMPARE(deleteKeyReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
+
+    decryptReply = cm.decrypt(
+            encrypted,
+            keyReference,
+            Sailfish::Crypto::Key::BlockModeCBC,
+            Sailfish::Crypto::Key::EncryptionPaddingNone,
+            Sailfish::Crypto::Key::DigestSha256,
+            QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"));
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
+    QVERIFY(decryptReply.isValid());
+    QCOMPARE(decryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Failed);
+    QCOMPARE(decryptReply.argumentAt<0>().errorCode(), Sailfish::Crypto::Result::InvalidKeyIdentifier);
+
+    // ensure that the deletion was cascaded to the Secrets internal database table.
+    QDBusPendingReply<Sailfish::Secrets::Result, QByteArray> secretReply = sm.getSecret(
+            keyReference.identifier().collectionName(),
+            keyReference.identifier().name(),
+            Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretReply);
+    QVERIFY(secretReply.isValid());
+    QCOMPARE(secretReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Failed);
+    QCOMPARE(secretReply.argumentAt<0>().errorCode(), Sailfish::Secrets::Result::InvalidSecretError);
+
+    // clean up by deleting the collection.
+    secretsreply = sm.deleteCollection(
+                QLatin1String("tst_cryptosecrets_gsked"),
+                Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretsreply);
+    QVERIFY(secretsreply.isValid());
+    QCOMPARE(secretsreply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
 }
 
 #include "tst_cryptosecrets.moc"

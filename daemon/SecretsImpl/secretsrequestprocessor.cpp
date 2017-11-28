@@ -40,20 +40,24 @@ namespace {
         rehash.addData(hash);
         return rehash.result();
     }
+}
 
-    QString generateHashedSecretName(const QString &collectionName, const QString &secretName) {
-        QCryptographicHash keyHash(QCryptographicHash::QCryptographicHash::Sha3_256);
-        QByteArray data = collectionName.toUtf8() + secretName.toUtf8();
-        keyHash.addData(data);
-        QByteArray hashed = keyHash.result();
+QString
+Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::generateHashedSecretName(
+        const QString &collectionName,
+        const QString &secretName)
+{
+    QCryptographicHash keyHash(QCryptographicHash::QCryptographicHash::Sha3_256);
+    QByteArray data = collectionName.toUtf8() + secretName.toUtf8();
+    keyHash.addData(data);
+    QByteArray hashed = keyHash.result();
 
-        // do PBKDF style repeated hashing
-        for (int i = 0; i < 100; ++i) {
-            hashed = rehashHash(hashed);
-        }
-
-        return QString::fromLatin1(hashed.toBase64());
+    // do PBKDF style repeated hashing
+    for (int i = 0; i < 100; ++i) {
+        hashed = rehashHash(hashed);
     }
+
+    return QString::fromLatin1(hashed.toBase64());
 }
 
 Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::DatabaseLocker::~DatabaseLocker()
@@ -868,6 +872,307 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollection(
     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded);
 }
 
+// this method is a helper for the crypto API.
+// set just the metadata for a secret in a collection.
+// the actual secret will be stored directly by the crypto plugin.
+Sailfish::Secrets::Result
+Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretMetadata(
+        pid_t callerPid,
+        quint64 requestId,
+        const QString &collectionName,
+        const QString &secretName)
+{
+    Q_UNUSED(requestId) // may be needed in the future for AccessControl.
+
+    if (secretName.isEmpty()) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidSecretError,
+                                         QLatin1String("Empty secret name given"));
+    } else if (collectionName.isEmpty()) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidCollectionError,
+                                         QLatin1String("Empty collection name given"));
+    } else if (collectionName.compare(QStringLiteral("standalone"), Qt::CaseInsensitive) == 0) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidCollectionError,
+                                         QLatin1String("Reserved collection name given"));
+    }
+
+    // TODO: perform access control request to see if the application has permission to write secure storage data.
+    const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
+    const QString callerApplicationId = applicationIsPlatformApplication
+                ? m_appPermissions->platformApplicationId()
+                : m_appPermissions->applicationId(callerPid);
+
+    const QString selectCollectionsQuery = QStringLiteral(
+                 "SELECT"
+                    " ApplicationId,"
+                    " UsesDeviceLockKey,"
+                    " StoragePluginName,"
+                    " EncryptionPluginName,"
+                    " AuthenticationPluginName,"
+                    " UnlockSemantic,"
+                    " CustomLockTimeoutMs,"
+                    " AccessControlMode"
+                  " FROM Collections"
+                  " WHERE CollectionName = ?;"
+             );
+
+    QString errorText;
+    Database::Query sq = m_db->prepare(selectCollectionsQuery, &errorText);
+    if (!errorText.isEmpty()) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
+                                         QString::fromLatin1("Unable to prepare select collections query: %1").arg(errorText));
+    }
+
+    QVariantList values;
+    values << QVariant::fromValue<QString>(collectionName);
+    sq.bindValues(values);
+
+    if (!m_db->execute(sq, &errorText)) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
+                                         QString::fromLatin1("Unable to execute select collections query: %1").arg(errorText));
+    }
+
+    bool found = false;
+    QString collectionApplicationId;
+    bool collectionUsesDeviceLockKey = false;
+    QString collectionStoragePluginName;
+    QString collectionEncryptionPluginName;
+    QString collectionAuthenticationPluginName;
+    int collectionUnlockSemantic = 0;
+    int collectionCustomLockTimeoutMs = 0;
+    Sailfish::Secrets::SecretManager::AccessControlMode collectionAccessControlMode = Sailfish::Secrets::SecretManager::OwnerOnlyMode;
+    if (sq.next()) {
+        found = true;
+        collectionApplicationId = sq.value(0).value<QString>();
+        collectionUsesDeviceLockKey = sq.value(1).value<int>() > 0;
+        collectionStoragePluginName = sq.value(2).value<QString>();
+        collectionEncryptionPluginName = sq.value(3).value<QString>();
+        collectionAuthenticationPluginName = sq.value(4).value<QString>();
+        collectionUnlockSemantic = sq.value(5).value<int>();
+        collectionCustomLockTimeoutMs = sq.value(6).value<int>();
+        collectionAccessControlMode = static_cast<Sailfish::Secrets::SecretManager::AccessControlMode>(sq.value(7).value<int>());
+    }
+
+    if (!found) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidCollectionError,
+                                         QLatin1String("Nonexistent collection name given"));
+    }
+
+    if (collectionAccessControlMode != Sailfish::Secrets::SecretManager::OwnerOnlyMode) {
+        // TODO: perform access control request, to ask for permission to set the secret in the collection.
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationNotSupportedError,
+                                         QLatin1String("Access control requests are not currently supported. TODO!"));
+    } else if (collectionApplicationId != callerApplicationId) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::PermissionsError,
+                                         QString::fromLatin1("Collection %1 is owned by a different application").arg(collectionName));
+    } else if (collectionStoragePluginName == collectionEncryptionPluginName
+            && !m_encryptedStoragePlugins.contains(collectionStoragePluginName)) {
+        // TODO: this means we have "stale" data in the database; what should we do in this case?
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
+                                         QString::fromLatin1("No such encrypted storage plugin exists: %1").arg(collectionStoragePluginName));
+    } else if (collectionStoragePluginName != collectionEncryptionPluginName
+            && (collectionStoragePluginName.isEmpty() || !m_storagePlugins.contains(collectionStoragePluginName))) {
+        // TODO: this means we have "stale" data in the database; what should we do in this case?
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
+                                         QString::fromLatin1("No such storage plugin exists: %1").arg(collectionStoragePluginName));
+    } else if (collectionStoragePluginName != collectionEncryptionPluginName
+            && (collectionEncryptionPluginName.isEmpty() || !m_encryptionPlugins.contains(collectionEncryptionPluginName))) {
+        // TODO: this means we have "stale" data in the database; what should we do in this case?
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
+                                         QString::fromLatin1("No such encryption plugin exists: %1").arg(collectionEncryptionPluginName));
+    }
+
+    // For this functionality, we require that the Crypto plugin be an EncryptedStoragePlugin.
+    if (collectionStoragePluginName != collectionEncryptionPluginName) {
+        // This is in the codepath for generateStoredKey()
+        // where we want the key to be generated and stored by the same plugin.
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
+                                         QString::fromLatin1("The identified collection is not encrypted by that plugin"));
+    }
+
+    bool locked = false;
+    Sailfish::Secrets::Result pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->isLocked(collectionName, &locked);
+    if (pluginResult.code() != Sailfish::Secrets::Result::Succeeded) {
+        return pluginResult;
+    }
+
+    if (locked) {
+        // TODO: do we need an explicit unlockCollection()/relockCollection() API in Secrets?
+        if (collectionUsesDeviceLockKey) {
+            return Sailfish::Secrets::Result(Sailfish::Secrets::Result::CollectionIsLockedError,
+                                             QString::fromLatin1("Collection %1 is locked and requires device lock authentication").arg(collectionName));
+        }
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
+                                         QString::fromLatin1("Collection %1 is locked and requires user interaction to unlock").arg(collectionName));
+    }
+
+    const QString selectSecretsCountQuery = QStringLiteral(
+                 "SELECT"
+                    " Count(*)"
+                  " FROM Secrets"
+                  " WHERE CollectionName = ?"
+                  " AND SecretName = ?;"
+             );
+
+    Database::Query ssq = m_db->prepare(selectSecretsCountQuery, &errorText);
+    if (!errorText.isEmpty()) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
+                                         QString::fromLatin1("Unable to prepare select secrets query: %1").arg(errorText));
+    }
+
+    const QString hashedSecretName = generateHashedSecretName(collectionName, secretName);
+    values.clear();
+    values << QVariant::fromValue<QString>(collectionName);
+    values << QVariant::fromValue<QString>(hashedSecretName);
+    ssq.bindValues(values);
+
+    if (!m_db->execute(ssq, &errorText)) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
+                                         QString::fromLatin1("Unable to execute select secrets query: %1").arg(errorText));
+    }
+
+    bool secretAlreadyExists = false;
+    if (ssq.next()) {
+        secretAlreadyExists = ssq.value(0).value<int>() > 0;
+    }
+
+    if (secretAlreadyExists) {
+        // Note: we return an error here, so that the Crypto API can know that it
+        // does not need to perform a "deleteCollectionSecretMetadata()" request
+        // if storing to the crypto plugin fails.
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::SecretAlreadyExistsError,
+                                         QString::fromLatin1("A secret with name %1 already exists in the collection %2").arg(secretName, collectionName));
+    }
+
+    DatabaseLocker locker(m_db);
+
+    const QString insertSecretQuery = QStringLiteral(
+                "INSERT INTO Secrets ("
+                  "CollectionName,"
+                  "SecretName,"
+                  "ApplicationId,"
+                  "UsesDeviceLockKey,"
+                  "StoragePluginName,"
+                  "EncryptionPluginName,"
+                  "AuthenticationPluginName,"
+                  "UnlockSemantic,"
+                  "CustomLockTimeoutMs,"
+                  "AccessControlMode"
+                ")"
+                " VALUES ("
+                  "?,?,?,?,?,?,?,?,?,?"
+                ");");
+
+    Database::Query iq = m_db->prepare(insertSecretQuery, &errorText);
+    if (!errorText.isEmpty()) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
+                                         QString::fromLatin1("Unable to prepare insert secret query: %1").arg(errorText));
+    }
+
+    QVariantList ivalues;
+    ivalues << QVariant::fromValue<QString>(collectionName);
+    ivalues << QVariant::fromValue<QString>(hashedSecretName);
+    ivalues << QVariant::fromValue<QString>(collectionApplicationId);
+    ivalues << QVariant::fromValue<int>(collectionUsesDeviceLockKey ? 1 : 0);
+    ivalues << QVariant::fromValue<QString>(collectionStoragePluginName);
+    ivalues << QVariant::fromValue<QString>(collectionEncryptionPluginName);
+    ivalues << QVariant::fromValue<QString>(collectionAuthenticationPluginName);
+    ivalues << QVariant::fromValue<int>(collectionUnlockSemantic);
+    ivalues << QVariant::fromValue<int>(collectionCustomLockTimeoutMs);
+    ivalues << QVariant::fromValue<int>(static_cast<int>(collectionAccessControlMode));
+    iq.bindValues(ivalues);
+
+    if (!m_db->beginTransaction()) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseTransactionError,
+                                         QLatin1String("Unable to begin insert secret transaction"));
+    }
+
+    if (!m_db->execute(iq, &errorText)) {
+        m_db->rollbackTransaction();
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
+                                         QString::fromLatin1("Unable to execute insert secret query: %1").arg(errorText));
+    }
+
+    if (!m_db->commitTransaction()) {
+        m_db->rollbackTransaction();
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseTransactionError,
+                                         QLatin1String("Unable to commit insert secret transaction"));
+    }
+
+    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded);
+}
+
+// this method is a helper for the crypto API.
+// Delete just the metadata for a secret in a collection,
+// as the actual secret was unable to be stored in the crypto plugin,
+// so it doesn't exist.
+Sailfish::Secrets::Result
+Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretMetadata(
+        pid_t callerPid,
+        quint64 requestId,
+        const QString &collectionName,
+        const QString &secretName)
+{
+    Q_UNUSED(callerPid)
+    Q_UNUSED(requestId)
+
+    // these checks should be unnecessary, but defensive just in case.
+    if (secretName.isEmpty()) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidSecretError,
+                                         QLatin1String("Empty secret name given"));
+    } else if (collectionName.isEmpty()) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidCollectionError,
+                                         QLatin1String("Empty collection name given"));
+    } else if (collectionName.compare(QStringLiteral("standalone"), Qt::CaseInsensitive) == 0) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidCollectionError,
+                                         QLatin1String("Reserved collection name given"));
+    }
+
+    DatabaseLocker locker(m_db);
+
+    const QString deleteSecretQuery = QStringLiteral(
+                "DELETE FROM Secrets"
+                " WHERE CollectionName = ?"
+                " AND SecretName = ?;");
+
+    QString errorText;
+    Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
+    if (!errorText.isEmpty()) {
+        // TODO: add a "dirty" flag for this collection somewhere in memory, so we can try again later.
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
+                                         QString::fromLatin1("Unable to prepare delete secret query: %1")
+                                         .arg(errorText));
+    }
+
+    const QString hashedSecretName = generateHashedSecretName(collectionName, secretName);
+    QVariantList values;
+    values << QVariant::fromValue<QString>(collectionName);
+    values << QVariant::fromValue<QString>(hashedSecretName);
+    dq.bindValues(values);
+
+    if (!m_db->beginTransaction()) {
+        // TODO: add a "dirty" flag for this collection somewhere in memory, so we can try again later.
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseTransactionError,
+                                         QLatin1String("Unable to begin delete secret transaction"));
+    }
+
+    if (!m_db->execute(dq, &errorText)) {
+        m_db->rollbackTransaction();
+        // TODO: add a "dirty" flag for this collection somewhere in memory, so we can try again later.
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
+                                         QString::fromLatin1("Unable to execute delete secret query: %1")
+                                         .arg(errorText));
+    }
+
+    if (!m_db->commitTransaction()) {
+        m_db->rollbackTransaction();
+        // TODO: add a "dirty" flag for this collection somewhere in memory, so we can try again later.
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseTransactionError,
+                                         QLatin1String("Unable to commit delete secret transaction"));
+    }
+
+    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded);
+}
+
 // set a secret in a collection
 Sailfish::Secrets::Result
 Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
@@ -1167,6 +1472,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithAut
 
     if (!secretAlreadyExists) {
         // Write to the master database prior to the storage plugin.
+        DatabaseLocker locker(m_db);
         const QString insertSecretQuery = QStringLiteral(
                     "INSERT INTO Secrets ("
                       "CollectionName,"
@@ -1421,6 +1727,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSec
     }
 
     // Write to the master database prior to the storage plugin.
+    DatabaseLocker locker(m_db);
 
     const QString updateSecretQuery = QStringLiteral(
                  "UPDATE Secrets"
@@ -1793,6 +2100,8 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
     }
 
     // Write to the master database prior to the storage plugin.
+    DatabaseLocker locker(m_db);
+
     const QString updateSecretQuery = QStringLiteral(
                  "UPDATE Secrets"
                  " SET ApplicationId = ?,"

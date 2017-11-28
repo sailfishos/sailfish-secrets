@@ -56,6 +56,8 @@ public:
 
     bool loadPlugins(const QString &pluginDir, bool autotestMode);
 
+    static QString generateHashedSecretName(const QString &collectionName, const QString &secretName);
+
     // retrieve information about available plugins
     Sailfish::Secrets::Result getPluginInfo(
             pid_t callerPid,
@@ -168,8 +170,21 @@ public:
             const QString &secretName,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
-    // To allow implementation of storagePluginNames() for Crypto API:
+public: // helper methods for crypto API bridge (secretscryptohelpers)
     QStringList storagePluginNames() const;
+    Sailfish::Secrets::Result confirmCollectionStoragePlugin(
+            const QString &collectionName,
+            const QString &storagePluginName) const;
+    Sailfish::Secrets::Result setCollectionSecretMetadata(
+            pid_t callerPid,
+            quint64 requestId,
+            const QString &collectionName,
+            const QString &secretName);
+    Sailfish::Secrets::Result deleteCollectionSecretMetadata(
+            pid_t callerPid,
+            quint64 requestId,
+            const QString &collectionName,
+            const QString &secretName);
 
 private Q_SLOTS:
     void authenticationCompleted(

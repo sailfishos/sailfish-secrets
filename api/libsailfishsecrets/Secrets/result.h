@@ -48,6 +48,7 @@ public:
         InvalidExtensionPluginError,
         InvalidApplicationIdError,
         CollectionAlreadyExistsError,
+        SecretAlreadyExistsError,
 
         CollectionIsLockedError = 60,
 

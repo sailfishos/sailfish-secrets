@@ -69,10 +69,12 @@ static const char *createSecretsTable =
 static const char *createKeyEntriesTable =
         "\n CREATE TABLE KeyEntries ("
         "   KeyId INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "   CollectionName TEXT NOT NULL," /* may not reference a Secrets collection, if it's stored via the Crypto plugin... */
-        "   KeyName TEXT NOT NULL,"        /* potential security (known-plaintext) issue if stored in a Secrets collection!!! */
+        "   CollectionName TEXT NOT NULL,"
+        "   SecretName TEXT NOT NULL,"
+        "   KeyName TEXT NOT NULL,"        /* potential security (known-plaintext) issue!!! */
         "   CryptoPluginName TEXT NOT NULL,"
         "   StoragePluginName TEXT NOT NULL,"
+        "   FOREIGN KEY (CollectionName, SecretName) REFERENCES Secrets(CollectionName,SecretName) ON DELETE CASCADE,"
         "   CONSTRAINT collectionKeyNameUnique UNIQUE (CollectionName, KeyName));";
 
 static const char *createStatements[] =

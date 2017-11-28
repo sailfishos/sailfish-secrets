@@ -305,19 +305,24 @@ public: // Crypto API helper methods.
     // while using just one single database (for atomicity etc).
     void asynchronousCryptoRequestCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QVariantList &parameters);
     // the first methods are synchronous:
+    Sailfish::Secrets::Result confirmCollectionStoragePlugin(pid_t callerPid, quint64 cryptoRequestId, const QString &collectionName, const QString &storagePluginName) const;
     Sailfish::Secrets::Result storagePluginNames(pid_t callerPid, quint64 cryptoRequestId, QStringList *names) const;
     Sailfish::Secrets::Result keyEntryIdentifiers(pid_t callerPid, quint64 cryptoRequestId, QVector<Sailfish::Crypto::Key::Identifier> *identifiers);
     Sailfish::Secrets::Result keyEntry(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, QString *cryptoPluginName, QString *storagePluginName);
     Sailfish::Secrets::Result addKeyEntry(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, const QString &cryptoPluginName, const QString &storagePluginName);
     Sailfish::Secrets::Result removeKeyEntry(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier);
-    // the others are possibly-asynchronous methods:
+    // the others are asynchronous methods:
     Sailfish::Secrets::Result storedKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, QByteArray *serialisedKey);
     Sailfish::Secrets::Result storeKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, const QByteArray &serialisedKey, const QString &storagePluginName);
+    Sailfish::Secrets::Result storeKeyMetadata(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, const QString &storagePluginName);
     Sailfish::Secrets::Result deleteStoredKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier);
+    Sailfish::Secrets::Result deleteStoredKeyMetadata(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier);
 Q_SIGNALS:
     void storedKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &serialisedKey);
     void storeKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
+    void storeKeyMetadataCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
     void deleteStoredKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
+    void deleteStoredKeyMetadataCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
 private:
     enum CryptoApiHelperRequestType {
         InvalidCryptoApiHelperRequest = 0,
@@ -328,7 +333,9 @@ private:
         RemoveKeyEntryCryptoApiHelperRequest,
         StoredKeyCryptoApiHelperRequest,
         DeleteStoredKeyCryptoApiHelperRequest,
-        StoreKeyCryptoApiHelperRequest
+        StoreKeyCryptoApiHelperRequest,
+        StoreKeyMetadataCryptoApiHelperRequest,
+        DeleteStoredKeyMetadataCryptoApiHelperRequest
     };
     QMap<quint64, CryptoApiHelperRequestType> m_cryptoApiHelperRequests; // crypto request id to crypto api call type.
 };
@@ -345,7 +352,10 @@ enum RequestType {
     GetCollectionSecretRequest,
     GetStandaloneSecretRequest,
     DeleteCollectionSecretRequest,
-    DeleteStandaloneSecretRequest
+    DeleteStandaloneSecretRequest,
+    // Crypto API helper request types:
+    SetCollectionSecretMetadataRequest,
+    DeleteCollectionSecretMetadataRequest
 };
 
 } // ApiImpl

@@ -151,12 +151,20 @@ public Q_SLOTS:
             quint64 requestId,
             const Sailfish::Secrets::Result &result);
 
+    void secretsStoreKeyMetadataCompleted(
+            quint64 requestId,
+            const Sailfish::Secrets::Result &result);
+
     void secretsStoredKeyCompleted(
             quint64 requestId,
             const Sailfish::Secrets::Result &result,
             const QByteArray &serialisedKey);
 
     void secretsDeleteStoredKeyCompleted(
+            quint64 requestId,
+            const Sailfish::Secrets::Result &result);
+
+    void secretsDeleteStoredKeyMetadataCompleted(
             quint64 requestId,
             const Sailfish::Secrets::Result &result);
 
@@ -179,10 +187,28 @@ private:
             const Sailfish::Crypto::Result &result,
             const QByteArray &serialisedKey);
 
-    void generateStoredKey2(
+    void generateStoredKey_inStoragePlugin(
+            pid_t callerPid,
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
-            const Sailfish::Crypto::Key &fullKey);
+            const Sailfish::Crypto::Key &fullKey,
+            const QString &cryptosystemProviderName,
+            const QString &storagePluginName);
+
+    void generateStoredKey_inCryptoPlugin(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Crypto::Result &result,
+            const Sailfish::Crypto::Key &keyTemplate,
+            const QString &cryptosystemProviderName,
+            const QString &storagePluginName);
+
+    void generateStoredKey_failedCleanup(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::Result &initialResult,
+            const Sailfish::Crypto::Result &result);
 
     void deleteStoredKey2(
             pid_t callerPid,

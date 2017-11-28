@@ -326,6 +326,8 @@ QString Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::requestTypeToSt
         case GetStandaloneSecretRequest:            return QLatin1String("GetStandaloneSecretRequest");
         case DeleteCollectionSecretRequest:         return QLatin1String("DeleteCollectionSecretRequest");
         case DeleteStandaloneSecretRequest:         return QLatin1String("DeleteStandaloneSecretRequest");
+        case SetCollectionSecretMetadataRequest:    return QLatin1String("SetCollectionSecretMetadataRequest");
+        case DeleteCollectionSecretMetadataRequest: return QLatin1String("DeleteCollectionSecretMetadataRequest");
         default: break;
     }
     return QLatin1String("Unknown Secrets Request!");
@@ -695,6 +697,46 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
                 } else {
                     request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Secrets::Result>(result));
                 }
+                *completed = true;
+            }
+            break;
+        }
+        case SetCollectionSecretMetadataRequest: {
+            qCDebug(lcSailfishSecretsDaemon) << "Handling SetCollectionSecretMetadataRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            QString collectionName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            QString secretName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            Sailfish::Secrets::Result result = m_requestProcessor->setCollectionSecretMetadata(
+                        request->remotePid,
+                        request->requestId,
+                        collectionName,
+                        secretName);
+            // send the reply to the calling peer.
+            if (result.code() == Sailfish::Secrets::Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                // This request type exists solely to implement Crypto API functionality.
+                asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList());
+                *completed = true;
+            }
+            break;
+        }
+        case DeleteCollectionSecretMetadataRequest: {
+            qCDebug(lcSailfishSecretsDaemon) << "Handling DeleteCollectionSecretMetadataRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            QString collectionName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            QString secretName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            Sailfish::Secrets::Result result = m_requestProcessor->deleteCollectionSecretMetadata(
+                        request->remotePid,
+                        request->requestId,
+                        collectionName,
+                        secretName);
+            // send the reply to the calling peer.
+            if (result.code() == Sailfish::Secrets::Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                // This request type exists solely to implement Crypto API functionality.
+                asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList());
                 *completed = true;
             }
             break;
