@@ -154,6 +154,7 @@ void Sailfish::Secrets::SecretsDaemonConnection::registerDBusTypes()
     qRegisterMetaType<Sailfish::Secrets::SecretManager::AccessControlMode>("Sailfish::Secrets::SecretManager::AccessControlMode");
     qRegisterMetaType<Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic>("Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic");
     qRegisterMetaType<Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic>("Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic");
+    qRegisterMetaType<Sailfish::Secrets::SecretManager::FilterOperator>("Sailfish::Secrets::SecretManager::FilterOperator");
     qRegisterMetaType<Sailfish::Secrets::EncryptionPluginInfo>("Sailfish::Secrets::EncryptionPluginInfo");
     qRegisterMetaType<QVector<Sailfish::Secrets::EncryptionPluginInfo> >("QVector<Sailfish::Secrets::EncryptionPluginInfo>");
     qRegisterMetaType<Sailfish::Secrets::StoragePluginInfo>("Sailfish::Secrets::StoragePluginInfo");
@@ -173,6 +174,7 @@ void Sailfish::Secrets::SecretsDaemonConnection::registerDBusTypes()
     qDBusRegisterMetaType<Sailfish::Secrets::SecretManager::AccessControlMode>();
     qDBusRegisterMetaType<Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic>();
     qDBusRegisterMetaType<Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic>();
+    qDBusRegisterMetaType<Sailfish::Secrets::SecretManager::FilterOperator>();
     qDBusRegisterMetaType<Sailfish::Secrets::EncryptionPluginInfo>();
     qDBusRegisterMetaType<QVector<Sailfish::Secrets::EncryptionPluginInfo> >();
     qDBusRegisterMetaType<Sailfish::Secrets::StoragePluginInfo>();

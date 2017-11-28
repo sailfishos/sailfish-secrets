@@ -54,6 +54,7 @@ public:
     Sailfish::Secrets::Result removeCollection(const QString &collectionName) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result setSecret(const QString &collectionName, const QString &hashedSecretName, const QByteArray &encryptedSecretName, const QByteArray &secret, const Sailfish::Secrets::Secret::FilterData &filterData) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result getSecret(const QString &collectionName, const QString &hashedSecretName, QByteArray *encryptedSecretName, QByteArray *secret, Sailfish::Secrets::Secret::FilterData *filterData) Q_DECL_OVERRIDE;
+    Sailfish::Secrets::Result findSecrets(const QString &collectionName, const Sailfish::Secrets::Secret::FilterData &filter, Sailfish::Secrets::StoragePlugin::FilterOperator filterOperator, QVector<QByteArray> *encryptedSecretNames) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result removeSecret(const QString &collectionName, const QString &hashedSecretName) Q_DECL_OVERRIDE;
 
     Sailfish::Secrets::Result reencryptSecrets(

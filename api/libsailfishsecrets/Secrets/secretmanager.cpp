@@ -678,6 +678,155 @@ Sailfish::Secrets::SecretManager::getSecret(
 }
 
 /*!
+ * \brief Returns a list of identifiers of secrets belonging to the collection identified
+ *        by the given \a collectionName which match the metadata field and value
+ *        requirements specified in the given \a filter.
+ *
+ * The filter specifies metadata field/value pairs, and will be matched against
+ * secrets in the storage according to the given \a filterOperator.
+ *
+ * For example, a Secret which has metadata which includes the following two entries:
+ * "website"="sailfishos.org","type"="CryptoCertificate" will match the following
+ * \a filter if the \a filterOperator is \c OperatorOr (since the secret metadata does
+ * match one of the filter values) but not if it is either
+ * \c OperatorAnd (since the secret metadata doesn't match both filter values)
+ * or \c OperatorNot (since the secret metadata does match one of the filter values):
+ * "website"="sailfishos.org","type"="UsernamePassword".
+ *
+ * If the calling application is the creator of the collection, or alternatively
+ * if the user has granted the application permission to read from the collection
+ * then the Secrets service will instruct the storage plugin to retrieve the list
+ * of secret identifiers from the collection.
+ *
+ * If the application is not the creator of the collection and the user has not yet
+ * been asked if the application should have permission to read the collection,
+ * then a system-mediated access control UI flow may be triggered
+ * to obtain the user's permission (unless the given \a userInteractionMode is
+ * \a PreventUserInteractionMode in which case the request will fail).
+ *
+ * If the collection uses an encryption key derived from the system device-lock,
+ * then the value will be able to be retrieved without any other UI flow being required
+ * if the collection is currently unlocked; however, if the collection uses an encryption
+ * key derived from a custom lock, then the custom lock authentication key will be obtained
+ * from the user via an authentication flow determined by the authentication plugin used for that
+ * collection (which may support \c InProcessUserInteractionMode if the collection
+ * is an application-specific collection using an \c ApplicationSpecificAuthentication
+ * plugin, but otherwise will be a system-mediated UI flow, unless the \a userInteractionMode
+ * specified is \c PreventUserInteractionMode in which case the request will fail).
+ */
+QDBusPendingReply<Sailfish::Secrets::Result, QVector<Sailfish::Secrets::Secret::Identifier> >
+Sailfish::Secrets::SecretManager::findSecrets(
+        const QString &collectionName,
+        const Sailfish::Secrets::Secret::FilterData &filter,
+        Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
+        Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode)
+{
+    if (!m_data->m_interface) {
+        return QDBusPendingReply<Sailfish::Secrets::Result, QVector<Sailfish::Secrets::Secret::Identifier> >(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    if (collectionName.isEmpty()) {
+        Sailfish::Secrets::Result collectionError(Sailfish::Secrets::Result::InvalidCollectionError,
+                                                  QLatin1String("The given collection name is invalid"));
+        return QDBusPendingReply<Sailfish::Secrets::Result, QVector<Sailfish::Secrets::Secret::Identifier> >(
+                QDBusMessage().createReply(
+                        QVariantList() << QVariant::fromValue<Sailfish::Secrets::Result>(collectionError)
+                                       << QVariant::fromValue<QVector<Sailfish::Secrets::Secret::Identifier> >(QVector<Sailfish::Secrets::Secret::Identifier>())));
+    }
+
+    QString uiServiceAddress;
+    Sailfish::Secrets::Result uiServiceResult = m_data->registerUiService(userInteractionMode, &uiServiceAddress);
+    if (uiServiceResult.code() == Sailfish::Secrets::Result::Failed) {
+        return QDBusPendingReply<Sailfish::Secrets::Result, QVector<Sailfish::Secrets::Secret::Identifier> >(
+                QDBusMessage().createReply(
+                        QVariantList() << QVariant::fromValue<Sailfish::Secrets::Result>(uiServiceResult)
+                                       << QVariant::fromValue<QVector<Sailfish::Secrets::Secret::Identifier> >(QVector<Sailfish::Secrets::Secret::Identifier>())));
+    }
+
+    QDBusPendingReply<Sailfish::Secrets::Result, QVector<Sailfish::Secrets::Secret::Identifier> > reply
+            = m_data->m_interface->asyncCallWithArgumentList(
+                "findSecrets",
+                QVariantList() << QVariant::fromValue<QString>(collectionName)
+                               << QVariant::fromValue<Sailfish::Secrets::Secret::FilterData>(filter)
+                               << QVariant::fromValue<Sailfish::Secrets::SecretManager::FilterOperator>(filterOperator)
+                               << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
+                               << QVariant::fromValue<QString>(uiServiceAddress));
+    return reply;
+}
+
+/*!
+ * \brief Returns a list of identifiers of standalone secrets which match the metadata
+ *        field and value requirements specified in the given \a filter.
+ *
+ * The filter specifies metadata field/value pairs, and will be matched against
+ * secrets in the storage according to the given \a filterOperator.
+ *
+ * For example, a Secret which has metadata which includes the following two entries:
+ * "website"="sailfishos.org","type"="CryptoCertificate" will match the following
+ * \a filter if the \a filterOperator is \c OperatorOr (since the secret metadata does
+ * match one of the filter values) but not if it is either
+ * \c OperatorAnd (since the secret metadata doesn't match both filter values)
+ * or \c OperatorNot (since the secret metadata does match one of the filter values):
+ * "website"="sailfishos.org","type"="UsernamePassword".
+ *
+ * TODO: do I need to worry about access control here?  Or should I only do such
+ * access control stuff on getSecret() instead of findSecrets()?  After all, the
+ * filter metadata is not encrypted in the standalone secrets case...
+ *
+ * If the calling application is the creator of every matching secret, or alternatively
+ * if the user has granted the application permission to read each matching secret,
+ * then the Secrets service will instruct the storage plugin to retrieve the secrets.
+ *
+ * If the application is not the creator of a matching secret and the user has not yet
+ * been asked if the application should have permission to read the secret, then a
+ * system-mediated access control UI flow may be triggered to obtain the user's
+ * permission (unless the given \a userInteractionMode is \a PreventUserInteractionMode
+ * in which case the request will fail).
+ *
+ * If the secret uses an encryption key derived from the system device-lock,
+ * then the value will be able to be retrieved without any other UI flow being required
+ * if the secret is currently unlocked; however, if the secret uses an encryption
+ * key derived from a custom lock, then the custom lock authentication key will be obtained
+ * from the user via an authentication flow determined by the authentication plugin used for that
+ * secret (which may support \c InProcessUserInteractionMode if the secret
+ * is an application-specific secret using an \c ApplicationSpecificAuthentication
+ * plugin, but otherwise will be a system-mediated UI flow, unless the \a userInteractionMode
+ * specified is \c PreventUserInteractionMode in which case the request will fail).
+ */
+QDBusPendingReply<Sailfish::Secrets::Result, QVector<Sailfish::Secrets::Secret::Identifier> >
+Sailfish::Secrets::SecretManager::findSecrets(
+        const Sailfish::Secrets::Secret::FilterData &filter,
+        Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
+        Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode)
+{
+    if (!m_data->m_interface) {
+        return QDBusPendingReply<Sailfish::Secrets::Result>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QString uiServiceAddress;
+    Sailfish::Secrets::Result uiServiceResult = m_data->registerUiService(userInteractionMode, &uiServiceAddress);
+    if (uiServiceResult.code() == Sailfish::Secrets::Result::Failed) {
+        return QDBusPendingReply<Sailfish::Secrets::Result>(
+                QDBusMessage().createReply(
+                        QVariantList() << QVariant::fromValue<Sailfish::Secrets::Result>(uiServiceResult)));
+    }
+
+    QDBusPendingReply<Sailfish::Secrets::Result, Sailfish::Secrets::Secret> reply
+            = m_data->m_interface->asyncCallWithArgumentList(
+                "findSecrets",
+                QVariantList() << QVariant::fromValue<QString>(QString())
+                               << QVariant::fromValue<Sailfish::Secrets::Secret::FilterData>(filter)
+                               << QVariant::fromValue<Sailfish::Secrets::SecretManager::FilterOperator>(filterOperator)
+                               << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
+                               << QVariant::fromValue<QString>(uiServiceAddress));
+    return reply;
+}
+
+/*!
  * \brief Requests the Secrets service to delete the secret identified by the
  * given \a identifier from the plugin in which it is stored.
  *

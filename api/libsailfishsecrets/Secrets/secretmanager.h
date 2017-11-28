@@ -17,10 +17,12 @@
 #include <QtDBus/QDBusMetaType>
 #include <QtDBus/QDBusArgument>
 
+#include <QtCore/QVector>
 #include <QtCore/QObject>
 #include <QtCore/QStringList>
 #include <QtCore/QByteArray>
 #include <QtCore/QString>
+#include <QtCore/QMap>
 
 namespace Sailfish {
 
@@ -66,6 +68,12 @@ public:
         SynchronousInitialisationMode       // initialise the in-memory cache of plugin info synchronously in constructor
     };
     Q_ENUM(InitialisationMode)
+
+    enum FilterOperator {
+        OperatorOr  = Sailfish::Secrets::StoragePlugin::OperatorOr,
+        OperatorAnd = Sailfish::Secrets::StoragePlugin::OperatorAnd
+    };
+    Q_ENUM(FilterOperator)
 
     static const QString InAppAuthenticationPluginName;
     static const QString DefaultAuthenticationPluginName;
@@ -139,6 +147,19 @@ public:
             const Sailfish::Secrets::Secret::Identifier &identifier,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
+    // find secrets from a collection via filter
+    QDBusPendingReply<Sailfish::Secrets::Result, QVector<Sailfish::Secrets::Secret::Identifier> > findSecrets(
+            const QString &collectionName,
+            const Sailfish::Secrets::Secret::FilterData &filter,
+            Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
+
+    // find standalone secrets via filter
+    QDBusPendingReply<Sailfish::Secrets::Result, QVector<Sailfish::Secrets::Secret::Identifier> > findSecrets(
+            const Sailfish::Secrets::Secret::FilterData &filter,
+            Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
+
     // delete a secret (either from a collection or standalone, depending on the identifier)
     QDBusPendingReply<Sailfish::Secrets::Result> deleteSecret(
             const Sailfish::Secrets::Secret::Identifier &identifier,
@@ -159,6 +180,8 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secr
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic &semantic) SAILFISH_SECRETS_API;
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic semantic) SAILFISH_SECRETS_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic &semantic) SAILFISH_SECRETS_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::SecretManager::FilterOperator filterOperator) SAILFISH_SECRETS_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::SecretManager::FilterOperator &filterOperator) SAILFISH_SECRETS_API;
 
 } // namespace Secrets
 

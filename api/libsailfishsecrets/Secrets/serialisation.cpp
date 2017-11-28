@@ -215,6 +215,25 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
     return argument;
 }
 
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::SecretManager::FilterOperator filterOperator)
+{
+    int iop = static_cast<int>(filterOperator);
+    argument.beginStructure();
+    argument << iop;
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::SecretManager::FilterOperator &filterOperator)
+{
+    int iop = 0;
+    argument.beginStructure();
+    argument >> iop;
+    argument.endStructure();
+    filterOperator = static_cast<Sailfish::Secrets::SecretManager::FilterOperator>(iop);
+    return argument;
+}
+
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::StoragePluginInfo &info)
 {
     int type = static_cast<int>(info.storageType());

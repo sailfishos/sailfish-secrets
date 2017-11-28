@@ -10,9 +10,11 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QList>
+#include <QtCore/QVector>
 #include <QtCore/QVariant>
 #include <QtCore/QString>
 #include <QtCore/QHash>
+#include <QtCore/QMap>
 #include <QtCore/QPair>
 #include <QtCore/QDateTime>
 #include <QtCore/QMultiMap>
@@ -149,6 +151,27 @@ public:
             const QString &uiServiceAddress,
             Sailfish::Secrets::Secret *secret);
 
+    // find collection secrets via filter
+    Sailfish::Secrets::Result findCollectionSecrets(
+            pid_t callerPid,
+            quint64 requestId,
+            const QString &collectionName,
+            const Sailfish::Secrets::Secret::FilterData &filter,
+            Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &uiServiceAddress,
+            QVector<Sailfish::Secrets::Secret::Identifier> *identifiers);
+
+    // find standalone secrets via filter
+    Sailfish::Secrets::Result findStandaloneSecrets(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Secrets::Secret::FilterData &filter,
+            Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &uiServiceAddress,
+            QVector<Sailfish::Secrets::Secret::Identifier> *identifiers);
+
     // delete a secret in a collection
     Sailfish::Secrets::Result deleteCollectionSecret(
             pid_t callerPid,
@@ -273,6 +296,21 @@ private:
             int customLockTimeoutMs,
             const QByteArray &authenticationKey,
             Sailfish::Secrets::Secret *secret);
+
+    Sailfish::Secrets::Result findCollectionSecretsWithAuthenticationKey(
+            pid_t callerPid,
+            quint64 requestId,
+            const QString &collectionName,
+            const Sailfish::Secrets::Secret::FilterData &filter,
+            Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &uiServiceAddress,
+            const QString &storagePluginName,
+            const QString &encryptionPluginName,
+            int collectionUnlockSemantic,
+            int collectionCustomLockTimeoutMs,
+            const QByteArray &authenticationKey,
+            QVector<Sailfish::Secrets::Secret::Identifier> *identifiers);
 
     Sailfish::Secrets::Result deleteCollectionSecretWithAuthenticationKey(
             pid_t callerPid,

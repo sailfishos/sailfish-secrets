@@ -2775,6 +2775,364 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithAut
     return pluginResult;
 }
 
+// find collection secrets via filter
+Sailfish::Secrets::Result
+Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
+        pid_t callerPid,
+        quint64 requestId,
+        const QString &collectionName,
+        const Sailfish::Secrets::Secret::FilterData &filter,
+        Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
+        Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+        const QString &uiServiceAddress,
+        QVector<Sailfish::Secrets::Secret::Identifier> *identifiers)
+{
+    if (collectionName.isEmpty()) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidCollectionError,
+                                         QLatin1String("Empty collection name given"));
+    } else if (collectionName.compare(QStringLiteral("standalone"), Qt::CaseInsensitive) == 0) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidCollectionError,
+                                         QLatin1String("Reserved collection name given"));
+    } else if (filter.isEmpty()) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidFilterError,
+                                         QLatin1String("Empty filter given"));
+    }
+
+    // TODO: perform access control request to see if the application has permission to read secure storage data.
+    const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
+    const QString callerApplicationId = applicationIsPlatformApplication
+                ? m_appPermissions->platformApplicationId()
+                : m_appPermissions->applicationId(callerPid);
+
+    const QString selectCollectionsQuery = QStringLiteral(
+                 "SELECT"
+                    " ApplicationId,"
+                    " UsesDeviceLockKey,"
+                    " StoragePluginName,"
+                    " EncryptionPluginName,"
+                    " AuthenticationPluginName,"
+                    " UnlockSemantic,"
+                    " CustomLockTimeoutMs,"
+                    " AccessControlMode"
+                  " FROM Collections"
+                  " WHERE CollectionName = ?;"
+             );
+
+    QString errorText;
+    Database::Query sq = m_db->prepare(selectCollectionsQuery, &errorText);
+    if (!errorText.isEmpty()) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
+                                         QString::fromLatin1("Unable to prepare select collections query: %1").arg(errorText));
+    }
+
+    QVariantList values;
+    values << QVariant::fromValue<QString>(collectionName);
+    sq.bindValues(values);
+
+    if (!m_db->execute(sq, &errorText)) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
+                                         QString::fromLatin1("Unable to execute select collections query: %1").arg(errorText));
+    }
+
+    bool found = false;
+    QString collectionApplicationId;
+    bool collectionUsesDeviceLockKey = false;
+    QString collectionStoragePluginName;
+    QString collectionEncryptionPluginName;
+    QString collectionAuthenticationPluginName;
+    int collectionUnlockSemantic = 0;
+    int collectionCustomLockTimeoutMs = 0;
+    Sailfish::Secrets::SecretManager::AccessControlMode collectionAccessControlMode = Sailfish::Secrets::SecretManager::OwnerOnlyMode;
+    if (sq.next()) {
+        found = true;
+        collectionApplicationId = sq.value(0).value<QString>();
+        collectionUsesDeviceLockKey = sq.value(1).value<int>() > 0;
+        collectionStoragePluginName = sq.value(2).value<QString>();
+        collectionEncryptionPluginName = sq.value(3).value<QString>();
+        collectionAuthenticationPluginName = sq.value(4).value<QString>();
+        collectionUnlockSemantic = sq.value(5).value<int>();
+        collectionCustomLockTimeoutMs = sq.value(6).value<int>();
+        collectionAccessControlMode = static_cast<Sailfish::Secrets::SecretManager::AccessControlMode>(sq.value(7).value<int>());
+    }
+
+    if (!found) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidCollectionError,
+                                         QLatin1String("Nonexistent collection name given"));
+    }
+
+    if (collectionStoragePluginName == collectionEncryptionPluginName && !m_encryptedStoragePlugins.contains(collectionStoragePluginName)) {
+        // TODO: stale data, plugin was removed but data still exists...?
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
+                                         QString::fromLatin1("No such encrypted storage plugin exists: %1").arg(collectionStoragePluginName));
+    } else if (collectionStoragePluginName != collectionEncryptionPluginName && !m_storagePlugins.contains(collectionStoragePluginName)) {
+        // TODO: stale data, plugin was removed but data still exists...?
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
+                                         QString::fromLatin1("No such storage plugin exists: %1").arg(collectionStoragePluginName));
+    } else if (collectionStoragePluginName != collectionEncryptionPluginName && !m_encryptionPlugins.contains(collectionEncryptionPluginName)) {
+        // TODO: stale data, plugin was removed but data still exists...?
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
+                                         QString::fromLatin1("No such encryption plugin exists: %1").arg(collectionEncryptionPluginName));
+    } else if (collectionAccessControlMode != Sailfish::Secrets::SecretManager::OwnerOnlyMode) {
+        // TODO: perform access control request, to ask for permission to set the secret in the collection.
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationNotSupportedError,
+                                         QLatin1String("Access control requests are not currently supported. TODO!"));
+    } else if (collectionApplicationId != callerApplicationId) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::PermissionsError,
+                                         QString::fromLatin1("Collection %1 is owned by a different application").arg(collectionName));
+    } else if (!m_authenticationPlugins.contains(collectionAuthenticationPluginName)) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
+                                        QString::fromLatin1("No such authentication plugin available: %1").arg(collectionAuthenticationPluginName));
+    }
+
+    if (collectionStoragePluginName == collectionEncryptionPluginName) {
+        bool locked = false;
+        Sailfish::Secrets::Result pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->isLocked(collectionName, &locked);
+        if (pluginResult.code() != Sailfish::Secrets::Result::Succeeded) {
+            return pluginResult;
+        }
+
+        if (locked) {
+            if (collectionUsesDeviceLockKey) {
+                return Sailfish::Secrets::Result(Sailfish::Secrets::Result::CollectionIsLockedError,
+                                                 QString::fromLatin1("Collection %1 is locked and requires device lock authentication").arg(collectionName));
+            } else {
+                if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventUserInteractionMode) {
+                    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
+                                                     QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
+                } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
+                            && (userInteractionMode != Sailfish::Secrets::SecretManager::InProcessUserInteractionMode || uiServiceAddress.isEmpty())) {
+                    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
+                                                     QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
+                }
+
+                // perform UI request to get the authentication key for the collection
+                Sailfish::Secrets::Result authenticationResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginAuthentication(
+                            callerPid,
+                            requestId,
+                            callerApplicationId,
+                            collectionName,
+                            QString(),
+                            uiServiceAddress);
+                if (authenticationResult.code() == Sailfish::Secrets::Result::Failed) {
+                    return authenticationResult;
+                }
+
+                m_pendingRequests.insert(requestId,
+                                         Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                             callerPid,
+                                             requestId,
+                                             Sailfish::Secrets::Daemon::ApiImpl::FindCollectionSecretsRequest,
+                                             QVariantList() << collectionName
+                                                            << QVariant::fromValue<Sailfish::Secrets::Secret::FilterData >(filter)
+                                                            << filterOperator
+                                                            << userInteractionMode
+                                                            << uiServiceAddress
+                                                            << collectionStoragePluginName
+                                                            << collectionEncryptionPluginName
+                                                            << collectionUnlockSemantic
+                                                            << collectionCustomLockTimeoutMs));
+                return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Pending);
+            }
+        } else {
+            return findCollectionSecretsWithAuthenticationKey(
+                        callerPid,
+                        requestId,
+                        collectionName,
+                        filter,
+                        filterOperator,
+                        userInteractionMode,
+                        uiServiceAddress,
+                        collectionStoragePluginName,
+                        collectionEncryptionPluginName,
+                        collectionUnlockSemantic,
+                        collectionCustomLockTimeoutMs,
+                        QByteArray(), // no key required, it's unlocked already.
+                        identifiers);
+        }
+    } else {
+        if (!m_collectionAuthenticationKeys.contains(collectionName)) {
+            if (collectionUsesDeviceLockKey) {
+                return Sailfish::Secrets::Result(Sailfish::Secrets::Result::CollectionIsLockedError,
+                                                 QString::fromLatin1("Collection %1 is locked and requires device lock authentication").arg(collectionName));
+            } else {
+                if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventUserInteractionMode) {
+                    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
+                                                     QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
+                } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
+                           && (userInteractionMode != Sailfish::Secrets::SecretManager::InProcessUserInteractionMode || uiServiceAddress.isEmpty())) {
+                    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
+                                                     QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
+                }
+
+                // perform UI request to get the authentication key for the collection
+                Sailfish::Secrets::Result authenticationResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginAuthentication(
+                            callerPid,
+                            requestId,
+                            callerApplicationId,
+                            collectionName,
+                            QString(),
+                            uiServiceAddress);
+                if (authenticationResult.code() == Sailfish::Secrets::Result::Failed) {
+                    return authenticationResult;
+                }
+
+                m_pendingRequests.insert(requestId,
+                                         Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                             callerPid,
+                                             requestId,
+                                             Sailfish::Secrets::Daemon::ApiImpl::FindCollectionSecretsRequest,
+                                             QVariantList() << collectionName
+                                                            << QVariant::fromValue<Sailfish::Secrets::Secret::FilterData >(filter)
+                                                            << filterOperator
+                                                            << userInteractionMode
+                                                            << uiServiceAddress
+                                                            << collectionStoragePluginName
+                                                            << collectionEncryptionPluginName
+                                                            << collectionUnlockSemantic
+                                                            << collectionCustomLockTimeoutMs));
+                return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Pending);
+            }
+        } else {
+            return findCollectionSecretsWithAuthenticationKey(
+                        callerPid,
+                        requestId,
+                        collectionName,
+                        filter,
+                        filterOperator,
+                        userInteractionMode,
+                        uiServiceAddress,
+                        collectionStoragePluginName,
+                        collectionEncryptionPluginName,
+                        collectionUnlockSemantic,
+                        collectionCustomLockTimeoutMs,
+                        m_collectionAuthenticationKeys.value(collectionName),
+                        identifiers);
+        }
+    }
+}
+
+Sailfish::Secrets::Result
+Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithAuthenticationKey(
+        pid_t callerPid,
+        quint64 requestId,
+        const QString &collectionName,
+        const Sailfish::Secrets::Secret::FilterData &filter,
+        Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
+        Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+        const QString &uiServiceAddress,
+        const QString &storagePluginName,
+        const QString &encryptionPluginName,
+        int collectionUnlockSemantic,
+        int collectionCustomLockTimeoutMs,
+        const QByteArray &authenticationKey,
+        QVector<Sailfish::Secrets::Secret::Identifier> *identifiers)
+{
+    // might be required in future for access control requests.
+    Q_UNUSED(callerPid);
+    Q_UNUSED(requestId);
+    Q_UNUSED(userInteractionMode);
+    Q_UNUSED(uiServiceAddress);
+
+    if (collectionUnlockSemantic == Sailfish::Secrets::SecretManager::CustomLockTimoutRelock) {
+        if (!m_collectionLockTimers.contains(collectionName)) {
+            QTimer *timer = new QTimer(this);
+            connect(timer, &QTimer::timeout,
+                    this, &Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::timeoutRelockCollection);
+            timer->setInterval(collectionCustomLockTimeoutMs);
+            timer->setSingleShot(true);
+            timer->start();
+            m_collectionLockTimers.insert(collectionName, timer);
+        }
+    }
+
+    Sailfish::Secrets::Result pluginResult;
+    if (storagePluginName == encryptionPluginName) {
+        bool locked = false;
+        pluginResult = m_encryptedStoragePlugins[storagePluginName]->isLocked(collectionName, &locked);
+        if (pluginResult.code() != Sailfish::Secrets::Result::Succeeded) {
+            return pluginResult;
+        }
+        // if it's locked, attempt to unlock it
+        if (locked) {
+            pluginResult = m_encryptedStoragePlugins[storagePluginName]->setEncryptionKey(collectionName, authenticationKey);
+            if (pluginResult.code() != Sailfish::Secrets::Result::Succeeded) {
+                // unable to apply the new authenticationKey.
+                m_encryptedStoragePlugins[storagePluginName]->setEncryptionKey(collectionName, QByteArray());
+                return Sailfish::Secrets::Result(Sailfish::Secrets::Result::SecretsPluginDecryptionError,
+                                                 QString::fromLatin1("Unable to decrypt collection %1 with the entered authentication key").arg(collectionName));
+
+            }
+            pluginResult = m_encryptedStoragePlugins[storagePluginName]->isLocked(collectionName, &locked);
+            if (pluginResult.code() != Sailfish::Secrets::Result::Succeeded) {
+                m_encryptedStoragePlugins[storagePluginName]->setEncryptionKey(collectionName, QByteArray());
+                return Sailfish::Secrets::Result(Sailfish::Secrets::Result::SecretsPluginDecryptionError,
+                                                 QString::fromLatin1("Unable to check lock state of collection %1 after setting the entered authentication key").arg(collectionName));
+
+            }
+        }
+        if (locked) {
+            // still locked, even after applying the new authenticationKey?  The authenticationKey was wrong.
+            m_encryptedStoragePlugins[storagePluginName]->setEncryptionKey(collectionName, QByteArray());
+            return Sailfish::Secrets::Result(Sailfish::Secrets::Result::IncorrectAuthenticationKeyError,
+                                             QString::fromLatin1("The authentication key entered for collection %1 was incorrect").arg(collectionName));
+        }
+        // successfully unlocked the encrypted storage collection.  perform the filtering operation.
+        pluginResult = m_encryptedStoragePlugins[storagePluginName]->findSecrets(collectionName, filter, static_cast<Sailfish::Secrets::StoragePlugin::FilterOperator>(filterOperator), identifiers);
+    } else {
+        if (!m_collectionAuthenticationKeys.contains(collectionName)) {
+            // TODO: some way to "test" the authenticationKey!  also, if it's a custom lock, set the timeout, etc.
+            m_collectionAuthenticationKeys.insert(collectionName, authenticationKey);
+        }
+
+        QVector<QByteArray> encryptedSecretNames;
+        pluginResult = m_storagePlugins[storagePluginName]->findSecrets(collectionName, filter, static_cast<Sailfish::Secrets::StoragePlugin::FilterOperator>(filterOperator), &encryptedSecretNames);
+        if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
+            // decrypt each of the secret names.
+            QVector<QString> decryptedSecretNames;
+            bool decryptionSucceeded = true;
+            for (const QByteArray &esn : encryptedSecretNames) {
+                QByteArray decryptedName;
+                pluginResult = m_encryptionPlugins[encryptionPluginName]->decryptSecret(esn, m_collectionAuthenticationKeys.value(collectionName), &decryptedName);
+                if (pluginResult.code() != Sailfish::Secrets::Result::Succeeded) {
+                    decryptionSucceeded = false;
+                    break;
+                }
+                decryptedSecretNames.append(QString::fromUtf8(decryptedName));
+            }
+            if (decryptionSucceeded) {
+                for (const QString &secretName : decryptedSecretNames) {
+                    identifiers->append(Sailfish::Secrets::Secret::Identifier(secretName, collectionName));
+                }
+            }
+        }
+    }
+
+    return pluginResult;
+}
+
+// find standalone secrets via filter
+Sailfish::Secrets::Result
+Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findStandaloneSecrets(
+        pid_t callerPid,
+        quint64 requestId,
+        const Sailfish::Secrets::Secret::FilterData &filter,
+        Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
+        Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+        const QString &uiServiceAddress,
+        QVector<Sailfish::Secrets::Secret::Identifier> *identifiers)
+{
+    // TODO!
+    Q_UNUSED(callerPid)
+    Q_UNUSED(requestId)
+    Q_UNUSED(filter)
+    Q_UNUSED(filterOperator)
+    Q_UNUSED(userInteractionMode)
+    Q_UNUSED(uiServiceAddress)
+    Q_UNUSED(identifiers)
+    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationNotSupportedError,
+                                     QLatin1String("Filtering standalone secrets is not yet supported!"));
+}
+
 // delete a secret in a collection
 Sailfish::Secrets::Result
 Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
@@ -3434,6 +3792,28 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                                     pr.parameters.takeFirst().value<int>(),
                                     authenticationKey,
                                     &secret);
+                    }
+                    break;
+                }
+                case FindCollectionSecretsRequest: {
+                    if (pr.parameters.size() != 9) {
+                        returnResult = Sailfish::Secrets::Result(Sailfish::Secrets::Result::UnknownError,
+                                                                 QLatin1String("Internal error: incorrect parameter count!"));
+                    } else {
+                        returnResult = findCollectionSecretsWithAuthenticationKey(
+                                    pr.callerPid,
+                                    pr.requestId,
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<Sailfish::Secrets::Secret::FilterData >(),
+                                    static_cast<Sailfish::Secrets::SecretManager::FilterOperator>(pr.parameters.takeFirst().value<int>()),
+                                    static_cast<Sailfish::Secrets::SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<int>(),
+                                    pr.parameters.takeFirst().value<int>(),
+                                    authenticationKey,
+                                    &identifiers);
                     }
                     break;
                 }

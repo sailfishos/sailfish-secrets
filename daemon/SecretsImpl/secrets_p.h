@@ -134,6 +134,20 @@ class SecretsDBusObject : public QObject, protected QDBusContext
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Secrets::Secret\" />\n"
     "      </method>\n"
+    "      <method name=\"findSecrets\">\n"
+    "          <arg name=\"collectionName\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"filter\" type=\"a{ss}\" direction=\"in\" />\n"
+    "          <arg name=\"filterOperator\" type=\"i\" direction=\"in\" />\n"
+    "          <arg name=\"userInteractionMode\" type=\"i\" direction=\"in\" />\n"
+    "          <arg name=\"uiServiceAddress\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
+    "          <arg name=\"identifiers\" type=\"(a(ss))\" direction=\"out\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Secrets::Secret::FilterData\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Secrets::SecretManager::FilterOperator\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Secrets::SecretManager::UserInteractionMode\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"QVector<Sailfish::Secrets::Secret::Identifier>\" />\n"
+    "      </method>\n"
     "      <method name=\"deleteSecret\">\n"
     "          <arg name=\"identifier\" type=\"(ss)\" direction=\"in\" />\n"
     "          <arg name=\"userInteractionMode\" type=\"i\" direction=\"in\" />\n"
@@ -232,6 +246,17 @@ public Q_SLOTS:
             Sailfish::Secrets::Result &result,
             Sailfish::Secrets::Secret &secret);
 
+    // find secrets via filter
+    void findSecrets(
+            const QString &collectionName,
+            const Sailfish::Secrets::Secret::FilterData &filter,
+            Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &uiServiceAddress,
+            const QDBusMessage &message,
+            Sailfish::Secrets::Result &result,
+            QVector<Sailfish::Secrets::Secret::Identifier> &identifiers);
+
     // delete a secret
     void deleteSecret(
             const Sailfish::Secrets::Secret::Identifier &identifier,
@@ -313,6 +338,8 @@ enum RequestType {
     SetStandaloneCustomLockSecretRequest,
     GetCollectionSecretRequest,
     GetStandaloneSecretRequest,
+    FindCollectionSecretsRequest,
+    FindStandaloneSecretsRequest,
     DeleteCollectionSecretRequest,
     DeleteStandaloneSecretRequest,
     // Crypto API helper request types:

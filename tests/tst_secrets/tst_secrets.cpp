@@ -109,6 +109,57 @@ void tst_secrets::writeReadDeleteDeviceLockCollectionSecret()
     QCOMPARE(secretReply.argumentAt<1>().data(), testSecret.data());
     QCOMPARE(secretReply.argumentAt<1>().filterData(), testSecret.filterData());
 
+    // test filtering, first with AND with both matching metadata field values, expect match
+    Sailfish::Secrets::Secret::FilterData filter;
+    filter.insert(QLatin1String("domain"), testSecret.filterData(QLatin1String("domain")));
+    filter.insert(QLatin1String("test"), testSecret.filterData(QLatin1String("test")));
+    QDBusPendingReply<Sailfish::Secrets::Result, QVector<Sailfish::Secrets::Secret::Identifier> > filterReply = m.findSecrets(
+                QLatin1String("testcollection"),
+                filter,
+                Sailfish::Secrets::SecretManager::OperatorAnd,
+                Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
+    filterReply.waitForFinished();
+    QVERIFY(filterReply.isValid());
+    QCOMPARE(filterReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
+    QCOMPARE(filterReply.argumentAt<1>().size(), 1);
+    QCOMPARE(filterReply.argumentAt<1>().at(0), testSecret.identifier());
+
+    // now test filtering with AND with one matching and one non-matching value, expect no-match
+    filter.insert(QLatin1String("test"), QLatin1String("false"));
+    filterReply = m.findSecrets(
+                QLatin1String("testcollection"),
+                filter,
+                Sailfish::Secrets::SecretManager::OperatorAnd,
+                Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
+    filterReply.waitForFinished();
+    QVERIFY(filterReply.isValid());
+    QCOMPARE(filterReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
+    QCOMPARE(filterReply.argumentAt<1>().size(), 0);
+
+    // test filtering with OR with one matching and one non-matching value, expect match
+    filterReply = m.findSecrets(
+                QLatin1String("testcollection"),
+                filter,
+                Sailfish::Secrets::SecretManager::OperatorOr,
+                Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
+    filterReply.waitForFinished();
+    QVERIFY(filterReply.isValid());
+    QCOMPARE(filterReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
+    QCOMPARE(filterReply.argumentAt<1>().size(), 1);
+    QCOMPARE(filterReply.argumentAt<1>().at(0), testSecret.identifier());
+
+    // test filtering with OR with zero matching values, expect no-match
+    filter.insert(QLatin1String("domain"), QLatin1String("jolla.com"));
+    filterReply = m.findSecrets(
+                QLatin1String("testcollection"),
+                filter,
+                Sailfish::Secrets::SecretManager::OperatorOr,
+                Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
+    filterReply.waitForFinished();
+    QVERIFY(filterReply.isValid());
+    QCOMPARE(filterReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
+    QCOMPARE(filterReply.argumentAt<1>().size(), 0);
+
     // delete the secret
     reply = m.deleteSecret(
                 testSecret.identifier(),

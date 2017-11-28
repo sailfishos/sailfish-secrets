@@ -137,6 +137,33 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
     QVERIFY(!decrypted.isEmpty());
     QCOMPARE(decrypted, plaintext);
 
+    // ensure that we can get a reference to that Key via the Secrets API
+    Sailfish::Secrets::Secret::FilterData filter;
+    filter.insert(QLatin1String("test"), keyTemplate.filterData(QLatin1String("test")));
+    QDBusPendingReply<Sailfish::Secrets::Result, QVector<Sailfish::Secrets::Secret::Identifier> > filterReply = sm.findSecrets(
+                keyTemplate.identifier().collectionName(),
+                filter,
+                Sailfish::Secrets::SecretManager::OperatorAnd,
+                Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
+    filterReply.waitForFinished();
+    QVERIFY(filterReply.isValid());
+    QCOMPARE(filterReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
+    QCOMPARE(filterReply.argumentAt<1>().size(), 1);
+    QCOMPARE(filterReply.argumentAt<1>().at(0).name(), keyTemplate.identifier().name());
+    QCOMPARE(filterReply.argumentAt<1>().at(0).collectionName(), keyTemplate.identifier().collectionName());
+
+    // and ensure that the filter operation doesn't return incorrect results
+    filter.insert(QLatin1String("test"), QString(QLatin1String("not %1")).arg(keyTemplate.filterData(QLatin1String("test"))));
+    filterReply = sm.findSecrets(
+                keyTemplate.identifier().collectionName(),
+                filter,
+                Sailfish::Secrets::SecretManager::OperatorAnd,
+                Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
+    filterReply.waitForFinished();
+    QVERIFY(filterReply.isValid());
+    QCOMPARE(filterReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
+    QCOMPARE(filterReply.argumentAt<1>().size(), 0);
+
     // clean up by deleting the collection in which the secret is stored.
     secretsreply = sm.deleteCollection(
                 QLatin1String("tst_cryptosecrets_gsked"),
