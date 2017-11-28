@@ -2042,10 +2042,6 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
     } else if (!m_authenticationPlugins.contains(collectionAuthenticationPluginName)) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
                                         QString::fromLatin1("No such authentication plugin available: %1").arg(collectionAuthenticationPluginName));
-    } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
-                   && (userInteractionMode != Sailfish::Secrets::SecretManager::InProcessUserInteractionMode || uiServiceAddress.isEmpty())) {
-        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
-                                     QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
     }
 
     if (collectionStoragePluginName == collectionEncryptionPluginName) {
@@ -2063,6 +2059,10 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                 if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventUserInteractionMode) {
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
+                } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
+                            && (userInteractionMode != Sailfish::Secrets::SecretManager::InProcessUserInteractionMode || uiServiceAddress.isEmpty())) {
+                    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
+                                                     QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
                 }
 
                 // perform UI request to get the authentication key for the collection
@@ -2116,6 +2116,10 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                 if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventUserInteractionMode) {
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
+                } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
+                           && (userInteractionMode != Sailfish::Secrets::SecretManager::InProcessUserInteractionMode || uiServiceAddress.isEmpty())) {
+                    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
+                                                     QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
                 }
 
                 // perform UI request to get the authentication key for the collection

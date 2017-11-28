@@ -199,6 +199,7 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::generateStoredKey(
         retn.setErrorMessage(secretsResult.errorMessage());
         return retn;
     }
+
     secretsResult = m_secrets->storeKey(callerPid, requestId, fullKey.identifier(), Sailfish::Crypto::Key::serialise(fullKey), storageProviderName);
     if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
         // remove the key entry because it wasn't successfully stored into the storage plugin.

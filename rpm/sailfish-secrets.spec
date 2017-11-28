@@ -171,6 +171,7 @@ rm -rf %{buildroot}
 %files -n libsailfishcrypto-tests
 %defattr(-,root,root,-)
 /opt/tests/Sailfish/Crypto/tst_crypto
+/opt/tests/Sailfish/Crypto/tst_cryptosecrets
 %{_libdir}/sailfishcrypto/libsailfishcrypto-testopenssl.so
 
 %post

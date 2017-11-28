@@ -9,6 +9,9 @@ devel-su -p /opt/tests/Sailfish/Secrets/tst_secrets
 3) Run the crypto autotest
 devel-su -p /opt/tests/Sailfish/Crypto/tst_crypto
 
+4) Run the cryptosecrets autotest
+devel-su -p /opt/tests/Sailfish/Crypto/tst_cryptosecrets
+
 
 Brief Description:
 

@@ -46,7 +46,7 @@ static const char *createSecretsTable =
         "   SecretName TEXT NOT NULL,"
         "   Secret BLOB,"
         "   Timestamp DATE,"
-        "   FOREIGN KEY (CollectionName) REFERENCES Collections(CollectionName),"
+        "   FOREIGN KEY (CollectionName) REFERENCES Collections(CollectionName) ON DELETE CASCADE,"
         "   PRIMARY KEY (CollectionName, SecretName));";
 
 static const char *createStatements[] =

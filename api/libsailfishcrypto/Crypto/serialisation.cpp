@@ -719,7 +719,7 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto:
     QString message;
 
     argument.beginStructure();
-    argument >> code >> errorCode >> message;
+    argument >> code >> errorCode >> storageErrorCode >> message;
     argument.endStructure();
 
     result.setCode(static_cast<Sailfish::Crypto::Result::ResultCode>(code));

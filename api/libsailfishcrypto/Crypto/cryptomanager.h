@@ -95,8 +95,6 @@ public:
 
     // do we also need "continueEncrypt(data, ...)" etc?  Do we need "cipher sessions"?  what about denial of service / resource exhaustion etc?
     // do we also need "generateRandom()" methods?
-    // We also need to return the available cryptographic service providers (and storage providers).
-    // We also need to return data about CSPs e.g. what sort of keys / operations they provide.
 
 private:
     Sailfish::Crypto::CryptoManagerPrivate *m_data;

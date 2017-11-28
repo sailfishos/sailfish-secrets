@@ -65,7 +65,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::keyEntryIdentifiers(
     const QString selectKeyIdentifiersQuery = QStringLiteral(
                 "SELECT"
                    " KeyName,"
-                   " CollectionName,"
+                   " CollectionName"
                 " FROM KeyEntries;"
              );
 
@@ -106,7 +106,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::keyEntry(
     const QString selectKeyPluginsQuery = QStringLiteral(
                 "SELECT"
                    " CryptoPluginName,"
-                   " StoragePluginName,"
+                   " StoragePluginName"
                 " FROM KeyEntries"
                 " WHERE KeyName = ?"
                 " AND CollectionName = ?;"
@@ -272,6 +272,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storeKey(
     if (enqueueResult.code() == Sailfish::Secrets::Result::Failed) {
         return enqueueResult;
     }
+    m_cryptoApiHelperRequests.insert(cryptoRequestId, Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::StoreKeyCryptoApiHelperRequest);
     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Pending);
 }
 
@@ -297,6 +298,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::deleteStoredKey(
     if (enqueueResult.code() == Sailfish::Secrets::Result::Failed) {
         return enqueueResult;
     }
+    m_cryptoApiHelperRequests.insert(cryptoRequestId, Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::DeleteStoredKeyCryptoApiHelperRequest);
     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Pending);
 }
 
@@ -325,6 +327,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storedKey(
     if (enqueueResult.code() == Sailfish::Secrets::Result::Failed) {
         return enqueueResult;
     }
+    m_cryptoApiHelperRequests.insert(cryptoRequestId, Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::StoredKeyCryptoApiHelperRequest);
     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Pending);
 }
 

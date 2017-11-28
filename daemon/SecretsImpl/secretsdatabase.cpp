@@ -63,7 +63,7 @@ static const char *createSecretsTable =
         "   UnlockSemantic INTEGER NOT NULL,"
         "   CustomLockTimeoutMs INTEGER NOT NULL,"
         "   AccessControlMode INTEGER NOT NULL,"
-        "   FOREIGN KEY (CollectionName) REFERENCES Collections(CollectionName),"
+        "   FOREIGN KEY (CollectionName) REFERENCES Collections(CollectionName) ON DELETE CASCADE,"
         "   CONSTRAINT collectionSecretNameUnique UNIQUE (CollectionName, SecretName));";
 
 static const char *createKeyEntriesTable =
