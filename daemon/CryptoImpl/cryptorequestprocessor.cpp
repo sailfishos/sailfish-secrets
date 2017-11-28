@@ -194,13 +194,18 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::generateStoredKey(
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Pending);
     } else {
         // generate the key
-        Sailfish::Crypto::Key fullKey;
+        Sailfish::Crypto::Key fullKey(keyTemplate);
         Sailfish::Crypto::Result keyResult = m_cryptoPlugins[cryptosystemProviderName]->generateKey(keyTemplate, &fullKey);
         if (keyResult.code() == Sailfish::Crypto::Result::Failed) {
             return keyResult;
         }
 
-        secretsResult = m_secrets->storeKey(callerPid, requestId, fullKey.identifier(), Sailfish::Crypto::Key::serialise(fullKey), storageProviderName);
+        secretsResult = m_secrets->storeKey(
+                    callerPid,
+                    requestId,
+                    fullKey.identifier(),
+                    Sailfish::Crypto::Key::serialise(fullKey),
+                    storageProviderName);
         if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
             // return storeKey error to the client.
             Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Failed);

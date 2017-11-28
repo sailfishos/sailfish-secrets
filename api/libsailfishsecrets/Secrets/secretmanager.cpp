@@ -25,6 +25,12 @@
 
 Q_LOGGING_CATEGORY(lcSailfishSecrets, "org.sailfishos.secrets")
 
+const QString Sailfish::Secrets::Secret::TypeUnknown = QStringLiteral("Unknown");
+const QString Sailfish::Secrets::Secret::TypeBlob = QStringLiteral("Blob");
+const QString Sailfish::Secrets::Secret::TypeCryptoKey = QStringLiteral("CryptoKey");
+const QString Sailfish::Secrets::Secret::TypeCryptoCertificate = QStringLiteral("CryptoCertificate");
+const QString Sailfish::Secrets::Secret::TypeUsernamePassword = QStringLiteral("UsernamePassword");
+
 const QString Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName = QStringLiteral("org.sailfishos.secrets.plugin.authentication.inapp");
 //const QString Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName = QStringLiteral("org.sailfishos.secrets.plugin.authentication.system");
 /* TODO: delete this once we implement the system/devicelock auth plugin! */ const QString Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName = Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName;
@@ -367,14 +373,13 @@ Sailfish::Secrets::SecretManager::deleteCollection(
 }
 
 /*!
- * \brief Requests the Secrets service to store the given \a secret with the given
- * \a secretName into the collection identified by the given \a collectionName.
+ * \brief Requests the Secrets service to store the given \a secret into a particular collection.
  *
- * If the calling application is the creator of the collection, or alternatively
- * if the user has granted the application permission to modify the collection
- * and either there are no special access controls associated with the particular
- * secret or the secret does not yet exist, then the Secrets service will instruct
- * the storage plugin to store the secret into the collection.
+ * If the calling application is the creator of the collection specified in the
+ * secret's identifier, or alternatively if the user has granted the application
+ * permission to modify that collection and either there are no special access controls
+ * associated with the particular secret or the secret does not yet exist, then the
+ * Secrets service will instruct the storage plugin to store the secret into the collection.
  *
  * If the application is not the creator of the collection and the user has not yet
  * been asked if the application should have permission to modify the collection,
@@ -396,15 +401,21 @@ Sailfish::Secrets::SecretManager::deleteCollection(
  */
 QDBusPendingReply<Sailfish::Secrets::Result>
 Sailfish::Secrets::SecretManager::setSecret(
-        const QString &collectionName,
-        const QString &secretName,
-        const QByteArray &secret,
+        const Sailfish::Secrets::Secret &secret,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode)
 {
     if (!m_data->m_interface) {
         return QDBusPendingReply<Sailfish::Secrets::Result>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
+    }
+
+    if (!secret.identifier().isValid() || secret.identifier().identifiesStandaloneSecret()) {
+        Sailfish::Secrets::Result identifierError(Sailfish::Secrets::Result::InvalidSecretIdentifierError,
+                                                  QLatin1String("This method cannot be invoked with a standalone secret"));
+        return QDBusPendingReply<Sailfish::Secrets::Result>(
+                QDBusMessage().createReply(
+                        QVariantList() << QVariant::fromValue<Sailfish::Secrets::Result>(identifierError)));
     }
 
     QString uiServiceAddress;
@@ -418,9 +429,7 @@ Sailfish::Secrets::SecretManager::setSecret(
     QDBusPendingReply<Sailfish::Secrets::Result> reply
             = m_data->m_interface->asyncCallWithArgumentList(
                 "setSecret",
-                QVariantList() << QVariant::fromValue<QString>(collectionName)
-                               << QVariant::fromValue<QString>(secretName)
-                               << QVariant::fromValue<QByteArray>(secret)
+                QVariantList() << QVariant::fromValue<Sailfish::Secrets::Secret>(secret)
                                << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
                                << QVariant::fromValue<QString>(uiServiceAddress));
     return reply;
@@ -453,8 +462,7 @@ QDBusPendingReply<Sailfish::Secrets::Result>
 Sailfish::Secrets::SecretManager::setSecret(
         const QString &storagePluginName,
         const QString &encryptionPluginName,
-        const QString &secretName,
-        const QByteArray &secret,
+        const Sailfish::Secrets::Secret &secret,
         Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic unlockSemantic,
         Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode)
@@ -465,13 +473,20 @@ Sailfish::Secrets::SecretManager::setSecret(
                                               QStringLiteral("Not connected to daemon")));
     }
 
+    if (!secret.identifier().isValid() || !secret.identifier().identifiesStandaloneSecret()) {
+        Sailfish::Secrets::Result identifierError(Sailfish::Secrets::Result::InvalidSecretIdentifierError,
+                                                  QLatin1String("This method cannot be invoked with a collection secret"));
+        return QDBusPendingReply<Sailfish::Secrets::Result>(
+                QDBusMessage().createReply(
+                        QVariantList() << QVariant::fromValue<Sailfish::Secrets::Result>(identifierError)));
+    }
+
     QDBusPendingReply<Sailfish::Secrets::Result> reply
             = m_data->m_interface->asyncCallWithArgumentList(
                 "setSecret",
                 QVariantList() << QVariant::fromValue<QString>(storagePluginName)
                                << QVariant::fromValue<QString>(encryptionPluginName)
-                               << QVariant::fromValue<QString>(secretName)
-                               << QVariant::fromValue<QByteArray>(secret)
+                               << QVariant::fromValue<Sailfish::Secrets::Secret>(secret)
                                << QVariant::fromValue<Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic>(unlockSemantic)
                                << QVariant::fromValue<Sailfish::Secrets::SecretManager::AccessControlMode>(accessControlMode)
                                << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode));
@@ -519,8 +534,7 @@ Sailfish::Secrets::SecretManager::setSecret(
         const QString &storagePluginName,
         const QString &encryptionPluginName,
         const QString &authenticationPluginName,
-        const QString &secretName,
-        const QByteArray &secret,
+        const Sailfish::Secrets::Secret &secret,
         Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic unlockSemantic,
         int customLockTimeoutMs,
         Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
@@ -530,6 +544,14 @@ Sailfish::Secrets::SecretManager::setSecret(
         return QDBusPendingReply<Sailfish::Secrets::Result>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
+    }
+
+    if (!secret.identifier().isValid() || !secret.identifier().identifiesStandaloneSecret()) {
+        Sailfish::Secrets::Result identifierError(Sailfish::Secrets::Result::InvalidSecretIdentifierError,
+                                                  QLatin1String("This method cannot be invoked with a collection secret"));
+        return QDBusPendingReply<Sailfish::Secrets::Result>(
+                QDBusMessage().createReply(
+                        QVariantList() << QVariant::fromValue<Sailfish::Secrets::Result>(identifierError)));
     }
 
     QString uiServiceAddress;
@@ -546,8 +568,7 @@ Sailfish::Secrets::SecretManager::setSecret(
                 QVariantList() << QVariant::fromValue<QString>(storagePluginName)
                                << QVariant::fromValue<QString>(encryptionPluginName)
                                << QVariant::fromValue<QString>(authenticationPluginName)
-                               << QVariant::fromValue<QString>(secretName)
-                               << QVariant::fromValue<QByteArray>(secret)
+                               << QVariant::fromValue<Sailfish::Secrets::Secret>(secret)
                                << QVariant::fromValue<Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic>(unlockSemantic)
                                << QVariant::fromValue<int>(customLockTimeoutMs)
                                << QVariant::fromValue<Sailfish::Secrets::SecretManager::AccessControlMode>(accessControlMode)
@@ -558,7 +579,9 @@ Sailfish::Secrets::SecretManager::setSecret(
 
 /*!
  * \brief Requests the Secrets service to retrieve the secret identified by the
- * given \a secretName from the collection identified by the given \a collectionName.
+ * given \a identifier from the plugin in which it is stored.
+ *
+ * If the secret belongs to a collection, the following semantics apply:
  *
  * If the calling application is the creator of the collection, or alternatively
  * if the user has granted the application permission to read from the collection
@@ -584,41 +607,8 @@ Sailfish::Secrets::SecretManager::setSecret(
  * is an application-specific collection using an \c ApplicationSpecificAuthentication
  * plugin, but otherwise will be a system-mediated UI flow, unless the \a userInteractionMode
  * specified is \c PreventUserInteractionMode in which case the request will fail).
- */
-QDBusPendingReply<Sailfish::Secrets::Result, QByteArray>
-Sailfish::Secrets::SecretManager::getSecret(
-        const QString &collectionName,
-        const QString &secretName,
-        Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode)
-{
-    if (!m_data->m_interface) {
-        return QDBusPendingReply<Sailfish::Secrets::Result>(
-                    QDBusMessage::createError(QDBusError::Other,
-                                              QStringLiteral("Not connected to daemon")));
-    }
-
-    QString uiServiceAddress;
-    Sailfish::Secrets::Result uiServiceResult = m_data->registerUiService(userInteractionMode, &uiServiceAddress);
-    if (uiServiceResult.code() == Sailfish::Secrets::Result::Failed) {
-        return QDBusPendingReply<Sailfish::Secrets::Result>(
-                QDBusMessage().createReply(
-                        QVariantList() << QVariant::fromValue<Sailfish::Secrets::Result>(uiServiceResult)));
-    }
-
-    QDBusPendingReply<Sailfish::Secrets::Result, QByteArray> reply
-            = m_data->m_interface->asyncCallWithArgumentList(
-                "getSecret",
-                QVariantList() << QVariant::fromValue<QString>(collectionName)
-                               << QVariant::fromValue<QString>(secretName)
-                               << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
-                               << QVariant::fromValue<QString>(uiServiceAddress));
-    return reply;
-}
-
-
-/*!
- * \brief Requests the Secrets service to retrieve the secret identified by the
- * given \a secretName which is a standalone secret (not part of any collection).
+ *
+ * Otherwise, if the secret is a standalone secret, the following semantics apply:
  *
  * If the calling application is the creator of the secret, or alternatively
  * if the user has granted the application permission to read the specific secret,
@@ -630,25 +620,33 @@ Sailfish::Secrets::SecretManager::getSecret(
  * permission (unless the given \a userInteractionMode is \a PreventUserInteractionMode
  * in which case the request will fail).
  *
- * If the collection uses an encryption key derived from the system device-lock,
+ * If the secret uses an encryption key derived from the system device-lock,
  * then the value will be able to be retrieved without any other UI flow being required
- * if the collection is currently unlocked; however, if the collection uses an encryption
+ * if the secret is currently unlocked; however, if the collection uses an encryption
  * key derived from a custom lock, then the custom lock authentication key will be obtained
  * from the user via an authentication flow determined by the authentication plugin used for that
- * collection (which may support \c InProcessUserInteractionMode if the collection
- * is an application-specific collection using an \c ApplicationSpecificAuthentication
+ * secret (which may support \c InProcessUserInteractionMode if the secret
+ * is an application-specific secret using an \c ApplicationSpecificAuthentication
  * plugin, but otherwise will be a system-mediated UI flow, unless the \a userInteractionMode
  * specified is \c PreventUserInteractionMode in which case the request will fail).
  */
-QDBusPendingReply<Sailfish::Secrets::Result, QByteArray>
+QDBusPendingReply<Sailfish::Secrets::Result, Sailfish::Secrets::Secret>
 Sailfish::Secrets::SecretManager::getSecret(
-        const QString &secretName,
+        const Sailfish::Secrets::Secret::Identifier &identifier,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode)
 {
     if (!m_data->m_interface) {
         return QDBusPendingReply<Sailfish::Secrets::Result>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
+    }
+
+    if (!identifier.isValid()) {
+        Sailfish::Secrets::Result identifierError(Sailfish::Secrets::Result::InvalidSecretIdentifierError,
+                                                  QLatin1String("The given identifier is invalid"));
+        return QDBusPendingReply<Sailfish::Secrets::Result>(
+                QDBusMessage().createReply(
+                        QVariantList() << QVariant::fromValue<Sailfish::Secrets::Result>(identifierError)));
     }
 
     QString uiServiceAddress;
@@ -659,10 +657,10 @@ Sailfish::Secrets::SecretManager::getSecret(
                         QVariantList() << QVariant::fromValue<Sailfish::Secrets::Result>(uiServiceResult)));
     }
 
-    QDBusPendingReply<Sailfish::Secrets::Result, QByteArray> reply
+    QDBusPendingReply<Sailfish::Secrets::Result, Sailfish::Secrets::Secret> reply
             = m_data->m_interface->asyncCallWithArgumentList(
                 "getSecret",
-                QVariantList() << QVariant::fromValue<QString>(secretName)
+                QVariantList() << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(identifier)
                                << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
                                << QVariant::fromValue<QString>(uiServiceAddress));
     return reply;
@@ -670,7 +668,9 @@ Sailfish::Secrets::SecretManager::getSecret(
 
 /*!
  * \brief Requests the Secrets service to delete the secret identified by the
- * given \a secretName from the collection identified by the given \a collectionName.
+ * given \a identifier from the plugin in which it is stored.
+ *
+ * If the secret belongs to a collection, the following semantics apply:
  *
  * If the calling application is the creator of the collection, or alternatively
  * if the user has granted the application permission to modify the collection
@@ -686,40 +686,8 @@ Sailfish::Secrets::SecretManager::getSecret(
  * to delete the secret, then a system-mediated access control UI flow may be triggered
  * to obtain the user's permission (unless the given \a userInteractionMode is
  * \a PreventUserInteractionMode in which case the request will fail).
- */
-QDBusPendingReply<Sailfish::Secrets::Result>
-Sailfish::Secrets::SecretManager::deleteSecret(
-        const QString &collectionName,
-        const QString &secretName,
-        Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode)
-{
-    if (!m_data->m_interface) {
-        return QDBusPendingReply<Sailfish::Secrets::Result>(
-                    QDBusMessage::createError(QDBusError::Other,
-                                              QStringLiteral("Not connected to daemon")));
-    }
-
-    QString uiServiceAddress;
-    Sailfish::Secrets::Result uiServiceResult = m_data->registerUiService(userInteractionMode, &uiServiceAddress);
-    if (uiServiceResult.code() == Sailfish::Secrets::Result::Failed) {
-        return QDBusPendingReply<Sailfish::Secrets::Result>(
-                QDBusMessage().createReply(
-                        QVariantList() << QVariant::fromValue<Sailfish::Secrets::Result>(uiServiceResult)));
-    }
-
-    QDBusPendingReply<Sailfish::Secrets::Result> reply
-            = m_data->m_interface->asyncCallWithArgumentList(
-                "deleteSecret",
-                QVariantList() << QVariant::fromValue<QString>(collectionName)
-                               << QVariant::fromValue<QString>(secretName)
-                               << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
-                               << QVariant::fromValue<QString>(uiServiceAddress));
-    return reply;
-}
-
-/*!
- * \brief Requests the Secrets service to delete the secret identified by the
- * given \a secretName which is a standalone secret (not part of a collection).
+ *
+ * Otherwise, if the secret is a standalone secret, the following semantics apply:
  *
  * If the calling application is the creator of the secret, or alternatively
  * if the user has granted the application permission to delete the secret,
@@ -733,7 +701,7 @@ Sailfish::Secrets::SecretManager::deleteSecret(
  */
 QDBusPendingReply<Sailfish::Secrets::Result>
 Sailfish::Secrets::SecretManager::deleteSecret(
-        const QString &secretName,
+        const Sailfish::Secrets::Secret::Identifier &identifier,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode)
 {
     if (!m_data->m_interface) {
@@ -742,10 +710,27 @@ Sailfish::Secrets::SecretManager::deleteSecret(
                                               QStringLiteral("Not connected to daemon")));
     }
 
+    if (!identifier.isValid()) {
+        Sailfish::Secrets::Result identifierError(Sailfish::Secrets::Result::InvalidSecretIdentifierError,
+                                                  QLatin1String("The given identifier is invalid"));
+        return QDBusPendingReply<Sailfish::Secrets::Result>(
+                QDBusMessage().createReply(
+                        QVariantList() << QVariant::fromValue<Sailfish::Secrets::Result>(identifierError)));
+    }
+
+    QString uiServiceAddress;
+    Sailfish::Secrets::Result uiServiceResult = m_data->registerUiService(userInteractionMode, &uiServiceAddress);
+    if (uiServiceResult.code() == Sailfish::Secrets::Result::Failed) {
+        return QDBusPendingReply<Sailfish::Secrets::Result>(
+                QDBusMessage().createReply(
+                        QVariantList() << QVariant::fromValue<Sailfish::Secrets::Result>(uiServiceResult)));
+    }
+
     QDBusPendingReply<Sailfish::Secrets::Result> reply
             = m_data->m_interface->asyncCallWithArgumentList(
                 "deleteSecret",
-                QVariantList() << QVariant::fromValue<QString>(secretName)
-                               << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode));
+                QVariantList() << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(identifier)
+                               << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
+                               << QVariant::fromValue<QString>(uiServiceAddress));
     return reply;
 }

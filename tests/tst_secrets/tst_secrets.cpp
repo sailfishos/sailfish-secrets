@@ -85,27 +85,30 @@ void tst_secrets::writeReadDeleteDeviceLockCollectionSecret()
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
 
+    Sailfish::Secrets::Secret testSecret(
+                Sailfish::Secrets::Secret::Identifier(
+                    QLatin1String("testsecretname"),
+                    QLatin1String("testcollection")));
+    testSecret.setData("testsecretvalue");
+    testSecret.setType(Sailfish::Secrets::Secret::TypeBlob);
     reply = m.setSecret(
-                QLatin1String("testcollection"),
-                QLatin1String("testsecretname"),
-                QByteArray("testsecretvalue"),
+                testSecret,
                 Sailfish::Secrets::SecretManager::InProcessUserInteractionMode);
     reply.waitForFinished();
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
 
-    QDBusPendingReply<Sailfish::Secrets::Result, QByteArray> secretReply = m.getSecret(
-                QLatin1String("testcollection"),
-                QLatin1String("testsecretname"),
+    QDBusPendingReply<Sailfish::Secrets::Result, Sailfish::Secrets::Secret> secretReply = m.getSecret(
+                testSecret.identifier(),
                 Sailfish::Secrets::SecretManager::InProcessUserInteractionMode);
     secretReply.waitForFinished();
     QVERIFY(secretReply.isValid());
     QCOMPARE(secretReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
-    QCOMPARE(secretReply.argumentAt<1>(), QByteArray("testsecretvalue"));
+    QCOMPARE(secretReply.argumentAt<1>().data(), testSecret.data());
 
+    // delete the secret
     reply = m.deleteSecret(
-                QLatin1String("testcollection"),
-                QLatin1String("testsecretname"),
+                testSecret.identifier(),
                 Sailfish::Secrets::SecretManager::InProcessUserInteractionMode);
     reply.waitForFinished();
     QVERIFY(reply.isValid());
@@ -113,8 +116,7 @@ void tst_secrets::writeReadDeleteDeviceLockCollectionSecret()
 
     // ensure that the delete worked properly.
     secretReply = m.getSecret(
-                QLatin1String("testcollection"),
-                QLatin1String("testsecretname"),
+                testSecret.identifier(),
                 Sailfish::Secrets::SecretManager::InProcessUserInteractionMode);
     secretReply.waitForFinished();
     QVERIFY(secretReply.isValid());
@@ -131,11 +133,14 @@ void tst_secrets::writeReadDeleteDeviceLockCollectionSecret()
 
 void tst_secrets::writeReadDeleteStandaloneDeviceLockSecret()
 {
+    // write the secret
+    Sailfish::Secrets::Secret testSecret(Sailfish::Secrets::Secret::Identifier("testsecretname"));
+    testSecret.setData("testsecretvalue");
+    testSecret.setType(Sailfish::Secrets::Secret::TypeBlob);
     QDBusPendingReply<Sailfish::Secrets::Result> reply = m.setSecret(
                 Sailfish::Secrets::SecretManager::DefaultStoragePluginName,
                 Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName,
-                QLatin1String("testsecretname"),
-                QByteArray("testsecretvalue"),
+                testSecret,
                 Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked,
                 Sailfish::Secrets::SecretManager::OwnerOnlyMode,
                 Sailfish::Secrets::SecretManager::InProcessUserInteractionMode);
@@ -143,16 +148,18 @@ void tst_secrets::writeReadDeleteStandaloneDeviceLockSecret()
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
 
-    QDBusPendingReply<Sailfish::Secrets::Result, QByteArray> secretReply = m.getSecret(
-                QLatin1String("testsecretname"),
+    // read the secret
+    QDBusPendingReply<Sailfish::Secrets::Result, Sailfish::Secrets::Secret> secretReply = m.getSecret(
+                testSecret.identifier(),
                 Sailfish::Secrets::SecretManager::InProcessUserInteractionMode);
     secretReply.waitForFinished();
     QVERIFY(secretReply.isValid());
     QCOMPARE(secretReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
-    QCOMPARE(secretReply.argumentAt<1>(), QByteArray("testsecretvalue"));
+    QCOMPARE(secretReply.argumentAt<1>().data(), testSecret.data());
 
+    // delete the secret
     reply = m.deleteSecret(
-                QLatin1String("testsecretname"),
+                testSecret.identifier(),
                 Sailfish::Secrets::SecretManager::InProcessUserInteractionMode);
     reply.waitForFinished();
     QVERIFY(reply.isValid());
@@ -160,7 +167,7 @@ void tst_secrets::writeReadDeleteStandaloneDeviceLockSecret()
 
     // ensure that the delete worked properly.
     secretReply = m.getSecret(
-                QLatin1String("testsecretname"),
+                testSecret.identifier(),
                 Sailfish::Secrets::SecretManager::InProcessUserInteractionMode);
     secretReply.waitForFinished();
     QVERIFY(secretReply.isValid());
@@ -219,27 +226,29 @@ void tst_secrets::writeReadDeleteCustomLockCollectionSecret()
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
 
+    Sailfish::Secrets::Secret testSecret(
+                Sailfish::Secrets::Secret::Identifier(
+                    QLatin1String("testsecretname"),
+                    QLatin1String("testcollection")));
+    testSecret.setData("testsecretvalue");
+    testSecret.setType(Sailfish::Secrets::Secret::TypeBlob);
     reply = m.setSecret(
-                QLatin1String("testcollection"),
-                QLatin1String("testsecretname"),
-                QByteArray("testsecretvalue"),
+                testSecret,
                 Sailfish::Secrets::SecretManager::InProcessUserInteractionMode);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
 
-    QDBusPendingReply<Sailfish::Secrets::Result, QByteArray> secretReply = m.getSecret(
-                QLatin1String("testcollection"),
-                QLatin1String("testsecretname"),
+    QDBusPendingReply<Sailfish::Secrets::Result, Sailfish::Secrets::Secret> secretReply = m.getSecret(
+                testSecret.identifier(),
                 Sailfish::Secrets::SecretManager::InProcessUserInteractionMode);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretReply);
     QVERIFY(secretReply.isValid());
     QCOMPARE(secretReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
-    QCOMPARE(secretReply.argumentAt<1>(), QByteArray("testsecretvalue"));
+    QCOMPARE(secretReply.argumentAt<1>().data(), testSecret.data());
 
     reply = m.deleteSecret(
-                QLatin1String("testcollection"),
-                QLatin1String("testsecretname"),
+                testSecret.identifier(),
                 Sailfish::Secrets::SecretManager::InProcessUserInteractionMode);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
@@ -247,8 +256,7 @@ void tst_secrets::writeReadDeleteCustomLockCollectionSecret()
 
     // ensure that the delete worked properly.
     secretReply = m.getSecret(
-                QLatin1String("testcollection"),
-                QLatin1String("testsecretname"),
+                testSecret.identifier(),
                 Sailfish::Secrets::SecretManager::InProcessUserInteractionMode);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretReply);
     QVERIFY(secretReply.isValid());
@@ -272,12 +280,14 @@ void tst_secrets::writeReadDeleteStandaloneCustomLockSecret()
     QVERIFY(uiView);
     QMetaObject::invokeMethod(uiView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &m));
 
+    Sailfish::Secrets::Secret testSecret(Sailfish::Secrets::Secret::Identifier(QLatin1String("testsecretname")));
+    testSecret.setData("testsecretvalue");
+    testSecret.setType(Sailfish::Secrets::Secret::TypeBlob);
     QDBusPendingReply<Sailfish::Secrets::Result> reply = m.setSecret(
                 Sailfish::Secrets::SecretManager::DefaultStoragePluginName,
                 Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName,
                 Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName,
-                QLatin1String("testsecretname"),
-                QByteArray("testsecretvalue"),
+                testSecret,
                 Sailfish::Secrets::SecretManager::CustomLockKeepUnlocked,
                 0,
                 Sailfish::Secrets::SecretManager::OwnerOnlyMode,
@@ -286,16 +296,16 @@ void tst_secrets::writeReadDeleteStandaloneCustomLockSecret()
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
 
-    QDBusPendingReply<Sailfish::Secrets::Result, QByteArray> secretReply = m.getSecret(
-                QLatin1String("testsecretname"),
+    QDBusPendingReply<Sailfish::Secrets::Result, Sailfish::Secrets::Secret> secretReply = m.getSecret(
+                testSecret.identifier(),
                 Sailfish::Secrets::SecretManager::InProcessUserInteractionMode);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretReply);
     QVERIFY(secretReply.isValid());
     QCOMPARE(secretReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
-    QCOMPARE(secretReply.argumentAt<1>(), QByteArray("testsecretvalue"));
+    QCOMPARE(secretReply.argumentAt<1>().data(), testSecret.data());
 
     reply = m.deleteSecret(
-                QLatin1String("testsecretname"),
+                testSecret.identifier(),
                 Sailfish::Secrets::SecretManager::InProcessUserInteractionMode);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
@@ -303,7 +313,7 @@ void tst_secrets::writeReadDeleteStandaloneCustomLockSecret()
 
     // ensure that the delete worked properly.
     secretReply = m.getSecret(
-                    QLatin1String("testsecretname"),
+                    testSecret.identifier(),
                     Sailfish::Secrets::SecretManager::InProcessUserInteractionMode);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretReply);
     QVERIFY(secretReply.isValid());

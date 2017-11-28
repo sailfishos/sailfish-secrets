@@ -6,6 +6,7 @@
  */
 
 #include "Secrets/secretmanager.h"
+#include "Secrets/secret.h"
 #include "Secrets/result.h"
 #include "Secrets/uirequest.h"
 
@@ -89,6 +90,52 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
     result.setCode(static_cast<Sailfish::Secrets::Result::ResultCode>(code));
     result.setErrorCode(static_cast<Sailfish::Secrets::Result::ErrorCode>(errorCode));
     result.setErrorMessage(message);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secret::Identifier &identifier)
+{
+    argument.beginStructure();
+    argument << identifier.name() << identifier.collectionName();
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::Secret::Identifier &identifier)
+{
+    QString name;
+    QString collectionName;
+
+    argument.beginStructure();
+    argument >> name >> collectionName;
+    argument.endStructure();
+
+    identifier.setName(name);
+    identifier.setCollectionName(collectionName);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secret &secret)
+{
+    argument.beginStructure();
+    argument << secret.identifier() << secret.data() << secret.type();
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::Secret &secret)
+{
+    Sailfish::Secrets::Secret::Identifier identifier;
+    QByteArray data;
+    QString type;
+
+    argument.beginStructure();
+    argument >> identifier >> data >> type;
+    argument.endStructure();
+
+    secret.setIdentifier(identifier);
+    secret.setData(data);
+    secret.setType(type);
     return argument;
 }
 

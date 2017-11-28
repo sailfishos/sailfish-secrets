@@ -108,10 +108,10 @@ public:
                                          QLatin1String("TODO: SQLCIPHER"));
     }
 
-    Sailfish::Secrets::Result removeSecret(const QString &collectionName, const QString &secretName) Q_DECL_OVERRIDE
+    Sailfish::Secrets::Result removeSecret(const QString &collectionName, const QString &hashedSecretName) Q_DECL_OVERRIDE
     {
         Q_UNUSED(collectionName);
-        Q_UNUSED(secretName);
+        Q_UNUSED(hashedSecretName);
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationNotSupportedError,
                                          QLatin1String("TODO: SQLCIPHER"));
     }

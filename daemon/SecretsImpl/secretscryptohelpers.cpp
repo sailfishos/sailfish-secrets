@@ -332,8 +332,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storeKeyMetadata(
 
     // step two: perform the "set collection secret metadata" request, as a secrets-for-crypto request.
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QString>(identifier.collectionName())
-             << QVariant::fromValue<QString>(identifier.name())
+    inParams << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(Sailfish::Secrets::Secret::Identifier(identifier.name(), identifier.collectionName()))
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::PreventUserInteractionMode)
              << QVariant::fromValue<QString>(QString());
     Sailfish::Secrets::Result enqueueResult(Sailfish::Secrets::Result::Succeeded);
@@ -369,10 +368,11 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storeKey(
     }
 
     // step two: perform the "set collection secret" request, as a secrets-for-crypto request.
+    Sailfish::Secrets::Secret secret(Sailfish::Secrets::Secret::Identifier(identifier.name(), identifier.collectionName()));
+    secret.setType(Sailfish::Secrets::Secret::TypeCryptoKey);
+    secret.setData(serialisedKey);
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QString>(identifier.collectionName())
-             << QVariant::fromValue<QString>(identifier.name())
-             << QVariant::fromValue<QByteArray>(serialisedKey)
+    inParams << QVariant::fromValue<Sailfish::Secrets::Secret>(secret)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::PreventUserInteractionMode)
              << QVariant::fromValue<QString>(QString());
     Sailfish::Secrets::Result enqueueResult(Sailfish::Secrets::Result::Succeeded);
@@ -397,8 +397,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::deleteStoredKey(
 {
     // perform the "delete collection secret" request, as a secrets-for-crypto request.
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QString>(identifier.collectionName())
-             << QVariant::fromValue<QString>(identifier.name())
+    inParams << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(Sailfish::Secrets::Secret::Identifier(identifier.name(), identifier.collectionName()))
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::PreventUserInteractionMode)
              << QVariant::fromValue<QString>(QString());
     Sailfish::Secrets::Result enqueueResult(Sailfish::Secrets::Result::Succeeded);
@@ -424,8 +423,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::deleteStoredKeyMetadata
 {
     // perform the "delete collection secret metadata" request, as a secrets-for-crypto request.
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QString>(identifier.collectionName())
-             << QVariant::fromValue<QString>(identifier.name());
+    inParams << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(Sailfish::Secrets::Secret::Identifier(identifier.name(), identifier.collectionName()));
     Sailfish::Secrets::Result enqueueResult(Sailfish::Secrets::Result::Succeeded);
     handleRequest(
                 callerPid,
@@ -451,8 +449,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storedKey(
 
     // perform the "get collection secret" request, as a secrets-for-crypto request.
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QString>(identifier.collectionName())
-             << QVariant::fromValue<QString>(identifier.name())
+    inParams << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(Sailfish::Secrets::Secret::Identifier(identifier.name(), identifier.collectionName()))
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::PreventUserInteractionMode)
              << QVariant::fromValue<QString>(QString());
     Sailfish::Secrets::Result enqueueResult(Sailfish::Secrets::Result::Succeeded);
@@ -483,8 +480,8 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::asynchronousCryptoReque
     Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::CryptoApiHelperRequestType type = m_cryptoApiHelperRequests.take(cryptoRequestId);
     switch (type) {
         case StoredKeyCryptoApiHelperRequest: {
-            QByteArray serialisedKey = parameters.size() ? parameters.first().value<QByteArray>() : QByteArray();
-            emit storedKeyCompleted(cryptoRequestId, result, serialisedKey);
+            Sailfish::Secrets::Secret secret = parameters.size() ? parameters.first().value<Sailfish::Secrets::Secret>() : Sailfish::Secrets::Secret();
+            emit storedKeyCompleted(cryptoRequestId, result, secret.data());
             break;
         }
         case DeleteStoredKeyCryptoApiHelperRequest: {

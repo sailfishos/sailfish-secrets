@@ -44,6 +44,7 @@ public:
         SecretsPluginDecryptionError,
 
         InvalidSecretError = 40,
+        InvalidSecretIdentifierError,
         InvalidCollectionError,
         InvalidExtensionPluginError,
         InvalidApplicationIdError,

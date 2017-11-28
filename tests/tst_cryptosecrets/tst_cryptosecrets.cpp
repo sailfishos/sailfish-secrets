@@ -227,9 +227,10 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
     QCOMPARE(decryptReply.argumentAt<0>().errorCode(), Sailfish::Crypto::Result::InvalidKeyIdentifier);
 
     // ensure that the deletion was cascaded to the Secrets internal database table.
-    QDBusPendingReply<Sailfish::Secrets::Result, QByteArray> secretReply = sm.getSecret(
-            keyReference.identifier().collectionName(),
-            keyReference.identifier().name(),
+    QDBusPendingReply<Sailfish::Secrets::Result, Sailfish::Secrets::Secret> secretReply = sm.getSecret(
+            Sailfish::Secrets::Secret::Identifier(
+                    keyReference.identifier().name(),
+                    keyReference.identifier().collectionName()),
             Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretReply);
     QVERIFY(secretReply.isValid());

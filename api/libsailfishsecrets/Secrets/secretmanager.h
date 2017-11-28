@@ -41,22 +41,22 @@ public:
     Q_ENUM(UserInteractionMode)
 
     enum AccessControlMode {
-        OwnerOnlyMode = 0,          // no fine-grained access control necessary, only the creating application can access/write/delete.
-        SystemAccessControlMode     // access control via system access control, other applications can access if user gives permission.
+        OwnerOnlyMode = 0,                  // no fine-grained access control necessary, only the creating application can access/write/delete.
+        SystemAccessControlMode             // access control via system access control, other applications can access if user gives permission.
     };
     Q_ENUM(AccessControlMode)
 
     enum DeviceLockUnlockSemantic {
-        DeviceLockKeepUnlocked = 0, // unlock after first successful device unlock, stay unlocked.  e.g. background processes.
-        DeviceLockRelock,           // unlock on device unlock, relock on device lock.
+        DeviceLockKeepUnlocked = 0,         // unlock after first successful device unlock, stay unlocked.  e.g. background processes.
+        DeviceLockRelock,                   // unlock on device unlock, relock on device lock.
     };
     Q_ENUM(DeviceLockUnlockSemantic)
 
     enum CustomLockUnlockSemantic {
-        CustomLockKeepUnlocked = 8, // unlock after first successful access (with UI flow), stay unlocked.  e.g. background processes.
-        CustomLockDeviceLockRelock, // unlock after successful access (with UI flow) after device unlock, relock on device lock.
-        CustomLockTimoutRelock,     // unlock after successful access (with UI flow) after device unlock, relock after timeout.
-        CustomLockAccessRelock,     // unlock and relock on every successful access (with UI flow).
+        CustomLockKeepUnlocked = 8,         // unlock after first successful access (with UI flow), stay unlocked.  e.g. background processes.
+        CustomLockDeviceLockRelock,         // unlock after successful access (with UI flow) after device unlock, relock on device lock.
+        CustomLockTimoutRelock,             // unlock after successful access (with UI flow) after device unlock, relock after timeout.
+        CustomLockAccessRelock,             // unlock and relock on every successful access (with UI flow).
     };
     Q_ENUM(CustomLockUnlockSemantic)
 
@@ -109,19 +109,16 @@ public:
             const QString &collectionName,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
-    // set a secret in a collection
+    // set a secret in a collection.  Will immediately fail if the secret's identifier is standalone.
     QDBusPendingReply<Sailfish::Secrets::Result> setSecret(
-            const QString &collectionName,
-            const QString &secretName,
-            const QByteArray &secret,
+            const Sailfish::Secrets::Secret &secret,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
     // set a standalone DeviceLock-protected secret
     QDBusPendingReply<Sailfish::Secrets::Result> setSecret(
             const QString &storagePluginName,
             const QString &encryptionPluginName,
-            const QString &secretName,
-            const QByteArray &secret,
+            const Sailfish::Secrets::Secret &secret,
             Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic unlockSemantic,
             Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
@@ -131,33 +128,20 @@ public:
             const QString &storagePluginName,
             const QString &encryptionPluginName,
             const QString &authenticationPluginName,
-            const QString &secretName,
-            const QByteArray &secret,
+            const Sailfish::Secrets::Secret &secret,
             Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic unlockSemantic,
             int customLockTimeoutMs,
             Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
-    // get a secret in a collection
-    QDBusPendingReply<Sailfish::Secrets::Result, QByteArray> getSecret(
-            const QString &collectionName,
-            const QString &secretName,
+    // get a secret (either from a collection or standalone, depending on the identifier)
+    QDBusPendingReply<Sailfish::Secrets::Result, Sailfish::Secrets::Secret> getSecret(
+            const Sailfish::Secrets::Secret::Identifier &identifier,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
-    // get a standalone secret
-    QDBusPendingReply<Sailfish::Secrets::Result, QByteArray> getSecret(
-            const QString &secretName,
-            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
-
-    // delete a secret in a collection
+    // delete a secret (either from a collection or standalone, depending on the identifier)
     QDBusPendingReply<Sailfish::Secrets::Result> deleteSecret(
-            const QString &collectionName,
-            const QString &secretName,
-            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
-
-    // delete a standalone secret
-    QDBusPendingReply<Sailfish::Secrets::Result> deleteSecret(
-            const QString &secretName,
+            const Sailfish::Secrets::Secret::Identifier &identifier,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
 Q_SIGNALS:
