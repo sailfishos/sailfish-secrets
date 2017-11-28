@@ -409,11 +409,13 @@ void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest
         }
         case DeleteStoredKeyRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling DeleteStoredKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            QString name = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            Sailfish::Crypto::Key::Identifier identifier = request->inParams.size()
+                                                         ? request->inParams.takeFirst().value<Sailfish::Crypto::Key::Identifier>()
+                                                         : Sailfish::Crypto::Key::Identifier();
             Sailfish::Crypto::Result result = m_requestProcessor->deleteStoredKey(
                         request->remotePid,
                         request->requestId,
-                        name);
+                        identifier);
             // send the reply to the calling peer.
             if (result.code() == Sailfish::Crypto::Result::Pending) {
                 // waiting for asynchronous flow to complete
