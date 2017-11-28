@@ -439,13 +439,13 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::sign(
 
     if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & Sailfish::Crypto::Key::Sign)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("The specified cryptographic service provider does not supported sign operations"));
+                                        QLatin1String("The specified cryptographic service provider does not support sign operations"));
     } else if (!(cryptoPlugin->supportedSignaturePaddings().value(key.algorithm()) & padding)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedSignaturePadding,
-                                        QLatin1String("The specified cryptographic service provider does not supported that signature padding"));
+                                        QLatin1String("The specified cryptographic service provider does not support that signature padding"));
     } else if (!(cryptoPlugin->supportedDigests().value(key.algorithm()) & digest)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedDigest,
-                                        QLatin1String("The specified cryptographic service provider does not supported that digest"));
+                                        QLatin1String("The specified cryptographic service provider does not support that digest"));
     }
 
     Sailfish::Crypto::Key fullKey;
@@ -455,7 +455,7 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::sign(
         Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Succeeded);
         if (key.identifier().name().isEmpty()) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidKeyIdentifier,
-                                            QLatin1String("Reference key has empty name"));
+                                            QLatin1String("Reference key has empty identifier"));
         } else {
             QVector<Sailfish::Crypto::Key::Identifier> identifiers;
             secretsResult = m_secrets->keyEntryIdentifiers(callerPid, requestId, &identifiers);
@@ -547,13 +547,13 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::verify(
 
     if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & Sailfish::Crypto::Key::Verify)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("The specified cryptographic service provider does not supported verify operations"));
+                                        QLatin1String("The specified cryptographic service provider does not support verify operations"));
     } else if (!(cryptoPlugin->supportedSignaturePaddings().value(key.algorithm()) & padding)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedSignaturePadding,
-                                        QLatin1String("The specified cryptographic service provider does not supported that signature padding"));
+                                        QLatin1String("The specified cryptographic service provider does not support that signature padding"));
     } else if (!(cryptoPlugin->supportedDigests().value(key.algorithm()) & digest)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedDigest,
-                                        QLatin1String("The specified cryptographic service provider does not supported that digest"));
+                                        QLatin1String("The specified cryptographic service provider does not support that digest"));
     }
 
     Sailfish::Crypto::Key fullKey;
@@ -563,7 +563,7 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::verify(
         Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Succeeded);
         if (key.identifier().name().isEmpty()) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidKeyIdentifier,
-                                            QLatin1String("Reference key has empty name"));
+                                            QLatin1String("Reference key has empty identifier"));
         } else {
             QVector<Sailfish::Crypto::Key::Identifier> identifiers;
             secretsResult = m_secrets->keyEntryIdentifiers(callerPid, requestId, &identifiers);
@@ -656,16 +656,16 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::encrypt(
 
     if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & Sailfish::Crypto::Key::Encrypt)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("The specified cryptographic service provider does not supported encrypt operations"));
+                                        QLatin1String("The specified cryptographic service provider does not support encrypt operations"));
     } else if (!(cryptoPlugin->supportedBlockModes().value(key.algorithm()) & blockMode)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedBlockMode,
                                         QLatin1String("The specified cryptographic service provider does not support that block mode"));
     } else if (!(cryptoPlugin->supportedSignaturePaddings().value(key.algorithm()) & padding)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedEncryptionPadding,
-                                        QLatin1String("The specified cryptographic service provider does not supported that encryption padding"));
+                                        QLatin1String("The specified cryptographic service provider does not support that encryption padding"));
     } else if (!(cryptoPlugin->supportedDigests().value(key.algorithm()) & digest)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedDigest,
-                                        QLatin1String("The specified cryptographic service provider does not supported that digest"));
+                                        QLatin1String("The specified cryptographic service provider does not support that digest"));
     }
 
     Sailfish::Crypto::Key fullKey;
@@ -675,7 +675,7 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::encrypt(
         Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Succeeded);
         if (key.identifier().name().isEmpty()) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidKeyIdentifier,
-                                            QLatin1String("Reference key has empty name"));
+                                            QLatin1String("Reference key has empty identifier"));
         } else {
             QVector<Sailfish::Crypto::Key::Identifier> identifiers;
             secretsResult = m_secrets->keyEntryIdentifiers(callerPid, requestId, &identifiers);
@@ -770,16 +770,16 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::decrypt(
 
     if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & Sailfish::Crypto::Key::Decrypt)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("The specified cryptographic service provider does not supported decrypt operations"));
+                                        QLatin1String("The specified cryptographic service provider does not support decrypt operations"));
     } else if (!(cryptoPlugin->supportedBlockModes().value(key.algorithm()) & blockMode)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedBlockMode,
                                         QLatin1String("The specified cryptographic service provider does not support that block mode"));
     } else if (!(cryptoPlugin->supportedSignaturePaddings().value(key.algorithm()) & padding)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedEncryptionPadding,
-                                        QLatin1String("The specified cryptographic service provider does not supported that encryption padding"));
+                                        QLatin1String("The specified cryptographic service provider does not support that encryption padding"));
     } else if (!(cryptoPlugin->supportedDigests().value(key.algorithm()) & digest)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedDigest,
-                                        QLatin1String("The specified cryptographic service provider does not supported that digest"));
+                                        QLatin1String("The specified cryptographic service provider does not support that digest"));
     }
 
     Sailfish::Crypto::Key fullKey;
@@ -789,7 +789,7 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::decrypt(
         Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Succeeded);
         if (key.identifier().name().isEmpty()) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidKeyIdentifier,
-                                            QLatin1String("Reference key has empty name"));
+                                            QLatin1String("Reference key has empty identifier"));
         } else {
             QVector<Sailfish::Crypto::Key::Identifier> identifiers;
             secretsResult = m_secrets->keyEntryIdentifiers(callerPid, requestId, &identifiers);
