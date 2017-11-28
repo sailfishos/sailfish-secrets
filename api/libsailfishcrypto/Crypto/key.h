@@ -122,21 +122,18 @@ public:
     };
     Q_DECLARE_FLAGS(Operations, Operation)
 
-    Key();
-    Key(const Sailfish::Crypto::Key &other);
-    explicit Key(const QString &keyName, const QString &collection);
-    virtual ~Key();
-
-    Sailfish::Crypto::Key & operator=(const Sailfish::Crypto::Key &other);
-    bool operator==(const Sailfish::Crypto::Key &other);
-    bool operator<(const Sailfish::Crypto::Key &other);
-
     class Identifier {
     public:
         Identifier(const QString &name = QString(), const QString &collectionName = QString())
             : m_name(name), m_collectionName(collectionName) {}
         Identifier(const Sailfish::Crypto::Key::Identifier &other)
             : m_name(other.m_name), m_collectionName(other.m_collectionName) {}
+        Identifier(Sailfish::Crypto::Key::Identifier &&) = default;
+        Identifier &operator=(const Sailfish::Crypto::Key::Identifier &other) {
+            m_name = other.m_name;
+            m_collectionName = other.m_collectionName;
+            return *this;
+        }
         bool operator==(const Sailfish::Crypto::Key::Identifier &other) const {
             return m_name == other.m_name && m_collectionName == other.m_collectionName;
         }
@@ -151,6 +148,15 @@ public:
         QString m_name;
         QString m_collectionName;
     };
+
+    Key();
+    Key(const Sailfish::Crypto::Key &other);
+    explicit Key(const QString &keyName, const QString &collection);
+    virtual ~Key();
+
+    Sailfish::Crypto::Key & operator=(const Sailfish::Crypto::Key &other);
+    bool operator==(const Sailfish::Crypto::Key &other);
+    bool operator<(const Sailfish::Crypto::Key &other);
 
     Sailfish::Crypto::Key::Identifier identifier() const;
     void setIdentifier(const Sailfish::Crypto::Key::Identifier &identifier);
@@ -247,29 +253,29 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto:
 
 } // namespace Sailfish
 
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Identifier)
-Q_DECLARE_METATYPE(QVector<Sailfish::Crypto::Key::Identifier>)
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Identifier);
+Q_DECLARE_TYPEINFO(Sailfish::Crypto::Key::Identifier, Q_MOVABLE_TYPE);
 
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Origin)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Algorithm)
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Origin);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Algorithm);
 
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::BlockMode)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::EncryptionPadding)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::SignaturePadding)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Digest)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Operation)
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::BlockMode);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::EncryptionPadding);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::SignaturePadding);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Digest);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Operation);
 
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::BlockModes)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::EncryptionPaddings)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::SignaturePaddings)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Digests)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Operations)
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::BlockModes);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::EncryptionPaddings);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::SignaturePaddings);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Digests);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Operations);
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::BlockModes)
-Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::EncryptionPaddings)
-Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::SignaturePaddings)
-Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::Digests)
-Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::Operations)
+Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::BlockModes);
+Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::EncryptionPaddings);
+Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::SignaturePaddings);
+Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::Digests);
+Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::Operations);
 
 #endif // LIBSAILFISHCRYPTO_KEY_H

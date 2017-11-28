@@ -127,6 +127,15 @@ public:
         , m_storageErrorCode(other.m_storageErrorCode)
         , m_errorCode(other.m_errorCode)
         , m_code(other.m_code) {}
+    Result(Sailfish::Crypto::Result &&) = default;
+
+    Result &operator=(const Sailfish::Crypto::Result &other) {
+        m_errorMessage = other.m_errorMessage;
+        m_storageErrorCode = other.m_storageErrorCode;
+        m_errorCode = other.m_errorCode;
+        m_code = other.m_code;
+        return *this;
+    }
 
     void setErrorMessage(const QString &m) { m_errorMessage = m; }
     QString errorMessage() const { return m_errorMessage; }

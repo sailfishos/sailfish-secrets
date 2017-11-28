@@ -136,8 +136,16 @@ public:
         : m_errorMessage(errorMessage), m_errorCode(errorCode), m_code(errorCode >= Sailfish::Secrets::Result::UnknownError
                                                                                  ? Sailfish::Secrets::Result::Failed
                                                                                  : Sailfish::Secrets::Result::Succeeded) {}
-    Result(const Result &other)
+    Result(const Sailfish::Secrets::Result &other)
         : m_errorMessage(other.m_errorMessage), m_errorCode(other.m_errorCode), m_code(other.m_code) {}
+    Result(Sailfish::Secrets::Result &&) = default;
+
+    Result &operator=(const Sailfish::Secrets::Result &other) {
+        m_errorMessage = other.m_errorMessage;
+        m_errorCode = other.m_errorCode;
+        m_code = other.m_code;
+        return *this;
+    }
 
     void setErrorMessage(const QString &m) { m_errorMessage = m; }
     QString errorMessage() const { return m_errorMessage; }
