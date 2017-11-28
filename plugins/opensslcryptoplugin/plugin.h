@@ -69,9 +69,6 @@ public:
             const Sailfish::Crypto::Key::Identifier &identifier,
             Sailfish::Crypto::Key *key) Q_DECL_OVERRIDE;
 
-    Sailfish::Crypto::Result deleteStoredKey(
-            const Sailfish::Crypto::Key::Identifier &identifier) Q_DECL_OVERRIDE;
-
     Sailfish::Crypto::Result storedKeyIdentifiers(
             QVector<Sailfish::Crypto::Key::Identifier> *identifiers) Q_DECL_OVERRIDE;
 

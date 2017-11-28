@@ -350,17 +350,7 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::deleteStoredKey(
                                         QLatin1String("Internal error: storage plugin associated with that key is empty"));
     }
 
-    // check to see if the crypto plugin also stored the key
-    if (m_cryptoPlugins.contains(storagePluginName)) {
-        retn = m_cryptoPlugins[storagePluginName]->deleteStoredKey(identifier);
-        if (retn.code() == Sailfish::Crypto::Result::Succeeded) {
-            m_secrets->removeKeyEntry(callerPid, requestId, identifier);
-            // TODO: handle error e.g. re-try later.
-        }
-        return retn;
-    }
-
-    // otherwise delete from secrets storage
+    // delete from secrets storage
     secretsResult = m_secrets->deleteStoredKey(callerPid, requestId, identifier);
     if (secretsResult.code() == Sailfish::Secrets::Result::Succeeded) {
         m_secrets->removeKeyEntry(callerPid, requestId, identifier);

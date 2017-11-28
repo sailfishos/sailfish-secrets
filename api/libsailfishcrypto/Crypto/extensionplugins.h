@@ -76,8 +76,11 @@ public:
             const Sailfish::Crypto::Key::Identifier &identifier,
             Sailfish::Crypto::Key *key) = 0;
 
-    virtual Sailfish::Crypto::Result deleteStoredKey(
-            const Sailfish::Crypto::Key::Identifier &identifier) = 0;
+    // This doesn't exist - if you can store keys, then you must also
+    // implement the Secrets::EncryptedStoragePlugin interface, and
+    // stored key deletion will occur through that API instead.
+    //virtual Sailfish::Crypto::Result deleteStoredKey(
+    //        const Sailfish::Crypto::Key::Identifier &identifier) = 0;
 
     virtual Sailfish::Crypto::Result storedKeyIdentifiers(
             QVector<Sailfish::Crypto::Key::Identifier> *identifiers) = 0;

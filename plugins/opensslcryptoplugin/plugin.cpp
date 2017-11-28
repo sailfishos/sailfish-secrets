@@ -131,15 +131,6 @@ Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::storedKey(
 }
 
 Sailfish::Crypto::Result
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::deleteStoredKey(
-        const Sailfish::Crypto::Key::Identifier &identifier)
-{
-    Q_UNUSED(identifier);
-    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                    QLatin1String("The OpenSslCryptoPlugin doesn't support storing keys"));
-}
-
-Sailfish::Crypto::Result
 Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::storedKeyIdentifiers(
         QVector<Sailfish::Crypto::Key::Identifier> *identifiers)
 {
