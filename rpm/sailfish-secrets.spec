@@ -176,6 +176,7 @@ rm -rf %{buildroot}
 /opt/tests/Sailfish/Secrets/tst_secrets.qml
 %{_libdir}/sailfishsecrets/libsailfishsecrets-testinappauth.so
 %{_libdir}/sailfishsecrets/libsailfishsecrets-testopenssl.so
+%{_libdir}/sailfishsecrets/libsailfishsecrets-testsqlcipher.so
 %{_libdir}/sailfishsecrets/libsailfishsecrets-testsqlite.so
 
 %files -n libsailfishcrypto-tests

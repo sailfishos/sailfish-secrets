@@ -276,8 +276,10 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::SecretsRequestQueue(
           autotestMode)
 {
     Sailfish::Secrets::SecretsDaemonConnection::registerDBusTypes();
-    if (!m_db.open(QLatin1String("sailfishsecretsd"),
+    if (!m_db.open(QLatin1String("QSQLITE"),
+                   QLatin1String("sailfishsecretsd"),
                    QLatin1String("secrets.db"),
+                   setupStatements,
                    createStatements,
                    upgradeVersions,
                    currentSchemaVersion,

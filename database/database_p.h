@@ -87,8 +87,10 @@ public:
 
     QMutex *accessMutex() const;
 
-    bool open(const QString &databaseSubdir,
+    bool open(const QString &databaseDriver,
+              const QString &databaseSubdir,
               const QString &databaseFilename,
+              const char *setupStatements[],
               const char *createStatements[],
               const Sailfish::Secrets::Daemon::Sqlite::UpgradeOperation upgradeVersions[],
               int currentSchemaVersion,

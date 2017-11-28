@@ -56,6 +56,7 @@ public:
 
         DatabaseQueryError = 70,
         DatabaseTransactionError,
+        DatabaseError,
 
         UiServiceUnknownError = 80,
         UiServiceUnavailableError,

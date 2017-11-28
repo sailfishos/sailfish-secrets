@@ -10,6 +10,21 @@
 
 #include "database_p.h"
 
+static const char *setupEnforceForeignKeys =
+        "\n PRAGMA foreign_keys = ON;";
+
+static const char *setupEncoding =
+        "\n PRAGMA encoding = \"UTF-16\";";
+
+static const char *setupTempStore =
+        "\n PRAGMA temp_store = MEMORY;";
+
+static const char *setupJournal =
+        "\n PRAGMA journal_mode = WAL;";
+
+static const char *setupSynchronous =
+        "\n PRAGMA synchronous = FULL;";
+
 static const char *createCollectionsTable =
         "\n CREATE TABLE Collections ("
         "   CollectionId INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -50,6 +65,16 @@ static const char *createKeyEntriesTable =
         "   StoragePluginName TEXT NOT NULL,"
         "   FOREIGN KEY (CollectionName, HashedSecretName) REFERENCES Secrets(CollectionName,HashedSecretName) ON DELETE CASCADE,"
         "   CONSTRAINT collectionKeyNameUnique UNIQUE (CollectionName, KeyName));";
+
+static const char *setupStatements[] =
+{
+    setupEnforceForeignKeys,
+    setupEncoding,
+    setupTempStore,
+    setupJournal,
+    setupSynchronous,
+    NULL
+};
 
 static const char *createStatements[] =
 {

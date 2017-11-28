@@ -233,10 +233,10 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createDeviceLockCollection
     } else if (storagePluginName == encryptionPluginName && !m_encryptedStoragePlugins.contains(storagePluginName)) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
                                          QString::fromLatin1("No such encrypted storage plugin exists: %1").arg(storagePluginName));
-    } else if (!m_storagePlugins.contains(storagePluginName)) {
+    } else if (storagePluginName != encryptionPluginName && !m_storagePlugins.contains(storagePluginName)) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
                                          QString::fromLatin1("No such storage plugin exists: %1").arg(storagePluginName));
-    } else if (!m_encryptionPlugins.contains(encryptionPluginName)) {
+    } else if (storagePluginName != encryptionPluginName && !m_encryptionPlugins.contains(encryptionPluginName)) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
                                          QString::fromLatin1("No such encryption plugin exists: %1").arg(encryptionPluginName));
     }
@@ -426,10 +426,10 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createCustomLockCollection
     } else if (storagePluginName == encryptionPluginName && !m_encryptedStoragePlugins.contains(storagePluginName)) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
                                          QString::fromLatin1("No such encrypted storage plugin exists: %1").arg(storagePluginName));
-    } else if (!m_storagePlugins.contains(storagePluginName)) {
+    } else if (storagePluginName != encryptionPluginName && !m_storagePlugins.contains(storagePluginName)) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
                                          QString::fromLatin1("No such storage plugin exists: %1").arg(storagePluginName));
-    } else if (!m_encryptionPlugins.contains(encryptionPluginName)) {
+    } else if (storagePluginName != encryptionPluginName && !m_encryptionPlugins.contains(encryptionPluginName)) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
                                          QString::fromLatin1("No such encryption plugin exists: %1").arg(encryptionPluginName));
     } else if (!m_authenticationPlugins.contains(authenticationPluginName)) {
@@ -794,7 +794,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollection(
         // TODO: this means we have "stale" data in the database; what should we do in this case?
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
                                          QString::fromLatin1("No such encrypted storage plugin exists: %1").arg(collectionStoragePluginName));
-    } else if (collectionStoragePluginName.isEmpty() || !m_storagePlugins.contains(collectionStoragePluginName)) {
+    } else if (collectionStoragePluginName != collectionEncryptionPluginName && (collectionStoragePluginName.isEmpty() || !m_storagePlugins.contains(collectionStoragePluginName))) {
         // TODO: this means we have "stale" data in the database; what should we do in this case?
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
                                          QString::fromLatin1("No such storage plugin exists: %1").arg(collectionStoragePluginName));

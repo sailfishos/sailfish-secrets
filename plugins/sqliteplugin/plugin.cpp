@@ -28,8 +28,10 @@ void Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::openDatabaseIfNecessary()
 #else
     bool autotestMode = false;
 #endif
-    if (!m_db.open(QLatin1String("sqliteplugin"),
+    if (!m_db.open(QLatin1String("QSQLITE"),
+                   QLatin1String("sqliteplugin"),
                    QLatin1String("secrets.db"),
+                   setupStatements,
                    createStatements,
                    upgradeVersions,
                    currentSchemaVersion,

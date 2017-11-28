@@ -22,21 +22,6 @@
 
 Q_LOGGING_CATEGORY(lcSailfishSecretsDaemonSqlite, "org.sailfishos.secrets.daemon.sqlite")
 
-static const char *setupEnforceForeignKeys =
-        "\n PRAGMA foreign_keys = ON;";
-
-static const char *setupEncoding =
-        "\n PRAGMA encoding = \"UTF-16\";";
-
-static const char *setupTempStore =
-        "\n PRAGMA temp_store = MEMORY;";
-
-static const char *setupJournal =
-        "\n PRAGMA journal_mode = WAL;";
-
-static const char *setupSynchronous =
-        "\n PRAGMA synchronous = FULL;";
-
 static bool execute(QSqlDatabase &database, const QString &statement)
 {
     QSqlQuery query(database);
@@ -191,26 +176,26 @@ static bool upgradeDatabase(QSqlDatabase &database,
     return finalizeTransaction(database, success);
 }
 
-static bool configureDatabase(QSqlDatabase &database, QString &localeName)
+static bool configureDatabase(QSqlDatabase &database, const char *setupStatements[], QString &localeName)
 {
-    if (!execute(database,QLatin1String(setupEnforceForeignKeys))
-        || !execute(database, QLatin1String(setupEncoding))
-        || !execute(database, QLatin1String(setupTempStore))
-        || !execute(database, QLatin1String(setupJournal))
-        || !execute(database, QLatin1String(setupSynchronous))) {
-        qCWarning(lcSailfishSecretsDaemonSqlite) << "Failed to configure secrets database:" << database.lastError().text();
-        return false;
-    } else {
-        const QString cLocaleName(QString::fromLatin1("C"));
-        if (localeName != cLocaleName) {
-            // Create a collation for sorting by the current locale
-            const QString statement(QString::fromLatin1("SELECT icu_load_collation('%1', 'localeCollation')"));
-            if (!execute(database, statement.arg(localeName))) {
-                qCWarning(lcSailfishSecretsDaemonSqlite) << "Failed to configure collation for locale" << localeName
-                                                  << ":" << database.lastError().text();
-                // Revert to using C locale for sorting
-                localeName = cLocaleName;
-            }
+    for (int i = 0; i < lengthOf(setupStatements); ++i) {
+        if (!execute(database, QLatin1String(setupStatements[i]))) {
+            qCWarning(lcSailfishSecretsDaemonSqlite) << "Failed to configure secrets database:"
+                                                     << database.lastError().text() << ":"
+                                                     << QLatin1String(setupStatements[i]);
+            return false;
+        }
+    }
+
+    const QString cLocaleName(QString::fromLatin1("C"));
+    if (localeName != cLocaleName) {
+        // Create a collation for sorting by the current locale
+        const QString statement(QString::fromLatin1("SELECT icu_load_collation('%1', 'localeCollation')"));
+        if (!execute(database, statement.arg(localeName))) {
+            qCWarning(lcSailfishSecretsDaemonSqlite) << "Failed to configure collation for locale" << localeName
+                                              << ":" << database.lastError().text();
+            // Revert to using C locale for sorting
+            localeName = cLocaleName;
         }
     }
 
@@ -236,9 +221,14 @@ static bool executeCreationStatements(QSqlDatabase &database, const char *create
     return true;
 }
 
-static bool prepareDatabase(QSqlDatabase &database, QString &localeName, const char *createStatements[], int currentSchemaVersion)
+static bool prepareDatabase(
+        QSqlDatabase &database,
+        QString &localeName,
+        const char *setupStatements[],
+        const char *createStatements[],
+        int currentSchemaVersion)
 {
-    if (!configureDatabase(database, localeName))
+    if (!configureDatabase(database, setupStatements, localeName))
         return false;
 
     if (!beginTransaction(database))
@@ -289,8 +279,10 @@ bool directoryIsRW(const QString &dirPath)
 }
 
 bool Sailfish::Secrets::Daemon::Sqlite::Database::open(
+        const QString &databaseDriver,
         const QString &databaseSubdir,
         const QString &databaseFilename,
+        const char *setupStatements[],
         const char *createStatements[],
         const Sailfish::Secrets::Daemon::Sqlite::UpgradeOperation upgradeVersions[],
         int currentSchemaVersion,
@@ -322,7 +314,7 @@ bool Sailfish::Secrets::Daemon::Sqlite::Database::open(
     const QString databaseFile = databaseDir.absoluteFilePath(databaseFilename);
     const bool databasePreexisting = QFile::exists(databaseFile);
 
-    m_database = QSqlDatabase::addDatabase(QString::fromLatin1("QSQLITE"), connectionName);
+    m_database = QSqlDatabase::addDatabase(databaseDriver, connectionName);
     m_database.setDatabaseName(databaseFile);
 
     if (!m_database.open()) {
@@ -330,12 +322,12 @@ bool Sailfish::Secrets::Daemon::Sqlite::Database::open(
         return false;
     }
 
-    if (!databasePreexisting && !prepareDatabase(m_database, m_localeName, createStatements, currentSchemaVersion)) {
+    if (!databasePreexisting && !prepareDatabase(m_database, m_localeName, setupStatements, createStatements, currentSchemaVersion)) {
         qCWarning(lcSailfishSecretsDaemonSqlite) << "Failed to prepare database - removing:" << databaseFile << m_database.lastError().text();
         m_database.close();
         QFile::remove(databaseFile);
         return false;
-    } else if (databasePreexisting && !configureDatabase(m_database, m_localeName)) {
+    } else if (databasePreexisting && !configureDatabase(m_database, setupStatements, m_localeName)) {
         qCWarning(lcSailfishSecretsDaemonSqlite) << "Failed to prepare existing database - closing:" << databaseFile << m_database.lastError().text();
         m_database.close();
         return false;
