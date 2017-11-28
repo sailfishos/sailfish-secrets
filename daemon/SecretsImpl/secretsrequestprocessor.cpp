@@ -1009,7 +1009,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretMetadat
                     " Count(*)"
                   " FROM Secrets"
                   " WHERE CollectionName = ?"
-                  " AND SecretName = ?;"
+                  " AND HashedSecretName = ?;"
              );
 
     Database::Query ssq = m_db->prepare(selectSecretsCountQuery, &errorText);
@@ -1047,7 +1047,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretMetadat
     const QString insertSecretQuery = QStringLiteral(
                 "INSERT INTO Secrets ("
                   "CollectionName,"
-                  "SecretName,"
+                  "HashedSecretName,"
                   "ApplicationId,"
                   "UsesDeviceLockKey,"
                   "StoragePluginName,"
@@ -1130,7 +1130,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretMeta
     const QString deleteSecretQuery = QStringLiteral(
                 "DELETE FROM Secrets"
                 " WHERE CollectionName = ?"
-                " AND SecretName = ?;");
+                " AND HashedSecretName = ?;");
 
     QString errorText;
     Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
@@ -1430,7 +1430,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithAut
                     " Count(*)"
                   " FROM Secrets"
                   " WHERE CollectionName = ?"
-                  " AND SecretName = ?;"
+                  " AND HashedSecretName = ?;"
              );
 
     QString errorText;
@@ -1462,7 +1462,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithAut
         const QString insertSecretQuery = QStringLiteral(
                     "INSERT INTO Secrets ("
                       "CollectionName,"
-                      "SecretName,"
+                      "HashedSecretName,"
                       "ApplicationId,"
                       "UsesDeviceLockKey,"
                       "StoragePluginName,"
@@ -1542,7 +1542,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithAut
                                                  QString::fromLatin1("The authentication key entered for collection %1 was incorrect").arg(secret.identifier().collectionName()));
             } else {
                 // successfully unlocked the encrypted storage collection.  write the secret.
-                pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->setSecret(secret.identifier().collectionName(), hashedSecretName, secret.data());
+                pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->setSecret(secret.identifier().collectionName(), hashedSecretName, secret.identifier().name(), secret.data());
             }
         }
     } else {
@@ -1551,10 +1551,13 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithAut
             m_collectionAuthenticationKeys.insert(secret.identifier().collectionName(), authenticationKey);
         }
 
-        QByteArray encrypted;
+        QByteArray encrypted, encryptedName;
         pluginResult = m_encryptionPlugins[collectionEncryptionPluginName]->encryptSecret(secret.data(), m_collectionAuthenticationKeys.value(secret.identifier().collectionName()), &encrypted);
         if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
-            pluginResult = m_storagePlugins[collectionStoragePluginName]->setSecret(secret.identifier().collectionName(), hashedSecretName, encrypted);
+            pluginResult = m_encryptionPlugins[collectionEncryptionPluginName]->encryptSecret(secret.identifier().name().toUtf8(), m_collectionAuthenticationKeys.value(secret.identifier().collectionName()), &encryptedName);
+            if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
+                pluginResult = m_storagePlugins[collectionStoragePluginName]->setSecret(secret.identifier().collectionName(), hashedSecretName, encryptedName, encrypted);
+            }
         }
     }
 
@@ -1567,7 +1570,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithAut
         const QString deleteSecretQuery = QStringLiteral(
                     "DELETE FROM Secrets"
                     " WHERE CollectionName = ?"
-                    " AND SecretName = ?;");
+                    " AND HashedSecretName = ?;");
 
         Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
         if (!errorText.isEmpty()) {
@@ -1657,7 +1660,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSec
                    " AccessControlMode"
                  " FROM Secrets"
                  " WHERE CollectionName = ?"
-                 " AND SecretName = ?;"
+                 " AND HashedSecretName = ?;"
              );
 
     QString errorText;
@@ -1725,13 +1728,13 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSec
                      " CustomLockTimeoutMs = ?,"
                      " AccessControlMode = ?"
                  " WHERE CollectionName = ?"
-                 " AND SecretName = ?;"
+                 " AND HashedSecretName = ?;"
              );
 
     const QString insertSecretQuery = QStringLiteral(
                 "INSERT INTO Secrets ("
                   "CollectionName,"
-                  "SecretName,"
+                  "HashedSecretName,"
                   "ApplicationId,"
                   "UsesDeviceLockKey,"
                   "StoragePluginName,"
@@ -1791,14 +1794,17 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSec
     Sailfish::Secrets::Result pluginResult;
     if (storagePluginName == encryptionPluginName) {
         // TODO: does the following work?  We'd need to add methods to the encrypted storage plugin: re-encryptStandaloneSecrets or something...
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, secret.data(), DeviceLockKey);
+        pluginResult = m_encryptedStoragePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, secret.identifier().name(), secret.data(), DeviceLockKey);
     } else {
-        QByteArray encrypted;
+        QByteArray encrypted, encryptedName;
         pluginResult = m_encryptionPlugins[encryptionPluginName]->encryptSecret(secret.data(), DeviceLockKey, &encrypted);
         if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
-            pluginResult = m_storagePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, encrypted);
+            pluginResult = m_encryptionPlugins[encryptionPluginName]->encryptSecret(secret.identifier().name().toUtf8(), DeviceLockKey, &encryptedName);
             if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
-                m_standaloneSecretAuthenticationKeys.insert(hashedSecretName, DeviceLockKey);
+                pluginResult = m_storagePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, encryptedName, encrypted);
+                if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
+                    m_standaloneSecretAuthenticationKeys.insert(hashedSecretName, DeviceLockKey);
+                }
             }
         }
     }
@@ -1812,7 +1818,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSec
         const QString deleteSecretQuery = QStringLiteral(
                     "DELETE FROM Secrets"
                     " WHERE CollectionName = ?"
-                    " AND SecretName = ?;");
+                    " AND HashedSecretName = ?;");
 
         Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
         if (!errorText.isEmpty()) {
@@ -1901,7 +1907,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
                    " AccessControlMode"
                  " FROM Secrets"
                  " WHERE CollectionName = ?"
-                 " AND SecretName = ?;"
+                 " AND HashedSecretName = ?;"
              );
 
     QString errorText;
@@ -2027,7 +2033,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
                    " AccessControlMode"
                  " FROM Secrets"
                  " WHERE CollectionName = ?"
-                 " AND SecretName = ?;"
+                 " AND HashedSecretName = ?;"
              );
 
     QString errorText;
@@ -2095,13 +2101,13 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
                      " CustomLockTimeoutMs = ?,"
                      " AccessControlMode = ?"
                  " WHERE CollectionName = ?"
-                 " AND SecretName = ?;"
+                 " AND HashedSecretName = ?;"
              );
 
     const QString insertSecretQuery = QStringLiteral(
                 "INSERT INTO Secrets ("
                   "CollectionName,"
-                  "SecretName,"
+                  "HashedSecretName,"
                   "ApplicationId,"
                   "UsesDeviceLockKey,"
                   "StoragePluginName,"
@@ -2160,14 +2166,17 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
     Sailfish::Secrets::Result pluginResult;
     if (storagePluginName == encryptionPluginName) {
         // TODO: does the following work?  We'd need to add methods to the encrypted storage plugin: re-encryptStandaloneSecrets or something...
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, secret.data(), authenticationKey);
+        pluginResult = m_encryptedStoragePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, secret.identifier().name(), secret.data(), authenticationKey);
     } else {
-        QByteArray encrypted;
+        QByteArray encrypted, encryptedName;
         pluginResult = m_encryptionPlugins[encryptionPluginName]->encryptSecret(secret.data(), authenticationKey, &encrypted);
         if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
-            pluginResult = m_storagePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, encrypted);
+            pluginResult = m_encryptionPlugins[encryptionPluginName]->encryptSecret(secret.identifier().name().toUtf8(), authenticationKey, &encryptedName);
             if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
-                m_standaloneSecretAuthenticationKeys.insert(hashedSecretName, authenticationKey);
+                pluginResult = m_storagePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, encryptedName, encrypted);
+                if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
+                    m_standaloneSecretAuthenticationKeys.insert(hashedSecretName, authenticationKey);
+                }
             }
         }
     }
@@ -2181,7 +2190,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
         const QString deleteSecretQuery = QStringLiteral(
                     "DELETE FROM Secrets"
                     " WHERE CollectionName = ?"
-                    " AND SecretName = ?;");
+                    " AND HashedSecretName = ?;");
 
         Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
         if (!errorText.isEmpty()) {
@@ -2518,8 +2527,9 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithAut
                                              QString::fromLatin1("The authentication key entered for collection %1 was incorrect").arg(identifier.collectionName()));
         }
         // successfully unlocked the encrypted storage collection.  read the secret.
+        QString secretName;
         QByteArray secretData;
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->getSecret(identifier.collectionName(), hashedSecretName, &secretData);
+        pluginResult = m_encryptedStoragePlugins[storagePluginName]->getSecret(identifier.collectionName(), hashedSecretName, &secretName, &secretData);
         secret->setData(secretData);
     } else {
         if (!m_collectionAuthenticationKeys.contains(identifier.collectionName())) {
@@ -2527,8 +2537,8 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithAut
             m_collectionAuthenticationKeys.insert(identifier.collectionName(), authenticationKey);
         }
 
-        QByteArray encrypted;
-        pluginResult = m_storagePlugins[storagePluginName]->getSecret(identifier.collectionName(), hashedSecretName, &encrypted);
+        QByteArray encrypted, encryptedName;
+        pluginResult = m_storagePlugins[storagePluginName]->getSecret(identifier.collectionName(), hashedSecretName, &encryptedName, &encrypted);
         if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
             QByteArray decrypted;
             pluginResult = m_encryptionPlugins[encryptionPluginName]->decryptSecret(encrypted, m_collectionAuthenticationKeys.value(identifier.collectionName()), &decrypted);
@@ -2576,7 +2586,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
                     " AccessControlMode"
                   " FROM Secrets"
                   " WHERE CollectionName = ?"
-                  " AND SecretName = ?;"
+                  " AND HashedSecretName = ?;"
              );
 
     QString errorText;
@@ -2738,13 +2748,14 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithAut
 
     Sailfish::Secrets::Result pluginResult;
     if (storagePluginName == encryptionPluginName) {
+        QString secretName;
         QByteArray secretData;
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->accessSecret(collectionName, hashedSecretName, authenticationKey, &secretData);
+        pluginResult = m_encryptedStoragePlugins[storagePluginName]->accessSecret(collectionName, hashedSecretName, authenticationKey, &secretName, &secretData);
         secret->setIdentifier(identifier);
         secret->setData(secretData);
     } else {
-        QByteArray encrypted;
-        pluginResult = m_storagePlugins[storagePluginName]->getSecret(collectionName, hashedSecretName, &encrypted);
+        QByteArray encrypted, encryptedName;
+        pluginResult = m_storagePlugins[storagePluginName]->getSecret(collectionName, hashedSecretName, &encryptedName, &encrypted);
         if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
             QByteArray decrypted;
             pluginResult = m_encryptionPlugins[encryptionPluginName]->decryptSecret(encrypted, authenticationKey, &decrypted);
@@ -3082,7 +3093,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWith
         const QString deleteSecretQuery = QStringLiteral(
                     "DELETE FROM Secrets"
                     " WHERE CollectionName = ?"
-                    " AND SecretName = ?;");
+                    " AND HashedSecretName = ?;");
 
         Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
         if (!errorText.isEmpty()) {
@@ -3155,7 +3166,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteStandaloneSecret(
                    " AccessControlMode"
                  " FROM Secrets"
                  " WHERE CollectionName = ?"
-                 " AND SecretName = ?;"
+                 " AND HashedSecretName = ?;"
              );
 
     QString errorText;
@@ -3246,7 +3257,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteStandaloneSecret(
         const QString deleteSecretQuery = QStringLiteral(
                     "DELETE FROM Secrets"
                     " WHERE CollectionName = ?"
-                    " AND SecretName = ?;");
+                    " AND HashedSecretName = ?;");
 
         Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
         if (!errorText.isEmpty()) {

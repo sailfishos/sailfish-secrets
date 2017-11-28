@@ -213,7 +213,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::addKeyEntry(
     const QString insertKeyEntryQuery = QStringLiteral(
                 "INSERT INTO KeyEntries ("
                 "   CollectionName,"
-                "   SecretName,"
+                "   HashedSecretName,"
                 "   KeyName,"
                 "   CryptoPluginName,"
                 "   StoragePluginName )"

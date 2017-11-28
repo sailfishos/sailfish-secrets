@@ -54,7 +54,7 @@ static const char *createSecretsTable =
         "\n CREATE TABLE Secrets ("
         "   SecretId INTEGER PRIMARY KEY AUTOINCREMENT,"
         "   CollectionName TEXT NOT NULL,"
-        "   SecretName TEXT NOT NULL,"
+        "   HashedSecretName TEXT NOT NULL,"
         "   ApplicationId TEXT NOT NULL,"
         "   UsesDeviceLockKey INTEGER NOT NULL,"
         "   StoragePluginName TEXT NOT NULL,"
@@ -64,17 +64,17 @@ static const char *createSecretsTable =
         "   CustomLockTimeoutMs INTEGER NOT NULL,"
         "   AccessControlMode INTEGER NOT NULL,"
         "   FOREIGN KEY (CollectionName) REFERENCES Collections(CollectionName) ON DELETE CASCADE,"
-        "   CONSTRAINT collectionSecretNameUnique UNIQUE (CollectionName, SecretName));";
+        "   CONSTRAINT collectionSecretNameUnique UNIQUE (CollectionName, HashedSecretName));";
 
 static const char *createKeyEntriesTable =
         "\n CREATE TABLE KeyEntries ("
         "   KeyId INTEGER PRIMARY KEY AUTOINCREMENT,"
         "   CollectionName TEXT NOT NULL,"
-        "   SecretName TEXT NOT NULL,"
+        "   HashedSecretName TEXT NOT NULL,"
         "   KeyName TEXT NOT NULL,"        /* potential security (known-plaintext) issue!!! */
         "   CryptoPluginName TEXT NOT NULL,"
         "   StoragePluginName TEXT NOT NULL,"
-        "   FOREIGN KEY (CollectionName, SecretName) REFERENCES Secrets(CollectionName,SecretName) ON DELETE CASCADE,"
+        "   FOREIGN KEY (CollectionName, HashedSecretName) REFERENCES Secrets(CollectionName,HashedSecretName) ON DELETE CASCADE,"
         "   CONSTRAINT collectionKeyNameUnique UNIQUE (CollectionName, KeyName));";
 
 static const char *createStatements[] =

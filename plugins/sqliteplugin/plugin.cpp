@@ -219,13 +219,14 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::removeCollection(
 Sailfish::Secrets::Result
 Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::setSecret(
         const QString &collectionName,
-        const QString &secretName,
+        const QString &hashedSecretName,
+        const QByteArray &encryptedSecretName,
         const QByteArray &secret)
 {
     DatabaseLocker locker(m_db);
 
     // Note: don't disallow collectionName=standalone, since that's how we store standalone secrets.
-    if (secretName.isEmpty()) {
+    if (hashedSecretName.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidSecretError,
                                          QString::fromUtf8("Empty secret name given"));
     } else if (collectionName.isEmpty()) {
@@ -238,7 +239,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::setSecret(
                     " Count(*)"
                   " FROM Secrets"
                   " WHERE CollectionName = ?"
-                  " AND SecretName = ?;"
+                  " AND HashedSecretName = ?;"
              );
 
     QString errorText;
@@ -250,7 +251,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::setSecret(
 
     QVariantList values;
     values << QVariant::fromValue<QString>(collectionName);
-    values << QVariant::fromValue<QString>(secretName);
+    values << QVariant::fromValue<QString>(hashedSecretName);
     sq.bindValues(values);
 
     if (!m_db->beginTransaction()) {
@@ -274,17 +275,18 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::setSecret(
                  " SET Secret = ?"
                  "   , Timestamp = date('now')"
                  " WHERE CollectionName = ?"
-                 " AND SecretName = ?;"
+                 " AND HashedSecretName = ?;"
              );
     const QString insertSecretQuery = QStringLiteral(
                 "INSERT INTO Secrets ("
                   "CollectionName,"
-                  "SecretName,"
+                  "HashedSecretName,"
+                  "EncryptedSecretName,"
                   "Secret,"
                   "Timestamp"
                 ")"
                 " VALUES ("
-                  "?,?,?,date('now')"
+                  "?,?,?,?,date('now')"
                 ");");
 
     Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query iq = m_db->prepare(found ? updateSecretQuery : insertSecretQuery, &errorText);
@@ -298,10 +300,11 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::setSecret(
     if (found) {
         ivalues << QVariant::fromValue<QByteArray>(secret);
         ivalues << QVariant::fromValue<QString>(collectionName);
-        ivalues << QVariant::fromValue<QString>(secretName);
+        ivalues << QVariant::fromValue<QString>(hashedSecretName);
     } else {
         ivalues << QVariant::fromValue<QString>(collectionName);
-        ivalues << QVariant::fromValue<QString>(secretName);
+        ivalues << QVariant::fromValue<QString>(hashedSecretName);
+        ivalues << QVariant::fromValue<QByteArray>(encryptedSecretName);
         ivalues << QVariant::fromValue<QByteArray>(secret);
     }
     iq.bindValues(ivalues);
@@ -324,13 +327,14 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::setSecret(
 Sailfish::Secrets::Result
 Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::getSecret(
         const QString &collectionName,
-        const QString &secretName,
+        const QString &hashedSecretName,
+        QByteArray *encryptedSecretName,
         QByteArray *secret)
 {
     DatabaseLocker locker(m_db);
 
     // Note: don't disallow collectionName=standalone, since that's how we store standalone secrets.
-    if (secretName.isEmpty()) {
+    if (hashedSecretName.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidSecretError,
                                          QString::fromUtf8("Empty secret name given"));
     } else if (collectionName.isEmpty()) {
@@ -338,16 +342,17 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::getSecret(
                                          QString::fromUtf8("Empty collection name given"));
     }
 
-    const QString selectSecretsCountQuery = QStringLiteral(
+    const QString selectSecretQuery = QStringLiteral(
                  "SELECT"
+                    " EncryptedSecretName,"
                     " Secret"
                   " FROM Secrets"
                   " WHERE CollectionName = ?"
-                  " AND SecretName = ?;"
+                  " AND HashedSecretName = ?;"
              );
 
     QString errorText;
-    Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query sq = m_db->prepare(selectSecretsCountQuery, &errorText);
+    Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query sq = m_db->prepare(selectSecretQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to prepare select secret query: %1").arg(errorText));
@@ -355,7 +360,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::getSecret(
 
     QVariantList values;
     values << QVariant::fromValue<QString>(collectionName);
-    values << QVariant::fromValue<QString>(secretName);
+    values << QVariant::fromValue<QString>(hashedSecretName);
     sq.bindValues(values);
 
     if (!m_db->beginTransaction()) {
@@ -370,10 +375,12 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::getSecret(
     }
 
     bool found = false;
-    QByteArray retn;
+    QByteArray secretName;
+    QByteArray secretData;
     if (sq.next()) {
         found = true;
-        retn = sq.value(0).value<QByteArray>();
+        secretName = sq.value(0).value<QByteArray>();
+        secretData = sq.value(1).value<QByteArray>();
     }
 
     if (!m_db->commitTransaction()) {
@@ -387,7 +394,8 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::getSecret(
                                          QString::fromUtf8("No such secret stored"));
     }
 
-    *secret = retn;
+    *encryptedSecretName = secretName;
+    *secret = secretData;
     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded);
 }
 
@@ -410,7 +418,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::removeSecret(
     const QString deleteSecretQuery = QStringLiteral(
                 "DELETE FROM Secrets"
                 " WHERE CollectionName = ?"
-                " AND SecretName = ?;");
+                " AND HashedSecretName = ?;");
 
     QString errorText;
     Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
@@ -475,11 +483,11 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::reencryptSecrets(
         selectSecretsQuery = QStringLiteral(
                      "SELECT"
                         " CollectionName,"
-                        " SecretName,"
+                        " HashedSecretName,"
                         " Secret"
                       " FROM Secrets"
                       " WHERE CollectionName = 'standalone'"
-                      " AND SecretName IN ("
+                      " AND HashedSecretName IN ("
                  );
         for (int i = 0; i < values.size(); ++i) {
             selectSecretsQuery.append(QStringLiteral("?,"));
@@ -490,7 +498,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::reencryptSecrets(
         selectSecretsQuery = QStringLiteral(
                      "SELECT"
                         " CollectionName,"
-                        " SecretName,"
+                        " HashedSecretName,"
                         " Secret"
                       " FROM Secrets"
                       " WHERE CollectionName = ?;"
@@ -545,7 +553,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::reencryptSecrets(
                  " SET Secret = ?"
                  "   , Timestamp = date('now')"
                  " WHERE CollectionName = ?"
-                 " AND SecretName = ?;"
+                 " AND HashedSecretName = ?;"
              );
 
     Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query uq = m_db->prepare(updateSecretQuery, &errorText);
