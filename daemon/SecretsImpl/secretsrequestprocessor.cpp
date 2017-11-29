@@ -60,31 +60,10 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::generateHashedSecretName(
     return QString::fromLatin1(hashed.toBase64());
 }
 
-Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::DatabaseLocker::~DatabaseLocker()
-{
-    if (mutex()) {
-        // The database was not already within a transaction when we were constructed
-        // and thus should not be in a transaction when we destruct.
-        // That is, check that the beginTransaction()/commitTransaction()/rollbackTransaction()
-        // calls are balanced within a given locker scope.
-        if (m_db->withinTransaction()) {
-            qCWarning(lcSailfishSecretsDaemonDatabase) << "Locker: transaction not balanced!  None -> Within!";
-        }
-    } else {
-        // The database was already within a transaction when we were constructed
-        // and thus should still be in that transaction when we destruct.
-        if (!m_db->withinTransaction()) {
-            if (m_db->withinTransaction()) {
-                qCWarning(lcSailfishSecretsDaemonDatabase) << "Locker: transaction not balanced!  Within -> None!";
-            }
-        }
-    }
-}
-
-Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::RequestProcessor(Sailfish::Secrets::Daemon::ApiImpl::Database *db,
+Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::RequestProcessor(Sailfish::Secrets::Daemon::Sqlite::Database *db,
                  Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *appPermissions,
                  Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *parent)
-    : QObject(parent), m_requestQueue(parent), m_db(db), m_appPermissions(appPermissions)
+    : QObject(parent), m_db(db), m_requestQueue(parent), m_appPermissions(appPermissions)
 {
     // Add the "standalone" collection.
     // Note that it is a "notional" collection,
@@ -106,7 +85,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::RequestProcessor(Sailfish:
                 ");");
 
     QString errorText;
-    Database::Query iq = m_db->prepare(insertCollectionQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query iq = m_db->prepare(insertCollectionQuery, &errorText);
 
     QVariantList ivalues;
     ivalues << QVariant::fromValue<QString>(QLatin1String("standalone"))
@@ -268,7 +247,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createDeviceLockCollection
                 ? m_appPermissions->platformApplicationId()
                 : m_appPermissions->applicationId(callerPid);
 
-    DatabaseLocker locker(m_db);
+    Sailfish::Secrets::Daemon::Sqlite::DatabaseLocker locker(m_db);
 
     // Whenever we modify the master database + perform a plugin operation,
     // we should ensure that we do it in such an order that only the MASTER
@@ -291,7 +270,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createDeviceLockCollection
              );
 
     QString errorText;
-    Database::Query sq = m_db->prepare(selectCollectionsCountQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db->prepare(selectCollectionsCountQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select collections query: %1").arg(errorText));
@@ -327,7 +306,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createDeviceLockCollection
                   "?,?,1,?,?,?,?,0,?"
                 ");");
 
-    Database::Query iq = m_db->prepare(insertCollectionQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query iq = m_db->prepare(insertCollectionQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare insert collection query: %1").arg(errorText));
@@ -377,7 +356,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createDeviceLockCollection
                     "DELETE FROM Collections"
                     " WHERE CollectionName = ?;");
 
-        Database::Query dq = m_db->prepare(deleteCollectionQuery, &errorText);
+        Sailfish::Secrets::Daemon::Sqlite::Database::Query dq = m_db->prepare(deleteCollectionQuery, &errorText);
         if (!errorText.isEmpty()) {
             // TODO: add a "dirty" flag for this collection somewhere in memory, so we can try again later.
             return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
@@ -471,7 +450,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createCustomLockCollection
                 ? m_appPermissions->platformApplicationId()
                 : m_appPermissions->applicationId(callerPid);
 
-    DatabaseLocker locker(m_db);
+    Sailfish::Secrets::Daemon::Sqlite::DatabaseLocker locker(m_db);
 
     const QString selectCollectionsCountQuery = QStringLiteral(
                  "SELECT"
@@ -481,7 +460,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createCustomLockCollection
              );
 
     QString errorText;
-    Database::Query sq = m_db->prepare(selectCollectionsCountQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db->prepare(selectCollectionsCountQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select collections query: %1").arg(errorText));
@@ -576,7 +555,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createCustomLockCollection
     // In the future, we should mark the row as "dirty" via in-memory flag, if (6) fails,
     // so that we can re-attempt to remove it, at a later point in time.
 
-    DatabaseLocker locker(m_db);
+    Sailfish::Secrets::Daemon::Sqlite::DatabaseLocker locker(m_db);
 
     const QString selectCollectionsCountQuery = QStringLiteral(
                  "SELECT"
@@ -586,7 +565,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createCustomLockCollection
              );
 
     QString errorText;
-    Database::Query sq = m_db->prepare(selectCollectionsCountQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db->prepare(selectCollectionsCountQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select collections query: %1").arg(errorText));
@@ -628,7 +607,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createCustomLockCollection
                   "?,?,0,?,?,?,?,?,?"
                 ");");
 
-    Database::Query iq = m_db->prepare(insertCollectionQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query iq = m_db->prepare(insertCollectionQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare insert collection query: %1").arg(errorText));
@@ -680,7 +659,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createCustomLockCollection
                     "DELETE FROM Collections"
                     " WHERE CollectionName = ?;");
 
-        Database::Query dq = m_db->prepare(deleteCollectionQuery, &errorText);
+        Sailfish::Secrets::Daemon::Sqlite::Database::Query dq = m_db->prepare(deleteCollectionQuery, &errorText);
         if (!errorText.isEmpty()) {
             // TODO: add a "dirty" flag for this collection somewhere in memory, so we can try again later.
             return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
@@ -752,7 +731,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollection(
                 ? m_appPermissions->platformApplicationId()
                 : m_appPermissions->applicationId(callerPid);
 
-    DatabaseLocker locker(m_db);
+    Sailfish::Secrets::Daemon::Sqlite::DatabaseLocker locker(m_db);
 
     // Whenever we modify the master database + perform a plugin operation,
     // we should ensure that we do it in such an order that only the MASTER
@@ -777,7 +756,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollection(
              );
 
     QString errorText;
-    Database::Query sq = m_db->prepare(selectCollectionsQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db->prepare(selectCollectionsQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select collections query: %1").arg(errorText));
@@ -835,7 +814,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollection(
                 "DELETE FROM Collections"
                 " WHERE CollectionName = ?;");
 
-    Database::Query dq = m_db->prepare(deleteCollectionQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query dq = m_db->prepare(deleteCollectionQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare delete collection query: %1").arg(errorText));
@@ -915,7 +894,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretMetadat
              );
 
     QString errorText;
-    Database::Query sq = m_db->prepare(selectCollectionsQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db->prepare(selectCollectionsQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select collections query: %1").arg(errorText));
@@ -1012,7 +991,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretMetadat
                   " AND HashedSecretName = ?;"
              );
 
-    Database::Query ssq = m_db->prepare(selectSecretsCountQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query ssq = m_db->prepare(selectSecretsCountQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select secrets query: %1").arg(errorText));
@@ -1042,7 +1021,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretMetadat
                                          QString::fromLatin1("A secret with name %1 already exists in the collection %2").arg(identifier.name(), identifier.collectionName()));
     }
 
-    DatabaseLocker locker(m_db);
+    Sailfish::Secrets::Daemon::Sqlite::DatabaseLocker locker(m_db);
 
     const QString insertSecretQuery = QStringLiteral(
                 "INSERT INTO Secrets ("
@@ -1061,7 +1040,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretMetadat
                   "?,?,?,?,?,?,?,?,?,?"
                 ");");
 
-    Database::Query iq = m_db->prepare(insertSecretQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query iq = m_db->prepare(insertSecretQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare insert secret query: %1").arg(errorText));
@@ -1125,7 +1104,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretMeta
                                          QLatin1String("Reserved collection name given"));
     }
 
-    DatabaseLocker locker(m_db);
+    Sailfish::Secrets::Daemon::Sqlite::DatabaseLocker locker(m_db);
 
     const QString deleteSecretQuery = QStringLiteral(
                 "DELETE FROM Secrets"
@@ -1133,7 +1112,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretMeta
                 " AND HashedSecretName = ?;");
 
     QString errorText;
-    Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
     if (!errorText.isEmpty()) {
         // TODO: add a "dirty" flag for this collection somewhere in memory, so we can try again later.
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
@@ -1212,7 +1191,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
              );
 
     QString errorText;
-    Database::Query sq = m_db->prepare(selectCollectionsQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db->prepare(selectCollectionsQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select collections query: %1").arg(errorText));
@@ -1434,7 +1413,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithAut
              );
 
     QString errorText;
-    Database::Query ssq = m_db->prepare(selectSecretsCountQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query ssq = m_db->prepare(selectSecretsCountQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select secrets query: %1").arg(errorText));
@@ -1458,7 +1437,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithAut
 
     if (!secretAlreadyExists) {
         // Write to the master database prior to the storage plugin.
-        DatabaseLocker locker(m_db);
+        Sailfish::Secrets::Daemon::Sqlite::DatabaseLocker locker(m_db);
         const QString insertSecretQuery = QStringLiteral(
                     "INSERT INTO Secrets ("
                       "CollectionName,"
@@ -1476,7 +1455,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithAut
                       "?,?,?,?,?,?,?,?,?,?"
                     ");");
 
-        Database::Query iq = m_db->prepare(insertSecretQuery, &errorText);
+        Sailfish::Secrets::Daemon::Sqlite::Database::Query iq = m_db->prepare(insertSecretQuery, &errorText);
         if (!errorText.isEmpty()) {
             return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                              QString::fromLatin1("Unable to prepare insert secret query: %1").arg(errorText));
@@ -1572,7 +1551,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithAut
                     " WHERE CollectionName = ?"
                     " AND HashedSecretName = ?;");
 
-        Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
+        Sailfish::Secrets::Daemon::Sqlite::Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
         if (!errorText.isEmpty()) {
             // TODO: add a "dirty" flag for this secret somewhere in memory, so we can try again later.
             return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
@@ -1664,7 +1643,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSec
              );
 
     QString errorText;
-    Database::Query ssq = m_db->prepare(selectSecretsQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query ssq = m_db->prepare(selectSecretsQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select secrets query: %1").arg(errorText));
@@ -1715,7 +1694,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSec
     }
 
     // Write to the master database prior to the storage plugin.
-    DatabaseLocker locker(m_db);
+    Sailfish::Secrets::Daemon::Sqlite::DatabaseLocker locker(m_db);
 
     const QString updateSecretQuery = QStringLiteral(
                  "UPDATE Secrets"
@@ -1748,7 +1727,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSec
                   "?,?,?,?,?,?,?,?,?,?"
                 ");");
 
-    Database::Query iq = m_db->prepare(found ? updateSecretQuery : insertSecretQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query iq = m_db->prepare(found ? updateSecretQuery : insertSecretQuery, &errorText);
     if (!errorText.isEmpty()) {
         m_db->rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
@@ -1820,7 +1799,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSec
                     " WHERE CollectionName = ?"
                     " AND HashedSecretName = ?;");
 
-        Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
+        Sailfish::Secrets::Daemon::Sqlite::Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
         if (!errorText.isEmpty()) {
             // TODO: add a "dirty" flag for this secret somewhere in memory, so we can try again later.
             return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
@@ -1911,7 +1890,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
              );
 
     QString errorText;
-    Database::Query ssq = m_db->prepare(selectSecretsQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query ssq = m_db->prepare(selectSecretsQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select secrets query: %1").arg(errorText));
@@ -2037,7 +2016,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
              );
 
     QString errorText;
-    Database::Query ssq = m_db->prepare(selectSecretsQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query ssq = m_db->prepare(selectSecretsQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select secrets query: %1").arg(errorText));
@@ -2088,7 +2067,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
     }
 
     // Write to the master database prior to the storage plugin.
-    DatabaseLocker locker(m_db);
+    Sailfish::Secrets::Daemon::Sqlite::DatabaseLocker locker(m_db);
 
     const QString updateSecretQuery = QStringLiteral(
                  "UPDATE Secrets"
@@ -2121,7 +2100,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
                   "?,?,?,?,?,?,?,?,?,?"
                 ");");
 
-    Database::Query iq = m_db->prepare(found ? updateSecretQuery : insertSecretQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query iq = m_db->prepare(found ? updateSecretQuery : insertSecretQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare insert secret query: %1").arg(errorText));
@@ -2192,7 +2171,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
                     " WHERE CollectionName = ?"
                     " AND HashedSecretName = ?;");
 
-        Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
+        Sailfish::Secrets::Daemon::Sqlite::Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
         if (!errorText.isEmpty()) {
             // TODO: add a "dirty" flag for this secret somewhere in memory, so we can try again later.
             return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
@@ -2278,7 +2257,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
              );
 
     QString errorText;
-    Database::Query sq = m_db->prepare(selectCollectionsQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db->prepare(selectCollectionsQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select collections query: %1").arg(errorText));
@@ -2594,7 +2573,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
              );
 
     QString errorText;
-    Database::Query sq = m_db->prepare(selectSecretsQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db->prepare(selectSecretsQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select secrets query: %1").arg(errorText));
@@ -2819,7 +2798,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
              );
 
     QString errorText;
-    Database::Query sq = m_db->prepare(selectCollectionsQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db->prepare(selectCollectionsQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select collections query: %1").arg(errorText));
@@ -3172,7 +3151,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
              );
 
     QString errorText;
-    Database::Query sq = m_db->prepare(selectCollectionsQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db->prepare(selectCollectionsQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select collections query: %1").arg(errorText));
@@ -3360,7 +3339,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWith
              );
 
     QString errorText;
-    Database::Query sq = m_db->prepare(selectCollectionsQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db->prepare(selectCollectionsQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select collections query: %1").arg(errorText));
@@ -3461,7 +3440,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWith
                     " WHERE CollectionName = ?"
                     " AND HashedSecretName = ?;");
 
-        Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
+        Sailfish::Secrets::Daemon::Sqlite::Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
         if (!errorText.isEmpty()) {
             // TODO: add a "dirty" flag for this collection somewhere in memory, so we can try again later.
             return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
@@ -3536,7 +3515,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteStandaloneSecret(
              );
 
     QString errorText;
-    Database::Query ssq = m_db->prepare(selectSecretsQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query ssq = m_db->prepare(selectSecretsQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select secrets query: %1").arg(errorText));
@@ -3625,7 +3604,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteStandaloneSecret(
                     " WHERE CollectionName = ?"
                     " AND HashedSecretName = ?;");
 
-        Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
+        Sailfish::Secrets::Daemon::Sqlite::Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
         if (!errorText.isEmpty()) {
             // TODO: add a "dirty" flag for this secret somewhere in memory, so we can try again later.
             return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,

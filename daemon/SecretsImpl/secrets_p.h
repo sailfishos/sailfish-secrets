@@ -8,9 +8,9 @@
 #ifndef SAILFISHSECRETS_APIIMPL_SECRETS_P_H
 #define SAILFISHSECRETS_APIIMPL_SECRETS_P_H
 
+#include "database_p.h"
 #include "requestqueue_p.h"
 #include "applicationpermissions_p.h"
-#include "secretsdatabase_p.h"
 
 #include "Secrets/extensionplugins.h"
 #include "Secrets/secretmanager.h"
@@ -283,7 +283,7 @@ public:
     QString requestTypeToString(int type) const Q_DECL_OVERRIDE;
 
 private:
-    Sailfish::Secrets::Daemon::ApiImpl::Database m_db;
+    Sailfish::Secrets::Daemon::Sqlite::Database m_db;
     Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *m_appPermissions;
     Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor *m_requestProcessor;
 

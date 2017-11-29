@@ -29,9 +29,9 @@
 #include "Secrets/extensionplugins.h"
 
 #include "SecretsImpl/secrets_p.h"
-#include "SecretsImpl/secretsdatabase_p.h"
 #include "SecretsImpl/applicationpermissions_p.h"
 
+#include "database_p.h"
 #include "requestqueue_p.h"
 
 namespace Sailfish {
@@ -52,7 +52,7 @@ class RequestProcessor : public QObject
     Q_OBJECT
 
 public:
-    RequestProcessor(Sailfish::Secrets::Daemon::ApiImpl::Database *db,
+    RequestProcessor(Sailfish::Secrets::Daemon::Sqlite::Database *db,
                      Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *appPermissions,
                      Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *parent = Q_NULLPTR);
 
@@ -216,16 +216,6 @@ private Q_SLOTS:
     void timeoutRelockSecret();
 
 private:
-    class DatabaseLocker : public QMutexLocker
-    {
-    public:
-        DatabaseLocker(Sailfish::Secrets::Daemon::ApiImpl::Database *db)
-            : QMutexLocker(db->withinTransaction() ? Q_NULLPTR : db->accessMutex())
-            , m_db(db) {}
-        ~DatabaseLocker();
-    private:
-        Sailfish::Secrets::Daemon::ApiImpl::Database *m_db;
-    };
 
     Sailfish::Secrets::Result createCustomLockCollectionWithAuthenticationKey(
             pid_t callerPid,
@@ -334,8 +324,8 @@ private:
         QVariantList parameters;
     };
 
+    Sailfish::Secrets::Daemon::Sqlite::Database *m_db;
     Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *m_requestQueue;
-    Sailfish::Secrets::Daemon::ApiImpl::Database *m_db;
     Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *m_appPermissions;
 
     QMap<QString, Sailfish::Secrets::StoragePlugin*> m_storagePlugins;

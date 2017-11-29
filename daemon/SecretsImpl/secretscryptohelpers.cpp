@@ -30,7 +30,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::confirmCollectionStoragePl
         const QString &collectionName,
         const QString &storagePluginName) const
 {
-    DatabaseLocker locker(m_db);
+    Sailfish::Secrets::Daemon::Sqlite::DatabaseLocker locker(m_db);
 
     const QString selectCollectionPluginsQuery = QStringLiteral(
                  "SELECT"
@@ -40,7 +40,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::confirmCollectionStoragePl
              );
 
     QString errorText;
-    Database::Query sq = m_db->prepare(selectCollectionPluginsQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db->prepare(selectCollectionPluginsQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select collection plugins query: %1").arg(errorText));
@@ -129,7 +129,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::keyEntryIdentifiers(
              );
 
     QString errorText;
-    Database::Query sq = m_db.prepare(selectKeyIdentifiersQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db.prepare(selectKeyIdentifiersQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select key identifiers query: %1").arg(errorText));
@@ -172,7 +172,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::keyEntry(
              );
 
     QString errorText;
-    Database::Query sq = m_db.prepare(selectKeyPluginsQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db.prepare(selectKeyPluginsQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare select key plugins query: %1").arg(errorText));
@@ -221,7 +221,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::addKeyEntry(
              );
 
     QString errorText;
-    Database::Query iq = m_db.prepare(insertKeyEntryQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query iq = m_db.prepare(insertKeyEntryQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare insert key entry query: %1").arg(errorText));
@@ -276,7 +276,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::removeKeyEntry(
              );
 
     QString errorText;
-    Database::Query dq = m_db.prepare(deleteKeyEntryQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query dq = m_db.prepare(deleteKeyEntryQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromLatin1("Unable to prepare delete key entry query: %1").arg(errorText));

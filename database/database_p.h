@@ -5,8 +5,8 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#ifndef SAILFISHSECRETS_PLUGIN_STORAGE_SQLITE_DATABASE_P_H
-#define SAILFISHSECRETS_PLUGIN_STORAGE_SQLITE_DATABASE_P_H
+#ifndef SAILFISHSECRETS_COMMON_SQLITE_DATABASE_P_H
+#define SAILFISHSECRETS_COMMON_SQLITE_DATABASE_P_H
 
 #include <QtSql/QSqlDatabase>
 #include <QtSql/QSqlQuery>
@@ -23,7 +23,7 @@
 #include <QtCore/QScopedPointer>
 #include <QtCore/QLoggingCategory>
 
-Q_DECLARE_LOGGING_CATEGORY(lcSailfishSecretsPluginSqlite)
+Q_DECLARE_LOGGING_CATEGORY(lcSailfishSecretsDaemonSqlite)
 
 namespace Sailfish {
 
@@ -31,9 +31,13 @@ namespace Secrets {
 
 namespace Daemon {
 
-namespace Plugins {
-
 namespace Sqlite {
+
+typedef bool (*UpgradeFunction)(QSqlDatabase &database);
+struct UpgradeOperation {
+    UpgradeFunction fn;
+    const char **statements;
+};
 
 class Database
 {
@@ -42,9 +46,7 @@ public:
     class Query
     {
         friend class Database;
-
         QSqlQuery m_query;
-
         Query(const QSqlQuery &query);
 
     public:
@@ -85,7 +87,13 @@ public:
 
     QMutex *accessMutex() const;
 
-    bool open(const QString &databaseName, bool autoTest);
+    bool open(const QString &databaseSubdir,
+              const QString &databaseFilename,
+              const char *createStatements[],
+              const Sailfish::Secrets::Daemon::Sqlite::UpgradeOperation upgradeVersions[],
+              int currentSchemaVersion,
+              const QString &connectionName,
+              bool autoTest);
 
     operator QSqlDatabase &();
     operator QSqlDatabase const &() const;
@@ -117,9 +125,18 @@ private:
     QAtomicInt m_transactionSemaphore;
 };
 
-} // namespace Sqlite
+class DatabaseLocker : public QMutexLocker
+{
+public:
+    DatabaseLocker(Sailfish::Secrets::Daemon::Sqlite::Database *db)
+        : QMutexLocker(db->withinTransaction() ? Q_NULLPTR : db->accessMutex())
+        , m_db(db) {}
+    ~DatabaseLocker();
+private:
+    Sailfish::Secrets::Daemon::Sqlite::Database *m_db;
+};
 
-} // namespace Plugins
+} // namespace Sqlite
 
 } // namespace Daemon
 
@@ -127,4 +144,4 @@ private:
 
 } // namespace Sailfish
 
-#endif // SAILFISHSECRETS_PLUGIN_STORAGE_SQLITE_DATABASE_P_H
+#endif // SAILFISHSECRETS_COMMON_SQLITE_DATABASE_P_H

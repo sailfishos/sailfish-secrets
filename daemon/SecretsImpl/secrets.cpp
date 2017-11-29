@@ -13,6 +13,8 @@
 #include "Secrets/secretmanager.h"
 #include "Secrets/secretsdaemonconnection.h"
 
+#include "SecretsImpl/secretsdatabase_p.h"
+
 Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::SecretsDBusObject(
         Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *parent)
     : QObject(parent)
@@ -274,7 +276,13 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::SecretsRequestQueue(
           autotestMode)
 {
     Sailfish::Secrets::SecretsDaemonConnection::registerDBusTypes();
-    if (!m_db.open(QLatin1String("sailfishsecretsd"), autotestMode)) {
+    if (!m_db.open(QLatin1String("sailfishsecretsd"),
+                   QLatin1String("secrets.db"),
+                   createStatements,
+                   upgradeVersions,
+                   currentSchemaVersion,
+                   QLatin1String("sailfishsecretsd"),
+                   autotestMode)) {
         qCWarning(lcSailfishSecretsDaemon) << "Secrets: failed to open database!";
         return;
     }

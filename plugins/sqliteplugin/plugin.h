@@ -8,10 +8,10 @@
 #ifndef SAILFISHSECRETS_PLUGIN_STORAGE_SQLITE_H
 #define SAILFISHSECRETS_PLUGIN_STORAGE_SQLITE_H
 
+#include "database_p.h"
+
 #include "Secrets/extensionplugins.h"
 #include "Secrets/result.h"
-
-#include "database_p.h"
 
 #include <QObject>
 #include <QVector>
@@ -65,17 +65,8 @@ public:
             Sailfish::Secrets::EncryptionPlugin *plugin) Q_DECL_OVERRIDE;
 
 private:
-    class DatabaseLocker : public QMutexLocker
-    {
-    public:
-        DatabaseLocker(Sailfish::Secrets::Daemon::Plugins::Sqlite::Database *db)
-            : QMutexLocker(db->withinTransaction() ? Q_NULLPTR : db->accessMutex())
-            , m_db(db) {}
-        ~DatabaseLocker();
-    private:
-        Sailfish::Secrets::Daemon::Plugins::Sqlite::Database *m_db;
-    };
-    Sailfish::Secrets::Daemon::Plugins::Sqlite::Database *m_db;
+    void openDatabaseIfNecessary();
+    Sailfish::Secrets::Daemon::Sqlite::Database m_db;
 };
 
 } // namespace Plugins
