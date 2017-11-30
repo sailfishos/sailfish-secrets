@@ -5,13 +5,10 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#include "plugin.h"
+#include "sqlcipherplugin.h"
 
-#include <QStandardPaths>
 #include <QFile>
 #include <QCryptographicHash>
-
-Q_PLUGIN_METADATA(IID Sailfish_Secrets_EncryptedStoragePlugin_IID)
 
 // arg %1 must be a 64-character hex string = 32 byte key.
 static const char *setupEncryptionKey =
@@ -65,18 +62,6 @@ static Sailfish::Secrets::Daemon::Sqlite::UpgradeOperation upgradeVersions[] = {
 
 static const int currentSchemaVersion = 1;
 
-namespace {
-    QString databaseDirPath(bool isTestPlugin, const QString &databaseSubdir) {
-        // note: these paths are very dependent upon the implementation of database.cpp
-        const QString systemDataDirPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + QLatin1String("/system/"));
-        const QString privilegedDataDirPath(systemDataDirPath + QLatin1String("privileged/"));
-        const QString subdir = isTestPlugin
-                             ? QString(QLatin1String("Secrets/%1/")).arg(databaseSubdir)
-                             : QString(QLatin1String("Secrets/%1-test/")).arg(databaseSubdir);
-        return privilegedDataDirPath + subdir;
-    }
-}
-
 Sailfish::Secrets::Result
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::openCollectionDatabase(
         const QString &collectionName,
@@ -128,18 +113,6 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::openCollectionDatabase(
         }
     }
     return retn;
-}
-
-Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::SqlCipherPlugin(QObject *parent)
-    : Sailfish::Secrets::EncryptedStoragePlugin(parent)
-    , m_databaseSubdir(QLatin1String("sqlcipherplugin"))
-    , m_databaseDirPath(databaseDirPath(isTestPlugin(), m_databaseSubdir))
-{
-}
-
-Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::~SqlCipherPlugin()
-{
-    // for each collection db in cache, close and delete.
 }
 
 Sailfish::Secrets::Result
@@ -215,7 +188,6 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::isLocked(
             retn = Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                              QString::fromUtf8("SQLCipher plugin unable to prepare is locked query: %1").arg(errorText));
         } else if (!db->execute(lq, &errorText)) {
-qWarning() << "XXXXXXXXXXXXX is locked query error:" << errorText;
             *locked = true;
         } else {
             *locked = false;

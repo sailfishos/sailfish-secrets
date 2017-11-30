@@ -210,8 +210,7 @@ void Sailfish::Crypto::CryptoPluginInfo::setSupportedOperations(
 
 //---------------------------------------------
 
-Sailfish::Crypto::CryptoPlugin::CryptoPlugin(QObject *parent)
-    : QObject(parent)
+Sailfish::Crypto::CryptoPlugin::CryptoPlugin()
 {
 }
 

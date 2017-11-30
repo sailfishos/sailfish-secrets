@@ -222,7 +222,7 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::generateStoredKey(
                     callerPid,
                     requestId,
                     fullKey.identifier(),
-                    Sailfish::Crypto::Key::serialise(fullKey, Sailfish::Crypto::Key::DoNotSerialiseFilterDataMode),
+                    Sailfish::Crypto::Key::serialise(fullKey, Sailfish::Crypto::Key::LossySerialisationMode),
                     fullKey.filterData(),
                     storageProviderName);
         if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {

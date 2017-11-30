@@ -5,9 +5,6 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#include "plugin.h"
-#include "evp_p.h"
-
 #include "Crypto/key.h"
 #include "Crypto/certificate.h"
 
@@ -18,20 +15,8 @@
 #include <QtCore/QUuid>
 #include <QtCore/QCryptographicHash>
 
-Q_PLUGIN_METADATA(IID Sailfish_Crypto_CryptoPlugin_IID)
-
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::OpenSslCryptoPlugin(QObject *parent)
-    : Sailfish::Crypto::CryptoPlugin(parent)
-{
-    osslevp_init();
-}
-
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::~OpenSslCryptoPlugin()
-{
-}
-
 QVector<Sailfish::Crypto::Key::Algorithm>
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::supportedAlgorithms() const
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedAlgorithms() const
 {
     QVector<Sailfish::Crypto::Key::Algorithm> retn;
     retn.append(Sailfish::Crypto::Key::Aes256);
@@ -39,7 +24,7 @@ Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::supportedAlgorithms() co
 }
 
 QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::BlockModes>
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::supportedBlockModes() const
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedBlockModes() const
 {
     QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::BlockModes> retn;
     retn.insert(Sailfish::Crypto::Key::Aes256, Sailfish::Crypto::Key::BlockModeCBC);
@@ -47,7 +32,7 @@ Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::supportedBlockModes() co
 }
 
 QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::EncryptionPaddings>
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::supportedEncryptionPaddings() const
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedEncryptionPaddings() const
 {
     QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::EncryptionPaddings> retn;
     retn.insert(Sailfish::Crypto::Key::Aes256, Sailfish::Crypto::Key::EncryptionPaddingNone);
@@ -55,7 +40,7 @@ Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::supportedEncryptionPaddi
 }
 
 QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::SignaturePaddings>
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::supportedSignaturePaddings() const
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedSignaturePaddings() const
 {
     QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::SignaturePaddings> retn;
     retn.insert(Sailfish::Crypto::Key::Aes256, Sailfish::Crypto::Key::SignaturePaddingNone);
@@ -63,7 +48,7 @@ Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::supportedSignaturePaddin
 }
 
 QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Digests>
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::supportedDigests() const
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedDigests() const
 {
     QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Digests> retn;
     retn.insert(Sailfish::Crypto::Key::Aes256, Sailfish::Crypto::Key::DigestSha256);
@@ -71,7 +56,7 @@ Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::supportedDigests() const
 }
 
 QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Operations>
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::supportedOperations() const
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedOperations() const
 {
     // TODO: should this be algorithm specific?  not sure?
     QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Operations> retn;
@@ -80,24 +65,24 @@ Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::supportedOperations() co
 }
 
 Sailfish::Crypto::Result
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::validateCertificateChain(
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::validateCertificateChain(
         const QVector<Sailfish::Crypto::Certificate> &chain,
         bool *validated)
 {
     Q_UNUSED(chain);
     Q_UNUSED(validated);
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                    QLatin1String("TODO: OpenSslCryptoPlugin::validateCertificateChain"));
+                                    QLatin1String("TODO: validateCertificateChain"));
 }
 
 Sailfish::Crypto::Result
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::generateKey(
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::generateKey(
         const Sailfish::Crypto::Key &keyTemplate,
         Sailfish::Crypto::Key *key)
 {
     if (keyTemplate.algorithm() != Sailfish::Crypto::Key::Aes256) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("The OpenSslCryptoPlugin doesn't support algorithms other than Aes256 - TODO!!"));
+                                        QLatin1String("TODO: algorithms other than Aes256"));
     }
 
     const QUuid seed = QUuid::createUuid();
@@ -109,38 +94,7 @@ Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::generateKey(
 }
 
 Sailfish::Crypto::Result
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::generateAndStoreKey(
-        const Sailfish::Crypto::Key &keyTemplate,
-        Sailfish::Crypto::Key *keyMetadata)
-{
-    Q_UNUSED(keyTemplate);
-    Q_UNUSED(keyMetadata);
-    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                    QLatin1String("The OpenSslCryptoPlugin doesn't support storing keys"));
-}
-
-Sailfish::Crypto::Result
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::storedKey(
-        const Sailfish::Crypto::Key::Identifier &identifier,
-        Sailfish::Crypto::Key *key)
-{
-    Q_UNUSED(identifier);
-    Q_UNUSED(key);
-    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                    QLatin1String("The OpenSslCryptoPlugin doesn't support storing keys"));
-}
-
-Sailfish::Crypto::Result
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::storedKeyIdentifiers(
-        QVector<Sailfish::Crypto::Key::Identifier> *identifiers)
-{
-    Q_UNUSED(identifiers);
-    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                    QLatin1String("The OpenSslCryptoPlugin doesn't support storing keys"));
-}
-
-Sailfish::Crypto::Result
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::sign(
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::sign(
         const QByteArray &data,
         const Sailfish::Crypto::Key &key,
         Sailfish::Crypto::Key::SignaturePadding padding,
@@ -154,11 +108,11 @@ Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::sign(
     Q_UNUSED(digest);
     Q_UNUSED(signature);
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                    QLatin1String("TODO: OpenSslCryptoPlugin::sign"));
+                                    QLatin1String("TODO: sign"));
 }
 
 Sailfish::Crypto::Result
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::verify(
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::verify(
         const QByteArray &data,
         const Sailfish::Crypto::Key &key,
         Sailfish::Crypto::Key::SignaturePadding padding,
@@ -172,11 +126,11 @@ Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::verify(
     Q_UNUSED(digest);
     Q_UNUSED(verified);
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                    QLatin1String("TODO: OpenSslCryptoPlugin::verify"));
+                                    QLatin1String("TODO: verify"));
 }
 
 Sailfish::Crypto::Result
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::encrypt(
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::encrypt(
         const QByteArray &data,
         const Sailfish::Crypto::Key &key,
         Sailfish::Crypto::Key::BlockMode blockMode,
@@ -186,22 +140,22 @@ Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::encrypt(
 {
     if (key.algorithm() != Sailfish::Crypto::Key::Aes256) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("The OpenSslCryptoPlugin doesn't support algorithms other than Aes256 - TODO!!"));
+                                        QLatin1String("TODO: algorithms other than Aes256"));
     }
 
     if (blockMode != Sailfish::Crypto::Key::BlockModeCBC) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("The OpenSslCryptoPlugin doesn't support block modes other than CBC - TODO!!"));
+                                        QLatin1String("TODO: block modes other than CBC"));
     }
 
     if (padding != Sailfish::Crypto::Key::EncryptionPaddingNone) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("The OpenSslCryptoPlugin doesn't support encryption padding other than None - TODO!!"));
+                                        QLatin1String("TODO: encryption padding other than None"));
     }
 
     if (digest != Sailfish::Crypto::Key::DigestSha256) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("The OpenSslCryptoPlugin doesn't support digests other than Sha256 - TODO!!"));
+                                        QLatin1String("TODO: digests other than Sha256"));
     }
 
     if (key.secretKey().isEmpty()) {
@@ -235,7 +189,7 @@ Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::encrypt(
 }
 
 Sailfish::Crypto::Result
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::decrypt(
         const QByteArray &data,
         const Sailfish::Crypto::Key &key,
         Sailfish::Crypto::Key::BlockMode blockMode,
@@ -246,22 +200,22 @@ Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
 
     if (key.algorithm() != Sailfish::Crypto::Key::Aes256) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("The OpenSslCryptoPlugin doesn't support algorithms other than Aes256 - TODO!!"));
+                                        QLatin1String("TODO: algorithms other than Aes256"));
     }
 
     if (blockMode != Sailfish::Crypto::Key::BlockModeCBC) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("The OpenSslCryptoPlugin doesn't support block modes other than CBC - TODO!!"));
+                                        QLatin1String("TODO: block modes other than CBC"));
     }
 
     if (padding != Sailfish::Crypto::Key::EncryptionPaddingNone) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("The OpenSslCryptoPlugin doesn't support encryption padding other than None - TODO!!"));
+                                        QLatin1String("TODO: encryption padding other than None"));
     }
 
     if (digest != Sailfish::Crypto::Key::DigestSha256) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("The OpenSslCryptoPlugin doesn't support digests other than Sha256 - TODO!!"));
+                                        QLatin1String("TODO: digests other than Sha256"));
     }
 
     if (key.secretKey().isEmpty()) {
@@ -285,7 +239,7 @@ Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
     QByteArray plaintext = aes_decrypt_ciphertext(data, keyHash.result(), initVector);
     if (!plaintext.size() || (plaintext.size() == 1 && plaintext.at(0) == 0)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginDecryptionError,
-                                         QLatin1String("OpenSSL crypto plugin failed to decrypt the secret"));
+                                         QLatin1String("Failed to decrypt the secret"));
     }
 
     // return result.
@@ -294,7 +248,7 @@ Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
 }
 
 QByteArray
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::aes_encrypt_plaintext(
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::aes_encrypt_plaintext(
         const QByteArray &plaintext,
         const QByteArray &key,
         const QByteArray &init_vector)
@@ -317,7 +271,7 @@ Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::aes_encrypt_plaintext(
 }
 
 QByteArray
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::aes_decrypt_ciphertext(
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::aes_decrypt_ciphertext(
         const QByteArray &ciphertext,
         const QByteArray &key,
         const QByteArray &init_vector)

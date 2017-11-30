@@ -30,10 +30,8 @@ namespace Sailfish {
 namespace Crypto {
 
 class CryptoPluginInfo;
-class SAILFISH_CRYPTO_API CryptoPlugin : public QObject
+class SAILFISH_CRYPTO_API CryptoPlugin
 {
-    Q_OBJECT
-
 public:
     enum EncryptionType {
         NoEncryption = 0,                   // no encryption is performed
@@ -41,9 +39,8 @@ public:
         TrustedExecutionSoftwareEncryption, // encryption is performed by trusted execution environment application
         SecurePeripheralEncryption,         // encryption is performed by a secure hardware peripheral via TEE application
     };
-    Q_ENUM(EncryptionType)
 
-    CryptoPlugin(QObject *parent = Q_NULLPTR);
+    CryptoPlugin();
     virtual ~CryptoPlugin();
 
     virtual bool isTestPlugin() const = 0;

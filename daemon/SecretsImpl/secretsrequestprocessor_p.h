@@ -58,8 +58,6 @@ public:
 
     bool loadPlugins(const QString &pluginDir, bool autotestMode);
 
-    static QString generateHashedSecretName(const QString &collectionName, const QString &secretName);
-
     // retrieve information about available plugins
     Sailfish::Secrets::Result getPluginInfo(
             pid_t callerPid,

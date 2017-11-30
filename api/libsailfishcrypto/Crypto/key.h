@@ -227,10 +227,10 @@ public:
     bool hasFilterData(const QString &field);
 
     enum SerialisationMode {
-        DoNotSerialiseFilterDataMode = 0,
-        SerialiseFilterDataMode
+        LossySerialisationMode = 0, // don't serialise filter data or identifier, reduce known-plaintext surface.
+        LosslessSerialisationMode
     };
-    static QByteArray serialise(const Sailfish::Crypto::Key &key, SerialisationMode serialisationMode = SerialiseFilterDataMode);
+    static QByteArray serialise(const Sailfish::Crypto::Key &key, SerialisationMode serialisationMode = LosslessSerialisationMode);
     static Sailfish::Crypto::Key deserialise(const QByteArray &data, bool *ok = nullptr);
     static Sailfish::Crypto::Key fromCertificate(const Sailfish::Crypto::Certificate &certificate);
 

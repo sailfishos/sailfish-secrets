@@ -8,12 +8,12 @@
 #include "secretsrequestprocessor_p.h"
 #include "applicationpermissions_p.h"
 #include "logging_p.h"
+#include "util_p.h"
 
 #include "Secrets/result.h"
 #include "Secrets/secretmanager.h"
 #include "Secrets/secret.h"
 
-#include <QtCore/QCryptographicHash>
 #include <QtCore/QPluginLoader>
 #include <QtCore/QDataStream>
 #include <QtCore/QVariant>
@@ -33,32 +33,6 @@ static const QByteArray SystemEncryptionKey = QByteArray("example_encryption_key
 // securely.  We use this device lock key to lock/unlock device-lock
 // protected collections.
 static const QByteArray DeviceLockKey = QByteArray("example_device_lock_key");
-
-namespace {
-    QByteArray rehashHash(const QByteArray &hash) {
-        QCryptographicHash rehash(QCryptographicHash::QCryptographicHash::Sha3_256);
-        rehash.addData(hash);
-        return rehash.result();
-    }
-}
-
-QString
-Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::generateHashedSecretName(
-        const QString &collectionName,
-        const QString &secretName)
-{
-    QCryptographicHash keyHash(QCryptographicHash::QCryptographicHash::Sha3_256);
-    QByteArray data = collectionName.toUtf8() + secretName.toUtf8();
-    keyHash.addData(data);
-    QByteArray hashed = keyHash.result();
-
-    // do PBKDF style repeated hashing
-    for (int i = 0; i < 100; ++i) {
-        hashed = rehashHash(hashed);
-    }
-
-    return QString::fromLatin1(hashed.toBase64());
-}
 
 Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::RequestProcessor(Sailfish::Secrets::Daemon::Sqlite::Database *db,
                  Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *appPermissions,
@@ -998,7 +972,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretMetadat
                                          QString::fromLatin1("Unable to prepare select secrets query: %1").arg(errorText));
     }
 
-    const QString hashedSecretName = generateHashedSecretName(identifier.collectionName(), identifier.name());
+    const QString hashedSecretName = Sailfish::Secrets::Daemon::Util::generateHashedSecretName(identifier.collectionName(), identifier.name());
     values.clear();
     values << QVariant::fromValue<QString>(identifier.collectionName());
     values << QVariant::fromValue<QString>(hashedSecretName);
@@ -1121,7 +1095,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretMeta
                                          .arg(errorText));
     }
 
-    const QString hashedSecretName = generateHashedSecretName(identifier.collectionName(), identifier.name());
+    const QString hashedSecretName = Sailfish::Secrets::Daemon::Util::generateHashedSecretName(identifier.collectionName(), identifier.name());
     QVariantList values;
     values << QVariant::fromValue<QString>(identifier.collectionName());
     values << QVariant::fromValue<QString>(hashedSecretName);
@@ -1420,7 +1394,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithAut
                                          QString::fromLatin1("Unable to prepare select secrets query: %1").arg(errorText));
     }
 
-    const QString hashedSecretName = generateHashedSecretName(secret.identifier().collectionName(), secret.identifier().name());
+    const QString hashedSecretName = Sailfish::Secrets::Daemon::Util::generateHashedSecretName(secret.identifier().collectionName(), secret.identifier().name());
     QVariantList values;
     values << QVariant::fromValue<QString>(secret.identifier().collectionName());
     values << QVariant::fromValue<QString>(hashedSecretName);
@@ -1651,7 +1625,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSec
     }
 
     const QString collectionName = QStringLiteral("standalone");
-    const QString hashedSecretName = generateHashedSecretName(collectionName, secret.identifier().name());
+    const QString hashedSecretName = Sailfish::Secrets::Daemon::Util::generateHashedSecretName(collectionName, secret.identifier().name());
     QVariantList values;
     values << QVariant::fromValue<QString>(collectionName);
     values << QVariant::fromValue<QString>(hashedSecretName);
@@ -1898,7 +1872,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
     }
 
     const QString collectionName = QStringLiteral("standalone");
-    const QString hashedSecretName = generateHashedSecretName(collectionName, secret.identifier().name());
+    const QString hashedSecretName = Sailfish::Secrets::Daemon::Util::generateHashedSecretName(collectionName, secret.identifier().name());
     QVariantList values;
     values << QVariant::fromValue<QString>(collectionName);
     values << QVariant::fromValue<QString>(hashedSecretName);
@@ -2024,7 +1998,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
     }
 
     const QString collectionName = QStringLiteral("standalone");
-    const QString hashedSecretName = generateHashedSecretName(collectionName, secret.identifier().name());
+    const QString hashedSecretName = Sailfish::Secrets::Daemon::Util::generateHashedSecretName(collectionName, secret.identifier().name());
     QVariantList values;
     values << QVariant::fromValue<QString>(collectionName);
     values << QVariant::fromValue<QString>(hashedSecretName);
@@ -2474,7 +2448,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithAut
         }
     }
 
-    const QString hashedSecretName = generateHashedSecretName(identifier.collectionName(), identifier.name());
+    const QString hashedSecretName = Sailfish::Secrets::Daemon::Util::generateHashedSecretName(identifier.collectionName(), identifier.name());
     Sailfish::Secrets::Result pluginResult;
     if (storagePluginName == encryptionPluginName) {
         bool locked = false;
@@ -2581,7 +2555,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
     }
 
     const QString collectionName = QStringLiteral("standalone");
-    const QString hashedSecretName = generateHashedSecretName(collectionName, identifier.name());
+    const QString hashedSecretName = Sailfish::Secrets::Daemon::Util::generateHashedSecretName(collectionName, identifier.name());
     QVariantList values;
     values << QVariant::fromValue<QString>(collectionName);
     values << QVariant::fromValue<QString>(hashedSecretName);
@@ -2728,7 +2702,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithAut
     }
 
     const QString collectionName = QStringLiteral("standalone");
-    const QString hashedSecretName = generateHashedSecretName(collectionName, identifier.name());
+    const QString hashedSecretName = Sailfish::Secrets::Daemon::Util::generateHashedSecretName(collectionName, identifier.name());
 
     Sailfish::Secrets::Result pluginResult;
     if (storagePluginName == encryptionPluginName) {
@@ -3258,7 +3232,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
                         identifier,
                         userInteractionMode,
                         uiServiceAddress,
-                        QByteArray());
+                        DeviceLockKey);
         }
     } else {
         if (!m_collectionAuthenticationKeys.contains(identifier.collectionName())) {
@@ -3391,7 +3365,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWith
                                          QString::fromLatin1("Collection %1 is owned by a different application").arg(identifier.collectionName()));
     }
 
-    const QString hashedSecretName = generateHashedSecretName(identifier.collectionName(), identifier.name());
+    const QString hashedSecretName = Sailfish::Secrets::Daemon::Util::generateHashedSecretName(identifier.collectionName(), identifier.name());
     Sailfish::Secrets::Result pluginResult;
     if (collectionStoragePluginName == collectionEncryptionPluginName) {
         bool locked = false;
@@ -3523,7 +3497,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteStandaloneSecret(
     }
 
     const QString collectionName = QStringLiteral("standalone");
-    const QString hashedSecretName = generateHashedSecretName(collectionName, identifier.name());
+    const QString hashedSecretName = Sailfish::Secrets::Daemon::Util::generateHashedSecretName(collectionName, identifier.name());
     QVariantList values;
     values << QVariant::fromValue<QString>(collectionName);
     values << QVariant::fromValue<QString>(hashedSecretName);

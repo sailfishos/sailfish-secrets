@@ -13,6 +13,8 @@
 #include "Crypto/result.h"
 #include "Crypto/key.h"
 
+#include "util_p.h"
+
 #include <QtCore/QStringList>
 #include <QtCore/QVector>
 #include <QtCore/QByteArray>
@@ -69,7 +71,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::confirmCollectionStoragePl
 }
 
 QMap<QString, QObject*>
-Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::potentialCryptoStoragePlugins() const
+Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::potentialCryptoStoragePlugins() const
 {
     return m_requestProcessor->potentialCryptoStoragePlugins();
 }
@@ -240,7 +242,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::addKeyEntry(
     }
 
     QVariantList values;
-    const QString hashedSecretName = Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::generateHashedSecretName(
+    const QString hashedSecretName = Sailfish::Secrets::Daemon::Util::generateHashedSecretName(
                 identifier.collectionName(), identifier.name());
     values << QVariant::fromValue<QString>(identifier.collectionName())
            << QVariant::fromValue<QString>(hashedSecretName)
