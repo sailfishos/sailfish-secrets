@@ -68,6 +68,18 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::confirmCollectionStoragePl
     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded);
 }
 
+QMap<QString, QObject*>
+Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::potentialCryptoStoragePlugins() const
+{
+    return m_requestProcessor->potentialCryptoStoragePlugins();
+}
+
+QMap<QString, QObject*>
+Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::potentialCryptoStoragePlugins() const
+{
+    return m_potentialCryptoStoragePlugins;
+}
+
 QStringList
 Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::storagePluginNames() const
 {

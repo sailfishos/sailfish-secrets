@@ -188,6 +188,7 @@ public:
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
 public: // helper methods for crypto API bridge (secretscryptohelpers)
+    QMap<QString, QObject*> potentialCryptoStoragePlugins() const;
     QStringList storagePluginNames() const;
     Sailfish::Secrets::Result confirmCollectionStoragePlugin(
             const QString &collectionName,
@@ -216,7 +217,6 @@ private Q_SLOTS:
     void timeoutRelockSecret();
 
 private:
-
     Sailfish::Secrets::Result createCustomLockCollectionWithAuthenticationKey(
             pid_t callerPid,
             quint64 requestId,
@@ -332,6 +332,7 @@ private:
     QMap<QString, Sailfish::Secrets::EncryptionPlugin*> m_encryptionPlugins;
     QMap<QString, Sailfish::Secrets::EncryptedStoragePlugin*> m_encryptedStoragePlugins;
     QMap<QString, Sailfish::Secrets::AuthenticationPlugin*> m_authenticationPlugins;
+    QMap<QString, QObject*> m_potentialCryptoStoragePlugins;
 
     QMap<QString, QTimer*> m_collectionLockTimers;
     QMap<QString, QByteArray> m_collectionAuthenticationKeys;

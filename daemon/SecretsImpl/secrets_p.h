@@ -282,6 +282,9 @@ public:
     void handleFinishedRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;
     QString requestTypeToString(int type) const Q_DECL_OVERRIDE;
 
+public: // helpers for crypto API: secretscryptohelpers.cpp
+    QMap<QString, QObject*> potentialCryptoStoragePlugins() const;
+
 private:
     Sailfish::Secrets::Daemon::Sqlite::Database m_db;
     Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *m_appPermissions;

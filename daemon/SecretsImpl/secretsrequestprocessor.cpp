@@ -159,6 +159,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString 
             } else {
                 qCDebug(lcSailfishSecretsDaemon) << "loading encrypted storage plugin:" << pluginFile << "with name:" << encryptedStoragePlugin->name();
                 m_encryptedStoragePlugins.insert(encryptedStoragePlugin->name(), encryptedStoragePlugin);
+                m_potentialCryptoStoragePlugins.insert(encryptedStoragePlugin->name(), plugin);
             }
         } else if (authenticationPlugin) {
             if (authenticationPlugin->isTestPlugin() != autotestMode) {
