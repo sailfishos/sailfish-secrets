@@ -61,7 +61,7 @@ Sailfish::Secrets::SecretManagerPrivate::registerUiService(
         Sailfish::Secrets::SecretManager::UserInteractionMode mode,
         QString *address)
 {
-    if (mode == Sailfish::Secrets::SecretManager::InProcessUserInteractionMode) {
+    if (mode == Sailfish::Secrets::SecretManager::ApplicationInteraction) {
         if (!m_uiService) {
             m_uiService = new Sailfish::Secrets::UiService(this);
         }
@@ -292,7 +292,7 @@ Sailfish::Secrets::SecretManager::createCollection(
  * given \a customLockTimeoutMs will be used as the timeout (in milliseconds)
  * after the collection is unlocked which will trigger it to be relocked.
  *
- * If the \a userInteractionMode specified is \c InProcessUserInteractionMode
+ * If the \a userInteractionMode specified is \c ApplicationInteraction
  * and the specified authentication plugin supports
  * \c ApplicationSpecificAuthentication flows, then the authentication key
  * will be obtained from the user via an in-process authentication flow (see
@@ -351,7 +351,7 @@ Sailfish::Secrets::SecretManager::createCollection(
  * If the application is not the creator of the collection and the user has not yet
  * been asked if the application should have permission to delete the collection,
  * a system-mediated access control UI flow may be triggered to obtain the user's
- * permission (unless the given \a userInteractionMode is \a PreventUserInteractionMode
+ * permission (unless the given \a userInteractionMode is \a PreventInteraction
  * in which case the request will fail).
  */
 QDBusPendingReply<Sailfish::Secrets::Result>
@@ -392,17 +392,17 @@ Sailfish::Secrets::SecretManager::deleteCollection(
  * it but the user has not yet been asked whether the application should have permission
  * to modify the secret, then a system-mediated access control UI flow may be triggered
  * to obtain the user's permission (unless the given \a userInteractionMode is
- * \a PreventUserInteractionMode in which case the request will fail).
+ * \a PreventInteraction in which case the request will fail).
  *
  * If the collection uses an encryption key derived from the system device-lock,
  * then the value will be able to be stored without any other UI flow being required;
  * however, if the collection uses an encryption key derived from a custom lock,
  * then the custom lock authentication key will be obtained from the user via
  * an authentication flow determined by the authentication plugin used for that
- * collection (which may support \c InProcessUserInteractionMode if the collection
+ * collection (which may support \c ApplicationInteraction if the collection
  * is an application-specific collection using an \c ApplicationSpecificAuthentication
  * plugin, but otherwise will be a system-mediated UI flow, unless the \a userInteractionMode
- * specified is \c PreventUserInteractionMode in which case the request will fail).
+ * specified is \c PreventInteraction in which case the request will fail).
  */
 QDBusPendingReply<Sailfish::Secrets::Result>
 Sailfish::Secrets::SecretManager::setSecret(
@@ -463,7 +463,7 @@ Sailfish::Secrets::SecretManager::setSecret(
  * and the user has not yet been asked if the calling application should have
  * permission to modify the secret, then a system-mediated access control UI flow
  * may be triggered to obtain the user's permission (unless the given
- * \a userInteractionMode is \a PreventUserInteractionMode in which case the request
+ * \a userInteractionMode is \a PreventInteraction in which case the request
  * will fail).
  */
 QDBusPendingReply<Sailfish::Secrets::Result>
@@ -527,14 +527,14 @@ Sailfish::Secrets::SecretManager::setSecret(
  * and the user has not yet been asked if the calling application should have
  * permission to modify the secret, then a system-mediated access control UI flow
  * may be triggered to obtain the user's permission (unless the given
- * \a userInteractionMode is \a PreventUserInteractionMode in which case the request
+ * \a userInteractionMode is \a PreventInteraction in which case the request
  * will fail).
  *
  * The custom lock authentication key will be obtained from the user via an
  * authentication flow determined by the authentication plugin (which may support
- * \c InProcessUserInteractionMode for \c ApplicationSpecificAuthentication, but
+ * \c ApplicationInteraction for \c ApplicationSpecificAuthentication, but
  * otherwise will be a system-mediated UI flow, unless the \a userInteractionMode
- * specified is \c PreventUserInteractionMode in which case the request will fail).
+ * specified is \c PreventInteraction in which case the request will fail).
  *
  * If the \a unlockSemantic specified is \c CustomLockTimoutRelock then the
  * given \a customLockTimeoutMs will be used as the timeout (in milliseconds)
@@ -607,17 +607,17 @@ Sailfish::Secrets::SecretManager::setSecret(
  * it but the user has not yet been asked whether the application should have permission
  * to read the secret, then a system-mediated access control UI flow may be triggered
  * to obtain the user's permission (unless the given \a userInteractionMode is
- * \a PreventUserInteractionMode in which case the request will fail).
+ * \a PreventInteraction in which case the request will fail).
  *
  * If the collection uses an encryption key derived from the system device-lock,
  * then the value will be able to be retrieved without any other UI flow being required
  * if the collection is currently unlocked; however, if the collection uses an encryption
  * key derived from a custom lock, then the custom lock authentication key will be obtained
  * from the user via an authentication flow determined by the authentication plugin used for that
- * collection (which may support \c InProcessUserInteractionMode if the collection
+ * collection (which may support \c ApplicationInteraction if the collection
  * is an application-specific collection using an \c ApplicationSpecificAuthentication
  * plugin, but otherwise will be a system-mediated UI flow, unless the \a userInteractionMode
- * specified is \c PreventUserInteractionMode in which case the request will fail).
+ * specified is \c PreventInteraction in which case the request will fail).
  *
  * Otherwise, if the secret is a standalone secret, the following semantics apply:
  *
@@ -628,7 +628,7 @@ Sailfish::Secrets::SecretManager::setSecret(
  * If the application is not the creator of the secret and the user has not yet
  * been asked if the application should have permission to read the secret, then a
  * system-mediated access control UI flow may be triggered to obtain the user's
- * permission (unless the given \a userInteractionMode is \a PreventUserInteractionMode
+ * permission (unless the given \a userInteractionMode is \a PreventInteraction
  * in which case the request will fail).
  *
  * If the secret uses an encryption key derived from the system device-lock,
@@ -636,10 +636,10 @@ Sailfish::Secrets::SecretManager::setSecret(
  * if the secret is currently unlocked; however, if the collection uses an encryption
  * key derived from a custom lock, then the custom lock authentication key will be obtained
  * from the user via an authentication flow determined by the authentication plugin used for that
- * secret (which may support \c InProcessUserInteractionMode if the secret
+ * secret (which may support \c ApplicationInteraction if the secret
  * is an application-specific secret using an \c ApplicationSpecificAuthentication
  * plugin, but otherwise will be a system-mediated UI flow, unless the \a userInteractionMode
- * specified is \c PreventUserInteractionMode in which case the request will fail).
+ * specified is \c PreventInteraction in which case the request will fail).
  */
 QDBusPendingReply<Sailfish::Secrets::Result, Sailfish::Secrets::Secret>
 Sailfish::Secrets::SecretManager::getSecret(
@@ -702,17 +702,17 @@ Sailfish::Secrets::SecretManager::getSecret(
  * been asked if the application should have permission to read the collection,
  * then a system-mediated access control UI flow may be triggered
  * to obtain the user's permission (unless the given \a userInteractionMode is
- * \a PreventUserInteractionMode in which case the request will fail).
+ * \a PreventInteraction in which case the request will fail).
  *
  * If the collection uses an encryption key derived from the system device-lock,
  * then the value will be able to be retrieved without any other UI flow being required
  * if the collection is currently unlocked; however, if the collection uses an encryption
  * key derived from a custom lock, then the custom lock authentication key will be obtained
  * from the user via an authentication flow determined by the authentication plugin used for that
- * collection (which may support \c InProcessUserInteractionMode if the collection
+ * collection (which may support \c ApplicationInteraction if the collection
  * is an application-specific collection using an \c ApplicationSpecificAuthentication
  * plugin, but otherwise will be a system-mediated UI flow, unless the \a userInteractionMode
- * specified is \c PreventUserInteractionMode in which case the request will fail).
+ * specified is \c PreventInteraction in which case the request will fail).
  */
 QDBusPendingReply<Sailfish::Secrets::Result, QVector<Sailfish::Secrets::Secret::Identifier> >
 Sailfish::Secrets::SecretManager::findSecrets(
@@ -782,7 +782,7 @@ Sailfish::Secrets::SecretManager::findSecrets(
  * If the application is not the creator of a matching secret and the user has not yet
  * been asked if the application should have permission to read the secret, then a
  * system-mediated access control UI flow may be triggered to obtain the user's
- * permission (unless the given \a userInteractionMode is \a PreventUserInteractionMode
+ * permission (unless the given \a userInteractionMode is \a PreventInteraction
  * in which case the request will fail).
  *
  * If the secret uses an encryption key derived from the system device-lock,
@@ -790,10 +790,10 @@ Sailfish::Secrets::SecretManager::findSecrets(
  * if the secret is currently unlocked; however, if the secret uses an encryption
  * key derived from a custom lock, then the custom lock authentication key will be obtained
  * from the user via an authentication flow determined by the authentication plugin used for that
- * secret (which may support \c InProcessUserInteractionMode if the secret
+ * secret (which may support \c ApplicationInteraction if the secret
  * is an application-specific secret using an \c ApplicationSpecificAuthentication
  * plugin, but otherwise will be a system-mediated UI flow, unless the \a userInteractionMode
- * specified is \c PreventUserInteractionMode in which case the request will fail).
+ * specified is \c PreventInteraction in which case the request will fail).
  */
 QDBusPendingReply<Sailfish::Secrets::Result, QVector<Sailfish::Secrets::Secret::Identifier> >
 Sailfish::Secrets::SecretManager::findSecrets(
@@ -845,7 +845,7 @@ Sailfish::Secrets::SecretManager::findSecrets(
  * it but the user has not yet been asked whether the application should have permission
  * to delete the secret, then a system-mediated access control UI flow may be triggered
  * to obtain the user's permission (unless the given \a userInteractionMode is
- * \a PreventUserInteractionMode in which case the request will fail).
+ * \a PreventInteraction in which case the request will fail).
  *
  * Otherwise, if the secret is a standalone secret, the following semantics apply:
  *
@@ -857,7 +857,7 @@ Sailfish::Secrets::SecretManager::findSecrets(
  * been asked if the application should have permission to delete the secret,
  * then a system-mediated access control UI flow may be triggered
  * to obtain the user's permission (unless the given \a userInteractionMode is
- * \a PreventUserInteractionMode in which case the request will fail).
+ * \a PreventInteraction in which case the request will fail).
  */
 QDBusPendingReply<Sailfish::Secrets::Result>
 Sailfish::Secrets::SecretManager::deleteSecret(

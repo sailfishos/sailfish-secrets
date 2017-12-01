@@ -36,9 +36,9 @@ class SAILFISH_SECRETS_API SecretManager : public QObject
 
 public:
     enum UserInteractionMode {
-         PreventUserInteractionMode = 0,    // no user interaction allowed, operation will fail if interaction is required
-         SystemUserInteractionMode,         // system-mediated user interaction via system UI if required
-         InProcessUserInteractionMode       // in-process application UI will handle interaction, ApplicationSpecificAuthentication only.
+         PreventInteraction = 0,            // no user interaction allowed, operation will fail if interaction is required
+         SystemInteraction,                 // system-mediated user interaction via system UI if required
+         ApplicationInteraction             // in-process application UI will handle interaction, ApplicationSpecificAuthentication only.
     };
     Q_ENUM(UserInteractionMode)
 

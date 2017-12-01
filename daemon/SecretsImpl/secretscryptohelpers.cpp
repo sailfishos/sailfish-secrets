@@ -347,7 +347,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storeKeyMetadata(
     // step two: perform the "set collection secret metadata" request, as a secrets-for-crypto request.
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(Sailfish::Secrets::Secret::Identifier(identifier.name(), identifier.collectionName()))
-             << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::PreventUserInteractionMode)
+             << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::PreventInteraction)
              << QVariant::fromValue<QString>(QString());
     Sailfish::Secrets::Result enqueueResult(Sailfish::Secrets::Result::Succeeded);
     handleRequest(
@@ -389,7 +389,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storeKey(
     secret.setData(serialisedKey);
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<Sailfish::Secrets::Secret>(secret)
-             << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::PreventUserInteractionMode)
+             << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::PreventInteraction)
              << QVariant::fromValue<QString>(QString());
     Sailfish::Secrets::Result enqueueResult(Sailfish::Secrets::Result::Succeeded);
     handleRequest(
@@ -414,7 +414,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::deleteStoredKey(
     // perform the "delete collection secret" request, as a secrets-for-crypto request.
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(Sailfish::Secrets::Secret::Identifier(identifier.name(), identifier.collectionName()))
-             << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::PreventUserInteractionMode)
+             << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::PreventInteraction)
              << QVariant::fromValue<QString>(QString());
     Sailfish::Secrets::Result enqueueResult(Sailfish::Secrets::Result::Succeeded);
     handleRequest(
@@ -468,7 +468,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storedKey(
     // perform the "get collection secret" request, as a secrets-for-crypto request.
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(Sailfish::Secrets::Secret::Identifier(identifier.name(), identifier.collectionName()))
-             << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::PreventUserInteractionMode)
+             << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::PreventInteraction)
              << QVariant::fromValue<QString>(QString());
     Sailfish::Secrets::Result enqueueResult(Sailfish::Secrets::Result::Succeeded);
     handleRequest(

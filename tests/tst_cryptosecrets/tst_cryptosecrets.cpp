@@ -145,7 +145,7 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
                 keyTemplate.identifier().collectionName(),
                 filter,
                 Sailfish::Secrets::SecretManager::OperatorAnd,
-                Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
+                Sailfish::Secrets::SecretManager::PreventInteraction);
     filterReply.waitForFinished();
     QVERIFY(filterReply.isValid());
     QCOMPARE(filterReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
@@ -159,7 +159,7 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
                 keyTemplate.identifier().collectionName(),
                 filter,
                 Sailfish::Secrets::SecretManager::OperatorAnd,
-                Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
+                Sailfish::Secrets::SecretManager::PreventInteraction);
     filterReply.waitForFinished();
     QVERIFY(filterReply.isValid());
     QCOMPARE(filterReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
@@ -168,7 +168,7 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
     // clean up by deleting the collection in which the secret is stored.
     secretsreply = sm.deleteCollection(
                 QLatin1String("tst_cryptosecrets_gsked"),
-                Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
+                Sailfish::Secrets::SecretManager::PreventInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretsreply);
     QVERIFY(secretsreply.isValid());
     QCOMPARE(secretsreply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
@@ -260,7 +260,7 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
             Sailfish::Secrets::Secret::Identifier(
                     keyReference.identifier().name(),
                     keyReference.identifier().collectionName()),
-            Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
+            Sailfish::Secrets::SecretManager::PreventInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretReply);
     QVERIFY(secretReply.isValid());
     QCOMPARE(secretReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Failed);
@@ -269,7 +269,7 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
     // clean up by deleting the collection.
     secretsreply = sm.deleteCollection(
                 QLatin1String("tst_cryptosecrets_gsked"),
-                Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
+                Sailfish::Secrets::SecretManager::PreventInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretsreply);
     QVERIFY(secretsreply.isValid());
     QCOMPARE(secretsreply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
@@ -351,7 +351,7 @@ void tst_cryptosecrets::generateCryptoStoredKeyEncryptDecrypt()
                 keyTemplate.identifier().collectionName(),
                 filter,
                 Sailfish::Secrets::SecretManager::OperatorAnd,
-                Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
+                Sailfish::Secrets::SecretManager::PreventInteraction);
     filterReply.waitForFinished();
     QVERIFY(filterReply.isValid());
     QCOMPARE(filterReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
@@ -365,7 +365,7 @@ void tst_cryptosecrets::generateCryptoStoredKeyEncryptDecrypt()
                 keyTemplate.identifier().collectionName(),
                 filter,
                 Sailfish::Secrets::SecretManager::OperatorAnd,
-                Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
+                Sailfish::Secrets::SecretManager::PreventInteraction);
     filterReply.waitForFinished();
     QVERIFY(filterReply.isValid());
     QCOMPARE(filterReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
@@ -374,7 +374,7 @@ void tst_cryptosecrets::generateCryptoStoredKeyEncryptDecrypt()
     // clean up by deleting the collection in which the secret is stored.
     secretsreply = sm.deleteCollection(
                 QLatin1String("tstcryptosecretsgcsked"),
-                Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
+                Sailfish::Secrets::SecretManager::PreventInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretsreply);
     QVERIFY(secretsreply.isValid());
     QCOMPARE(secretsreply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
@@ -466,7 +466,7 @@ void tst_cryptosecrets::generateCryptoStoredKeyEncryptDecrypt()
             Sailfish::Secrets::Secret::Identifier(
                     keyReference.identifier().name(),
                     keyReference.identifier().collectionName()),
-            Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
+            Sailfish::Secrets::SecretManager::PreventInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretReply);
     QVERIFY(secretReply.isValid());
     QCOMPARE(secretReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Failed);
@@ -475,7 +475,7 @@ void tst_cryptosecrets::generateCryptoStoredKeyEncryptDecrypt()
     // clean up by deleting the collection.
     secretsreply = sm.deleteCollection(
                 QLatin1String("tstcryptosecretsgcsked"),
-                Sailfish::Secrets::SecretManager::PreventUserInteractionMode);
+                Sailfish::Secrets::SecretManager::PreventInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretsreply);
     QVERIFY(secretsreply.isValid());
     QCOMPARE(secretsreply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);

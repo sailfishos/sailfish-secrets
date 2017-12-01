@@ -33,7 +33,7 @@ class SecretManagerPrivate;
 /*
  *  The UiService instance lives within the client process.
  *  It is instantiated if the client attempts to perform a secrets request
- *  with the UserInteractionMode set to InProcessUserInteractionMode.
+ *  with the UserInteractionMode set to ApplicationInteraction.
  *  It talks to the sailfishsecretsd via P2P DBus connection, and triggers
  *  interaction within the UiView registered with the manager.
  */

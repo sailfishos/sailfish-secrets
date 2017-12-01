@@ -411,10 +411,10 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createCustomLockCollection
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
                                          QString::fromLatin1("No such authentication plugin exists: %1").arg(authenticationPluginName));
     } else if (m_authenticationPlugins[authenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
-               && (userInteractionMode != Sailfish::Secrets::SecretManager::InProcessUserInteractionMode || uiServiceAddress.isEmpty())) {
+               && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || uiServiceAddress.isEmpty())) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
                                          QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(authenticationPluginName));
-    } else if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventUserInteractionMode) {
+    } else if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
                                          QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(authenticationPluginName));
     }
@@ -1260,7 +1260,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
                                              QString::fromLatin1("Collection %1 is locked and requires device lock authentication").arg(secret.identifier().collectionName()));
         }
 
-        if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventUserInteractionMode) {
+        if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
             return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
                                              QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
         }
@@ -1320,7 +1320,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
                                          QString::fromLatin1("Collection %1 is locked and requires device lock authentication").arg(secret.identifier().collectionName()));
     }
 
-    if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventUserInteractionMode) {
+    if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
                                          QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
     }
@@ -1914,10 +1914,10 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
                                          QString::fromLatin1("Secret %1 already exists and is not stored via plugin %2")
                                          .arg(secret.identifier().name(), storagePluginName));
     } else if (m_authenticationPlugins[authenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
-               && (userInteractionMode != Sailfish::Secrets::SecretManager::InProcessUserInteractionMode || uiServiceAddress.isEmpty())) {
+               && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || uiServiceAddress.isEmpty())) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
                                          QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(authenticationPluginName));
-    } else if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventUserInteractionMode) {
+    } else if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
                                          QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(authenticationPluginName));
     }
@@ -2309,11 +2309,11 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                 return Sailfish::Secrets::Result(Sailfish::Secrets::Result::CollectionIsLockedError,
                                                  QString::fromLatin1("Collection %1 is locked and requires device lock authentication").arg(identifier.collectionName()));
             } else {
-                if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventUserInteractionMode) {
+                if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
                 } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
-                            && (userInteractionMode != Sailfish::Secrets::SecretManager::InProcessUserInteractionMode || uiServiceAddress.isEmpty())) {
+                            && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || uiServiceAddress.isEmpty())) {
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
                 }
@@ -2364,11 +2364,11 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                 return Sailfish::Secrets::Result(Sailfish::Secrets::Result::CollectionIsLockedError,
                                                  QString::fromLatin1("Collection %1 is locked and requires device lock authentication").arg(identifier.collectionName()));
             } else {
-                if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventUserInteractionMode) {
+                if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
                 } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
-                           && (userInteractionMode != Sailfish::Secrets::SecretManager::InProcessUserInteractionMode || uiServiceAddress.isEmpty())) {
+                           && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || uiServiceAddress.isEmpty())) {
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
                 }
@@ -2612,7 +2612,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::PermissionsError,
                                          QString::fromLatin1("Secret %1 is owned by a different application").arg(identifier.name()));
     } else if (m_authenticationPlugins[secretAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
-               && (userInteractionMode != Sailfish::Secrets::SecretManager::InProcessUserInteractionMode || uiServiceAddress.isEmpty())) {
+               && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || uiServiceAddress.isEmpty())) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
                                          QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(secretAuthenticationPluginName));
     }
@@ -2637,7 +2637,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
                                          QString::fromLatin1("Secret %1 is locked and requires device lock authentication").arg(identifier.name()));
     }
 
-    if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventUserInteractionMode) {
+    if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
                                          QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(secretAuthenticationPluginName));
     }
@@ -2850,11 +2850,11 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                 return Sailfish::Secrets::Result(Sailfish::Secrets::Result::CollectionIsLockedError,
                                                  QString::fromLatin1("Collection %1 is locked and requires device lock authentication").arg(collectionName));
             } else {
-                if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventUserInteractionMode) {
+                if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
                 } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
-                            && (userInteractionMode != Sailfish::Secrets::SecretManager::InProcessUserInteractionMode || uiServiceAddress.isEmpty())) {
+                            && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || uiServiceAddress.isEmpty())) {
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
                 }
@@ -2909,11 +2909,11 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                 return Sailfish::Secrets::Result(Sailfish::Secrets::Result::CollectionIsLockedError,
                                                  QString::fromLatin1("Collection %1 is locked and requires device lock authentication").arg(collectionName));
             } else {
-                if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventUserInteractionMode) {
+                if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
                 } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
-                           && (userInteractionMode != Sailfish::Secrets::SecretManager::InProcessUserInteractionMode || uiServiceAddress.isEmpty())) {
+                           && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || uiServiceAddress.isEmpty())) {
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
                 }
@@ -3199,7 +3199,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
                                                  QString::fromLatin1("Collection %1 is locked and requires device lock authentication").arg(identifier.collectionName()));
             }
 
-            if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventUserInteractionMode) {
+            if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
                 return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
                                                  QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
             }
@@ -3240,7 +3240,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
                 return Sailfish::Secrets::Result(Sailfish::Secrets::Result::CollectionIsLockedError,
                                                  QStringLiteral("Collection %1 is locked and requires device lock authentication").arg(identifier.collectionName()));
             } else {
-                if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventUserInteractionMode) {
+                if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
                 }
