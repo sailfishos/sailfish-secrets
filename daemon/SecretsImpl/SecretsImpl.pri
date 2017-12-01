@@ -2,6 +2,8 @@ INCLUDEPATH += $$PWD
 DEPENDPATH = $$INCLUDEPATH
 PKGCONFIG += libcrypto
 
+include($$PWD/../../database/database.pri)
+
 HEADERS += \
     $$PWD/secrets_p.h \
     $$PWD/secretsrequestprocessor_p.h \
@@ -11,7 +13,6 @@ HEADERS += \
 SOURCES += \
     $$PWD/secrets.cpp \
     $$PWD/secretsrequestprocessor.cpp \
-    $$PWD/secretsdatabase.cpp \
     $$PWD/applicationpermissions.cpp
 
 SOURCES += \

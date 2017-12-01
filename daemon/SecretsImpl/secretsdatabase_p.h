@@ -5,119 +5,89 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#ifndef SAILFISHSECRETS_APIIMPL_DATABASE_P_H
-#define SAILFISHSECRETS_APIIMPL_DATABASE_P_H
+#ifndef SAILFISHSECRETS_APIIMPL_SECRETSDATABASE_P_H
+#define SAILFISHSECRETS_APIIMPL_SECRETSDATABASE_P_H
 
-#include <QtSql/QSqlDatabase>
-#include <QtSql/QSqlQuery>
-#include <QtSql/QSqlError>
+#include "database_p.h"
 
-#include <QtCore/QObject>
-#include <QtCore/QList>
-#include <QtCore/QVariant>
-#include <QtCore/QString>
-#include <QtCore/QHash>
-#include <QtCore/QMutex>
-#include <QtCore/QMutexLocker>
-#include <QtCore/QAtomicInt>
-#include <QtCore/QScopedPointer>
+static const char *setupEnforceForeignKeys =
+        "\n PRAGMA foreign_keys = ON;";
 
-namespace Sailfish {
+static const char *setupEncoding =
+        "\n PRAGMA encoding = \"UTF-16\";";
 
-namespace Secrets {
+static const char *setupTempStore =
+        "\n PRAGMA temp_store = MEMORY;";
 
-namespace Daemon {
+static const char *setupJournal =
+        "\n PRAGMA journal_mode = WAL;";
 
-namespace ApiImpl {
+static const char *setupSynchronous =
+        "\n PRAGMA synchronous = FULL;";
 
-class Database
+static const char *createCollectionsTable =
+        "\n CREATE TABLE Collections ("
+        "   CollectionId INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "   CollectionName TEXT NOT NULL,"
+        "   ApplicationId TEXT NOT NULL,"
+        "   UsesDeviceLockKey INTEGER NOT NULL,"
+        "   StoragePluginName TEXT NOT NULL,"
+        "   EncryptionPluginName TEXT NOT NULL,"
+        "   AuthenticationPluginName TEXT NOT NULL,"
+        "   UnlockSemantic INTEGER NOT NULL,"
+        "   CustomLockTimeoutMs INTEGER NOT NULL,"
+        "   AccessControlMode INTEGER NOT NULL,"
+        "   CONSTRAINT collectionNameUnique UNIQUE (CollectionName));";
+
+static const char *createSecretsTable =
+        "\n CREATE TABLE Secrets ("
+        "   SecretId INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "   CollectionName TEXT NOT NULL,"
+        "   HashedSecretName TEXT NOT NULL,"
+        "   ApplicationId TEXT NOT NULL,"
+        "   UsesDeviceLockKey INTEGER NOT NULL,"
+        "   StoragePluginName TEXT NOT NULL,"
+        "   EncryptionPluginName TEXT NOT NULL,"
+        "   AuthenticationPluginName TEXT NOT NULL,"
+        "   UnlockSemantic INTEGER NOT NULL,"
+        "   CustomLockTimeoutMs INTEGER NOT NULL,"
+        "   AccessControlMode INTEGER NOT NULL,"
+        "   FOREIGN KEY (CollectionName) REFERENCES Collections(CollectionName) ON DELETE CASCADE,"
+        "   CONSTRAINT collectionSecretNameUnique UNIQUE (CollectionName, HashedSecretName));";
+
+static const char *createKeyEntriesTable =
+        "\n CREATE TABLE KeyEntries ("
+        "   KeyId INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "   CollectionName TEXT NOT NULL,"
+        "   HashedSecretName TEXT NOT NULL,"
+        "   KeyName TEXT NOT NULL,"        /* potential security (known-plaintext) issue!!! */
+        "   CryptoPluginName TEXT NOT NULL,"
+        "   StoragePluginName TEXT NOT NULL,"
+        "   FOREIGN KEY (CollectionName, HashedSecretName) REFERENCES Secrets(CollectionName,HashedSecretName) ON DELETE CASCADE,"
+        "   CONSTRAINT collectionKeyNameUnique UNIQUE (CollectionName, KeyName));";
+
+static const char *setupStatements[] =
 {
-public:
-    // This class is required to finish() each query at destruction
-    class Query
-    {
-        friend class Database;
-
-        QSqlQuery m_query;
-
-        Query(const QSqlQuery &query);
-
-    public:
-        ~Query() { finish(); }
-
-        void bindValue(const QString &id, const QVariant &value) { m_query.bindValue(id, value); }
-        void bindValue(int pos, const QVariant &value) { m_query.bindValue(pos, value); }
-        void addBindValue(const QVariant &value) { m_query.addBindValue(value); }
-        void bindValues(const QVariantList &values) {
-            for (int i = 0; i < values.count(); ++i) {
-                m_query.bindValue(i, values[i]);
-            }
-        }
-
-        bool next() { return m_query.next(); }
-        bool isValid() { return m_query.isValid(); }
-        void finish() { return m_query.finish(); }
-        void setForwardOnly(bool forwardOnly) { m_query.setForwardOnly(forwardOnly); }
-
-        QVariant lastInsertId() const { return m_query.lastInsertId(); }
-
-        QVariant value(int index) { return m_query.value(index); }
-
-        template<typename T>
-        T value(int index) { return m_query.value(index).value<T>(); }
-
-        operator QSqlQuery &() { return m_query; }
-        operator QSqlQuery const &() const { return m_query; }
-
-        void reportError(const QString &text) const;
-        void reportError(const char *text) const;
-
-        QString executedQuery() const { return m_query.executedQuery(); }
-    };
-
-    Database();
-    ~Database();
-
-    QMutex *accessMutex() const;
-
-    bool open(const QString &databaseName, bool autoTest);
-
-    operator QSqlDatabase &();
-    operator QSqlDatabase const &() const;
-
-    QSqlError lastError() const;
-
-    bool isOpen() const;
-    bool localized() const;
-    bool beginTransaction();
-    bool commitTransaction();
-    bool rollbackTransaction();
-    bool withinTransaction() const { return m_transactionSemaphore.loadAcquire(); }
-
-    Query prepare(const char *statement, QString *errorText);
-    Query prepare(const QString &statement, QString *errorText);
-
-    static bool execute(QSqlQuery &query, QString *errorText);
-    static bool executeBatch(QSqlQuery &query, QString *errorText, QSqlQuery::BatchExecutionMode mode = QSqlQuery::ValuesAsRows);
-
-    static QString expandQuery(const QString &queryString, const QVariantList &bindings);
-    static QString expandQuery(const QString &queryString, const QMap<QString, QVariant> &bindings);
-    static QString expandQuery(const QSqlQuery &query);
-
-private:
-    QSqlDatabase m_database;
-    QMutex m_mutex;
-    QString m_localeName;
-    QHash<QString, QSqlQuery> m_preparedQueries;
-    QAtomicInt m_transactionSemaphore;
+    setupEnforceForeignKeys,
+    setupEncoding,
+    setupTempStore,
+    setupJournal,
+    setupSynchronous,
+    NULL
 };
 
-} // namespace ApiImpl
+static const char *createStatements[] =
+{
+    createCollectionsTable,
+    createSecretsTable,
+    createKeyEntriesTable,
+    NULL
+};
 
-} // namespace Daemon
+static Sailfish::Secrets::Daemon::Sqlite::UpgradeOperation upgradeVersions[] = {
+    { 0, 0 },
+};
 
-} // namespace Secrets
+static const int currentSchemaVersion = 1;
 
-} // namespace Sailfish
-
-#endif // SAILFISHSECRETS_APIIMPL_DATABASE_P_H
+#endif // SAILFISHSECRETS_APIIMPL_SECRETSDATABASE_P_H

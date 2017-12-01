@@ -35,6 +35,24 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::RequestProcessor(Sailfish::
 bool
 Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir, bool autotestMode)
 {
+    // First, see if any of the EncryptedStorage plugins from Secrets are also
+    // Crypto plugins (providing generateAndStoreKey() functionality internally).
+    qCDebug(lcSailfishCryptoDaemon) << "Loading crypto storage plugins";
+    QMap<QString, QObject*> potentialCryptoPlugins = m_secrets->potentialCryptoStoragePlugins();
+    for (QMap<QString, QObject*>::const_iterator it = potentialCryptoPlugins.constBegin(); it != potentialCryptoPlugins.constEnd(); it++) {
+        Sailfish::Crypto::CryptoPlugin *cryptoPlugin = qobject_cast<Sailfish::Crypto::CryptoPlugin*>(it.value());
+        if (cryptoPlugin) {
+            if (cryptoPlugin->isTestPlugin() != autotestMode) {
+                qCDebug(lcSailfishCryptoDaemon) << "ignoring crypto storage plugin:" << it.key() << "due to mode";
+            } else if (cryptoPlugin->name().isEmpty() || m_cryptoPlugins.contains(cryptoPlugin->name())) {
+                qCDebug(lcSailfishCryptoDaemon) << "ignoring crypto storage plugin:" << it.key() << "with duplicate name:" << cryptoPlugin->name();
+            } else {
+                qCDebug(lcSailfishCryptoDaemon) << "loading crypto storage plugin:" << it.key();
+                m_cryptoPlugins.insert(it.key(), cryptoPlugin);
+            }
+        }
+    }
+
     qCDebug(lcSailfishCryptoDaemon) << "Loading crypto plugins from directory:" << pluginDir;
     QDir dir(pluginDir);
     Q_FOREACH (const QString &pluginFile, dir.entryList(QDir::Files | QDir::NoDot | QDir::NoDotDot, QDir::Name)) {
@@ -204,7 +222,7 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::generateStoredKey(
                     callerPid,
                     requestId,
                     fullKey.identifier(),
-                    Sailfish::Crypto::Key::serialise(fullKey, Sailfish::Crypto::Key::DoNotSerialiseFilterDataMode),
+                    Sailfish::Crypto::Key::serialise(fullKey, Sailfish::Crypto::Key::LossySerialisationMode),
                     fullKey.filterData(),
                     storageProviderName);
         if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {

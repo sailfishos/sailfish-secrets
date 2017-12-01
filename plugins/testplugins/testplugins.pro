@@ -6,7 +6,8 @@ STORAGE_PLUGINS = \
 ENCRYPTION_PLUGINS = \
     testopensslplugin
 
-ENCRYPTEDSTORAGE_PLUGINS =
+ENCRYPTEDSTORAGE_PLUGINS = \
+    testsqlcipherplugin
 
 AUTHENTICATION_PLUGINS = \
     testinappauthplugin

@@ -29,9 +29,9 @@
 #include "Secrets/extensionplugins.h"
 
 #include "SecretsImpl/secrets_p.h"
-#include "SecretsImpl/secretsdatabase_p.h"
 #include "SecretsImpl/applicationpermissions_p.h"
 
+#include "database_p.h"
 #include "requestqueue_p.h"
 
 namespace Sailfish {
@@ -52,13 +52,11 @@ class RequestProcessor : public QObject
     Q_OBJECT
 
 public:
-    RequestProcessor(Sailfish::Secrets::Daemon::ApiImpl::Database *db,
+    RequestProcessor(Sailfish::Secrets::Daemon::Sqlite::Database *db,
                      Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *appPermissions,
                      Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *parent = Q_NULLPTR);
 
     bool loadPlugins(const QString &pluginDir, bool autotestMode);
-
-    static QString generateHashedSecretName(const QString &collectionName, const QString &secretName);
 
     // retrieve information about available plugins
     Sailfish::Secrets::Result getPluginInfo(
@@ -188,6 +186,7 @@ public:
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
 public: // helper methods for crypto API bridge (secretscryptohelpers)
+    QMap<QString, QObject*> potentialCryptoStoragePlugins() const;
     QStringList storagePluginNames() const;
     Sailfish::Secrets::Result confirmCollectionStoragePlugin(
             const QString &collectionName,
@@ -216,17 +215,6 @@ private Q_SLOTS:
     void timeoutRelockSecret();
 
 private:
-    class DatabaseLocker : public QMutexLocker
-    {
-    public:
-        DatabaseLocker(Sailfish::Secrets::Daemon::ApiImpl::Database *db)
-            : QMutexLocker(db->withinTransaction() ? Q_NULLPTR : db->accessMutex())
-            , m_db(db) {}
-        ~DatabaseLocker();
-    private:
-        Sailfish::Secrets::Daemon::ApiImpl::Database *m_db;
-    };
-
     Sailfish::Secrets::Result createCustomLockCollectionWithAuthenticationKey(
             pid_t callerPid,
             quint64 requestId,
@@ -334,14 +322,15 @@ private:
         QVariantList parameters;
     };
 
+    Sailfish::Secrets::Daemon::Sqlite::Database *m_db;
     Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *m_requestQueue;
-    Sailfish::Secrets::Daemon::ApiImpl::Database *m_db;
     Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *m_appPermissions;
 
     QMap<QString, Sailfish::Secrets::StoragePlugin*> m_storagePlugins;
     QMap<QString, Sailfish::Secrets::EncryptionPlugin*> m_encryptionPlugins;
     QMap<QString, Sailfish::Secrets::EncryptedStoragePlugin*> m_encryptedStoragePlugins;
     QMap<QString, Sailfish::Secrets::AuthenticationPlugin*> m_authenticationPlugins;
+    QMap<QString, QObject*> m_potentialCryptoStoragePlugins;
 
     QMap<QString, QTimer*> m_collectionLockTimers;
     QMap<QString, QByteArray> m_collectionAuthenticationKeys;

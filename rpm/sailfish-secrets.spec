@@ -108,6 +108,16 @@ Requires:   libsailfishcrypto = %{version}-%{release}
 Provides a set of example crypto daemon plugins.
 
 
+%package -n qt5-plugin-sqldriver-sqlcipher
+Summary:    QtSql driver plugin using SQLCipher.
+Group:      System/Libraries
+BuildRequires:  pkgconfig(Qt5Sql)
+BuildRequires:  pkgconfig(sqlcipher)
+
+%description -n qt5-plugin-sqldriver-sqlcipher
+%{summary}.
+
+
 %prep
 %setup -q -n %{name}-%{version}
 
@@ -166,6 +176,7 @@ rm -rf %{buildroot}
 /opt/tests/Sailfish/Secrets/tst_secrets.qml
 %{_libdir}/sailfishsecrets/libsailfishsecrets-testinappauth.so
 %{_libdir}/sailfishsecrets/libsailfishsecrets-testopenssl.so
+%{_libdir}/sailfishsecrets/libsailfishsecrets-testsqlcipher.so
 %{_libdir}/sailfishsecrets/libsailfishsecrets-testsqlite.so
 
 %files -n libsailfishcrypto-tests
@@ -173,6 +184,10 @@ rm -rf %{buildroot}
 /opt/tests/Sailfish/Crypto/tst_crypto
 /opt/tests/Sailfish/Crypto/tst_cryptosecrets
 %{_libdir}/sailfishcrypto/libsailfishcrypto-testopenssl.so
+
+%files -n qt5-plugin-sqldriver-sqlcipher
+%defattr(-,root,root,-)
+%{_libdir}/qt5/plugins/sqldrivers/libqsqlcipher.so
 
 %post
 /sbin/ldconfig
