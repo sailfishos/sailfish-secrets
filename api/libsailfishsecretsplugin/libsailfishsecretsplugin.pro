@@ -1,27 +1,27 @@
-TEMPLATE=lib
-TARGET=sailfishsecretsplugin
+TEMPLATE = lib
+TARGET = sailfishsecretsplugin
 TARGET = $$qtLibraryTarget($$TARGET)
+CONFIG += plugin
 
 include($$PWD/../../common.pri)
 include($$PWD/../libsailfishsecrets/libsailfishsecrets.pri)
 
 QT += qml quick gui core
-CONFIG += plugin
 
 HEADERS += \
-    inprocessuiview.h \
-    inprocessuiview_p.h
+    $$PWD/inprocessuiview.h \
+    $$PWD/inprocessuiview_p.h
 
 SOURCES += \
-    main.cpp \
-    inprocessuiview.cpp
+    $$PWD/main.cpp \
+    $$PWD/inprocessuiview.cpp
 
 OTHER_FILES += \
-    defaultUiView.qml \
-    UiView.qml \
-    qmldir
+    $$PWD/defaultUiView.qml \
+    $$PWD/UiView.qml \
+    $$PWD/qmldir
 
-RESOURCES += resources.qrc
+RESOURCES += $$PWD/resources.qrc
 
 target.path = /usr/lib/qt5/qml/org/sailfishos/secrets/
 qmlfiles.path = /usr/lib/qt5/qml/org/sailfishos/secrets/

@@ -1,4 +1,4 @@
-TEMPLATE=subdirs
+TEMPLATE = subdirs
 
 STORAGE_PLUGINS = \
     testsqliteplugin
@@ -15,7 +15,7 @@ AUTHENTICATION_PLUGINS = \
 CRYPTO_PLUGINS = \
     testopensslcryptoplugin
 
-SUBDIRS+=\
+SUBDIRS += \
     $$STORAGE_PLUGINS \
     $$ENCRYPTION_PLUGINS \
     $$ENCRYPTEDSTORAGE_PLUGINS \

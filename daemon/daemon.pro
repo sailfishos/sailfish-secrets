@@ -1,5 +1,5 @@
-TEMPLATE=app
-TARGET=sailfishsecretsd
+TEMPLATE = app
+TARGET = sailfishsecretsd
 
 include($$PWD/../common.pri)
 include($$PWD/../api/libsailfishsecrets/libsailfishsecrets.pri)

@@ -1,5 +1,5 @@
-TEMPLATE=lib
-TARGET=sailfishsecrets
+TEMPLATE = lib
+TARGET = sailfishsecrets
 TARGET = $$qtLibraryTarget($$TARGET)
 target.path = $$[QT_INSTALL_LIBS]
 CONFIG += qt create_pc create_prl no_install_prl

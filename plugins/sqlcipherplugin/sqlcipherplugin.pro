@@ -1,6 +1,6 @@
-TEMPLATE=lib
-CONFIG+=plugin
-TARGET=sailfishsecrets-sqlcipher
+TEMPLATE = lib
+CONFIG += plugin
+TARGET = sailfishsecrets-sqlcipher
 TARGET = $$qtLibraryTarget($$TARGET)
 
 include($$PWD/../../common.pri)

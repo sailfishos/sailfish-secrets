@@ -1,4 +1,4 @@
-TEMPLATE=subdirs
+TEMPLATE = subdirs
 
 STORAGE_PLUGINS = \
     sqliteplugin
@@ -16,7 +16,7 @@ AUTHENTICATION_PLUGINS = \
 CRYPTO_PLUGINS = \
     opensslcryptoplugin
 
-SUBDIRS+=\
+SUBDIRS += \
     $$STORAGE_PLUGINS \
     $$ENCRYPTION_PLUGINS \
     $$ENCRYPTEDSTORAGE_PLUGINS \
