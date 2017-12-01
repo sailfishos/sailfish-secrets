@@ -5,9 +5,10 @@ TARGET = $$qtLibraryTarget($$TARGET)
 
 include($$PWD/../../common.pri)
 include($$PWD/../../api/libsailfishsecrets/libsailfishsecrets.pri)
+include($$PWD/../../database/database.pri)
 
-HEADERS+=database_p.h plugin.h
-SOURCES+=database.cpp plugin.cpp
+HEADERS+=sqlitedatabase_p.h plugin.h
+SOURCES+=plugin.cpp
 
 target.path=/usr/lib/sailfishsecrets/
 INSTALLS += target

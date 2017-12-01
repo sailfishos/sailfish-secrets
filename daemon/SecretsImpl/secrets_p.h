@@ -8,9 +8,9 @@
 #ifndef SAILFISHSECRETS_APIIMPL_SECRETS_P_H
 #define SAILFISHSECRETS_APIIMPL_SECRETS_P_H
 
+#include "database_p.h"
 #include "requestqueue_p.h"
 #include "applicationpermissions_p.h"
-#include "secretsdatabase_p.h"
 
 #include "Secrets/extensionplugins.h"
 #include "Secrets/secretmanager.h"
@@ -282,8 +282,11 @@ public:
     void handleFinishedRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;
     QString requestTypeToString(int type) const Q_DECL_OVERRIDE;
 
+public: // helpers for crypto API: secretscryptohelpers.cpp
+    QMap<QString, QObject*> potentialCryptoStoragePlugins() const;
+
 private:
-    Sailfish::Secrets::Daemon::ApiImpl::Database m_db;
+    Sailfish::Secrets::Daemon::Sqlite::Database m_db;
     Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *m_appPermissions;
     Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor *m_requestProcessor;
 

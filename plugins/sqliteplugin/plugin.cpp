@@ -6,42 +6,37 @@
  */
 
 #include "plugin.h"
+#include "sqlitedatabase_p.h"
 
 Q_PLUGIN_METADATA(IID Sailfish_Secrets_StoragePlugin_IID)
 
 Q_LOGGING_CATEGORY(lcSailfishSecretsPluginSqlite, "org.sailfishos.secrets.plugin.storage.sqlite")
 
-Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::DatabaseLocker::~DatabaseLocker()
-{
-    if (mutex()) {
-        // The database was not already within a transaction when we were constructed
-        // and thus should not be in a transaction when we destruct.
-        // That is, check that the beginTransaction()/commitTransaction()/rollbackTransaction()
-        // calls are balanced within a given locker scope.
-        if (m_db->withinTransaction()) {
-            qCWarning(lcSailfishSecretsPluginSqlite) << "Locker: transaction not balanced!  None -> Within!";
-        }
-    } else {
-        // The database was already within a transaction when we were constructed
-        // and thus should still be in that transaction when we destruct.
-        if (!m_db->withinTransaction()) {
-            if (m_db->withinTransaction()) {
-                qCWarning(lcSailfishSecretsPluginSqlite) << "Locker: transaction not balanced!  Within -> None!";
-            }
-        }
-    }
-}
-
 Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::SqlitePlugin(QObject *parent)
     : Sailfish::Secrets::StoragePlugin(parent)
-    , m_db(new Sailfish::Secrets::Daemon::Plugins::Sqlite::Database)
 {
+}
+
+void Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::openDatabaseIfNecessary()
+{
+    if (m_db.isOpen()) {
+        return;
+    }
+
 #ifdef SAILFISH_SECRETS_BUILD_TEST_PLUGIN
     bool autotestMode = true;
 #else
     bool autotestMode = false;
 #endif
-    if (!m_db->open(QLatin1String("sqliteplugin"), autotestMode)) {
+    if (!m_db.open(QLatin1String("QSQLITE"),
+                   QLatin1String("sqliteplugin"),
+                   QLatin1String("secrets.db"),
+                   setupStatements,
+                   createStatements,
+                   upgradeVersions,
+                   currentSchemaVersion,
+                   QLatin1String("sqliteplugin"),
+                   autotestMode)) {
         qCWarning(lcSailfishSecretsPluginSqlite) << "Secrets sqlite plugin: failed to open database!";
         return;
     }
@@ -58,31 +53,31 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::SqlitePlugin(QObject *parent)
                 ");");
 
     QString errorText;
-    Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query iq = m_db->prepare(insertCollectionQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query iq = m_db.prepare(insertCollectionQuery, &errorText);
 
     QVariantList ivalues;
     ivalues << QVariant::fromValue<QString>(QLatin1String("standalone"));;
     iq.bindValues(ivalues);
 
-    if (m_db->beginTransaction()) {
-        if (m_db->execute(iq, &errorText)) {
-            m_db->commitTransaction();
+    if (m_db.beginTransaction()) {
+        if (m_db.execute(iq, &errorText)) {
+            m_db.commitTransaction();
         } else {
-            m_db->rollbackTransaction();
+            m_db.rollbackTransaction();
         }
     }
 }
 
 Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::~SqlitePlugin()
 {
-    delete m_db;
 }
 
 Sailfish::Secrets::Result
 Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::createCollection(
         const QString &collectionName)
 {
-    DatabaseLocker locker(m_db);
+    openDatabaseIfNecessary();
+    Sailfish::Secrets::Daemon::Sqlite::DatabaseLocker locker(&m_db);
 
     if (collectionName.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidCollectionError,
@@ -100,7 +95,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::createCollection(
              );
 
     QString errorText;
-    Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query sq = m_db->prepare(selectCollectionsCountQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db.prepare(selectCollectionsCountQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to prepare select collections query: %1").arg(errorText));
@@ -110,13 +105,13 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::createCollection(
     values << QVariant::fromValue<QString>(collectionName);
     sq.bindValues(values);
 
-    if (!m_db->beginTransaction()) {
+    if (!m_db.beginTransaction()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseTransactionError,
                                          QString::fromUtf8("Sqlite plugin unable to begin transaction"));
     }
 
-    if (!m_db->execute(sq, &errorText)) {
-        m_db->rollbackTransaction();
+    if (!m_db.execute(sq, &errorText)) {
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to execute select collections query: %1").arg(errorText));
     }
@@ -127,7 +122,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::createCollection(
     }
 
     if (found) {
-        m_db->rollbackTransaction();
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::CollectionAlreadyExistsError,
                                          QString::fromUtf8("Collection already exists: %1").arg(collectionName));
     }
@@ -140,9 +135,9 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::createCollection(
                   "?"
                 ");");
 
-    Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query iq = m_db->prepare(insertCollectionQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query iq = m_db.prepare(insertCollectionQuery, &errorText);
     if (!errorText.isEmpty()) {
-        m_db->rollbackTransaction();
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to prepare insert collection query: %1").arg(errorText));
     }
@@ -151,14 +146,14 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::createCollection(
     ivalues << QVariant::fromValue<QString>(collectionName);
     iq.bindValues(ivalues);
 
-    if (!m_db->execute(iq, &errorText)) {
-        m_db->rollbackTransaction();
+    if (!m_db.execute(iq, &errorText)) {
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to execute insert collection query: %1").arg(errorText));
     }
 
-    if (!m_db->commitTransaction()) {
-        m_db->rollbackTransaction();
+    if (!m_db.commitTransaction()) {
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseTransactionError,
                                          QString::fromUtf8("Sqlite plugin unable to commit insert collection transaction"));
     }
@@ -171,7 +166,8 @@ Sailfish::Secrets::Result
 Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::removeCollection(
         const QString &collectionName)
 {
-    DatabaseLocker locker(m_db);
+    openDatabaseIfNecessary();
+    Sailfish::Secrets::Daemon::Sqlite::DatabaseLocker locker(&m_db);
 
     if (collectionName.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidCollectionError,
@@ -186,7 +182,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::removeCollection(
                 " WHERE CollectionName = ?;");
 
     QString errorText;
-    Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query dq = m_db->prepare(deleteCollectionQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query dq = m_db.prepare(deleteCollectionQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to prepare delete collection query: %1").arg(errorText));
@@ -196,19 +192,19 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::removeCollection(
     values << QVariant::fromValue<QString>(collectionName);
     dq.bindValues(values);
 
-    if (!m_db->beginTransaction()) {
+    if (!m_db.beginTransaction()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseTransactionError,
                                          QString::fromUtf8("Sqlite plugin unable to begin transaction"));
     }
 
-    if (!m_db->execute(dq, &errorText)) {
-        m_db->rollbackTransaction();
+    if (!m_db.execute(dq, &errorText)) {
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to execute delete collection query: %1").arg(errorText));
     }
 
-    if (!m_db->commitTransaction()) {
-        m_db->rollbackTransaction();
+    if (!m_db.commitTransaction()) {
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseTransactionError,
                                          QString::fromUtf8("Sqlite plugin unable to commit delete collection transaction"));
     }
@@ -224,7 +220,8 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::setSecret(
         const QByteArray &secret,
         const Sailfish::Secrets::Secret::FilterData &filterData)
 {
-    DatabaseLocker locker(m_db);
+    openDatabaseIfNecessary();
+    Sailfish::Secrets::Daemon::Sqlite::DatabaseLocker locker(&m_db);
 
     // Note: don't disallow collectionName=standalone, since that's how we store standalone secrets.
     if (hashedSecretName.isEmpty()) {
@@ -244,7 +241,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::setSecret(
              );
 
     QString errorText;
-    Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query sq = m_db->prepare(selectSecretsCountQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db.prepare(selectSecretsCountQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to prepare select secrets query: %1").arg(errorText));
@@ -255,13 +252,13 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::setSecret(
     values << QVariant::fromValue<QString>(hashedSecretName);
     sq.bindValues(values);
 
-    if (!m_db->beginTransaction()) {
+    if (!m_db.beginTransaction()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseTransactionError,
                                          QString::fromUtf8("Sqlite plugin unable to begin transaction"));
     }
 
-    if (!m_db->execute(sq, &errorText)) {
-        m_db->rollbackTransaction();
+    if (!m_db.execute(sq, &errorText)) {
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to execute select secrets query: %1").arg(errorText));
     }
@@ -290,9 +287,9 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::setSecret(
                   "?,?,?,?,date('now')"
                 ");");
 
-    Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query iq = m_db->prepare(found ? updateSecretQuery : insertSecretQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query iq = m_db.prepare(found ? updateSecretQuery : insertSecretQuery, &errorText);
     if (!errorText.isEmpty()) {
-        m_db->rollbackTransaction();
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to prepare insert secret query: %1").arg(errorText));
     }
@@ -310,8 +307,8 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::setSecret(
     }
     iq.bindValues(ivalues);
 
-    if (!m_db->execute(iq, &errorText)) {
-        m_db->rollbackTransaction();
+    if (!m_db.execute(iq, &errorText)) {
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to execute insert secret query: %1").arg(errorText));
     }
@@ -322,9 +319,9 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::setSecret(
                  " AND HashedSecretName = ?;"
              );
 
-    Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query dq = m_db->prepare(deleteSecretsFilterDataQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query dq = m_db.prepare(deleteSecretsFilterDataQuery, &errorText);
     if (!errorText.isEmpty()) {
-        m_db->rollbackTransaction();
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to prepare delete secrets filter data query: %1").arg(errorText));
     }
@@ -334,8 +331,8 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::setSecret(
     dvalues << QVariant::fromValue<QString>(hashedSecretName);
     dq.bindValues(dvalues);
 
-    if (!m_db->execute(dq, &errorText)) {
-        m_db->rollbackTransaction();
+    if (!m_db.execute(dq, &errorText)) {
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to execute delete secrets filter data query: %1").arg(errorText));
     }
@@ -351,9 +348,9 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::setSecret(
                   "?,?,?,?"
                 ");");
 
-    Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query ifdq = m_db->prepare(insertSecretsFilterDataQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query ifdq = m_db.prepare(insertSecretsFilterDataQuery, &errorText);
     if (!errorText.isEmpty()) {
-        m_db->rollbackTransaction();
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to prepare insert secrets filter data query: %1").arg(errorText));
     }
@@ -365,15 +362,15 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::setSecret(
         ivalues << QVariant::fromValue<QString>(it.key());
         ivalues << QVariant::fromValue<QString>(it.value());
         ifdq.bindValues(ivalues);
-        if (!m_db->execute(ifdq, &errorText)) {
-            m_db->rollbackTransaction();
+        if (!m_db.execute(ifdq, &errorText)) {
+            m_db.rollbackTransaction();
             return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                              QString::fromUtf8("Sqlite plugin unable to execute insert secrets filter data query: %1").arg(errorText));
         }
     }
 
-    if (!m_db->commitTransaction()) {
-        m_db->rollbackTransaction();
+    if (!m_db.commitTransaction()) {
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseTransactionError,
                                          QString::fromUtf8("Sqlite plugin unable to commit insert secret transaction"));
     }
@@ -389,7 +386,8 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::getSecret(
         QByteArray *secret,
         Sailfish::Secrets::Secret::FilterData *filterData)
 {
-    DatabaseLocker locker(m_db);
+    openDatabaseIfNecessary();
+    Sailfish::Secrets::Daemon::Sqlite::DatabaseLocker locker(&m_db);
 
     // Note: don't disallow collectionName=standalone, since that's how we store standalone secrets.
     if (hashedSecretName.isEmpty()) {
@@ -410,7 +408,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::getSecret(
              );
 
     QString errorText;
-    Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query sq = m_db->prepare(selectSecretQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db.prepare(selectSecretQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to prepare select secret query: %1").arg(errorText));
@@ -421,13 +419,13 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::getSecret(
     values << QVariant::fromValue<QString>(hashedSecretName);
     sq.bindValues(values);
 
-    if (!m_db->beginTransaction()) {
+    if (!m_db.beginTransaction()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseTransactionError,
                                          QString::fromUtf8("Sqlite plugin unable to begin transaction"));
     }
 
-    if (!m_db->execute(sq, &errorText)) {
-        m_db->rollbackTransaction();
+    if (!m_db.execute(sq, &errorText)) {
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to execute select secret query: %1").arg(errorText));
     }
@@ -452,15 +450,15 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::getSecret(
                       " AND HashedSecretName = ?;"
                  );
 
-        Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query sfdq = m_db->prepare(selectSecretFilterDataQuery, &errorText);
+        Sailfish::Secrets::Daemon::Sqlite::Database::Query sfdq = m_db.prepare(selectSecretFilterDataQuery, &errorText);
         if (!errorText.isEmpty()) {
             return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                              QString::fromUtf8("Sqlite plugin unable to prepare select secret filter data query: %1").arg(errorText));
         }
         sfdq.bindValues(values);
 
-        if (!m_db->execute(sfdq, &errorText)) {
-            m_db->rollbackTransaction();
+        if (!m_db.execute(sfdq, &errorText)) {
+            m_db.rollbackTransaction();
             return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                              QString::fromUtf8("Sqlite plugin unable to execute select secret filter data query: %1").arg(errorText));
         }
@@ -470,8 +468,8 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::getSecret(
         }
     }
 
-    if (!m_db->commitTransaction()) {
-        m_db->rollbackTransaction();
+    if (!m_db.commitTransaction()) {
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseTransactionError,
                                          QString::fromUtf8("Sqlite plugin unable to commit select secret transaction"));
     }
@@ -494,7 +492,8 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::findSecrets(
         Sailfish::Secrets::StoragePlugin::FilterOperator filterOperator,
         QVector<QByteArray> *encryptedSecretNames)
 {
-    DatabaseLocker locker(m_db);
+    openDatabaseIfNecessary();
+    Sailfish::Secrets::Daemon::Sqlite::DatabaseLocker locker(&m_db);
 
     // Note: don't disallow collectionName=standalone, since that's how we store standalone secrets.
     if (collectionName.isEmpty()) {
@@ -520,7 +519,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::findSecrets(
              );
 
     QString errorText;
-    Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query sq = m_db->prepare(selectSecretsFilterDataQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db.prepare(selectSecretsFilterDataQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to prepare select secrets filter data query: %1").arg(errorText));
@@ -530,13 +529,13 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::findSecrets(
     values << QVariant::fromValue<QString>(collectionName);
     sq.bindValues(values);
 
-    if (!m_db->beginTransaction()) {
+    if (!m_db.beginTransaction()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseTransactionError,
                                          QString::fromUtf8("Sqlite plugin unable to begin find secrets transaction"));
     }
 
-    if (!m_db->execute(sq, &errorText)) {
-        m_db->rollbackTransaction();
+    if (!m_db.execute(sq, &errorText)) {
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to execute select secrets filter data query: %1").arg(errorText));
     }
@@ -591,7 +590,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::findSecrets(
                  " AND HashedSecretName = ?;"
              );
 
-    Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query seq = m_db->prepare(selectEncryptedSecretName, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query seq = m_db.prepare(selectEncryptedSecretName, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to prepare select encrypted secret name query: %1").arg(errorText));
@@ -604,8 +603,8 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::findSecrets(
         values << QVariant::fromValue<QString>(hashedSecretName);
         seq.bindValues(values);
 
-        if (!m_db->execute(seq, &errorText)) {
-            m_db->rollbackTransaction();
+        if (!m_db.execute(seq, &errorText)) {
+            m_db.rollbackTransaction();
             return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                              QString::fromUtf8("Sqlite plugin unable to execute select encrypted secret name query: %1").arg(errorText));
         }
@@ -615,8 +614,8 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::findSecrets(
         }
     }
 
-    if (!m_db->commitTransaction()) {
-        m_db->rollbackTransaction();
+    if (!m_db.commitTransaction()) {
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseTransactionError,
                                          QString::fromUtf8("Sqlite plugin unable to commit find secrets transaction"));
     }
@@ -630,7 +629,8 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::removeSecret(
         const QString &collectionName,
         const QString &secretName)
 {
-    DatabaseLocker locker(m_db);
+    openDatabaseIfNecessary();
+    Sailfish::Secrets::Daemon::Sqlite::DatabaseLocker locker(&m_db);
 
     // Note: don't disallow collectionName=standalone, since that's how we delete standalone secrets.
     if (secretName.isEmpty()) {
@@ -647,7 +647,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::removeSecret(
                 " AND HashedSecretName = ?;");
 
     QString errorText;
-    Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query dq = m_db->prepare(deleteSecretQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query dq = m_db.prepare(deleteSecretQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to prepare delete secret query: %1").arg(errorText));
@@ -658,19 +658,19 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::removeSecret(
     values << QVariant::fromValue<QString>(secretName);
     dq.bindValues(values);
 
-    if (!m_db->beginTransaction()) {
+    if (!m_db.beginTransaction()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseTransactionError,
                                          QString::fromUtf8("Sqlite plugin unable to begin transaction"));
     }
 
-    if (!m_db->execute(dq, &errorText)) {
-        m_db->rollbackTransaction();
+    if (!m_db.execute(dq, &errorText)) {
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to execute delete secret query: %1").arg(errorText));
     }
 
-    if (!m_db->commitTransaction()) {
-        m_db->rollbackTransaction();
+    if (!m_db.commitTransaction()) {
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseTransactionError,
                                          QString::fromUtf8("Sqlite plugin unable to commit delete secret transaction"));
     }
@@ -686,7 +686,8 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::reencryptSecrets(
         const QByteArray &newkey,
         Sailfish::Secrets::EncryptionPlugin *plugin)
 {
-    DatabaseLocker locker(m_db);
+    openDatabaseIfNecessary();
+    Sailfish::Secrets::Daemon::Sqlite::DatabaseLocker locker(&m_db);
 
     // Note: don't disallow collectionName=standalone, since that's how we store standalone secrets.
     if (collectionName.isEmpty() && secretNames.isEmpty()) {
@@ -733,7 +734,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::reencryptSecrets(
     }
 
     QString errorText;
-    Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query sq = m_db->prepare(selectSecretsQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query sq = m_db.prepare(selectSecretsQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to prepare select secrets query: %1").arg(errorText));
@@ -741,13 +742,13 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::reencryptSecrets(
 
     sq.bindValues(values);
 
-    if (!m_db->beginTransaction()) {
+    if (!m_db.beginTransaction()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseTransactionError,
                                          QString::fromUtf8("Sqlite plugin unable to begin transaction"));
     }
 
-    if (!m_db->execute(sq, &errorText)) {
-        m_db->rollbackTransaction();
+    if (!m_db.execute(sq, &errorText)) {
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to execute select secrets query: %1").arg(errorText));
     }
@@ -762,13 +763,13 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::reencryptSecrets(
         QByteArray plaintext;
         reencryptionResult = plugin->decryptSecret(oldEncrypted, oldkey, &plaintext);
         if (reencryptionResult.code() != Sailfish::Secrets::Result::Succeeded) {
-            m_db->rollbackTransaction();
+            m_db.rollbackTransaction();
             return reencryptionResult;
         }
         QByteArray newEncrypted;
         reencryptionResult = plugin->encryptSecret(plaintext, newkey, &newEncrypted);
         if (reencryptionResult.code() != Sailfish::Secrets::Result::Succeeded) {
-            m_db->rollbackTransaction();
+            m_db.rollbackTransaction();
             return reencryptionResult;
         }
         vsecrets.append(QVariant::fromValue<QByteArray>(newEncrypted));
@@ -782,9 +783,9 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::reencryptSecrets(
                  " AND HashedSecretName = ?;"
              );
 
-    Sailfish::Secrets::Daemon::Plugins::Sqlite::Database::Query uq = m_db->prepare(updateSecretQuery, &errorText);
+    Sailfish::Secrets::Daemon::Sqlite::Database::Query uq = m_db.prepare(updateSecretQuery, &errorText);
     if (!errorText.isEmpty()) {
-        m_db->rollbackTransaction();
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to prepare update secret query: %1").arg(errorText));
     }
@@ -793,14 +794,14 @@ Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::reencryptSecrets(
     uq.addBindValue(vcollectionNames);
     uq.addBindValue(vsecretNames);
 
-    if (!m_db->execute(uq, &errorText)) {
-        m_db->rollbackTransaction();
+    if (!m_db.execute(uq, &errorText)) {
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
                                          QString::fromUtf8("Sqlite plugin unable to execute update secret query: %1").arg(errorText));
     }
 
-    if (!m_db->commitTransaction()) {
-        m_db->rollbackTransaction();
+    if (!m_db.commitTransaction()) {
+        m_db.rollbackTransaction();
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseTransactionError,
                                          QString::fromUtf8("Sqlite plugin unable to commit update secret transaction"));
     }

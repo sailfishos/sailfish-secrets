@@ -8,9 +8,9 @@
 #ifndef SAILFISHCRYPTO_APIIMPL_CRYPTO_P_H
 #define SAILFISHCRYPTO_APIIMPL_CRYPTO_P_H
 
+#include "database_p.h"
 #include "requestqueue_p.h"
 #include "applicationpermissions_p.h"
-#include "secretsdatabase_p.h"
 
 #include "Crypto/extensionplugins.h"
 

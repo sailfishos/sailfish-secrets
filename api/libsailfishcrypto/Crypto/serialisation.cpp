@@ -129,8 +129,13 @@ Sailfish::Crypto::Key::serialise(const Sailfish::Crypto::Key &key, Sailfish::Cry
     // Set the output format version
     out.setVersion(QDataStream::Qt_5_6);
 
-    out << key.identifier().name();
-    out << key.identifier().collectionName();
+    if (serialisationMode == Sailfish::Crypto::Key::LosslessSerialisationMode) {
+        out << key.identifier().name();
+        out << key.identifier().collectionName();
+    } else {
+        out << QString();
+        out << QString();
+    }
 
     out << static_cast<int>(key.origin());
     out << static_cast<int>(key.algorithm());
@@ -149,7 +154,7 @@ Sailfish::Crypto::Key::serialise(const Sailfish::Crypto::Key &key, Sailfish::Cry
 
     out << key.customParameters();
 
-    if (serialisationMode == Sailfish::Crypto::Key::SerialiseFilterDataMode) {
+    if (serialisationMode == Sailfish::Crypto::Key::LosslessSerialisationMode) {
         out << key.filterData();
     } else {
         out << Sailfish::Crypto::Key::FilterData();
