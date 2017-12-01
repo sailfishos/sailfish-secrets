@@ -4,7 +4,7 @@ TARGET = sailfishcrypto-testopenssl
 TARGET = $$qtLibraryTarget($$TARGET)
 
 include($$PWD/../../../common.pri)
-include($$PWD/../../../api/libsailfishcrypto/libsailfishcrypto.pri)
+include($$PWD/../../../lib/crypto/libsailfishcrypto.pri)
 
 DEFINES += SAILFISH_CRYPTO_BUILD_TEST_PLUGIN
 HEADERS += $$PWD/../../opensslcryptoplugin/evp_p.h $$PWD/../../opensslcryptoplugin/opensslcryptoplugin.h

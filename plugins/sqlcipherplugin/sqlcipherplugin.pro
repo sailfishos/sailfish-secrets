@@ -4,8 +4,8 @@ TARGET = sailfishsecrets-sqlcipher
 TARGET = $$qtLibraryTarget($$TARGET)
 
 include($$PWD/../../common.pri)
-include($$PWD/../../api/libsailfishsecrets/libsailfishsecrets.pri)
-include($$PWD/../../api/libsailfishcrypto/libsailfishcrypto.pri)
+include($$PWD/../../lib/secrets/libsailfishsecrets.pri)
+include($$PWD/../../lib/crypto/libsailfishcrypto.pri)
 include($$PWD/../../database/database.pri)
 
 HEADERS += \

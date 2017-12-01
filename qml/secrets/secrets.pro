@@ -4,7 +4,7 @@ TARGET = $$qtLibraryTarget($$TARGET)
 CONFIG += plugin
 
 include($$PWD/../../common.pri)
-include($$PWD/../libsailfishsecrets/libsailfishsecrets.pri)
+include($$PWD/../../lib/secrets/libsailfishsecrets.pri)
 
 QT += qml quick gui core
 
@@ -23,8 +23,8 @@ OTHER_FILES += \
 
 RESOURCES += $$PWD/resources.qrc
 
-target.path = /usr/lib/qt5/qml/org/sailfishos/secrets/
-qmlfiles.path = /usr/lib/qt5/qml/org/sailfishos/secrets/
+target.path = /usr/lib/qt5/qml/Sailfish/Secrets/
+qmlfiles.path = /usr/lib/qt5/qml/Sailfish/Secrets/
 qmlfiles.files += UiView.qml qmldir
 
 INSTALLS += target qmlfiles

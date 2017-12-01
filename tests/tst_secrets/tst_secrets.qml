@@ -1,6 +1,6 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
-import org.sailfishos.secrets 1.0
+import Sailfish.Secrets 1.0
 
 ApplicationWindow {
     id: root

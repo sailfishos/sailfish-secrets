@@ -151,9 +151,9 @@ rm -rf %{buildroot}
 
 %files -n libsailfishsecretsplugin
 %defattr(-,root,root,-)
-%{_libdir}/qt5/qml/org/sailfishos/secrets/libsailfishsecretsplugin.so
-%{_libdir}/qt5/qml/org/sailfishos/secrets/qmldir
-%{_libdir}/qt5/qml/org/sailfishos/secrets/UiView.qml
+%{_libdir}/qt5/qml/Sailfish/Secrets/libsailfishsecretsplugin.so
+%{_libdir}/qt5/qml/Sailfish/Secrets/qmldir
+%{_libdir}/qt5/qml/Sailfish/Secrets/UiView.qml
 
 %files -n sailfishsecretsdaemon
 %defattr(-,root,root,-)

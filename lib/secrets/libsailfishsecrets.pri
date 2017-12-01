@@ -4,4 +4,4 @@ QT += dbus
 LIBS += -L$$shadowed($$PWD) -lsailfishsecrets
 
 INCLUDEPATH += $$PWD
-DEPENDPATH = $$INCLUDEPATH
+DEPENDPATH += $$INCLUDEPATH

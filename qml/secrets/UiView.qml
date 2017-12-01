@@ -1,6 +1,6 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
-import org.sailfishos.secrets 1.0 as Secrets
+import Sailfish.Secrets 1.0 as Secrets
 
 // TODO: replace this with "actual UI" which allows user to confirm/deny or enter a custom password!
 Item {

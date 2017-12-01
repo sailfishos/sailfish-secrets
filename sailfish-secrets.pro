@@ -1,9 +1,10 @@
 TEMPLATE = subdirs
-SUBDIRS = api daemon plugins tests 3rdparty
+SUBDIRS = lib qml daemon plugins tests 3rdparty
 
-daemon.depends = api
-plugins.depends = api
-tests.depends = api
+qml.depends = lib
+daemon.depends = lib
+plugins.depends = lib
+tests.depends = lib
 
 OTHER_FILES += \
     $$PWD/LICENSE \

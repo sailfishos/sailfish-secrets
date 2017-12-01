@@ -14,7 +14,7 @@
 class UiViewPlugin : public QQmlExtensionPlugin
 {
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID "org.sailfishos.secrets")
+    Q_PLUGIN_METADATA(IID "Sailfish.Secrets")
 
 public:
     void initializeEngine(QQmlEngine *, const char *)

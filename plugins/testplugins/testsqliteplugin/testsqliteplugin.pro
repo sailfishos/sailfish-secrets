@@ -4,7 +4,7 @@ TARGET = sailfishsecrets-testsqlite
 TARGET = $$qtLibraryTarget($$TARGET)
 
 include($$PWD/../../../common.pri)
-include($$PWD/../../../api/libsailfishsecrets/libsailfishsecrets.pri)
+include($$PWD/../../../lib/secrets/libsailfishsecrets.pri)
 include($$PWD/../../../database/database.pri)
 
 DEFINES += SAILFISH_SECRETS_BUILD_TEST_PLUGIN
