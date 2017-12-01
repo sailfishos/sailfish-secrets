@@ -6,6 +6,7 @@
  */
 
 #include "Secrets/secretmanager.h"
+#include "Secrets/secret.h"
 #include "Secrets/result.h"
 #include "Secrets/uirequest.h"
 
@@ -92,6 +93,52 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
     return argument;
 }
 
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secret::Identifier &identifier)
+{
+    argument.beginStructure();
+    argument << identifier.name() << identifier.collectionName();
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::Secret::Identifier &identifier)
+{
+    QString name;
+    QString collectionName;
+
+    argument.beginStructure();
+    argument >> name >> collectionName;
+    argument.endStructure();
+
+    identifier.setName(name);
+    identifier.setCollectionName(collectionName);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secret &secret)
+{
+    argument.beginStructure();
+    argument << secret.identifier() << secret.data() << secret.filterData();
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::Secret &secret)
+{
+    Sailfish::Secrets::Secret::Identifier identifier;
+    QByteArray data;
+    QMap<QString,QString> metadata;
+
+    argument.beginStructure();
+    argument >> identifier >> data >> metadata;
+    argument.endStructure();
+
+    secret.setIdentifier(identifier);
+    secret.setData(data);
+    secret.setFilterData(Sailfish::Secrets::Secret::FilterData(metadata));
+    return argument;
+}
+
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::SecretManager::UserInteractionMode mode)
 {
     int imode = static_cast<int>(mode);
@@ -165,6 +212,25 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
     argument >> isemantic;
     argument.endStructure();
     semantic = static_cast<Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic>(isemantic);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::SecretManager::FilterOperator filterOperator)
+{
+    int iop = static_cast<int>(filterOperator);
+    argument.beginStructure();
+    argument << iop;
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::SecretManager::FilterOperator &filterOperator)
+{
+    int iop = 0;
+    argument.beginStructure();
+    argument >> iop;
+    argument.endStructure();
+    filterOperator = static_cast<Sailfish::Secrets::SecretManager::FilterOperator>(iop);
     return argument;
 }
 

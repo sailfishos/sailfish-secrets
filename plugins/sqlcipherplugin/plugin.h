@@ -90,48 +90,66 @@ public:
                                          QLatin1String("TODO: SQLCIPHER"));
     }
 
-    Sailfish::Secrets::Result setSecret(const QString &collectionName, const QString &secretName, const QByteArray &secret) Q_DECL_OVERRIDE
+    Sailfish::Secrets::Result setSecret(const QString &collectionName, const QString &hashedSecretName, const QString &secretName, const QByteArray &secret, const Sailfish::Secrets::Secret::FilterData &filterData) Q_DECL_OVERRIDE
     {
         Q_UNUSED(collectionName);
+        Q_UNUSED(hashedSecretName);
         Q_UNUSED(secretName);
         Q_UNUSED(secret);
+        Q_UNUSED(filterData);
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationNotSupportedError,
                                          QLatin1String("TODO: SQLCIPHER"));
     }
 
-    Sailfish::Secrets::Result getSecret(const QString &collectionName, const QString &secretName, QByteArray *secret) Q_DECL_OVERRIDE
+    Sailfish::Secrets::Result getSecret(const QString &collectionName, const QString &hashedSecretName, QString *secretName, QByteArray *secret, Sailfish::Secrets::Secret::FilterData *filterData) Q_DECL_OVERRIDE
     {
         Q_UNUSED(collectionName);
+        Q_UNUSED(hashedSecretName);
         Q_UNUSED(secretName);
         Q_UNUSED(secret);
+        Q_UNUSED(filterData);
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationNotSupportedError,
                                          QLatin1String("TODO: SQLCIPHER"));
     }
 
-    Sailfish::Secrets::Result removeSecret(const QString &collectionName, const QString &secretName) Q_DECL_OVERRIDE
+    Sailfish::Secrets::Result findSecrets(const QString &collectionName, const Sailfish::Secrets::Secret::FilterData &filter, Sailfish::Secrets::StoragePlugin::FilterOperator filterOperator, QVector<Sailfish::Secrets::Secret::Identifier> *identifiers) Q_DECL_OVERRIDE
     {
         Q_UNUSED(collectionName);
-        Q_UNUSED(secretName);
+        Q_UNUSED(filter);
+        Q_UNUSED(filterOperator);
+        Q_UNUSED(identifiers);
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationNotSupportedError,
                                          QLatin1String("TODO: SQLCIPHER"));
     }
 
-    Sailfish::Secrets::Result setSecret(const QString &collectionName, const QString &secretName, const QByteArray &secret, const QByteArray &key) Q_DECL_OVERRIDE
+    Sailfish::Secrets::Result removeSecret(const QString &collectionName, const QString &hashedSecretName) Q_DECL_OVERRIDE
     {
         Q_UNUSED(collectionName);
+        Q_UNUSED(hashedSecretName);
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationNotSupportedError,
+                                         QLatin1String("TODO: SQLCIPHER"));
+    }
+
+    Sailfish::Secrets::Result setSecret(const QString &collectionName, const QString &hashedSecretName, const QString &secretName, const QByteArray &secret, const Sailfish::Secrets::Secret::FilterData &filterData, const QByteArray &key) Q_DECL_OVERRIDE
+    {
+        Q_UNUSED(collectionName);
+        Q_UNUSED(hashedSecretName);
         Q_UNUSED(secretName);
         Q_UNUSED(secret);
+        Q_UNUSED(filterData);
         Q_UNUSED(key);
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationNotSupportedError,
                                          QLatin1String("TODO: SQLCIPHER"));
     }
 
-    Sailfish::Secrets::Result accessSecret(const QString &collectionName, const QString &secretName, const QByteArray &key, QByteArray *secret) Q_DECL_OVERRIDE
+    Sailfish::Secrets::Result accessSecret(const QString &collectionName, const QString &hashedSecretName, const QByteArray &key, QString *secretName, QByteArray *secret, Sailfish::Secrets::Secret::FilterData *filterData) Q_DECL_OVERRIDE
     {
         Q_UNUSED(collectionName);
-        Q_UNUSED(secretName);
+        Q_UNUSED(hashedSecretName);
         Q_UNUSED(key);
+        Q_UNUSED(secretName);
         Q_UNUSED(secret);
+        Q_UNUSED(filterData);
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationNotSupportedError,
                                          QLatin1String("TODO: SQLCIPHER"));
     }

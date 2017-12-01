@@ -43,16 +43,27 @@ static const char *createCollectionsTable =
 static const char *createSecretsTable =
         "\n CREATE TABLE Secrets ("
         "   CollectionName TEXT NOT NULL,"
-        "   SecretName TEXT NOT NULL,"
+        "   HashedSecretName TEXT NOT NULL,"
+        "   EncryptedSecretName BLOB NOT NULL,"
         "   Secret BLOB,"
         "   Timestamp DATE,"
-        "   FOREIGN KEY (CollectionName) REFERENCES Collections(CollectionName),"
-        "   PRIMARY KEY (CollectionName, SecretName));";
+        "   FOREIGN KEY (CollectionName) REFERENCES Collections(CollectionName) ON DELETE CASCADE,"
+        "   PRIMARY KEY (CollectionName, HashedSecretName));";
+
+static const char *createSecretsFilterDataTable =
+        "\n CREATE TABLE SecretsFilterData ("
+        "   CollectionName TEXT NOT NULL,"
+        "   HashedSecretName TEXT NOT NULL,"
+        "   Field TEXT NOT NULL,"
+        "   Value TEXT,"
+        "   FOREIGN KEY (CollectionName, HashedSecretName) REFERENCES Secrets (CollectionName, HashedSecretName) ON DELETE CASCADE,"
+        "   PRIMARY KEY (CollectionName, HashedSecretName, Field));";
 
 static const char *createStatements[] =
 {
     createCollectionsTable,
     createSecretsTable,
+    createSecretsFilterDataTable,
 };
 
 typedef bool (*UpgradeFunction)(QSqlDatabase &database);

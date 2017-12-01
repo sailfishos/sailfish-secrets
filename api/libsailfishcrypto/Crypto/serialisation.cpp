@@ -28,7 +28,7 @@ namespace Sailfish {
 namespace Crypto {
 
 Sailfish::Crypto::Key
-Sailfish::Crypto::Key::deserialise(const QByteArray &data)
+Sailfish::Crypto::Key::deserialise(const QByteArray &data, bool *ok)
 {
     QBuffer buffer;
     buffer.setData(data);
@@ -40,6 +40,9 @@ Sailfish::Crypto::Key::deserialise(const QByteArray &data)
     in >> magic;
     if (magic != 0x4B657900) {
         qCWarning(lcSailfishCryptoSerialisation) << "Cannot deserialise key, bad magic number:" << magic;
+        if (ok) {
+            *ok = false;
+        }
         return Sailfish::Crypto::Key();
     }
 
@@ -47,6 +50,9 @@ Sailfish::Crypto::Key::deserialise(const QByteArray &data)
     in >> version;
     if (version != 100) {
         qCWarning(lcSailfishCryptoSerialisation) << "Cannot deserialise key, bad version number:" << version;
+        if (ok) {
+            *ok = false;
+        }
         return Sailfish::Crypto::Key();
     }
 
@@ -58,6 +64,7 @@ Sailfish::Crypto::Key::deserialise(const QByteArray &data)
     QByteArray publicKey, privateKey, secretKey;
     QDateTime validityStart, validityEnd;
     QVector<QByteArray> customParameters;
+    Sailfish::Crypto::Key::FilterData filterData;
 
     in >> name;
     in >> collectionName;
@@ -79,6 +86,8 @@ Sailfish::Crypto::Key::deserialise(const QByteArray &data)
 
     in >> customParameters;
 
+    in >> filterData;
+
     buffer.close();
 
     Sailfish::Crypto::Key retn;
@@ -96,12 +105,16 @@ Sailfish::Crypto::Key::deserialise(const QByteArray &data)
     retn.setValidityStart(validityStart);
     retn.setValidityEnd(validityEnd);
     retn.setCustomParameters(customParameters);
+    retn.setFilterData(filterData);
 
+    if (ok) {
+        *ok = true;
+    }
     return retn;
 }
 
 QByteArray
-Sailfish::Crypto::Key::serialise(const Sailfish::Crypto::Key &key)
+Sailfish::Crypto::Key::serialise(const Sailfish::Crypto::Key &key, Sailfish::Crypto::Key::SerialisationMode serialisationMode)
 {
     QByteArray byteArray;
     QBuffer buffer(&byteArray);
@@ -135,6 +148,12 @@ Sailfish::Crypto::Key::serialise(const Sailfish::Crypto::Key &key)
     out << key.validityEnd();
 
     out << key.customParameters();
+
+    if (serialisationMode == Sailfish::Crypto::Key::SerialiseFilterDataMode) {
+        out << key.filterData();
+    } else {
+        out << Sailfish::Crypto::Key::FilterData();
+    }
 
     buffer.close();
 
@@ -487,6 +506,24 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto:
     return argument;
 }
 
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::FilterData &filterData)
+{
+    argument.beginStructure();
+    argument << filterData;
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::FilterData &filterData)
+{
+    QMap<QString,QString> data;
+    argument.beginStructure();
+    argument >> data;
+    argument.endStructure();
+    filterData = Sailfish::Crypto::Key::FilterData(data);
+    return argument;
+}
+
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Origin origin)
 {
     argument.beginStructure();
@@ -719,7 +756,7 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto:
     QString message;
 
     argument.beginStructure();
-    argument >> code >> errorCode >> message;
+    argument >> code >> errorCode >> storageErrorCode >> message;
     argument.endStructure();
 
     result.setCode(static_cast<Sailfish::Crypto::Result::ResultCode>(code));

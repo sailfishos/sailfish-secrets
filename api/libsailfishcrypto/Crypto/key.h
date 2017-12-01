@@ -15,6 +15,7 @@
 #include <QtCore/QByteArray>
 #include <QtCore/QVector>
 #include <QtCore/QHash>
+#include <QtCore/QMap>
 
 #include <QtDBus/QDBusArgument>
 #include <QtDBus/QDBusMetaType>
@@ -122,21 +123,18 @@ public:
     };
     Q_DECLARE_FLAGS(Operations, Operation)
 
-    Key();
-    Key(const Sailfish::Crypto::Key &other);
-    explicit Key(const QString &keyName, const QString &collection);
-    virtual ~Key();
-
-    Sailfish::Crypto::Key & operator=(const Sailfish::Crypto::Key &other);
-    bool operator==(const Sailfish::Crypto::Key &other);
-    bool operator<(const Sailfish::Crypto::Key &other);
-
     class Identifier {
     public:
         Identifier(const QString &name = QString(), const QString &collectionName = QString())
             : m_name(name), m_collectionName(collectionName) {}
         Identifier(const Sailfish::Crypto::Key::Identifier &other)
             : m_name(other.m_name), m_collectionName(other.m_collectionName) {}
+        Identifier(Sailfish::Crypto::Key::Identifier &&) = default;
+        Identifier &operator=(const Sailfish::Crypto::Key::Identifier &other) {
+            m_name = other.m_name;
+            m_collectionName = other.m_collectionName;
+            return *this;
+        }
         bool operator==(const Sailfish::Crypto::Key::Identifier &other) const {
             return m_name == other.m_name && m_collectionName == other.m_collectionName;
         }
@@ -151,6 +149,25 @@ public:
         QString m_name;
         QString m_collectionName;
     };
+
+    class FilterData : public QMap<QString,QString> {
+    // this exists solely to prevent Qt's metatype system from erroring on duplicate registration
+    public:
+        FilterData(const QMap<QString,QString> &v) : QMap<QString,QString>(v) {}
+        FilterData() = default;
+        FilterData(const Sailfish::Crypto::Key::FilterData &) = default;
+        FilterData(Sailfish::Crypto::Key::FilterData &&) = default;
+        FilterData &operator=(const Sailfish::Crypto::Key::FilterData &) = default;
+    };
+
+    Key();
+    Key(const Sailfish::Crypto::Key &other);
+    explicit Key(const QString &keyName, const QString &collection);
+    virtual ~Key();
+
+    Sailfish::Crypto::Key & operator=(const Sailfish::Crypto::Key &other);
+    bool operator==(const Sailfish::Crypto::Key &other);
+    bool operator<(const Sailfish::Crypto::Key &other);
 
     Sailfish::Crypto::Key::Identifier identifier() const;
     void setIdentifier(const Sailfish::Crypto::Key::Identifier &identifier);
@@ -203,9 +220,19 @@ public:
     QVector<QByteArray> customParameters() const;
     void setCustomParameters(const QVector<QByteArray> &parameters);
 
+    Sailfish::Crypto::Key::FilterData filterData() const;
+    QString filterData(const QString &field) const;
+    void setFilterData(const Sailfish::Crypto::Key::FilterData &data);
+    void setFilterData(const QString &field, const QString &value);
+    bool hasFilterData(const QString &field);
+
+    enum SerialisationMode {
+        DoNotSerialiseFilterDataMode = 0,
+        SerialiseFilterDataMode
+    };
+    static QByteArray serialise(const Sailfish::Crypto::Key &key, SerialisationMode serialisationMode = SerialiseFilterDataMode);
+    static Sailfish::Crypto::Key deserialise(const QByteArray &data, bool *ok = nullptr);
     static Sailfish::Crypto::Key fromCertificate(const Sailfish::Crypto::Certificate &certificate);
-    static Sailfish::Crypto::Key deserialise(const QByteArray &data);
-    static QByteArray serialise(const Sailfish::Crypto::Key &key);
 
 protected:
     KeyData *m_data;
@@ -216,6 +243,9 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto:
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Identifier &identifier) SAILFISH_CRYPTO_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Identifier &identifier) SAILFISH_CRYPTO_API;
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::FilterData &filterData) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::FilterData &filterData) SAILFISH_CRYPTO_API;
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Origin origin) SAILFISH_CRYPTO_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Origin &origin) SAILFISH_CRYPTO_API;
@@ -247,29 +277,31 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto:
 
 } // namespace Sailfish
 
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Identifier)
-Q_DECLARE_METATYPE(QVector<Sailfish::Crypto::Key::Identifier>)
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Identifier);
+Q_DECLARE_TYPEINFO(Sailfish::Crypto::Key::Identifier, Q_MOVABLE_TYPE);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::FilterData);
+Q_DECLARE_TYPEINFO(Sailfish::Crypto::Key::FilterData, Q_MOVABLE_TYPE);
 
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Origin)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Algorithm)
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Origin);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Algorithm);
 
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::BlockMode)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::EncryptionPadding)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::SignaturePadding)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Digest)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Operation)
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::BlockMode);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::EncryptionPadding);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::SignaturePadding);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Digest);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Operation);
 
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::BlockModes)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::EncryptionPaddings)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::SignaturePaddings)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Digests)
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Operations)
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::BlockModes);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::EncryptionPaddings);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::SignaturePaddings);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Digests);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Operations);
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::BlockModes)
-Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::EncryptionPaddings)
-Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::SignaturePaddings)
-Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::Digests)
-Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::Operations)
+Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::BlockModes);
+Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::EncryptionPaddings);
+Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::SignaturePaddings);
+Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::Digests);
+Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::Operations);
 
 #endif // LIBSAILFISHCRYPTO_KEY_H

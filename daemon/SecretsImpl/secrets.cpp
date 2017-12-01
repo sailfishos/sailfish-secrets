@@ -114,18 +114,14 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::deleteCollection(
 
 // set a secret in a collection
 void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::setSecret(
-        const QString &collectionName,
-        const QString &secretName,
-        const QByteArray &secret,
+        const Sailfish::Secrets::Secret &secret,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
         const QString &uiServiceAddress,
         const QDBusMessage &message,
         Sailfish::Secrets::Result &result)
 {
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QString>(collectionName)
-             << QVariant::fromValue<QString>(secretName)
-             << QVariant::fromValue<QByteArray>(secret)
+    inParams << QVariant::fromValue<Sailfish::Secrets::Secret>(secret)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
              << QVariant::fromValue<QString>(uiServiceAddress);
     m_requestQueue->handleRequest(Sailfish::Secrets::Daemon::ApiImpl::SetCollectionSecretRequest,
@@ -139,8 +135,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::setSecret(
 void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::setSecret(
         const QString &storagePluginName,
         const QString &encryptionPluginName,
-        const QString &secretName,
-        const QByteArray &secret,
+        const Sailfish::Secrets::Secret &secret,
         Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic unlockSemantic,
         Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
@@ -150,8 +145,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::setSecret(
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QString>(storagePluginName)
              << QVariant::fromValue<QString>(encryptionPluginName)
-             << QVariant::fromValue<QString>(secretName)
-             << QVariant::fromValue<QByteArray>(secret)
+             << QVariant::fromValue<Sailfish::Secrets::Secret>(secret)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic>(unlockSemantic)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::AccessControlMode>(accessControlMode)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode);
@@ -167,8 +161,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::setSecret(
         const QString &storagePluginName,
         const QString &encryptionPluginName,
         const QString &authenticationPluginName,
-        const QString &secretName,
-        const QByteArray &secret,
+        const Sailfish::Secrets::Secret &secret,
         Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic unlockSemantic,
         int customLockTimeoutMs,
         Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
@@ -181,8 +174,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::setSecret(
     inParams << QVariant::fromValue<QString>(storagePluginName)
              << QVariant::fromValue<QString>(encryptionPluginName)
              << QVariant::fromValue<QString>(authenticationPluginName)
-             << QVariant::fromValue<QString>(secretName)
-             << QVariant::fromValue<QByteArray>(secret)
+             << QVariant::fromValue<Sailfish::Secrets::Secret>(secret)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic>(unlockSemantic)
              << QVariant::fromValue<int>(customLockTimeoutMs)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::AccessControlMode>(accessControlMode)
@@ -195,82 +187,73 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::setSecret(
                                   result);
 }
 
-// get a secret in a collection
+// get a secret
 void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::getSecret(
+        const Sailfish::Secrets::Secret::Identifier &identifier,
+        Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+        const QString &uiServiceAddress,
+        const QDBusMessage &message,
+        Sailfish::Secrets::Result &result,
+        Sailfish::Secrets::Secret &secret)
+{
+    Q_UNUSED(secret); // outparam, set in handlePendingRequest / handleFinishedRequest
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(identifier)
+             << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
+             << QVariant::fromValue<QString>(uiServiceAddress);
+    m_requestQueue->handleRequest(identifier.identifiesStandaloneSecret()
+                                      ? Sailfish::Secrets::Daemon::ApiImpl::GetStandaloneSecretRequest
+                                      : Sailfish::Secrets::Daemon::ApiImpl::GetCollectionSecretRequest,
+                                  inParams,
+                                  connection(),
+                                  message,
+                                  result);
+}
+
+// find secrets via filter
+void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::findSecrets(
         const QString &collectionName,
-        const QString &secretName,
+        const Sailfish::Secrets::Secret::FilterData &filter,
+        Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
         const QString &uiServiceAddress,
         const QDBusMessage &message,
         Sailfish::Secrets::Result &result,
-        QByteArray &secret)
+        QVector<Sailfish::Secrets::Secret::Identifier> &identifiers)
 {
-    Q_UNUSED(secret); // outparam, set in handlePendingRequest / handleFinishedRequest
+    Q_UNUSED(identifiers); // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QString>(collectionName)
-             << QVariant::fromValue<QString>(secretName)
+    if (!collectionName.isEmpty()) {
+        inParams << QVariant::fromValue<QString>(collectionName);
+    }
+    inParams << QVariant::fromValue<Sailfish::Secrets::Secret::FilterData>(filter)
+             << QVariant::fromValue<Sailfish::Secrets::SecretManager::FilterOperator>(filterOperator)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
              << QVariant::fromValue<QString>(uiServiceAddress);
-    m_requestQueue->handleRequest(Sailfish::Secrets::Daemon::ApiImpl::GetCollectionSecretRequest,
+    m_requestQueue->handleRequest(collectionName.isEmpty()
+                                      ? Sailfish::Secrets::Daemon::ApiImpl::FindStandaloneSecretsRequest
+                                      : Sailfish::Secrets::Daemon::ApiImpl::FindCollectionSecretsRequest,
                                   inParams,
                                   connection(),
                                   message,
                                   result);
 }
 
-// get a standalone secret
-void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::getSecret(
-        const QString &secretName,
-        Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress,
-        const QDBusMessage &message,
-        Sailfish::Secrets::Result &result,
-        QByteArray &secret)
-{
-    Q_UNUSED(secret); // outparam, set in handlePendingRequest / handleFinishedRequest
-    QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QString>(secretName)
-             << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
-             << QVariant::fromValue<QString>(uiServiceAddress);
-    m_requestQueue->handleRequest(Sailfish::Secrets::Daemon::ApiImpl::GetStandaloneSecretRequest,
-                                  inParams,
-                                  connection(),
-                                  message,
-                                  result);
-}
-
-// delete a secret in a collection
+// delete a secret
 void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::deleteSecret(
-        const QString &collectionName,
-        const QString &secretName,
+        const Sailfish::Secrets::Secret::Identifier &identifier,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
         const QString &uiServiceAddress,
         const QDBusMessage &message,
         Sailfish::Secrets::Result &result)
 {
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QString>(collectionName)
-             << QVariant::fromValue<QString>(secretName)
+    inParams << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(identifier)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
              << QVariant::fromValue<QString>(uiServiceAddress);
-    m_requestQueue->handleRequest(Sailfish::Secrets::Daemon::ApiImpl::DeleteCollectionSecretRequest,
-                                  inParams,
-                                  connection(),
-                                  message,
-                                  result);
-}
-
-// delete a standalone secret
-void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::deleteSecret(
-        const QString &secretName,
-        Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QDBusMessage &message,
-        Sailfish::Secrets::Result &result)
-{
-    QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QString>(secretName)
-             << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode);
-    m_requestQueue->handleRequest(Sailfish::Secrets::Daemon::ApiImpl::DeleteStandaloneSecretRequest,
+    m_requestQueue->handleRequest(identifier.identifiesStandaloneSecret()
+                                      ? Sailfish::Secrets::Daemon::ApiImpl::DeleteStandaloneSecretRequest
+                                      : Sailfish::Secrets::Daemon::ApiImpl::DeleteCollectionSecretRequest,
                                   inParams,
                                   connection(),
                                   message,
@@ -324,8 +307,12 @@ QString Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::requestTypeToSt
         case SetStandaloneCustomLockSecretRequest:  return QLatin1String("SetStandaloneCustomLockSecretRequest");
         case GetCollectionSecretRequest:            return QLatin1String("GetCollectionSecretRequest");
         case GetStandaloneSecretRequest:            return QLatin1String("GetStandaloneSecretRequest");
+        case FindCollectionSecretsRequest:          return QLatin1String("FindCollectionSecretsRequest");
+        case FindStandaloneSecretsRequest:          return QLatin1String("FindStandaloneSecretsRequest");
         case DeleteCollectionSecretRequest:         return QLatin1String("DeleteCollectionSecretRequest");
         case DeleteStandaloneSecretRequest:         return QLatin1String("DeleteStandaloneSecretRequest");
+        case SetCollectionSecretMetadataRequest:    return QLatin1String("SetCollectionSecretMetadataRequest");
+        case DeleteCollectionSecretMetadataRequest: return QLatin1String("DeleteCollectionSecretMetadataRequest");
         default: break;
     }
     return QLatin1String("Unknown Secrets Request!");
@@ -470,9 +457,9 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
         }
         case SetCollectionSecretRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling SetCollectionSecretRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            QString collectionName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            QString secretName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            QByteArray secret = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
+            Sailfish::Secrets::Secret secret = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Sailfish::Secrets::Secret>()
+                    : Sailfish::Secrets::Secret();
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::UserInteractionMode>()
                     : Sailfish::Secrets::SecretManager::PreventUserInteractionMode;
@@ -480,8 +467,6 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
             Sailfish::Secrets::Result result = m_requestProcessor->setCollectionSecret(
                         request->remotePid,
                         request->requestId,
-                        collectionName,
-                        secretName,
                         secret,
                         userInteractionMode,
                         uiServiceAddress);
@@ -503,8 +488,9 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
             qCDebug(lcSailfishSecretsDaemon) << "Handling SetStandaloneDeviceLockSecretRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             QString storagePluginName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             QString encryptionPluginName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            QString secretName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            QByteArray secret = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
+            Sailfish::Secrets::Secret secret = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Sailfish::Secrets::Secret>()
+                    : Sailfish::Secrets::Secret();
             Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic unlockSemantic = request->inParams.size()
                     ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic>()
                     : Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked;
@@ -519,7 +505,6 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
                         request->requestId,
                         storagePluginName,
                         encryptionPluginName,
-                        secretName,
                         secret,
                         unlockSemantic,
                         accessControlMode,
@@ -543,8 +528,9 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
             QString storagePluginName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             QString encryptionPluginName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             QString authenticationPluginName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            QString secretName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            QByteArray secret = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
+            Sailfish::Secrets::Secret secret = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Sailfish::Secrets::Secret>()
+                    : Sailfish::Secrets::Secret();
             Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic unlockSemantic = request->inParams.size()
                     ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic>()
                     : Sailfish::Secrets::SecretManager::CustomLockKeepUnlocked;
@@ -562,7 +548,6 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
                         storagePluginName,
                         encryptionPluginName,
                         authenticationPluginName,
-                        secretName,
                         secret,
                         unlockSemantic,
                         customLockTimeoutMs,
@@ -585,18 +570,18 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
         }
         case GetCollectionSecretRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling GetCollectionSecretRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            QString collectionName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            QString secretName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            Sailfish::Secrets::Secret::Identifier identifier = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Sailfish::Secrets::Secret::Identifier>()
+                    : Sailfish::Secrets::Secret::Identifier();
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::UserInteractionMode>()
                     : Sailfish::Secrets::SecretManager::PreventUserInteractionMode;
             QString uiServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            QByteArray secret;
+            Sailfish::Secrets::Secret secret;
             Sailfish::Secrets::Result result = m_requestProcessor->getCollectionSecret(
                         request->remotePid,
                         request->requestId,
-                        collectionName,
-                        secretName,
+                        identifier,
                         userInteractionMode,
                         uiServiceAddress,
                         &secret);
@@ -606,10 +591,10 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
                 *completed = false;
             } else {
                 if (request->isSecretsCryptoRequest) {
-                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << QVariant::fromValue<QByteArray>(secret));
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << QVariant::fromValue<Sailfish::Secrets::Secret>(secret));
                 } else {
                     request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Secrets::Result>(result)
-                                                                            << QVariant::fromValue<QByteArray>(secret));
+                                                                            << QVariant::fromValue<Sailfish::Secrets::Secret>(secret));
                 }
                 *completed = true;
             }
@@ -617,16 +602,18 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
         }
         case GetStandaloneSecretRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling GetStandaloneSecretRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            QString secretName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            Sailfish::Secrets::Secret::Identifier identifier = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Sailfish::Secrets::Secret::Identifier>()
+                    : Sailfish::Secrets::Secret::Identifier();
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::UserInteractionMode>()
                     : Sailfish::Secrets::SecretManager::PreventUserInteractionMode;
             QString uiServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            QByteArray secret;
+            Sailfish::Secrets::Secret secret;
             Sailfish::Secrets::Result result = m_requestProcessor->getStandaloneSecret(
                         request->remotePid,
                         request->requestId,
-                        secretName,
+                        identifier,
                         userInteractionMode,
                         uiServiceAddress,
                         &secret);
@@ -636,10 +623,84 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
                 *completed = false;
             } else {
                 if (request->isSecretsCryptoRequest) {
-                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << QVariant::fromValue<QByteArray>(secret));
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << QVariant::fromValue<Sailfish::Secrets::Secret>(secret));
                 } else {
                     request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Secrets::Result>(result)
-                                                                            << QVariant::fromValue<QByteArray>(secret));
+                                                                            << QVariant::fromValue<Sailfish::Secrets::Secret>(secret));
+                }
+                *completed = true;
+            }
+            break;
+        }
+        case FindCollectionSecretsRequest: {
+            qCDebug(lcSailfishSecretsDaemon) << "Handling FindCollectionSecretsRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            QString collectionName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            Sailfish::Secrets::Secret::FilterData filter = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Sailfish::Secrets::Secret::FilterData >()
+                    : Sailfish::Secrets::Secret::FilterData();
+            Sailfish::Secrets::SecretManager::FilterOperator filterOperator = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::FilterOperator>()
+                    : Sailfish::Secrets::SecretManager::OperatorOr;
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::UserInteractionMode>()
+                    : Sailfish::Secrets::SecretManager::PreventUserInteractionMode;
+            QString uiServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            QVector<Sailfish::Secrets::Secret::Identifier> identifiers;
+            Sailfish::Secrets::Result result = m_requestProcessor->findCollectionSecrets(
+                        request->remotePid,
+                        request->requestId,
+                        collectionName,
+                        filter,
+                        filterOperator,
+                        userInteractionMode,
+                        uiServiceAddress,
+                        &identifiers);
+            // send the reply to the calling peer.
+            if (result.code() == Sailfish::Secrets::Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                if (request->isSecretsCryptoRequest) {
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << QVariant::fromValue<QVector<Sailfish::Secrets::Secret::Identifier> >(identifiers));
+                } else {
+                    request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Secrets::Result>(result)
+                                                                            << QVariant::fromValue<QVector<Sailfish::Secrets::Secret::Identifier> >(identifiers));
+                }
+                *completed = true;
+            }
+            break;
+        }
+        case FindStandaloneSecretsRequest: {
+            qCDebug(lcSailfishSecretsDaemon) << "Handling FindStandaloneSecretsRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            Sailfish::Secrets::Secret::FilterData filter = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Sailfish::Secrets::Secret::FilterData >()
+                    : Sailfish::Secrets::Secret::FilterData();
+            Sailfish::Secrets::SecretManager::FilterOperator filterOperator = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::FilterOperator>()
+                    : Sailfish::Secrets::SecretManager::OperatorOr;
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::UserInteractionMode>()
+                    : Sailfish::Secrets::SecretManager::PreventUserInteractionMode;
+            QString uiServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            QVector<Sailfish::Secrets::Secret::Identifier> identifiers;
+            Sailfish::Secrets::Result result = m_requestProcessor->findStandaloneSecrets(
+                        request->remotePid,
+                        request->requestId,
+                        filter,
+                        filterOperator,
+                        userInteractionMode,
+                        uiServiceAddress,
+                        &identifiers);
+            // send the reply to the calling peer.
+            if (result.code() == Sailfish::Secrets::Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                if (request->isSecretsCryptoRequest) {
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << QVariant::fromValue<QVector<Sailfish::Secrets::Secret::Identifier> >(identifiers));
+                } else {
+                    request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Secrets::Result>(result)
+                                                                            << QVariant::fromValue<QVector<Sailfish::Secrets::Secret::Identifier> >(identifiers));
                 }
                 *completed = true;
             }
@@ -647,8 +708,9 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
         }
         case DeleteCollectionSecretRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling DeleteCollectionSecretRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            QString collectionName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            QString secretName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            Sailfish::Secrets::Secret::Identifier identifier = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Sailfish::Secrets::Secret::Identifier>()
+                    : Sailfish::Secrets::Secret::Identifier();
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::UserInteractionMode>()
                     : Sailfish::Secrets::SecretManager::PreventUserInteractionMode;
@@ -656,8 +718,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
             Sailfish::Secrets::Result result = m_requestProcessor->deleteCollectionSecret(
                         request->remotePid,
                         request->requestId,
-                        collectionName,
-                        secretName,
+                        identifier,
                         userInteractionMode,
                         uiServiceAddress);
             // send the reply to the calling peer.
@@ -676,14 +737,16 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
         }
         case DeleteStandaloneSecretRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling DeleteStandaloneSecretRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            QString secretName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            Sailfish::Secrets::Secret::Identifier identifier = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Sailfish::Secrets::Secret::Identifier>()
+                    : Sailfish::Secrets::Secret::Identifier();
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::UserInteractionMode>()
                     : Sailfish::Secrets::SecretManager::PreventUserInteractionMode;
             Sailfish::Secrets::Result result = m_requestProcessor->deleteStandaloneSecret(
                         request->remotePid,
                         request->requestId,
-                        secretName,
+                        identifier,
                         userInteractionMode);
             // send the reply to the calling peer.
             if (result.code() == Sailfish::Secrets::Result::Pending) {
@@ -695,6 +758,46 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
                 } else {
                     request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Secrets::Result>(result));
                 }
+                *completed = true;
+            }
+            break;
+        }
+        case SetCollectionSecretMetadataRequest: {
+            qCDebug(lcSailfishSecretsDaemon) << "Handling SetCollectionSecretMetadataRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            Sailfish::Secrets::Secret::Identifier identifier = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Sailfish::Secrets::Secret::Identifier>()
+                    : Sailfish::Secrets::Secret::Identifier();
+            Sailfish::Secrets::Result result = m_requestProcessor->setCollectionSecretMetadata(
+                        request->remotePid,
+                        request->requestId,
+                        identifier);
+            // send the reply to the calling peer.
+            if (result.code() == Sailfish::Secrets::Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                // This request type exists solely to implement Crypto API functionality.
+                asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList());
+                *completed = true;
+            }
+            break;
+        }
+        case DeleteCollectionSecretMetadataRequest: {
+            qCDebug(lcSailfishSecretsDaemon) << "Handling DeleteCollectionSecretMetadataRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            Sailfish::Secrets::Secret::Identifier identifier = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Sailfish::Secrets::Secret::Identifier>()
+                    : Sailfish::Secrets::Secret::Identifier();
+            Sailfish::Secrets::Result result = m_requestProcessor->deleteCollectionSecretMetadata(
+                        request->remotePid,
+                        request->requestId,
+                        identifier);
+            // send the reply to the calling peer.
+            if (result.code() == Sailfish::Secrets::Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                // This request type exists solely to implement Crypto API functionality.
+                asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList());
                 *completed = true;
             }
             break;

@@ -164,6 +164,7 @@ void Sailfish::Crypto::CryptoDaemonConnection::registerDBusTypes()
     qRegisterMetaType<Sailfish::Crypto::Key::Operations>("Sailfish::Crypto::Key::Operations");
     qRegisterMetaType<Sailfish::Crypto::Key::Identifier>("Sailfish::Crypto::Key::Identifier");
     qRegisterMetaType<QVector<Sailfish::Crypto::Key::Identifier> >("QVector<Sailfish::Crypto::Key::Identifier>");
+    qRegisterMetaType<Sailfish::Crypto::Key::FilterData>("Sailfish::Crypto::Key::FilterData");
     qRegisterMetaType<Sailfish::Crypto::Key>("Sailfish::Crypto::Key");
     qRegisterMetaType<Sailfish::Crypto::Certificate>("Sailfish::Crypto::Certificate");
     qRegisterMetaType<QVector<Sailfish::Crypto::Certificate> >("QVector<Sailfish::Crypto::Certificate>");

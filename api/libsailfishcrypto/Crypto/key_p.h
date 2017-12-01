@@ -31,6 +31,7 @@ public:
     bool keysEqual(const Sailfish::Crypto::KeyData &other) const;
     bool lessThan(const Sailfish::Crypto::KeyData &other) const;
 
+    Sailfish::Crypto::Key::FilterData m_filterData;
     QVector<QByteArray> m_customParameters;
     QByteArray m_publicKey;
     QByteArray m_privateKey;

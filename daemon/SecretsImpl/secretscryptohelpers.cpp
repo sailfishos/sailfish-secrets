@@ -25,7 +25,51 @@ Q_LOGGING_CATEGORY(lcSailfishSecretsCryptoHelpers, "org.sailfishos.secrets.crypt
 // The methods in this file exist to help fulfil Sailfish Crypto API requests,
 // while allowing the use of a single (secrets) database for atomicity reasons.
 
-QStringList Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::storagePluginNames() const
+Sailfish::Secrets::Result
+Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::confirmCollectionStoragePlugin(
+        const QString &collectionName,
+        const QString &storagePluginName) const
+{
+    DatabaseLocker locker(m_db);
+
+    const QString selectCollectionPluginsQuery = QStringLiteral(
+                 "SELECT"
+                    " StoragePluginName"
+                  " FROM Collections"
+                  " WHERE CollectionName = ?;"
+             );
+
+    QString errorText;
+    Database::Query sq = m_db->prepare(selectCollectionPluginsQuery, &errorText);
+    if (!errorText.isEmpty()) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
+                                         QString::fromLatin1("Unable to prepare select collection plugins query: %1").arg(errorText));
+    }
+
+    QVariantList values;
+    values << QVariant::fromValue<QString>(collectionName);
+    sq.bindValues(values);
+
+    if (!m_db->execute(sq, &errorText)) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseQueryError,
+                                         QString::fromLatin1("Unable to execute select collection plugins query: %1").arg(errorText));
+    }
+
+    QString collectionStoragePluginName;
+    if (sq.next()) {
+        collectionStoragePluginName = sq.value(0).value<QString>();
+    }
+
+    if (storagePluginName != collectionStoragePluginName) {
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
+                                         QString::fromLatin1("The identified collection is not stored by that plugin"));
+    }
+
+    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded);
+}
+
+QStringList
+Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::storagePluginNames() const
 {
     return m_storagePlugins.keys();
 }
@@ -42,6 +86,21 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storagePluginNames(
 
     *names = m_requestProcessor->storagePluginNames();
     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded);
+}
+
+
+Sailfish::Secrets::Result
+Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::confirmCollectionStoragePlugin(
+        pid_t callerPid,
+        quint64 cryptoRequestId,
+        const QString &collectionName,
+        const QString &storagePluginName) const
+{
+    // TODO: Access control
+    Q_UNUSED(callerPid)
+    Q_UNUSED(cryptoRequestId)
+
+    return m_requestProcessor->confirmCollectionStoragePlugin(collectionName, storagePluginName);
 }
 
 Sailfish::Secrets::Result
@@ -65,7 +124,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::keyEntryIdentifiers(
     const QString selectKeyIdentifiersQuery = QStringLiteral(
                 "SELECT"
                    " KeyName,"
-                   " CollectionName,"
+                   " CollectionName"
                 " FROM KeyEntries;"
              );
 
@@ -106,7 +165,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::keyEntry(
     const QString selectKeyPluginsQuery = QStringLiteral(
                 "SELECT"
                    " CryptoPluginName,"
-                   " StoragePluginName,"
+                   " StoragePluginName"
                 " FROM KeyEntries"
                 " WHERE KeyName = ?"
                 " AND CollectionName = ?;"
@@ -154,10 +213,11 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::addKeyEntry(
     const QString insertKeyEntryQuery = QStringLiteral(
                 "INSERT INTO KeyEntries ("
                 "   CollectionName,"
+                "   HashedSecretName,"
                 "   KeyName,"
                 "   CryptoPluginName,"
                 "   StoragePluginName )"
-                " VALUES ( ?,?,?,? );"
+                " VALUES ( ?,?,?,?,? );"
              );
 
     QString errorText;
@@ -168,7 +228,10 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::addKeyEntry(
     }
 
     QVariantList values;
+    const QString hashedSecretName = Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::generateHashedSecretName(
+                identifier.collectionName(), identifier.name());
     values << QVariant::fromValue<QString>(identifier.collectionName())
+           << QVariant::fromValue<QString>(hashedSecretName)
            << QVariant::fromValue<QString>(identifier.name())
            << QVariant::fromValue<QString>(cryptoPluginName)
            << QVariant::fromValue<QString>(storagePluginName);
@@ -244,22 +307,74 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::removeKeyEntry(
     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded);
 }
 
+// The crypto plugin can store keys, thus it is an EncryptedStoragePlugin.
+// To prevent the daemon process from ever seeing the key data, the key
+// is not stored through the normal setCollectionSecret() API, but instead
+// is generated and stored directly by the Crypto plugin.
+// However, we need to update the bookkeeping (main secrets metadata database)
+// so that foreign key constraints etc continue to work appropriately.
+Sailfish::Secrets::Result
+Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storeKeyMetadata(
+        pid_t callerPid,
+        quint64 cryptoRequestId,
+        const Sailfish::Crypto::Key::Identifier &identifier,
+        const QString &storagePluginName)
+{
+    // step one: check if the Collection is stored in the storagePluginName, else return fail.
+    Sailfish::Secrets::Result confirmPluginResult = confirmCollectionStoragePlugin(
+                callerPid,
+                cryptoRequestId,
+                identifier.collectionName(),
+                storagePluginName);
+    if (confirmPluginResult.code() != Sailfish::Secrets::Result::Succeeded) {
+        return confirmPluginResult;
+    }
+
+    // step two: perform the "set collection secret metadata" request, as a secrets-for-crypto request.
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(Sailfish::Secrets::Secret::Identifier(identifier.name(), identifier.collectionName()))
+             << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::PreventUserInteractionMode)
+             << QVariant::fromValue<QString>(QString());
+    Sailfish::Secrets::Result enqueueResult(Sailfish::Secrets::Result::Succeeded);
+    handleRequest(
+                callerPid,
+                cryptoRequestId,
+                Sailfish::Secrets::Daemon::ApiImpl::SetCollectionSecretMetadataRequest,
+                inParams,
+                enqueueResult);
+    if (enqueueResult.code() == Sailfish::Secrets::Result::Failed) {
+        return enqueueResult;
+    }
+    m_cryptoApiHelperRequests.insert(cryptoRequestId, Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::StoreKeyMetadataCryptoApiHelperRequest);
+    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Pending);
+}
+
 Sailfish::Secrets::Result
 Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storeKey(
         pid_t callerPid,
         quint64 cryptoRequestId,
         const Sailfish::Crypto::Key::Identifier &identifier,
         const QByteArray &serialisedKey,
+        const QMap<QString, QString> &filterData,
         const QString &storagePluginName)
 {
     // step one: check if the Collection is stored in the storagePluginName, else return fail.
-    Q_UNUSED(storagePluginName); // TODO!! alternative, don't take storagePluginName, but a bool "storeInCryptoPlugin" etc?
+    Sailfish::Secrets::Result confirmPluginResult = confirmCollectionStoragePlugin(
+                callerPid,
+                cryptoRequestId,
+                identifier.collectionName(),
+                storagePluginName);
+    if (confirmPluginResult.code() != Sailfish::Secrets::Result::Succeeded) {
+        return confirmPluginResult;
+    }
 
     // step two: perform the "set collection secret" request, as a secrets-for-crypto request.
+    Sailfish::Secrets::Secret secret(Sailfish::Secrets::Secret::Identifier(identifier.name(), identifier.collectionName()));
+    secret.setFilterData(filterData);
+    secret.setType(Sailfish::Secrets::Secret::TypeCryptoKey);
+    secret.setData(serialisedKey);
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QString>(identifier.collectionName())
-             << QVariant::fromValue<QString>(identifier.name())
-             << QVariant::fromValue<QByteArray>(serialisedKey)
+    inParams << QVariant::fromValue<Sailfish::Secrets::Secret>(secret)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::PreventUserInteractionMode)
              << QVariant::fromValue<QString>(QString());
     Sailfish::Secrets::Result enqueueResult(Sailfish::Secrets::Result::Succeeded);
@@ -272,6 +387,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storeKey(
     if (enqueueResult.code() == Sailfish::Secrets::Result::Failed) {
         return enqueueResult;
     }
+    m_cryptoApiHelperRequests.insert(cryptoRequestId, Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::StoreKeyCryptoApiHelperRequest);
     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Pending);
 }
 
@@ -283,8 +399,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::deleteStoredKey(
 {
     // perform the "delete collection secret" request, as a secrets-for-crypto request.
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QString>(identifier.collectionName())
-             << QVariant::fromValue<QString>(identifier.name())
+    inParams << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(Sailfish::Secrets::Secret::Identifier(identifier.name(), identifier.collectionName()))
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::PreventUserInteractionMode)
              << QVariant::fromValue<QString>(QString());
     Sailfish::Secrets::Result enqueueResult(Sailfish::Secrets::Result::Succeeded);
@@ -297,6 +412,31 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::deleteStoredKey(
     if (enqueueResult.code() == Sailfish::Secrets::Result::Failed) {
         return enqueueResult;
     }
+    m_cryptoApiHelperRequests.insert(cryptoRequestId, Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::DeleteStoredKeyCryptoApiHelperRequest);
+    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Pending);
+}
+
+// This method is only called in the "cleanup a failed generatedStoredKey() attempt" codepath!
+Sailfish::Secrets::Result
+Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::deleteStoredKeyMetadata(
+        pid_t callerPid,
+        quint64 cryptoRequestId,
+        const Sailfish::Crypto::Key::Identifier &identifier)
+{
+    // perform the "delete collection secret metadata" request, as a secrets-for-crypto request.
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(Sailfish::Secrets::Secret::Identifier(identifier.name(), identifier.collectionName()));
+    Sailfish::Secrets::Result enqueueResult(Sailfish::Secrets::Result::Succeeded);
+    handleRequest(
+                callerPid,
+                cryptoRequestId,
+                Sailfish::Secrets::Daemon::ApiImpl::DeleteCollectionSecretMetadataRequest,
+                inParams,
+                enqueueResult);
+    if (enqueueResult.code() == Sailfish::Secrets::Result::Failed) {
+        return enqueueResult;
+    }
+    m_cryptoApiHelperRequests.insert(cryptoRequestId, Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::DeleteStoredKeyMetadataCryptoApiHelperRequest);
     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Pending);
 }
 
@@ -305,14 +445,15 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storedKey(
         pid_t callerPid,
         quint64 cryptoRequestId,
         const Sailfish::Crypto::Key::Identifier &identifier,
-        QByteArray *serialisedKey)
+        QByteArray *serialisedKey,
+        QMap<QString, QString> *filterData)
 {
     Q_UNUSED(serialisedKey); // this request is always asynchronous
+    Q_UNUSED(filterData);
 
     // perform the "get collection secret" request, as a secrets-for-crypto request.
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QString>(identifier.collectionName())
-             << QVariant::fromValue<QString>(identifier.name())
+    inParams << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(Sailfish::Secrets::Secret::Identifier(identifier.name(), identifier.collectionName()))
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::PreventUserInteractionMode)
              << QVariant::fromValue<QString>(QString());
     Sailfish::Secrets::Result enqueueResult(Sailfish::Secrets::Result::Succeeded);
@@ -325,6 +466,7 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storedKey(
     if (enqueueResult.code() == Sailfish::Secrets::Result::Failed) {
         return enqueueResult;
     }
+    m_cryptoApiHelperRequests.insert(cryptoRequestId, Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::StoredKeyCryptoApiHelperRequest);
     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Pending);
 }
 
@@ -342,8 +484,8 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::asynchronousCryptoReque
     Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::CryptoApiHelperRequestType type = m_cryptoApiHelperRequests.take(cryptoRequestId);
     switch (type) {
         case StoredKeyCryptoApiHelperRequest: {
-            QByteArray serialisedKey = parameters.size() ? parameters.first().value<QByteArray>() : QByteArray();
-            emit storedKeyCompleted(cryptoRequestId, result, serialisedKey);
+            Sailfish::Secrets::Secret secret = parameters.size() ? parameters.first().value<Sailfish::Secrets::Secret>() : Sailfish::Secrets::Secret();
+            emit storedKeyCompleted(cryptoRequestId, result, secret.data(), secret.filterData());
             break;
         }
         case DeleteStoredKeyCryptoApiHelperRequest: {
@@ -352,6 +494,14 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::asynchronousCryptoReque
         }
         case StoreKeyCryptoApiHelperRequest: {
             emit storeKeyCompleted(cryptoRequestId, result);
+            break;
+        }
+        case StoreKeyMetadataCryptoApiHelperRequest: {
+            emit storeKeyMetadataCompleted(cryptoRequestId, result);
+            break;
+        }
+        case DeleteStoredKeyMetadataCryptoApiHelperRequest: {
+            emit deleteStoredKeyMetadataCompleted(cryptoRequestId, result);
             break;
         }
         default: {

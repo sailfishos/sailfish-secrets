@@ -24,8 +24,12 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::RequestProcessor(Sailfish::
             this, &Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted);
     connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storeKeyCompleted,
             this, &Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::secretsStoreKeyCompleted);
+    connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storeKeyMetadataCompleted,
+            this, &Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::secretsStoreKeyMetadataCompleted);
     connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::deleteStoredKeyCompleted,
             this, &Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::secretsDeleteStoredKeyCompleted);
+    connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::deleteStoredKeyMetadataCompleted,
+            this, &Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::secretsDeleteStoredKeyMetadataCompleted);
 }
 
 bool
@@ -135,6 +139,8 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::generateStoredKey(
         const QString &storageProviderName,
         Sailfish::Crypto::Key *key)
 {
+    Q_UNUSED(key) // asynchronous outparam, returned in generateStoredKey_inStoragePlugin/_inCryptoPlugin
+
     Sailfish::Secrets::Result secretsResult;
     if (keyTemplate.identifier().name().isEmpty()) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidKeyIdentifier,
@@ -166,8 +172,7 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::generateStoredKey(
                                             QLatin1String("The specified cryptographic service provider cannot store keys"));
         }
 
-        // generate the key and store it via the same plugin.
-        secretsResult = m_secrets->addKeyEntry(callerPid, requestId, keyTemplate.identifier(), cryptosystemProviderName, storageProviderName);
+        secretsResult = m_secrets->storeKeyMetadata(callerPid, requestId, keyTemplate.identifier(), storageProviderName);
         if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
             Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Failed);
             retn.setErrorCode(Sailfish::Crypto::Result::StorageError);
@@ -175,73 +180,218 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::generateStoredKey(
             retn.setErrorMessage(secretsResult.errorMessage());
             return retn;
         }
-        Sailfish::Crypto::Result result = m_cryptoPlugins[cryptosystemProviderName]->generateAndStoreKey(keyTemplate, key);
-        if (result.code() == Sailfish::Crypto::Result::Failed) {
-            // remove the key entry because it wasn't successfully stored into the plugin.
-            secretsResult = m_secrets->removeKeyEntry(callerPid, requestId, keyTemplate.identifier());
-            // TODO: if that failed, we may need to clean up manually later, re-try etc.
-        }
-        return result;
-    }
 
-    // generate the key
-    Sailfish::Crypto::Key fullKey;
-    Sailfish::Crypto::Result keyResult = m_cryptoPlugins[cryptosystemProviderName]->generateKey(keyTemplate, &fullKey);
-    if (keyResult.code() == Sailfish::Crypto::Result::Failed) {
-        return keyResult;
-    }
-
-    secretsResult = m_secrets->addKeyEntry(callerPid, requestId, keyTemplate.identifier(), cryptosystemProviderName, storageProviderName);
-    if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
-        Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Failed);
-        retn.setErrorCode(Sailfish::Crypto::Result::StorageError);
-        retn.setStorageErrorCode(secretsResult.errorCode());
-        retn.setErrorMessage(secretsResult.errorMessage());
-        return retn;
-    }
-    secretsResult = m_secrets->storeKey(callerPid, requestId, fullKey.identifier(), Sailfish::Crypto::Key::serialise(fullKey), storageProviderName);
-    if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
-        // remove the key entry because it wasn't successfully stored into the storage plugin.
-        m_secrets->removeKeyEntry(callerPid, requestId, keyTemplate.identifier());
-        // TODO: if that failed, we may need to clean up manually later, re-try etc.
-        // return storeKey error to the client.
-        Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Failed);
-        retn.setErrorCode(Sailfish::Crypto::Result::StorageError);
-        retn.setStorageErrorCode(secretsResult.errorCode());
-        retn.setErrorMessage(secretsResult.errorMessage());
-        return retn;
-    } else if (secretsResult.code() == Sailfish::Secrets::Result::Pending) {
-        // asynchronous operation, will call back to generateStoredKey2().
+        // wait for the asynchronous operation to complete.
+        // when complete it will invoke generateStoredKey_inCryptoPlugin().
         m_pendingRequests.insert(requestId,
                                  Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::PendingRequest(
                                      callerPid,
                                      requestId,
                                      Sailfish::Crypto::Daemon::ApiImpl::GenerateStoredKeyRequest,
-                                     QVariantList() << QVariant::fromValue<Sailfish::Crypto::Key>(fullKey)));
+                                     QVariantList() << QVariant::fromValue<Sailfish::Crypto::Key>(keyTemplate)
+                                                    << QVariant::fromValue<QString>(cryptosystemProviderName)
+                                                    << QVariant::fromValue<QString>(storageProviderName)));
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Pending);
+    } else {
+        // generate the key
+        Sailfish::Crypto::Key fullKey(keyTemplate);
+        Sailfish::Crypto::Result keyResult = m_cryptoPlugins[cryptosystemProviderName]->generateKey(keyTemplate, &fullKey);
+        if (keyResult.code() == Sailfish::Crypto::Result::Failed) {
+            return keyResult;
+        }
+
+        secretsResult = m_secrets->storeKey(
+                    callerPid,
+                    requestId,
+                    fullKey.identifier(),
+                    Sailfish::Crypto::Key::serialise(fullKey, Sailfish::Crypto::Key::DoNotSerialiseFilterDataMode),
+                    fullKey.filterData(),
+                    storageProviderName);
+        if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
+            // return storeKey error to the client.
+            Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Failed);
+            retn.setErrorCode(Sailfish::Crypto::Result::StorageError);
+            retn.setStorageErrorCode(secretsResult.errorCode());
+            retn.setErrorMessage(secretsResult.errorMessage());
+            return retn;
+        }
+
+        // asynchronous operation, will call back to generateStoredKey_inStoragePlugin().
+        m_pendingRequests.insert(requestId,
+                                 Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                     callerPid,
+                                     requestId,
+                                     Sailfish::Crypto::Daemon::ApiImpl::GenerateStoredKeyRequest,
+                                     QVariantList() << QVariant::fromValue<Sailfish::Crypto::Key>(fullKey)
+                                                    << QVariant::fromValue<QString>(cryptosystemProviderName)
+                                                    << QVariant::fromValue<QString>(storageProviderName)));
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Pending);
     }
-
-    // The key returned from this function has metadata and public key data only.
-    Sailfish::Crypto::Key partialKey(fullKey);
-    partialKey.setPrivateKey(QByteArray());
-    partialKey.setSecretKey(QByteArray());
-    *key = partialKey;
-
-    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
 }
 
 void
-Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::generateStoredKey2(
+Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::generateStoredKey_inStoragePlugin(
+        pid_t callerPid,
         quint64 requestId,
         const Sailfish::Crypto::Result &result,
-        const Sailfish::Crypto::Key &fullKey)
+        const Sailfish::Crypto::Key &fullKey,
+        const QString &cryptosystemProviderName,
+        const QString &storageProviderName)
 {
+    // This method is invoked in the "generate from crypto plugin, store in secrets storage plugin" codepath.
+    // if it was successfully stored into secrets, then add the key entry.
+    Sailfish::Crypto::Result retn(result);
+    if (result.code() == Sailfish::Crypto::Result::Succeeded) {
+        Sailfish::Secrets::Result secretsResult = m_secrets->addKeyEntry(callerPid, requestId, fullKey.identifier(), cryptosystemProviderName, storageProviderName);
+        if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
+            // transform the error
+            retn.setCode(Sailfish::Crypto::Result::Failed);
+            retn.setErrorCode(Sailfish::Crypto::Result::StorageError);
+            retn.setStorageErrorCode(secretsResult.errorCode());
+            retn.setErrorMessage(secretsResult.errorMessage());
+            // Attempt to remove the key from secrets storage, to cleanup.
+            // TODO: in the future we should refactor so that this can be done via a transaction rollback!
+            secretsResult = m_secrets->deleteStoredKey(callerPid, requestId, fullKey.identifier());
+            if (secretsResult.code() != Sailfish::Secrets::Result::Failed) {
+                m_pendingRequests.insert(requestId,
+                                         Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                             callerPid,
+                                             requestId,
+                                             Sailfish::Crypto::Daemon::ApiImpl::GenerateStoredKeyRequest,
+                                             QVariantList() << QVariant::fromValue<Sailfish::Crypto::Key>(fullKey)
+                                                            << QVariant::fromValue<Sailfish::Crypto::Result>(retn)));
+                return;
+            }
+            // TODO: we now have stale data in the secrets main table.
+            //       Add a dirty flag for this datum, and attempt to cleanup later.
+            qCWarning(lcSailfishCryptoDaemon) << "Failed to clean up stored key after failed generateStoredKey request:"
+                                              << secretsResult.errorCode() << secretsResult.errorMessage();
+        }
+    }
+
     // finish the asynchronous request.
     Sailfish::Crypto::Key partialKey(fullKey);
     partialKey.setPrivateKey(QByteArray());
     partialKey.setSecretKey(QByteArray());
     QList<QVariant> outParams;
-    outParams << QVariant::fromValue<Sailfish::Crypto::Result>(result);
+    outParams << QVariant::fromValue<Sailfish::Crypto::Result>(retn);
+    outParams << QVariant::fromValue<Sailfish::Crypto::Key>(partialKey);
+    m_requestQueue->requestFinished(requestId, outParams);
+}
+
+void
+Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::generateStoredKey_inCryptoPlugin(
+        pid_t callerPid,
+        quint64 requestId,
+        const Sailfish::Crypto::Result &result,
+        const Sailfish::Crypto::Key &keyTemplate,
+        const QString &cryptosystemProviderName,
+        const QString &storageProviderName)
+{
+    // This method is invoked in the "generate and store into crypto plugin" codepath.
+    if (result.code() != Sailfish::Crypto::Result::Succeeded) {
+        QList<QVariant> outParams;
+        outParams << QVariant::fromValue<Sailfish::Crypto::Result>(result);
+        outParams << QVariant::fromValue<Sailfish::Crypto::Key>(keyTemplate);
+        m_requestQueue->requestFinished(requestId, outParams);
+        return;
+    }
+
+    // if the metadata was successfully stored into secrets, then generate the full key
+    // and store it in the crypto plugin, and if that succeeds, add the key entry.
+    Sailfish::Crypto::Key fullKey(keyTemplate);
+    Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Succeeded);
+    Sailfish::Secrets::Result secretsResult = m_secrets->addKeyEntry(callerPid, requestId, keyTemplate.identifier(), cryptosystemProviderName, storageProviderName);
+    if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
+        // transform the error
+        retn.setCode(Sailfish::Crypto::Result::Failed);
+        retn.setErrorCode(Sailfish::Crypto::Result::StorageError);
+        retn.setStorageErrorCode(secretsResult.errorCode());
+        retn.setErrorMessage(secretsResult.errorMessage());
+        // Attempt to remove the key metadata from secrets storage, to cleanup.
+        // In this case, the key has not yet been stored in the (crypto) plugin, so it is enough
+        // to merely delete the metadata.  We need a specific deleteStoredKeyMetadata(),
+        // as any attempt to delete the actual secret from the plugin will fail (it doesn't exist).
+        secretsResult = m_secrets->deleteStoredKeyMetadata(callerPid, requestId, keyTemplate.identifier());
+        if (secretsResult.code() != Sailfish::Secrets::Result::Failed) {
+            m_pendingRequests.insert(requestId,
+                                     Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                         callerPid,
+                                         requestId,
+                                         Sailfish::Crypto::Daemon::ApiImpl::GenerateStoredKeyRequest,
+                                         QVariantList() << QVariant::fromValue<Sailfish::Crypto::Key>(keyTemplate)
+                                                        << QVariant::fromValue<Sailfish::Crypto::Result>(retn)));
+            return;
+        }
+        // TODO: we now have stale data in the secrets main table.
+        //       Add a dirty flag for this datum, and attempt to cleanup later.
+        // Also clean up the key entry as it doesn't actually exist.
+        qCWarning(lcSailfishCryptoDaemon) << "Failed to clean up stored key metadata after failed generateStoredKey request:"
+                                          << secretsResult.errorCode() << secretsResult.errorMessage();
+        m_secrets->removeKeyEntry(callerPid, requestId, keyTemplate.identifier());
+    } else {
+        retn = m_cryptoPlugins[cryptosystemProviderName]->generateAndStoreKey(keyTemplate, &fullKey);
+        if (retn.code() == Sailfish::Crypto::Result::Failed) {
+            // Attempt to remove the key metadata from secrets storage, to cleanup.
+            // Note: the keyEntry should be cascade deleted automatically.
+            secretsResult = m_secrets->deleteStoredKeyMetadata(callerPid, requestId, keyTemplate.identifier());
+            if (secretsResult.code() != Sailfish::Secrets::Result::Failed) {
+                m_pendingRequests.insert(requestId,
+                                         Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                             callerPid,
+                                             requestId,
+                                             Sailfish::Crypto::Daemon::ApiImpl::GenerateStoredKeyRequest,
+                                             QVariantList() << QVariant::fromValue<Sailfish::Crypto::Key>(keyTemplate)
+                                                            << QVariant::fromValue<Sailfish::Crypto::Result>(retn)));
+                return;
+            }
+            // TODO: we now have stale data in the secrets main table.
+            //       Add a dirty flag for this datum, and attempt to cleanup later.
+            // Also clean up the key entry as it doesn't actually exist.
+            qCWarning(lcSailfishCryptoDaemon) << "Failed to clean up stored key metadata after failed generateStoredKey request:"
+                                              << secretsResult.errorCode() << secretsResult.errorMessage();
+            m_secrets->removeKeyEntry(callerPid, requestId, keyTemplate.identifier());
+        }
+    }
+
+    // finish the asynchronous request.
+    Sailfish::Crypto::Key partialKey(fullKey);
+    partialKey.setPrivateKey(QByteArray());
+    partialKey.setSecretKey(QByteArray());
+    QList<QVariant> outParams;
+    outParams << QVariant::fromValue<Sailfish::Crypto::Result>(retn);
+    outParams << QVariant::fromValue<Sailfish::Crypto::Key>(partialKey);
+    m_requestQueue->requestFinished(requestId, outParams);
+}
+
+void
+Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::generateStoredKey_failedCleanup(
+        pid_t callerPid,
+        quint64 requestId,
+        const Sailfish::Crypto::Key &keyTemplate,
+        const Sailfish::Crypto::Result &initialResult,
+        const Sailfish::Crypto::Result &result)
+{
+    Q_UNUSED(callerPid)
+
+    // This method will be invoked if the generateStoredKey() failed
+    // and we had to cleanup the stored key data or metadata from secrets.
+    // check to see if the result of the deleteStoredKey/deleteStoredKeyMetadata failed
+    if (result.code() == Sailfish::Crypto::Result::Failed) {
+        // TODO: we now have stale data in the secrets main table.
+        //       Add a dirty flag for this datum, and attempt to cleanup later.
+        // Also clean up the key entry as it doesn't actually exist.
+        qCWarning(lcSailfishCryptoDaemon) << "Failed to clean up stored key or metadata after failed generateStoredKey request:"
+                                          << result.storageErrorCode() << result.errorMessage();
+        m_secrets->removeKeyEntry(callerPid, requestId, keyTemplate.identifier()); // expected fail/no-op in the inStoragePlugin case.
+    }
+
+    // Finish the asynchronous request.
+    Sailfish::Crypto::Key partialKey(keyTemplate);
+    partialKey.setPrivateKey(QByteArray());
+    partialKey.setSecretKey(QByteArray());
+    QList<QVariant> outParams;
+    outParams << QVariant::fromValue<Sailfish::Crypto::Result>(initialResult);
     outParams << QVariant::fromValue<Sailfish::Crypto::Key>(partialKey);
     m_requestQueue->requestFinished(requestId, outParams);
 }
@@ -290,7 +440,8 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::storedKey(
     }
 
     QByteArray serialisedKey;
-    secretsResult = m_secrets->storedKey(callerPid, requestId, identifier, &serialisedKey);
+    QMap<QString, QString> filterData;
+    secretsResult = m_secrets->storedKey(callerPid, requestId, identifier, &serialisedKey, &filterData);
     if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
         retn.setCode(Sailfish::Crypto::Result::Failed);
         retn.setErrorCode(Sailfish::Crypto::Result::StorageError);
@@ -310,6 +461,7 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::storedKey(
     }
 
     *key = Sailfish::Crypto::Key::deserialise(serialisedKey);
+    key->setFilterData(filterData);
     return retn;
 }
 
@@ -317,12 +469,16 @@ void
 Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::storedKey2(
         quint64 requestId,
         const Sailfish::Crypto::Result &result,
-        const QByteArray &serialisedKey)
+        const QByteArray &serialisedKey,
+        const QMap<QString, QString> &filterData)
 {
+    Sailfish::Crypto::Key retn(Sailfish::Crypto::Key::deserialise(serialisedKey));
+    retn.setFilterData(filterData);
+
     // finish the request.
     QList<QVariant> outParams;
     outParams << QVariant::fromValue<Sailfish::Crypto::Result>(result);
-    outParams << QVariant::fromValue<Sailfish::Crypto::Key>(Sailfish::Crypto::Key::deserialise(serialisedKey));
+    outParams << QVariant::fromValue<Sailfish::Crypto::Key>(retn);
     m_requestQueue->requestFinished(requestId, outParams);
 }
 
@@ -349,17 +505,7 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::deleteStoredKey(
                                         QLatin1String("Internal error: storage plugin associated with that key is empty"));
     }
 
-    // check to see if the crypto plugin also stored the key
-    if (m_cryptoPlugins.contains(storagePluginName)) {
-        retn = m_cryptoPlugins[storagePluginName]->deleteStoredKey(identifier);
-        if (retn.code() == Sailfish::Crypto::Result::Succeeded) {
-            m_secrets->removeKeyEntry(callerPid, requestId, identifier);
-            // TODO: handle error e.g. re-try later.
-        }
-        return retn;
-    }
-
-    // otherwise delete from secrets storage
+    // delete from secrets storage
     secretsResult = m_secrets->deleteStoredKey(callerPid, requestId, identifier);
     if (secretsResult.code() == Sailfish::Secrets::Result::Succeeded) {
         m_secrets->removeKeyEntry(callerPid, requestId, identifier);
@@ -438,13 +584,13 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::sign(
 
     if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & Sailfish::Crypto::Key::Sign)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("The specified cryptographic service provider does not supported sign operations"));
+                                        QLatin1String("The specified cryptographic service provider does not support sign operations"));
     } else if (!(cryptoPlugin->supportedSignaturePaddings().value(key.algorithm()) & padding)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedSignaturePadding,
-                                        QLatin1String("The specified cryptographic service provider does not supported that signature padding"));
+                                        QLatin1String("The specified cryptographic service provider does not support that signature padding"));
     } else if (!(cryptoPlugin->supportedDigests().value(key.algorithm()) & digest)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedDigest,
-                                        QLatin1String("The specified cryptographic service provider does not supported that digest"));
+                                        QLatin1String("The specified cryptographic service provider does not support that digest"));
     }
 
     Sailfish::Crypto::Key fullKey;
@@ -454,7 +600,7 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::sign(
         Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Succeeded);
         if (key.identifier().name().isEmpty()) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidKeyIdentifier,
-                                            QLatin1String("Reference key has empty name"));
+                                            QLatin1String("Reference key has empty identifier"));
         } else {
             QVector<Sailfish::Crypto::Key::Identifier> identifiers;
             secretsResult = m_secrets->keyEntryIdentifiers(callerPid, requestId, &identifiers);
@@ -472,7 +618,8 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::sign(
         }
 
         QByteArray serialisedKey;
-        secretsResult = m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey);
+        QMap<QString, QString> filterData;
+        secretsResult = m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData);
         if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
             Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Failed);
             retn.setErrorCode(Sailfish::Crypto::Result::StorageError);
@@ -546,13 +693,13 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::verify(
 
     if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & Sailfish::Crypto::Key::Verify)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("The specified cryptographic service provider does not supported verify operations"));
+                                        QLatin1String("The specified cryptographic service provider does not support verify operations"));
     } else if (!(cryptoPlugin->supportedSignaturePaddings().value(key.algorithm()) & padding)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedSignaturePadding,
-                                        QLatin1String("The specified cryptographic service provider does not supported that signature padding"));
+                                        QLatin1String("The specified cryptographic service provider does not support that signature padding"));
     } else if (!(cryptoPlugin->supportedDigests().value(key.algorithm()) & digest)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedDigest,
-                                        QLatin1String("The specified cryptographic service provider does not supported that digest"));
+                                        QLatin1String("The specified cryptographic service provider does not support that digest"));
     }
 
     Sailfish::Crypto::Key fullKey;
@@ -562,7 +709,7 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::verify(
         Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Succeeded);
         if (key.identifier().name().isEmpty()) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidKeyIdentifier,
-                                            QLatin1String("Reference key has empty name"));
+                                            QLatin1String("Reference key has empty identifier"));
         } else {
             QVector<Sailfish::Crypto::Key::Identifier> identifiers;
             secretsResult = m_secrets->keyEntryIdentifiers(callerPid, requestId, &identifiers);
@@ -580,7 +727,8 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::verify(
         }
 
         QByteArray serialisedKey;
-        secretsResult = m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey);
+        QMap<QString, QString> filterData;
+        secretsResult = m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData);
         if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
             Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Failed);
             retn.setErrorCode(Sailfish::Crypto::Result::StorageError);
@@ -655,16 +803,16 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::encrypt(
 
     if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & Sailfish::Crypto::Key::Encrypt)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("The specified cryptographic service provider does not supported encrypt operations"));
+                                        QLatin1String("The specified cryptographic service provider does not support encrypt operations"));
     } else if (!(cryptoPlugin->supportedBlockModes().value(key.algorithm()) & blockMode)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedBlockMode,
                                         QLatin1String("The specified cryptographic service provider does not support that block mode"));
     } else if (!(cryptoPlugin->supportedSignaturePaddings().value(key.algorithm()) & padding)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedEncryptionPadding,
-                                        QLatin1String("The specified cryptographic service provider does not supported that encryption padding"));
+                                        QLatin1String("The specified cryptographic service provider does not support that encryption padding"));
     } else if (!(cryptoPlugin->supportedDigests().value(key.algorithm()) & digest)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedDigest,
-                                        QLatin1String("The specified cryptographic service provider does not supported that digest"));
+                                        QLatin1String("The specified cryptographic service provider does not support that digest"));
     }
 
     Sailfish::Crypto::Key fullKey;
@@ -674,7 +822,7 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::encrypt(
         Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Succeeded);
         if (key.identifier().name().isEmpty()) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidKeyIdentifier,
-                                            QLatin1String("Reference key has empty name"));
+                                            QLatin1String("Reference key has empty identifier"));
         } else {
             QVector<Sailfish::Crypto::Key::Identifier> identifiers;
             secretsResult = m_secrets->keyEntryIdentifiers(callerPid, requestId, &identifiers);
@@ -692,7 +840,8 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::encrypt(
         }
 
         QByteArray serialisedKey;
-        secretsResult = m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey);
+        QMap<QString, QString> filterData;
+        secretsResult = m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData);
         if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
             Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Failed);
             retn.setErrorCode(Sailfish::Crypto::Result::StorageError);
@@ -737,9 +886,16 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::encrypt2(
     QList<QVariant> outParams;
     QByteArray encrypted;
     if (result.code() == Sailfish::Crypto::Result::Succeeded) {
-        Sailfish::Crypto::Key fullKey = Sailfish::Crypto::Key::deserialise(serialisedKey);
-        Sailfish::Crypto::Result cryptoResult = m_cryptoPlugins[cryptoPluginName]->encrypt(data, fullKey, blockMode, padding, digest, &encrypted);
-        outParams << QVariant::fromValue<Sailfish::Crypto::Result>(cryptoResult);
+        bool ok = false;
+        Sailfish::Crypto::Key fullKey = Sailfish::Crypto::Key::deserialise(serialisedKey, &ok);
+        if (!ok) {
+            outParams << QVariant::fromValue<Sailfish::Crypto::Result>(Sailfish::Crypto::Result(
+                                                                           Sailfish::Crypto::Result::SerialisationError,
+                                                                           QLatin1String("Failed to deserialise key!")));
+        } else {
+            Sailfish::Crypto::Result cryptoResult = m_cryptoPlugins[cryptoPluginName]->encrypt(data, fullKey, blockMode, padding, digest, &encrypted);
+            outParams << QVariant::fromValue<Sailfish::Crypto::Result>(cryptoResult);
+        }
     } else {
         outParams << QVariant::fromValue<Sailfish::Crypto::Result>(result);
     }
@@ -769,16 +925,16 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::decrypt(
 
     if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & Sailfish::Crypto::Key::Decrypt)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("The specified cryptographic service provider does not supported decrypt operations"));
+                                        QLatin1String("The specified cryptographic service provider does not support decrypt operations"));
     } else if (!(cryptoPlugin->supportedBlockModes().value(key.algorithm()) & blockMode)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedBlockMode,
                                         QLatin1String("The specified cryptographic service provider does not support that block mode"));
     } else if (!(cryptoPlugin->supportedSignaturePaddings().value(key.algorithm()) & padding)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedEncryptionPadding,
-                                        QLatin1String("The specified cryptographic service provider does not supported that encryption padding"));
+                                        QLatin1String("The specified cryptographic service provider does not support that encryption padding"));
     } else if (!(cryptoPlugin->supportedDigests().value(key.algorithm()) & digest)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedDigest,
-                                        QLatin1String("The specified cryptographic service provider does not supported that digest"));
+                                        QLatin1String("The specified cryptographic service provider does not support that digest"));
     }
 
     Sailfish::Crypto::Key fullKey;
@@ -788,7 +944,7 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::decrypt(
         Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Succeeded);
         if (key.identifier().name().isEmpty()) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidKeyIdentifier,
-                                            QLatin1String("Reference key has empty name"));
+                                            QLatin1String("Reference key has empty identifier"));
         } else {
             QVector<Sailfish::Crypto::Key::Identifier> identifiers;
             secretsResult = m_secrets->keyEntryIdentifiers(callerPid, requestId, &identifiers);
@@ -806,7 +962,8 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::decrypt(
         }
 
         QByteArray serialisedKey;
-        secretsResult = m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey);
+        QMap<QString, QString> filterData;
+        secretsResult = m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData);
         if (secretsResult.code() == Sailfish::Secrets::Result::Failed) {
             Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Failed);
             retn.setErrorCode(Sailfish::Crypto::Result::StorageError);
@@ -866,7 +1023,8 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::decrypt2(
 void Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
         quint64 requestId,
         const Sailfish::Secrets::Result &result,
-        const QByteArray &serialisedKey)
+        const QByteArray &serialisedKey,
+        const QMap<QString, QString> &filterData)
 {
     // look up the pending request in our list
     if (m_pendingRequests.contains(requestId)) {
@@ -885,7 +1043,7 @@ void Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::secretsStoredKeyComple
         Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::PendingRequest pr = m_pendingRequests.take(requestId);
         switch (pr.requestType) {
             case StoredKeyRequest: {
-                storedKey2(requestId, returnResult, serialisedKey);
+                storedKey2(requestId, returnResult, serialisedKey, filterData);
                 break;
             }
             case SignRequest: {
@@ -955,7 +1113,9 @@ void Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::secretsStoreKeyComplet
         switch (pr.requestType) {
             case GenerateStoredKeyRequest: {
                 Sailfish::Crypto::Key fullKey = pr.parameters.takeFirst().value<Sailfish::Crypto::Key>();
-                generateStoredKey2(requestId, returnResult, fullKey);
+                QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
+                QString storagePluginName = pr.parameters.takeFirst().value<QString>();
+                generateStoredKey_inStoragePlugin(pr.callerPid, requestId, returnResult, fullKey, cryptosystemProviderName, storagePluginName);
                 break;
             }
             default: {
@@ -965,6 +1125,44 @@ void Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::secretsStoreKeyComplet
         }
     } else {
         qCWarning(lcSailfishCryptoDaemon) << "Secrets completed storeKey() operation for unknown request:" << requestId;
+    }
+}
+
+// asynchronous operation (store key metadata) has completed.
+void Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::secretsStoreKeyMetadataCompleted(
+        quint64 requestId,
+        const Sailfish::Secrets::Result &result)
+{
+    // look up the pending request in our list
+    if (m_pendingRequests.contains(requestId)) {
+        // transform the error code.
+        Sailfish::Crypto::Result returnResult;
+        if (result.code() == Sailfish::Secrets::Result::Succeeded) {
+            returnResult.setCode(Sailfish::Crypto::Result::Succeeded);
+        } else {
+            returnResult.setCode(Sailfish::Crypto::Result::Failed);
+            returnResult.setErrorCode(Sailfish::Crypto::Result::StorageError);
+            returnResult.setStorageErrorCode(result.errorCode());
+            returnResult.setErrorMessage(result.errorMessage());
+        }
+
+        // call the appropriate method to complete the request
+        Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::PendingRequest pr = m_pendingRequests.take(requestId);
+        switch (pr.requestType) {
+            case GenerateStoredKeyRequest: {
+                Sailfish::Crypto::Key keyTemplate = pr.parameters.takeFirst().value<Sailfish::Crypto::Key>();
+                QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
+                QString storagePluginName = pr.parameters.takeFirst().value<QString>();
+                generateStoredKey_inCryptoPlugin(pr.callerPid, requestId, returnResult, keyTemplate, cryptosystemProviderName, storagePluginName);
+                break;
+            }
+            default: {
+                qCWarning(lcSailfishCryptoDaemon) << "Secrets completed storeKeyMetadata() operation for request:" << requestId << "of invalid type:" << pr.requestType;
+                break;
+            }
+        }
+    } else {
+        qCWarning(lcSailfishCryptoDaemon) << "Secrets completed storeKeyMetadata() operation for unknown request:" << requestId;
     }
 }
 
@@ -996,6 +1194,12 @@ void Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::secretsDeleteStoredKey
                 deleteStoredKey2(pr.callerPid, requestId, returnResult, identifier);
                 break;
             }
+            case GenerateStoredKeyRequest: {
+                Sailfish::Crypto::Key fullKey = pr.parameters.takeFirst().value<Sailfish::Crypto::Key>();
+                Sailfish::Crypto::Result initialResult = pr.parameters.takeFirst().value<Sailfish::Crypto::Result>();
+                generateStoredKey_failedCleanup(pr.callerPid, requestId, fullKey, initialResult, returnResult);
+                break;
+            }
             default: {
                 qCWarning(lcSailfishCryptoDaemon) << "Secrets completed deleteStoredKey() operation for request:" << requestId << "of invalid type:" << pr.requestType;
                 break;
@@ -1003,5 +1207,42 @@ void Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::secretsDeleteStoredKey
         }
     } else {
         qCWarning(lcSailfishCryptoDaemon) << "Secrets completed deleteStoredKey() operation for unknown request:" << requestId;
+    }
+}
+
+// asynchronous operation (delete stored key metadata) has completed.
+void Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::secretsDeleteStoredKeyMetadataCompleted(
+        quint64 requestId,
+        const Sailfish::Secrets::Result &result)
+{
+    // look up the pending request in our list
+    if (m_pendingRequests.contains(requestId)) {
+        // transform the error code.
+        Sailfish::Crypto::Result returnResult;
+        if (result.code() == Sailfish::Secrets::Result::Succeeded) {
+            returnResult.setCode(Sailfish::Crypto::Result::Succeeded);
+        } else {
+            returnResult.setCode(Sailfish::Crypto::Result::Failed);
+            returnResult.setErrorCode(Sailfish::Crypto::Result::StorageError);
+            returnResult.setStorageErrorCode(result.errorCode());
+            returnResult.setErrorMessage(result.errorMessage());
+        }
+
+        // call the appropriate method to complete the request
+        Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::PendingRequest pr = m_pendingRequests.take(requestId);
+        switch (pr.requestType) {
+            case GenerateStoredKeyRequest: {
+                Sailfish::Crypto::Key keyTemplate = pr.parameters.takeFirst().value<Sailfish::Crypto::Key>();
+                Sailfish::Crypto::Result initialResult = pr.parameters.takeFirst().value<Sailfish::Crypto::Result>();
+                generateStoredKey_failedCleanup(pr.callerPid, requestId, keyTemplate, initialResult, returnResult);
+                break;
+            }
+            default: {
+                qCWarning(lcSailfishCryptoDaemon) << "Secrets completed deleteStoredKeyMetadata() operation for request:" << requestId << "of invalid type:" << pr.requestType;
+                break;
+            }
+        }
+    } else {
+        qCWarning(lcSailfishCryptoDaemon) << "Secrets completed deleteStoredKeyMetadata() operation for unknown request:" << requestId;
     }
 }

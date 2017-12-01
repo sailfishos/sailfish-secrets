@@ -1,2 +1,5 @@
 TEMPLATE = subdirs
-SUBDIRS = tst_secrets tst_crypto
+SUBDIRS = \
+    $$PWD/tst_secrets \
+    $$PWD/tst_crypto \
+    $$PWD/tst_cryptosecrets

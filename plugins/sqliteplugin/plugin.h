@@ -15,6 +15,7 @@
 
 #include <QObject>
 #include <QVector>
+#include <QMap>
 #include <QString>
 #include <QByteArray>
 #include <QCryptographicHash>
@@ -51,13 +52,14 @@ public:
 
     Sailfish::Secrets::Result createCollection(const QString &collectionName) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result removeCollection(const QString &collectionName) Q_DECL_OVERRIDE;
-    Sailfish::Secrets::Result setSecret(const QString &collectionName, const QString &secretName, const QByteArray &secret) Q_DECL_OVERRIDE;
-    Sailfish::Secrets::Result getSecret(const QString &collectionName, const QString &secretName, QByteArray *secret) Q_DECL_OVERRIDE;
-    Sailfish::Secrets::Result removeSecret(const QString &collectionName, const QString &secretName) Q_DECL_OVERRIDE;
+    Sailfish::Secrets::Result setSecret(const QString &collectionName, const QString &hashedSecretName, const QByteArray &encryptedSecretName, const QByteArray &secret, const Sailfish::Secrets::Secret::FilterData &filterData) Q_DECL_OVERRIDE;
+    Sailfish::Secrets::Result getSecret(const QString &collectionName, const QString &hashedSecretName, QByteArray *encryptedSecretName, QByteArray *secret, Sailfish::Secrets::Secret::FilterData *filterData) Q_DECL_OVERRIDE;
+    Sailfish::Secrets::Result findSecrets(const QString &collectionName, const Sailfish::Secrets::Secret::FilterData &filter, Sailfish::Secrets::StoragePlugin::FilterOperator filterOperator, QVector<QByteArray> *encryptedSecretNames) Q_DECL_OVERRIDE;
+    Sailfish::Secrets::Result removeSecret(const QString &collectionName, const QString &hashedSecretName) Q_DECL_OVERRIDE;
 
     Sailfish::Secrets::Result reencryptSecrets(
-            const QString &collectionName,          // non-empty, all secrets in this collection will be re-encrypted
-            const QVector<QString> &secretNames,    // if collectionName is empty, these standalone secrets will be re-encrypted.
+            const QString &collectionName,             // non-empty, all secrets in this collection will be re-encrypted
+            const QVector<QString> &hashedSecretNames, // if collectionName is empty, these standalone secrets will be re-encrypted.
             const QByteArray &oldkey,
             const QByteArray &newkey,
             Sailfish::Secrets::EncryptionPlugin *plugin) Q_DECL_OVERRIDE;

@@ -12,6 +12,7 @@
 #include "Secrets/uirequest.h"
 #include "Secrets/extensionplugins.h"
 #include "Secrets/result.h"
+#include "Secrets/secret.h"
 
 #include <QtDBus/QDBusReply>
 #include <QtDBus/QDBusInterface>
@@ -153,6 +154,7 @@ void Sailfish::Secrets::SecretsDaemonConnection::registerDBusTypes()
     qRegisterMetaType<Sailfish::Secrets::SecretManager::AccessControlMode>("Sailfish::Secrets::SecretManager::AccessControlMode");
     qRegisterMetaType<Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic>("Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic");
     qRegisterMetaType<Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic>("Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic");
+    qRegisterMetaType<Sailfish::Secrets::SecretManager::FilterOperator>("Sailfish::Secrets::SecretManager::FilterOperator");
     qRegisterMetaType<Sailfish::Secrets::EncryptionPluginInfo>("Sailfish::Secrets::EncryptionPluginInfo");
     qRegisterMetaType<QVector<Sailfish::Secrets::EncryptionPluginInfo> >("QVector<Sailfish::Secrets::EncryptionPluginInfo>");
     qRegisterMetaType<Sailfish::Secrets::StoragePluginInfo>("Sailfish::Secrets::StoragePluginInfo");
@@ -162,14 +164,17 @@ void Sailfish::Secrets::SecretsDaemonConnection::registerDBusTypes()
     qRegisterMetaType<Sailfish::Secrets::AuthenticationPluginInfo>("Sailfish::Secrets::AuthenticationPluginInfo");
     qRegisterMetaType<QVector<Sailfish::Secrets::AuthenticationPluginInfo> >("QVector<Sailfish::Secrets::AuthenticationPluginInfo>");
     qRegisterMetaType<Sailfish::Secrets::Result>("Sailfish::Secrets::Result");
+    qRegisterMetaType<Sailfish::Secrets::Secret>("Sailfish::Secrets::Secret");
+    qRegisterMetaType<Sailfish::Secrets::Secret::Identifier>("Sailfish::Secrets::Secret::Identifier");
+    qRegisterMetaType<Sailfish::Secrets::Secret::FilterData>("Sailfish::Secrets::Secret::FilterData");
     qRegisterMetaType<Sailfish::Secrets::UiRequest>("Sailfish::Secrets::UiRequest");
     qRegisterMetaType<Sailfish::Secrets::UiResponse>("Sailfish::Secrets::UiResponse");
-
 
     qDBusRegisterMetaType<Sailfish::Secrets::SecretManager::UserInteractionMode>();
     qDBusRegisterMetaType<Sailfish::Secrets::SecretManager::AccessControlMode>();
     qDBusRegisterMetaType<Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic>();
     qDBusRegisterMetaType<Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic>();
+    qDBusRegisterMetaType<Sailfish::Secrets::SecretManager::FilterOperator>();
     qDBusRegisterMetaType<Sailfish::Secrets::EncryptionPluginInfo>();
     qDBusRegisterMetaType<QVector<Sailfish::Secrets::EncryptionPluginInfo> >();
     qDBusRegisterMetaType<Sailfish::Secrets::StoragePluginInfo>();
@@ -179,6 +184,10 @@ void Sailfish::Secrets::SecretsDaemonConnection::registerDBusTypes()
     qDBusRegisterMetaType<Sailfish::Secrets::AuthenticationPluginInfo>();
     qDBusRegisterMetaType<QVector<Sailfish::Secrets::AuthenticationPluginInfo> >();
     qDBusRegisterMetaType<Sailfish::Secrets::Result>();
+    qDBusRegisterMetaType<Sailfish::Secrets::Secret>();
+    qDBusRegisterMetaType<Sailfish::Secrets::Secret::Identifier>();
+    qDBusRegisterMetaType<QVector<Sailfish::Secrets::Secret::Identifier> >();
+    qDBusRegisterMetaType<Sailfish::Secrets::Secret::FilterData>();
     qDBusRegisterMetaType<Sailfish::Secrets::UiRequest>();
     qDBusRegisterMetaType<Sailfish::Secrets::UiResponse>();
 }

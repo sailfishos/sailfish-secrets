@@ -174,7 +174,15 @@ Sailfish::Secrets::Result Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::enqu
                                          QString::fromUtf8("Request queue is full, try again later"));
     }
 
-    qCDebug(lcSailfishSecretsDaemon) << "Enqueuing" << requestTypeToString(request->type) << "request with id:" << nextFreeId;
+    if (request->isSecretsCryptoRequest) {
+        qCDebug(lcSailfishSecretsDaemon) << "Enqueuing" << requestTypeToString(request->type)
+                                         << "request with id:" << nextFreeId
+                                         << "(secrets crypto)";
+    } else {
+        qCDebug(lcSailfishSecretsDaemon) << "Enqueuing" << requestTypeToString(request->type)
+                                         << "request with id:" << nextFreeId;
+    }
+
     request->requestId = nextFreeId;
     m_requests.append(request);
     QMetaObject::invokeMethod(this, "handleRequests", Qt::QueuedConnection);
