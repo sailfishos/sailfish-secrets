@@ -9,7 +9,7 @@
 #include "Secrets/secretsdaemonconnection_p.h"
 
 #include "Secrets/secretmanager.h"
-#include "Secrets/uirequest.h"
+#include "Secrets/interactionrequest.h"
 #include "Secrets/extensionplugins.h"
 #include "Secrets/result.h"
 #include "Secrets/secret.h"
@@ -167,8 +167,8 @@ void Sailfish::Secrets::SecretsDaemonConnection::registerDBusTypes()
     qRegisterMetaType<Sailfish::Secrets::Secret>("Sailfish::Secrets::Secret");
     qRegisterMetaType<Sailfish::Secrets::Secret::Identifier>("Sailfish::Secrets::Secret::Identifier");
     qRegisterMetaType<Sailfish::Secrets::Secret::FilterData>("Sailfish::Secrets::Secret::FilterData");
-    qRegisterMetaType<Sailfish::Secrets::UiRequest>("Sailfish::Secrets::UiRequest");
-    qRegisterMetaType<Sailfish::Secrets::UiResponse>("Sailfish::Secrets::UiResponse");
+    qRegisterMetaType<Sailfish::Secrets::InteractionRequest>("Sailfish::Secrets::InteractionRequest");
+    qRegisterMetaType<Sailfish::Secrets::InteractionResponse>("Sailfish::Secrets::InteractionResponse");
 
     qDBusRegisterMetaType<Sailfish::Secrets::SecretManager::UserInteractionMode>();
     qDBusRegisterMetaType<Sailfish::Secrets::SecretManager::AccessControlMode>();
@@ -188,6 +188,6 @@ void Sailfish::Secrets::SecretsDaemonConnection::registerDBusTypes()
     qDBusRegisterMetaType<Sailfish::Secrets::Secret::Identifier>();
     qDBusRegisterMetaType<QVector<Sailfish::Secrets::Secret::Identifier> >();
     qDBusRegisterMetaType<Sailfish::Secrets::Secret::FilterData>();
-    qDBusRegisterMetaType<Sailfish::Secrets::UiRequest>();
-    qDBusRegisterMetaType<Sailfish::Secrets::UiResponse>();
+    qDBusRegisterMetaType<Sailfish::Secrets::InteractionRequest>();
+    qDBusRegisterMetaType<Sailfish::Secrets::InteractionResponse>();
 }

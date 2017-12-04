@@ -10,8 +10,8 @@
 
 #include "Secrets/extensionplugins.h"
 #include "Secrets/result.h"
-#include "Secrets/uirequest.h"
-#include "Secrets/uirequestwatcher.h"
+#include "Secrets/interactionrequest.h"
+#include "Secrets/interactionrequestwatcher.h"
 
 #include <QObject>
 #include <QVector>
@@ -58,16 +58,16 @@ public:
                 const QString &callerApplicationId,
                 const QString &collectionName,
                 const QString &secretName,
-                const QString &uiServiceAddress) Q_DECL_OVERRIDE;
+                const QString &interactionServiceAddress) Q_DECL_OVERRIDE;
 
 private Q_SLOTS:
-    void uiRequestFinished(quint64 requestId);
-    void uiRequestResponse(quint64 requestId,
+    void interactionRequestFinished(quint64 requestId);
+    void interactionRequestResponse(quint64 requestId,
                            const Sailfish::Secrets::Result &result,
-                           const Sailfish::Secrets::UiResponse &response);
+                           const Sailfish::Secrets::InteractionResponse &response);
 
 private:
-    QMap<quint64, Sailfish::Secrets::UiRequestWatcher *> m_requests;
+    QMap<quint64, Sailfish::Secrets::InteractionRequestWatcher *> m_requests;
 };
 
 } // namespace Plugins

@@ -8,7 +8,7 @@
 #include "Secrets/secretmanager.h"
 #include "Secrets/secret.h"
 #include "Secrets/result.h"
-#include "Secrets/uirequest.h"
+#include "Secrets/interactionrequest.h"
 
 #include <QtDBus/QDBusArgument>
 #include <QtCore/QString>
@@ -20,7 +20,7 @@ namespace Sailfish {
 
 namespace Secrets {
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::UiResponse &response)
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionResponse &response)
 {
     argument.beginStructure();
     argument << response.type();
@@ -29,7 +29,7 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::UiRe
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::UiResponse &response)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionResponse &response)
 {
     int type = 0;
     QVariantMap values;
@@ -37,11 +37,11 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
     argument >> type;
     argument >> values;
     argument.endStructure();
-    response = Sailfish::Secrets::UiResponse(static_cast<Sailfish::Secrets::UiRequest::Type>(type), values);
+    response = Sailfish::Secrets::InteractionResponse(static_cast<Sailfish::Secrets::InteractionRequest::Type>(type), values);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::UiRequest &request)
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionRequest &request)
 {
     argument.beginStructure();
     argument << static_cast<int>(request.type());
@@ -51,7 +51,7 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::UiRe
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::UiRequest &request)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionRequest &request)
 {
     int type = 0;
     bool isResponse = false;
@@ -62,9 +62,9 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
     argument >> values;
     argument.endStructure();
     if (isResponse) {
-        request = Sailfish::Secrets::UiResponse(static_cast<Sailfish::Secrets::UiRequest::Type>(type), values);
+        request = Sailfish::Secrets::InteractionResponse(static_cast<Sailfish::Secrets::InteractionRequest::Type>(type), values);
     } else {
-        request = Sailfish::Secrets::UiRequest(static_cast<Sailfish::Secrets::UiRequest::Type>(type), values);
+        request = Sailfish::Secrets::InteractionRequest(static_cast<Sailfish::Secrets::InteractionRequest::Type>(type), values);
     }
     return argument;
 }

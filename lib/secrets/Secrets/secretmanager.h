@@ -28,7 +28,7 @@ namespace Sailfish {
 
 namespace Secrets {
 
-class UiView;
+class InteractionView;
 class SecretManagerPrivate;
 class SAILFISH_SECRETS_API SecretManager : public QObject
 {
@@ -85,7 +85,7 @@ public:
     bool isInitialised() const;
 
     // for In-Process UI flows via ApplicationSpecificAuthentication plugins only.
-    void registerUiView(Sailfish::Secrets::UiView *view);
+    void registerInteractionView(Sailfish::Secrets::InteractionView *view);
 
     // cached information about available storage/encryption/encryptedstorage/authentication plugins.
     QMap<QString, Sailfish::Secrets::StoragePluginInfo> storagePluginInfo();

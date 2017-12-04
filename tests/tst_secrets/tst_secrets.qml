@@ -9,9 +9,9 @@ ApplicationWindow {
         id: secretsUi
         Page {
             id: page
-            InProcessUiView {
-                id: uiview
-                objectName: "uiview"
+            InProcessInteractionView {
+                id: interactionview
+                objectName: "interactionview"
                 anchors.fill: parent
             }
         }

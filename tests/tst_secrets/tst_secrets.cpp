@@ -237,9 +237,9 @@ void tst_secrets::createDeleteCustomLockCollection()
     // construct the in-process authentication key UI.
     QQuickView v(QUrl::fromLocalFile(QStringLiteral("%1/tst_secrets.qml").arg(QCoreApplication::applicationDirPath())));
     v.show();
-    QObject *uiView = v.rootObject()->findChild<QObject*>("uiview");
-    QVERIFY(uiView);
-    QMetaObject::invokeMethod(uiView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &m));
+    QObject *interactionView = v.rootObject()->findChild<QObject*>("interactionview");
+    QVERIFY(interactionView);
+    QMetaObject::invokeMethod(interactionView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &m));
 
     QDBusPendingReply<Sailfish::Secrets::Result> reply = m.createCollection(
                 QLatin1String("testcollection"),
@@ -267,9 +267,9 @@ void tst_secrets::writeReadDeleteCustomLockCollectionSecret()
     // construct the in-process authentication key UI.
     QQuickView v(QUrl::fromLocalFile(QStringLiteral("%1/tst_secrets.qml").arg(QCoreApplication::applicationDirPath())));
     v.show();
-    QObject *uiView = v.rootObject()->findChild<QObject*>("uiview");
-    QVERIFY(uiView);
-    QMetaObject::invokeMethod(uiView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &m));
+    QObject *interactionView = v.rootObject()->findChild<QObject*>("interactionview");
+    QVERIFY(interactionView);
+    QMetaObject::invokeMethod(interactionView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &m));
 
     QDBusPendingReply<Sailfish::Secrets::Result> reply = m.createCollection(
                 QLatin1String("testcollection"),
@@ -336,9 +336,9 @@ void tst_secrets::writeReadDeleteStandaloneCustomLockSecret()
     // construct the in-process authentication key UI.
     QQuickView v(QUrl::fromLocalFile(QStringLiteral("%1/tst_secrets.qml").arg(QCoreApplication::applicationDirPath())));
     v.show();
-    QObject *uiView = v.rootObject()->findChild<QObject*>("uiview");
-    QVERIFY(uiView);
-    QMetaObject::invokeMethod(uiView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &m));
+    QObject *interactionView = v.rootObject()->findChild<QObject*>("interactionview");
+    QVERIFY(interactionView);
+    QMetaObject::invokeMethod(interactionView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &m));
 
     Sailfish::Secrets::Secret testSecret(Sailfish::Secrets::Secret::Identifier(QLatin1String("testsecretname")));
     testSecret.setData("testsecretvalue");
@@ -387,9 +387,9 @@ void tst_secrets::encryptedStorageCollection()
     // construct the in-process authentication key UI.
     QQuickView v(QUrl::fromLocalFile(QStringLiteral("%1/tst_secrets.qml").arg(QCoreApplication::applicationDirPath())));
     v.show();
-    QObject *uiView = v.rootObject()->findChild<QObject*>("uiview");
-    QVERIFY(uiView);
-    QMetaObject::invokeMethod(uiView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &m));
+    QObject *interactionView = v.rootObject()->findChild<QObject*>("interactionview");
+    QVERIFY(interactionView);
+    QMetaObject::invokeMethod(interactionView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &m));
 
     QDBusPendingReply<Sailfish::Secrets::Result> reply = m.createCollection(
                 QLatin1String("testencryptedcollection"),

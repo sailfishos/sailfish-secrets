@@ -6,7 +6,7 @@ import Sailfish.Secrets 1.0 as Secrets
 Item {
     Rectangle {
         id: deleteConfirmationItem
-        visible: adapter.requestType == Secrets.InProcessUiView.DeleteSecretConfirmationRequest
+        visible: adapter.requestType == Secrets.InProcessInteractionView.DeleteSecretConfirmationRequest
         enabled: visible
         anchors.fill: parent
         color: "blue"
@@ -17,12 +17,12 @@ Item {
         MouseArea {
             enabled: parent.enabled
             anchors.fill: parent
-            onClicked: adapter.confirmation = Secrets.InProcessUiView.Allow
+            onClicked: adapter.confirmation = Secrets.InProcessInteractionView.Allow
         }
     }
     Rectangle {
         id: modifyConfirmationItem
-        visible: adapter.requestType == Secrets.InProcessUiView.ModifySecretConfirmationRequest
+        visible: adapter.requestType == Secrets.InProcessInteractionView.ModifySecretConfirmationRequest
         enabled: visible
         anchors.fill: parent
         color: "green"
@@ -33,12 +33,12 @@ Item {
         MouseArea {
             enabled: parent.enabled
             anchors.fill: parent
-            onClicked: adapter.confirmation = Secrets.InProcessUiView.Allow
+            onClicked: adapter.confirmation = Secrets.InProcessInteractionView.Allow
         }
     }
     Rectangle {
         id: userVerificationConfirmationItem
-        visible: adapter.requestType == Secrets.InProcessUiView.UserVerificationConfirmationRequest
+        visible: adapter.requestType == Secrets.InProcessInteractionView.UserVerificationConfirmationRequest
         enabled: visible
         anchors.fill: parent
         color: "yellow"
@@ -49,12 +49,12 @@ Item {
         MouseArea {
             enabled: parent.enabled
             anchors.fill: parent
-            onClicked: adapter.confirmation = Secrets.InProcessUiView.Allow
+            onClicked: adapter.confirmation = Secrets.InProcessInteractionView.Allow
         }
     }
     Rectangle {
         id: encryptionPasswordItem
-        visible: adapter.requestType == Secrets.InProcessUiView.AuthenticationKeyRequest
+        visible: adapter.requestType == Secrets.InProcessInteractionView.AuthenticationKeyRequest
         enabled: visible
         anchors.fill: parent
         color: "red"

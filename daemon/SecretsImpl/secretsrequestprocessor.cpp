@@ -391,7 +391,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createCustomLockCollection
         int customLockTimeoutMs,
         Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress)
+        const QString &interactionServiceAddress)
 {
     Q_UNUSED(requestId); // the request would only be asynchronous if we needed to perform the access control request, so until then it's always synchronous.
 
@@ -411,7 +411,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createCustomLockCollection
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidExtensionPluginError,
                                          QString::fromLatin1("No such authentication plugin exists: %1").arg(authenticationPluginName));
     } else if (m_authenticationPlugins[authenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
-               && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || uiServiceAddress.isEmpty())) {
+               && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
                                          QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(authenticationPluginName));
     } else if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
@@ -468,7 +468,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createCustomLockCollection
                 callerApplicationId,
                 collectionName,
                 QString(),
-                uiServiceAddress);
+                interactionServiceAddress);
     if (authenticationResult.code() == Sailfish::Secrets::Result::Failed) {
         return authenticationResult;
     }
@@ -486,7 +486,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createCustomLockCollection
                                                 << customLockTimeoutMs
                                                 << accessControlMode
                                                 << userInteractionMode
-                                                << uiServiceAddress));
+                                                << interactionServiceAddress));
     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Pending);
 }
 
@@ -502,14 +502,14 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createCustomLockCollection
         int customLockTimeoutMs,
         Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress,
+        const QString &interactionServiceAddress,
         const QByteArray &authenticationKey)
 {
     // may be required for access control requests in the future
     Q_UNUSED(callerPid);
     Q_UNUSED(requestId);
     Q_UNUSED(userInteractionMode);
-    Q_UNUSED(uiServiceAddress);
+    Q_UNUSED(interactionServiceAddress);
 
     // TODO: perform access control request to see if the application has permission to write secure storage data.
     const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
@@ -1132,7 +1132,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
         quint64 requestId,
         const Sailfish::Secrets::Secret &secret,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress)
+        const QString &interactionServiceAddress)
 {
     if (secret.identifier().name().isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidSecretError,
@@ -1243,7 +1243,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
                         requestId,
                         secret,
                         userInteractionMode,
-                        uiServiceAddress,
+                        interactionServiceAddress,
                         collectionUsesDeviceLockKey,
                         collectionApplicationId,
                         collectionStoragePluginName,
@@ -1272,7 +1272,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
                     callerApplicationId,
                     secret.identifier().collectionName(),
                     secret.identifier().name(),
-                    uiServiceAddress);
+                    interactionServiceAddress);
         if (authenticationResult.code() == Sailfish::Secrets::Result::Failed) {
             return authenticationResult;
         }
@@ -1284,7 +1284,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
                                      Sailfish::Secrets::Daemon::ApiImpl::SetCollectionSecretRequest,
                                      QVariantList() << QVariant::fromValue<Sailfish::Secrets::Secret>(secret)
                                                     << userInteractionMode
-                                                    << uiServiceAddress
+                                                    << interactionServiceAddress
                                                     << collectionUsesDeviceLockKey
                                                     << collectionApplicationId
                                                     << collectionStoragePluginName
@@ -1303,7 +1303,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
                     requestId,
                     secret,
                     userInteractionMode,
-                    uiServiceAddress,
+                    interactionServiceAddress,
                     collectionUsesDeviceLockKey,
                     collectionApplicationId,
                     collectionStoragePluginName,
@@ -1332,7 +1332,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
                 callerApplicationId,
                 secret.identifier().collectionName(),
                 secret.identifier().name(),
-                uiServiceAddress);
+                interactionServiceAddress);
     if (authenticationResult.code() == Sailfish::Secrets::Result::Failed) {
         return authenticationResult;
     }
@@ -1344,7 +1344,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
                                  Sailfish::Secrets::Daemon::ApiImpl::SetCollectionSecretRequest,
                                  QVariantList() << QVariant::fromValue<Sailfish::Secrets::Secret>(secret)
                                                 << userInteractionMode
-                                                << uiServiceAddress
+                                                << interactionServiceAddress
                                                 << collectionUsesDeviceLockKey
                                                 << collectionApplicationId
                                                 << collectionStoragePluginName
@@ -1362,7 +1362,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithAut
         quint64 requestId,
         const Sailfish::Secrets::Secret &secret,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress,
+        const QString &interactionServiceAddress,
         bool collectionUsesDeviceLockKey,
         const QString &collectionApplicationId,
         const QString &collectionStoragePluginName,
@@ -1377,7 +1377,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithAut
     Q_UNUSED(callerPid);
     Q_UNUSED(requestId);
     Q_UNUSED(userInteractionMode);
-    Q_UNUSED(uiServiceAddress);
+    Q_UNUSED(interactionServiceAddress);
 
     const QString selectSecretsCountQuery = QStringLiteral(
                  "SELECT"
@@ -1831,7 +1831,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
         int customLockTimeoutMs,
         Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress)
+        const QString &interactionServiceAddress)
 {
     if (secret.identifier().name().isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidSecretError,
@@ -1914,7 +1914,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
                                          QString::fromLatin1("Secret %1 already exists and is not stored via plugin %2")
                                          .arg(secret.identifier().name(), storagePluginName));
     } else if (m_authenticationPlugins[authenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
-               && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || uiServiceAddress.isEmpty())) {
+               && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
                                          QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(authenticationPluginName));
     } else if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
@@ -1930,7 +1930,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
                 callerApplicationId,
                 QString(),
                 secret.identifier().name(),
-                uiServiceAddress);
+                interactionServiceAddress);
     if (authenticationResult.code() == Sailfish::Secrets::Result::Failed) {
         return authenticationResult;
     }
@@ -1948,7 +1948,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
                                                 << customLockTimeoutMs
                                                 << accessControlMode
                                                 << userInteractionMode
-                                                << uiServiceAddress));
+                                                << interactionServiceAddress));
     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Pending);
 }
 
@@ -1964,12 +1964,12 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
         int customLockTimeoutMs,
         Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress,
+        const QString &interactionServiceAddress,
         const QByteArray &authenticationKey)
 {
     Q_UNUSED(requestId);
     Q_UNUSED(userInteractionMode);
-    Q_UNUSED(uiServiceAddress);
+    Q_UNUSED(interactionServiceAddress);
 
     // TODO: perform access control request to see if the application has permission to write secure storage data.
     const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
@@ -2197,7 +2197,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
         quint64 requestId,
         const Sailfish::Secrets::Secret::Identifier &identifier,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress,
+        const QString &interactionServiceAddress,
         Sailfish::Secrets::Secret *secret)
 {
     if (identifier.name().isEmpty()) {
@@ -2313,7 +2313,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
                 } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
-                            && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || uiServiceAddress.isEmpty())) {
+                            && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
                 }
@@ -2325,7 +2325,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                             callerApplicationId,
                             identifier.collectionName(),
                             identifier.name(),
-                            uiServiceAddress);
+                            interactionServiceAddress);
                 if (authenticationResult.code() == Sailfish::Secrets::Result::Failed) {
                     return authenticationResult;
                 }
@@ -2337,7 +2337,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                                              Sailfish::Secrets::Daemon::ApiImpl::GetCollectionSecretRequest,
                                              QVariantList() << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(identifier)
                                                             << userInteractionMode
-                                                            << uiServiceAddress
+                                                            << interactionServiceAddress
                                                             << collectionStoragePluginName
                                                             << collectionEncryptionPluginName
                                                             << collectionUnlockSemantic
@@ -2350,7 +2350,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                         requestId,
                         identifier,
                         userInteractionMode,
-                        uiServiceAddress,
+                        interactionServiceAddress,
                         collectionStoragePluginName,
                         collectionEncryptionPluginName,
                         collectionUnlockSemantic,
@@ -2368,7 +2368,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
                 } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
-                           && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || uiServiceAddress.isEmpty())) {
+                           && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
                 }
@@ -2380,7 +2380,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                             callerApplicationId,
                             identifier.collectionName(),
                             identifier.name(),
-                            uiServiceAddress);
+                            interactionServiceAddress);
                 if (authenticationResult.code() == Sailfish::Secrets::Result::Failed) {
                     return authenticationResult;
                 }
@@ -2392,7 +2392,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                                              Sailfish::Secrets::Daemon::ApiImpl::GetCollectionSecretRequest,
                                              QVariantList() << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(identifier)
                                                             << userInteractionMode
-                                                            << uiServiceAddress
+                                                            << interactionServiceAddress
                                                             << collectionStoragePluginName
                                                             << collectionEncryptionPluginName
                                                             << collectionUnlockSemantic
@@ -2405,7 +2405,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                         requestId,
                         identifier,
                         userInteractionMode,
-                        uiServiceAddress,
+                        interactionServiceAddress,
                         collectionStoragePluginName,
                         collectionEncryptionPluginName,
                         collectionUnlockSemantic,
@@ -2422,7 +2422,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithAut
         quint64 requestId,
         const Sailfish::Secrets::Secret::Identifier &identifier,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress,
+        const QString &interactionServiceAddress,
         const QString &storagePluginName,
         const QString &encryptionPluginName,
         int collectionUnlockSemantic,
@@ -2434,7 +2434,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithAut
     Q_UNUSED(callerPid);
     Q_UNUSED(requestId);
     Q_UNUSED(userInteractionMode);
-    Q_UNUSED(uiServiceAddress);
+    Q_UNUSED(interactionServiceAddress);
 
     if (collectionUnlockSemantic == Sailfish::Secrets::SecretManager::CustomLockTimoutRelock) {
         if (!m_collectionLockTimers.contains(identifier.collectionName())) {
@@ -2515,7 +2515,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
         quint64 requestId,
         const Sailfish::Secrets::Secret::Identifier &identifier,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress,
+        const QString &interactionServiceAddress,
         Sailfish::Secrets::Secret *secret)
 {
     if (identifier.name().isEmpty()) {
@@ -2612,7 +2612,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::PermissionsError,
                                          QString::fromLatin1("Secret %1 is owned by a different application").arg(identifier.name()));
     } else if (m_authenticationPlugins[secretAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
-               && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || uiServiceAddress.isEmpty())) {
+               && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
                                          QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(secretAuthenticationPluginName));
     }
@@ -2623,7 +2623,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
                     requestId,
                     identifier,
                     userInteractionMode,
-                    uiServiceAddress,
+                    interactionServiceAddress,
                     secretStoragePluginName,
                     secretEncryptionPluginName,
                     secretUnlockSemantic,
@@ -2649,7 +2649,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
                 callerApplicationId,
                 QString(),
                 identifier.name(),
-                uiServiceAddress);
+                interactionServiceAddress);
     if (authenticationResult.code() == Sailfish::Secrets::Result::Failed) {
         return authenticationResult;
     }
@@ -2661,7 +2661,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
                                  Sailfish::Secrets::Daemon::ApiImpl::GetStandaloneSecretRequest,
                                  QVariantList() << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(identifier)
                                                 << userInteractionMode
-                                                << uiServiceAddress
+                                                << interactionServiceAddress
                                                 << secretStoragePluginName
                                                 << secretEncryptionPluginName
                                                 << secretUnlockSemantic
@@ -2675,7 +2675,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithAut
         quint64 requestId,
         const Sailfish::Secrets::Secret::Identifier &identifier,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress,
+        const QString &interactionServiceAddress,
         const QString &storagePluginName,
         const QString &encryptionPluginName,
         int secretUnlockSemantic,
@@ -2687,7 +2687,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithAut
     Q_UNUSED(callerPid);
     Q_UNUSED(requestId);
     Q_UNUSED(userInteractionMode);
-    Q_UNUSED(uiServiceAddress);
+    Q_UNUSED(interactionServiceAddress);
 
     if (secretUnlockSemantic == Sailfish::Secrets::SecretManager::CustomLockTimoutRelock) {
         if (!m_standaloneSecretLockTimers.contains(identifier.name())) {
@@ -2738,7 +2738,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
         const Sailfish::Secrets::Secret::FilterData &filter,
         Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress,
+        const QString &interactionServiceAddress,
         QVector<Sailfish::Secrets::Secret::Identifier> *identifiers)
 {
     if (collectionName.isEmpty()) {
@@ -2854,7 +2854,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
                 } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
-                            && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || uiServiceAddress.isEmpty())) {
+                            && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
                 }
@@ -2866,7 +2866,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                             callerApplicationId,
                             collectionName,
                             QString(),
-                            uiServiceAddress);
+                            interactionServiceAddress);
                 if (authenticationResult.code() == Sailfish::Secrets::Result::Failed) {
                     return authenticationResult;
                 }
@@ -2880,7 +2880,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                                                             << QVariant::fromValue<Sailfish::Secrets::Secret::FilterData >(filter)
                                                             << filterOperator
                                                             << userInteractionMode
-                                                            << uiServiceAddress
+                                                            << interactionServiceAddress
                                                             << collectionStoragePluginName
                                                             << collectionEncryptionPluginName
                                                             << collectionUnlockSemantic
@@ -2895,7 +2895,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                         filter,
                         filterOperator,
                         userInteractionMode,
-                        uiServiceAddress,
+                        interactionServiceAddress,
                         collectionStoragePluginName,
                         collectionEncryptionPluginName,
                         collectionUnlockSemantic,
@@ -2913,7 +2913,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
                 } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
-                           && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || uiServiceAddress.isEmpty())) {
+                           && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
                     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
                 }
@@ -2925,7 +2925,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                             callerApplicationId,
                             collectionName,
                             QString(),
-                            uiServiceAddress);
+                            interactionServiceAddress);
                 if (authenticationResult.code() == Sailfish::Secrets::Result::Failed) {
                     return authenticationResult;
                 }
@@ -2939,7 +2939,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                                                             << QVariant::fromValue<Sailfish::Secrets::Secret::FilterData >(filter)
                                                             << filterOperator
                                                             << userInteractionMode
-                                                            << uiServiceAddress
+                                                            << interactionServiceAddress
                                                             << collectionStoragePluginName
                                                             << collectionEncryptionPluginName
                                                             << collectionUnlockSemantic
@@ -2954,7 +2954,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                         filter,
                         filterOperator,
                         userInteractionMode,
-                        uiServiceAddress,
+                        interactionServiceAddress,
                         collectionStoragePluginName,
                         collectionEncryptionPluginName,
                         collectionUnlockSemantic,
@@ -2973,7 +2973,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithA
         const Sailfish::Secrets::Secret::FilterData &filter,
         Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress,
+        const QString &interactionServiceAddress,
         const QString &storagePluginName,
         const QString &encryptionPluginName,
         int collectionUnlockSemantic,
@@ -2985,7 +2985,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithA
     Q_UNUSED(callerPid);
     Q_UNUSED(requestId);
     Q_UNUSED(userInteractionMode);
-    Q_UNUSED(uiServiceAddress);
+    Q_UNUSED(interactionServiceAddress);
 
     if (collectionUnlockSemantic == Sailfish::Secrets::SecretManager::CustomLockTimoutRelock) {
         if (!m_collectionLockTimers.contains(collectionName)) {
@@ -3072,7 +3072,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findStandaloneSecrets(
         const Sailfish::Secrets::Secret::FilterData &filter,
         Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress,
+        const QString &interactionServiceAddress,
         QVector<Sailfish::Secrets::Secret::Identifier> *identifiers)
 {
     // TODO!
@@ -3081,7 +3081,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findStandaloneSecrets(
     Q_UNUSED(filter)
     Q_UNUSED(filterOperator)
     Q_UNUSED(userInteractionMode)
-    Q_UNUSED(uiServiceAddress)
+    Q_UNUSED(interactionServiceAddress)
     Q_UNUSED(identifiers)
     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationNotSupportedError,
                                      QLatin1String("Filtering standalone secrets is not yet supported!"));
@@ -3094,7 +3094,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
         quint64 requestId,
         const Sailfish::Secrets::Secret::Identifier &identifier,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress)
+        const QString &interactionServiceAddress)
 {
     if (identifier.name().isEmpty()) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::InvalidSecretError,
@@ -3211,7 +3211,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
                         callerApplicationId,
                         identifier.collectionName(),
                         identifier.name(),
-                        uiServiceAddress);
+                        interactionServiceAddress);
             if (authenticationResult.code() == Sailfish::Secrets::Result::Failed) {
                 return authenticationResult;
             }
@@ -3223,7 +3223,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
                                          Sailfish::Secrets::Daemon::ApiImpl::DeleteCollectionSecretRequest,
                                          QVariantList() << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(identifier)
                                                         << userInteractionMode
-                                                        << uiServiceAddress));
+                                                        << interactionServiceAddress));
             return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Pending);
         } else {
             return deleteCollectionSecretWithAuthenticationKey(
@@ -3231,7 +3231,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
                         requestId,
                         identifier,
                         userInteractionMode,
-                        uiServiceAddress,
+                        interactionServiceAddress,
                         DeviceLockKey);
         }
     } else {
@@ -3252,7 +3252,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
                             callerApplicationId,
                             identifier.collectionName(),
                             identifier.name(),
-                            uiServiceAddress);
+                            interactionServiceAddress);
                 if (authenticationResult.code() == Sailfish::Secrets::Result::Failed) {
                     return authenticationResult;
                 }
@@ -3264,7 +3264,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
                                              Sailfish::Secrets::Daemon::ApiImpl::DeleteCollectionSecretRequest,
                                              QVariantList() << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(identifier)
                                                             << userInteractionMode
-                                                            << uiServiceAddress));
+                                                            << interactionServiceAddress));
                 return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Pending);
             }
         } else {
@@ -3273,7 +3273,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
                         requestId,
                         identifier,
                         userInteractionMode,
-                        uiServiceAddress,
+                        interactionServiceAddress,
                         m_collectionAuthenticationKeys.value(identifier.collectionName()));
         }
     }
@@ -3285,13 +3285,13 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWith
         quint64 requestId,
         const Sailfish::Secrets::Secret::Identifier &identifier,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress,
+        const QString &interactionServiceAddress,
         const QByteArray &authenticationKey)
 {
     // may be needed for access control requests in the future.
     Q_UNUSED(requestId);
     Q_UNUSED(userInteractionMode);
-    Q_UNUSED(uiServiceAddress);
+    Q_UNUSED(interactionServiceAddress);
 
     // TODO: perform access control request to see if the application has permission to write secure storage data.
     const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
@@ -3624,7 +3624,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
         const QString &callerApplicationId,
         const QString &collectionName,
         const QString &secretName,
-        const QString &uiServiceAddress,
+        const QString &interactionServiceAddress,
         const Sailfish::Secrets::Result &result,
         const QByteArray &authenticationKey)
 {
@@ -3633,7 +3633,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
     Q_UNUSED(callerApplicationId);
     Q_UNUSED(collectionName);
     Q_UNUSED(secretName);
-    Q_UNUSED(uiServiceAddress);
+    Q_UNUSED(interactionServiceAddress);
 
     Sailfish::Secrets::Secret secret;
     QVector<Sailfish::Secrets::Secret::Identifier> identifiers;

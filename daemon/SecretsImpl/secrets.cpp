@@ -76,7 +76,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::createCollection(
         int customLockTimeoutMs,
         Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress,
+        const QString &interactionServiceAddress,
         const QDBusMessage &message,
         Sailfish::Secrets::Result &result)
 {
@@ -89,7 +89,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::createCollection(
              << QVariant::fromValue<int>(customLockTimeoutMs)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::AccessControlMode>(accessControlMode)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
-             << QVariant::fromValue<QString>(uiServiceAddress);
+             << QVariant::fromValue<QString>(interactionServiceAddress);
     m_requestQueue->handleRequest(Sailfish::Secrets::Daemon::ApiImpl::CreateCustomLockCollectionRequest,
                                   inParams,
                                   connection(),
@@ -118,14 +118,14 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::deleteCollection(
 void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::setSecret(
         const Sailfish::Secrets::Secret &secret,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress,
+        const QString &interactionServiceAddress,
         const QDBusMessage &message,
         Sailfish::Secrets::Result &result)
 {
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<Sailfish::Secrets::Secret>(secret)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
-             << QVariant::fromValue<QString>(uiServiceAddress);
+             << QVariant::fromValue<QString>(interactionServiceAddress);
     m_requestQueue->handleRequest(Sailfish::Secrets::Daemon::ApiImpl::SetCollectionSecretRequest,
                                   inParams,
                                   connection(),
@@ -168,7 +168,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::setSecret(
         int customLockTimeoutMs,
         Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress,
+        const QString &interactionServiceAddress,
         const QDBusMessage &message,
         Sailfish::Secrets::Result &result)
 {
@@ -181,7 +181,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::setSecret(
              << QVariant::fromValue<int>(customLockTimeoutMs)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::AccessControlMode>(accessControlMode)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
-             << QVariant::fromValue<QString>(uiServiceAddress);
+             << QVariant::fromValue<QString>(interactionServiceAddress);
     m_requestQueue->handleRequest(Sailfish::Secrets::Daemon::ApiImpl::SetStandaloneCustomLockSecretRequest,
                                   inParams,
                                   connection(),
@@ -193,7 +193,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::setSecret(
 void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::getSecret(
         const Sailfish::Secrets::Secret::Identifier &identifier,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress,
+        const QString &interactionServiceAddress,
         const QDBusMessage &message,
         Sailfish::Secrets::Result &result,
         Sailfish::Secrets::Secret &secret)
@@ -202,7 +202,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::getSecret(
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(identifier)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
-             << QVariant::fromValue<QString>(uiServiceAddress);
+             << QVariant::fromValue<QString>(interactionServiceAddress);
     m_requestQueue->handleRequest(identifier.identifiesStandaloneSecret()
                                       ? Sailfish::Secrets::Daemon::ApiImpl::GetStandaloneSecretRequest
                                       : Sailfish::Secrets::Daemon::ApiImpl::GetCollectionSecretRequest,
@@ -218,7 +218,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::findSecrets(
         const Sailfish::Secrets::Secret::FilterData &filter,
         Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress,
+        const QString &interactionServiceAddress,
         const QDBusMessage &message,
         Sailfish::Secrets::Result &result,
         QVector<Sailfish::Secrets::Secret::Identifier> &identifiers)
@@ -231,7 +231,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::findSecrets(
     inParams << QVariant::fromValue<Sailfish::Secrets::Secret::FilterData>(filter)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::FilterOperator>(filterOperator)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
-             << QVariant::fromValue<QString>(uiServiceAddress);
+             << QVariant::fromValue<QString>(interactionServiceAddress);
     m_requestQueue->handleRequest(collectionName.isEmpty()
                                       ? Sailfish::Secrets::Daemon::ApiImpl::FindStandaloneSecretsRequest
                                       : Sailfish::Secrets::Daemon::ApiImpl::FindCollectionSecretsRequest,
@@ -245,14 +245,14 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::findSecrets(
 void Sailfish::Secrets::Daemon::ApiImpl::SecretsDBusObject::deleteSecret(
         const Sailfish::Secrets::Secret::Identifier &identifier,
         Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-        const QString &uiServiceAddress,
+        const QString &interactionServiceAddress,
         const QDBusMessage &message,
         Sailfish::Secrets::Result &result)
 {
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(identifier)
              << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
-             << QVariant::fromValue<QString>(uiServiceAddress);
+             << QVariant::fromValue<QString>(interactionServiceAddress);
     m_requestQueue->handleRequest(identifier.identifiesStandaloneSecret()
                                       ? Sailfish::Secrets::Daemon::ApiImpl::DeleteStandaloneSecretRequest
                                       : Sailfish::Secrets::Daemon::ApiImpl::DeleteCollectionSecretRequest,
@@ -413,7 +413,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::UserInteractionMode>()
                     : Sailfish::Secrets::SecretManager::PreventInteraction;
-            QString uiServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            QString interactionServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             Sailfish::Secrets::Result result = m_requestProcessor->createCustomLockCollection(
                         request->remotePid,
                         request->requestId,
@@ -425,7 +425,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
                         customLockTimeoutMs,
                         accessControlMode,
                         userInteractionMode,
-                        uiServiceAddress);
+                        interactionServiceAddress);
             // send the reply to the calling peer.
             if (result.code() == Sailfish::Secrets::Result::Pending) {
                 // waiting for asynchronous flow to complete
@@ -473,13 +473,13 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::UserInteractionMode>()
                     : Sailfish::Secrets::SecretManager::PreventInteraction;
-            QString uiServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            QString interactionServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             Sailfish::Secrets::Result result = m_requestProcessor->setCollectionSecret(
                         request->remotePid,
                         request->requestId,
                         secret,
                         userInteractionMode,
-                        uiServiceAddress);
+                        interactionServiceAddress);
             // send the reply to the calling peer.
             if (result.code() == Sailfish::Secrets::Result::Pending) {
                 // waiting for asynchronous flow to complete
@@ -551,7 +551,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::UserInteractionMode>()
                     : Sailfish::Secrets::SecretManager::PreventInteraction;
-            QString uiServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            QString interactionServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             Sailfish::Secrets::Result result = m_requestProcessor->setStandaloneCustomLockSecret(
                         request->remotePid,
                         request->requestId,
@@ -563,7 +563,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
                         customLockTimeoutMs,
                         accessControlMode,
                         userInteractionMode,
-                        uiServiceAddress);
+                        interactionServiceAddress);
             // send the reply to the calling peer.
             if (result.code() == Sailfish::Secrets::Result::Pending) {
                 // waiting for asynchronous flow to complete
@@ -586,14 +586,14 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::UserInteractionMode>()
                     : Sailfish::Secrets::SecretManager::PreventInteraction;
-            QString uiServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            QString interactionServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             Sailfish::Secrets::Secret secret;
             Sailfish::Secrets::Result result = m_requestProcessor->getCollectionSecret(
                         request->remotePid,
                         request->requestId,
                         identifier,
                         userInteractionMode,
-                        uiServiceAddress,
+                        interactionServiceAddress,
                         &secret);
             // send the reply to the calling peer.
             if (result.code() == Sailfish::Secrets::Result::Pending) {
@@ -618,14 +618,14 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::UserInteractionMode>()
                     : Sailfish::Secrets::SecretManager::PreventInteraction;
-            QString uiServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            QString interactionServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             Sailfish::Secrets::Secret secret;
             Sailfish::Secrets::Result result = m_requestProcessor->getStandaloneSecret(
                         request->remotePid,
                         request->requestId,
                         identifier,
                         userInteractionMode,
-                        uiServiceAddress,
+                        interactionServiceAddress,
                         &secret);
             // send the reply to the calling peer.
             if (result.code() == Sailfish::Secrets::Result::Pending) {
@@ -654,7 +654,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::UserInteractionMode>()
                     : Sailfish::Secrets::SecretManager::PreventInteraction;
-            QString uiServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            QString interactionServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             QVector<Sailfish::Secrets::Secret::Identifier> identifiers;
             Sailfish::Secrets::Result result = m_requestProcessor->findCollectionSecrets(
                         request->remotePid,
@@ -663,7 +663,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
                         filter,
                         filterOperator,
                         userInteractionMode,
-                        uiServiceAddress,
+                        interactionServiceAddress,
                         &identifiers);
             // send the reply to the calling peer.
             if (result.code() == Sailfish::Secrets::Result::Pending) {
@@ -691,7 +691,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::UserInteractionMode>()
                     : Sailfish::Secrets::SecretManager::PreventInteraction;
-            QString uiServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            QString interactionServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             QVector<Sailfish::Secrets::Secret::Identifier> identifiers;
             Sailfish::Secrets::Result result = m_requestProcessor->findStandaloneSecrets(
                         request->remotePid,
@@ -699,7 +699,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
                         filter,
                         filterOperator,
                         userInteractionMode,
-                        uiServiceAddress,
+                        interactionServiceAddress,
                         &identifiers);
             // send the reply to the calling peer.
             if (result.code() == Sailfish::Secrets::Result::Pending) {
@@ -724,13 +724,13 @@ void Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::handlePendingReque
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<Sailfish::Secrets::SecretManager::UserInteractionMode>()
                     : Sailfish::Secrets::SecretManager::PreventInteraction;
-            QString uiServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            QString interactionServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             Sailfish::Secrets::Result result = m_requestProcessor->deleteCollectionSecret(
                         request->remotePid,
                         request->requestId,
                         identifier,
                         userInteractionMode,
-                        uiServiceAddress);
+                        interactionServiceAddress);
             // send the reply to the calling peer.
             if (result.code() == Sailfish::Secrets::Result::Pending) {
                 // waiting for asynchronous flow to complete

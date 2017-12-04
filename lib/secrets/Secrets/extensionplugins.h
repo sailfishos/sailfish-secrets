@@ -231,7 +231,7 @@ public:
             const QString &callerApplicationId,
             const QString &collectionName,
             const QString &secretName,
-            const QString &uiServiceAddress) = 0;
+            const QString &interactionServiceAddress) = 0;
 
 Q_SIGNALS:
     void authenticationCompleted(
@@ -240,7 +240,7 @@ Q_SIGNALS:
             const QString &callerApplicationId,
             const QString &collectionName,
             const QString &secretName,
-            const QString &uiServiceAddress,
+            const QString &interactionServiceAddress,
             const Sailfish::Secrets::Result &result,
             const QByteArray &authenticationKey);
 };

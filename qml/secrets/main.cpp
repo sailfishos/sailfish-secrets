@@ -5,13 +5,13 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#include "inprocessuiview.h"
+#include "inprocessinteractionview.h"
 
 #include <QQmlExtensionPlugin>
 #include <QQmlParserStatus>
 #include <QQmlEngine>
 
-class UiViewPlugin : public QQmlExtensionPlugin
+class InteractionViewPlugin : public QQmlExtensionPlugin
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID "Sailfish.Secrets")
@@ -23,7 +23,7 @@ public:
 
     virtual void registerTypes(const char *uri)
     {
-        qmlRegisterType<Sailfish::Secrets::Plugin::InProcessUiView>(uri, 1, 0, "InProcessUiView");
+        qmlRegisterType<Sailfish::Secrets::Plugin::InProcessInteractionView>(uri, 1, 0, "InProcessInteractionView");
     }
 };
 

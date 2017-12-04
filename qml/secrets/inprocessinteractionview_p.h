@@ -8,10 +8,10 @@
 #ifndef SAILFISHSECRETS_QML_INPROCESSUIVIEW_P_H
 #define SAILFISHSECRETS_QML_INPROCESSUIVIEW_P_H
 
-#include "inprocessuiview.h"
+#include "inprocessinteractionview.h"
 
 #include "Secrets/secretmanager.h"
-#include "Secrets/uirequest.h"
+#include "Secrets/interactionrequest.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QStringList>
@@ -35,8 +35,8 @@ namespace Plugin {
 // a) confirmationReceived (for 1/2/3)
 // b) passwordReceived (for 4)
 
-class InProcessUiView;
-class InProcessUiViewPrivate : public QObject
+class InProcessInteractionView;
+class InProcessInteractionViewPrivate : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(int confirmation READ confirmation WRITE setConfirmation NOTIFY confirmationChanged)
@@ -44,18 +44,18 @@ class InProcessUiViewPrivate : public QObject
     Q_PROPERTY(int requestType READ requestType NOTIFY requestTypeChanged)
 
 public:
-    InProcessUiViewPrivate(InProcessUiView *parent = Q_NULLPTR);
+    InProcessInteractionViewPrivate(InProcessInteractionView *parent = Q_NULLPTR);
 
     int confirmation() const { return m_confirmation; }
     void setConfirmation(int v) {
         if (m_confirmation != v) {
             m_confirmation = v;
             emit confirmationChanged();
-            if (m_ready && (m_requestType == Sailfish::Secrets::UiRequest::DeleteSecretConfirmationRequest
-                            || m_requestType == Sailfish::Secrets::UiRequest::ModifySecretConfirmationRequest
-                            || m_requestType == Sailfish::Secrets::UiRequest::UserVerificationConfirmationRequest)) {
-                sendResponse(v == Sailfish::Secrets::Plugin::InProcessUiView::Allow);
-                m_confirmation = Sailfish::Secrets::Plugin::InProcessUiView::Unknown; // reset.
+            if (m_ready && (m_requestType == Sailfish::Secrets::InteractionRequest::DeleteSecretConfirmationRequest
+                            || m_requestType == Sailfish::Secrets::InteractionRequest::ModifySecretConfirmationRequest
+                            || m_requestType == Sailfish::Secrets::InteractionRequest::UserVerificationConfirmationRequest)) {
+                sendResponse(v == Sailfish::Secrets::Plugin::InProcessInteractionView::Allow);
+                m_confirmation = Sailfish::Secrets::Plugin::InProcessInteractionView::Unknown; // reset.
             }
         }
     }
@@ -65,7 +65,7 @@ public:
         if (m_password != v) {
             m_password = v;
             emit passwordChanged();
-            if (m_ready && m_requestType == Sailfish::Secrets::UiRequest::AuthenticationKeyRequest) {
+            if (m_ready && m_requestType == Sailfish::Secrets::InteractionRequest::AuthenticationKeyRequest) {
                 sendResponse(v.toUtf8());
                 m_password.clear(); // reset.
             }
@@ -73,7 +73,7 @@ public:
     }
 
     int requestType() const { return m_requestType; }
-    void setRequestType(Sailfish::Secrets::UiRequest::Type type) { m_ready = true; m_requestType = type; emit requestTypeChanged(); }
+    void setRequestType(Sailfish::Secrets::InteractionRequest::Type type) { m_ready = true; m_requestType = type; emit requestTypeChanged(); }
 
 Q_SIGNALS:
     void confirmationChanged();
@@ -85,8 +85,8 @@ private Q_SLOTS:
     void sendResponse(const QByteArray &authenticationKey);
 
 private:
-    friend class InProcessUiView;
-    InProcessUiView *m_parent;
+    friend class InProcessInteractionView;
+    InProcessInteractionView *m_parent;
     SecretManager *m_secretManager;
     QString m_password;
     int m_requestType;

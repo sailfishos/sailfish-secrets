@@ -43,7 +43,7 @@ Sailfish::Secrets::SecretManagerPrivate::SecretManagerPrivate(SecretManager *par
     : QObject(parent)
     , m_parent(parent)
     , m_uiService(Q_NULLPTR)
-    , m_uiView(Q_NULLPTR)
+    , m_interactionView(Q_NULLPTR)
     , m_secrets(Sailfish::Secrets::SecretsDaemonConnection::instance())
     , m_interface(m_secrets->connect()
                   ? m_secrets->createApiInterface(QLatin1String("/Sailfish/Secrets"), QLatin1String("org.sailfishos.secrets"), this)
@@ -57,16 +57,16 @@ Sailfish::Secrets::SecretManagerPrivate::~SecretManagerPrivate()
 }
 
 Sailfish::Secrets::Result
-Sailfish::Secrets::SecretManagerPrivate::registerUiService(
+Sailfish::Secrets::SecretManagerPrivate::registerInteractionService(
         Sailfish::Secrets::SecretManager::UserInteractionMode mode,
         QString *address)
 {
     if (mode == Sailfish::Secrets::SecretManager::ApplicationInteraction) {
         if (!m_uiService) {
-            m_uiService = new Sailfish::Secrets::UiService(this);
+            m_uiService = new Sailfish::Secrets::InteractionService(this);
         }
         if (!m_uiService->registerServer()) {
-            Sailfish::Secrets::Result result(Sailfish::Secrets::Result::UiServiceUnavailableError,
+            Sailfish::Secrets::Result result(Sailfish::Secrets::Result::InteractionServiceUnavailableError,
                                              QStringLiteral("Unable to start in-process ui service"));
             return result;
         }
@@ -145,18 +145,18 @@ bool Sailfish::Secrets::SecretManager::isInitialised() const
 
 /*!
   \brief Registers the given \a view with the SecretManager.
-  The \a view the UiView instance which will display any UI required during secret request
+  The \a view the InteractionView instance which will display any UI required during secret request
   if the authentication plugin for the secret or collection supports \c ApplicationSpecificAuthentication
   in-process UI flows.
 
-  Note that the UiView type does not extend QObject and thus no smart pointer (QPointer, etc)
+  Note that the InteractionView type does not extend QObject and thus no smart pointer (QPointer, etc)
   is used to track the lifetime of the view object.  The client must ensure that the view isn't
   destroyed prior to or during a request performed via the SecretManager, to avoid undefined behaviour.
  */
-void Sailfish::Secrets::SecretManager::registerUiView(Sailfish::Secrets::UiView *view)
+void Sailfish::Secrets::SecretManager::registerInteractionView(Sailfish::Secrets::InteractionView *view)
 {
-    // Note: UiView is not QObject-derived, so we cannot use QPointer etc.
-    m_data->m_uiView = view;
+    // Note: InteractionView is not QObject-derived, so we cannot use QPointer etc.
+    m_data->m_interactionView = view;
 }
 
 /*!
@@ -222,10 +222,10 @@ Sailfish::Secrets::SecretManager::encryptedStoragePluginInfo()
  * secrets, then when creating the collection or secret you
  * can specify an authentication plugin which supports
  * the \c ApplicationSpecificAuthentication authentication type,
- * and register a \l Sailfish::Secrets::UiView with the manager
+ * and register a \l Sailfish::Secrets::InteractionView with the manager
  * which will then be used to provide the UI interaction with the
  * user, in-process.  (Note that if you do not wish any UI interaction,
- * the UiView implementation can return a precalculated key directly.)
+ * the InteractionView implementation can return a precalculated key directly.)
  *
  * Alternatively, other plugins provide various system-mediated
  * UI flows which ensure that the integrity of the user's authentication
@@ -296,7 +296,7 @@ Sailfish::Secrets::SecretManager::createCollection(
  * and the specified authentication plugin supports
  * \c ApplicationSpecificAuthentication flows, then the authentication key
  * will be obtained from the user via an in-process authentication flow (see
- * the documentation for \l registerUiView() for more information); otherwise,
+ * the documentation for \l registerInteractionView() for more information); otherwise,
  * a system-mediated authentication flow will be triggered to obtain the
  * authentication key from the user.
  */
@@ -317,8 +317,8 @@ Sailfish::Secrets::SecretManager::createCollection(
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QString uiServiceAddress;
-    Sailfish::Secrets::Result uiServiceResult = m_data->registerUiService(userInteractionMode, &uiServiceAddress);
+    QString interactionServiceAddress;
+    Sailfish::Secrets::Result uiServiceResult = m_data->registerInteractionService(userInteractionMode, &interactionServiceAddress);
     if (uiServiceResult.code() == Sailfish::Secrets::Result::Failed) {
         return QDBusPendingReply<Sailfish::Secrets::Result>(
                 QDBusMessage().createReply(
@@ -336,7 +336,7 @@ Sailfish::Secrets::SecretManager::createCollection(
                                << QVariant::fromValue<int>(customLockTimeoutMs)
                                << QVariant::fromValue<Sailfish::Secrets::SecretManager::AccessControlMode>(accessControlMode)
                                << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
-                               << QVariant::fromValue<QString>(uiServiceAddress));
+                               << QVariant::fromValue<QString>(interactionServiceAddress));
     return reply;
 }
 
@@ -423,8 +423,8 @@ Sailfish::Secrets::SecretManager::setSecret(
                         QVariantList() << QVariant::fromValue<Sailfish::Secrets::Result>(identifierError)));
     }
 
-    QString uiServiceAddress;
-    Sailfish::Secrets::Result uiServiceResult = m_data->registerUiService(userInteractionMode, &uiServiceAddress);
+    QString interactionServiceAddress;
+    Sailfish::Secrets::Result uiServiceResult = m_data->registerInteractionService(userInteractionMode, &interactionServiceAddress);
     if (uiServiceResult.code() == Sailfish::Secrets::Result::Failed) {
         return QDBusPendingReply<Sailfish::Secrets::Result>(
                 QDBusMessage().createReply(
@@ -436,7 +436,7 @@ Sailfish::Secrets::SecretManager::setSecret(
                 "setSecret",
                 QVariantList() << QVariant::fromValue<Sailfish::Secrets::Secret>(secret)
                                << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
-                               << QVariant::fromValue<QString>(uiServiceAddress));
+                               << QVariant::fromValue<QString>(interactionServiceAddress));
     return reply;
 }
 
@@ -565,8 +565,8 @@ Sailfish::Secrets::SecretManager::setSecret(
                         QVariantList() << QVariant::fromValue<Sailfish::Secrets::Result>(identifierError)));
     }
 
-    QString uiServiceAddress;
-    Sailfish::Secrets::Result uiServiceResult = m_data->registerUiService(userInteractionMode, &uiServiceAddress);
+    QString interactionServiceAddress;
+    Sailfish::Secrets::Result uiServiceResult = m_data->registerInteractionService(userInteractionMode, &interactionServiceAddress);
     if (uiServiceResult.code() == Sailfish::Secrets::Result::Failed) {
         return QDBusPendingReply<Sailfish::Secrets::Result>(
                 QDBusMessage().createReply(
@@ -584,7 +584,7 @@ Sailfish::Secrets::SecretManager::setSecret(
                                << QVariant::fromValue<int>(customLockTimeoutMs)
                                << QVariant::fromValue<Sailfish::Secrets::SecretManager::AccessControlMode>(accessControlMode)
                                << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
-                               << QVariant::fromValue<QString>(uiServiceAddress));
+                               << QVariant::fromValue<QString>(interactionServiceAddress));
     return reply;
 }
 
@@ -660,8 +660,8 @@ Sailfish::Secrets::SecretManager::getSecret(
                         QVariantList() << QVariant::fromValue<Sailfish::Secrets::Result>(identifierError)));
     }
 
-    QString uiServiceAddress;
-    Sailfish::Secrets::Result uiServiceResult = m_data->registerUiService(userInteractionMode, &uiServiceAddress);
+    QString interactionServiceAddress;
+    Sailfish::Secrets::Result uiServiceResult = m_data->registerInteractionService(userInteractionMode, &interactionServiceAddress);
     if (uiServiceResult.code() == Sailfish::Secrets::Result::Failed) {
         return QDBusPendingReply<Sailfish::Secrets::Result>(
                 QDBusMessage().createReply(
@@ -673,7 +673,7 @@ Sailfish::Secrets::SecretManager::getSecret(
                 "getSecret",
                 QVariantList() << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(identifier)
                                << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
-                               << QVariant::fromValue<QString>(uiServiceAddress));
+                               << QVariant::fromValue<QString>(interactionServiceAddress));
     return reply;
 }
 
@@ -736,8 +736,8 @@ Sailfish::Secrets::SecretManager::findSecrets(
                                        << QVariant::fromValue<QVector<Sailfish::Secrets::Secret::Identifier> >(QVector<Sailfish::Secrets::Secret::Identifier>())));
     }
 
-    QString uiServiceAddress;
-    Sailfish::Secrets::Result uiServiceResult = m_data->registerUiService(userInteractionMode, &uiServiceAddress);
+    QString interactionServiceAddress;
+    Sailfish::Secrets::Result uiServiceResult = m_data->registerInteractionService(userInteractionMode, &interactionServiceAddress);
     if (uiServiceResult.code() == Sailfish::Secrets::Result::Failed) {
         return QDBusPendingReply<Sailfish::Secrets::Result, QVector<Sailfish::Secrets::Secret::Identifier> >(
                 QDBusMessage().createReply(
@@ -752,7 +752,7 @@ Sailfish::Secrets::SecretManager::findSecrets(
                                << QVariant::fromValue<Sailfish::Secrets::Secret::FilterData>(filter)
                                << QVariant::fromValue<Sailfish::Secrets::SecretManager::FilterOperator>(filterOperator)
                                << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
-                               << QVariant::fromValue<QString>(uiServiceAddress));
+                               << QVariant::fromValue<QString>(interactionServiceAddress));
     return reply;
 }
 
@@ -807,8 +807,8 @@ Sailfish::Secrets::SecretManager::findSecrets(
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QString uiServiceAddress;
-    Sailfish::Secrets::Result uiServiceResult = m_data->registerUiService(userInteractionMode, &uiServiceAddress);
+    QString interactionServiceAddress;
+    Sailfish::Secrets::Result uiServiceResult = m_data->registerInteractionService(userInteractionMode, &interactionServiceAddress);
     if (uiServiceResult.code() == Sailfish::Secrets::Result::Failed) {
         return QDBusPendingReply<Sailfish::Secrets::Result>(
                 QDBusMessage().createReply(
@@ -822,7 +822,7 @@ Sailfish::Secrets::SecretManager::findSecrets(
                                << QVariant::fromValue<Sailfish::Secrets::Secret::FilterData>(filter)
                                << QVariant::fromValue<Sailfish::Secrets::SecretManager::FilterOperator>(filterOperator)
                                << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
-                               << QVariant::fromValue<QString>(uiServiceAddress));
+                               << QVariant::fromValue<QString>(interactionServiceAddress));
     return reply;
 }
 
@@ -878,8 +878,8 @@ Sailfish::Secrets::SecretManager::deleteSecret(
                         QVariantList() << QVariant::fromValue<Sailfish::Secrets::Result>(identifierError)));
     }
 
-    QString uiServiceAddress;
-    Sailfish::Secrets::Result uiServiceResult = m_data->registerUiService(userInteractionMode, &uiServiceAddress);
+    QString interactionServiceAddress;
+    Sailfish::Secrets::Result uiServiceResult = m_data->registerInteractionService(userInteractionMode, &interactionServiceAddress);
     if (uiServiceResult.code() == Sailfish::Secrets::Result::Failed) {
         return QDBusPendingReply<Sailfish::Secrets::Result>(
                 QDBusMessage().createReply(
@@ -891,6 +891,6 @@ Sailfish::Secrets::SecretManager::deleteSecret(
                 "deleteSecret",
                 QVariantList() << QVariant::fromValue<Sailfish::Secrets::Secret::Identifier>(identifier)
                                << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(userInteractionMode)
-                               << QVariant::fromValue<QString>(uiServiceAddress));
+                               << QVariant::fromValue<QString>(interactionServiceAddress));
     return reply;
 }

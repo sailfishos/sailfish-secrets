@@ -8,8 +8,8 @@
 #ifndef SAILFISHSECRETS_QML_INPROCESSUIVIEW_H
 #define SAILFISHSECRETS_QML_INPROCESSUIVIEW_H
 
-#include "Secrets/uiview.h"
-#include "Secrets/uirequest.h"
+#include "Secrets/interactionview.h"
+#include "Secrets/interactionrequest.h"
 
 #include <QtQuick/QQuickItem>
 
@@ -19,8 +19,8 @@ namespace Secrets {
 
 namespace Plugin {
 
-class InProcessUiViewPrivate;
-class InProcessUiView : public QQuickItem, public UiView
+class InProcessInteractionViewPrivate;
+class InProcessInteractionView : public QQuickItem, public InteractionView
 {
     Q_OBJECT
     Q_PROPERTY(QObject *adapter READ adapter CONSTANT)
@@ -36,15 +36,15 @@ public:
     };
 
     enum RequestType {
-        InvalidRequest = Sailfish::Secrets::UiRequest::InvalidRequest,
-        DeleteSecretConfirmationRequest = Sailfish::Secrets::UiRequest::DeleteSecretConfirmationRequest,
-        ModifySecretConfirmationRequest = Sailfish::Secrets::UiRequest::ModifySecretConfirmationRequest,
-        UserVerificationConfirmationRequest = Sailfish::Secrets::UiRequest::UserVerificationConfirmationRequest,
-        AuthenticationKeyRequest = Sailfish::Secrets::UiRequest::AuthenticationKeyRequest
+        InvalidRequest = Sailfish::Secrets::InteractionRequest::InvalidRequest,
+        DeleteSecretConfirmationRequest = Sailfish::Secrets::InteractionRequest::DeleteSecretConfirmationRequest,
+        ModifySecretConfirmationRequest = Sailfish::Secrets::InteractionRequest::ModifySecretConfirmationRequest,
+        UserVerificationConfirmationRequest = Sailfish::Secrets::InteractionRequest::UserVerificationConfirmationRequest,
+        AuthenticationKeyRequest = Sailfish::Secrets::InteractionRequest::AuthenticationKeyRequest
     };
 
-    InProcessUiView(QQuickItem *parent = Q_NULLPTR);
-    ~InProcessUiView();
+    InProcessInteractionView(QQuickItem *parent = Q_NULLPTR);
+    ~InProcessInteractionView();
 
     QObject *secretManager() const;
     Q_INVOKABLE void setSecretManager(QObject *manager);
@@ -55,8 +55,8 @@ Q_SIGNALS:
     void secretManagerChanged();
 
 protected:
-    void performRequest(const Sailfish::Secrets::UiRequest &request) Q_DECL_OVERRIDE;
-    void continueRequest(const Sailfish::Secrets::UiRequest &request) Q_DECL_OVERRIDE;
+    void performRequest(const Sailfish::Secrets::InteractionRequest &request) Q_DECL_OVERRIDE;
+    void continueRequest(const Sailfish::Secrets::InteractionRequest &request) Q_DECL_OVERRIDE;
     void cancelRequest() Q_DECL_OVERRIDE;
     void finishRequest() Q_DECL_OVERRIDE;
 
@@ -67,11 +67,11 @@ public:
     QObject *adapter() const;
 
 private:
-    friend class InProcessUiViewPrivate;
+    friend class InProcessInteractionViewPrivate;
     Q_INVOKABLE void sendResponseHelper(const Sailfish::Secrets::Result &result,
-                                        const Sailfish::Secrets::UiResponse &response);
+                                        const Sailfish::Secrets::InteractionResponse &response);
     QQuickItem *m_childItem;
-    InProcessUiViewPrivate *m_adapter;
+    InProcessInteractionViewPrivate *m_adapter;
 };
 
 } // namespace Plugin

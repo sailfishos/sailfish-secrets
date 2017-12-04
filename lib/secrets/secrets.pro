@@ -19,14 +19,14 @@ PUBLIC_HEADERS += \
     $$PWD/Secrets/secretmanager.h \
     $$PWD/Secrets/secretsdaemonconnection.h \
     $$PWD/Secrets/secretsglobal.h \
-    $$PWD/Secrets/uirequest.h \
-    $$PWD/Secrets/uirequestwatcher.h \
-    $$PWD/Secrets/uiview.h
+    $$PWD/Secrets/interactionrequest.h \
+    $$PWD/Secrets/interactionrequestwatcher.h \
+    $$PWD/Secrets/interactionview.h
 
 PRIVATE_HEADERS += \
     $$PWD/Secrets/secretsdaemonconnection_p.h \
     $$PWD/Secrets/secretmanager_p.h \
-    $$PWD/Secrets/uiservice_p.h
+    $$PWD/Secrets/interactionservice_p.h
 
 HEADERS += \
     $$PUBLIC_HEADERS \
@@ -37,8 +37,8 @@ SOURCES += \
     $$PWD/Secrets/secretsdaemonconnection.cpp \
     $$PWD/Secrets/secretmanager.cpp \
     $$PWD/Secrets/serialisation.cpp \
-    $$PWD/Secrets/uirequestwatcher.cpp \
-    $$PWD/Secrets/uiservice.cpp
+    $$PWD/Secrets/interactionrequestwatcher.cpp \
+    $$PWD/Secrets/interactionservice.cpp
 
 develheaders.path = /usr/include/libsailfishsecrets/
 develheaders_secrets.path = /usr/include/libsailfishsecrets/Secrets/

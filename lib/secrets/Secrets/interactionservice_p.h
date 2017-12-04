@@ -5,11 +5,11 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#ifndef LIBSAILFISHSECRETS_UISERVICE_P_H
-#define LIBSAILFISHSECRETS_UISERVICE_P_H
+#ifndef LIBSAILFISHSECRETS_INTERACTIONSERVICE_P_H
+#define LIBSAILFISHSECRETS_INTERACTIONSERVICE_P_H
 
 #include "Secrets/secretmanager_p.h"
-#include "Secrets/uirequest.h"
+#include "Secrets/interactionrequest.h"
 #include "Secrets/result.h"
 
 #include <QtDBus/QDBusServer>
@@ -31,42 +31,42 @@ namespace Secrets {
 class SecretManagerPrivate;
 
 /*
- *  The UiService instance lives within the client process.
+ *  The InteractionService instance lives within the client process.
  *  It is instantiated if the client attempts to perform a secrets request
  *  with the UserInteractionMode set to ApplicationInteraction.
  *  It talks to the sailfishsecretsd via P2P DBus connection, and triggers
- *  interaction within the UiView registered with the manager.
+ *  interaction within the InteractionView registered with the manager.
  */
-class UiService : public QObject, protected QDBusContext
+class InteractionService : public QObject, protected QDBusContext
 {
     Q_OBJECT
-    Q_CLASSINFO("D-Bus Interface", "org.sailfishos.secrets.ui")
+    Q_CLASSINFO("D-Bus Interface", "org.sailfishos.secrets.interaction")
     Q_CLASSINFO("D-Bus Introspection", ""
-    "  <interface name=\"org.sailfishos.secrets.ui\">\n"
-    "      <method name=\"performUiRequest\" />\n"
+    "  <interface name=\"org.sailfishos.secrets.interaction\">\n"
+    "      <method name=\"performInteractionRequest\" />\n"
     "          <arg name=\"request\" type=\"(iba{sv})\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(is)\" direction=\"out\" />\n"
     "          <arg name=\"response\" type=\"(ia{sv})\" direction=\"out\" />\n"
     "          <arg name=\"requestId\" type=\"s\" direction=\"out\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Secrets::UiRequest\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Secrets::InteractionRequest\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Secrets::UiResponse\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Secrets::InteractionResponse\" />\n"
     "      </method>\n"
-    "      <method name=\"continueUiRequest\" />\n"
+    "      <method name=\"continueInteractionRequest\" />\n"
     "          <arg name=\"requestId\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"request\" type=\"(iba{sv})\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(is)\" direction=\"out\" />\n"
     "          <arg name=\"response\" type=\"(ia{sv})\" direction=\"out\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Secrets::UiRequest\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Secrets::InteractionRequest\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Secrets::UiResponse\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Secrets::InteractionResponse\" />\n"
     "      </method>\n"
-    "      <method name=\"cancelUiRequest\" />\n"
+    "      <method name=\"cancelInteractionRequest\" />\n"
     "          <arg name=\"requestId\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(is)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
     "      </method>\n"
-    "      <method name=\"finishUiRequest\" />\n"
+    "      <method name=\"finishInteractionRequest\" />\n"
     "          <arg name=\"requestId\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(is)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
@@ -75,27 +75,27 @@ class UiService : public QObject, protected QDBusContext
     "")
 
 public:
-    UiService(SecretManagerPrivate *parent = Q_NULLPTR);
+    InteractionService(SecretManagerPrivate *parent = Q_NULLPTR);
     QString address() const { return m_address; }
     bool registerServer();
     void sendResponse(const Sailfish::Secrets::Result &error,
-                      const Sailfish::Secrets::UiResponse &response);
+                      const Sailfish::Secrets::InteractionResponse &response);
 
 public Q_SLOTS:
-    void performUiRequest(const Sailfish::Secrets::UiRequest &request,
+    void performInteractionRequest(const Sailfish::Secrets::InteractionRequest &request,
                           const QDBusMessage &message,
                           Sailfish::Secrets::Result &result,
-                          Sailfish::Secrets::UiResponse &response,
+                          Sailfish::Secrets::InteractionResponse &response,
                           QString &requestId);
-    void continueUiRequest(const QString &requestId,
-                           const Sailfish::Secrets::UiRequest &request,
+    void continueInteractionRequest(const QString &requestId,
+                           const Sailfish::Secrets::InteractionRequest &request,
                            const QDBusMessage &message,
                            Sailfish::Secrets::Result &result,
-                           Sailfish::Secrets::UiResponse &response);
-    void cancelUiRequest(const QString &requestId,
+                           Sailfish::Secrets::InteractionResponse &response);
+    void cancelInteractionRequest(const QString &requestId,
                          const QDBusMessage &message,
                          Sailfish::Secrets::Result &result);
-    void finishUiRequest(const QString &requestId,
+    void finishInteractionRequest(const QString &requestId,
                          const QDBusMessage &message,
                          Sailfish::Secrets::Result &result);
 
@@ -122,4 +122,4 @@ private:
 
 } // namespace Sailfish
 
-#endif // LIBSAILFISHSECRETS_UISERVICE_P_H
+#endif // LIBSAILFISHSECRETS_INTERACTIONSERVICE_P_H

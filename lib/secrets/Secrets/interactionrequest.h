@@ -5,8 +5,8 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#ifndef LIBSAILFISHSECRETS_UIREQUEST_H
-#define LIBSAILFISHSECRETS_UIREQUEST_H
+#ifndef LIBSAILFISHSECRETS_INTERACTIONREQUEST_H
+#define LIBSAILFISHSECRETS_INTERACTIONREQUEST_H
 
 #include "Secrets/secretsglobal.h"
 #include "Secrets/result.h"
@@ -21,7 +21,7 @@ namespace Sailfish {
 
 namespace Secrets {
 
-class SAILFISH_SECRETS_API UiRequest
+class SAILFISH_SECRETS_API InteractionRequest
 {
 public:
     enum Type {
@@ -32,24 +32,24 @@ public:
         AuthenticationKeyRequest
     };
 
-    static const QString UiViewQmlFileUrl;
+    static const QString InteractionViewQmlFileUrl;
 
-    UiRequest(Sailfish::Secrets::UiRequest::Type type = Sailfish::Secrets::UiRequest::InvalidRequest,
+    InteractionRequest(Sailfish::Secrets::InteractionRequest::Type type = Sailfish::Secrets::InteractionRequest::InvalidRequest,
               const QVariantMap &values = QVariantMap())
         : m_values(values)
         , m_type(type)
         , m_isResponse(false) {}
-    UiRequest(const Sailfish::Secrets::UiRequest &other)
+    InteractionRequest(const Sailfish::Secrets::InteractionRequest &other)
         : m_values(other.m_values)
         , m_type(other.m_type)
         , m_isResponse(other.m_isResponse) {}
-    virtual ~UiRequest() {}
+    virtual ~InteractionRequest() {}
 
-    Sailfish::Secrets::UiRequest::Type type() const { return m_type; }
+    Sailfish::Secrets::InteractionRequest::Type type() const { return m_type; }
     bool isResponse() const { return m_isResponse; }
 
-    QString uiViewQmlFileUrl() const { return m_values.value(UiViewQmlFileUrl).toString(); }
-    void setUiViewQmlFileUrl(const QString &value) { m_values.insert(UiViewQmlFileUrl, value); }
+    QString interactionViewQmlFileUrl() const { return m_values.value(InteractionViewQmlFileUrl).toString(); }
+    void setInteractionViewQmlFileUrl(const QString &value) { m_values.insert(InteractionViewQmlFileUrl, value); }
 
     bool hasValue(const QString &key) const { return m_values.contains(key); }
     QVariant value(const QString &key) const { return m_values.value(key); }
@@ -60,11 +60,11 @@ public:
 
 protected:
     QVariantMap m_values;
-    Sailfish::Secrets::UiRequest::Type m_type;
+    Sailfish::Secrets::InteractionRequest::Type m_type;
     bool m_isResponse;
 };
 
-class SAILFISH_SECRETS_API UiResponse : public UiRequest
+class SAILFISH_SECRETS_API InteractionResponse : public InteractionRequest
 {
 public:
     static const QString ResultCode;
@@ -72,11 +72,11 @@ public:
     static const QString Confirmation;
     static const QString AuthenticationKey;
 
-    UiResponse()
-        : Sailfish::Secrets::UiRequest(Sailfish::Secrets::UiRequest::InvalidRequest, QVariantMap()) { m_isResponse = true; }
-    UiResponse(Sailfish::Secrets::UiRequest::Type type, const QVariantMap &values = QVariantMap())
-        : Sailfish::Secrets::UiRequest::UiRequest(type, values) { m_isResponse = true; }
-    UiResponse(const Sailfish::Secrets::UiResponse &other) : Sailfish::Secrets::UiRequest(other) {}
+    InteractionResponse()
+        : Sailfish::Secrets::InteractionRequest(Sailfish::Secrets::InteractionRequest::InvalidRequest, QVariantMap()) { m_isResponse = true; }
+    InteractionResponse(Sailfish::Secrets::InteractionRequest::Type type, const QVariantMap &values = QVariantMap())
+        : Sailfish::Secrets::InteractionRequest::InteractionRequest(type, values) { m_isResponse = true; }
+    InteractionResponse(const Sailfish::Secrets::InteractionResponse &other) : Sailfish::Secrets::InteractionRequest(other) {}
 
     Sailfish::Secrets::Result::ResultCode resultCode() const { return static_cast<Sailfish::Secrets::Result::ResultCode>(m_values.value(ResultCode).toInt()); }
     void setResultCode(Sailfish::Secrets::Result::ResultCode value) { m_values.insert(ResultCode, QVariant::fromValue<int>(static_cast<int>(value))); }
@@ -91,20 +91,20 @@ public:
     void setAuthenticationKey(const QByteArray &value) { m_values.insert(AuthenticationKey, value); }
 };
 
-QDBusArgument &operator<<(QDBusArgument &argument, const UiRequest &request) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, UiRequest &request) SAILFISH_SECRETS_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const InteractionRequest &request) SAILFISH_SECRETS_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionRequest &request) SAILFISH_SECRETS_API;
 
-QDBusArgument &operator<<(QDBusArgument &argument, const UiResponse &response) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, UiResponse &response) SAILFISH_SECRETS_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const InteractionResponse &response) SAILFISH_SECRETS_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionResponse &response) SAILFISH_SECRETS_API;
 
 } // namespace Secrets
 
 } // namespace Sailfish
 
-Q_DECLARE_METATYPE(Sailfish::Secrets::UiRequest);
-Q_DECLARE_TYPEINFO(Sailfish::Secrets::UiRequest, Q_MOVABLE_TYPE);
+Q_DECLARE_METATYPE(Sailfish::Secrets::InteractionRequest);
+Q_DECLARE_TYPEINFO(Sailfish::Secrets::InteractionRequest, Q_MOVABLE_TYPE);
 
-Q_DECLARE_METATYPE(Sailfish::Secrets::UiResponse);
-Q_DECLARE_TYPEINFO(Sailfish::Secrets::UiResponse, Q_MOVABLE_TYPE);
+Q_DECLARE_METATYPE(Sailfish::Secrets::InteractionResponse);
+Q_DECLARE_TYPEINFO(Sailfish::Secrets::InteractionResponse, Q_MOVABLE_TYPE);
 
-#endif // LIBSAILFISHSECRETS_UIREQUEST_H
+#endif // LIBSAILFISHSECRETS_INTERACTIONREQUEST_H

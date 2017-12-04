@@ -11,8 +11,8 @@
 #include "Secrets/secretmanager.h"
 #include "Secrets/secretsdaemonconnection.h"
 #include "Secrets/extensionplugins.h"
-#include "Secrets/uiview.h"
-#include "Secrets/uiservice_p.h"
+#include "Secrets/interactionview.h"
+#include "Secrets/interactionservice_p.h"
 
 #include <QtDBus/QDBusInterface>
 
@@ -35,14 +35,14 @@ public:
     void handleUiConnection(const QDBusConnection &connection);
 
     // register the ui service if required, and return it's address.
-    Sailfish::Secrets::Result registerUiService(Sailfish::Secrets::SecretManager::UserInteractionMode mode, QString *address);
+    Sailfish::Secrets::Result registerInteractionService(Sailfish::Secrets::SecretManager::UserInteractionMode mode, QString *address);
 
 private:
     friend class SecretManager;
-    friend class UiService;
+    friend class InteractionService;
     SecretManager *m_parent;
-    UiService *m_uiService;
-    UiView *m_uiView;
+    InteractionService *m_uiService;
+    InteractionView *m_interactionView;
     Sailfish::Secrets::SecretsDaemonConnection *m_secrets;
     QDBusInterface *m_interface;
     bool m_initialised;
