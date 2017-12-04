@@ -5,10 +5,10 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#ifndef SAILFISHSECRETS_QML_INPROCESSUIVIEW_P_H
-#define SAILFISHSECRETS_QML_INPROCESSUIVIEW_P_H
+#ifndef SAILFISHSECRETS_QML_APPLICATIONINTERACTIONVIEW_P_H
+#define SAILFISHSECRETS_QML_APPLICATIONINTERACTIONVIEW_P_H
 
-#include "inprocessinteractionview.h"
+#include "applicationinteractionview.h"
 
 #include "Secrets/secretmanager.h"
 #include "Secrets/interactionrequest.h"
@@ -35,8 +35,8 @@ namespace Plugin {
 // a) confirmationReceived (for 1/2/3)
 // b) passwordReceived (for 4)
 
-class InProcessInteractionView;
-class InProcessInteractionViewPrivate : public QObject
+class ApplicationInteractionView;
+class ApplicationInteractionViewPrivate : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(int confirmation READ confirmation WRITE setConfirmation NOTIFY confirmationChanged)
@@ -44,7 +44,7 @@ class InProcessInteractionViewPrivate : public QObject
     Q_PROPERTY(int requestType READ requestType NOTIFY requestTypeChanged)
 
 public:
-    InProcessInteractionViewPrivate(InProcessInteractionView *parent = Q_NULLPTR);
+    ApplicationInteractionViewPrivate(ApplicationInteractionView *parent = Q_NULLPTR);
 
     int confirmation() const { return m_confirmation; }
     void setConfirmation(int v) {
@@ -54,8 +54,8 @@ public:
             if (m_ready && (m_requestType == Sailfish::Secrets::InteractionRequest::DeleteSecretConfirmationRequest
                             || m_requestType == Sailfish::Secrets::InteractionRequest::ModifySecretConfirmationRequest
                             || m_requestType == Sailfish::Secrets::InteractionRequest::UserVerificationConfirmationRequest)) {
-                sendResponse(v == Sailfish::Secrets::Plugin::InProcessInteractionView::Allow);
-                m_confirmation = Sailfish::Secrets::Plugin::InProcessInteractionView::Unknown; // reset.
+                sendResponse(v == Sailfish::Secrets::Plugin::ApplicationInteractionView::Allow);
+                m_confirmation = Sailfish::Secrets::Plugin::ApplicationInteractionView::Unknown; // reset.
             }
         }
     }
@@ -85,8 +85,8 @@ private Q_SLOTS:
     void sendResponse(const QByteArray &authenticationKey);
 
 private:
-    friend class InProcessInteractionView;
-    InProcessInteractionView *m_parent;
+    friend class ApplicationInteractionView;
+    ApplicationInteractionView *m_parent;
     SecretManager *m_secretManager;
     QString m_password;
     int m_requestType;
@@ -100,4 +100,4 @@ private:
 
 } // namespace Sailfish
 
-#endif // SAILFISHSECRETS_QML_INPROCESSUIVIEW_P_H
+#endif // SAILFISHSECRETS_QML_APPLICATIONINTERACTIONVIEW_P_H

@@ -9,12 +9,12 @@ include($$PWD/../../lib/secrets/libsailfishsecrets.pri)
 QT += qml quick gui core
 
 HEADERS += \
-    $$PWD/inprocessinteractionview.h \
-    $$PWD/inprocessinteractionview_p.h
+    $$PWD/applicationinteractionview.h \
+    $$PWD/applicationinteractionview_p.h
 
 SOURCES += \
     $$PWD/main.cpp \
-    $$PWD/inprocessinteractionview.cpp
+    $$PWD/applicationinteractionview.cpp
 
 OTHER_FILES += \
     $$PWD/defaultInteractionView.qml \

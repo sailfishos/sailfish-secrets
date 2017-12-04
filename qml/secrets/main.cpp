@@ -5,7 +5,7 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#include "inprocessinteractionview.h"
+#include "applicationinteractionview.h"
 
 #include <QQmlExtensionPlugin>
 #include <QQmlParserStatus>
@@ -23,7 +23,7 @@ public:
 
     virtual void registerTypes(const char *uri)
     {
-        qmlRegisterType<Sailfish::Secrets::Plugin::InProcessInteractionView>(uri, 1, 0, "InProcessInteractionView");
+        qmlRegisterType<Sailfish::Secrets::Plugin::ApplicationInteractionView>(uri, 1, 0, "ApplicationInteractionView");
     }
 };
 

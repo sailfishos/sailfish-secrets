@@ -34,7 +34,7 @@ public:
         IncorrectAuthenticationKeyError,
         OperationNotSupportedError,
         OperationRequiresUserInteraction,
-        OperationRequiresInProcessUserInteraction,
+        OperationRequiresApplicationUserInteraction,
         SecretManagerNotInitialisedError,
 
         SecretsDaemonRequestPidError = 20,

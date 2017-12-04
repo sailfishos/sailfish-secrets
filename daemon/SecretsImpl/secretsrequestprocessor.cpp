@@ -412,7 +412,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createCustomLockCollection
                                          QString::fromLatin1("No such authentication plugin exists: %1").arg(authenticationPluginName));
     } else if (m_authenticationPlugins[authenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
                && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
-        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresApplicationUserInteraction,
                                          QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(authenticationPluginName));
     } else if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
@@ -1915,7 +1915,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSec
                                          .arg(secret.identifier().name(), storagePluginName));
     } else if (m_authenticationPlugins[authenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
                && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
-        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresApplicationUserInteraction,
                                          QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(authenticationPluginName));
     } else if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresUserInteraction,
@@ -2314,7 +2314,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                                                      QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
                 } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
                             && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
-                    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
+                    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresApplicationUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
                 }
 
@@ -2369,7 +2369,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                                                      QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
                 } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
                            && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
-                    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
+                    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresApplicationUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
                 }
 
@@ -2613,7 +2613,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
                                          QString::fromLatin1("Secret %1 is owned by a different application").arg(identifier.name()));
     } else if (m_authenticationPlugins[secretAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
                && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
-        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
+        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresApplicationUserInteraction,
                                          QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(secretAuthenticationPluginName));
     }
 
@@ -2855,7 +2855,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                                                      QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
                 } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
                             && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
-                    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
+                    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresApplicationUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
                 }
 
@@ -2914,7 +2914,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                                                      QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
                 } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication
                            && (userInteractionMode != Sailfish::Secrets::SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
-                    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresInProcessUserInteraction,
+                    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::OperationRequiresApplicationUserInteraction,
                                                      QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
                 }
 

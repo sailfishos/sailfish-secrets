@@ -5,8 +5,8 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#ifndef SAILFISHSECRETS_QML_INPROCESSUIVIEW_H
-#define SAILFISHSECRETS_QML_INPROCESSUIVIEW_H
+#ifndef SAILFISHSECRETS_QML_APPLICATIONINTERACTIONVIEW_H
+#define SAILFISHSECRETS_QML_APPLICATIONINTERACTIONVIEW_H
 
 #include "Secrets/interactionview.h"
 #include "Secrets/interactionrequest.h"
@@ -19,8 +19,8 @@ namespace Secrets {
 
 namespace Plugin {
 
-class InProcessInteractionViewPrivate;
-class InProcessInteractionView : public QQuickItem, public InteractionView
+class ApplicationInteractionViewPrivate;
+class ApplicationInteractionView : public QQuickItem, public InteractionView
 {
     Q_OBJECT
     Q_PROPERTY(QObject *adapter READ adapter CONSTANT)
@@ -43,8 +43,8 @@ public:
         AuthenticationKeyRequest = Sailfish::Secrets::InteractionRequest::AuthenticationKeyRequest
     };
 
-    InProcessInteractionView(QQuickItem *parent = Q_NULLPTR);
-    ~InProcessInteractionView();
+    ApplicationInteractionView(QQuickItem *parent = Q_NULLPTR);
+    ~ApplicationInteractionView();
 
     QObject *secretManager() const;
     Q_INVOKABLE void setSecretManager(QObject *manager);
@@ -67,11 +67,11 @@ public:
     QObject *adapter() const;
 
 private:
-    friend class InProcessInteractionViewPrivate;
+    friend class ApplicationInteractionViewPrivate;
     Q_INVOKABLE void sendResponseHelper(const Sailfish::Secrets::Result &result,
                                         const Sailfish::Secrets::InteractionResponse &response);
     QQuickItem *m_childItem;
-    InProcessInteractionViewPrivate *m_adapter;
+    ApplicationInteractionViewPrivate *m_adapter;
 };
 
 } // namespace Plugin
@@ -80,4 +80,4 @@ private:
 
 } // namespace Sailfish
 
-#endif // SAILFISHSECRETS_QML_INPROCESSUIVIEW_H
+#endif // SAILFISHSECRETS_QML_APPLICATIONINTERACTIONVIEW_H
