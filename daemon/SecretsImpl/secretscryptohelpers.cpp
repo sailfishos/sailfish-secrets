@@ -22,7 +22,7 @@
 #include <QtCore/QMutex>
 #include <QtCore/QLoggingCategory>
 
-Q_LOGGING_CATEGORY(lcSailfishSecretsCryptoHelpers, "org.sailfishos.secrets.cryptohelpers")
+Q_LOGGING_CATEGORY(lcSailfishSecretsCryptoHelpers, "org.sailfishos.secrets.cryptohelpers", QtWarningMsg)
 
 // The methods in this file exist to help fulfil Sailfish Crypto API requests,
 // while allowing the use of a single (secrets) database for atomicity reasons.

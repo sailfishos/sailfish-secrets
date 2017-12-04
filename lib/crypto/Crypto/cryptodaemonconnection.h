@@ -35,9 +35,9 @@ public:
 
     bool connect();
     QDBusConnection *connection();
-    QDBusInterface *createApiInterface(const QString &objectPath,
-                                       const QString &interface,
-                                       QObject *parent = Q_NULLPTR);
+    QDBusInterface *createInterface(const QString &objectPath,
+                                    const QString &interface,
+                                    QObject *parent = Q_NULLPTR);
 
     static void registerDBusTypes();
 

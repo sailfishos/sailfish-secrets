@@ -18,7 +18,7 @@
 
 #include <QtCore/QLoggingCategory>
 
-Q_LOGGING_CATEGORY(lcSailfishSecretsInteractionView, "org.sailfishos.secrets.interaction.view")
+Q_LOGGING_CATEGORY(lcSailfishSecretsInteractionView, "org.sailfishos.secrets.interaction.view", QtWarningMsg)
 
 Sailfish::Secrets::Plugin::ApplicationInteractionView::ApplicationInteractionView(QQuickItem *parent)
     : QQuickItem(parent), Sailfish::Secrets::InteractionView()

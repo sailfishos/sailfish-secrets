@@ -21,7 +21,7 @@
 #include <QtDBus/QDBusArgument>
 #include <QtDBus/QDBusMetaType>
 
-Q_LOGGING_CATEGORY(lcSailfishSecretsDaemonConnection, "org.sailfishos.secrets.daemon.connection")
+Q_LOGGING_CATEGORY(lcSailfishSecretsDaemonConnection, "org.sailfishos.secrets.daemon.connection", QtWarningMsg)
 
 Sailfish::Secrets::SecretsDaemonConnectionPrivate::SecretsDaemonConnectionPrivate(SecretsDaemonConnection *parent)
     : QObject(parent)
@@ -141,7 +141,7 @@ QDBusConnection *Sailfish::Secrets::SecretsDaemonConnection::connection()
 }
 
 // caller takes ownership of the returned instance, alternatively it is parented to the given \a parent object.
-QDBusInterface *Sailfish::Secrets::SecretsDaemonConnection::createApiInterface(const QString &objectPath, const QString &interface, QObject *parent)
+QDBusInterface *Sailfish::Secrets::SecretsDaemonConnection::createInterface(const QString &objectPath, const QString &interface, QObject *parent)
 {
     QDBusInterface *retn = new QDBusInterface("org.sailfishos.secrets.daemon", objectPath, interface, m_data->m_connection, parent);
     retn->setTimeout(180000); // some of the permission flows can take arbitrarily long (user input)

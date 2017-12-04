@@ -252,15 +252,12 @@ void Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::handleRequests()
     }
 
     // no more pending requests to handle, or yielding to event loop.
-    qint64 nsecs = yieldTimer.nsecsElapsed(), msecs = 0, secs = 0;
-    while (nsecs > 1000000) {
-        nsecs -= 1000000;
-        msecs += 1;
-    }
-    while (msecs > 1000) {
-        msecs -= 1000;
-        secs += 1;
-    }
-    qCDebug(lcSailfishSecretsDaemon) << "Yielding to event loop with:" << m_requests.size() << "requests still in queue after"
-                                       << secs << "seconds," << msecs << "milliseconds," << nsecs << "nanoseconds of processing.";
+    qint64 nsecs = yieldTimer.nsecsElapsed();
+    qint64 msecs = ((nsecs / 1000000) % 1000);
+    qint64 secs = ((nsecs / 1000000000) % 1000);
+    qCDebug(lcSailfishSecretsDaemon) << "Yielding to event loop with:"
+                                     << m_requests.size() << "requests still in queue after"
+                                     << secs << "seconds,"
+                                     << msecs << "milliseconds,"
+                                     << (nsecs%1000000) << "nanoseconds of processing.";
 }

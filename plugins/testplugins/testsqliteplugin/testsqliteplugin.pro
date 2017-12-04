@@ -11,5 +11,5 @@ DEFINES += SAILFISH_SECRETS_BUILD_TEST_PLUGIN
 HEADERS += $$PWD/../../sqliteplugin/sqlitedatabase_p.h $$PWD/../../sqliteplugin/plugin.h
 SOURCES += $$PWD/../../sqliteplugin/plugin.cpp
 
-target.path=/usr/lib/sailfishsecrets/
+target.path=/usr/lib/sailfish/secrets/
 INSTALLS += target

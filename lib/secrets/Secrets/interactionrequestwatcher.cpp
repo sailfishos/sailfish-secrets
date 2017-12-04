@@ -15,7 +15,7 @@
 #include <QtDBus/QDBusPendingCallWatcher>
 #include <QtDBus/QDBusPendingReply>
 
-Q_LOGGING_CATEGORY(lcSailfishSecretsInteractionServiceConnection, "org.sailfishos.secrets.interactionservice.connection")
+Q_LOGGING_CATEGORY(lcSailfishSecretsInteractionServiceConnection, "org.sailfishos.secrets.interactionservice.connection", QtWarningMsg)
 
 class Sailfish::Secrets::InteractionRequestWatcherPrivate
 {

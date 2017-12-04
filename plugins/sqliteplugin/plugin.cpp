@@ -10,7 +10,7 @@
 
 Q_PLUGIN_METADATA(IID Sailfish_Secrets_StoragePlugin_IID)
 
-Q_LOGGING_CATEGORY(lcSailfishSecretsPluginSqlite, "org.sailfishos.secrets.plugin.storage.sqlite")
+Q_LOGGING_CATEGORY(lcSailfishSecretsPluginSqlite, "org.sailfishos.secrets.plugin.storage.sqlite", QtWarningMsg)
 
 Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::SqlitePlugin(QObject *parent)
     : Sailfish::Secrets::StoragePlugin(parent)

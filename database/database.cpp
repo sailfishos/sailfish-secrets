@@ -20,7 +20,7 @@
 #include <QtSql/QSqlError>
 #include <QtSql/QSqlQuery>
 
-Q_LOGGING_CATEGORY(lcSailfishSecretsDaemonSqlite, "org.sailfishos.secrets.daemon.sqlite")
+Q_LOGGING_CATEGORY(lcSailfishSecretsDaemonSqlite, "org.sailfishos.secrets.daemon.sqlite", QtWarningMsg)
 
 static bool execute(QSqlDatabase &database, const QString &statement)
 {

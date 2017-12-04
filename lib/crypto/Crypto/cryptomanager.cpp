@@ -23,14 +23,14 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QDir>
 
-Q_LOGGING_CATEGORY(lcSailfishCrypto, "org.sailfishos.crypto")
+Q_LOGGING_CATEGORY(lcSailfishCrypto, "org.sailfishos.crypto", QtWarningMsg)
 
 Sailfish::Crypto::CryptoManagerPrivate::CryptoManagerPrivate(CryptoManager *parent)
     : QObject(parent)
     , m_parent(parent)
     , m_crypto(Sailfish::Crypto::CryptoDaemonConnection::instance())
     , m_interface(m_crypto->connect()
-                  ? m_crypto->createApiInterface(QLatin1String("/Sailfish/Crypto"), QLatin1String("org.sailfishos.crypto"), this)
+                  ? m_crypto->createInterface(QLatin1String("/Sailfish/Crypto"), QLatin1String("org.sailfishos.crypto"), this)
                   : Q_NULLPTR)
 {
 }

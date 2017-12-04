@@ -12,18 +12,16 @@
 #include "controller_p.h"
 #include "logging_p.h"
 
-Q_LOGGING_CATEGORY(lcSailfishSecretsDaemon, "org.sailfishos.secrets.daemon")
-Q_LOGGING_CATEGORY(lcSailfishSecretsDaemonDBus, "org.sailfishos.secrets.daemon.dbus")
-Q_LOGGING_CATEGORY(lcSailfishSecretsDaemonDatabase, "org.sailfishos.secrets.daemon.db")
+Q_LOGGING_CATEGORY(lcSailfishSecretsDaemon, "org.sailfishos.secrets.daemon", QtWarningMsg)
+Q_LOGGING_CATEGORY(lcSailfishSecretsDaemonDBus, "org.sailfishos.secrets.daemon.dbus", QtWarningMsg)
 
-Q_LOGGING_CATEGORY(lcSailfishCryptoDaemon, "org.sailfishos.crypto.daemon")
-Q_LOGGING_CATEGORY(lcSailfishCryptoDaemonDBus, "org.sailfishos.crypto.daemon.dbus")
-Q_LOGGING_CATEGORY(lcSailfishCryptoDaemonDatabase, "org.sailfishos.crypto.daemon.db")
+Q_LOGGING_CATEGORY(lcSailfishCryptoDaemon, "org.sailfishos.crypto.daemon", QtWarningMsg)
+Q_LOGGING_CATEGORY(lcSailfishCryptoDaemonDBus, "org.sailfishos.crypto.daemon.dbus", QtWarningMsg)
 
 Q_DECL_EXPORT int main(int argc, char *argv[])
 {
-    const QString secretsPluginDir = QLatin1String("/usr/lib/sailfishsecrets/");
-    const QString cryptoPluginDir = QLatin1String("/usr/lib/sailfishcrypto/");
+    const QString secretsPluginDir = QLatin1String("/usr/lib/sailfish/secrets/");
+    const QString cryptoPluginDir = QLatin1String("/usr/lib/sailfish/crypto/");
     QCoreApplication::addLibraryPath(secretsPluginDir);
     QCoreApplication::addLibraryPath(cryptoPluginDir);
     QCoreApplication app(argc, argv);

@@ -41,7 +41,7 @@ Sailfish::Secrets::Daemon::Plugins::OpenSslPlugin::encryptSecret(
     // encrypt plaintext
     QByteArray ciphertext = aes_encrypt_plaintext(plaintext, keyHash.result(), initVector);
 
-    // return result.
+    // return result
     if (ciphertext.size()) {
         *encrypted = ciphertext;
         return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded);
@@ -76,7 +76,7 @@ Sailfish::Secrets::Daemon::Plugins::OpenSslPlugin::decryptSecret(
                                          QLatin1String("OpenSSL plugin failed to decrypt the secret"));
     }
 
-    // return result.
+    // return result
     *plaintext = decrypted;
     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded);
 }

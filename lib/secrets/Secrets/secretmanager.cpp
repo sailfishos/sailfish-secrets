@@ -23,7 +23,7 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QDir>
 
-Q_LOGGING_CATEGORY(lcSailfishSecrets, "org.sailfishos.secrets")
+Q_LOGGING_CATEGORY(lcSailfishSecrets, "org.sailfishos.secrets", QtWarningMsg)
 
 const QString Sailfish::Secrets::Secret::FilterDataFieldType = QStringLiteral("Type");
 const QString Sailfish::Secrets::Secret::TypeUnknown = QStringLiteral("Unknown");
@@ -46,7 +46,7 @@ Sailfish::Secrets::SecretManagerPrivate::SecretManagerPrivate(SecretManager *par
     , m_interactionView(Q_NULLPTR)
     , m_secrets(Sailfish::Secrets::SecretsDaemonConnection::instance())
     , m_interface(m_secrets->connect()
-                  ? m_secrets->createApiInterface(QLatin1String("/Sailfish/Secrets"), QLatin1String("org.sailfishos.secrets"), this)
+                  ? m_secrets->createInterface(QLatin1String("/Sailfish/Secrets"), QLatin1String("org.sailfishos.secrets"), this)
                   : Q_NULLPTR)
 {
 }

@@ -21,7 +21,7 @@
 #include <QtCore/QDataStream>
 #include <QtCore/QByteArray>
 
-Q_LOGGING_CATEGORY(lcSailfishCryptoSerialisation, "org.sailfishos.crypto.serialisation")
+Q_LOGGING_CATEGORY(lcSailfishCryptoSerialisation, "org.sailfishos.crypto.serialisation", QtWarningMsg)
 
 namespace Sailfish {
 

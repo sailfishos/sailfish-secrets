@@ -9,7 +9,7 @@
 
 Q_PLUGIN_METADATA(IID Sailfish_Secrets_AuthenticationPlugin_IID)
 
-Q_LOGGING_CATEGORY(lcSailfishSecretsPluginInapp, "org.sailfishos.secrets.plugin.authentication.inapp")
+Q_LOGGING_CATEGORY(lcSailfishSecretsPluginInapp, "org.sailfishos.secrets.plugin.authentication.inapp", QtWarningMsg)
 
 Sailfish::Secrets::Daemon::Plugins::InAppPlugin::InAppPlugin(QObject *parent)
     : Sailfish::Secrets::AuthenticationPlugin(parent)

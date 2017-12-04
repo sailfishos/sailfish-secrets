@@ -14,7 +14,7 @@
 #include <QtCore/QString>
 #include <QtCore/QLoggingCategory>
 
-Q_LOGGING_CATEGORY(lcSailfishSecretsSerialisation, "org.sailfishos.secrets.serialisation")
+Q_LOGGING_CATEGORY(lcSailfishSecretsSerialisation, "org.sailfishos.secrets.serialisation", QtWarningMsg)
 
 namespace Sailfish {
 

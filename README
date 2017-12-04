@@ -1,7 +1,7 @@
 Quick Start:
 
-1) Run the secrets daemon in autotest mode
-devel-su -p /usr/bin/sailfishsecretsd --test
+1) Run the secrets daemon in autotest mode with debugging enabled
+QT_LOGGING_RULES="*.debug=true" devel-su -p /usr/bin/sailfishsecretsd --test
 
 2) Run the secrets autotest
 devel-su -p /opt/tests/Sailfish/Secrets/tst_secrets

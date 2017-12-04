@@ -21,7 +21,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-Q_LOGGING_CATEGORY(lcSailfishSecretsUi, "org.sailfishos.secrets.interaction")
+Q_LOGGING_CATEGORY(lcSailfishSecretsUi, "org.sailfishos.secrets.interaction", QtWarningMsg)
 
 const QString Sailfish::Secrets::InteractionRequest::InteractionViewQmlFileUrl = QStringLiteral("InteractionViewQmlFileUrl");
 const QString Sailfish::Secrets::InteractionResponse::ResultCode = QStringLiteral("ResultCode");
@@ -63,7 +63,7 @@ bool Sailfish::Secrets::InteractionService::registerServer()
 
     const QString path = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
     if (path.isEmpty()) {
-        qCWarning(lcSailfishSecretsUi) << "No writable runtime dir found, cannot create socket file";
+        qCWarning(lcSailfishSecretsUi) << "No writable runtime directory found, cannot create socket file";
         return false;
     }
 
