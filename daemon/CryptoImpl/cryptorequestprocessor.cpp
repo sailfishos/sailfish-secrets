@@ -16,9 +16,11 @@
 #include <QtCore/QPluginLoader>
 #include <QtCore/QObject>
 
-Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::RequestProcessor(Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *secrets,
-                 Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *parent)
-    : QObject(parent), m_requestQueue(parent), m_secrets(secrets)
+Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::RequestProcessor(
+        Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *secrets,
+        bool autotestMode,
+        Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *parent)
+    : QObject(parent), m_requestQueue(parent), m_secrets(secrets), m_autotestMode(autotestMode)
 {
     connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storedKeyCompleted,
             this, &Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted);
@@ -33,7 +35,7 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::RequestProcessor(Sailfish::
 }
 
 bool
-Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir, bool autotestMode)
+Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
 {
     // First, see if any of the EncryptedStorage plugins from Secrets are also
     // Crypto plugins (providing generateAndStoreKey() functionality internally).
@@ -42,10 +44,10 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &
     for (QMap<QString, QObject*>::const_iterator it = potentialCryptoPlugins.constBegin(); it != potentialCryptoPlugins.constEnd(); it++) {
         Sailfish::Crypto::CryptoPlugin *cryptoPlugin = qobject_cast<Sailfish::Crypto::CryptoPlugin*>(it.value());
         if (cryptoPlugin) {
-            if (cryptoPlugin->isTestPlugin() != autotestMode) {
-                qCDebug(lcSailfishCryptoDaemon) << "ignoring crypto storage plugin:" << it.key() << "due to mode";
-            } else if (cryptoPlugin->name().isEmpty() || m_cryptoPlugins.contains(cryptoPlugin->name())) {
+            if (cryptoPlugin->name().isEmpty() || m_cryptoPlugins.contains(cryptoPlugin->name())) {
                 qCDebug(lcSailfishCryptoDaemon) << "ignoring crypto storage plugin:" << it.key() << "with duplicate name:" << cryptoPlugin->name();
+            } else if (cryptoPlugin->name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive) != m_autotestMode) {
+                qCDebug(lcSailfishCryptoDaemon) << "ignoring crypto storage plugin:" << it.key() << "due to mode";
             } else {
                 qCDebug(lcSailfishCryptoDaemon) << "loading crypto storage plugin:" << it.key();
                 m_cryptoPlugins.insert(it.key(), cryptoPlugin);
@@ -61,12 +63,12 @@ Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &
         QObject *plugin = loader.instance();
         Sailfish::Crypto::CryptoPlugin *cryptoPlugin = qobject_cast<Sailfish::Crypto::CryptoPlugin*>(plugin);
         if (cryptoPlugin) {
-            if (cryptoPlugin->isTestPlugin() != autotestMode) {
-                qCDebug(lcSailfishCryptoDaemon) << "ignoring crypto plugin:" << pluginFile << "due to mode";
+            if (cryptoPlugin->name().isEmpty() || m_cryptoPlugins.contains(cryptoPlugin->name())) {
+                qCDebug(lcSailfishCryptoDaemon) << "ignoring crypto plugin:" << pluginFile << "with duplicate name:" << cryptoPlugin->name();
                 loader.unload();
                 continue;
-            } else if (cryptoPlugin->name().isEmpty() || m_cryptoPlugins.contains(cryptoPlugin->name())) {
-                qCDebug(lcSailfishCryptoDaemon) << "ignoring crypto plugin:" << pluginFile << "with duplicate name:" << cryptoPlugin->name();
+            } else if (cryptoPlugin->name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive) != m_autotestMode) {
+                qCDebug(lcSailfishCryptoDaemon) << "ignoring crypto plugin:" << pluginFile << "due to mode";
                 loader.unload();
                 continue;
             } else {

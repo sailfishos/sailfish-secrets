@@ -43,8 +43,6 @@ public:
     CryptoPlugin();
     virtual ~CryptoPlugin();
 
-    virtual bool isTestPlugin() const = 0;
-
     virtual QString name() const = 0;
     virtual bool canStoreKeys() const = 0;
 

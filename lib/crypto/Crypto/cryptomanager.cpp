@@ -25,6 +25,9 @@
 
 Q_LOGGING_CATEGORY(lcSailfishCrypto, "org.sailfishos.crypto", QtWarningMsg)
 
+const QString Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName = QStringLiteral("org.sailfishos.crypto.plugin.crypto.openssl");
+const QString Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName = QStringLiteral("org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher");
+
 Sailfish::Crypto::CryptoManagerPrivate::CryptoManagerPrivate(CryptoManager *parent)
     : QObject(parent)
     , m_parent(parent)

@@ -56,9 +56,10 @@ class RequestProcessor : public QObject
 
 public:
     RequestProcessor(Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *secrets,
+                     bool autotestMode,
                      Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *parent = Q_NULLPTR);
 
-    bool loadPlugins(const QString &pluginDir, bool autotestMode);
+    bool loadPlugins(const QString &pluginDir);
 
     Sailfish::Crypto::Result getPluginInfo(
             pid_t callerPid,
@@ -261,6 +262,7 @@ private:
     Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *m_secrets;
     QMap<QString, Sailfish::Crypto::CryptoPlugin*> m_cryptoPlugins;
     QMap<quint64, Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::PendingRequest> m_pendingRequests;
+    bool m_autotestMode;
 };
 
 } // namespace ApiImpl

@@ -56,8 +56,12 @@ void tst_crypto::getPluginInfo()
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
     QVector<Sailfish::Crypto::CryptoPluginInfo> cryptoPlugins = reply.argumentAt<1>();
-    QVERIFY(cryptoPlugins.size());
-    QCOMPARE(cryptoPlugins.first().name(), QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"));
+    QString cryptoPluginNames;
+    for (auto p : cryptoPlugins) {
+        cryptoPluginNames.append(p.name());
+    }
+    QVERIFY(cryptoPluginNames.size());
+    QVERIFY(cryptoPluginNames.contains(Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test")));
 }
 
 void tst_crypto::generateKeyEncryptDecrypt()
@@ -75,7 +79,7 @@ void tst_crypto::generateKeyEncryptDecrypt()
 
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> reply = cm.generateKey(
             keyTemplate,
-            QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"));
+            Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -91,7 +95,7 @@ void tst_crypto::generateKeyEncryptDecrypt()
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
             Sailfish::Crypto::Key::DigestSha256,
-            QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"));
+            Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
     QVERIFY(encryptReply.isValid());
     QCOMPARE(encryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -106,7 +110,7 @@ void tst_crypto::generateKeyEncryptDecrypt()
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
             Sailfish::Crypto::Key::DigestSha256,
-            QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"));
+            Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
     QCOMPARE(decryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -125,7 +129,7 @@ void tst_crypto::validateCertificateChain()
 
     QDBusPendingReply<Sailfish::Crypto::Result, bool> reply = cm.validateCertificateChain(
             chain,
-            QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"));
+            Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Crypto::Result::Failed); // plugin doesn't support this operation yet. TODO.

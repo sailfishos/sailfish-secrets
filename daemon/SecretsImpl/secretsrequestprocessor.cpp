@@ -36,8 +36,9 @@ static const QByteArray DeviceLockKey = QByteArray("example_device_lock_key");
 
 Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::RequestProcessor(Sailfish::Secrets::Daemon::Sqlite::Database *db,
                  Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *appPermissions,
+                 bool autotestMode,
                  Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *parent)
-    : QObject(parent), m_db(db), m_requestQueue(parent), m_appPermissions(appPermissions)
+    : QObject(parent), m_db(db), m_requestQueue(parent), m_appPermissions(appPermissions), m_autotestMode(autotestMode)
 {
     // Add the "standalone" collection.
     // Note that it is a "notional" collection,
@@ -83,7 +84,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::RequestProcessor(Sailfish:
 }
 
 bool
-Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir, bool autotestMode)
+Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
 {
     qCDebug(lcSailfishSecretsDaemon) << "Loading plugins from directory:" << pluginDir;
     QDir dir(pluginDir);
@@ -96,12 +97,12 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString 
         Sailfish::Secrets::EncryptedStoragePlugin *encryptedStoragePlugin = qobject_cast<Sailfish::Secrets::EncryptedStoragePlugin*>(plugin);
         Sailfish::Secrets::AuthenticationPlugin *authenticationPlugin = qobject_cast<Sailfish::Secrets::AuthenticationPlugin*>(plugin);
         if (storagePlugin) {
-            if (storagePlugin->isTestPlugin() != autotestMode) {
-                qCDebug(lcSailfishSecretsDaemon) << "ignoring storage plugin:" << pluginFile << "due to mode";
+            if (storagePlugin->name().isEmpty() || m_storagePlugins.contains(storagePlugin->name())) {
+                qCDebug(lcSailfishSecretsDaemon) << "ignoring storage plugin:" << pluginFile << "with duplicate name:" << storagePlugin->name();
                 loader.unload();
                 continue;
-            } else if (storagePlugin->name().isEmpty() || m_storagePlugins.contains(storagePlugin->name())) {
-                qCDebug(lcSailfishSecretsDaemon) << "ignoring storage plugin:" << pluginFile << "with duplicate name:" << storagePlugin->name();
+            } else if (storagePlugin->name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive) != m_autotestMode) {
+                qCDebug(lcSailfishCryptoDaemon) << "ignoring storage plugin:" << pluginFile << "due to mode";
                 loader.unload();
                 continue;
             } else {
@@ -109,12 +110,12 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString 
                 m_storagePlugins.insert(storagePlugin->name(), storagePlugin);
             }
         } else if (encryptionPlugin) {
-            if (encryptionPlugin->isTestPlugin() != autotestMode) {
-                qCDebug(lcSailfishSecretsDaemon) << "ignoring encryption plugin:" << pluginFile << "due to mode";
+            if (encryptionPlugin->name().isEmpty() || m_storagePlugins.contains(encryptionPlugin->name())) {
+                qCDebug(lcSailfishSecretsDaemon) << "ignoring encryption plugin:" << pluginFile << "with duplicate name:" << encryptionPlugin->name();
                 loader.unload();
                 continue;
-            } else if (encryptionPlugin->name().isEmpty() || m_storagePlugins.contains(encryptionPlugin->name())) {
-                qCDebug(lcSailfishSecretsDaemon) << "ignoring encryption plugin:" << pluginFile << "with duplicate name:" << encryptionPlugin->name();
+            } else if (encryptionPlugin->name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive) != m_autotestMode) {
+                qCDebug(lcSailfishCryptoDaemon) << "ignoring encryption plugin:" << pluginFile << "due to mode";
                 loader.unload();
                 continue;
             } else {
@@ -122,12 +123,12 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString 
                 m_encryptionPlugins.insert(encryptionPlugin->name(), encryptionPlugin);
             }
         } else if (encryptedStoragePlugin) {
-            if (encryptedStoragePlugin->isTestPlugin() != autotestMode) {
-                qCDebug(lcSailfishSecretsDaemon) << "ignoring encrypted storage plugin:" << pluginFile << "due to mode";
+            if (encryptedStoragePlugin->name().isEmpty() || m_encryptedStoragePlugins.contains(encryptedStoragePlugin->name())) {
+                qCDebug(lcSailfishSecretsDaemon) << "ignoring encrypted storage plugin:" << pluginFile << "with duplicate name:" << encryptedStoragePlugin->name();
                 loader.unload();
                 continue;
-            } else if (encryptedStoragePlugin->name().isEmpty() || m_encryptedStoragePlugins.contains(encryptedStoragePlugin->name())) {
-                qCDebug(lcSailfishSecretsDaemon) << "ignoring encrypted storage plugin:" << pluginFile << "with duplicate name:" << encryptedStoragePlugin->name();
+            } else if (encryptedStoragePlugin->name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive) != m_autotestMode) {
+                qCDebug(lcSailfishCryptoDaemon) << "ignoring encrypted storage plugin:" << pluginFile << "due to mode";
                 loader.unload();
                 continue;
             } else {
@@ -136,12 +137,12 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString 
                 m_potentialCryptoStoragePlugins.insert(encryptedStoragePlugin->name(), plugin);
             }
         } else if (authenticationPlugin) {
-            if (authenticationPlugin->isTestPlugin() != autotestMode) {
-                qCDebug(lcSailfishSecretsDaemon) << "ignoring authentication plugin:" << pluginFile << "due to mode";
+            if (authenticationPlugin->name().isEmpty() || m_authenticationPlugins.contains(authenticationPlugin->name())) {
+                qCDebug(lcSailfishSecretsDaemon) << "ignoring authentication plugin:" << pluginFile << "with duplicate name:" << authenticationPlugin->name();
                 loader.unload();
                 continue;
-            } else if (authenticationPlugin->name().isEmpty() || m_authenticationPlugins.contains(authenticationPlugin->name())) {
-                qCDebug(lcSailfishSecretsDaemon) << "ignoring authentication plugin:" << pluginFile << "with duplicate name:" << authenticationPlugin->name();
+            } else if (authenticationPlugin->name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive) != m_autotestMode) {
+                qCDebug(lcSailfishCryptoDaemon) << "ignoring authentication plugin:" << pluginFile << "due to mode";
                 loader.unload();
                 continue;
             } else {
@@ -292,7 +293,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::createDeviceLockCollection
             << callerApplicationId
             << storagePluginName
             << encryptionPluginName
-            << Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName
+            << (m_autotestMode ? (Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test")) : Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName)
             << static_cast<int>(unlockSemantic)
             << static_cast<int>(accessControlMode);
     iq.bindValues(ivalues);
@@ -1718,7 +1719,7 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSec
     ivalues << QVariant::fromValue<int>(1);
     ivalues << QVariant::fromValue<QString>(storagePluginName);
     ivalues << QVariant::fromValue<QString>(encryptionPluginName);
-    ivalues << QVariant::fromValue<QString>(Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName);
+    ivalues << QVariant::fromValue<QString>(m_autotestMode ? (Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test")) : Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName);
     ivalues << QVariant::fromValue<int>(static_cast<int>(unlockSemantic));
     ivalues << QVariant::fromValue<int>(0);
     ivalues << QVariant::fromValue<int>(static_cast<int>(accessControlMode));

@@ -49,8 +49,6 @@ public:
     EncryptionPlugin(QObject *parent = Q_NULLPTR);
     virtual ~EncryptionPlugin();
 
-    virtual bool isTestPlugin() const = 0;
-
     virtual QString name() const = 0;
     virtual Sailfish::Secrets::EncryptionPlugin::EncryptionType encryptionType() const = 0;
     virtual Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm encryptionAlgorithm() const = 0;
@@ -104,8 +102,6 @@ public:
     StoragePlugin(QObject *parent = Q_NULLPTR);
     virtual ~StoragePlugin();
 
-    virtual bool isTestPlugin() const = 0;
-
     virtual QString name() const = 0;
     virtual Sailfish::Secrets::StoragePlugin::StorageType storageType() const = 0;
 
@@ -150,8 +146,6 @@ class SAILFISH_SECRETS_API EncryptedStoragePlugin : public QObject
 public:
     EncryptedStoragePlugin(QObject *parent = Q_NULLPTR);
     virtual ~EncryptedStoragePlugin();
-
-    virtual bool isTestPlugin() const = 0;
 
     virtual QString name() const = 0;
     virtual Sailfish::Secrets::StoragePlugin::StorageType storageType() const = 0;
@@ -218,8 +212,6 @@ public:
 
     AuthenticationPlugin(QObject *parent = Q_NULLPTR);
     virtual ~AuthenticationPlugin();
-
-    virtual bool isTestPlugin() const = 0;
 
     virtual QString name() const = 0;
     virtual Sailfish::Secrets::AuthenticationPlugin::AuthenticationType authenticationType() const = 0;

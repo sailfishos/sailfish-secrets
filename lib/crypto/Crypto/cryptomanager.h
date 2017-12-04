@@ -36,6 +36,9 @@ class SAILFISH_CRYPTO_API CryptoManager : public QObject
     Q_OBJECT
 
 public:
+    static const QString DefaultCryptoPluginName;
+    static const QString DefaultCryptoStoragePluginName;
+
     CryptoManager(QObject *parent = Q_NULLPTR);
 
     bool isInitialised() const;

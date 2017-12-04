@@ -6,9 +6,14 @@ TARGET = $$qtLibraryTarget($$TARGET)
 include($$PWD/../../../common.pri)
 include($$PWD/../../../lib/secrets/libsailfishsecrets.pri)
 
-DEFINES += SAILFISH_SECRETS_BUILD_TEST_PLUGIN
-HEADERS += $$PWD/../../opensslplugin/evp_p.h $$PWD/../../opensslplugin/plugin.h
-SOURCES += $$PWD/../../opensslplugin/plugin.cpp
+DEFINES += SAILFISHSECRETS_TESTPLUGIN
+
+HEADERS += \
+    $$PWD/../../../plugins/opensslplugin/evp_p.h \
+    $$PWD/../../../plugins/opensslplugin/plugin.h
+
+SOURCES += \
+    $$PWD/../../../plugins/opensslplugin/plugin.cpp
 
 target.path=/usr/lib/sailfish/secrets/
 INSTALLS += target

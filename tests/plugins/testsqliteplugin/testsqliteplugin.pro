@@ -7,9 +7,14 @@ include($$PWD/../../../common.pri)
 include($$PWD/../../../lib/secrets/libsailfishsecrets.pri)
 include($$PWD/../../../database/database.pri)
 
-DEFINES += SAILFISH_SECRETS_BUILD_TEST_PLUGIN
-HEADERS += $$PWD/../../sqliteplugin/sqlitedatabase_p.h $$PWD/../../sqliteplugin/plugin.h
-SOURCES += $$PWD/../../sqliteplugin/plugin.cpp
+DEFINES += SAILFISHSECRETS_TESTPLUGIN
+
+HEADERS += \
+    $$PWD/../../../plugins/sqliteplugin/sqlitedatabase_p.h \
+    $$PWD/../../../plugins/sqliteplugin/plugin.h
+
+SOURCES += \
+    $$PWD/../../../plugins/sqliteplugin/plugin.cpp
 
 target.path=/usr/lib/sailfish/secrets/
 INSTALLS += target

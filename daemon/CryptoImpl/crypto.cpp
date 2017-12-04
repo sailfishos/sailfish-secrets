@@ -259,8 +259,8 @@ Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::CryptoRequestQueue(
 {
     Sailfish::Crypto::CryptoDaemonConnection::registerDBusTypes();
 
-    m_requestProcessor = new Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor(secrets, this);
-    if (!m_requestProcessor->loadPlugins(pluginDir, autotestMode)) {
+    m_requestProcessor = new Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor(secrets, autotestMode, this);
+    if (!m_requestProcessor->loadPlugins(pluginDir)) {
         qCWarning(lcSailfishCryptoDaemon) << "Crypto: failed to load plugins!";
         return;
     }

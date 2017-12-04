@@ -41,15 +41,13 @@ public:
     InAppPlugin(QObject *parent = Q_NULLPTR);
     ~InAppPlugin();
 
-    bool isTestPlugin() const Q_DECL_OVERRIDE {
-#ifdef SAILFISH_SECRETS_BUILD_TEST_PLUGIN
-        return true;
+    QString name() const Q_DECL_OVERRIDE {
+#ifdef SAILFISHSECRETS_TESTPLUGIN
+        return QLatin1String("org.sailfishos.secrets.plugin.authentication.inapp.test");
 #else
-        return false;
+        return QLatin1String("org.sailfishos.secrets.plugin.authentication.inapp");
 #endif
     }
-
-    QString name() const Q_DECL_OVERRIDE { return QLatin1String("org.sailfishos.secrets.plugin.authentication.inapp"); }
     Sailfish::Secrets::AuthenticationPlugin::AuthenticationType authenticationType() const Q_DECL_OVERRIDE { return Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication; }
 
     Sailfish::Secrets::Result beginAuthentication(

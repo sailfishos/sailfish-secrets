@@ -62,15 +62,13 @@ public:
     SqlCipherPlugin(QObject *parent = Q_NULLPTR);
     ~SqlCipherPlugin();
 
-    bool isTestPlugin() const Q_DECL_OVERRIDE {
-#ifdef SAILFISH_SECRETS_BUILD_TEST_PLUGIN
-        return true;
+    QString name() const Q_DECL_OVERRIDE {
+#ifdef SAILFISHSECRETS_TESTPLUGIN
+        return QLatin1String("org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test");
 #else
-        return false;
+        return QLatin1String("org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher");
 #endif
     }
-
-    QString name() const Q_DECL_OVERRIDE { return QLatin1String("org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher"); }
 
     // This plugin implements the EncryptedStoragePlugin interface
     Sailfish::Secrets::StoragePlugin::StorageType storageType() const Q_DECL_OVERRIDE { return Sailfish::Secrets::StoragePlugin::FileSystemStorage; }

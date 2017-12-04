@@ -33,13 +33,13 @@ public slots:
     void cleanup();
 
 private slots:
-    void createDeleteDeviceLockCollection();
-    void writeReadDeleteDeviceLockCollectionSecret();
-    void writeReadDeleteStandaloneDeviceLockSecret();
+    void devicelockCollection();
+    void devicelockCollectionSecret();
+    void devicelockStandaloneSecret();
 
-    void createDeleteCustomLockCollection();
-    void writeReadDeleteCustomLockCollectionSecret();
-    void writeReadDeleteStandaloneCustomLockSecret();
+    void customlockCollection();
+    void customlockCollectionSecret();
+    void customlockStandaloneSecret();
 
     void encryptedStorageCollection();
 
@@ -55,12 +55,12 @@ void tst_secrets::cleanup()
 {
 }
 
-void tst_secrets::createDeleteDeviceLockCollection()
+void tst_secrets::devicelockCollection()
 {
     QDBusPendingReply<Sailfish::Secrets::Result> reply = m.createCollection(
                 QLatin1String("testcollection"),
-                Sailfish::Secrets::SecretManager::DefaultStoragePluginName,
-                Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName,
+                Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
+                Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
                 Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked,
                 Sailfish::Secrets::SecretManager::OwnerOnlyMode);
     reply.waitForFinished();
@@ -75,12 +75,12 @@ void tst_secrets::createDeleteDeviceLockCollection()
     QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
 }
 
-void tst_secrets::writeReadDeleteDeviceLockCollectionSecret()
+void tst_secrets::devicelockCollectionSecret()
 {
     QDBusPendingReply<Sailfish::Secrets::Result> reply = m.createCollection(
                 QLatin1String("testcollection"),
-                Sailfish::Secrets::SecretManager::DefaultStoragePluginName,
-                Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName,
+                Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
+                Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
                 Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked,
                 Sailfish::Secrets::SecretManager::OwnerOnlyMode);
     reply.waitForFinished();
@@ -187,7 +187,7 @@ void tst_secrets::writeReadDeleteDeviceLockCollectionSecret()
 }
 
 
-void tst_secrets::writeReadDeleteStandaloneDeviceLockSecret()
+void tst_secrets::devicelockStandaloneSecret()
 {
     // write the secret
     Sailfish::Secrets::Secret testSecret(Sailfish::Secrets::Secret::Identifier("testsecretname"));
@@ -196,8 +196,8 @@ void tst_secrets::writeReadDeleteStandaloneDeviceLockSecret()
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
     testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
     QDBusPendingReply<Sailfish::Secrets::Result> reply = m.setSecret(
-                Sailfish::Secrets::SecretManager::DefaultStoragePluginName,
-                Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName,
+                Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
+                Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
                 testSecret,
                 Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked,
                 Sailfish::Secrets::SecretManager::OwnerOnlyMode,
@@ -232,7 +232,7 @@ void tst_secrets::writeReadDeleteStandaloneDeviceLockSecret()
     QCOMPARE(secretReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Failed);
 }
 
-void tst_secrets::createDeleteCustomLockCollection()
+void tst_secrets::customlockCollection()
 {
     // construct the in-process authentication key UI.
     QQuickView v(QUrl::fromLocalFile(QStringLiteral("%1/tst_secrets.qml").arg(QCoreApplication::applicationDirPath())));
@@ -243,9 +243,9 @@ void tst_secrets::createDeleteCustomLockCollection()
 
     QDBusPendingReply<Sailfish::Secrets::Result> reply = m.createCollection(
                 QLatin1String("testcollection"),
-                Sailfish::Secrets::SecretManager::DefaultStoragePluginName,
-                Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName,
-                Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName,
+                Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
+                Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
+                Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName + QLatin1String(".test"),
                 Sailfish::Secrets::SecretManager::CustomLockKeepUnlocked,
                 0,
                 Sailfish::Secrets::SecretManager::OwnerOnlyMode,
@@ -262,7 +262,7 @@ void tst_secrets::createDeleteCustomLockCollection()
     QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
 }
 
-void tst_secrets::writeReadDeleteCustomLockCollectionSecret()
+void tst_secrets::customlockCollectionSecret()
 {
     // construct the in-process authentication key UI.
     QQuickView v(QUrl::fromLocalFile(QStringLiteral("%1/tst_secrets.qml").arg(QCoreApplication::applicationDirPath())));
@@ -273,9 +273,9 @@ void tst_secrets::writeReadDeleteCustomLockCollectionSecret()
 
     QDBusPendingReply<Sailfish::Secrets::Result> reply = m.createCollection(
                 QLatin1String("testcollection"),
-                Sailfish::Secrets::SecretManager::DefaultStoragePluginName,
-                Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName,
-                Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName,
+                Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
+                Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
+                Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName + QLatin1String(".test"),
                 Sailfish::Secrets::SecretManager::CustomLockKeepUnlocked,
                 0,
                 Sailfish::Secrets::SecretManager::OwnerOnlyMode,
@@ -331,7 +331,7 @@ void tst_secrets::writeReadDeleteCustomLockCollectionSecret()
 }
 
 
-void tst_secrets::writeReadDeleteStandaloneCustomLockSecret()
+void tst_secrets::customlockStandaloneSecret()
 {
     // construct the in-process authentication key UI.
     QQuickView v(QUrl::fromLocalFile(QStringLiteral("%1/tst_secrets.qml").arg(QCoreApplication::applicationDirPath())));
@@ -346,9 +346,9 @@ void tst_secrets::writeReadDeleteStandaloneCustomLockSecret()
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
     testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
     QDBusPendingReply<Sailfish::Secrets::Result> reply = m.setSecret(
-                Sailfish::Secrets::SecretManager::DefaultStoragePluginName,
-                Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName,
-                Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName,
+                Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
+                Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
+                Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName + QLatin1String(".test"),
                 testSecret,
                 Sailfish::Secrets::SecretManager::CustomLockKeepUnlocked,
                 0,
@@ -393,9 +393,9 @@ void tst_secrets::encryptedStorageCollection()
 
     QDBusPendingReply<Sailfish::Secrets::Result> reply = m.createCollection(
                 QLatin1String("testencryptedcollection"),
-                Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName,
-                Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName,
-                Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName,
+                Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"),
+                Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"),
+                Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName + QLatin1String(".test"),
                 Sailfish::Secrets::SecretManager::CustomLockKeepUnlocked,
                 0,
                 Sailfish::Secrets::SecretManager::OwnerOnlyMode,

@@ -39,8 +39,8 @@ public slots:
 
 private slots:
     void getPluginInfo();
-    void generateStoredKeyEncryptDecrypt();
-    void generateCryptoStoredKeyEncryptDecrypt();
+    void secretsStoredKey();
+    void cryptoStoredKey();
 
 private:
     Sailfish::Crypto::CryptoManager cm;
@@ -62,14 +62,19 @@ void tst_cryptosecrets::getPluginInfo()
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
     QVector<Sailfish::Crypto::CryptoPluginInfo> cryptoPlugins = reply.argumentAt<1>();
-    QVERIFY(cryptoPlugins.size());
-    QCOMPARE(cryptoPlugins.first().name(), QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"));
+    QString cryptoPluginNames;
+    for (auto p : cryptoPlugins) {
+        cryptoPluginNames.append(p.name());
+    }
+    QVERIFY(cryptoPluginNames.size());
+    QVERIFY(cryptoPluginNames.contains(Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test")));
+    QVERIFY(cryptoPluginNames.contains(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName + QLatin1String(".test")));
     QStringList storagePlugins = reply.argumentAt<2>();
     QVERIFY(storagePlugins.size());
-    QVERIFY(storagePlugins.contains(QLatin1String("org.sailfishos.secrets.plugin.storage.sqlite")));
+    QVERIFY(storagePlugins.contains(Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test")));
 }
 
-void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
+void tst_cryptosecrets::secretsStoredKey()
 {
     // test generating a symmetric cipher key and storing securely.
     Sailfish::Crypto::Key keyTemplate;
@@ -85,8 +90,8 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
     // first, create the collection via the Secrets API.
     QDBusPendingReply<Sailfish::Secrets::Result> secretsreply = sm.createCollection(
                 QLatin1String("tst_cryptosecrets_gsked"),
-                Sailfish::Secrets::SecretManager::DefaultStoragePluginName,
-                Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName,
+                Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
+                Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
                 Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked,
                 Sailfish::Secrets::SecretManager::OwnerOnlyMode);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretsreply);
@@ -98,8 +103,8 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
     // note that the secret key data will never enter the client process address space.
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> reply = cm.generateStoredKey(
             keyTemplate,
-            QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"),
-            QLatin1String("org.sailfishos.secrets.plugin.storage.sqlite"));
+            Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"),
+            Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -115,7 +120,7 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
             Sailfish::Crypto::Key::DigestSha256,
-            QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"));
+            Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
     QVERIFY(encryptReply.isValid());
     QCOMPARE(encryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -130,7 +135,7 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
             Sailfish::Crypto::Key::DigestSha256,
-            QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"));
+            Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
     QCOMPARE(decryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -180,7 +185,7 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
             Sailfish::Crypto::Key::DigestSha256,
-            QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"));
+            Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
     QCOMPARE(decryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Failed);
@@ -189,8 +194,8 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
     // recreate the collection and the key, and encrypt/decrypt again, then delete via deleteStoredKey().
     secretsreply = sm.createCollection(
                 QLatin1String("tst_cryptosecrets_gsked"),
-                Sailfish::Secrets::SecretManager::DefaultStoragePluginName,
-                Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName,
+                Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
+                Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
                 Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked,
                 Sailfish::Secrets::SecretManager::OwnerOnlyMode);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretsreply);
@@ -199,8 +204,8 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
 
     reply = cm.generateStoredKey(
                 keyTemplate,
-                QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"),
-                QLatin1String("org.sailfishos.secrets.plugin.storage.sqlite"));
+                Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"),
+                Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -214,7 +219,7 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
             Sailfish::Crypto::Key::DigestSha256,
-            QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"));
+            Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
     QVERIFY(encryptReply.isValid());
     QCOMPARE(encryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -228,7 +233,7 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
             Sailfish::Crypto::Key::DigestSha256,
-            QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"));
+            Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
     QCOMPARE(decryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -249,7 +254,7 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
             Sailfish::Crypto::Key::DigestSha256,
-            QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"));
+            Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
     QCOMPARE(decryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Failed);
@@ -275,7 +280,7 @@ void tst_cryptosecrets::generateStoredKeyEncryptDecrypt()
     QCOMPARE(secretsreply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
 }
 
-void tst_cryptosecrets::generateCryptoStoredKeyEncryptDecrypt()
+void tst_cryptosecrets::cryptoStoredKey()
 {
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
     Sailfish::Crypto::Key keyTemplate;
@@ -291,8 +296,8 @@ void tst_cryptosecrets::generateCryptoStoredKeyEncryptDecrypt()
     // first, create the collection via the Secrets API.
     QDBusPendingReply<Sailfish::Secrets::Result> secretsreply = sm.createCollection(
                 QLatin1String("tstcryptosecretsgcsked"),
-                Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName,
-                Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName,
+                Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"),
+                Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"),
                 Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked,
                 Sailfish::Secrets::SecretManager::OwnerOnlyMode);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretsreply);
@@ -304,8 +309,8 @@ void tst_cryptosecrets::generateCryptoStoredKeyEncryptDecrypt()
     // note that the secret key data will never enter the client process address space.
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> reply = cm.generateStoredKey(
             keyTemplate,
-            Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName,
-            Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
+            Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"),
+            Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -321,7 +326,7 @@ void tst_cryptosecrets::generateCryptoStoredKeyEncryptDecrypt()
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
             Sailfish::Crypto::Key::DigestSha256,
-            Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
+            Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
     QVERIFY(encryptReply.isValid());
     QCOMPARE(encryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -336,7 +341,7 @@ void tst_cryptosecrets::generateCryptoStoredKeyEncryptDecrypt()
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
             Sailfish::Crypto::Key::DigestSha256,
-            Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
+            Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
     QCOMPARE(decryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -386,7 +391,7 @@ void tst_cryptosecrets::generateCryptoStoredKeyEncryptDecrypt()
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
             Sailfish::Crypto::Key::DigestSha256,
-            Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
+            Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
     QCOMPARE(decryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Failed);
@@ -395,8 +400,8 @@ void tst_cryptosecrets::generateCryptoStoredKeyEncryptDecrypt()
     // recreate the collection and the key, and encrypt/decrypt again, then delete via deleteStoredKey().
     secretsreply = sm.createCollection(
                 QLatin1String("tstcryptosecretsgcsked"),
-                Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName,
-                Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName,
+                Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"),
+                Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"),
                 Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked,
                 Sailfish::Secrets::SecretManager::OwnerOnlyMode);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretsreply);
@@ -405,8 +410,8 @@ void tst_cryptosecrets::generateCryptoStoredKeyEncryptDecrypt()
 
     reply = cm.generateStoredKey(
                 keyTemplate,
-                Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName,
-                Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
+                Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"),
+                Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -420,7 +425,7 @@ void tst_cryptosecrets::generateCryptoStoredKeyEncryptDecrypt()
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
             Sailfish::Crypto::Key::DigestSha256,
-            Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
+            Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
     QVERIFY(encryptReply.isValid());
     QCOMPARE(encryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -434,7 +439,7 @@ void tst_cryptosecrets::generateCryptoStoredKeyEncryptDecrypt()
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
             Sailfish::Crypto::Key::DigestSha256,
-            Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
+            Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
     QCOMPARE(decryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -455,7 +460,7 @@ void tst_cryptosecrets::generateCryptoStoredKeyEncryptDecrypt()
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
             Sailfish::Crypto::Key::DigestSha256,
-            Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
+            Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
     QCOMPARE(decryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Failed);

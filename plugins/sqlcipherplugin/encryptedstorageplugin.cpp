@@ -103,7 +103,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::openCollectionDatabase(
                           upgradeVersions,
                           currentSchemaVersion,
                           collectionName,
-                          isTestPlugin())) {
+                          name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive))) {
                 retn = Sailfish::Secrets::Result(Sailfish::Secrets::Result::DatabaseError,
                                                  QLatin1String("SQLCipher plugin was unable to open the collection database"));
             } else {

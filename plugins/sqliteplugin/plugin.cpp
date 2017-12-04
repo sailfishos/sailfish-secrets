@@ -23,7 +23,7 @@ void Sailfish::Secrets::Daemon::Plugins::SqlitePlugin::openDatabaseIfNecessary()
         return;
     }
 
-#ifdef SAILFISH_SECRETS_BUILD_TEST_PLUGIN
+#ifdef SAILFISHSECRETS_TESTPLUGIN
     bool autotestMode = true;
 #else
     bool autotestMode = false;

@@ -54,9 +54,10 @@ class RequestProcessor : public QObject
 public:
     RequestProcessor(Sailfish::Secrets::Daemon::Sqlite::Database *db,
                      Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *appPermissions,
+                     bool autotestMode,
                      Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *parent = Q_NULLPTR);
 
-    bool loadPlugins(const QString &pluginDir, bool autotestMode);
+    bool loadPlugins(const QString &pluginDir);
 
     // retrieve information about available plugins
     Sailfish::Secrets::Result getPluginInfo(
@@ -337,6 +338,8 @@ private:
     QMap<QString, QTimer*> m_standaloneSecretLockTimers;
     QMap<QString, QByteArray> m_standaloneSecretAuthenticationKeys;
     QMap<quint64, Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::PendingRequest> m_pendingRequests;
+
+    bool m_autotestMode;
 };
 
 } // namespace ApiImpl

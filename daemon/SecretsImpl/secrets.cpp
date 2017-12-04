@@ -290,8 +290,8 @@ Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::SecretsRequestQueue(
     }
 
     m_appPermissions = new Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions(this);
-    m_requestProcessor = new Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor(&m_db, m_appPermissions, this);
-    if (!m_requestProcessor->loadPlugins(pluginDir, autotestMode)) {
+    m_requestProcessor = new Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor(&m_db, m_appPermissions, autotestMode, this);
+    if (!m_requestProcessor->loadPlugins(pluginDir)) {
         qCWarning(lcSailfishSecretsDaemon) << "Secrets: failed to load plugins!";
         return;
     }
