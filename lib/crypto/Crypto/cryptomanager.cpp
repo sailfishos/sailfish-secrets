@@ -25,30 +25,32 @@
 
 Q_LOGGING_CATEGORY(lcSailfishCrypto, "org.sailfishos.crypto", QtWarningMsg)
 
-const QString Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName = QStringLiteral("org.sailfishos.crypto.plugin.crypto.openssl");
-const QString Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName = QStringLiteral("org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher");
+using namespace Sailfish::Crypto;
 
-Sailfish::Crypto::CryptoManagerPrivate::CryptoManagerPrivate(CryptoManager *parent)
+const QString CryptoManager::DefaultCryptoPluginName = QStringLiteral("org.sailfishos.crypto.plugin.crypto.openssl");
+const QString CryptoManager::DefaultCryptoStoragePluginName = QStringLiteral("org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher");
+
+CryptoManagerPrivate::CryptoManagerPrivate(CryptoManager *parent)
     : QObject(parent)
     , m_parent(parent)
-    , m_crypto(Sailfish::Crypto::CryptoDaemonConnection::instance())
+    , m_crypto(CryptoDaemonConnection::instance())
     , m_interface(m_crypto->connect()
                   ? m_crypto->createInterface(QLatin1String("/Sailfish/Crypto"), QLatin1String("org.sailfishos.crypto"), this)
                   : Q_NULLPTR)
 {
 }
 
-Sailfish::Crypto::CryptoManagerPrivate::~CryptoManagerPrivate()
+CryptoManagerPrivate::~CryptoManagerPrivate()
 {
-    Sailfish::Crypto::CryptoDaemonConnection::releaseInstance();
+    CryptoDaemonConnection::releaseInstance();
 }
 
 /*!
   \brief Constructs a new CryptoManager instance with the given \a parent.
  */
-Sailfish::Crypto::CryptoManager::CryptoManager(QObject *parent)
+CryptoManager::CryptoManager(QObject *parent)
     : QObject(parent)
-    , m_data(new Sailfish::Crypto::CryptoManagerPrivate(this))
+    , m_data(new CryptoManagerPrivate(this))
 {
     if (!m_data->m_interface) {
         qCWarning(lcSailfishCrypto) << "Unable to connect to the crypto daemon!  No functionality will be available!";
@@ -59,7 +61,7 @@ Sailfish::Crypto::CryptoManager::CryptoManager(QObject *parent)
 /*!
   \brief Returns true if the DBus connection to the crypto daemon has been established, otherwise false
  */
-bool Sailfish::Crypto::CryptoManager::isInitialised() const
+bool CryptoManager::isInitialised() const
 {
     return m_data->m_interface;
 }
@@ -67,16 +69,16 @@ bool Sailfish::Crypto::CryptoManager::isInitialised() const
 /*!
  * \brief Returns information about crypto plugins as well as the names of storage plugins
  */
-QDBusPendingReply<Sailfish::Crypto::Result, QVector<Sailfish::Crypto::CryptoPluginInfo>, QStringList>
-Sailfish::Crypto::CryptoManager::getPluginInfo()
+QDBusPendingReply<Result, QVector<CryptoPluginInfo>, QStringList>
+CryptoManager::getPluginInfo()
 {
     if (!m_data->m_interface) {
-        return QDBusPendingReply<Sailfish::Crypto::Result, QVector<Sailfish::Crypto::CryptoPluginInfo>, QStringList>(
+        return QDBusPendingReply<Result, QVector<CryptoPluginInfo>, QStringList>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Sailfish::Crypto::Result, QVector<Sailfish::Crypto::CryptoPluginInfo>, QStringList> reply
+    QDBusPendingReply<Result, QVector<CryptoPluginInfo>, QStringList> reply
             = m_data->m_interface->asyncCall("getPluginInfo");
 
     return reply;
@@ -88,21 +90,21 @@ Sailfish::Crypto::CryptoManager::getPluginInfo()
  * The cryptosystem provider identified by the given \a cryptosystemProviderName will perform
  * any cryptographic operations required to validate the authenticity of the certificate.
  */
-QDBusPendingReply<Sailfish::Crypto::Result, bool>
-Sailfish::Crypto::CryptoManager::validateCertificateChain(
-        const QVector<Sailfish::Crypto::Certificate> &chain,
+QDBusPendingReply<Result, bool>
+CryptoManager::validateCertificateChain(
+        const QVector<Certificate> &chain,
         const QString &cryptosystemProviderName)
 {
     if (!m_data->m_interface) {
-        return QDBusPendingReply<Sailfish::Crypto::Result, bool>(
+        return QDBusPendingReply<Result, bool>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Sailfish::Crypto::Result, bool> reply
+    QDBusPendingReply<Result, bool> reply
             = m_data->m_interface->asyncCallWithArgumentList(
                 "validateCertificateChain",
-                QVariantList() << QVariant::fromValue<QVector<Sailfish::Crypto::Certificate> >(chain)
+                QVariantList() << QVariant::fromValue<QVector<Certificate> >(chain)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -113,21 +115,21 @@ Sailfish::Crypto::CryptoManager::validateCertificateChain(
  * This key will not be stored securely by the crypto daemon, but instead will
  * be returned in its complete form to the caller.
  */
-QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key>
-Sailfish::Crypto::CryptoManager::generateKey(
-        const Sailfish::Crypto::Key &keyTemplate,
+QDBusPendingReply<Result, Key>
+CryptoManager::generateKey(
+        const Key &keyTemplate,
         const QString &cryptosystemProviderName)
 {
     if (!m_data->m_interface) {
-        return QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key>(
+        return QDBusPendingReply<Result, Key>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> reply
+    QDBusPendingReply<Result, Key> reply
             = m_data->m_interface->asyncCallWithArgumentList(
                 "generateKey",
-                QVariantList() << QVariant::fromValue<Sailfish::Crypto::Key>(keyTemplate)
+                QVariantList() << QVariant::fromValue<Key>(keyTemplate)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -146,22 +148,22 @@ Sailfish::Crypto::CryptoManager::generateKey(
  * same, then the key will be stored in storage managed by the
  * cryptosystem provider plugin, if that plugin supports storing keys.
  */
-QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key>
-Sailfish::Crypto::CryptoManager::generateStoredKey(
-        const Sailfish::Crypto::Key &keyTemplate,
+QDBusPendingReply<Result, Key>
+CryptoManager::generateStoredKey(
+        const Key &keyTemplate,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName)
 {
     if (!m_data->m_interface) {
-        return QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key>(
+        return QDBusPendingReply<Result, Key>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> reply
+    QDBusPendingReply<Result, Key> reply
             = m_data->m_interface->asyncCallWithArgumentList(
                 "generateStoredKey",
-                QVariantList() << QVariant::fromValue<Sailfish::Crypto::Key>(keyTemplate)
+                QVariantList() << QVariant::fromValue<Key>(keyTemplate)
                                << QVariant::fromValue<QString>(cryptosystemProviderName)
                                << QVariant::fromValue<QString>(storageProviderName));
     return reply;
@@ -173,20 +175,20 @@ Sailfish::Crypto::CryptoManager::generateStoredKey(
  * This may trigger a system access control dialog if the calling application
  * has not previously been granted permission by the user to access the key data.
  */
-QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key>
-Sailfish::Crypto::CryptoManager::storedKey(
-        const Sailfish::Crypto::Key::Identifier &identifier) // TODO: do we need parameter: just get metadata/public vs get private data, etc?
+QDBusPendingReply<Result, Key>
+CryptoManager::storedKey(
+        const Key::Identifier &identifier) // TODO: do we need parameter: just get metadata/public vs get private data, etc?
 {
     if (!m_data->m_interface) {
-        return QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key>(
+        return QDBusPendingReply<Result, Key>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> reply
+    QDBusPendingReply<Result, Key> reply
             = m_data->m_interface->asyncCallWithArgumentList(
                 "storedKey",
-                QVariantList() << QVariant::fromValue<Sailfish::Crypto::Key::Identifier>(identifier));
+                QVariantList() << QVariant::fromValue<Key::Identifier>(identifier));
     // TODO: does this also need collectionName ? or is name a combo of secretName+collectionName somehow?
     // I think the crypto daemon can handle that:
     //    when storing, specify name + crypto + storage
@@ -203,20 +205,20 @@ Sailfish::Crypto::CryptoManager::storedKey(
  * This may trigger a system access control dialog if the calling application
  * has not previously been granted permission by the user to access the key data.
  */
-QDBusPendingReply<Sailfish::Crypto::Result>
-Sailfish::Crypto::CryptoManager::deleteStoredKey(
-        const Sailfish::Crypto::Key::Identifier &identifier)
+QDBusPendingReply<Result>
+CryptoManager::deleteStoredKey(
+        const Key::Identifier &identifier)
 {
     if (!m_data->m_interface) {
-        return QDBusPendingReply<Sailfish::Crypto::Result>(
+        return QDBusPendingReply<Result>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Sailfish::Crypto::Result> reply
+    QDBusPendingReply<Result> reply
             = m_data->m_interface->asyncCallWithArgumentList(
                 "deleteStoredKey",
-                QVariantList() << QVariant::fromValue<Sailfish::Crypto::Key::Identifier>(identifier));
+                QVariantList() << QVariant::fromValue<Key::Identifier>(identifier));
     return reply;
 }
 
@@ -230,16 +232,16 @@ Sailfish::Crypto::CryptoManager::deleteStoredKey(
  * keys, and any future operations (e.g., to use one of the keys to sign data)
  * may trigger further access control UI flows.
  */
-QDBusPendingReply<Sailfish::Crypto::Result, QVector<Sailfish::Crypto::Key::Identifier> >
-Sailfish::Crypto::CryptoManager::storedKeyIdentifiers() // TODO: UI interaction mode param, if NoUserInteraction then just show the keys already permitted?
+QDBusPendingReply<Result, QVector<Key::Identifier> >
+CryptoManager::storedKeyIdentifiers() // TODO: UI interaction mode param, if NoUserInteraction then just show the keys already permitted?
 {
     if (!m_data->m_interface) {
-        return QDBusPendingReply<Sailfish::Crypto::Result, QVector<Sailfish::Crypto::Key::Identifier> >(
+        return QDBusPendingReply<Result, QVector<Key::Identifier> >(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Sailfish::Crypto::Result, QVector<Sailfish::Crypto::Key::Identifier> > reply
+    QDBusPendingReply<Result, QVector<Key::Identifier> > reply
             = m_data->m_interface->asyncCall("storedKeyIdentifiers");
     return reply;
 }
@@ -252,27 +254,27 @@ Sailfish::Crypto::CryptoManager::storedKeyIdentifiers() // TODO: UI interaction 
  * or a sign-capable key (that is a key which also contains the key data
  * required to sign data).
  */
-QDBusPendingReply<Sailfish::Crypto::Result, QByteArray>
-Sailfish::Crypto::CryptoManager::sign(
+QDBusPendingReply<Result, QByteArray>
+CryptoManager::sign(
         const QByteArray &data,
-        const Sailfish::Crypto::Key &key,
-        Sailfish::Crypto::Key::SignaturePadding padding,
-        Sailfish::Crypto::Key::Digest digest,
+        const Key &key,
+        Key::SignaturePadding padding,
+        Key::Digest digest,
         const QString &cryptosystemProviderName)
 {
     if (!m_data->m_interface) {
-        return QDBusPendingReply<Sailfish::Crypto::Result, QByteArray>(
+        return QDBusPendingReply<Result, QByteArray>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> reply
+    QDBusPendingReply<Result, QByteArray> reply
             = m_data->m_interface->asyncCallWithArgumentList(
                 "sign",
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
-                               << QVariant::fromValue<Sailfish::Crypto::Key>(key)
-                               << QVariant::fromValue<Sailfish::Crypto::Key::SignaturePadding>(padding)
-                               << QVariant::fromValue<Sailfish::Crypto::Key::Digest>(digest)
+                               << QVariant::fromValue<Key>(key)
+                               << QVariant::fromValue<Key::SignaturePadding>(padding)
+                               << QVariant::fromValue<Key::Digest>(digest)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -285,27 +287,27 @@ Sailfish::Crypto::CryptoManager::sign(
  * or a verify-capable key (that is a key which also contains the key data
  * required to verify signed data).
  */
-QDBusPendingReply<Sailfish::Crypto::Result, bool>
-Sailfish::Crypto::CryptoManager::verify(
+QDBusPendingReply<Result, bool>
+CryptoManager::verify(
         const QByteArray &data,
-        const Sailfish::Crypto::Key &key,
-        Sailfish::Crypto::Key::SignaturePadding padding,
-        Sailfish::Crypto::Key::Digest digest,
+        const Key &key,
+        Key::SignaturePadding padding,
+        Key::Digest digest,
         const QString &cryptosystemProviderName)
 {
     if (!m_data->m_interface) {
-        return QDBusPendingReply<Sailfish::Crypto::Result, bool>(
+        return QDBusPendingReply<Result, bool>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Sailfish::Crypto::Result, bool> reply
+    QDBusPendingReply<Result, bool> reply
             = m_data->m_interface->asyncCallWithArgumentList(
                 "verify",
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
-                               << QVariant::fromValue<Sailfish::Crypto::Key>(key)
-                               << QVariant::fromValue<Sailfish::Crypto::Key::SignaturePadding>(padding)
-                               << QVariant::fromValue<Sailfish::Crypto::Key::Digest>(digest)
+                               << QVariant::fromValue<Key>(key)
+                               << QVariant::fromValue<Key::SignaturePadding>(padding)
+                               << QVariant::fromValue<Key::Digest>(digest)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -319,29 +321,29 @@ Sailfish::Crypto::CryptoManager::verify(
  * or an encrypt-capable key (that is a key which also contains the key data
  * required to encrypt data).
  */
-QDBusPendingReply<Sailfish::Crypto::Result, QByteArray>
-Sailfish::Crypto::CryptoManager::encrypt(
+QDBusPendingReply<Result, QByteArray>
+CryptoManager::encrypt(
         const QByteArray &data,
-        const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
-        Sailfish::Crypto::Key::BlockMode blockMode,
-        Sailfish::Crypto::Key::EncryptionPadding padding,
-        Sailfish::Crypto::Key::Digest digest,
+        const Key &key, // or keyreference, i.e. Key(keyName)
+        Key::BlockMode blockMode,
+        Key::EncryptionPadding padding,
+        Key::Digest digest,
         const QString &cryptosystemProviderName)
 {
     if (!m_data->m_interface) {
-        return QDBusPendingReply<Sailfish::Crypto::Result>(
+        return QDBusPendingReply<Result>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> reply
+    QDBusPendingReply<Result, QByteArray> reply
             = m_data->m_interface->asyncCallWithArgumentList(
                 "encrypt",
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
-                               << QVariant::fromValue<Sailfish::Crypto::Key>(key)
-                               << QVariant::fromValue<Sailfish::Crypto::Key::BlockMode>(blockMode)
-                               << QVariant::fromValue<Sailfish::Crypto::Key::EncryptionPadding>(padding)
-                               << QVariant::fromValue<Sailfish::Crypto::Key::Digest>(digest)
+                               << QVariant::fromValue<Key>(key)
+                               << QVariant::fromValue<Key::BlockMode>(blockMode)
+                               << QVariant::fromValue<Key::EncryptionPadding>(padding)
+                               << QVariant::fromValue<Key::Digest>(digest)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -355,29 +357,29 @@ Sailfish::Crypto::CryptoManager::encrypt(
  * or a decrypt-capable key (that is a key which also contains the key data
  * required to decrypt data).
  */
-QDBusPendingReply<Sailfish::Crypto::Result, QByteArray>
-Sailfish::Crypto::CryptoManager::decrypt(
+QDBusPendingReply<Result, QByteArray>
+CryptoManager::decrypt(
         const QByteArray &data,
-        const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
-        Sailfish::Crypto::Key::BlockMode blockMode,
-        Sailfish::Crypto::Key::EncryptionPadding padding,
-        Sailfish::Crypto::Key::Digest digest,
+        const Key &key, // or keyreference, i.e. Key(keyName)
+        Key::BlockMode blockMode,
+        Key::EncryptionPadding padding,
+        Key::Digest digest,
         const QString &cryptosystemProviderName)
 {
     if (!m_data->m_interface) {
-        return QDBusPendingReply<Sailfish::Crypto::Result>(
+        return QDBusPendingReply<Result>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> reply
+    QDBusPendingReply<Result, QByteArray> reply
             = m_data->m_interface->asyncCallWithArgumentList(
                 "decrypt",
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
-                               << QVariant::fromValue<Sailfish::Crypto::Key>(key)
-                               << QVariant::fromValue<Sailfish::Crypto::Key::BlockMode>(blockMode)
-                               << QVariant::fromValue<Sailfish::Crypto::Key::EncryptionPadding>(padding)
-                               << QVariant::fromValue<Sailfish::Crypto::Key::Digest>(digest)
+                               << QVariant::fromValue<Key>(key)
+                               << QVariant::fromValue<Key::BlockMode>(blockMode)
+                               << QVariant::fromValue<Key::EncryptionPadding>(padding)
+                               << QVariant::fromValue<Key::Digest>(digest)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }

@@ -23,13 +23,15 @@
 
 Q_LOGGING_CATEGORY(lcSailfishSecretsUi, "org.sailfishos.secrets.interaction", QtWarningMsg)
 
-const QString Sailfish::Secrets::InteractionRequest::InteractionViewQmlFileUrl = QStringLiteral("InteractionViewQmlFileUrl");
-const QString Sailfish::Secrets::InteractionResponse::ResultCode = QStringLiteral("ResultCode");
-const QString Sailfish::Secrets::InteractionResponse::ErrorMessage = QStringLiteral("ErrorMessage");
-const QString Sailfish::Secrets::InteractionResponse::Confirmation = QStringLiteral("Confirmation");
-const QString Sailfish::Secrets::InteractionResponse::AuthenticationKey = QStringLiteral("AuthenticationKey");
+using namespace Sailfish::Secrets;
 
-void Sailfish::Secrets::SecretManagerPrivate::handleUiConnection(const QDBusConnection &connection)
+const QString InteractionRequest::InteractionViewQmlFileUrl = QStringLiteral("InteractionViewQmlFileUrl");
+const QString InteractionResponse::ResultCode = QStringLiteral("ResultCode");
+const QString InteractionResponse::ErrorMessage = QStringLiteral("ErrorMessage");
+const QString InteractionResponse::Confirmation = QStringLiteral("Confirmation");
+const QString InteractionResponse::AuthenticationKey = QStringLiteral("AuthenticationKey");
+
+void SecretManagerPrivate::handleUiConnection(const QDBusConnection &connection)
 {
     qCDebug(lcSailfishSecretsUi) << "InteractionService received new client p2p connection:" << connection.name();
     QDBusConnection clientConnection(connection);
@@ -45,7 +47,7 @@ void Sailfish::Secrets::SecretManagerPrivate::handleUiConnection(const QDBusConn
     }
 }
 
-Sailfish::Secrets::InteractionService::InteractionService(SecretManagerPrivate *parent)
+InteractionService::InteractionService(SecretManagerPrivate *parent)
     : QObject(parent)
     , m_parent(parent)
     , m_dbusServer(Q_NULLPTR)
@@ -54,7 +56,7 @@ Sailfish::Secrets::InteractionService::InteractionService(SecretManagerPrivate *
 {
 }
 
-bool Sailfish::Secrets::InteractionService::registerServer()
+bool InteractionService::registerServer()
 {
     if (!m_address.isEmpty()) {
         // already registered.
@@ -78,16 +80,16 @@ bool Sailfish::Secrets::InteractionService::registerServer()
 
     m_dbusServer = new QDBusServer(address, this);
     connect(m_dbusServer, &QDBusServer::newConnection,
-            m_parent, &Sailfish::Secrets::SecretManagerPrivate::handleUiConnection);
+            m_parent, &SecretManagerPrivate::handleUiConnection);
 
     m_address = address;
     qCDebug(lcSailfishSecretsUi) << "InteractionService listening for ui p2p connections on address:" << m_address;
     return true;
 }
 
-void Sailfish::Secrets::InteractionService::sendResponse(
-        const Sailfish::Secrets::Result &result,
-        const Sailfish::Secrets::InteractionResponse &response)
+void InteractionService::sendResponse(
+        const Result &result,
+        const InteractionResponse &response)
 {
     if (m_activeRequestId.isEmpty()) {
         qCDebug(lcSailfishSecretsUi) << "Refusing to send response for cancelled or finished request";
@@ -95,33 +97,31 @@ void Sailfish::Secrets::InteractionService::sendResponse(
     }
 
     // transition to waiting state, we need sailfishsecretsd to tell us whether we're finished or not.
-    m_activeRequestState = Sailfish::Secrets::InteractionService::Waiting;
+    m_activeRequestState = InteractionService::Waiting;
 
     // send the response.
-    m_activeReply << QVariant::fromValue<Sailfish::Secrets::Result>(result);
-    m_activeReply << QVariant::fromValue<Sailfish::Secrets::InteractionResponse>(response);
+    m_activeReply << QVariant::fromValue<Result>(result);
+    m_activeReply << QVariant::fromValue<InteractionResponse>(response);
     m_activeReply << QVariant::fromValue<QString>(m_activeRequestId);
     m_activeConnection.send(m_activeReply);
 }
 
-void Sailfish::Secrets::InteractionService::performInteractionRequest(
-        const Sailfish::Secrets::InteractionRequest &request,
+void InteractionService::performInteractionRequest(
+        const InteractionRequest &request,
         const QDBusMessage &message,
-        Sailfish::Secrets::Result &result,
-        Sailfish::Secrets::InteractionResponse &response,
+        Result &result,
+        InteractionResponse &response,
         QString &requestId)
 {
     Q_UNUSED(response)  // outparam, will be set in sendResponse().
     Q_UNUSED(requestId) // outparam, will be set in sendResponse().
     qCDebug(lcSailfishSecretsUi) << "InteractionService received performInteractionRequest...";
     if (!m_activeRequestId.isEmpty()) {
-        result = Sailfish::Secrets::Result(
-                    Sailfish::Secrets::Result::InteractionServiceRequestBusyError,
-                    QLatin1String("Ui service is busy handling another request"));
+        result = Result(Result::InteractionServiceRequestBusyError,
+                        QLatin1String("Ui service is busy handling another request"));
     } else if (!m_parent->m_interactionView || !m_parent->m_interactionView->performRequest(this, request)) {
-        result = Sailfish::Secrets::Result(
-                    Sailfish::Secrets::Result::InteractionViewUnavailableError,
-                    QLatin1String("Cannot perform ui request: view busy or no view registered"));
+        result = Result(Result::InteractionViewUnavailableError,
+                        QLatin1String("Cannot perform ui request: view busy or no view registered"));
     } else {
         // successfully triggered the request in the view.
         if (m_activeConnection.isConnected()) {
@@ -145,27 +145,24 @@ void Sailfish::Secrets::InteractionService::performInteractionRequest(
 
 // The sailfishsecretsd process is telling us that more user-interaction is
 // required before the request is complete.
-void Sailfish::Secrets::InteractionService::continueInteractionRequest(
+void InteractionService::continueInteractionRequest(
         const QString &requestId,
-        const Sailfish::Secrets::InteractionRequest &request,
+        const InteractionRequest &request,
         const QDBusMessage &message,
-        Sailfish::Secrets::Result &result,
-        Sailfish::Secrets::InteractionResponse &response)
+        Result &result,
+        InteractionResponse &response)
 {
     Q_UNUSED(response) // outparam, will be set in sendResponse().
     qCDebug(lcSailfishSecretsUi) << "InteractionService received continueInteractionRequest...";
     if (requestId != m_activeRequestId) {
-        result = Sailfish::Secrets::Result(
-                    Sailfish::Secrets::Result::InteractionServiceRequestInvalidError,
-                    QString::fromLatin1("Cannot continue non-active ui request: %1").arg(requestId));
-    } else if (m_activeRequestState != Sailfish::Secrets::InteractionService::Waiting) {
-        result = Sailfish::Secrets::Result(
-                    Sailfish::Secrets::Result::InteractionServiceRequestBusyError,
-                    QString::fromLatin1("Cannot continue non-waiting ui request: %1").arg(requestId));
+        result = Result(Result::InteractionServiceRequestInvalidError,
+                        QString::fromLatin1("Cannot continue non-active ui request: %1").arg(requestId));
+    } else if (m_activeRequestState != InteractionService::Waiting) {
+        result = Result(Result::InteractionServiceRequestBusyError,
+                        QString::fromLatin1("Cannot continue non-waiting ui request: %1").arg(requestId));
     } else if (!m_parent->m_interactionView || !m_parent->m_interactionView->continueRequest(this, request)) {
-        result = Sailfish::Secrets::Result(
-                    Sailfish::Secrets::Result::InteractionViewUnavailableError,
-                    QLatin1String("Cannot continue ui request: view busy or no view registered"));
+        result = Result(Result::InteractionViewUnavailableError,
+                        QLatin1String("Cannot continue ui request: view busy or no view registered"));
     } else {
         // successfully triggered the sign on request in the view.
         m_activeConnection = connection();
@@ -175,137 +172,136 @@ void Sailfish::Secrets::InteractionService::continueInteractionRequest(
 }
 
 // The sailfishsecretsd process is telling us to cancel the request.
-void Sailfish::Secrets::InteractionService::cancelInteractionRequest(
+void InteractionService::cancelInteractionRequest(
         const QString &requestId,
         const QDBusMessage &message,
-        Sailfish::Secrets::Result &result)
+        Result &result)
 {
     Q_UNUSED(message);
     qCDebug(lcSailfishSecretsUi) << "InteractionService received cancelInteractionRequest...";
     if (requestId != m_activeRequestId) {
-        result = Sailfish::Secrets::Result(
-                    Sailfish::Secrets::Result::InteractionServiceRequestInvalidError,
-                    QString::fromLatin1("Cannot cancel non-active ui request: %1").arg(requestId));
+        result = Result(Result::InteractionServiceRequestInvalidError,
+                        QString::fromLatin1("Cannot cancel non-active ui request: %1").arg(requestId));
     } else if (!m_parent->m_interactionView || !m_parent->m_interactionView->cancelRequest(this)) {
-        result = Sailfish::Secrets::Result(
-                    Sailfish::Secrets::Result::InteractionViewUnavailableError,
-                    QLatin1String("Cannot cancel ui request: view busy or no view registered"));
+        result = Result(Result::InteractionViewUnavailableError,
+                        QLatin1String("Cannot cancel ui request: view busy or no view registered"));
     } else {
         // don't destroy the connection yet (wait for client disconnection first)
         // but set the connection state to inactive, so that we can accept new clients.
-        m_activeRequestState = Sailfish::Secrets::InteractionService::Inactive;
+        m_activeRequestState = InteractionService::Inactive;
         m_activeRequestId = QString();
-        result = Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded);
+        result = Result(Result::Succeeded);
     }
 }
 
 // The sailfishsecretsd process is telling us that it has finished
 // handling the response, and no further user interaction is required.
-void Sailfish::Secrets::InteractionService::finishInteractionRequest(
+void InteractionService::finishInteractionRequest(
         const QString &requestId,
         const QDBusMessage &message,
-        Sailfish::Secrets::Result &result)
+        Result &result)
 {
     Q_UNUSED(message);
     qCDebug(lcSailfishSecretsUi) << "InteractionService received finishInteractionRequest...";
     if (requestId != m_activeRequestId) {
-        result = Sailfish::Secrets::Result(
-                    Sailfish::Secrets::Result::InteractionServiceRequestInvalidError,
-                    QString::fromLatin1("Cannot finish non-active ui request: %1").arg(requestId));
-    } else if (m_activeRequestState != Sailfish::Secrets::InteractionService::Waiting) {
-        result = Sailfish::Secrets::Result(
-                    Sailfish::Secrets::Result::InteractionServiceRequestBusyError,
-                    QString::fromLatin1("Cannot finish non-waiting ui request: %1").arg(requestId));
+        result = Result(Result::InteractionServiceRequestInvalidError,
+                        QString::fromLatin1("Cannot finish non-active ui request: %1").arg(requestId));
+    } else if (m_activeRequestState != InteractionService::Waiting) {
+        result = Result(Result::InteractionServiceRequestBusyError,
+                        QString::fromLatin1("Cannot finish non-waiting ui request: %1").arg(requestId));
     } else if (!m_parent->m_interactionView || !m_parent->m_interactionView->finishRequest(this)) {
-        result = Sailfish::Secrets::Result(
-                    Sailfish::Secrets::Result::InteractionViewUnavailableError,
-                    QLatin1String("Cannot finish ui request: view busy or no view registered"));
+        result = Result(Result::InteractionViewUnavailableError,
+                        QLatin1String("Cannot finish ui request: view busy or no view registered"));
     } else {
         // don't destroy the connection yet (wait for client disconnection first)
         // but set the connection state to inactive, so that we can accept new clients.
-        m_activeRequestState = Sailfish::Secrets::InteractionService::Inactive;
+        m_activeRequestState = InteractionService::Inactive;
         m_activeRequestId = QString();
-        result = Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded);
+        result = Result(Result::Succeeded);
     }
 }
 
-void Sailfish::Secrets::InteractionService::clientDisconnected()
+void InteractionService::clientDisconnected()
 {
     qCDebug(lcSailfishSecretsUi) << "Active connection client disconnected from InteractionService!";
     m_activeConnection = QDBusConnection(QLatin1String("org.sailfishos.secrets.interaction.invalidConnection"));
     m_activeReply = QDBusMessage();
     m_activeRequestId = QString();
-    m_activeRequestState = Sailfish::Secrets::InteractionService::Inactive;
+    m_activeRequestState = InteractionService::Inactive;
 }
 
 // -------------- View:
 
-class Sailfish::Secrets::InteractionViewData
-{
-public:
-    InteractionViewData() : m_uiService(Q_NULLPTR) {}
-    QPointer<QObject> m_uiService;
-    QPointer<SecretManager> m_secretManager;
-};
+namespace Sailfish {
+    namespace Secrets {
+        class InteractionViewData
+        {
+        public:
+            InteractionViewData() : m_uiService(Q_NULLPTR) {}
+            QPointer<QObject> m_uiService;
+            QPointer<SecretManager> m_secretManager;
+        };
+    } // namespace Secrets
+} // namespace Sailfish
 
-Sailfish::Secrets::InteractionView::InteractionView()
+InteractionView::InteractionView()
     : data(new InteractionViewData)
 {
 }
 
-Sailfish::Secrets::InteractionView::~InteractionView()
+InteractionView::~InteractionView()
 {
     delete data;
 }
 
-void Sailfish::Secrets::InteractionView::registerWithSecretManager(Sailfish::Secrets::SecretManager *manager)
+void InteractionView::registerWithSecretManager(SecretManager *manager)
 {
     data->m_secretManager = manager;
     manager->registerInteractionView(this);
 }
 
-Sailfish::Secrets::SecretManager *Sailfish::Secrets::InteractionView::registeredWithSecretManager() const
+SecretManager *InteractionView::registeredWithSecretManager() const
 {
     return data->m_secretManager.data();
 }
 
-void Sailfish::Secrets::InteractionView::sendResponse(
-        const Sailfish::Secrets::Result &result,
-        const Sailfish::Secrets::InteractionResponse &response)
+void InteractionView::sendResponse(
+        const Result &result,
+        const InteractionResponse &response)
 {
     if (data->m_uiService) {
-        qobject_cast<Sailfish::Secrets::InteractionService*>(data->m_uiService)->sendResponse(result, response);
+        qobject_cast<InteractionService*>(data->m_uiService)->sendResponse(result, response);
         data->m_uiService = Q_NULLPTR;
     }
 }
 
-bool Sailfish::Secrets::InteractionView::performRequest(QObject *sender, const Sailfish::Secrets::InteractionRequest &request)
+bool InteractionView::performRequest(QObject *sender, const InteractionRequest &request)
 {
     if (data->m_uiService) {
         qCDebug(lcSailfishSecretsUi) << "Refusing to perform ui request: view already active with another request";
         return false;
     }
 
-    data->m_uiService = qobject_cast<Sailfish::Secrets::InteractionService*>(sender);
+    data->m_uiService = qobject_cast<InteractionService*>(sender);
     performRequest(request);
     return true;
 }
 
-bool Sailfish::Secrets::InteractionView::continueRequest(QObject *sender, const Sailfish::Secrets::InteractionRequest &request)
+bool InteractionView::continueRequest(QObject *sender, const InteractionRequest &request)
 {
     if (data->m_uiService) {
         qCDebug(lcSailfishSecretsUi) << "Refusing to continue ui request: view already active with another request";
         return false;
     }
 
-    data->m_uiService = qobject_cast<Sailfish::Secrets::InteractionService*>(sender);
+    data->m_uiService = qobject_cast<InteractionService*>(sender);
     continueRequest(request);
     return true;
 }
 
-bool Sailfish::Secrets::InteractionView::cancelRequest(QObject *sender)
+bool InteractionView::cancelRequest(QObject *sender)
 {
-    if (data->m_uiService && data->m_uiService == qobject_cast<Sailfish::Secrets::InteractionService*>(sender)) {
+    if (data->m_uiService && data->m_uiService == qobject_cast<InteractionService*>(sender)) {
         data->m_uiService = Q_NULLPTR;
         cancelRequest();
         return true;
@@ -319,9 +315,9 @@ bool Sailfish::Secrets::InteractionView::cancelRequest(QObject *sender)
     return false;
 }
 
-bool Sailfish::Secrets::InteractionView::finishRequest(QObject *sender)
+bool InteractionView::finishRequest(QObject *sender)
 {
-    if (data->m_uiService && data->m_uiService == qobject_cast<Sailfish::Secrets::InteractionService*>(sender)) {
+    if (data->m_uiService && data->m_uiService == qobject_cast<InteractionService*>(sender)) {
         qCDebug(lcSailfishSecretsUi) << "Refusing to finish active ui request: use cancel instead";
         return false;
     } else if (data->m_uiService) {

@@ -17,7 +17,11 @@
 
 Q_LOGGING_CATEGORY(lcSailfishSecretsInteractionServiceConnection, "org.sailfishos.secrets.interactionservice.connection", QtWarningMsg)
 
-class Sailfish::Secrets::InteractionRequestWatcherPrivate
+namespace Sailfish {
+
+namespace Secrets {
+
+class InteractionRequestWatcherPrivate
 {
 public:
     InteractionRequestWatcherPrivate()
@@ -42,78 +46,84 @@ public:
     QString m_uiRequestId;
 };
 
-Sailfish::Secrets::InteractionRequestWatcher::InteractionRequestWatcher(Sailfish::Secrets::AuthenticationPlugin *parent)
+} // namespace Secrets
+
+} // namespace Sailfish
+
+using namespace Sailfish::Secrets;
+
+InteractionRequestWatcher::InteractionRequestWatcher(AuthenticationPlugin *parent)
     : QObject(parent)
-    , m_data(new Sailfish::Secrets::InteractionRequestWatcherPrivate)
+    , m_data(new InteractionRequestWatcherPrivate)
 {
 }
 
-Sailfish::Secrets::InteractionRequestWatcher::~InteractionRequestWatcher()
+InteractionRequestWatcher::~InteractionRequestWatcher()
 {
     delete m_data;
 }
 
-void Sailfish::Secrets::InteractionRequestWatcher::setRequestId(quint64 id)
+void InteractionRequestWatcher::setRequestId(quint64 id)
 {
     m_data->m_requestId = id;
 }
 
-void Sailfish::Secrets::InteractionRequestWatcher::setCallerPid(pid_t pid)
+void InteractionRequestWatcher::setCallerPid(pid_t pid)
 {
     m_data->m_callerPid = pid;
 }
 
-void Sailfish::Secrets::InteractionRequestWatcher::setCallerApplicationId(const QString &applicationId)
+void InteractionRequestWatcher::setCallerApplicationId(const QString &applicationId)
 {
     m_data->m_callerApplicationId = applicationId;
 }
 
-void Sailfish::Secrets::InteractionRequestWatcher::setCollectionName(const QString &name)
+void InteractionRequestWatcher::setCollectionName(const QString &name)
 {
     m_data->m_collectionName = name;
 }
 
-void Sailfish::Secrets::InteractionRequestWatcher::setSecretName(const QString &name)
+void InteractionRequestWatcher::setSecretName(const QString &name)
 {
     m_data->m_secretName = name;
 }
 
-void Sailfish::Secrets::InteractionRequestWatcher::setInteractionServiceAddress(const QString &address)
+void InteractionRequestWatcher::setInteractionServiceAddress(const QString &address)
 {
     m_data->m_interactionServiceAddress = address;
 }
 
-quint64 Sailfish::Secrets::InteractionRequestWatcher::requestId() const
+quint64 InteractionRequestWatcher::requestId() const
 {
     return m_data->m_requestId;
 }
 
-pid_t Sailfish::Secrets::InteractionRequestWatcher::callerPid() const
+pid_t InteractionRequestWatcher::callerPid() const
 {
     return m_data->m_callerPid;
 }
 
-QString Sailfish::Secrets::InteractionRequestWatcher::callerApplicationId() const
+QString InteractionRequestWatcher::callerApplicationId() const
 {
     return m_data->m_callerApplicationId;
 }
 
-QString Sailfish::Secrets::InteractionRequestWatcher::collectionName() const
+QString InteractionRequestWatcher::collectionName() const
 {
     return m_data->m_collectionName;
 }
 
-QString Sailfish::Secrets::InteractionRequestWatcher::secretName() const
+QString InteractionRequestWatcher::secretName() const
 {
     return m_data->m_secretName;
 }
 
-QString Sailfish::Secrets::InteractionRequestWatcher::interactionServiceAddress() const
+QString InteractionRequestWatcher::interactionServiceAddress() const
 {
     return m_data->m_interactionServiceAddress;
 }
 
-bool Sailfish::Secrets::InteractionRequestWatcher::connectToInteractionService()
+bool InteractionRequestWatcher::connectToInteractionService()
 {
     const QString name = QString::fromLatin1("sailfishsecretsd-ui-connection-%1").arg(m_data->m_requestId);
 
@@ -149,7 +159,7 @@ bool Sailfish::Secrets::InteractionRequestWatcher::connectToInteractionService()
     return true;
 }
 
-bool Sailfish::Secrets::InteractionRequestWatcher::sendInteractionRequest(const Sailfish::Secrets::InteractionRequest &request)
+bool InteractionRequestWatcher::sendInteractionRequest(const InteractionRequest &request)
 {
     if (m_data->m_watcher) {
         qCWarning(lcSailfishSecretsInteractionServiceConnection) << "Not sending Ui request: outstanding request in progress";
@@ -159,16 +169,16 @@ bool Sailfish::Secrets::InteractionRequestWatcher::sendInteractionRequest(const 
     // send the request, and instantiate the watcher to watch it.
     m_data->m_watcher = new QDBusPendingCallWatcher(m_data->m_interface->asyncCall(
                                                         "performInteractionRequest",
-                                                        QVariant::fromValue<Sailfish::Secrets::InteractionRequest>(request)),
+                                                        QVariant::fromValue<InteractionRequest>(request)),
                                                     this);
 
     connect(m_data->m_watcher, &QDBusPendingCallWatcher::finished,
-            this, static_cast<void (Sailfish::Secrets::InteractionRequestWatcher::*)(void)>(&Sailfish::Secrets::InteractionRequestWatcher::interactionRequestFinished));
+            this, static_cast<void (InteractionRequestWatcher::*)(void)>(&InteractionRequestWatcher::interactionRequestFinished));
 
     return true;
 }
 
-bool Sailfish::Secrets::InteractionRequestWatcher::continueInteractionRequest(const Sailfish::Secrets::InteractionRequest &request)
+bool InteractionRequestWatcher::continueInteractionRequest(const InteractionRequest &request)
 {
     if (!m_data->m_watcher || m_data->m_uiRequestId.isEmpty()) {
         qCWarning(lcSailfishSecretsInteractionServiceConnection) << "Not continuing Ui request: no outstanding request in progress";
@@ -179,16 +189,16 @@ bool Sailfish::Secrets::InteractionRequestWatcher::continueInteractionRequest(co
     m_data->m_watcher = new QDBusPendingCallWatcher(m_data->m_interface->asyncCall(
                                                         "continueInteractionRequest",
                                                         QVariant::fromValue<QString>(m_data->m_uiRequestId),
-                                                        QVariant::fromValue<Sailfish::Secrets::InteractionRequest>(request)),
+                                                        QVariant::fromValue<InteractionRequest>(request)),
                                                     this);
 
     connect(m_data->m_watcher, &QDBusPendingCallWatcher::finished,
-            this, &Sailfish::Secrets::InteractionRequestWatcher::interactionContinuationRequestFinished);
+            this, &InteractionRequestWatcher::interactionContinuationRequestFinished);
 
     return true;
 }
 
-bool Sailfish::Secrets::InteractionRequestWatcher::cancelInteractionRequest()
+bool InteractionRequestWatcher::cancelInteractionRequest()
 {
     if (!m_data->m_watcher || m_data->m_uiRequestId.isEmpty()) {
         qCWarning(lcSailfishSecretsInteractionServiceConnection) << "Not cancelling Ui request: no outstanding request in progress";
@@ -202,12 +212,12 @@ bool Sailfish::Secrets::InteractionRequestWatcher::cancelInteractionRequest()
                                                     this);
 
     connect(m_data->m_watcher, &QDBusPendingCallWatcher::finished,
-            this, &Sailfish::Secrets::InteractionRequestWatcher::interactionCancelFinished);
+            this, &InteractionRequestWatcher::interactionCancelFinished);
 
     return true;
 }
 
-bool Sailfish::Secrets::InteractionRequestWatcher::finishInteractionRequest()
+bool InteractionRequestWatcher::finishInteractionRequest()
 {
     if (!m_data->m_watcher || m_data->m_uiRequestId.isEmpty()) {
         qCWarning(lcSailfishSecretsInteractionServiceConnection) << "Not finishing Ui request: no outstanding request in progress";
@@ -221,20 +231,20 @@ bool Sailfish::Secrets::InteractionRequestWatcher::finishInteractionRequest()
                                                     this);
 
     connect(m_data->m_watcher, &QDBusPendingCallWatcher::finished,
-            this, &Sailfish::Secrets::InteractionRequestWatcher::interactionFinishFinished);
+            this, &InteractionRequestWatcher::interactionFinishFinished);
 
     return true;
 }
 
-void Sailfish::Secrets::InteractionRequestWatcher::interactionRequestFinished()
+void InteractionRequestWatcher::interactionRequestFinished()
 {
-    QDBusPendingReply<Sailfish::Secrets::Result, Sailfish::Secrets::InteractionResponse, QString> reply = *m_data->m_watcher;
+    QDBusPendingReply<Result, InteractionResponse, QString> reply = *m_data->m_watcher;
     reply.waitForFinished();
     if (reply.isValid()) {
-        Sailfish::Secrets::Result result = reply.argumentAt<0>();
-        Sailfish::Secrets::InteractionResponse response = reply.argumentAt<1>();
+        Result result = reply.argumentAt<0>();
+        InteractionResponse response = reply.argumentAt<1>();
         m_data->m_uiRequestId = reply.argumentAt<2>();
-        if (result.code() != Sailfish::Secrets::Result::Succeeded) {
+        if (result.code() != Result::Succeeded) {
             qCWarning(lcSailfishSecretsInteractionServiceConnection) << "Ui request returned error:" << result.errorMessage();
         }
         emit interactionRequestResponse(m_data->m_requestId, result, response);
@@ -242,19 +252,19 @@ void Sailfish::Secrets::InteractionRequestWatcher::interactionRequestFinished()
         qCWarning(lcSailfishSecretsInteractionServiceConnection) << "Invalid response to Ui request!";
         QString errorMessage = reply.isError() ? reply.error().message() : QLatin1String("Invalid response to Ui request");
         emit interactionRequestResponse(m_data->m_requestId,
-                               Sailfish::Secrets::Result(Sailfish::Secrets::Result::InteractionServiceResponseInvalidError, errorMessage),
-                               Sailfish::Secrets::InteractionResponse());
+                               Result(Result::InteractionServiceResponseInvalidError, errorMessage),
+                               InteractionResponse());
     }
 }
 
-void Sailfish::Secrets::InteractionRequestWatcher::interactionContinuationRequestFinished()
+void InteractionRequestWatcher::interactionContinuationRequestFinished()
 {
-    QDBusPendingReply<Sailfish::Secrets::Result, Sailfish::Secrets::InteractionResponse> reply = *m_data->m_watcher;
+    QDBusPendingReply<Result, InteractionResponse> reply = *m_data->m_watcher;
     reply.waitForFinished();
     if (reply.isValid()) {
-        Sailfish::Secrets::Result result = reply.argumentAt<0>();
-        Sailfish::Secrets::InteractionResponse response = reply.argumentAt<1>();
-        if (result.code() != Sailfish::Secrets::Result::Succeeded) {
+        Result result = reply.argumentAt<0>();
+        InteractionResponse response = reply.argumentAt<1>();
+        if (result.code() != Result::Succeeded) {
             qCWarning(lcSailfishSecretsInteractionServiceConnection) << "Ui continuation request returned error:" << result.errorMessage();
         }
         emit interactionRequestResponse(m_data->m_requestId, result, response);
@@ -262,14 +272,14 @@ void Sailfish::Secrets::InteractionRequestWatcher::interactionContinuationReques
         qCWarning(lcSailfishSecretsInteractionServiceConnection) << "Invalid response to Ui continuation request!";
         QString errorMessage = reply.isError() ? reply.error().message() : QLatin1String("Invalid response to Ui continuation request");
         emit interactionRequestResponse(m_data->m_requestId,
-                               Sailfish::Secrets::Result(Sailfish::Secrets::Result::InteractionServiceResponseInvalidError, errorMessage),
-                               Sailfish::Secrets::InteractionResponse());
+                               Result(Result::InteractionServiceResponseInvalidError, errorMessage),
+                               InteractionResponse());
     }
 }
 
-void Sailfish::Secrets::InteractionRequestWatcher::interactionCancelFinished()
+void InteractionRequestWatcher::interactionCancelFinished()
 {
-    QDBusPendingReply<Sailfish::Secrets::Result> reply = *m_data->m_watcher;
+    QDBusPendingReply<Result> reply = *m_data->m_watcher;
     if (reply.isValid()) {
         qCDebug(lcSailfishSecretsInteractionServiceConnection) << "Cancelled Ui request.";
     } else {
@@ -278,9 +288,9 @@ void Sailfish::Secrets::InteractionRequestWatcher::interactionCancelFinished()
     emit interactionRequestFinished(m_data->m_requestId);
 }
 
-void Sailfish::Secrets::InteractionRequestWatcher::interactionFinishFinished()
+void InteractionRequestWatcher::interactionFinishFinished()
 {
-    QDBusPendingReply<Sailfish::Secrets::Result> reply = *m_data->m_watcher;
+    QDBusPendingReply<Result> reply = *m_data->m_watcher;
     if (reply.isValid()) {
         qCDebug(lcSailfishSecretsInteractionServiceConnection) << "Finished Ui request.";
     } else {
@@ -289,16 +299,16 @@ void Sailfish::Secrets::InteractionRequestWatcher::interactionFinishFinished()
     emit interactionRequestFinished(m_data->m_requestId);
 }
 
-void Sailfish::Secrets::InteractionRequestWatcher::interactionServiceDisconnected()
+void InteractionRequestWatcher::interactionServiceDisconnected()
 {
     qCDebug(lcSailfishSecretsInteractionServiceConnection) << "Disconnected from Ui service:" << m_data->m_connection.name();
     // TODO: uncomment me?  depends on which event we receive first...
     //emit interactionRequestResponse(m_data->m_requestId,
-    //                       Sailfish::Secrets::Result(Sailfish::Secrets::Result::ErrorOccurred, "Disconnected from Ui service"),
-    //                       Sailfish::Secrets::InteractionResponse());
+    //                       Result(Result::ErrorOccurred, "Disconnected from Ui service"),
+    //                       InteractionResponse());
 }
 
-void Sailfish::Secrets::InteractionRequestWatcher::disconnectFromInteractionService()
+void InteractionRequestWatcher::disconnectFromInteractionService()
 {
     qCDebug(lcSailfishSecretsInteractionServiceConnection) << "Finished sign-on-ui session, disconnecting from service:" << m_data->m_connection.name();
     QDBusConnection::disconnectFromPeer(m_data->m_connection.name());

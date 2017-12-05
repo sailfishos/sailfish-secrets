@@ -19,224 +19,226 @@
 #include <QtCore/QVector>
 #include <QtCore/QByteArray>
 
-Sailfish::Crypto::Daemon::ApiImpl::CryptoDBusObject::CryptoDBusObject(
-        Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *parent)
+using namespace Sailfish::Crypto;
+
+Daemon::ApiImpl::CryptoDBusObject::CryptoDBusObject(
+        Daemon::ApiImpl::CryptoRequestQueue *parent)
     : QObject(parent)
     , m_requestQueue(parent)
 {
 }
 
 
-void Sailfish::Crypto::Daemon::ApiImpl::CryptoDBusObject::getPluginInfo(
+void Daemon::ApiImpl::CryptoDBusObject::getPluginInfo(
         const QDBusMessage &message,
-        Sailfish::Crypto::Result &result,
-        QVector<Sailfish::Crypto::CryptoPluginInfo> &cryptoPlugins,
+        Result &result,
+        QVector<CryptoPluginInfo> &cryptoPlugins,
         QStringList &storagePlugins)
 {
     Q_UNUSED(cryptoPlugins);   // outparam, set in handlePendingRequest / handleFinishedRequest
     Q_UNUSED(storagePlugins);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
-    m_requestQueue->handleRequest(Sailfish::Crypto::Daemon::ApiImpl::GetPluginInfoRequest,
+    m_requestQueue->handleRequest(Daemon::ApiImpl::GetPluginInfoRequest,
                                   inParams,
                                   connection(),
                                   message,
                                   result);
 }
 
-void Sailfish::Crypto::Daemon::ApiImpl::CryptoDBusObject::validateCertificateChain(
-        const QVector<Sailfish::Crypto::Certificate> &chain,
+void Daemon::ApiImpl::CryptoDBusObject::validateCertificateChain(
+        const QVector<Certificate> &chain,
         const QString &cryptosystemProviderName,
         const QDBusMessage &message,
-        Sailfish::Crypto::Result &result,
+        Result &result,
         bool &valid)
 {
     Q_UNUSED(valid);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QVector<Sailfish::Crypto::Certificate> >(chain);
+    inParams << QVariant::fromValue<QVector<Certificate> >(chain);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
-    m_requestQueue->handleRequest(Sailfish::Crypto::Daemon::ApiImpl::ValidateCertificateChainRequest,
+    m_requestQueue->handleRequest(Daemon::ApiImpl::ValidateCertificateChainRequest,
                                   inParams,
                                   connection(),
                                   message,
                                   result);
 }
 
-void Sailfish::Crypto::Daemon::ApiImpl::CryptoDBusObject::generateKey(
-        const Sailfish::Crypto::Key &keyTemplate,
+void Daemon::ApiImpl::CryptoDBusObject::generateKey(
+        const Key &keyTemplate,
         const QString &cryptosystemProviderName,
         const QDBusMessage &message,
-        Sailfish::Crypto::Result &result,
-        Sailfish::Crypto::Key &key)
+        Result &result,
+        Key &key)
 {
     Q_UNUSED(key);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<Sailfish::Crypto::Key>(keyTemplate);
+    inParams << QVariant::fromValue<Key>(keyTemplate);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
-    m_requestQueue->handleRequest(Sailfish::Crypto::Daemon::ApiImpl::GenerateKeyRequest,
+    m_requestQueue->handleRequest(Daemon::ApiImpl::GenerateKeyRequest,
                                   inParams,
                                   connection(),
                                   message,
                                   result);
 }
 
-void Sailfish::Crypto::Daemon::ApiImpl::CryptoDBusObject::generateStoredKey(
-        const Sailfish::Crypto::Key &keyTemplate,
+void Daemon::ApiImpl::CryptoDBusObject::generateStoredKey(
+        const Key &keyTemplate,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName,
         const QDBusMessage &message,
-        Sailfish::Crypto::Result &result,
-        Sailfish::Crypto::Key &key)
+        Result &result,
+        Key &key)
 {
     Q_UNUSED(key);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<Sailfish::Crypto::Key>(keyTemplate);
+    inParams << QVariant::fromValue<Key>(keyTemplate);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
     inParams << QVariant::fromValue<QString>(storageProviderName);
-    m_requestQueue->handleRequest(Sailfish::Crypto::Daemon::ApiImpl::GenerateStoredKeyRequest,
+    m_requestQueue->handleRequest(Daemon::ApiImpl::GenerateStoredKeyRequest,
                                   inParams,
                                   connection(),
                                   message,
                                   result);
 }
 
-void Sailfish::Crypto::Daemon::ApiImpl::CryptoDBusObject::storedKey(
-        const Sailfish::Crypto::Key::Identifier &identifier,
+void Daemon::ApiImpl::CryptoDBusObject::storedKey(
+        const Key::Identifier &identifier,
         const QDBusMessage &message,
-        Sailfish::Crypto::Result &result,
-        Sailfish::Crypto::Key &key)
+        Result &result,
+        Key &key)
 {
     Q_UNUSED(key);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<Sailfish::Crypto::Key::Identifier>(identifier);
-    m_requestQueue->handleRequest(Sailfish::Crypto::Daemon::ApiImpl::StoredKeyRequest,
+    inParams << QVariant::fromValue<Key::Identifier>(identifier);
+    m_requestQueue->handleRequest(Daemon::ApiImpl::StoredKeyRequest,
                                   inParams,
                                   connection(),
                                   message,
                                   result);
 }
 
-void Sailfish::Crypto::Daemon::ApiImpl::CryptoDBusObject::deleteStoredKey(
-        const Sailfish::Crypto::Key::Identifier &identifier,
+void Daemon::ApiImpl::CryptoDBusObject::deleteStoredKey(
+        const Key::Identifier &identifier,
         const QDBusMessage &message,
-        Sailfish::Crypto::Result &result)
+        Result &result)
 {
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<Sailfish::Crypto::Key::Identifier>(identifier);
-    m_requestQueue->handleRequest(Sailfish::Crypto::Daemon::ApiImpl::DeleteStoredKeyRequest,
+    inParams << QVariant::fromValue<Key::Identifier>(identifier);
+    m_requestQueue->handleRequest(Daemon::ApiImpl::DeleteStoredKeyRequest,
                                   inParams,
                                   connection(),
                                   message,
                                   result);
 }
 
-void Sailfish::Crypto::Daemon::ApiImpl::CryptoDBusObject::storedKeyIdentifiers(
+void Daemon::ApiImpl::CryptoDBusObject::storedKeyIdentifiers(
         const QDBusMessage &message,
-        Sailfish::Crypto::Result &result,
-        QVector<Sailfish::Crypto::Key::Identifier> &identifiers)
+        Result &result,
+        QVector<Key::Identifier> &identifiers)
 {
     Q_UNUSED(identifiers);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
-    m_requestQueue->handleRequest(Sailfish::Crypto::Daemon::ApiImpl::StoredKeyIdentifiersRequest,
+    m_requestQueue->handleRequest(Daemon::ApiImpl::StoredKeyIdentifiersRequest,
                                   inParams,
                                   connection(),
                                   message,
                                   result);
 }
 
-void Sailfish::Crypto::Daemon::ApiImpl::CryptoDBusObject::sign(
+void Daemon::ApiImpl::CryptoDBusObject::sign(
         const QByteArray &data,
-        const Sailfish::Crypto::Key &key,
-        Sailfish::Crypto::Key::SignaturePadding padding,
-        Sailfish::Crypto::Key::Digest digest,
+        const Key &key,
+        Key::SignaturePadding padding,
+        Key::Digest digest,
         const QString &cryptosystemProviderName,
         const QDBusMessage &message,
-        Sailfish::Crypto::Result &result,
+        Result &result,
         QByteArray &signature)
 {
     Q_UNUSED(signature);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
-    inParams << QVariant::fromValue<Sailfish::Crypto::Key>(key);
-    inParams << QVariant::fromValue<Sailfish::Crypto::Key::SignaturePadding>(padding);
-    inParams << QVariant::fromValue<Sailfish::Crypto::Key::Digest>(digest);
+    inParams << QVariant::fromValue<Key>(key);
+    inParams << QVariant::fromValue<Key::SignaturePadding>(padding);
+    inParams << QVariant::fromValue<Key::Digest>(digest);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
-    m_requestQueue->handleRequest(Sailfish::Crypto::Daemon::ApiImpl::SignRequest,
+    m_requestQueue->handleRequest(Daemon::ApiImpl::SignRequest,
                                   inParams,
                                   connection(),
                                   message,
                                   result);
 }
 
-void Sailfish::Crypto::Daemon::ApiImpl::CryptoDBusObject::verify(
+void Daemon::ApiImpl::CryptoDBusObject::verify(
         const QByteArray &data,
-        const Sailfish::Crypto::Key &key,
-        Sailfish::Crypto::Key::SignaturePadding padding,
-        Sailfish::Crypto::Key::Digest digest,
+        const Key &key,
+        Key::SignaturePadding padding,
+        Key::Digest digest,
         const QString &cryptosystemProviderName,
         const QDBusMessage &message,
-        Sailfish::Crypto::Result &result,
+        Result &result,
         bool &verified)
 {
     Q_UNUSED(verified);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
-    inParams << QVariant::fromValue<Sailfish::Crypto::Key>(key);
-    inParams << QVariant::fromValue<Sailfish::Crypto::Key::SignaturePadding>(padding);
-    inParams << QVariant::fromValue<Sailfish::Crypto::Key::Digest>(digest);
+    inParams << QVariant::fromValue<Key>(key);
+    inParams << QVariant::fromValue<Key::SignaturePadding>(padding);
+    inParams << QVariant::fromValue<Key::Digest>(digest);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
-    m_requestQueue->handleRequest(Sailfish::Crypto::Daemon::ApiImpl::VerifyRequest,
+    m_requestQueue->handleRequest(Daemon::ApiImpl::VerifyRequest,
                                   inParams,
                                   connection(),
                                   message,
                                   result);
 }
 
-void Sailfish::Crypto::Daemon::ApiImpl::CryptoDBusObject::encrypt(
+void Daemon::ApiImpl::CryptoDBusObject::encrypt(
         const QByteArray &data,
-        const Sailfish::Crypto::Key &key,
-        Sailfish::Crypto::Key::BlockMode blockMode,
-        Sailfish::Crypto::Key::EncryptionPadding padding,
-        Sailfish::Crypto::Key::Digest digest,
+        const Key &key,
+        Key::BlockMode blockMode,
+        Key::EncryptionPadding padding,
+        Key::Digest digest,
         const QString &cryptosystemProviderName,
         const QDBusMessage &message,
-        Sailfish::Crypto::Result &result,
+        Result &result,
         QByteArray &encrypted)
 {
     Q_UNUSED(encrypted);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
-    inParams << QVariant::fromValue<Sailfish::Crypto::Key>(key);
-    inParams << QVariant::fromValue<Sailfish::Crypto::Key::BlockMode>(blockMode);
-    inParams << QVariant::fromValue<Sailfish::Crypto::Key::EncryptionPadding>(padding);
-    inParams << QVariant::fromValue<Sailfish::Crypto::Key::Digest>(digest);
+    inParams << QVariant::fromValue<Key>(key);
+    inParams << QVariant::fromValue<Key::BlockMode>(blockMode);
+    inParams << QVariant::fromValue<Key::EncryptionPadding>(padding);
+    inParams << QVariant::fromValue<Key::Digest>(digest);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
-    m_requestQueue->handleRequest(Sailfish::Crypto::Daemon::ApiImpl::EncryptRequest,
+    m_requestQueue->handleRequest(Daemon::ApiImpl::EncryptRequest,
                                   inParams,
                                   connection(),
                                   message,
                                   result);
 }
 
-void Sailfish::Crypto::Daemon::ApiImpl::CryptoDBusObject::decrypt(
+void Daemon::ApiImpl::CryptoDBusObject::decrypt(
         const QByteArray &data,
-        const Sailfish::Crypto::Key &key,
-        Sailfish::Crypto::Key::BlockMode blockMode,
-        Sailfish::Crypto::Key::EncryptionPadding padding,
-        Sailfish::Crypto::Key::Digest digest,
+        const Key &key,
+        Key::BlockMode blockMode,
+        Key::EncryptionPadding padding,
+        Key::Digest digest,
         const QString &cryptosystemProviderName,
         const QDBusMessage &message,
-        Sailfish::Crypto::Result &result,
+        Result &result,
         QByteArray &decrypted)
 {
     Q_UNUSED(decrypted);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
-    inParams << QVariant::fromValue<Sailfish::Crypto::Key>(key);
-    inParams << QVariant::fromValue<Sailfish::Crypto::Key::BlockMode>(blockMode);
-    inParams << QVariant::fromValue<Sailfish::Crypto::Key::EncryptionPadding>(padding);
-    inParams << QVariant::fromValue<Sailfish::Crypto::Key::Digest>(digest);
+    inParams << QVariant::fromValue<Key>(key);
+    inParams << QVariant::fromValue<Key::BlockMode>(blockMode);
+    inParams << QVariant::fromValue<Key::EncryptionPadding>(padding);
+    inParams << QVariant::fromValue<Key::Digest>(digest);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
-    m_requestQueue->handleRequest(Sailfish::Crypto::Daemon::ApiImpl::DecryptRequest,
+    m_requestQueue->handleRequest(Daemon::ApiImpl::DecryptRequest,
                                   inParams,
                                   connection(),
                                   message,
@@ -245,7 +247,7 @@ void Sailfish::Crypto::Daemon::ApiImpl::CryptoDBusObject::decrypt(
 
 //-----------------------------------
 
-Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::CryptoRequestQueue(
+Daemon::ApiImpl::CryptoRequestQueue::CryptoRequestQueue(
         Sailfish::Secrets::Daemon::Controller *parent,
         Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *secrets,
         const QString &pluginDir,
@@ -257,23 +259,23 @@ Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::CryptoRequestQueue(
           pluginDir,
           autotestMode)
 {
-    Sailfish::Crypto::CryptoDaemonConnection::registerDBusTypes();
+    CryptoDaemonConnection::registerDBusTypes();
 
-    m_requestProcessor = new Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor(secrets, autotestMode, this);
+    m_requestProcessor = new Daemon::ApiImpl::RequestProcessor(secrets, autotestMode, this);
     if (!m_requestProcessor->loadPlugins(pluginDir)) {
         qCWarning(lcSailfishCryptoDaemon) << "Crypto: failed to load plugins!";
         return;
     }
 
-    setDBusObject(new Sailfish::Crypto::Daemon::ApiImpl::CryptoDBusObject(this));
+    setDBusObject(new Daemon::ApiImpl::CryptoDBusObject(this));
     qCDebug(lcSailfishCryptoDaemon) << "Crypto: initialisation succeeded, awaiting client connections.";
 }
 
-Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::~CryptoRequestQueue()
+Daemon::ApiImpl::CryptoRequestQueue::~CryptoRequestQueue()
 {
 }
 
-QString Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::requestTypeToString(int type) const
+QString Daemon::ApiImpl::CryptoRequestQueue::requestTypeToString(int type) const
 {
     switch (type) {
         case InvalidRequest:                   return QLatin1String("InvalidRequest");
@@ -293,27 +295,27 @@ QString Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::requestTypeToStri
     return QLatin1String("Unknown Crypto Request!");
 }
 
-void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
+void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
         Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request,
         bool *completed)
 {
     switch (request->type) {
         case GetPluginInfoRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling GetPluginInfoRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            QVector<Sailfish::Crypto::CryptoPluginInfo> cryptoPlugins;
+            QVector<CryptoPluginInfo> cryptoPlugins;
             QStringList storagePlugins;
-            Sailfish::Crypto::Result result = m_requestProcessor->getPluginInfo(
+            Result result = m_requestProcessor->getPluginInfo(
                         request->remotePid,
                         request->requestId,
                         &cryptoPlugins,
                         &storagePlugins);
             // send the reply to the calling peer.
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
-                                                                        << QVariant::fromValue<QVector<Sailfish::Crypto::CryptoPluginInfo> >(cryptoPlugins)
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<QVector<CryptoPluginInfo> >(cryptoPlugins)
                                                                         << QVariant::fromValue<QStringList>(storagePlugins));
                 *completed = true;
             }
@@ -322,20 +324,20 @@ void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest
         case ValidateCertificateChainRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling ValidateCertificateChainRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             bool validated = false;
-            QVector<Sailfish::Crypto::Certificate> chain = request->inParams.size() ? request->inParams.takeFirst().value<QVector<Sailfish::Crypto::Certificate> >() : QVector<Sailfish::Crypto::Certificate>();
+            QVector<Certificate> chain = request->inParams.size() ? request->inParams.takeFirst().value<QVector<Certificate> >() : QVector<Certificate>();
             QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            Sailfish::Crypto::Result result = m_requestProcessor->validateCertificateChain(
+            Result result = m_requestProcessor->validateCertificateChain(
                         request->remotePid,
                         request->requestId,
                         chain,
                         cryptosystemProviderName,
                         &validated);
             // send the reply to the calling peer.
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<bool>(validated));
                 *completed = true;
             }
@@ -343,33 +345,33 @@ void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest
         }
         case GenerateKeyRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling GenerateKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            Sailfish::Crypto::Key key;
-            Sailfish::Crypto::Key templateKey = request->inParams.size() ? request->inParams.takeFirst().value<Sailfish::Crypto::Key>() : Sailfish::Crypto::Key();
+            Key key;
+            Key templateKey = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
             QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            Sailfish::Crypto::Result result = m_requestProcessor->generateKey(
+            Result result = m_requestProcessor->generateKey(
                         request->remotePid,
                         request->requestId,
                         templateKey,
                         cryptosystemProviderName,
                         &key);
             // send the reply to the calling peer.
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
-                                                                        << QVariant::fromValue<Sailfish::Crypto::Key>(key));
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<Key>(key));
                 *completed = true;
             }
             break;
         }
         case GenerateStoredKeyRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling GenerateStoredKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            Sailfish::Crypto::Key key;
-            Sailfish::Crypto::Key templateKey = request->inParams.size() ? request->inParams.takeFirst().value<Sailfish::Crypto::Key>() : Sailfish::Crypto::Key();
+            Key key;
+            Key templateKey = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
             QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             QString storageProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            Sailfish::Crypto::Result result = m_requestProcessor->generateStoredKey(
+            Result result = m_requestProcessor->generateStoredKey(
                         request->remotePid,
                         request->requestId,
                         templateKey,
@@ -377,69 +379,69 @@ void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest
                         storageProviderName,
                         &key);
             // send the reply to the calling peer.
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
-                                                                        << QVariant::fromValue<Sailfish::Crypto::Key>(key));
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<Key>(key));
                 *completed = true;
             }
             break;
         }
         case StoredKeyRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling StoredKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            Sailfish::Crypto::Key key;
+            Key key;
             QString name = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            Sailfish::Crypto::Result result = m_requestProcessor->storedKey(
+            Result result = m_requestProcessor->storedKey(
                         request->remotePid,
                         request->requestId,
                         name,
                         &key);
             // send the reply to the calling peer.
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
-                                                                        << QVariant::fromValue<Sailfish::Crypto::Key>(key));
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<Key>(key));
                 *completed = true;
             }
             break;
         }
         case DeleteStoredKeyRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling DeleteStoredKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            Sailfish::Crypto::Key::Identifier identifier = request->inParams.size()
-                                                         ? request->inParams.takeFirst().value<Sailfish::Crypto::Key::Identifier>()
-                                                         : Sailfish::Crypto::Key::Identifier();
-            Sailfish::Crypto::Result result = m_requestProcessor->deleteStoredKey(
+            Key::Identifier identifier = request->inParams.size()
+                                                         ? request->inParams.takeFirst().value<Key::Identifier>()
+                                                         : Key::Identifier();
+            Result result = m_requestProcessor->deleteStoredKey(
                         request->remotePid,
                         request->requestId,
                         identifier);
             // send the reply to the calling peer.
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result));
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result));
                 *completed = true;
             }
             break;
         }
         case StoredKeyIdentifiersRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling StoredKeyIdentifiersRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            QVector<Sailfish::Crypto::Key::Identifier> identifiers;
-            Sailfish::Crypto::Result result = m_requestProcessor->storedKeyIdentifiers(
+            QVector<Key::Identifier> identifiers;
+            Result result = m_requestProcessor->storedKeyIdentifiers(
                         request->remotePid,
                         request->requestId,
                         &identifiers);
             // send the reply to the calling peer.
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
-                                                                        << QVariant::fromValue<QVector<Sailfish::Crypto::Key::Identifier> >(identifiers));
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<QVector<Key::Identifier> >(identifiers));
                 *completed = true;
             }
             break;
@@ -448,11 +450,11 @@ void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest
             qCDebug(lcSailfishCryptoDaemon) << "Handling SignRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             QByteArray signature;
             QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
-            Sailfish::Crypto::Key key = request->inParams.size() ? request->inParams.takeFirst().value<Sailfish::Crypto::Key>() : Sailfish::Crypto::Key();
-            Sailfish::Crypto::Key::SignaturePadding padding = request->inParams.size() ? request->inParams.takeFirst().value<Sailfish::Crypto::Key::SignaturePadding>() : Sailfish::Crypto::Key::SignaturePaddingUnknown;
-            Sailfish::Crypto::Key::Digest digest = request->inParams.size() ? request->inParams.takeFirst().value<Sailfish::Crypto::Key::Digest>() : Sailfish::Crypto::Key::DigestUnknown;
+            Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
+            Key::SignaturePadding padding = request->inParams.size() ? request->inParams.takeFirst().value<Key::SignaturePadding>() : Key::SignaturePaddingUnknown;
+            Key::Digest digest = request->inParams.size() ? request->inParams.takeFirst().value<Key::Digest>() : Key::DigestUnknown;
             QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            Sailfish::Crypto::Result result = m_requestProcessor->sign(
+            Result result = m_requestProcessor->sign(
                         request->remotePid,
                         request->requestId,
                         data,
@@ -462,11 +464,11 @@ void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest
                         cryptosystemProviderName,
                         &signature);
             // send the reply to the calling peer.
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<QByteArray>(signature));
                 *completed = true;
             }
@@ -476,11 +478,11 @@ void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest
             qCDebug(lcSailfishCryptoDaemon) << "Handling VerifyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             bool verified;
             QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
-            Sailfish::Crypto::Key key = request->inParams.size() ? request->inParams.takeFirst().value<Sailfish::Crypto::Key>() : Sailfish::Crypto::Key();
-            Sailfish::Crypto::Key::SignaturePadding padding = request->inParams.size() ? request->inParams.takeFirst().value<Sailfish::Crypto::Key::SignaturePadding>() : Sailfish::Crypto::Key::SignaturePaddingUnknown;
-            Sailfish::Crypto::Key::Digest digest = request->inParams.size() ? request->inParams.takeFirst().value<Sailfish::Crypto::Key::Digest>() : Sailfish::Crypto::Key::DigestUnknown;
+            Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
+            Key::SignaturePadding padding = request->inParams.size() ? request->inParams.takeFirst().value<Key::SignaturePadding>() : Key::SignaturePaddingUnknown;
+            Key::Digest digest = request->inParams.size() ? request->inParams.takeFirst().value<Key::Digest>() : Key::DigestUnknown;
             QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            Sailfish::Crypto::Result result = m_requestProcessor->verify(
+            Result result = m_requestProcessor->verify(
                         request->remotePid,
                         request->requestId,
                         data,
@@ -490,11 +492,11 @@ void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest
                         cryptosystemProviderName,
                         &verified);
             // send the reply to the calling peer.
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<bool>(verified));
                 *completed = true;
             }
@@ -504,12 +506,12 @@ void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest
             qCDebug(lcSailfishCryptoDaemon) << "Handling EncryptRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             QByteArray encrypted;
             QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
-            Sailfish::Crypto::Key key = request->inParams.size() ? request->inParams.takeFirst().value<Sailfish::Crypto::Key>() : Sailfish::Crypto::Key();
-            Sailfish::Crypto::Key::BlockMode blockMode = request->inParams.size() ? request->inParams.takeFirst().value<Sailfish::Crypto::Key::BlockMode>() : Sailfish::Crypto::Key::BlockModeUnknown;
-            Sailfish::Crypto::Key::EncryptionPadding padding = request->inParams.size() ? request->inParams.takeFirst().value<Sailfish::Crypto::Key::EncryptionPadding>() : Sailfish::Crypto::Key::EncryptionPaddingUnknown;
-            Sailfish::Crypto::Key::Digest digest = request->inParams.size() ? request->inParams.takeFirst().value<Sailfish::Crypto::Key::Digest>() : Sailfish::Crypto::Key::DigestUnknown;
+            Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
+            Key::BlockMode blockMode = request->inParams.size() ? request->inParams.takeFirst().value<Key::BlockMode>() : Key::BlockModeUnknown;
+            Key::EncryptionPadding padding = request->inParams.size() ? request->inParams.takeFirst().value<Key::EncryptionPadding>() : Key::EncryptionPaddingUnknown;
+            Key::Digest digest = request->inParams.size() ? request->inParams.takeFirst().value<Key::Digest>() : Key::DigestUnknown;
             QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            Sailfish::Crypto::Result result = m_requestProcessor->encrypt(
+            Result result = m_requestProcessor->encrypt(
                         request->remotePid,
                         request->requestId,
                         data,
@@ -520,11 +522,11 @@ void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest
                         cryptosystemProviderName,
                         &encrypted);
             // send the reply to the calling peer.
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<QByteArray>(encrypted));
                 *completed = true;
             }
@@ -534,12 +536,12 @@ void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest
             qCDebug(lcSailfishCryptoDaemon) << "Handling DecryptRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             QByteArray decrypted;
             QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
-            Sailfish::Crypto::Key key = request->inParams.size() ? request->inParams.takeFirst().value<Sailfish::Crypto::Key>() : Sailfish::Crypto::Key();
-            Sailfish::Crypto::Key::BlockMode blockMode = request->inParams.size() ? request->inParams.takeFirst().value<Sailfish::Crypto::Key::BlockMode>() : Sailfish::Crypto::Key::BlockModeUnknown;
-            Sailfish::Crypto::Key::EncryptionPadding padding = request->inParams.size() ? request->inParams.takeFirst().value<Sailfish::Crypto::Key::EncryptionPadding>() : Sailfish::Crypto::Key::EncryptionPaddingUnknown;
-            Sailfish::Crypto::Key::Digest digest = request->inParams.size() ? request->inParams.takeFirst().value<Sailfish::Crypto::Key::Digest>() : Sailfish::Crypto::Key::DigestUnknown;
+            Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
+            Key::BlockMode blockMode = request->inParams.size() ? request->inParams.takeFirst().value<Key::BlockMode>() : Key::BlockModeUnknown;
+            Key::EncryptionPadding padding = request->inParams.size() ? request->inParams.takeFirst().value<Key::EncryptionPadding>() : Key::EncryptionPaddingUnknown;
+            Key::Digest digest = request->inParams.size() ? request->inParams.takeFirst().value<Key::Digest>() : Key::DigestUnknown;
             QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            Sailfish::Crypto::Result result = m_requestProcessor->decrypt(
+            Result result = m_requestProcessor->decrypt(
                         request->remotePid,
                         request->requestId,
                         data,
@@ -550,11 +552,11 @@ void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest
                         cryptosystemProviderName,
                         &decrypted);
             // send the reply to the calling peer.
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<QByteArray>(decrypted));
                 *completed = true;
             }
@@ -569,148 +571,148 @@ void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest
     }
 }
 
-void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
+void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
         Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request,
         bool *completed)
 {
     switch (request->type) {
         case GetPluginInfoRequest: {
-            Sailfish::Crypto::Result result = request->outParams.size()
-                    ? request->outParams.takeFirst().value<Sailfish::Crypto::Result>()
-                    : Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnknownError,
-                                                QLatin1String("Unable to determine result of GetPluginInfoRequest request"));
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of GetPluginInfoRequest request"));
+            if (result.code() == Result::Pending) {
                 // shouldn't happen!
                 qCWarning(lcSailfishCryptoDaemon) << "GetPluginInfoRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
-                QVector<Sailfish::Crypto::CryptoPluginInfo> cryptoPlugins = request->outParams.size()
-                        ? request->outParams.takeFirst().value<QVector<Sailfish::Crypto::CryptoPluginInfo> >()
-                        : QVector<Sailfish::Crypto::CryptoPluginInfo>();
+                QVector<CryptoPluginInfo> cryptoPlugins = request->outParams.size()
+                        ? request->outParams.takeFirst().value<QVector<CryptoPluginInfo> >()
+                        : QVector<CryptoPluginInfo>();
                 QStringList storagePlugins = request->outParams.size()
                         ? request->outParams.takeFirst().value<QStringList>()
                         : QStringList();
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
-                                                                        << QVariant::fromValue<QVector<Sailfish::Crypto::CryptoPluginInfo> >(cryptoPlugins)
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<QVector<CryptoPluginInfo> >(cryptoPlugins)
                                                                         << QVariant::fromValue<QStringList>(storagePlugins));
                 *completed = true;
             }
             break;
         }
         case ValidateCertificateChainRequest: {
-            Sailfish::Crypto::Result result = request->outParams.size()
-                    ? request->outParams.takeFirst().value<Sailfish::Crypto::Result>()
-                    : Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnknownError,
-                                                QLatin1String("Unable to determine result of ValidateCertificateChainRequest request"));
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of ValidateCertificateChainRequest request"));
+            if (result.code() == Result::Pending) {
                 // shouldn't happen!
                 qCWarning(lcSailfishCryptoDaemon) << "ValidateCertificateChainRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
                 bool validated = request->outParams.size() ? request->outParams.takeFirst().value<bool>() : false;
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<bool>(validated));
                 *completed = true;
             }
             break;
         }
         case GenerateKeyRequest: {
-            Sailfish::Crypto::Result result = request->outParams.size()
-                    ? request->outParams.takeFirst().value<Sailfish::Crypto::Result>()
-                    : Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnknownError,
-                                                QLatin1String("Unable to determine result of GenerateKeyRequest request"));
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of GenerateKeyRequest request"));
+            if (result.code() == Result::Pending) {
                 // shouldn't happen!
                 qCWarning(lcSailfishCryptoDaemon) << "GenerateKeyRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
-                Sailfish::Crypto::Key key = request->outParams.size()
-                        ? request->outParams.takeFirst().value<Sailfish::Crypto::Key>()
-                        : Sailfish::Crypto::Key();
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
-                                                                        << QVariant::fromValue<Sailfish::Crypto::Key>(key));
+                Key key = request->outParams.size()
+                        ? request->outParams.takeFirst().value<Key>()
+                        : Key();
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<Key>(key));
                 *completed = true;
             }
             break;
         }
         case GenerateStoredKeyRequest: {
-            Sailfish::Crypto::Result result = request->outParams.size()
-                    ? request->outParams.takeFirst().value<Sailfish::Crypto::Result>()
-                    : Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnknownError,
-                                                QLatin1String("Unable to determine result of GenerateStoredKeyRequest request"));
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of GenerateStoredKeyRequest request"));
+            if (result.code() == Result::Pending) {
                 // shouldn't happen!
                 qCWarning(lcSailfishCryptoDaemon) << "GenerateStoredKeyRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
-                Sailfish::Crypto::Key key = request->outParams.size()
-                        ? request->outParams.takeFirst().value<Sailfish::Crypto::Key>()
-                        : Sailfish::Crypto::Key();
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
-                                                                        << QVariant::fromValue<Sailfish::Crypto::Key>(key));
+                Key key = request->outParams.size()
+                        ? request->outParams.takeFirst().value<Key>()
+                        : Key();
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<Key>(key));
                 *completed = true;
             }
             break;
         }
         case StoredKeyRequest: {
-            Sailfish::Crypto::Result result = request->outParams.size()
-                    ? request->outParams.takeFirst().value<Sailfish::Crypto::Result>()
-                    : Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnknownError,
-                                                QLatin1String("Unable to determine result of StoredKeyRequest request"));
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of StoredKeyRequest request"));
+            if (result.code() == Result::Pending) {
                 // shouldn't happen!
                 qCWarning(lcSailfishCryptoDaemon) << "StoredKeyRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
-                Sailfish::Crypto::Key key = request->outParams.size()
-                        ? request->outParams.takeFirst().value<Sailfish::Crypto::Key>()
-                        : Sailfish::Crypto::Key();
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
-                                                                        << QVariant::fromValue<Sailfish::Crypto::Key>(key));
+                Key key = request->outParams.size()
+                        ? request->outParams.takeFirst().value<Key>()
+                        : Key();
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<Key>(key));
                 *completed = true;
             }
             break;
         }
         case DeleteStoredKeyRequest: {
-            Sailfish::Crypto::Result result = request->outParams.size()
-                    ? request->outParams.takeFirst().value<Sailfish::Crypto::Result>()
-                    : Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnknownError,
-                                                QLatin1String("Unable to determine result of DeleteStoredKeyRequest request"));
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of DeleteStoredKeyRequest request"));
+            if (result.code() == Result::Pending) {
                 // shouldn't happen!
                 qCWarning(lcSailfishCryptoDaemon) << "DeleteStoredKeyRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result));
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result));
                 *completed = true;
             }
             break;
         }
         case StoredKeyIdentifiersRequest: {
-            Sailfish::Crypto::Result result = request->outParams.size()
-                    ? request->outParams.takeFirst().value<Sailfish::Crypto::Result>()
-                    : Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnknownError,
-                                                QLatin1String("Unable to determine result of StoredKeyIdentifiersRequest request"));
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of StoredKeyIdentifiersRequest request"));
+            if (result.code() == Result::Pending) {
                 // shouldn't happen!
                 qCWarning(lcSailfishCryptoDaemon) << "StoredKeyIdentifiersRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
-                QVector<Sailfish::Crypto::Key::Identifier> identifiers = request->outParams.size()
-                        ? request->outParams.takeFirst().value<QVector<Sailfish::Crypto::Key::Identifier> >()
-                        : QVector<Sailfish::Crypto::Key::Identifier>();
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
-                                                                        << QVariant::fromValue<QVector<Sailfish::Crypto::Key::Identifier> >(identifiers));
+                QVector<Key::Identifier> identifiers = request->outParams.size()
+                        ? request->outParams.takeFirst().value<QVector<Key::Identifier> >()
+                        : QVector<Key::Identifier>();
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<QVector<Key::Identifier> >(identifiers));
                 *completed = true;
             }
             break;
         }
         case SignRequest: {
-            Sailfish::Crypto::Result result = request->outParams.size()
-                    ? request->outParams.takeFirst().value<Sailfish::Crypto::Result>()
-                    : Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnknownError,
-                                                QLatin1String("Unable to determine result of SignRequest request"));
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of SignRequest request"));
+            if (result.code() == Result::Pending) {
                 // shouldn't happen!
                 qCWarning(lcSailfishCryptoDaemon) << "SignRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
@@ -718,18 +720,18 @@ void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handleFinishedReques
                 QByteArray signature = request->outParams.size()
                         ? request->outParams.takeFirst().toByteArray()
                         : QByteArray();
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<QByteArray>(signature));
                 *completed = true;
             }
             break;
         }
         case VerifyRequest: {
-            Sailfish::Crypto::Result result = request->outParams.size()
-                    ? request->outParams.takeFirst().value<Sailfish::Crypto::Result>()
-                    : Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnknownError,
-                                                QLatin1String("Unable to determine result of VerifyRequest request"));
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of VerifyRequest request"));
+            if (result.code() == Result::Pending) {
                 // shouldn't happen!
                 qCWarning(lcSailfishCryptoDaemon) << "VerifyRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
@@ -737,18 +739,18 @@ void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handleFinishedReques
                 bool verified = request->outParams.size()
                         ? request->outParams.takeFirst().toBool()
                         : false;
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<bool>(verified));
                 *completed = true;
             }
             break;
         }
         case EncryptRequest: {
-            Sailfish::Crypto::Result result = request->outParams.size()
-                    ? request->outParams.takeFirst().value<Sailfish::Crypto::Result>()
-                    : Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnknownError,
-                                                QLatin1String("Unable to determine result of EncryptRequest request"));
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of EncryptRequest request"));
+            if (result.code() == Result::Pending) {
                 // shouldn't happen!
                 qCWarning(lcSailfishCryptoDaemon) << "EncryptRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
@@ -756,18 +758,18 @@ void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handleFinishedReques
                 QByteArray encrypted = request->outParams.size()
                         ? request->outParams.takeFirst().toByteArray()
                         : QByteArray();
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<QByteArray>(encrypted));
                 *completed = true;
             }
             break;
         }
         case DecryptRequest: {
-            Sailfish::Crypto::Result result = request->outParams.size()
-                    ? request->outParams.takeFirst().value<Sailfish::Crypto::Result>()
-                    : Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnknownError,
-                                                QLatin1String("Unable to determine result of DecryptRequest request"));
-            if (result.code() == Sailfish::Crypto::Result::Pending) {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of DecryptRequest request"));
+            if (result.code() == Result::Pending) {
                 // shouldn't happen!
                 qCWarning(lcSailfishCryptoDaemon) << "DecryptRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
@@ -775,7 +777,7 @@ void Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue::handleFinishedReques
                 QByteArray decrypted = request->outParams.size()
                         ? request->outParams.takeFirst().toByteArray()
                         : QByteArray();
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Sailfish::Crypto::Result>(result)
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<QByteArray>(decrypted));
                 *completed = true;
             }

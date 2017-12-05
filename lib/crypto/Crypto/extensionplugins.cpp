@@ -13,22 +13,24 @@
 #include <QtCore/QVector>
 #include <QtCore/QString>
 
-Sailfish::Crypto::CryptoPluginInfoData::CryptoPluginInfoData()
+using namespace Sailfish::Crypto;
+
+CryptoPluginInfoData::CryptoPluginInfoData()
     : m_pluginName(QLatin1String("org.sailfishos.crypto.cryptoplugin.invalid"))
     , m_canStoreKeys(false)
 {
 }
 
-Sailfish::Crypto::CryptoPluginInfoData::CryptoPluginInfoData(
+CryptoPluginInfoData::CryptoPluginInfoData(
         const QString &pluginName,
         bool canStoreKeys,
-        Sailfish::Crypto::CryptoPlugin::EncryptionType encryptionType,
-        const QVector<Sailfish::Crypto::Key::Algorithm> &supportedAlgorithms,
-        const QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::BlockModes> &supportedBlockModes,
-        const QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::EncryptionPaddings> &supportedEncryptionPaddings,
-        const QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::SignaturePaddings> &supportedSignaturePaddings,
-        const QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Digests> &supportedDigests,
-        const QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Operations> &supportedOperations)
+        CryptoPlugin::EncryptionType encryptionType,
+        const QVector<Key::Algorithm> &supportedAlgorithms,
+        const QMap<Key::Algorithm, Key::BlockModes> &supportedBlockModes,
+        const QMap<Key::Algorithm, Key::EncryptionPaddings> &supportedEncryptionPaddings,
+        const QMap<Key::Algorithm, Key::SignaturePaddings> &supportedSignaturePaddings,
+        const QMap<Key::Algorithm, Key::Digests> &supportedDigests,
+        const QMap<Key::Algorithm, Key::Operations> &supportedOperations)
     : m_pluginName(pluginName)
     , m_canStoreKeys(canStoreKeys)
     , m_encryptionType(encryptionType)
@@ -41,14 +43,14 @@ Sailfish::Crypto::CryptoPluginInfoData::CryptoPluginInfoData(
 {
 }
 
-Sailfish::Crypto::CryptoPluginInfo::CryptoPluginInfo()
-    : m_data(new Sailfish::Crypto::CryptoPluginInfoData)
+CryptoPluginInfo::CryptoPluginInfo()
+    : m_data(new CryptoPluginInfoData)
 {
 }
 
-Sailfish::Crypto::CryptoPluginInfo::CryptoPluginInfo(
-        Sailfish::Crypto::CryptoPlugin *plugin)
-    : m_data(new Sailfish::Crypto::CryptoPluginInfoData(
+CryptoPluginInfo::CryptoPluginInfo(
+        CryptoPlugin *plugin)
+    : m_data(new CryptoPluginInfoData(
                  plugin->name(),
                  plugin->canStoreKeys(),
                  plugin->encryptionType(),
@@ -61,8 +63,8 @@ Sailfish::Crypto::CryptoPluginInfo::CryptoPluginInfo(
 {
 }
 
-Sailfish::Crypto::CryptoPluginInfo::CryptoPluginInfo(const CryptoPluginInfo &other)
-    : m_data(new Sailfish::Crypto::CryptoPluginInfoData(
+CryptoPluginInfo::CryptoPluginInfo(const CryptoPluginInfo &other)
+    : m_data(new CryptoPluginInfoData(
                  other.name(),
                  other.canStoreKeys(),
                  other.encryptionType(),
@@ -75,17 +77,17 @@ Sailfish::Crypto::CryptoPluginInfo::CryptoPluginInfo(const CryptoPluginInfo &oth
 {
 }
 
-Sailfish::Crypto::CryptoPluginInfo::~CryptoPluginInfo()
+CryptoPluginInfo::~CryptoPluginInfo()
 {
     delete m_data;
 }
 
-Sailfish::Crypto::CryptoPluginInfo&
-Sailfish::Crypto::CryptoPluginInfo::operator=(const CryptoPluginInfo &other)
+CryptoPluginInfo&
+CryptoPluginInfo::operator=(const CryptoPluginInfo &other)
 {
     if (this != &other) {
         delete m_data;
-        m_data = new Sailfish::Crypto::CryptoPluginInfoData(
+        m_data = new CryptoPluginInfoData(
                          other.name(),
                          other.canStoreKeys(),
                          other.encryptionType(),
@@ -101,119 +103,119 @@ Sailfish::Crypto::CryptoPluginInfo::operator=(const CryptoPluginInfo &other)
 }
 
 QString
-Sailfish::Crypto::CryptoPluginInfo::name() const
+CryptoPluginInfo::name() const
 {
     return m_data->m_pluginName;
 }
 
 bool
-Sailfish::Crypto::CryptoPluginInfo::canStoreKeys() const
+CryptoPluginInfo::canStoreKeys() const
 {
     return m_data->m_canStoreKeys;
 }
 
-Sailfish::Crypto::CryptoPlugin::EncryptionType
-Sailfish::Crypto::CryptoPluginInfo::encryptionType() const
+CryptoPlugin::EncryptionType
+CryptoPluginInfo::encryptionType() const
 {
     return m_data->m_encryptionType;
 }
 
-QVector<Sailfish::Crypto::Key::Algorithm>
-Sailfish::Crypto::CryptoPluginInfo::supportedAlgorithms() const
+QVector<Key::Algorithm>
+CryptoPluginInfo::supportedAlgorithms() const
 {
     return m_data->m_supportedAlgorithms;
 }
 
-QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::BlockModes>
-Sailfish::Crypto::CryptoPluginInfo::supportedBlockModes() const
+QMap<Key::Algorithm, Key::BlockModes>
+CryptoPluginInfo::supportedBlockModes() const
 {
     return m_data->m_supportedBlockModes;
 }
 
-QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::EncryptionPaddings>
-Sailfish::Crypto::CryptoPluginInfo::supportedEncryptionPaddings() const
+QMap<Key::Algorithm, Key::EncryptionPaddings>
+CryptoPluginInfo::supportedEncryptionPaddings() const
 {
     return m_data->m_supportedEncryptionPaddings;
 }
 
-QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::SignaturePaddings>
-Sailfish::Crypto::CryptoPluginInfo::supportedSignaturePaddings() const
+QMap<Key::Algorithm, Key::SignaturePaddings>
+CryptoPluginInfo::supportedSignaturePaddings() const
 {
     return m_data->m_supportedSignaturePaddings;
 }
 
-QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Digests>
-Sailfish::Crypto::CryptoPluginInfo::supportedDigests() const
+QMap<Key::Algorithm, Key::Digests>
+CryptoPluginInfo::supportedDigests() const
 {
     return m_data->m_supportedDigests;
 }
 
-QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Operations>
-Sailfish::Crypto::CryptoPluginInfo::supportedOperations() const
+QMap<Key::Algorithm, Key::Operations>
+CryptoPluginInfo::supportedOperations() const
 {
     return m_data->m_supportedOperations;
 }
 
-void Sailfish::Crypto::CryptoPluginInfo::setName(
+void CryptoPluginInfo::setName(
         const QString &name)
 {
     m_data->m_pluginName = name;
 }
 
-void Sailfish::Crypto::CryptoPluginInfo::setCanStoreKeys(
+void CryptoPluginInfo::setCanStoreKeys(
         bool v)
 {
     m_data->m_canStoreKeys = v;
 }
 
-void Sailfish::Crypto::CryptoPluginInfo::setEncryptionType(
-        Sailfish::Crypto::CryptoPlugin::EncryptionType type)
+void CryptoPluginInfo::setEncryptionType(
+        CryptoPlugin::EncryptionType type)
 {
     m_data->m_encryptionType = type;
 }
 
-void Sailfish::Crypto::CryptoPluginInfo::setSupportedAlgorithms(
-        const QVector<Sailfish::Crypto::Key::Algorithm> &algorithms)
+void CryptoPluginInfo::setSupportedAlgorithms(
+        const QVector<Key::Algorithm> &algorithms)
 {
     m_data->m_supportedAlgorithms = algorithms;
 }
 
-void Sailfish::Crypto::CryptoPluginInfo::setSupportedBlockModes(
-        const QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::BlockModes> &modes)
+void CryptoPluginInfo::setSupportedBlockModes(
+        const QMap<Key::Algorithm, Key::BlockModes> &modes)
 {
     m_data->m_supportedBlockModes = modes;
 }
 
-void Sailfish::Crypto::CryptoPluginInfo::setSupportedEncryptionPaddings(
-        const QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::EncryptionPaddings> &paddings)
+void CryptoPluginInfo::setSupportedEncryptionPaddings(
+        const QMap<Key::Algorithm, Key::EncryptionPaddings> &paddings)
 {
     m_data->m_supportedEncryptionPaddings = paddings;
 }
 
-void Sailfish::Crypto::CryptoPluginInfo::setSupportedSignaturePaddings(
-        const QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::SignaturePaddings> &paddings)
+void CryptoPluginInfo::setSupportedSignaturePaddings(
+        const QMap<Key::Algorithm, Key::SignaturePaddings> &paddings)
 {
     m_data->m_supportedSignaturePaddings = paddings;
 }
 
-void Sailfish::Crypto::CryptoPluginInfo::setSupportedDigests(
-        const QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Digests> &digests)
+void CryptoPluginInfo::setSupportedDigests(
+        const QMap<Key::Algorithm, Key::Digests> &digests)
 {
     m_data->m_supportedDigests = digests;
 }
 
-void Sailfish::Crypto::CryptoPluginInfo::setSupportedOperations(
-        const QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Operations> &operations)
+void CryptoPluginInfo::setSupportedOperations(
+        const QMap<Key::Algorithm, Key::Operations> &operations)
 {
     m_data->m_supportedOperations = operations;
 }
 
 //---------------------------------------------
 
-Sailfish::Crypto::CryptoPlugin::CryptoPlugin()
+CryptoPlugin::CryptoPlugin()
 {
 }
 
-Sailfish::Crypto::CryptoPlugin::~CryptoPlugin()
+CryptoPlugin::~CryptoPlugin()
 {
 }

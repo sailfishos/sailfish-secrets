@@ -20,7 +20,7 @@ namespace Sailfish {
 
 namespace Secrets {
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionResponse &response)
+QDBusArgument &operator<<(QDBusArgument &argument, const InteractionResponse &response)
 {
     argument.beginStructure();
     argument << response.type();
@@ -29,7 +29,7 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Inte
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionResponse &response)
+const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionResponse &response)
 {
     int type = 0;
     QVariantMap values;
@@ -37,11 +37,11 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
     argument >> type;
     argument >> values;
     argument.endStructure();
-    response = Sailfish::Secrets::InteractionResponse(static_cast<Sailfish::Secrets::InteractionRequest::Type>(type), values);
+    response = InteractionResponse(static_cast<InteractionRequest::Type>(type), values);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionRequest &request)
+QDBusArgument &operator<<(QDBusArgument &argument, const InteractionRequest &request)
 {
     argument.beginStructure();
     argument << static_cast<int>(request.type());
@@ -51,7 +51,7 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Inte
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionRequest &request)
+const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionRequest &request)
 {
     int type = 0;
     bool isResponse = false;
@@ -62,14 +62,14 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
     argument >> values;
     argument.endStructure();
     if (isResponse) {
-        request = Sailfish::Secrets::InteractionResponse(static_cast<Sailfish::Secrets::InteractionRequest::Type>(type), values);
+        request = InteractionResponse(static_cast<InteractionRequest::Type>(type), values);
     } else {
-        request = Sailfish::Secrets::InteractionRequest(static_cast<Sailfish::Secrets::InteractionRequest::Type>(type), values);
+        request = InteractionRequest(static_cast<InteractionRequest::Type>(type), values);
     }
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Result &result)
+QDBusArgument &operator<<(QDBusArgument &argument, const Result &result)
 {
     argument.beginStructure();
     argument << static_cast<int>(result.code()) << result.errorCode() << result.errorMessage();
@@ -77,7 +77,7 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Resu
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::Result &result)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Result &result)
 {
     int code;
     int errorCode;
@@ -87,13 +87,13 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
     argument >> code >> errorCode >> message;
     argument.endStructure();
 
-    result.setCode(static_cast<Sailfish::Secrets::Result::ResultCode>(code));
-    result.setErrorCode(static_cast<Sailfish::Secrets::Result::ErrorCode>(errorCode));
+    result.setCode(static_cast<Result::ResultCode>(code));
+    result.setErrorCode(static_cast<Result::ErrorCode>(errorCode));
     result.setErrorMessage(message);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secret::Identifier &identifier)
+QDBusArgument &operator<<(QDBusArgument &argument, const Secret::Identifier &identifier)
 {
     argument.beginStructure();
     argument << identifier.name() << identifier.collectionName();
@@ -101,7 +101,7 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secr
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::Secret::Identifier &identifier)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Secret::Identifier &identifier)
 {
     QString name;
     QString collectionName;
@@ -115,7 +115,7 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secret &secret)
+QDBusArgument &operator<<(QDBusArgument &argument, const Secret &secret)
 {
     argument.beginStructure();
     argument << secret.identifier() << secret.data() << secret.filterData();
@@ -123,9 +123,9 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secr
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::Secret &secret)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Secret &secret)
 {
-    Sailfish::Secrets::Secret::Identifier identifier;
+    Secret::Identifier identifier;
     QByteArray data;
     QMap<QString,QString> metadata;
 
@@ -135,11 +135,11 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
 
     secret.setIdentifier(identifier);
     secret.setData(data);
-    secret.setFilterData(Sailfish::Secrets::Secret::FilterData(metadata));
+    secret.setFilterData(Secret::FilterData(metadata));
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::SecretManager::UserInteractionMode mode)
+QDBusArgument &operator<<(QDBusArgument &argument, const SecretManager::UserInteractionMode mode)
 {
     int imode = static_cast<int>(mode);
     argument.beginStructure();
@@ -148,17 +148,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secr
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::SecretManager::UserInteractionMode &mode)
+const QDBusArgument &operator>>(const QDBusArgument &argument, SecretManager::UserInteractionMode &mode)
 {
     int imode = 0;
     argument.beginStructure();
     argument >> imode;
     argument.endStructure();
-    mode = static_cast<Sailfish::Secrets::SecretManager::UserInteractionMode>(imode);
+    mode = static_cast<SecretManager::UserInteractionMode>(imode);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::SecretManager::AccessControlMode mode)
+QDBusArgument &operator<<(QDBusArgument &argument, const SecretManager::AccessControlMode mode)
 {
     int imode = static_cast<int>(mode);
     argument.beginStructure();
@@ -167,17 +167,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secr
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::SecretManager::AccessControlMode &mode)
+const QDBusArgument &operator>>(const QDBusArgument &argument, SecretManager::AccessControlMode &mode)
 {
     int imode = 0;
     argument.beginStructure();
     argument >> imode;
     argument.endStructure();
-    mode = static_cast<Sailfish::Secrets::SecretManager::AccessControlMode>(imode);
+    mode = static_cast<SecretManager::AccessControlMode>(imode);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic semantic)
+QDBusArgument &operator<<(QDBusArgument &argument, const SecretManager::DeviceLockUnlockSemantic semantic)
 {
     int isemantic = static_cast<int>(semantic);
     argument.beginStructure();
@@ -186,17 +186,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secr
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic &semantic)
+const QDBusArgument &operator>>(const QDBusArgument &argument, SecretManager::DeviceLockUnlockSemantic &semantic)
 {
     int isemantic = 0;
     argument.beginStructure();
     argument >> isemantic;
     argument.endStructure();
-    semantic = static_cast<Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic>(isemantic);
+    semantic = static_cast<SecretManager::DeviceLockUnlockSemantic>(isemantic);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic semantic)
+QDBusArgument &operator<<(QDBusArgument &argument, const SecretManager::CustomLockUnlockSemantic semantic)
 {
     int isemantic = static_cast<int>(semantic);
     argument.beginStructure();
@@ -205,17 +205,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secr
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic &semantic)
+const QDBusArgument &operator>>(const QDBusArgument &argument, SecretManager::CustomLockUnlockSemantic &semantic)
 {
     int isemantic = 0;
     argument.beginStructure();
     argument >> isemantic;
     argument.endStructure();
-    semantic = static_cast<Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic>(isemantic);
+    semantic = static_cast<SecretManager::CustomLockUnlockSemantic>(isemantic);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::SecretManager::FilterOperator filterOperator)
+QDBusArgument &operator<<(QDBusArgument &argument, const SecretManager::FilterOperator filterOperator)
 {
     int iop = static_cast<int>(filterOperator);
     argument.beginStructure();
@@ -224,17 +224,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secr
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::SecretManager::FilterOperator &filterOperator)
+const QDBusArgument &operator>>(const QDBusArgument &argument, SecretManager::FilterOperator &filterOperator)
 {
     int iop = 0;
     argument.beginStructure();
     argument >> iop;
     argument.endStructure();
-    filterOperator = static_cast<Sailfish::Secrets::SecretManager::FilterOperator>(iop);
+    filterOperator = static_cast<SecretManager::FilterOperator>(iop);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::StoragePluginInfo &info)
+QDBusArgument &operator<<(QDBusArgument &argument, const StoragePluginInfo &info)
 {
     int type = static_cast<int>(info.storageType());
     argument.beginStructure();
@@ -243,7 +243,7 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Stor
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::StoragePluginInfo &info)
+const QDBusArgument &operator>>(const QDBusArgument &argument, StoragePluginInfo &info)
 {
     QString name;
     int itype = 0;
@@ -251,11 +251,11 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
     argument >> name >> itype;
     argument.endStructure();
     info.setName(name);
-    info.setStorageType(static_cast<Sailfish::Secrets::StoragePlugin::StorageType>(itype));
+    info.setStorageType(static_cast<StoragePlugin::StorageType>(itype));
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::EncryptionPluginInfo &info)
+QDBusArgument &operator<<(QDBusArgument &argument, const EncryptionPluginInfo &info)
 {
     int type = static_cast<int>(info.encryptionType());
     int algo = static_cast<int>(info.encryptionAlgorithm());
@@ -265,7 +265,7 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Encr
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::EncryptionPluginInfo &info)
+const QDBusArgument &operator>>(const QDBusArgument &argument, EncryptionPluginInfo &info)
 {
     QString name;
     int itype = 0;
@@ -274,12 +274,12 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
     argument >> name >> itype >> ialgo;
     argument.endStructure();
     info.setName(name);
-    info.setEncryptionType(static_cast<Sailfish::Secrets::EncryptionPlugin::EncryptionType>(itype));
-    info.setEncryptionAlgorithm(static_cast<Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm>(ialgo));
+    info.setEncryptionType(static_cast<EncryptionPlugin::EncryptionType>(itype));
+    info.setEncryptionAlgorithm(static_cast<EncryptionPlugin::EncryptionAlgorithm>(ialgo));
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::EncryptedStoragePluginInfo &info)
+QDBusArgument &operator<<(QDBusArgument &argument, const EncryptedStoragePluginInfo &info)
 {
     int stype = static_cast<int>(info.storageType());
     int type = static_cast<int>(info.encryptionType());
@@ -290,7 +290,7 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Encr
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::EncryptedStoragePluginInfo &info)
+const QDBusArgument &operator>>(const QDBusArgument &argument, EncryptedStoragePluginInfo &info)
 {
     QString name;
     int istype = 0;
@@ -300,13 +300,13 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
     argument >> name >> istype >> itype >> ialgo;
     argument.endStructure();
     info.setName(name);
-    info.setStorageType(static_cast<Sailfish::Secrets::StoragePlugin::StorageType>(istype));
-    info.setEncryptionType(static_cast<Sailfish::Secrets::EncryptionPlugin::EncryptionType>(itype));
-    info.setEncryptionAlgorithm(static_cast<Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm>(ialgo));
+    info.setStorageType(static_cast<StoragePlugin::StorageType>(istype));
+    info.setEncryptionType(static_cast<EncryptionPlugin::EncryptionType>(itype));
+    info.setEncryptionAlgorithm(static_cast<EncryptionPlugin::EncryptionAlgorithm>(ialgo));
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::AuthenticationPluginInfo &info)
+QDBusArgument &operator<<(QDBusArgument &argument, const AuthenticationPluginInfo &info)
 {
     int type = static_cast<int>(info.authenticationType());
     argument.beginStructure();
@@ -315,7 +315,7 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Auth
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::AuthenticationPluginInfo &info)
+const QDBusArgument &operator>>(const QDBusArgument &argument, AuthenticationPluginInfo &info)
 {
     QString name;
     int itype = 0;
@@ -323,7 +323,7 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
     argument >> name >> itype;
     argument.endStructure();
     info.setName(name);
-    info.setAuthenticationType(static_cast<Sailfish::Secrets::AuthenticationPlugin::AuthenticationType>(itype));
+    info.setAuthenticationType(static_cast<AuthenticationPlugin::AuthenticationType>(itype));
     return argument;
 }
 

@@ -16,9 +16,9 @@ namespace Secrets {
     {
     public:
         EncryptionPluginInfoPrivate()
-            : encryptionType(Sailfish::Secrets::EncryptionPlugin::NoEncryption)
-            , encryptionAlgorithm(Sailfish::Secrets::EncryptionPlugin::NoAlgorithm) {}
-        EncryptionPluginInfoPrivate(const Sailfish::Secrets::EncryptionPlugin *plugin)
+            : encryptionType(EncryptionPlugin::NoEncryption)
+            , encryptionAlgorithm(EncryptionPlugin::NoAlgorithm) {}
+        EncryptionPluginInfoPrivate(const EncryptionPlugin *plugin)
             : name(plugin->name())
             , encryptionType(plugin->encryptionType())
             , encryptionAlgorithm(plugin->encryptionAlgorithm()) {}
@@ -27,31 +27,31 @@ namespace Secrets {
             , encryptionType(other.encryptionType)
             , encryptionAlgorithm(other.encryptionAlgorithm) {}
         QString name;
-        Sailfish::Secrets::EncryptionPlugin::EncryptionType encryptionType;
-        Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm encryptionAlgorithm;
+        EncryptionPlugin::EncryptionType encryptionType;
+        EncryptionPlugin::EncryptionAlgorithm encryptionAlgorithm;
     };
     class StoragePluginInfoPrivate
     {
     public:
         StoragePluginInfoPrivate()
-            : storageType(Sailfish::Secrets::StoragePlugin::NoStorage) {}
-        StoragePluginInfoPrivate(const Sailfish::Secrets::StoragePlugin *plugin)
+            : storageType(StoragePlugin::NoStorage) {}
+        StoragePluginInfoPrivate(const StoragePlugin *plugin)
             : name(plugin->name())
             , storageType(plugin->storageType()) {}
         StoragePluginInfoPrivate(const StoragePluginInfoPrivate &other)
             : name(other.name)
             , storageType(other.storageType) {}
         QString name;
-        Sailfish::Secrets::StoragePlugin::StorageType storageType;
+        StoragePlugin::StorageType storageType;
     };
     class EncryptedStoragePluginInfoPrivate
     {
     public:
         EncryptedStoragePluginInfoPrivate()
-            : storageType(Sailfish::Secrets::StoragePlugin::NoStorage)
-            , encryptionType(Sailfish::Secrets::EncryptionPlugin::NoEncryption)
-            , encryptionAlgorithm(Sailfish::Secrets::EncryptionPlugin::NoAlgorithm) {}
-        EncryptedStoragePluginInfoPrivate(const Sailfish::Secrets::EncryptedStoragePlugin *plugin)
+            : storageType(StoragePlugin::NoStorage)
+            , encryptionType(EncryptionPlugin::NoEncryption)
+            , encryptionAlgorithm(EncryptionPlugin::NoAlgorithm) {}
+        EncryptedStoragePluginInfoPrivate(const EncryptedStoragePlugin *plugin)
             : name(plugin->name())
             , storageType(plugin->storageType())
             , encryptionType(plugin->encryptionType())
@@ -62,250 +62,251 @@ namespace Secrets {
             , encryptionType(other.encryptionType)
             , encryptionAlgorithm(other.encryptionAlgorithm) {}
         QString name;
-        Sailfish::Secrets::StoragePlugin::StorageType storageType;
-        Sailfish::Secrets::EncryptionPlugin::EncryptionType encryptionType;
-        Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm encryptionAlgorithm;
+        StoragePlugin::StorageType storageType;
+        EncryptionPlugin::EncryptionType encryptionType;
+        EncryptionPlugin::EncryptionAlgorithm encryptionAlgorithm;
     };
     class AuthenticationPluginInfoPrivate
     {
     public:
         AuthenticationPluginInfoPrivate()
-            : authenticationType(Sailfish::Secrets::AuthenticationPlugin::NoAuthentication) {}
-        AuthenticationPluginInfoPrivate(const Sailfish::Secrets::AuthenticationPlugin *plugin)
+            : authenticationType(AuthenticationPlugin::NoAuthentication) {}
+        AuthenticationPluginInfoPrivate(const AuthenticationPlugin *plugin)
             : name(plugin->name())
             , authenticationType(plugin->authenticationType()) {}
         AuthenticationPluginInfoPrivate(const AuthenticationPluginInfoPrivate &other)
             : name(other.name)
             , authenticationType(other.authenticationType) {}
         QString name;
-        Sailfish::Secrets::AuthenticationPlugin::AuthenticationType authenticationType;
+        AuthenticationPlugin::AuthenticationType authenticationType;
     };
 } // namespace Secrets
 } // namespace Sailfish
 
+using namespace Sailfish::Secrets;
 
-Sailfish::Secrets::EncryptionPluginInfo::EncryptionPluginInfo()
-    : d(new Sailfish::Secrets::EncryptionPluginInfoPrivate)
+EncryptionPluginInfo::EncryptionPluginInfo()
+    : d(new EncryptionPluginInfoPrivate)
 {
 }
 
-Sailfish::Secrets::EncryptionPluginInfo::EncryptionPluginInfo(const Sailfish::Secrets::EncryptionPluginInfo &other)
-    : d(new Sailfish::Secrets::EncryptionPluginInfoPrivate(*other.d))
+EncryptionPluginInfo::EncryptionPluginInfo(const EncryptionPluginInfo &other)
+    : d(new EncryptionPluginInfoPrivate(*other.d))
 {
 }
 
-Sailfish::Secrets::EncryptionPluginInfo::EncryptionPluginInfo(const Sailfish::Secrets::EncryptionPlugin *plugin)
-    : d(new Sailfish::Secrets::EncryptionPluginInfoPrivate(plugin))
+EncryptionPluginInfo::EncryptionPluginInfo(const EncryptionPlugin *plugin)
+    : d(new EncryptionPluginInfoPrivate(plugin))
 {
 }
 
-Sailfish::Secrets::EncryptionPluginInfo::~EncryptionPluginInfo()
+EncryptionPluginInfo::~EncryptionPluginInfo()
 {
     delete d;
 }
 
-QString Sailfish::Secrets::EncryptionPluginInfo::name() const
+QString EncryptionPluginInfo::name() const
 {
     return d->name;
 }
 
-void Sailfish::Secrets::EncryptionPluginInfo::setName(const QString &name)
+void EncryptionPluginInfo::setName(const QString &name)
 {
     d->name = name;
 }
 
-Sailfish::Secrets::EncryptionPlugin::EncryptionType Sailfish::Secrets::EncryptionPluginInfo::encryptionType() const
+EncryptionPlugin::EncryptionType EncryptionPluginInfo::encryptionType() const
 {
     return d->encryptionType;
 }
 
-void Sailfish::Secrets::EncryptionPluginInfo::setEncryptionType(Sailfish::Secrets::EncryptionPlugin::EncryptionType type)
+void EncryptionPluginInfo::setEncryptionType(EncryptionPlugin::EncryptionType type)
 {
     d->encryptionType = type;
 }
 
-Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm Sailfish::Secrets::EncryptionPluginInfo::encryptionAlgorithm() const
+EncryptionPlugin::EncryptionAlgorithm EncryptionPluginInfo::encryptionAlgorithm() const
 {
     return d->encryptionAlgorithm;
 }
 
-void Sailfish::Secrets::EncryptionPluginInfo::setEncryptionAlgorithm(Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm algorithm)
+void EncryptionPluginInfo::setEncryptionAlgorithm(EncryptionPlugin::EncryptionAlgorithm algorithm)
 {
     d->encryptionAlgorithm = algorithm;
 }
 
-Sailfish::Secrets::StoragePluginInfo::StoragePluginInfo()
-    : d(new Sailfish::Secrets::StoragePluginInfoPrivate)
+StoragePluginInfo::StoragePluginInfo()
+    : d(new StoragePluginInfoPrivate)
 {
 }
 
-Sailfish::Secrets::StoragePluginInfo::StoragePluginInfo(const Sailfish::Secrets::StoragePluginInfo &other)
-    : d(new Sailfish::Secrets::StoragePluginInfoPrivate(*other.d))
+StoragePluginInfo::StoragePluginInfo(const StoragePluginInfo &other)
+    : d(new StoragePluginInfoPrivate(*other.d))
 {
 }
 
-Sailfish::Secrets::StoragePluginInfo::StoragePluginInfo(const Sailfish::Secrets::StoragePlugin *plugin)
-    : d(new Sailfish::Secrets::StoragePluginInfoPrivate(plugin))
+StoragePluginInfo::StoragePluginInfo(const StoragePlugin *plugin)
+    : d(new StoragePluginInfoPrivate(plugin))
 {
 }
 
-Sailfish::Secrets::StoragePluginInfo::~StoragePluginInfo()
-{
-    delete d;
-}
-
-QString Sailfish::Secrets::StoragePluginInfo::name() const
-{
-    return d->name;
-}
-
-void Sailfish::Secrets::StoragePluginInfo::setName(const QString &name)
-{
-    d->name = name;
-}
-
-Sailfish::Secrets::StoragePlugin::StorageType Sailfish::Secrets::StoragePluginInfo::storageType() const
-{
-    return d->storageType;
-}
-
-void Sailfish::Secrets::StoragePluginInfo::setStorageType(Sailfish::Secrets::StoragePlugin::StorageType type)
-{
-    d->storageType = type;
-}
-
-Sailfish::Secrets::EncryptedStoragePluginInfo::EncryptedStoragePluginInfo()
-    : d(new Sailfish::Secrets::EncryptedStoragePluginInfoPrivate)
-{
-}
-
-Sailfish::Secrets::EncryptedStoragePluginInfo::EncryptedStoragePluginInfo(const Sailfish::Secrets::EncryptedStoragePluginInfo &other)
-    : d(new Sailfish::Secrets::EncryptedStoragePluginInfoPrivate(*other.d))
-{
-}
-
-Sailfish::Secrets::EncryptedStoragePluginInfo::EncryptedStoragePluginInfo(const Sailfish::Secrets::EncryptedStoragePlugin *plugin)
-    : d(new Sailfish::Secrets::EncryptedStoragePluginInfoPrivate(plugin))
-{
-}
-
-Sailfish::Secrets::EncryptedStoragePluginInfo::~EncryptedStoragePluginInfo()
+StoragePluginInfo::~StoragePluginInfo()
 {
     delete d;
 }
 
-QString Sailfish::Secrets::EncryptedStoragePluginInfo::name() const
+QString StoragePluginInfo::name() const
 {
     return d->name;
 }
 
-void Sailfish::Secrets::EncryptedStoragePluginInfo::setName(const QString &name)
+void StoragePluginInfo::setName(const QString &name)
 {
     d->name = name;
 }
 
-Sailfish::Secrets::StoragePlugin::StorageType Sailfish::Secrets::EncryptedStoragePluginInfo::storageType() const
+StoragePlugin::StorageType StoragePluginInfo::storageType() const
 {
     return d->storageType;
 }
 
-void Sailfish::Secrets::EncryptedStoragePluginInfo::setStorageType(Sailfish::Secrets::StoragePlugin::StorageType type)
+void StoragePluginInfo::setStorageType(StoragePlugin::StorageType type)
 {
     d->storageType = type;
 }
 
-Sailfish::Secrets::EncryptionPlugin::EncryptionType Sailfish::Secrets::EncryptedStoragePluginInfo::encryptionType() const
+EncryptedStoragePluginInfo::EncryptedStoragePluginInfo()
+    : d(new EncryptedStoragePluginInfoPrivate)
+{
+}
+
+EncryptedStoragePluginInfo::EncryptedStoragePluginInfo(const EncryptedStoragePluginInfo &other)
+    : d(new EncryptedStoragePluginInfoPrivate(*other.d))
+{
+}
+
+EncryptedStoragePluginInfo::EncryptedStoragePluginInfo(const EncryptedStoragePlugin *plugin)
+    : d(new EncryptedStoragePluginInfoPrivate(plugin))
+{
+}
+
+EncryptedStoragePluginInfo::~EncryptedStoragePluginInfo()
+{
+    delete d;
+}
+
+QString EncryptedStoragePluginInfo::name() const
+{
+    return d->name;
+}
+
+void EncryptedStoragePluginInfo::setName(const QString &name)
+{
+    d->name = name;
+}
+
+StoragePlugin::StorageType EncryptedStoragePluginInfo::storageType() const
+{
+    return d->storageType;
+}
+
+void EncryptedStoragePluginInfo::setStorageType(StoragePlugin::StorageType type)
+{
+    d->storageType = type;
+}
+
+EncryptionPlugin::EncryptionType EncryptedStoragePluginInfo::encryptionType() const
 {
     return d->encryptionType;
 }
 
-void Sailfish::Secrets::EncryptedStoragePluginInfo::setEncryptionType(Sailfish::Secrets::EncryptionPlugin::EncryptionType type)
+void EncryptedStoragePluginInfo::setEncryptionType(EncryptionPlugin::EncryptionType type)
 {
     d->encryptionType = type;
 }
 
-Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm Sailfish::Secrets::EncryptedStoragePluginInfo::encryptionAlgorithm() const
+EncryptionPlugin::EncryptionAlgorithm EncryptedStoragePluginInfo::encryptionAlgorithm() const
 {
     return d->encryptionAlgorithm;
 }
 
-void Sailfish::Secrets::EncryptedStoragePluginInfo::setEncryptionAlgorithm(Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm algorithm)
+void EncryptedStoragePluginInfo::setEncryptionAlgorithm(EncryptionPlugin::EncryptionAlgorithm algorithm)
 {
     d->encryptionAlgorithm = algorithm;
 }
 
-Sailfish::Secrets::AuthenticationPluginInfo::AuthenticationPluginInfo()
-    : d(new Sailfish::Secrets::AuthenticationPluginInfoPrivate)
+AuthenticationPluginInfo::AuthenticationPluginInfo()
+    : d(new AuthenticationPluginInfoPrivate)
 {
 }
 
-Sailfish::Secrets::AuthenticationPluginInfo::AuthenticationPluginInfo(const Sailfish::Secrets::AuthenticationPluginInfo &other)
-    : d(new Sailfish::Secrets::AuthenticationPluginInfoPrivate(*other.d))
+AuthenticationPluginInfo::AuthenticationPluginInfo(const AuthenticationPluginInfo &other)
+    : d(new AuthenticationPluginInfoPrivate(*other.d))
 {
 }
 
-Sailfish::Secrets::AuthenticationPluginInfo::AuthenticationPluginInfo(const Sailfish::Secrets::AuthenticationPlugin *plugin)
-    : d(new Sailfish::Secrets::AuthenticationPluginInfoPrivate(plugin))
+AuthenticationPluginInfo::AuthenticationPluginInfo(const AuthenticationPlugin *plugin)
+    : d(new AuthenticationPluginInfoPrivate(plugin))
 {
 }
 
-Sailfish::Secrets::AuthenticationPluginInfo::~AuthenticationPluginInfo()
+AuthenticationPluginInfo::~AuthenticationPluginInfo()
 {
     delete d;
 }
 
-QString Sailfish::Secrets::AuthenticationPluginInfo::name() const
+QString AuthenticationPluginInfo::name() const
 {
     return d->name;
 }
 
-void Sailfish::Secrets::AuthenticationPluginInfo::setName(const QString &name)
+void AuthenticationPluginInfo::setName(const QString &name)
 {
     d->name = name;
 }
 
-Sailfish::Secrets::AuthenticationPlugin::AuthenticationType Sailfish::Secrets::AuthenticationPluginInfo::authenticationType() const
+AuthenticationPlugin::AuthenticationType AuthenticationPluginInfo::authenticationType() const
 {
     return d->authenticationType;
 }
 
-void Sailfish::Secrets::AuthenticationPluginInfo::setAuthenticationType(Sailfish::Secrets::AuthenticationPlugin::AuthenticationType type)
+void AuthenticationPluginInfo::setAuthenticationType(AuthenticationPlugin::AuthenticationType type)
 {
     d->authenticationType = type;
 }
 
-Sailfish::Secrets::EncryptionPlugin::EncryptionPlugin(QObject *parent)
+EncryptionPlugin::EncryptionPlugin(QObject *parent)
     : QObject(parent)
 {
 }
 
-Sailfish::Secrets::EncryptionPlugin::~EncryptionPlugin()
+EncryptionPlugin::~EncryptionPlugin()
 {
 }
 
-Sailfish::Secrets::StoragePlugin::StoragePlugin(QObject *parent)
+StoragePlugin::StoragePlugin(QObject *parent)
     : QObject(parent)
 {
 }
 
-Sailfish::Secrets::StoragePlugin::~StoragePlugin()
+StoragePlugin::~StoragePlugin()
 {
 }
 
-Sailfish::Secrets::EncryptedStoragePlugin::EncryptedStoragePlugin(QObject *parent)
+EncryptedStoragePlugin::EncryptedStoragePlugin(QObject *parent)
     : QObject(parent)
 {
 }
 
-Sailfish::Secrets::EncryptedStoragePlugin::~EncryptedStoragePlugin()
+EncryptedStoragePlugin::~EncryptedStoragePlugin()
 {
 }
 
-Sailfish::Secrets::AuthenticationPlugin::AuthenticationPlugin(QObject *parent)
+AuthenticationPlugin::AuthenticationPlugin(QObject *parent)
     : QObject(parent)
 {
 }
 
-Sailfish::Secrets::AuthenticationPlugin::~AuthenticationPlugin()
+AuthenticationPlugin::~AuthenticationPlugin()
 {
 }

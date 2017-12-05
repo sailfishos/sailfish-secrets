@@ -27,8 +27,8 @@ namespace Sailfish {
 
 namespace Crypto {
 
-Sailfish::Crypto::Key
-Sailfish::Crypto::Key::deserialise(const QByteArray &data, bool *ok)
+Key
+Key::deserialise(const QByteArray &data, bool *ok)
 {
     QBuffer buffer;
     buffer.setData(data);
@@ -43,7 +43,7 @@ Sailfish::Crypto::Key::deserialise(const QByteArray &data, bool *ok)
         if (ok) {
             *ok = false;
         }
-        return Sailfish::Crypto::Key();
+        return Key();
     }
 
     qint32 version;
@@ -53,7 +53,7 @@ Sailfish::Crypto::Key::deserialise(const QByteArray &data, bool *ok)
         if (ok) {
             *ok = false;
         }
-        return Sailfish::Crypto::Key();
+        return Key();
     }
 
     in.setVersion(QDataStream::Qt_5_6);
@@ -64,7 +64,7 @@ Sailfish::Crypto::Key::deserialise(const QByteArray &data, bool *ok)
     QByteArray publicKey, privateKey, secretKey;
     QDateTime validityStart, validityEnd;
     QVector<QByteArray> customParameters;
-    Sailfish::Crypto::Key::FilterData filterData;
+    Key::FilterData filterData;
 
     in >> name;
     in >> collectionName;
@@ -90,15 +90,15 @@ Sailfish::Crypto::Key::deserialise(const QByteArray &data, bool *ok)
 
     buffer.close();
 
-    Sailfish::Crypto::Key retn;
-    retn.setIdentifier(Sailfish::Crypto::Key::Identifier(name, collectionName));
-    retn.setOrigin(static_cast<Sailfish::Crypto::Key::Origin>(iorigin));
-    retn.setAlgorithm(static_cast<Sailfish::Crypto::Key::Algorithm>(ialgorithm));
-    retn.setOperations(static_cast<Sailfish::Crypto::Key::Operations>(ioperations));
-    retn.setBlockModes(static_cast<Sailfish::Crypto::Key::BlockModes>(iblockModes));
-    retn.setEncryptionPaddings(static_cast<Sailfish::Crypto::Key::EncryptionPaddings>(iencryptionPaddings));
-    retn.setSignaturePaddings(static_cast<Sailfish::Crypto::Key::SignaturePaddings>(isignaturePaddings));
-    retn.setDigests(static_cast<Sailfish::Crypto::Key::Digests>(idigests));
+    Key retn;
+    retn.setIdentifier(Key::Identifier(name, collectionName));
+    retn.setOrigin(static_cast<Key::Origin>(iorigin));
+    retn.setAlgorithm(static_cast<Key::Algorithm>(ialgorithm));
+    retn.setOperations(static_cast<Key::Operations>(ioperations));
+    retn.setBlockModes(static_cast<Key::BlockModes>(iblockModes));
+    retn.setEncryptionPaddings(static_cast<Key::EncryptionPaddings>(iencryptionPaddings));
+    retn.setSignaturePaddings(static_cast<Key::SignaturePaddings>(isignaturePaddings));
+    retn.setDigests(static_cast<Key::Digests>(idigests));
     retn.setPublicKey(publicKey);
     retn.setPrivateKey(privateKey);
     retn.setSecretKey(secretKey);
@@ -114,7 +114,7 @@ Sailfish::Crypto::Key::deserialise(const QByteArray &data, bool *ok)
 }
 
 QByteArray
-Sailfish::Crypto::Key::serialise(const Sailfish::Crypto::Key &key, Sailfish::Crypto::Key::SerialisationMode serialisationMode)
+Key::serialise(const Key &key, Key::SerialisationMode serialisationMode)
 {
     QByteArray byteArray;
     QBuffer buffer(&byteArray);
@@ -129,7 +129,7 @@ Sailfish::Crypto::Key::serialise(const Sailfish::Crypto::Key &key, Sailfish::Cry
     // Set the output format version
     out.setVersion(QDataStream::Qt_5_6);
 
-    if (serialisationMode == Sailfish::Crypto::Key::LosslessSerialisationMode) {
+    if (serialisationMode == Key::LosslessSerialisationMode) {
         out << key.identifier().name();
         out << key.identifier().collectionName();
     } else {
@@ -154,10 +154,10 @@ Sailfish::Crypto::Key::serialise(const Sailfish::Crypto::Key &key, Sailfish::Cry
 
     out << key.customParameters();
 
-    if (serialisationMode == Sailfish::Crypto::Key::LosslessSerialisationMode) {
+    if (serialisationMode == Key::LosslessSerialisationMode) {
         out << key.filterData();
     } else {
-        out << Sailfish::Crypto::Key::FilterData();
+        out << Key::FilterData();
     }
 
     buffer.close();
@@ -165,203 +165,203 @@ Sailfish::Crypto::Key::serialise(const Sailfish::Crypto::Key &key, Sailfish::Cry
     return byteArray;
 }
 
-QDataStream& operator>>(QDataStream& in, Sailfish::Crypto::Key::Algorithm &v)
+QDataStream& operator>>(QDataStream& in, Key::Algorithm &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Sailfish::Crypto::Key::Algorithm>(temp);
+    v = static_cast<Key::Algorithm>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Sailfish::Crypto::Key::Algorithm &v)
+QDataStream& operator<<(QDataStream& out, const Key::Algorithm &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, Sailfish::Crypto::Key::Origin &v)
+QDataStream& operator>>(QDataStream& in, Key::Origin &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Sailfish::Crypto::Key::Origin>(temp);
+    v = static_cast<Key::Origin>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Sailfish::Crypto::Key::Origin &v)
+QDataStream& operator<<(QDataStream& out, const Key::Origin &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, Sailfish::Crypto::Key::BlockMode &v)
+QDataStream& operator>>(QDataStream& in, Key::BlockMode &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Sailfish::Crypto::Key::BlockMode>(temp);
+    v = static_cast<Key::BlockMode>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Sailfish::Crypto::Key::BlockMode &v)
+QDataStream& operator<<(QDataStream& out, const Key::BlockMode &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, Sailfish::Crypto::Key::EncryptionPadding &v)
+QDataStream& operator>>(QDataStream& in, Key::EncryptionPadding &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Sailfish::Crypto::Key::EncryptionPadding>(temp);
+    v = static_cast<Key::EncryptionPadding>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Sailfish::Crypto::Key::EncryptionPadding &v)
+QDataStream& operator<<(QDataStream& out, const Key::EncryptionPadding &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, Sailfish::Crypto::Key::SignaturePadding &v)
+QDataStream& operator>>(QDataStream& in, Key::SignaturePadding &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Sailfish::Crypto::Key::SignaturePadding>(temp);
+    v = static_cast<Key::SignaturePadding>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Sailfish::Crypto::Key::SignaturePadding &v)
+QDataStream& operator<<(QDataStream& out, const Key::SignaturePadding &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, Sailfish::Crypto::Key::Digest &v)
+QDataStream& operator>>(QDataStream& in, Key::Digest &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Sailfish::Crypto::Key::Digest>(temp);
+    v = static_cast<Key::Digest>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Sailfish::Crypto::Key::Digest &v)
+QDataStream& operator<<(QDataStream& out, const Key::Digest &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, Sailfish::Crypto::Key::Operation &v)
+QDataStream& operator>>(QDataStream& in, Key::Operation &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Sailfish::Crypto::Key::Operation>(temp);
+    v = static_cast<Key::Operation>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Sailfish::Crypto::Key::Operation &v)
+QDataStream& operator<<(QDataStream& out, const Key::Operation &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, Sailfish::Crypto::Key::BlockModes &v)
+QDataStream& operator>>(QDataStream& in, Key::BlockModes &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Sailfish::Crypto::Key::BlockModes>(temp);
+    v = static_cast<Key::BlockModes>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Sailfish::Crypto::Key::BlockModes &v)
+QDataStream& operator<<(QDataStream& out, const Key::BlockModes &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, Sailfish::Crypto::Key::EncryptionPaddings &v)
+QDataStream& operator>>(QDataStream& in, Key::EncryptionPaddings &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Sailfish::Crypto::Key::EncryptionPaddings>(temp);
+    v = static_cast<Key::EncryptionPaddings>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Sailfish::Crypto::Key::EncryptionPaddings &v)
+QDataStream& operator<<(QDataStream& out, const Key::EncryptionPaddings &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, Sailfish::Crypto::Key::SignaturePaddings &v)
+QDataStream& operator>>(QDataStream& in, Key::SignaturePaddings &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Sailfish::Crypto::Key::SignaturePaddings>(temp);
+    v = static_cast<Key::SignaturePaddings>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Sailfish::Crypto::Key::SignaturePaddings &v)
+QDataStream& operator<<(QDataStream& out, const Key::SignaturePaddings &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, Sailfish::Crypto::Key::Digests &v)
+QDataStream& operator>>(QDataStream& in, Key::Digests &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Sailfish::Crypto::Key::Digests>(temp);
+    v = static_cast<Key::Digests>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Sailfish::Crypto::Key::Digests &v)
+QDataStream& operator<<(QDataStream& out, const Key::Digests &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, Sailfish::Crypto::Key::Operations &v)
+QDataStream& operator>>(QDataStream& in, Key::Operations &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Sailfish::Crypto::Key::Operations>(temp);
+    v = static_cast<Key::Operations>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Sailfish::Crypto::Key::Operations &v)
+QDataStream& operator<<(QDataStream& out, const Key::Operations &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, Sailfish::Crypto::CryptoPlugin::EncryptionType &v)
+QDataStream& operator>>(QDataStream& in, CryptoPlugin::EncryptionType &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Sailfish::Crypto::CryptoPlugin::EncryptionType>(temp);
+    v = static_cast<CryptoPlugin::EncryptionType>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Sailfish::Crypto::CryptoPlugin::EncryptionType &v)
+QDataStream& operator<<(QDataStream& out, const CryptoPlugin::EncryptionType &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
 }
 
-Sailfish::Crypto::CryptoPluginInfo
-Sailfish::Crypto::CryptoPluginInfo::deserialise(const QByteArray &data)
+CryptoPluginInfo
+CryptoPluginInfo::deserialise(const QByteArray &data)
 {
     QBuffer buffer;
     buffer.setData(data);
@@ -373,27 +373,27 @@ Sailfish::Crypto::CryptoPluginInfo::deserialise(const QByteArray &data)
     in >> magic;
     if (magic != 0x43504900) {
         qCWarning(lcSailfishCryptoSerialisation) << "Cannot deserialise CryptoPluginInfo, bad magic number:" << magic;
-        return Sailfish::Crypto::CryptoPluginInfo();
+        return CryptoPluginInfo();
     }
 
     qint32 version;
     in >> version;
     if (version != 100) {
         qCWarning(lcSailfishCryptoSerialisation) << "Cannot deserialise CryptoPluginInfo, bad version number:" << version;
-        return Sailfish::Crypto::CryptoPluginInfo();
+        return CryptoPluginInfo();
     }
 
     in.setVersion(QDataStream::Qt_5_6);
 
     QString name;
     bool canStoreKeys = false;
-    Sailfish::Crypto::CryptoPlugin::EncryptionType encryptionType = Sailfish::Crypto::CryptoPlugin::NoEncryption;
-    QVector<Sailfish::Crypto::Key::Algorithm> supportedAlgorithms;
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::BlockModes> supportedBlockModes;
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::EncryptionPaddings> supportedEncryptionPaddings;
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::SignaturePaddings> supportedSignaturePaddings;
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Digests> supportedDigests;
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Operations> supportedOperations;
+    CryptoPlugin::EncryptionType encryptionType = CryptoPlugin::NoEncryption;
+    QVector<Key::Algorithm> supportedAlgorithms;
+    QMap<Key::Algorithm, Key::BlockModes> supportedBlockModes;
+    QMap<Key::Algorithm, Key::EncryptionPaddings> supportedEncryptionPaddings;
+    QMap<Key::Algorithm, Key::SignaturePaddings> supportedSignaturePaddings;
+    QMap<Key::Algorithm, Key::Digests> supportedDigests;
+    QMap<Key::Algorithm, Key::Operations> supportedOperations;
 
     in >> name;
     in >> canStoreKeys;
@@ -407,7 +407,7 @@ Sailfish::Crypto::CryptoPluginInfo::deserialise(const QByteArray &data)
 
     buffer.close();
 
-    Sailfish::Crypto::CryptoPluginInfo retn;
+    CryptoPluginInfo retn;
     retn.setName(name);
     retn.setCanStoreKeys(canStoreKeys);
     retn.setEncryptionType(encryptionType);
@@ -422,7 +422,7 @@ Sailfish::Crypto::CryptoPluginInfo::deserialise(const QByteArray &data)
 }
 
 QByteArray
-Sailfish::Crypto::CryptoPluginInfo::serialise(const Sailfish::Crypto::CryptoPluginInfo &pluginInfo)
+CryptoPluginInfo::serialise(const CryptoPluginInfo &pluginInfo)
 {
     QByteArray byteArray;
     QBuffer buffer(&byteArray);
@@ -452,7 +452,7 @@ Sailfish::Crypto::CryptoPluginInfo::serialise(const Sailfish::Crypto::CryptoPlug
     return byteArray;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Certificate &certificate)
+QDBusArgument &operator<<(QDBusArgument &argument, const Certificate &certificate)
 {
     argument.beginStructure();
     argument << static_cast<int>(certificate.type());
@@ -461,7 +461,7 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Certi
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Certificate &certificate)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Certificate &certificate)
 {
     int itype = 0;
     QByteArray certificatedata;
@@ -469,29 +469,29 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto:
     argument >> itype;
     argument >> certificatedata;
     argument.endStructure();
-    certificate = Sailfish::Crypto::Certificate::fromEncoded(certificatedata, static_cast<Sailfish::Crypto::Certificate::Type>(itype));
+    certificate = Certificate::fromEncoded(certificatedata, static_cast<Certificate::Type>(itype));
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key &key)
+QDBusArgument &operator<<(QDBusArgument &argument, const Key &key)
 {
     argument.beginStructure();
-    argument << Sailfish::Crypto::Key::serialise(key);
+    argument << Key::serialise(key);
     argument.endStructure();
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key &key)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Key &key)
 {
     QByteArray keydata;
     argument.beginStructure();
     argument >> keydata;
     argument.endStructure();
-    key = Sailfish::Crypto::Key::deserialise(keydata);
+    key = Key::deserialise(keydata);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Identifier &identifier)
+QDBusArgument &operator<<(QDBusArgument &argument, const Key::Identifier &identifier)
 {
     argument.beginStructure();
     argument << identifier.name();
@@ -500,18 +500,18 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Identifier &identifier)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Identifier &identifier)
 {
     QString name, collectionName;
     argument.beginStructure();
     argument >> name;
     argument >> collectionName;
     argument.endStructure();
-    identifier = Sailfish::Crypto::Key::Identifier(name, collectionName);
+    identifier = Key::Identifier(name, collectionName);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::FilterData &filterData)
+QDBusArgument &operator<<(QDBusArgument &argument, const Key::FilterData &filterData)
 {
     argument.beginStructure();
     argument << filterData;
@@ -519,17 +519,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::FilterData &filterData)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Key::FilterData &filterData)
 {
     QMap<QString,QString> data;
     argument.beginStructure();
     argument >> data;
     argument.endStructure();
-    filterData = Sailfish::Crypto::Key::FilterData(data);
+    filterData = Key::FilterData(data);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Origin origin)
+QDBusArgument &operator<<(QDBusArgument &argument, const Key::Origin origin)
 {
     argument.beginStructure();
     argument << static_cast<int>(origin);
@@ -537,17 +537,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Origin &origin)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Origin &origin)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    origin = static_cast<Sailfish::Crypto::Key::Origin>(iv);
+    origin = static_cast<Key::Origin>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Algorithm algorithm)
+QDBusArgument &operator<<(QDBusArgument &argument, const Key::Algorithm algorithm)
 {
     argument.beginStructure();
     argument << static_cast<int>(algorithm);
@@ -555,17 +555,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Algorithm &algorithm)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Algorithm &algorithm)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    algorithm = static_cast<Sailfish::Crypto::Key::Algorithm>(iv);
+    algorithm = static_cast<Key::Algorithm>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::BlockMode mode)
+QDBusArgument &operator<<(QDBusArgument &argument, const Key::BlockMode mode)
 {
     argument.beginStructure();
     argument << static_cast<int>(mode);
@@ -573,17 +573,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::BlockMode &mode)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Key::BlockMode &mode)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    mode = static_cast<Sailfish::Crypto::Key::BlockMode>(iv);
+    mode = static_cast<Key::BlockMode>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::EncryptionPadding padding)
+QDBusArgument &operator<<(QDBusArgument &argument, const Key::EncryptionPadding padding)
 {
     argument.beginStructure();
     argument << static_cast<int>(padding);
@@ -591,17 +591,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::EncryptionPadding &padding)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Key::EncryptionPadding &padding)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    padding = static_cast<Sailfish::Crypto::Key::EncryptionPadding>(iv);
+    padding = static_cast<Key::EncryptionPadding>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::SignaturePadding padding)
+QDBusArgument &operator<<(QDBusArgument &argument, const Key::SignaturePadding padding)
 {
     argument.beginStructure();
     argument << static_cast<int>(padding);
@@ -609,17 +609,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::SignaturePadding &padding)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Key::SignaturePadding &padding)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    padding = static_cast<Sailfish::Crypto::Key::SignaturePadding>(iv);
+    padding = static_cast<Key::SignaturePadding>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Digest digest)
+QDBusArgument &operator<<(QDBusArgument &argument, const Key::Digest digest)
 {
     argument.beginStructure();
     argument << static_cast<int>(digest);
@@ -627,17 +627,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Digest &digest)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Digest &digest)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    digest = static_cast<Sailfish::Crypto::Key::Digest>(iv);
+    digest = static_cast<Key::Digest>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Operation operation)
+QDBusArgument &operator<<(QDBusArgument &argument, const Key::Operation operation)
 {
     argument.beginStructure();
     argument << static_cast<int>(operation);
@@ -645,17 +645,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Operation &operation)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Operation &operation)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    operation = static_cast<Sailfish::Crypto::Key::Operation>(iv);
+    operation = static_cast<Key::Operation>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::BlockModes modes)
+QDBusArgument &operator<<(QDBusArgument &argument, const Key::BlockModes modes)
 {
     argument.beginStructure();
     argument << static_cast<int>(modes);
@@ -663,17 +663,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::BlockModes &modes)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Key::BlockModes &modes)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    modes = static_cast<Sailfish::Crypto::Key::BlockModes>(iv);
+    modes = static_cast<Key::BlockModes>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::EncryptionPaddings paddings)
+QDBusArgument &operator<<(QDBusArgument &argument, const Key::EncryptionPaddings paddings)
 {
     argument.beginStructure();
     argument << static_cast<int>(paddings);
@@ -681,17 +681,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::EncryptionPaddings &paddings)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Key::EncryptionPaddings &paddings)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    paddings = static_cast<Sailfish::Crypto::Key::EncryptionPaddings>(iv);
+    paddings = static_cast<Key::EncryptionPaddings>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::SignaturePaddings paddings)
+QDBusArgument &operator<<(QDBusArgument &argument, const Key::SignaturePaddings paddings)
 {
     argument.beginStructure();
     argument << static_cast<int>(paddings);
@@ -699,17 +699,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::SignaturePaddings &paddings)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Key::SignaturePaddings &paddings)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    paddings = static_cast<Sailfish::Crypto::Key::SignaturePaddings>(iv);
+    paddings = static_cast<Key::SignaturePaddings>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Digests digests)
+QDBusArgument &operator<<(QDBusArgument &argument, const Key::Digests digests)
 {
     argument.beginStructure();
     argument << static_cast<int>(digests);
@@ -717,17 +717,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Digests &digests)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Digests &digests)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    digests = static_cast<Sailfish::Crypto::Key::Digests>(iv);
+    digests = static_cast<Key::Digests>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Operations operations)
+QDBusArgument &operator<<(QDBusArgument &argument, const Key::Operations operations)
 {
     argument.beginStructure();
     argument << static_cast<int>(operations);
@@ -735,17 +735,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Operations &operations)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Operations &operations)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    operations = static_cast<Sailfish::Crypto::Key::Operations>(iv);
+    operations = static_cast<Key::Operations>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Result &result)
+QDBusArgument &operator<<(QDBusArgument &argument, const Result &result)
 {
     argument.beginStructure();
     argument << static_cast<int>(result.code()) << result.errorCode() << result.storageErrorCode() << result.errorMessage();
@@ -753,7 +753,7 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Resul
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Result &result)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Result &result)
 {
     int code = 0;
     int errorCode = 0;
@@ -764,28 +764,28 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto:
     argument >> code >> errorCode >> storageErrorCode >> message;
     argument.endStructure();
 
-    result.setCode(static_cast<Sailfish::Crypto::Result::ResultCode>(code));
-    result.setErrorCode(static_cast<Sailfish::Crypto::Result::ErrorCode>(errorCode));
+    result.setCode(static_cast<Result::ResultCode>(code));
+    result.setErrorCode(static_cast<Result::ErrorCode>(errorCode));
     result.setStorageErrorCode(storageErrorCode);
     result.setErrorMessage(message);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CryptoPluginInfo &pluginInfo)
+QDBusArgument &operator<<(QDBusArgument &argument, const CryptoPluginInfo &pluginInfo)
 {
     argument.beginStructure();
-    argument << Sailfish::Crypto::CryptoPluginInfo::serialise(pluginInfo);
+    argument << CryptoPluginInfo::serialise(pluginInfo);
     argument.endStructure();
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CryptoPluginInfo &pluginInfo)
+const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoPluginInfo &pluginInfo)
 {
     QByteArray cpidata;
     argument.beginStructure();
     argument >> cpidata;
     argument.endStructure();
-    pluginInfo = Sailfish::Crypto::CryptoPluginInfo::deserialise(cpidata);
+    pluginInfo = CryptoPluginInfo::deserialise(cpidata);
     return argument;
 }
 

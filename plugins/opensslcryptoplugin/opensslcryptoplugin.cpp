@@ -20,47 +20,49 @@
 
 Q_PLUGIN_METADATA(IID Sailfish_Crypto_CryptoPlugin_IID)
 
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::OpenSslCryptoPlugin(QObject *parent)
-    : QObject(parent), Sailfish::Crypto::CryptoPlugin()
+using namespace Sailfish::Crypto;
+
+Daemon::Plugins::OpenSslCryptoPlugin::OpenSslCryptoPlugin(QObject *parent)
+    : QObject(parent), CryptoPlugin()
 {
     osslevp_init();
 }
 
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::~OpenSslCryptoPlugin()
+Daemon::Plugins::OpenSslCryptoPlugin::~OpenSslCryptoPlugin()
 {
 }
 
-Sailfish::Crypto::Result
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::generateAndStoreKey(
-        const Sailfish::Crypto::Key &keyTemplate,
-        Sailfish::Crypto::Key *keyMetadata)
+Result
+Daemon::Plugins::OpenSslCryptoPlugin::generateAndStoreKey(
+        const Key &keyTemplate,
+        Key *keyMetadata)
 {
     Q_UNUSED(keyTemplate);
     Q_UNUSED(keyMetadata);
-    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                    QLatin1String("The OpenSSL crypto plugin doesn't support storing keys"));
+    return Result(Result::UnsupportedOperation,
+                  QLatin1String("The OpenSSL crypto plugin doesn't support storing keys"));
 }
 
-Sailfish::Crypto::Result
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::storedKey(
-        const Sailfish::Crypto::Key::Identifier &identifier,
-        Sailfish::Crypto::Key *key)
+Result
+Daemon::Plugins::OpenSslCryptoPlugin::storedKey(
+        const Key::Identifier &identifier,
+        Key *key)
 {
     Q_UNUSED(identifier);
     Q_UNUSED(key);
-    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                    QLatin1String("The OpenSSL crypto plugin doesn't support storing keys"));
+    return Result(Result::UnsupportedOperation,
+                  QLatin1String("The OpenSSL crypto plugin doesn't support storing keys"));
 }
 
-Sailfish::Crypto::Result
-Sailfish::Crypto::Daemon::Plugins::OpenSslCryptoPlugin::storedKeyIdentifiers(
-        QVector<Sailfish::Crypto::Key::Identifier> *identifiers)
+Result
+Daemon::Plugins::OpenSslCryptoPlugin::storedKeyIdentifiers(
+        QVector<Key::Identifier> *identifiers)
 {
     Q_UNUSED(identifiers);
-    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                    QLatin1String("The OpenSSL crypto plugin doesn't support storing keys"));
+    return Result(Result::UnsupportedOperation,
+                  QLatin1String("The OpenSSL crypto plugin doesn't support storing keys"));
 }
 
-#define CRYPTOPLUGINCOMMON_NAMESPACE Sailfish::Crypto::Daemon::Plugins
+#define CRYPTOPLUGINCOMMON_NAMESPACE Daemon::Plugins
 #define CRYPTOPLUGINCOMMON_CLASS OpenSslCryptoPlugin
 #include "cryptoplugin_common.cpp"
