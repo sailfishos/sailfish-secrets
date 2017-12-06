@@ -117,9 +117,16 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Secret::Identifie
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Secret &secret)
 {
+    QVariantMap asv;
+    const QMap<QString,QString> fd = secret.filterData();
+    for (QMap<QString,QString>::const_iterator it = fd.constBegin(); it != fd.constEnd(); it++) {
+        asv.insert(it.key(), it.value());
+    }
+
     argument.beginStructure();
-    argument << secret.identifier() << secret.data() << secret.filterData();
+    argument << secret.identifier() << secret.data() << asv;
     argument.endStructure();
+
     return argument;
 }
 
@@ -127,15 +134,21 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Secret &secret)
 {
     Secret::Identifier identifier;
     QByteArray data;
-    QMap<QString,QString> metadata;
+    QVariantMap asv;
 
     argument.beginStructure();
-    argument >> identifier >> data >> metadata;
+    argument >> identifier >> data >> asv;
     argument.endStructure();
+
+    QMap<QString, QString> filterData;
+    for (QVariantMap::const_iterator it = asv.constBegin(); it != asv.constEnd(); it++) {
+        filterData.insert(it.key(), it.value().toString());
+    }
 
     secret.setIdentifier(identifier);
     secret.setData(data);
-    secret.setFilterData(Secret::FilterData(metadata));
+    secret.setFilterData(filterData);
+
     return argument;
 }
 

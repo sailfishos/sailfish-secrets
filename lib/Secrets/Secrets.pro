@@ -7,6 +7,9 @@ DEFINES += SAILFISH_SECRETS_LIBRARY_BUILD
 QT += dbus
 QT -= gui
 
+CONFIG += link_pkgconfig
+PKGCONFIG += dbus-1
+
 include($$PWD/../../common.pri)
 
 INCLUDEPATH += $$PWD/../
@@ -21,7 +24,8 @@ PUBLIC_HEADERS += \
     $$PWD/secretsglobal.h \
     $$PWD/interactionrequest.h \
     $$PWD/interactionrequestwatcher.h \
-    $$PWD/interactionview.h
+    $$PWD/interactionview.h \
+    $$PWD/secrets_c.h
 
 PRIVATE_HEADERS += \
     $$PWD/secretsdaemonconnection_p.h \
@@ -38,7 +42,8 @@ SOURCES += \
     $$PWD/secretmanager.cpp \
     $$PWD/serialisation.cpp \
     $$PWD/interactionrequestwatcher.cpp \
-    $$PWD/interactionservice.cpp
+    $$PWD/interactionservice.cpp \
+    $$PWD/secrets_c.c
 
 develheaders.path = /usr/include/libsailfishsecrets/
 develheaders_secrets.path = /usr/include/libsailfishsecrets/Secrets/

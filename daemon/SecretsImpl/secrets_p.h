@@ -78,7 +78,6 @@ class SecretsDBusObject : public QObject, protected QDBusContext
     "      <method name=\"deleteCollection\">\n"
     "          <arg name=\"collectionName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"userInteractionMode\" type=\"(i)\" direction=\"in\" />\n"
-    "          <arg name=\"interactionServiceAddress\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Secrets::SecretManager::UserInteractionMode\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
