@@ -9,64 +9,66 @@
 
 Q_PLUGIN_METADATA(IID Sailfish_Secrets_AuthenticationPlugin_IID)
 
-Q_LOGGING_CATEGORY(lcSailfishSecretsPluginInapp, "org.sailfishos.secrets.plugin.authentication.inapp")
+Q_LOGGING_CATEGORY(lcSailfishSecretsPluginInapp, "org.sailfishos.secrets.plugin.authentication.inapp", QtWarningMsg)
 
-Sailfish::Secrets::Daemon::Plugins::InAppPlugin::InAppPlugin(QObject *parent)
-    : Sailfish::Secrets::AuthenticationPlugin(parent)
+using namespace Sailfish::Secrets;
+
+Daemon::Plugins::InAppPlugin::InAppPlugin(QObject *parent)
+    : AuthenticationPlugin(parent)
 {
 }
 
-Sailfish::Secrets::Daemon::Plugins::InAppPlugin::~InAppPlugin()
+Daemon::Plugins::InAppPlugin::~InAppPlugin()
 {
 }
 
-Sailfish::Secrets::Result
-Sailfish::Secrets::Daemon::Plugins::InAppPlugin::beginAuthentication(
+Result
+Daemon::Plugins::InAppPlugin::beginAuthentication(
             uint callerPid,
             qint64 requestId,
             const QString &callerApplicationId,
             const QString &collectionName,
             const QString &secretName,
-            const QString &uiServiceAddress)
+            const QString &interactionServiceAddress)
 {
-    Sailfish::Secrets::UiRequestWatcher *watcher = new Sailfish::Secrets::UiRequestWatcher(this);
+    InteractionRequestWatcher *watcher = new InteractionRequestWatcher(this);
     watcher->setRequestId(requestId);
     watcher->setCallerPid(callerPid);
     watcher->setCallerApplicationId(callerApplicationId);
     watcher->setCollectionName(collectionName);
     watcher->setSecretName(secretName);
-    watcher->setUiServiceAddress(uiServiceAddress);
-    connect(watcher, static_cast<void (Sailfish::Secrets::UiRequestWatcher::*)(quint64)>(&Sailfish::Secrets::UiRequestWatcher::uiRequestFinished),
-            this, &Sailfish::Secrets::Daemon::Plugins::InAppPlugin::uiRequestFinished);
-    connect(watcher, &Sailfish::Secrets::UiRequestWatcher::uiRequestResponse,
-            this, &Sailfish::Secrets::Daemon::Plugins::InAppPlugin::uiRequestResponse);
+    watcher->setInteractionServiceAddress(interactionServiceAddress);
+    connect(watcher, static_cast<void (InteractionRequestWatcher::*)(quint64)>(&InteractionRequestWatcher::interactionRequestFinished),
+            this, &Daemon::Plugins::InAppPlugin::interactionRequestFinished);
+    connect(watcher, &InteractionRequestWatcher::interactionRequestResponse,
+            this, &Daemon::Plugins::InAppPlugin::interactionRequestResponse);
 
-    if (!watcher->connectToUiService()) {
+    if (!watcher->connectToInteractionService()) {
         watcher->deleteLater();
-        return Sailfish::Secrets::Result(
-                    Sailfish::Secrets::Result::UiServiceUnavailableError,
+        return Result(
+                    Result::InteractionServiceUnavailableError,
                     QString::fromUtf8("Unable to connect to ui service"));
     }
 
     // TODO: include the collectionName + secretName + in the future operation type (read/update/insert/delete)
-    if (!watcher->sendUiRequest(Sailfish::Secrets::UiRequest(Sailfish::Secrets::UiRequest::AuthenticationKeyRequest))) {
+    if (!watcher->sendInteractionRequest(InteractionRequest(InteractionRequest::AuthenticationKeyRequest))) {
         watcher->deleteLater();
-        return Sailfish::Secrets::Result(
-                    Sailfish::Secrets::Result::UiServiceRequestFailedError,
+        return Result(
+                    Result::InteractionServiceRequestFailedError,
                     QString::fromUtf8("Unable to send authentication key request to ui service"));
     }
 
     m_requests.insert(requestId, watcher);
-    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Pending);
+    return Result(Result::Pending);
 }
 
 void
-Sailfish::Secrets::Daemon::Plugins::InAppPlugin::uiRequestResponse(
+Daemon::Plugins::InAppPlugin::interactionRequestResponse(
         quint64 requestId,
-        const Sailfish::Secrets::Result &result,
-        const Sailfish::Secrets::UiResponse &response)
+        const Result &result,
+        const InteractionResponse &response)
 {
-    Sailfish::Secrets::UiRequestWatcher *watcher = m_requests.value(requestId);
+    InteractionRequestWatcher *watcher = m_requests.value(requestId);
     if (watcher == Q_NULLPTR) {
         qCDebug(lcSailfishSecretsPluginInapp) << "Unknown ui request response:" << requestId;
         return;
@@ -78,22 +80,22 @@ Sailfish::Secrets::Daemon::Plugins::InAppPlugin::uiRequestResponse(
                 watcher->callerApplicationId(),
                 watcher->collectionName(),
                 watcher->secretName(),
-                watcher->uiServiceAddress(),
+                watcher->interactionServiceAddress(),
                 result,
                 response.authenticationKey());
 
-    watcher->finishUiRequest();
+    watcher->finishInteractionRequest();
 }
 
 void
-Sailfish::Secrets::Daemon::Plugins::InAppPlugin::uiRequestFinished(
+Daemon::Plugins::InAppPlugin::interactionRequestFinished(
         quint64 requestId)
 {
-    Sailfish::Secrets::UiRequestWatcher *watcher = m_requests.value(requestId);
+    InteractionRequestWatcher *watcher = m_requests.value(requestId);
     if (watcher == Q_NULLPTR) {
         qCDebug(lcSailfishSecretsPluginInapp) << "Unknown ui request finished:" << requestId;
         return;
     }
-    watcher->disconnectFromUiService();
+    watcher->disconnectFromInteractionService();
     watcher->deleteLater();
 }

@@ -14,7 +14,9 @@
 
 #include <dbus/dbus.h>
 
-Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestQueue(
+using namespace Sailfish::Secrets;
+
+Daemon::ApiImpl::RequestQueue::RequestQueue(
         const QString &dbusObjectPath,
         const QString &dbusInterfaceName,
         Controller *parent,
@@ -30,11 +32,11 @@ Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestQueue(
     qCDebug(lcSailfishSecretsDaemon) << "New API implementation request queue constructed:" << m_dbusObjectPath << "," << m_dbusInterfaceName;
 }
 
-Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::~RequestQueue()
+Daemon::ApiImpl::RequestQueue::~RequestQueue()
 {
 }
 
-void Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::handleClientConnection(const QDBusConnection &connection)
+void Daemon::ApiImpl::RequestQueue::handleClientConnection(const QDBusConnection &connection)
 {
     QDBusConnection clientConnection(connection);
     if (!clientConnection.registerObject(m_dbusObjectPath,
@@ -49,7 +51,7 @@ void Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::handleClientConnection(co
     }
 }
 
-void Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::handleRequest(
+void Daemon::ApiImpl::RequestQueue::handleRequest(
         int requestType,
         const QVariantList &inParams,
         const QDBusConnection &connection,
@@ -65,15 +67,15 @@ void Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::handleRequest(
                             QDBusError::Other,
                             QString::fromUtf8("Could not determine PID of caller to enforce access controls")));
     } else {
-        Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *data = new Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData;
+        Daemon::ApiImpl::RequestQueue::RequestData *data = new Daemon::ApiImpl::RequestQueue::RequestData;
         data->connection = connection;
         data->remotePid = (pid_t)dbusRemotePid;
-        data->status = Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestPending;
+        data->status = Daemon::ApiImpl::RequestQueue::RequestPending;
         data->type = requestType;
         data->inParams = inParams;
         data->requestId = 0;
-        Sailfish::Secrets::Result result = enqueueRequest(data);
-        if (result.code() == Sailfish::Secrets::Result::Succeeded) {
+        Result result = enqueueRequest(data);
+        if (result.code() == Result::Succeeded) {
             data->message = message;
             message.setDelayedReply(true);
         } else {
@@ -86,12 +88,12 @@ void Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::handleRequest(
     }
 }
 
-void Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::handleRequest(
+void Daemon::ApiImpl::RequestQueue::handleRequest(
         int requestType,
         const QVariantList &inParams,
         const QDBusConnection &connection,
         const QDBusMessage &message,
-        Sailfish::Secrets::Result &returnResult)
+        Result &returnResult)
 {
     // queue up a Sailfish Secrets API request
     DBusConnection *internalConnection = static_cast<DBusConnection*>(connection.internalPointer());
@@ -102,15 +104,15 @@ void Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::handleRequest(
                             QDBusError::Other,
                             QString::fromUtf8("Could not determine PID of caller to enforce access controls")));
     } else {
-        Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *data = new Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData;
+        Daemon::ApiImpl::RequestQueue::RequestData *data = new Daemon::ApiImpl::RequestQueue::RequestData;
         data->connection = connection;
         data->remotePid = (pid_t)dbusRemotePid;
-        data->status = Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestPending;
+        data->status = Daemon::ApiImpl::RequestQueue::RequestPending;
         data->type = requestType;
         data->inParams = inParams;
         data->requestId = 0;
-        Sailfish::Secrets::Result result = enqueueRequest(data);
-        if (result.code() == Sailfish::Secrets::Result::Succeeded) {
+        Result result = enqueueRequest(data);
+        if (result.code() == Result::Succeeded) {
             data->message = message;
             message.setDelayedReply(true);
         } else {
@@ -120,29 +122,29 @@ void Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::handleRequest(
     }
 }
 
-void Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::handleRequest(
+void Daemon::ApiImpl::RequestQueue::handleRequest(
         pid_t callerPid,
         quint64 cryptoRequestId,
         int requestType,
         const QVariantList &inParams,
-        Sailfish::Secrets::Result &result)
+        Result &result)
 {
     // queue up a Secrets request as part of a Crypto request.
-    Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *data = new Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData;
+    Daemon::ApiImpl::RequestQueue::RequestData *data = new Daemon::ApiImpl::RequestQueue::RequestData;
     data->remotePid = callerPid;
-    data->status = Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestPending;
+    data->status = Daemon::ApiImpl::RequestQueue::RequestPending;
     data->type = requestType;
     data->inParams = inParams;
     data->requestId = 0;
     data->isSecretsCryptoRequest = true;
     data->cryptoRequestId = cryptoRequestId;
     result = enqueueRequest(data);
-    if (result.code() == Sailfish::Secrets::Result::Failed) {
+    if (result.code() == Result::Failed) {
         delete data;
     }
 }
 
-Sailfish::Secrets::Result Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::enqueueRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request)
+Result Daemon::ApiImpl::RequestQueue::enqueueRequest(Daemon::ApiImpl::RequestQueue::RequestData *request)
 {
     static quint64 requestId = 0;
 
@@ -152,7 +154,7 @@ Sailfish::Secrets::Result Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::enqu
     bool found = false;
     for ( ; nextFreeId != prevId; ++nextFreeId) {
         found = false;
-        QList<Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData*>::const_iterator it = m_requests.constBegin();
+        QList<Daemon::ApiImpl::RequestQueue::RequestData*>::const_iterator it = m_requests.constBegin();
         while (it != m_requests.constEnd()) {
             if ((*it)->requestId == nextFreeId) {
                 // another current request is using this id.
@@ -170,7 +172,7 @@ Sailfish::Secrets::Result Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::enqu
     if (found) {
         // all request ids are taken.  we cannot enqueue this request.
         qCWarning(lcSailfishSecretsDaemon) << "Cannot enqueue request:" << requestTypeToString(request->type) << ": queue is full!";
-        return Sailfish::Secrets::Result(Sailfish::Secrets::Result::SecretsDaemonRequestQueueFullError,
+        return Result(Result::SecretsDaemonRequestQueueFullError,
                                          QString::fromUtf8("Request queue is full, try again later"));
     }
 
@@ -186,15 +188,15 @@ Sailfish::Secrets::Result Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::enqu
     request->requestId = nextFreeId;
     m_requests.append(request);
     QMetaObject::invokeMethod(this, "handleRequests", Qt::QueuedConnection);
-    return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded);
+    return Result(Result::Succeeded);
 }
 
-void Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::requestFinished(quint64 requestId, const QList<QVariant> &outParams)
+void Daemon::ApiImpl::RequestQueue::requestFinished(quint64 requestId, const QList<QVariant> &outParams)
 {
-    QList<Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData*>::iterator it = m_requests.begin();
+    QList<Daemon::ApiImpl::RequestQueue::RequestData*>::iterator it = m_requests.begin();
     while (it != m_requests.end()) {
         if ((*it)->requestId == requestId) {
-            (*it)->status = Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestFinished;
+            (*it)->status = Daemon::ApiImpl::RequestQueue::RequestFinished;
             (*it)->outParams = outParams;
             QMetaObject::invokeMethod(this, "handleRequests", Qt::QueuedConnection);
             return;
@@ -205,15 +207,15 @@ void Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::requestFinished(quint64 r
     qCWarning(lcSailfishSecretsDaemon) << "Unable to finish unknown request:" << requestId;
 }
 
-void Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::handleRequests()
+void Daemon::ApiImpl::RequestQueue::handleRequests()
 {
     qCDebug(lcSailfishSecretsDaemon) << "have:" << m_requests.size() << "in queue.";
     QElapsedTimer yieldTimer;
     yieldTimer.start();
     bool completed = false;
-    QList<Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData*>::iterator it = m_requests.begin();
+    QList<Daemon::ApiImpl::RequestQueue::RequestData*>::iterator it = m_requests.begin();
     while (it != m_requests.end()) {
-        Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request = *it;
+        Daemon::ApiImpl::RequestQueue::RequestData *request = *it;
         completed = false;
         if (request->status == RequestPending) {
             // This is a new request we haven't seen before.
@@ -252,15 +254,12 @@ void Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::handleRequests()
     }
 
     // no more pending requests to handle, or yielding to event loop.
-    qint64 nsecs = yieldTimer.nsecsElapsed(), msecs = 0, secs = 0;
-    while (nsecs > 1000000) {
-        nsecs -= 1000000;
-        msecs += 1;
-    }
-    while (msecs > 1000) {
-        msecs -= 1000;
-        secs += 1;
-    }
-    qCDebug(lcSailfishSecretsDaemon) << "Yielding to event loop with:" << m_requests.size() << "requests still in queue after"
-                                       << secs << "seconds," << msecs << "milliseconds," << nsecs << "nanoseconds of processing.";
+    qint64 nsecs = yieldTimer.nsecsElapsed();
+    qint64 msecs = ((nsecs / 1000000) % 1000);
+    qint64 secs = ((nsecs / 1000000000) % 1000);
+    qCDebug(lcSailfishSecretsDaemon) << "Yielding to event loop with:"
+                                     << m_requests.size() << "requests still in queue after"
+                                     << secs << "seconds,"
+                                     << msecs << "milliseconds,"
+                                     << (nsecs%1000000) << "nanoseconds of processing.";
 }

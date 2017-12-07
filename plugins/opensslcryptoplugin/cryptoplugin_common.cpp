@@ -178,7 +178,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::encrypt(
     // encrypt plaintext
     QByteArray ciphertext = aes_encrypt_plaintext(data, keyHash.result(), initVector);
 
-    // return result.
+    // return result
     if (ciphertext.size()) {
         *encrypted = ciphertext;
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
@@ -242,7 +242,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::decrypt(
                                          QLatin1String("Failed to decrypt the secret"));
     }
 
-    // return result.
+    // return result
     *decrypted = plaintext;
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
 }

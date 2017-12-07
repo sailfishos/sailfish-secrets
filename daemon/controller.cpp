@@ -21,7 +21,7 @@ namespace {
     {
         const QString path = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
         if (path.isEmpty()) {
-            qCWarning(lcSailfishSecretsDaemonDBus) << "No writable runtime dir found, cannot create socket file";
+            qCWarning(lcSailfishSecretsDaemonDBus) << "No writable runtime directory found, cannot create socket file";
             return QString();
         }
 

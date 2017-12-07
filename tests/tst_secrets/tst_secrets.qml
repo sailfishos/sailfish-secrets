@@ -1,6 +1,6 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
-import org.sailfishos.secrets 1.0
+import Sailfish.Secrets 1.0
 
 ApplicationWindow {
     id: root
@@ -9,9 +9,9 @@ ApplicationWindow {
         id: secretsUi
         Page {
             id: page
-            InProcessUiView {
-                id: uiview
-                objectName: "uiview"
+            ApplicationInteractionView {
+                id: interactionview
+                objectName: "interactionview"
                 anchors.fill: parent
             }
         }

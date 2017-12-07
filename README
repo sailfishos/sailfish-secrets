@@ -1,7 +1,7 @@
 Quick Start:
 
-1) Run the secrets daemon in autotest mode
-devel-su -p /usr/bin/sailfishsecretsd --test
+1) Run the secrets daemon in autotest mode with debugging enabled
+QT_LOGGING_RULES="*.debug=true" devel-su -p /usr/bin/sailfishsecretsd --test
 
 2) Run the secrets autotest
 devel-su -p /opt/tests/Sailfish/Secrets/tst_secrets
@@ -52,42 +52,44 @@ appropriate UI), or, in some special cases (e.g., application-specific
 data requests) the client application can provide the UI via a plugin.
 
 
-                                 +-------------+
-                                 |    Secure   |
-                                 |  Peripheral |
-                                 +-------------+
-                                     ^    ^
-                                     |    |
-                               r-----'    '------,
-                               |                 |
-                            +--^---+-------+ +---^---+-------+
-                            |crypto|plugins| |secrets|plugins|
-  +----------------+        +------+-------+-+-------+-------+
-  | Access Control |<------<|                                |
-  |    Daemon      |>------>|                                |
-  +----------------+  DBus  |                                |
-                            |         sailfishsecretsd       |
-  +----------------+        |                                |
-  |   Lock Screen  |<------<|                                |
-  |     Daemon     |>------>|                                |
-  +----------------+  DBus  +--------------------------------+
-                                 V ^        ^   ^
-                                 | |        |   |
-         r-----------------------' |        |   |
-         | .-----------------------'        |   |
-         | |  DBus (in-process UI)          |   |
-         V ^                                |   |
-  +--------------------+                    |   |
-  |  Sailfish Secrets  |                    |   |
-  |     Ui Plugin      |                    |   |
-  +--------------------+  (Crypto Api Call) |   |
-  |                    |        DBus        |   |
-  |                    |>-------------------'   |
-  |      Client        |                        |
-  |    Application     |  (Secrets API Call)    |
-  |                    |        DBus            |
-  |                    |>-----------------------'
-  +--------------------+
+                                      +-------------+
+                                      |    Secure   |
+                                      |  Peripheral |
+                                      +-------------+
+                                          ^    ^
+                                          |    |
+                                    r-----'    '------,
+                                    |                 |
+                                 +--^---+-------+ +---^---+-------+
+                                 |crypto|plugins| |secrets|plugins|
+  +---------------------+        +------+-------+-+-------+-------+
+  |    Access Control   |<------<|                                |
+  |       Daemon        |>------>|                                |
+  +---------------------+  DBus  |                                |
+                                 |        sailfishsecretsd        |
+  +---------------------+        |                                |
+  |     Lock Screen     |<------<|                                |
+  |       Daemon        |>------>|                                |
+  | (SystemInteraction) |  DBus  |                                |
+  +---------------------+        +--------------------------------+
+                                     V ^            ^   ^
+                                     | |            |   |
+         r---------------------------' |            |   |
+         | .---------------------------'            |   |
+         | |               DBus                     |   |
+         V ^                                        |   |
+  +--------------------------+                      |   |
+  |     Sailfish Secrets     |                      |   |
+  |        UI Plugin         |                      |   |
+  | (ApplicationInteraction) |                      |   |
+  +--------------------------+  (Crypto API Call)   |   |
+  |                          |        DBus          |   |
+  |                          |>---------------------'   |
+  |         Client           |                          |
+  |        Application       |  (Secrets API Call)      |
+  |                          |        DBus              |
+  |                          |>-------------------------'
+  +--------------------------+
 
 
 Current Status:
@@ -97,14 +99,13 @@ Known open work items:
 
 Affecting both:
     - access control (requires access-control daemon, TBA)
-    - should we use system DBus instead of p2p DBus?
+    - should we use system DBus instead of peer-to-peer DBus?
     - use request-specific data structures instead of QVariantList
       when marshalling incoming requests from the queue to the handler
     - full API and code review is required
     - unit test coverage needs to be greatly expanded
 
 Secrets:
-    - sqlcipher (or similar) EncryptedStoragePlugin impl
     - improve the lock/unlock semantics?
 
 Crypto:

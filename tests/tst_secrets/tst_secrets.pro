@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = tst_secrets
 target.path = /opt/tests/Sailfish/Secrets/
-include($$PWD/../../api/libsailfishsecrets/libsailfishsecrets.pri)
+include($$PWD/../../lib/libsailfishsecrets.pri)
 QT += testlib gui qml quick
 SOURCES += tst_secrets.cpp
 OTHER_FILES += tst_secrets.qml

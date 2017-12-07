@@ -20,7 +20,9 @@
 #include <QtSql/QSqlError>
 #include <QtSql/QSqlQuery>
 
-Q_LOGGING_CATEGORY(lcSailfishSecretsDaemonSqlite, "org.sailfishos.secrets.daemon.sqlite")
+Q_LOGGING_CATEGORY(lcSailfishSecretsDaemonSqlite, "org.sailfishos.secrets.daemon.sqlite", QtWarningMsg)
+
+using namespace Sailfish::Secrets::Daemon::Sqlite;
 
 static bool execute(QSqlDatabase &database, const QString &statement)
 {
@@ -74,7 +76,7 @@ static int lengthOf(const char *createStatements[])
     return count;
 }
 
-static int lengthOf(const Sailfish::Secrets::Daemon::Sqlite::UpgradeOperation upgradeVersions[])
+static int lengthOf(const UpgradeOperation upgradeVersions[])
 {
     int count = 0;
     if (upgradeVersions) {
@@ -87,7 +89,7 @@ static int lengthOf(const Sailfish::Secrets::Daemon::Sqlite::UpgradeOperation up
 }
 
 static bool executeUpgradeStatements(QSqlDatabase &database,
-                                     const Sailfish::Secrets::Daemon::Sqlite::UpgradeOperation upgradeVersions[],
+                                     const UpgradeOperation upgradeVersions[],
                                      int currentSchemaVersion)
 {
     // Check that the defined schema matches the array of upgrade scripts
@@ -165,7 +167,7 @@ static bool checkDatabase(QSqlDatabase &database)
 }
 
 static bool upgradeDatabase(QSqlDatabase &database,
-                            const Sailfish::Secrets::Daemon::Sqlite::UpgradeOperation upgradeVersions[],
+                            const UpgradeOperation upgradeVersions[],
                             int currentSchemaVersion)
 {
     if (!beginTransaction(database))
@@ -238,34 +240,34 @@ static bool prepareDatabase(
     return finalizeTransaction(database, success);
 }
 
-Sailfish::Secrets::Daemon::Sqlite::Database::Query::Query(const QSqlQuery &query)
+Database::Query::Query(const QSqlQuery &query)
     : m_query(query)
 {
 }
 
-void Sailfish::Secrets::Daemon::Sqlite::Database::Query::reportError(const QString &text) const
+void Database::Query::reportError(const QString &text) const
 {
     QString output(text + QString::fromLatin1("\n%1").arg(m_query.lastError().text()));
     qCWarning(lcSailfishSecretsDaemonSqlite) << output;
 }
 
-void Sailfish::Secrets::Daemon::Sqlite::Database::Query::reportError(const char *text) const
+void Database::Query::reportError(const char *text) const
 {
     reportError(QString::fromLatin1(text));
 }
 
-Sailfish::Secrets::Daemon::Sqlite::Database::Database()
+Database::Database()
     : m_mutex(QMutex::Recursive)
     , m_localeName(QLocale().name())
 {
 }
 
-Sailfish::Secrets::Daemon::Sqlite::Database::~Database()
+Database::~Database()
 {
     m_database.close();
 }
 
-QMutex *Sailfish::Secrets::Daemon::Sqlite::Database::accessMutex() const
+QMutex *Database::accessMutex() const
 {
     return const_cast<QMutex *>(&m_mutex);
 }
@@ -278,13 +280,13 @@ bool directoryIsRW(const QString &dirPath)
        || databaseDirInfo.permission(QFile::ReadUser  | QFile::WriteUser));
 }
 
-bool Sailfish::Secrets::Daemon::Sqlite::Database::open(
+bool Database::open(
         const QString &databaseDriver,
         const QString &databaseSubdir,
         const QString &databaseFilename,
         const char *setupStatements[],
         const char *createStatements[],
-        const Sailfish::Secrets::Daemon::Sqlite::UpgradeOperation upgradeVersions[],
+        const UpgradeOperation upgradeVersions[],
         int currentSchemaVersion,
         const QString &connectionName,
         bool autoTest)
@@ -352,34 +354,34 @@ bool Sailfish::Secrets::Daemon::Sqlite::Database::open(
     return true;
 }
 
-Sailfish::Secrets::Daemon::Sqlite::Database::operator QSqlDatabase &()
+Database::operator QSqlDatabase &()
 {
     return m_database;
 }
 
-Sailfish::Secrets::Daemon::Sqlite::Database::operator QSqlDatabase const &() const
+Database::operator QSqlDatabase const &() const
 {
     return m_database;
 }
 
-QSqlError Sailfish::Secrets::Daemon::Sqlite::Database::lastError() const
+QSqlError Database::lastError() const
 {
     return m_database.lastError();
 }
 
-bool Sailfish::Secrets::Daemon::Sqlite::Database::isOpen() const
+bool Database::isOpen() const
 {
     return m_database.isOpen();
 }
 
-bool Sailfish::Secrets::Daemon::Sqlite::Database::localized() const
+bool Database::localized() const
 {
     return (m_localeName != QLatin1String("C"));
 }
 
 // No need for process mutex, as only one process (sailfishsecretsd)
 // should ever access the secrets database.
-bool Sailfish::Secrets::Daemon::Sqlite::Database::beginTransaction()
+bool Database::beginTransaction()
 {
     int oldSemaphoreValue = m_transactionSemaphore.fetchAndAddAcquire(1);
     if (oldSemaphoreValue == 0) {
@@ -396,7 +398,7 @@ bool Sailfish::Secrets::Daemon::Sqlite::Database::beginTransaction()
     }
 }
 
-bool Sailfish::Secrets::Daemon::Sqlite::Database::commitTransaction()
+bool Database::commitTransaction()
 {
     int oldSemaphoreValue = m_transactionSemaphore.fetchAndAddAcquire(-1);
     if (oldSemaphoreValue == 1) {
@@ -411,7 +413,7 @@ bool Sailfish::Secrets::Daemon::Sqlite::Database::commitTransaction()
     }
 }
 
-bool Sailfish::Secrets::Daemon::Sqlite::Database::rollbackTransaction()
+bool Database::rollbackTransaction()
 {
     int oldSemaphoreValue = m_transactionSemaphore.fetchAndAddAcquire(-1);
     if (oldSemaphoreValue == 1) {
@@ -426,12 +428,12 @@ bool Sailfish::Secrets::Daemon::Sqlite::Database::rollbackTransaction()
     }
 }
 
-Sailfish::Secrets::Daemon::Sqlite::Database::Query Sailfish::Secrets::Daemon::Sqlite::Database::prepare(const char *statement, QString *errorText)
+Database::Query Database::prepare(const char *statement, QString *errorText)
 {
     return prepare(QString::fromLatin1(statement), errorText);
 }
 
-Sailfish::Secrets::Daemon::Sqlite::Database::Query Sailfish::Secrets::Daemon::Sqlite::Database::prepare(const QString &statement, QString *errorText)
+Database::Query Database::prepare(const QString &statement, QString *errorText)
 {
     QMutexLocker locker(accessMutex());
 
@@ -452,7 +454,7 @@ Sailfish::Secrets::Daemon::Sqlite::Database::Query Sailfish::Secrets::Daemon::Sq
     return Query(*it);
 }
 
-bool Sailfish::Secrets::Daemon::Sqlite::Database::execute(QSqlQuery &query, QString *errorText)
+bool Database::execute(QSqlQuery &query, QString *errorText)
 {
     static const bool debugSql = !qgetenv("SAILFISHSECRETSD_DEBUG_SQL").isEmpty();
 
@@ -473,7 +475,7 @@ bool Sailfish::Secrets::Daemon::Sqlite::Database::execute(QSqlQuery &query, QStr
     return rv;
 }
 
-bool Sailfish::Secrets::Daemon::Sqlite::Database::executeBatch(QSqlQuery &query, QString *errorText, QSqlQuery::BatchExecutionMode mode)
+bool Database::executeBatch(QSqlQuery &query, QString *errorText, QSqlQuery::BatchExecutionMode mode)
 {
     static const bool debugSql = !qgetenv("SAILFISHSECRETSD_DEBUG_SQL").isEmpty();
 
@@ -494,7 +496,7 @@ bool Sailfish::Secrets::Daemon::Sqlite::Database::executeBatch(QSqlQuery &query,
     return rv;
 }
 
-QString Sailfish::Secrets::Daemon::Sqlite::Database::expandQuery(const QString &queryString, const QVariantList &bindings)
+QString Database::expandQuery(const QString &queryString, const QVariantList &bindings)
 {
     QString query(queryString);
 
@@ -514,7 +516,7 @@ QString Sailfish::Secrets::Daemon::Sqlite::Database::expandQuery(const QString &
     return query;
 }
 
-QString Sailfish::Secrets::Daemon::Sqlite::Database::expandQuery(const QString &queryString, const QMap<QString, QVariant> &bindings)
+QString Database::expandQuery(const QString &queryString, const QMap<QString, QVariant> &bindings)
 {
     QString query(queryString);
 
@@ -550,12 +552,12 @@ QString Sailfish::Secrets::Daemon::Sqlite::Database::expandQuery(const QString &
     return query;
 }
 
-QString Sailfish::Secrets::Daemon::Sqlite::Database::expandQuery(const QSqlQuery &query)
+QString Database::expandQuery(const QSqlQuery &query)
 {
     return expandQuery(query.lastQuery(), query.boundValues());
 }
 
-Sailfish::Secrets::Daemon::Sqlite::DatabaseLocker::~DatabaseLocker()
+DatabaseLocker::~DatabaseLocker()
 {
     if (mutex()) {
         // The database was not already within a transaction when we were constructed

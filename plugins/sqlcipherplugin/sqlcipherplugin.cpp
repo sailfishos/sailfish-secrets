@@ -16,7 +16,8 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::SqlCipherPlugin(QObject *pa
     : Sailfish::Secrets::Daemon::Plugins::EncryptedStoragePlugin(parent)
     , Sailfish::Secrets::Daemon::Plugins::CryptoPlugin()
     , m_databaseSubdir(QLatin1String("sqlcipherplugin"))
-    , m_databaseDirPath(databaseDirPath(isTestPlugin(), m_databaseSubdir))
+    , m_databaseDirPath(databaseDirPath(name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive),
+                                        m_databaseSubdir))
 {
     init_aes_encryption();
 }

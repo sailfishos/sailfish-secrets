@@ -1,11 +1,11 @@
-TEMPLATE=lib
-CONFIG+=plugin
-TARGET=sailfishsecrets-sqlcipher
+TEMPLATE = lib
+CONFIG += plugin
+TARGET = sailfishsecrets-sqlcipher
 TARGET = $$qtLibraryTarget($$TARGET)
 
 include($$PWD/../../common.pri)
-include($$PWD/../../api/libsailfishsecrets/libsailfishsecrets.pri)
-include($$PWD/../../api/libsailfishcrypto/libsailfishcrypto.pri)
+include($$PWD/../../lib/libsailfishsecrets.pri)
+include($$PWD/../../lib/libsailfishcrypto.pri)
 include($$PWD/../../database/database.pri)
 
 HEADERS += \
@@ -20,5 +20,5 @@ SOURCES += \
 OTHER_FILES += \
     $$PWD/../opensslcryptoplugin/cryptoplugin_common.cpp
 
-target.path=/usr/lib/sailfishsecrets/
+target.path=/usr/lib/sailfish/secrets/
 INSTALLS += target

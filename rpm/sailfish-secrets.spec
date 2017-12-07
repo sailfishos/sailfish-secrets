@@ -151,9 +151,9 @@ rm -rf %{buildroot}
 
 %files -n libsailfishsecretsplugin
 %defattr(-,root,root,-)
-%{_libdir}/qt5/qml/org/sailfishos/secrets/libsailfishsecretsplugin.so
-%{_libdir}/qt5/qml/org/sailfishos/secrets/qmldir
-%{_libdir}/qt5/qml/org/sailfishos/secrets/UiView.qml
+%{_libdir}/qt5/qml/Sailfish/Secrets/libsailfishsecretsplugin.so
+%{_libdir}/qt5/qml/Sailfish/Secrets/qmldir
+%{_libdir}/qt5/qml/Sailfish/Secrets/InteractionView.qml
 
 %files -n sailfishsecretsdaemon
 %defattr(-,root,root,-)
@@ -161,29 +161,29 @@ rm -rf %{buildroot}
 
 %files -n sailfishsecretsdaemonplugins
 %defattr(-,root,root,-)
-%{_libdir}/sailfishsecrets/libsailfishsecrets-inappauth.so
-%{_libdir}/sailfishsecrets/libsailfishsecrets-openssl.so
-%{_libdir}/sailfishsecrets/libsailfishsecrets-sqlcipher.so
-%{_libdir}/sailfishsecrets/libsailfishsecrets-sqlite.so
+%{_libdir}/sailfish/secrets/libsailfishsecrets-inappauth.so
+%{_libdir}/sailfish/secrets/libsailfishsecrets-openssl.so
+%{_libdir}/sailfish/secrets/libsailfishsecrets-sqlcipher.so
+%{_libdir}/sailfish/secrets/libsailfishsecrets-sqlite.so
 
 %files -n sailfishcryptodaemonplugins
 %defattr(-,root,root,-)
-%{_libdir}/sailfishcrypto/libsailfishcrypto-openssl.so
+%{_libdir}/sailfish/crypto/libsailfishcrypto-openssl.so
 
 %files tests
 %defattr(-,root,root,-)
 /opt/tests/Sailfish/Secrets/tst_secrets
 /opt/tests/Sailfish/Secrets/tst_secrets.qml
-%{_libdir}/sailfishsecrets/libsailfishsecrets-testinappauth.so
-%{_libdir}/sailfishsecrets/libsailfishsecrets-testopenssl.so
-%{_libdir}/sailfishsecrets/libsailfishsecrets-testsqlcipher.so
-%{_libdir}/sailfishsecrets/libsailfishsecrets-testsqlite.so
+%{_libdir}/sailfish/secrets/libsailfishsecrets-testinappauth.so
+%{_libdir}/sailfish/secrets/libsailfishsecrets-testopenssl.so
+%{_libdir}/sailfish/secrets/libsailfishsecrets-testsqlcipher.so
+%{_libdir}/sailfish/secrets/libsailfishsecrets-testsqlite.so
 
 %files -n libsailfishcrypto-tests
 %defattr(-,root,root,-)
 /opt/tests/Sailfish/Crypto/tst_crypto
 /opt/tests/Sailfish/Crypto/tst_cryptosecrets
-%{_libdir}/sailfishcrypto/libsailfishcrypto-testopenssl.so
+%{_libdir}/sailfish/crypto/libsailfishcrypto-testopenssl.so
 
 %files -n qt5-plugin-sqldriver-sqlcipher
 %defattr(-,root,root,-)

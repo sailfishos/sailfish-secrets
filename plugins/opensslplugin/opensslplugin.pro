@@ -1,13 +1,13 @@
-TEMPLATE=lib
-CONFIG+=plugin
-TARGET=sailfishsecrets-openssl
+TEMPLATE = lib
+CONFIG += plugin
+TARGET = sailfishsecrets-openssl
 TARGET = $$qtLibraryTarget($$TARGET)
 
 include($$PWD/../../common.pri)
-include($$PWD/../../api/libsailfishsecrets/libsailfishsecrets.pri)
+include($$PWD/../../lib/libsailfishsecrets.pri)
 
-HEADERS+=evp_p.h plugin.h
-SOURCES+=plugin.cpp
+HEADERS += $$PWD/evp_p.h $$PWD/plugin.h
+SOURCES += $$PWD/plugin.cpp
 
-target.path=/usr/lib/sailfishsecrets/
+target.path=/usr/lib/sailfish/secrets/
 INSTALLS += target

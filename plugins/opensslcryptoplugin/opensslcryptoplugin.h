@@ -32,15 +32,13 @@ public:
     OpenSslCryptoPlugin(QObject *parent = Q_NULLPTR);
     ~OpenSslCryptoPlugin();
 
-    bool isTestPlugin() const Q_DECL_OVERRIDE {
-#ifdef SAILFISH_CRYPTO_BUILD_TEST_PLUGIN
-        return true;
+    QString name() const Q_DECL_OVERRIDE {
+#ifdef SAILFISHCRYPTO_TESTPLUGIN
+        return QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl.test");
 #else
-        return false;
+        return QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl");
 #endif
     }
-
-    QString name() const Q_DECL_OVERRIDE { return QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl"); }
 
     bool canStoreKeys() const Q_DECL_OVERRIDE { return false; }
 
