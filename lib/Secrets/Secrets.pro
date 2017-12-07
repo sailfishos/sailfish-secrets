@@ -9,36 +9,36 @@ QT -= gui
 
 include($$PWD/../../common.pri)
 
-INCLUDEPATH += $$PWD
-DEPENDPATH = $$INCLUDEPATH
+INCLUDEPATH += $$PWD/../
+DEPENDPATH += $$INCLUDEPATH $$PWD
 
 PUBLIC_HEADERS += \
-    $$PWD/Secrets/extensionplugins.h \
-    $$PWD/Secrets/result.h \
-    $$PWD/Secrets/secret.h \
-    $$PWD/Secrets/secretmanager.h \
-    $$PWD/Secrets/secretsdaemonconnection.h \
-    $$PWD/Secrets/secretsglobal.h \
-    $$PWD/Secrets/interactionrequest.h \
-    $$PWD/Secrets/interactionrequestwatcher.h \
-    $$PWD/Secrets/interactionview.h
+    $$PWD/extensionplugins.h \
+    $$PWD/result.h \
+    $$PWD/secret.h \
+    $$PWD/secretmanager.h \
+    $$PWD/secretsdaemonconnection.h \
+    $$PWD/secretsglobal.h \
+    $$PWD/interactionrequest.h \
+    $$PWD/interactionrequestwatcher.h \
+    $$PWD/interactionview.h
 
 PRIVATE_HEADERS += \
-    $$PWD/Secrets/secretsdaemonconnection_p.h \
-    $$PWD/Secrets/secretmanager_p.h \
-    $$PWD/Secrets/interactionservice_p.h
+    $$PWD/secretsdaemonconnection_p.h \
+    $$PWD/secretmanager_p.h \
+    $$PWD/interactionservice_p.h
 
 HEADERS += \
     $$PUBLIC_HEADERS \
     $$PRIVATE_HEADERS
 
 SOURCES += \
-    $$PWD/Secrets/extensionplugins.cpp \
-    $$PWD/Secrets/secretsdaemonconnection.cpp \
-    $$PWD/Secrets/secretmanager.cpp \
-    $$PWD/Secrets/serialisation.cpp \
-    $$PWD/Secrets/interactionrequestwatcher.cpp \
-    $$PWD/Secrets/interactionservice.cpp
+    $$PWD/extensionplugins.cpp \
+    $$PWD/secretsdaemonconnection.cpp \
+    $$PWD/secretmanager.cpp \
+    $$PWD/serialisation.cpp \
+    $$PWD/interactionrequestwatcher.cpp \
+    $$PWD/interactionservice.cpp
 
 develheaders.path = /usr/include/libsailfishsecrets/
 develheaders_secrets.path = /usr/include/libsailfishsecrets/Secrets/

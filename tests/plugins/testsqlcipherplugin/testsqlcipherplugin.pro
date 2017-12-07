@@ -4,8 +4,8 @@ TARGET = sailfishsecrets-testsqlcipher
 TARGET = $$qtLibraryTarget($$TARGET)
 
 include($$PWD/../../../common.pri)
-include($$PWD/../../../lib/secrets/libsailfishsecrets.pri)
-include($$PWD/../../../lib/crypto/libsailfishcrypto.pri)
+include($$PWD/../../../lib/libsailfishsecrets.pri)
+include($$PWD/../../../lib/libsailfishcrypto.pri)
 include($$PWD/../../../database/database.pri)
 
 DEFINES += SAILFISHSECRETS_TESTPLUGIN

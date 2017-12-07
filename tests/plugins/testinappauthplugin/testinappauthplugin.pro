@@ -4,7 +4,7 @@ TARGET = sailfishsecrets-testinappauth
 TARGET = $$qtLibraryTarget($$TARGET)
 
 include($$PWD/../../../common.pri)
-include($$PWD/../../../lib/secrets/libsailfishsecrets.pri)
+include($$PWD/../../../lib/libsailfishsecrets.pri)
 
 DEFINES += SAILFISHSECRETS_TESTPLUGIN
 HEADERS += $$PWD/../../../plugins/inappauthplugin/plugin.h

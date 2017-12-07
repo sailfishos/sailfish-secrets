@@ -4,7 +4,7 @@ TARGET = $$qtLibraryTarget($$TARGET)
 CONFIG += plugin
 
 include($$PWD/../../common.pri)
-include($$PWD/../../lib/secrets/libsailfishsecrets.pri)
+include($$PWD/../../lib/libsailfishsecrets.pri)
 
 QT += qml quick gui core
 

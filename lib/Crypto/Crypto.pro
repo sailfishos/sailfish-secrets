@@ -9,38 +9,38 @@ QT -= gui
 
 include($$PWD/../../common.pri)
 
-INCLUDEPATH += $$PWD
-DEPENDPATH = $$INCLUDEPATH
+INCLUDEPATH += $$PWD/../
+DEPENDPATH += $$INCLUDEPATH $$PWD
 
 PUBLIC_HEADERS += \
-    $$PWD/Crypto/certificate.h \
-    $$PWD/Crypto/cryptodaemonconnection.h \
-    $$PWD/Crypto/cryptoglobal.h \
-    $$PWD/Crypto/cryptomanager.h \
-    $$PWD/Crypto/extensionplugins.h \
-    $$PWD/Crypto/key.h \
-    $$PWD/Crypto/result.h \
-    $$PWD/Crypto/x509certificate.h
+    $$PWD/certificate.h \
+    $$PWD/cryptodaemonconnection.h \
+    $$PWD/cryptoglobal.h \
+    $$PWD/cryptomanager.h \
+    $$PWD/extensionplugins.h \
+    $$PWD/key.h \
+    $$PWD/result.h \
+    $$PWD/x509certificate.h
 
 PRIVATE_HEADERS += \
-    $$PWD/Crypto/certificate_p.h \
-    $$PWD/Crypto/cryptodaemonconnection_p.h \
-    $$PWD/Crypto/cryptomanager_p.h \
-    $$PWD/Crypto/extensionplugins_p.h \
-    $$PWD/Crypto/key_p.h
+    $$PWD/certificate_p.h \
+    $$PWD/cryptodaemonconnection_p.h \
+    $$PWD/cryptomanager_p.h \
+    $$PWD/extensionplugins_p.h \
+    $$PWD/key_p.h
 
 HEADERS += \
     $$PUBLIC_HEADERS \
     $$PRIVATE_HEADERS
 
 SOURCES += \
-    $$PWD/Crypto/certificate.cpp \
-    $$PWD/Crypto/cryptodaemonconnection.cpp \
-    $$PWD/Crypto/cryptomanager.cpp \
-    $$PWD/Crypto/extensionplugins.cpp \
-    $$PWD/Crypto/key.cpp \
-    $$PWD/Crypto/serialisation.cpp \
-    $$PWD/Crypto/x509certificate.cpp
+    $$PWD/certificate.cpp \
+    $$PWD/cryptodaemonconnection.cpp \
+    $$PWD/cryptomanager.cpp \
+    $$PWD/extensionplugins.cpp \
+    $$PWD/key.cpp \
+    $$PWD/serialisation.cpp \
+    $$PWD/x509certificate.cpp
 
 develheaders.path = /usr/include/libsailfishcrypto/
 develheaders_crypto.path = /usr/include/libsailfishcrypto/Crypto/

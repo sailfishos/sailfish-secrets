@@ -1,4 +1,4 @@
 TEMPLATE = subdirs
 SUBDIRS += \
-    secrets \
-    crypto
+    Secrets \
+    Crypto

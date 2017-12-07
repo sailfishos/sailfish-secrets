@@ -1,7 +1,6 @@
 CONFIG += qt
 QT += dbus
-
-LIBS += -L$$shadowed($$PWD) -lsailfishsecrets
+LIBS += -L$$shadowed($$PWD/Crypto) -lsailfishcrypto
 
 INCLUDEPATH += $$PWD
 DEPENDPATH += $$INCLUDEPATH
