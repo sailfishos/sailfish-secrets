@@ -184,7 +184,9 @@ rm -rf %{buildroot}
 %files -n libsailfishcrypto-tests
 %defattr(-,root,root,-)
 /opt/tests/Sailfish/Crypto/tst_crypto
+/opt/tests/Sailfish/Crypto/tst_crypto_capi
 /opt/tests/Sailfish/Crypto/tst_cryptosecrets
+/opt/tests/Sailfish/Crypto/tst_cryptosecrets_capi
 %{_libdir}/sailfish/crypto/libsailfishcrypto-testopenssl.so
 
 %files -n qt5-plugin-sqldriver-sqlcipher

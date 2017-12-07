@@ -7,6 +7,9 @@ DEFINES += SAILFISH_CRYPTO_LIBRARY_BUILD
 QT += dbus
 QT -= gui
 
+CONFIG += link_pkgconfig
+PKGCONFIG += dbus-1
+
 include($$PWD/../../common.pri)
 
 INCLUDEPATH += $$PWD/../
@@ -20,7 +23,8 @@ PUBLIC_HEADERS += \
     $$PWD/extensionplugins.h \
     $$PWD/key.h \
     $$PWD/result.h \
-    $$PWD/x509certificate.h
+    $$PWD/x509certificate.h \
+    $$PWD/crypto_c.h
 
 PRIVATE_HEADERS += \
     $$PWD/certificate_p.h \
@@ -40,7 +44,8 @@ SOURCES += \
     $$PWD/extensionplugins.cpp \
     $$PWD/key.cpp \
     $$PWD/serialisation.cpp \
-    $$PWD/x509certificate.cpp
+    $$PWD/x509certificate.cpp \
+    $$PWD/crypto_c.cpp
 
 develheaders.path = /usr/include/libsailfishcrypto/
 develheaders_crypto.path = /usr/include/libsailfishcrypto/Crypto/
