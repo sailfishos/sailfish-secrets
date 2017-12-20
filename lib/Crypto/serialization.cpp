@@ -309,19 +309,63 @@ QDataStream& operator<<(QDataStream& out, const CryptoManager::VerificationStatu
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Key &key)
 {
+    //((sss)iiiiiayayaya(ay)a{sv})
     argument.beginStructure();
-    argument << Key::serialize(key);
+    argument << key.identifier();
+    argument << static_cast<int>(key.origin());
+    argument << static_cast<int>(key.algorithm());
+    argument << static_cast<int>(key.operations());
+    argument << static_cast<int>(key.componentConstraints());
+    argument << key.size();
+    argument << key.publicKey();
+    argument << key.privateKey();
+    argument << key.secretKey();
+    argument << key.customParameters();
+    argument << key.filterData();
     argument.endStructure();
     return argument;
 }
 
 const QDBusArgument &operator>>(const QDBusArgument &argument, Key &key)
 {
-    QByteArray keydata;
+    Key::Identifier identifier;
+    int origin = 0;
+    int algorithm = 0;
+    int operations = 0;
+    int componentConstraints = 0;
+    int size = 0;
+    QByteArray publicKey;
+    QByteArray privateKey;
+    QByteArray secretKey;
+    QVector<QByteArray> customParameters;
+    Key::FilterData filterData;
+
     argument.beginStructure();
-    argument >> keydata;
+    argument >> identifier
+             >> origin
+             >> algorithm
+             >> operations
+             >> componentConstraints
+             >> size
+             >> publicKey
+             >> privateKey
+             >> secretKey
+             >> customParameters
+             >> filterData;
     argument.endStructure();
-    key = Key::deserialize(keydata);
+
+    key.setIdentifier(identifier);
+    key.setOrigin(static_cast<Sailfish::Crypto::Key::Origin>(origin));
+    key.setAlgorithm(static_cast<Sailfish::Crypto::CryptoManager::Algorithm>(algorithm));
+    key.setOperations(static_cast<Sailfish::Crypto::CryptoManager::Operations>(operations));
+    key.setComponentConstraints(static_cast<Sailfish::Crypto::Key::Components>(componentConstraints));
+    key.setSize(size);
+    key.setPublicKey(publicKey);
+    key.setPrivateKey(privateKey);
+    key.setSecretKey(secretKey);
+    key.setCustomParameters(customParameters);
+    key.setFilterData(filterData);
+
     return argument;
 }
 
@@ -349,19 +393,30 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Identifier &
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Key::FilterData &filterData)
 {
+    QVariantMap asv;
+    for (QMap<QString,QString>::const_iterator it = filterData.constBegin(); it != filterData.constEnd(); ++it) {
+        asv.insert(it.key(), it.value());
+    }
+
     argument.beginStructure();
-    argument << filterData;
+    argument << asv;
     argument.endStructure();
     return argument;
 }
 
 const QDBusArgument &operator>>(const QDBusArgument &argument, Key::FilterData &filterData)
 {
-    QMap<QString,QString> data;
+    QVariantMap asv;
     argument.beginStructure();
-    argument >> data;
+    argument >> asv;
     argument.endStructure();
-    filterData = Key::FilterData(data);
+
+    QMap<QString, QString> data;
+    for (QVariantMap::const_iterator it = asv.constBegin(); it != asv.constEnd(); ++it) {
+        data.insert(it.key(), it.value().toString());
+    }
+
+    filterData = data;
     return argument;
 }
 
