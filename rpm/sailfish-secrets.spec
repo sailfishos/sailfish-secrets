@@ -161,6 +161,38 @@ Requires:   libsailfishcrypto = %{version}-%{release}
 %description -n libsailfishcryptoplugin
 %{summary}.
 
+%package -n libsailfishsecretscrypto
+Summary:    Sailfish OS Secrets And Crypto C API library
+Group:      System/Libraries
+BuildRequires:  pkgconfig(glib-2.0)
+BuildRequires:  pkgconfig(gio-2.0)
+BuildRequires:  pkgconfig(gio-unix-2.0)
+Requires:  glib2
+Requires:  dbus-glib
+
+%description -n libsailfishsecretscrypto
+%{summary}.
+
+
+%package -n libsailfishsecretscrypto-devel
+Summary:    Development package for Sailfish OS Secrets And Crypto C API library
+Group:      System/Libraries
+Requires:   libsailfishsecretscrypto = %{version}-%{release}
+
+%description -n libsailfishsecretscrypto-devel
+%{summary}.
+
+
+%package -n libsailfishsecretscrypto-tests
+Summary:    Unit tests for the libsailfishsecretscrypto library.
+Group:      System/Libraries
+BuildRequires:  pkgconfig(glib-2.0)
+BuildRequires:  pkgconfig(gio-2.0)
+Requires:   libsailfishsecretscrypto = %{version}-%{release}
+
+%description -n libsailfishsecretscrypto-tests
+%{summary}.
+
 %package -n %{secretsdaemon}
 Summary:    Sailfish OS secrets daemon
 Group:      Applications/System
@@ -394,6 +426,20 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 %{_libdir}/qt5/qml/Sailfish/Crypto/libsailfishcryptoplugin.so
 %{_libdir}/qt5/qml/Sailfish/Crypto/qmldir
 
+%files -n libsailfishsecretscrypto
+%defattr(-,root,root,-)
+%{_libdir}/libsailfishsecretscrypto.so.*
+
+%files -n libsailfishsecretscrypto-devel
+%defattr(-,root,root,-)
+%{_libdir}/libsailfishsecretscrypto.so
+%{_libdir}/pkgconfig/sailfishsecretscrypto.pc
+%{_includedir}/Sailfish/SecretsCrypto/*
+
+%files -n libsailfishsecretscrypto-tests
+%defattr(-,root,root,-)
+/opt/tests/Sailfish/SecretsCrypto/tst_secretscrypto
+
 %files -n %{secretsdaemon}
 %defattr(-,root,root,-)
 %{_bindir}/sailfishsecretsd
@@ -461,6 +507,12 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 
 %postun -n libsailfishcryptopluginapi
 /sbin/ldconfig || :
+
+%post -n libsailfishsecretscrypto
+/sbin/ldconfig
+
+%postun -n libsailfishsecretscrypto
+/sbin/ldconfig
 
 %post -n libsailfishsecretsplugin
 /sbin/ldconfig || :
