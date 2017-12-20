@@ -4,4 +4,5 @@ SUBDIRS = \
     $$PWD/plugins \
     $$PWD/Crypto \
     $$PWD/Secrets \
+    $$PWD/SecretsCrypto \
     $$PWD/qml
