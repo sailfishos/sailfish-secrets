@@ -1,19 +1,8 @@
-Quick Start:
+# Sailfish Secrets
 
-1) Run the secrets daemon in autotest mode with debugging enabled
-QT_LOGGING_RULES="*.debug=true" devel-su -p /usr/bin/sailfishsecretsd --test
+A storage and crypto API for using in Sailfish OS.
 
-2) Run the secrets autotest
-devel-su -p /opt/tests/Sailfish/Secrets/tst_secrets
-
-3) Run the crypto autotest
-devel-su -p /opt/tests/Sailfish/Crypto/tst_crypto
-
-4) Run the cryptosecrets autotest
-devel-su -p /opt/tests/Sailfish/Crypto/tst_cryptosecrets
-
-
-Brief Description:
+## Brief Description:
 
 The Secrets API allows clients to securely store data via a system
 daemon which delegates operations to plugins which are loaded into the
@@ -32,8 +21,52 @@ are not returned to the client process address space, and in the case
 of Secure Peripheral or TEE application backends, they are not returned
 to the system daemon process address space after initial storage).
 
+## Building requirements:
 
-Architectural Overview:
+1. Standard MerSDK
+2. [sqlcipher](https://github.com/sailfishos/sqlcipher.git) package installed into the target
+
+## Building
+
+1. Clone the repo and go inside:
+
+    ```bash
+    git clone https://github.com/sailfishos/sailfish-secrets.git sailfish-secrets
+    cd sailfish-secrets
+    ```
+2. Run the build command for usual sailfish os git-projects:
+
+    ```bash
+    mb2 build
+    ```
+
+## Running:
+
+1. Run the secrets daemon in autotest mode with debugging enabled
+
+    ```bash
+    QT_LOGGING_RULES="*.debug=true" devel-su -p /usr/bin/sailfishsecretsd --test
+    ```
+
+2. Run the secrets autotest
+
+    ```bash
+    devel-su -p /opt/tests/Sailfish/Secrets/tst_secrets
+    ```
+
+3. Run the crypto autotest
+
+    ```bash
+    devel-su -p /opt/tests/Sailfish/Crypto/tst_crypto
+    ```
+
+4. Run the cryptosecrets autotest
+
+    ```bash
+    devel-su -p /opt/tests/Sailfish/Crypto/tst_cryptosecrets
+    ```
+
+## Architectural Overview:
 
 The client-facing API is primarily a thin wrapper around DBus calls to
 the system daemon (sailfishsecretsd).  That daemon manages a queue of
@@ -51,7 +84,7 @@ the secrets daemon will request the Lock Screen UI daemon to show the
 appropriate UI), or, in some special cases (e.g., application-specific
 data requests) the client application can provide the UI via a plugin.
 
-
+```
                                       +-------------+
                                       |    Secure   |
                                       |  Peripheral |
@@ -90,44 +123,47 @@ data requests) the client application can provide the UI via a plugin.
   |                          |        DBus              |
   |                          |>-------------------------'
   +--------------------------+
+```
 
-
-Current Status:
+## Current Status:
 
 This code is Work-In-Progress.  The API will change significantly!
 Known open work items:
 
-Affecting both:
-    - access control (requires access-control daemon, TBA)
-    - should we use system DBus instead of peer-to-peer DBus?
-    - use request-specific data structures instead of QVariantList
-      when marshalling incoming requests from the queue to the handler
-    - full API and code review is required
-    - unit test coverage needs to be greatly expanded
+- Affecting both:
+  - access control (requires access-control daemon, TBA)
+  - should we use system DBus instead of peer-to-peer DBus?
+  - use request-specific data structures instead of QVariantList
+    when marshalling incoming requests from the queue to the handler
+  - full API and code review is required
+  - unit test coverage needs to be greatly expanded
 
-Secrets:
-    - improve the lock/unlock semantics?
+- Secrets:
+  - improve the lock/unlock semantics?
 
-Crypto:
-    - certificates implementation currently missing, API is sketch only
-    - add CSPRNG and Hash API and daemon plumbing
-    - polish the API:
-        - possibly separate key-length (bits) from algorithm
-        - is digest parameter necessary for encrypt/decrypt ops
-        - do we need stream-cipher-session API support/continueEncrypt?
-        - ... no doubt there are many other things requiring polish
-    - plugin implementations:
-        - finish implementing the opensslcryptoplugin
-        - potentially add other plugins (TEE/SecurePeripheral etc)
-    - in general, the entire Crypto domain needs a domain expert to
-      review carefully, point out architectural issues, and offer
-      advice about implementation details.
+- Crypto:
+  - certificates implementation currently missing, API is sketch only
+  - add CSPRNG and Hash API and daemon plumbing
+  - polish the API:
+      - possibly separate key-length (bits) from algorithm
+      - is digest parameter necessary for encrypt/decrypt ops
+      - do we need stream-cipher-session API support/continueEncrypt?
+      - ... no doubt there are many other things requiring polish
+  - plugin implementations:
+      - finish implementing the opensslcryptoplugin
+      - potentially add other plugins (TEE/SecurePeripheral etc)
+  - in general, the entire Crypto domain needs a domain expert to
+    review carefully, point out architectural issues, and offer
+    advice about implementation details.
+
+## Contributions
 
 Community contributions are very welcome, especially:
-    - API and code review
-    - bug fixes
-    - plugin implementation contributions (e.g. SQLCipher-based plugin)
-    - unit test case contributions
+
+  - API and code review
+  - bug fixes
+  - plugin implementation contributions (e.g. SQLCipher-based plugin)
+  - unit test case contributions
 
 Please get in touch via IRC (#jollamobile@freenode) or email if you
 are willing to help out :-)
