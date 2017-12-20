@@ -30,7 +30,7 @@ class DiscoveryObject : public QObject
     Q_CLASSINFO("D-Bus Interface", "org.sailfishos.secrets.daemon.discovery")
     Q_CLASSINFO("D-Bus Introspection", ""
     "  <interface name=\"org.sailfishos.secrets.daemon.discovery\">\n"
-    "      <method name=\"peerToPeerAddress\" />\n"
+    "      <method name=\"peerToPeerAddress\">\n"
     "          <arg name=\"address\" type=\"s\" direction=\"out\" />\n"
     "      </method>\n"
     "  </interface>\n"
@@ -87,7 +87,7 @@ class DiscoveryObject : public QObject
     Q_CLASSINFO("D-Bus Interface", "org.sailfishos.crypto.daemon.discovery")
     Q_CLASSINFO("D-Bus Introspection", ""
     "  <interface name=\"org.sailfishos.crypto.daemon.discovery\">\n"
-    "      <method name=\"peerToPeerAddress\" />\n"
+    "      <method name=\"peerToPeerAddress\">\n"
     "          <arg name=\"address\" type=\"s\" direction=\"out\" />\n"
     "      </method>\n"
     "  </interface>\n"
