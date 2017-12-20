@@ -52,6 +52,7 @@ BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(libcrypto)
 BuildRequires:  qt5-plugin-sqldriver-sqlite
+Requires:   qt5-plugin-sqldriver-sqlcipher
 Requires:   sailfishsecretsdaemon = %{version}-%{release}
 
 %description -n sailfishsecretsdaemonplugins

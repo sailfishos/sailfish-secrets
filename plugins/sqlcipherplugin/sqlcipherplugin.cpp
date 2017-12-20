@@ -35,7 +35,7 @@ QString Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::databaseDirPath(
     const QString systemDataDirPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + QLatin1String("/system/"));
     const QString privilegedDataDirPath(systemDataDirPath + QLatin1String("privileged/"));
     const QString subdir = isTestPlugin
-                         ? QString(QLatin1String("Secrets/%1/")).arg(databaseSubdir)
-                         : QString(QLatin1String("Secrets/%1-test/")).arg(databaseSubdir);
+                         ? QString(QLatin1String("Secrets/%1-test/")).arg(databaseSubdir)
+                         : QString(QLatin1String("Secrets/%1/")).arg(databaseSubdir);
     return privilegedDataDirPath + subdir;
 }
