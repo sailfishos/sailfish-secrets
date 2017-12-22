@@ -1,6 +1,6 @@
 # Sailfish Secrets
 
-A storage and crypto API for using in Sailfish OS.
+A secrets storage and crypto API for use in Sailfish OS.
 
 ## Brief Description:
 
@@ -145,10 +145,10 @@ qtsqlcipher, which depends on Qt internals that are not compatible between versi
     devel-su -p /opt/tests/Sailfish/Crypto/tst_crypto
     ```
 
-4. Run the cryptosecrets autotest
+4. Run the cryptostorage autotest
 
     ```bash
-    devel-su -p /opt/tests/Sailfish/Crypto/tst_cryptosecrets
+    devel-su -p /opt/tests/Sailfish/Crypto/tst_cryptostorage
     ```
 
 ## Architectural Overview:

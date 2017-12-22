@@ -79,7 +79,7 @@ public:
     Sailfish::Secrets::SecretManagerPrivate *d_ptr() const { return Sailfish::Secrets::SecretManager::pimpl(); }
 };
 
-class tst_cryptosecrets : public QObject
+class tst_cryptostorage : public QObject
 {
     Q_OBJECT
 
@@ -133,15 +133,15 @@ private:
     TestSecretManager sm;
 };
 
-void tst_cryptosecrets::init()
+void tst_cryptostorage::init()
 {
 }
 
-void tst_cryptosecrets::cleanup()
+void tst_cryptostorage::cleanup()
 {
 }
 
-void tst_cryptosecrets::getPluginInfo()
+void tst_cryptostorage::getPluginInfo()
 {
     QDBusPendingReply<Sailfish::Crypto::Result, QVector<Sailfish::Crypto::PluginInfo>, QVector<Sailfish::Crypto::PluginInfo> > reply = cm.getPluginInfo();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
@@ -166,12 +166,12 @@ void tst_cryptosecrets::getPluginInfo()
     QVERIFY(storagePluginNames.contains(Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test")));
 }
 
-void tst_cryptosecrets::secretsStoredKey_data()
+void tst_cryptostorage::secretsStoredKey_data()
 {
     addCryptoTestData();
 }
 
-void tst_cryptosecrets::secretsStoredKey()
+void tst_cryptostorage::secretsStoredKey()
 {
     QFETCH(Sailfish::Crypto::CryptoManager::BlockMode, blockMode);
     QFETCH(int, keySize);
@@ -186,7 +186,7 @@ void tst_cryptosecrets::secretsStoredKey()
 
     // first, create the collection via the Secrets API.
     QDBusPendingReply<Sailfish::Secrets::Result> secretsreply = sm.d_ptr()->createCollection(
-                QLatin1String("tst_cryptosecrets_gsked"),
+                QLatin1String("tst_cryptostorage_gsked"),
                 Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
                 Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked,
@@ -198,7 +198,7 @@ void tst_cryptosecrets::secretsStoredKey()
     // request that the secret key be generated and stored into that collection.
     keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(
                                   QLatin1String("storedkey"),
-                                  QLatin1String("tst_cryptosecrets_gsked"),
+                                  QLatin1String("tst_cryptostorage_gsked"),
                                   Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test")));
     // note that the secret key data will never enter the client process address space.
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> reply = cm.generateStoredKey(
@@ -283,7 +283,7 @@ void tst_cryptosecrets::secretsStoredKey()
 
     // clean up by deleting the collection in which the secret is stored.
     secretsreply = sm.d_ptr()->deleteCollection(
-                QLatin1String("tst_cryptosecrets_gsked"),
+                QLatin1String("tst_cryptostorage_gsked"),
                 Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 Sailfish::Secrets::SecretManager::PreventInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretsreply);
@@ -308,7 +308,7 @@ void tst_cryptosecrets::secretsStoredKey()
 
     // recreate the collection and the key, and encrypt/decrypt again, then delete via deleteStoredKey().
     secretsreply = sm.d_ptr()->createCollection(
-                QLatin1String("tst_cryptosecrets_gsked"),
+                QLatin1String("tst_cryptostorage_gsked"),
                 Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
                 Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked,
@@ -400,7 +400,7 @@ void tst_cryptosecrets::secretsStoredKey()
 
     // clean up by deleting the collection.
     secretsreply = sm.d_ptr()->deleteCollection(
-                QLatin1String("tst_cryptosecrets_gsked"),
+                QLatin1String("tst_cryptostorage_gsked"),
                 Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 Sailfish::Secrets::SecretManager::PreventInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretsreply);
@@ -408,12 +408,12 @@ void tst_cryptosecrets::secretsStoredKey()
     QCOMPARE(secretsreply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
 }
 
-void tst_cryptosecrets::cryptoStoredKey_data()
+void tst_cryptostorage::cryptoStoredKey_data()
 {
     addCryptoTestData();
 }
 
-void tst_cryptosecrets::cryptoStoredKey()
+void tst_cryptostorage::cryptoStoredKey()
 {
     QFETCH(Sailfish::Crypto::CryptoManager::BlockMode, blockMode);
     QFETCH(int, keySize);
@@ -872,5 +872,5 @@ void tst_cryptosecrets::cryptoStoredKey()
     QCOMPARE(secretsreply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
 }
 
-#include "tst_cryptosecrets.moc"
-QTEST_MAIN(tst_cryptosecrets)
+#include "tst_cryptostorage.moc"
+QTEST_MAIN(tst_cryptostorage)

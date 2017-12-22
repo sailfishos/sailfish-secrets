@@ -349,7 +349,7 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 %defattr(-,root,root,-)
 /opt/tests/Sailfish/Crypto/tst_crypto
 /opt/tests/Sailfish/Crypto/tst_cryptorequests
-/opt/tests/Sailfish/Crypto/tst_cryptosecrets
+/opt/tests/Sailfish/Crypto/tst_cryptostorage
 /opt/tests/Sailfish/Crypto/tst_evp
 /opt/tests/Sailfish/Crypto/tst_qml_signing
 /opt/tests/Sailfish/Crypto/tst_qml_signing.qml
