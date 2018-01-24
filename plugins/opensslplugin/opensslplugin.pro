@@ -9,5 +9,5 @@ include($$PWD/../../lib/libsailfishsecrets.pri)
 HEADERS += $$PWD/evp_p.h $$PWD/plugin.h
 SOURCES += $$PWD/plugin.cpp
 
-target.path=/usr/lib/sailfish/secrets/
+target.path=/usr/lib/Sailfish/Secrets/
 INSTALLS += target

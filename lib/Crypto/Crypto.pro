@@ -42,8 +42,8 @@ SOURCES += \
     $$PWD/serialisation.cpp \
     $$PWD/x509certificate.cpp
 
-develheaders.path = /usr/include/libsailfishcrypto/
-develheaders_crypto.path = /usr/include/libsailfishcrypto/Crypto/
+develheaders.path = /usr/include/Sailfish/
+develheaders_crypto.path = /usr/include/Sailfish/Crypto/
 develheaders_crypto.files = $$PUBLIC_HEADERS
 
 pkgconfig.files = $$TARGET.pc

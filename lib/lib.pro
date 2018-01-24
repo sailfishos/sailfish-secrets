@@ -1,4 +1,4 @@
 TEMPLATE = subdirs
 SUBDIRS += \
-    Secrets \
-    Crypto
+    $$PWD/Secrets $$PWD/Secrets/doc \
+    $$PWD/Crypto $$PWD/Crypto/doc

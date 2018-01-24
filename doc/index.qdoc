@@ -1,0 +1,173 @@
+/****************************************************************************************
+**
+** Copyright (C) 2018 Jolla Ltd.
+** Contact: Chris Adams <chris.adams@jollamobile.com>
+** All rights reserved.
+**
+****************************************************************************************/
+
+/*!
+\contentspage {Sailfish OS Secrets and Crypto Framework Contents}
+\page index.html
+
+\title Secret Data and Cryptographic Operations in Sailfish OS
+
+Applications running on highly-connected devices require the capability to
+perform advanced cryptographic operations, in order to protect the user's data,
+authenticate with remote services, verify the authenticity of other connected
+devices, and communicate securely.  The keys and certificates which are used
+to perform such operations also need to be stored securely on the device, in
+order to prevent malicious third-party applications from accessing those keys.
+
+The Sailfish OS Secrets and Crypto Framework provides applications with
+full-featured secret data storage and cryptography services.  Applications
+using the framework delegate cryptographic operations to a system service,
+and the framework has been designed to ensure that when used appropriately,
+secret key data need never enter the process address space of the application.
+Furthermore, if the cryptographic service provider plugin to the framework is
+backed by secure hardware, Trusted Execution Environment application, or
+Trusted Platform Module, then secret key data need never enter the normal
+"rich" execution environment.
+
+The framework also provides secure storage of secret data (including but not
+limited to keys, certificates, passwords, and other credentials) either in
+value-encrypted databases, block-encrypted databases, or hardware-backed
+secure storage.  Access to secret data requires user authentication which
+is provided either by the system device lock, a system-mediated authentication
+flow, an application-mediated authentication flow, or a custom authentication
+flow implemented by a framework extension plugin.
+
+\section1 Architecture of the Sailfish OS Secrets and Crypto Framework
+
+The framework consists of three major parts:
+
+\list
+\li The system daemon providing the services to clients
+\li Extension plugins allowing vendors or partners to extend the daemon's functionality
+\li Client libraries which allow applications to easily make use of the daemon's services
+\endlist
+
+In addition to those components, the system daemon makes use of other system
+services in order to properly implement the functionality and ensure that the
+security of the system is maintained, including the device lock service (in
+order to properly authenticate the user and unlock encrypted collections of
+secrets) and the access control service.
+
+\b{Note: the access control service is not yet integrated in the current
+version of the Sailfish OS Secrets and Crypto Framework, and as such the
+only access control mode which is supported is the Owner-Only mode!}
+
+If the application doesn't wish to make use of the system authentication flows,
+it may instead use the Sailfish OS Secrets Authentication UI Plugin to
+register an in-application authentication view with the system service.
+
+\b{Note: in-application authentication should be avoided unless your
+application is a trusted (vendor- or partner-supplied application)!}
+
+A diagram which shows the architecture follows:
+
+\badcode
+                                      +-------------+
+                                      |    Secure   |
+                                      |  Peripheral |
+                                      +-------------+
+                                          ^    ^
+                                          |    |
+                                    r-----'    '------,
+                                    |                 |
+                                 +--^---+-------+ +---^---+-------+
+                                 |crypto|plugins| |secrets|plugins|
+  +---------------------+        +------+-------+-+-------+-------+
+  |    Access Control   |<------<|                                |
+  |       Daemon        |>------>|                                |
+  +---------------------+  DBus  |                                |
+                                 |        sailfishsecretsd        |
+  +---------------------+        |                                |
+  |     Lock Screen     |<------<|                                |
+  |       Daemon        |>------>|                                |
+  | (SystemInteraction) |  DBus  |                                |
+  +---------------------+        +--------------------------------+
+                                     V ^            ^   ^
+                                     | |            |   |
+         r---------------------------' |            |   |
+         | .---------------------------'            |   |
+         | |               DBus                     |   |
+         V ^                                        |   |
+  +--------------------------+                      |   |
+  |     Sailfish Secrets     |                      |   |
+  |        UI Plugin         |                      |   |
+  | (ApplicationInteraction) |                      |   |
+  +--------------------------+  (Crypto API Call)   |   |
+  |                          |        DBus          |   |
+  |                          |>---------------------'   |
+  |         Client           |                          |
+  |        Application       |  (Secrets API Call)      |
+  |                          |        DBus              |
+  |                          |>-------------------------'
+  +--------------------------+
+\endcode
+
+\section1 Extending the Sailfish OS Secrets and Crypto Framework
+
+Device vendors and trusted partners may extend the Sailfish OS Secrets and
+Crypto Framework by installing extension plugins into the appropriate plugin
+location on the device.
+
+Please see the \l{Sailfish OS Crypto Library Overview} documentation and the
+\l{Sailfish OS Secrets Library Overview} documentation for more information
+on that topic.
+
+\section1 Using the Sailfish OS Secrets and Crypto Framework
+
+The functionality provided by the framework is exposed by three separate
+libraries: two Qt-based C++ libraries and one glib-based C library.
+Each of the libraries is simply a thin wrapper around IPC calls to the system
+daemon which provides the cryptography and secret storage services.  The
+C++ libraries provide significantly more syntactic sugar than the C library.
+A QML plugin also exists which provides applications with a simple-to-extend
+view which allows the application to implement an in-process authentication
+flow which inter-operates correctly with the system service daemon.
+
+\section2 The Sailfish OS Secrets Library
+
+This library provides client applications written in C++ (with Qt) with API to
+make use of the secrets storage services provided by the Sailfish OS Secrets
+and Crypto Framework.
+
+In-depth information can be found on the page about the
+\l{Sailfish OS Secrets Library Overview}.
+
+\section3 The Sailfish OS Secrets Authentication QML Plugin
+
+This plugin provides client applications written in C++ (with Qt and QML) with
+a QML component which allows in-process authentication flows to be implemented
+easily.  This type of authentication flow is useful when the the application
+uses Owner-Only access control semantics, and the user trusts the application
+with the authentication data.
+
+More information about how this component may be used in an application can be
+found at the page about the \l{Sailfish OS Secrets Authentication QML Plugin}.
+
+\b{Note: in general, system authentication flows should be used instead of
+in-process authentication flows, to ensure that the user need not trust the
+application with authentication data!}
+
+\section2 The Sailfish OS Crypto Library
+
+This library provides client applications written in C++ (with Qt) with API to
+make use of the cryptographic services provided by the Sailfish OS Secrets and
+Crypto Framework.
+
+In-depth information can be found on the page about the
+\l{Sailfish OS Crypto Library Overview}.
+
+\section2 The Sailfish OS Secrets/Crypto C Library
+
+This library provides client applications written in C (with glib) with API to
+make use of the secrets storage and cryptography services provided by the
+Sailfish OS Secrets and Crypto Framework.
+
+In-depth information can be found on the page about the
+\l{Sailfish OS Secrets/Crypto C Library Overview}.
+
+*/

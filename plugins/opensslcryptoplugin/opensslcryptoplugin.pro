@@ -10,5 +10,5 @@ HEADERS += $$PWD/evp_p.h $$PWD/opensslcryptoplugin.h
 SOURCES += $$PWD/opensslcryptoplugin.cpp
 OTHER_FILES += $$PWD/cryptoplugin_common.cpp
 
-target.path=/usr/lib/sailfish/crypto/
+target.path=/usr/lib/Sailfish/Crypto/
 INSTALLS += target
