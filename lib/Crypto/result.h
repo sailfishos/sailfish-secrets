@@ -17,7 +17,7 @@ namespace Sailfish {
 
 namespace Crypto {
 
-class Result
+class SAILFISH_CRYPTO_API Result
 {
 public:
     enum ResultCode {

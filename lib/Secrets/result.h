@@ -17,7 +17,7 @@ namespace Sailfish {
 
 namespace Secrets {
 
-class Result {
+class SAILFISH_SECRETS_API Result {
 public:
     enum ResultCode {
         Succeeded = 0,
