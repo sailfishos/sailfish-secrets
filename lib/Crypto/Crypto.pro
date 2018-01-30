@@ -21,6 +21,7 @@ PUBLIC_HEADERS += \
     $$PWD/key.h \
     $$PWD/request.h \
     $$PWD/result.h \
+    $$PWD/storedkeyrequest.h \
     $$PWD/x509certificate.h
 
 PRIVATE_HEADERS += \
@@ -28,7 +29,8 @@ PRIVATE_HEADERS += \
     $$PWD/cryptodaemonconnection_p.h \
     $$PWD/cryptomanager_p.h \
     $$PWD/extensionplugins_p.h \
-    $$PWD/key_p.h
+    $$PWD/key_p.h \
+    $$PWD/storedkeyrequest_p.h
 
 HEADERS += \
     $$PUBLIC_HEADERS \
@@ -42,6 +44,7 @@ SOURCES += \
     $$PWD/key.cpp \
     $$PWD/request.cpp \
     $$PWD/serialisation.cpp \
+    $$PWD/storedkeyrequest.cpp \
     $$PWD/x509certificate.cpp
 
 develheaders.path = /usr/include/Sailfish/
