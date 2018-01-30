@@ -42,6 +42,9 @@ public:
             : algorithm(algo), parameters(params) {}
         AlgorithmIdentifier(const AlgorithmIdentifier &other)
             : algorithm(other.algorithm), parameters(other.parameters) {}
+        bool operator==(const AlgorithmIdentifier &other) const {
+            return algorithm == other.algorithm && parameters == other.parameters;
+        }
         QString algorithm;
         QVariantMap parameters;
     };
@@ -54,6 +57,9 @@ public:
                 : type(t), value(v) {}
             RelativeDistinguishedName(const RelativeDistinguishedName &other)
                 : type(other.type), value(other.value) {}
+            bool operator==(const RelativeDistinguishedName &other) const {
+                return type == other.type && value == other.value;
+            }
             QString type;
             QString value;
         };
@@ -89,6 +95,9 @@ public:
                 : relativeDistinguishedNames(rdns) {}
             EntityName(const EntityName &other)
                 : relativeDistinguishedNames(other.relativeDistinguishedNames) {}
+            bool operator==(const EntityName &other) const {
+                return relativeDistinguishedNames == other.relativeDistinguishedNames;
+            }
             QVector<RelativeDistinguishedName> relativeDistinguishedNames;
         };
 
@@ -98,6 +107,9 @@ public:
                 : notBefore(nb), notAfter(na) {}
             Validity(const Validity &other)
                 : notBefore(other.notBefore), notAfter(other.notAfter) {}
+            bool operator==(const Validity &other) const {
+                return notBefore == other.notBefore && notAfter == other.notAfter;
+            }
             QDateTime notBefore;
             QDateTime notAfter;
         };
@@ -108,6 +120,9 @@ public:
                 : algorithm(algo), subjectPublicKey(key) {}
             SubjectPublicKeyInfo(const SubjectPublicKeyInfo &other)
                 : algorithm(other.algorithm), subjectPublicKey(other.subjectPublicKey) {}
+            bool operator==(const SubjectPublicKeyInfo &other) const {
+                return algorithm == other.algorithm && subjectPublicKey == other.subjectPublicKey;
+            }
             AlgorithmIdentifier algorithm;
             QByteArray subjectPublicKey;
         };
@@ -119,6 +134,9 @@ public:
                 : extnID(exId), critical(crit), extnValue(exVal) {}
             Extension(const Extension &other)
                 : extnID(other.extnID), critical(other.critical), extnValue(other.extnValue) {}
+            bool operator==(const Extension &other) const {
+                return extnID == other.extnID && critical == other.critical && extnValue == other.extnValue;
+            }
             QString extnID;
             bool critical;
             QString extnValue;
@@ -136,6 +154,19 @@ public:
             , issuerUniqueID(other.issuerUniqueID)
             , subjectUniqueID(other.subjectUniqueID)
             , extensions(other.extensions) {}
+
+        bool operator==(const TbsCertificate &other) const {
+            return version == other.version
+                    && serialNumber == other.serialNumber
+                    && signature == other.signature
+                    && issuer == other.issuer
+                    && validity == other.validity
+                    && subject == other.subject
+                    && subjectPublicKeyInfo == other.subjectPublicKeyInfo
+                    && issuerUniqueID == other.issuerUniqueID
+                    && subjectUniqueID == other.subjectUniqueID
+                    && extensions == other.extensions;
+        }
 
         QString version;
         QString serialNumber; // an integer, expressed as separated-octet string

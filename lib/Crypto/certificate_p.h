@@ -22,6 +22,7 @@ public:
     CertificateData(Certificate::Type type);
     virtual ~CertificateData();
     virtual CertificateData *clone() const = 0;
+    virtual bool equals(const CertificateData * const other) const = 0;
     Certificate::Type m_type;
 };
 

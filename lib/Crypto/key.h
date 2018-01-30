@@ -138,6 +138,9 @@ public:
         bool operator==(const Sailfish::Crypto::Key::Identifier &other) const {
             return m_name == other.m_name && m_collectionName == other.m_collectionName;
         }
+        bool operator!=(const Sailfish::Crypto::Key::Identifier &other) const {
+            return m_name != other.m_name || m_collectionName != other.m_collectionName;
+        }
         bool operator<(const Sailfish::Crypto::Key::Identifier &other) const {
             return (m_collectionName < other.m_collectionName) ? true : (m_name < other.m_name);
         }
@@ -166,8 +169,9 @@ public:
     virtual ~Key();
 
     Sailfish::Crypto::Key & operator=(const Sailfish::Crypto::Key &other);
-    bool operator==(const Sailfish::Crypto::Key &other);
-    bool operator<(const Sailfish::Crypto::Key &other);
+    bool operator==(const Sailfish::Crypto::Key &other) const;
+    bool operator!=(const Sailfish::Crypto::Key &other) const;
+    bool operator<(const Sailfish::Crypto::Key &other) const;
 
     Sailfish::Crypto::Key::Identifier identifier() const;
     void setIdentifier(const Sailfish::Crypto::Key::Identifier &identifier);

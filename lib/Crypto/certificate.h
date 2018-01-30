@@ -56,6 +56,7 @@ public:
     virtual ~Certificate();
 
     Certificate &operator=(const Certificate &other);
+    virtual bool operator==(const Certificate &other) const;
 
     Certificate::Type type() const;
     virtual QByteArray publicKey() const;

@@ -51,6 +51,10 @@ public:
             return m_name == other.m_name && m_collectionName == other.m_collectionName;
         }
 
+        bool operator!=(const Sailfish::Secrets::Secret::Identifier &other) const {
+            return m_name != other.m_name || m_collectionName != other.m_collectionName;
+        }
+
         bool operator<(const Sailfish::Secrets::Secret::Identifier &other) const {
             if (m_collectionName < other.m_collectionName)
                 return true;
@@ -98,6 +102,10 @@ public:
 
     bool operator==(const Sailfish::Secrets::Secret &other) const {
         return type() == other.type() && m_data == other.m_data;
+    }
+
+    bool operator!=(const Sailfish::Secrets::Secret &other) const {
+        return type() != other.type() || m_data != other.m_data;
     }
 
     bool operator<(const Sailfish::Secrets::Secret &other) const {

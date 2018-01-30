@@ -57,6 +57,18 @@ Sailfish::Crypto::Certificate &Sailfish::Crypto::Certificate::operator=(const Sa
     return *this;
 }
 
+bool Sailfish::Crypto::Certificate::operator==(const Sailfish::Crypto::Certificate &other) const
+{
+    if (m_data && other.m_data) {
+        if (m_data->m_type == other.m_data->m_type) {
+            return m_data->equals(other.m_data);
+        }
+        return false;
+    }
+
+    return m_data == other.m_data;
+}
+
 Sailfish::Crypto::Certificate::Type Sailfish::Crypto::Certificate::type() const
 {
     return m_data ? m_data->m_type : Sailfish::Crypto::Certificate::Invalid;

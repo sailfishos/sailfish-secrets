@@ -25,6 +25,15 @@ namespace Sailfish {
                 retn->signatureValue = this->signatureValue;
                 return retn;
             }
+            bool equals(const X509CertificateData * const other) const {
+                return tbsCertificate == other->tbsCertificate
+                        && signatureAlgorithm == other->signatureAlgorithm
+                        && signatureValue == other->signatureValue;
+            }
+            bool equals(const CertificateData * const other) const {
+                return m_type == other->m_type
+                        && equals(static_cast<const X509CertificateData * const>(other));
+            }
             Sailfish::Crypto::X509Certificate::TbsCertificate tbsCertificate;
             Sailfish::Crypto::X509Certificate::AlgorithmIdentifier signatureAlgorithm;
             QByteArray signatureValue;

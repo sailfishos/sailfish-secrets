@@ -199,15 +199,23 @@ Key::~Key()
 /*!
  * \brief Returns true if the underlying data and metadata in this key are identical to those in \a other, otherwise false
  */
-bool Key::operator==(const Key &other)
+bool Key::operator==(const Key &other) const
 {
     return m_data->identical(*other.m_data);
 }
 
 /*!
+ * \brief Returns true if the underlying data and metadata in this key are not identical to those in \a other, otherwise false
+ */
+bool Key::operator!=(const Sailfish::Crypto::Key &other) const
+{
+    return !m_data->identical(*other.m_data);
+}
+
+/*!
  * \brief Returns true if this key should sort before the \a other key
  */
-bool Key::operator<(const Key &other)
+bool Key::operator<(const Key &other) const
 {
     return m_data->lessThan(*other.m_data);
 }
