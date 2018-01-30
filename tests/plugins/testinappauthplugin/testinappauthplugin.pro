@@ -10,5 +10,5 @@ DEFINES += SAILFISHSECRETS_TESTPLUGIN
 HEADERS += $$PWD/../../../plugins/inappauthplugin/plugin.h
 SOURCES += $$PWD/../../../plugins/inappauthplugin/plugin.cpp
 
-target.path=/usr/lib/sailfish/secrets/
+target.path=/usr/lib/Sailfish/Secrets/
 INSTALLS += target

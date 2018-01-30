@@ -1,0 +1,92 @@
+/****************************************************************************************
+**
+** Copyright (C) 2018 Jolla Ltd.
+** Contact: Chris Adams <chris.adams@jollamobile.com>
+** All rights reserved.
+**
+****************************************************************************************/
+
+/*!
+\contentspage {Sailfish OS Crypto Plugins Contents}
+\page sailfish-crypto-plugins.html
+
+\title Default Crypto Plugins for the Sailfish OS Secrets and Crypto Framework
+
+A number of plugins have been written for the framework which provide
+a variety of functionality for clients to use.  Most clients should use
+the platform default plugins when writing their applications, as these
+will provide the most consistent and secure experience.
+
+Device vendors and trusted partners may wish to provide their own plugins,
+and some applications may wish to specifically use those plugins.
+
+\section1 Default Crypto Plugins
+
+Currently, there are two Sailfish OS Crypto plugins shipped by default:
+
+\list
+\li org.sailfishos.crypto.plugin.crypto.openssl
+\li org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher
+\endlist
+
+The first plugin provides implementations of common cryptography functionality
+by calling the OpenSSL library functions internally.
+
+The second plugin shares its cryptography implementation with the first plugin,
+but also provides block-level encrypted secure storage of collections of
+secrets, using the SQLCipher library for its database operations.  Thus it is
+both a \tt{Sailfish::Crypto::CryptoPlugin} and a
+\tt{Sailfish::Secrets::EncryptedStoragePlugin}.
+
+Note that neither of these plugins use TEE/TPM or other secure-hardware
+to implement the cryptographic functionality.
+
+\section1 Which Plugin Should My Application Use?
+
+We recommend that the system default CryptoStorage plugin be used where
+possible.  In most cases, this will be the
+"org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher" plugin.
+
+The following snippet shows an example of using the default crypto
+storage plugin to create a symmetric key, and store it in an encrypted
+database managed by that same plugin:
+
+\code
+// Set the key template metadata.
+Sailfish::Crypto::Key keyTemplate, symmetricKeyReference;
+keyTemplate.setAlgorithm(Sailfish::Crypto::Key::Aes256);
+keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
+keyTemplate.setBlockModes(Sailfish::Crypto::Key::BlockModeCBC);
+keyTemplate.setEncryptionPaddings(Sailfish::Crypto::Key::EncryptionPaddingNone);
+keyTemplate.setSignaturePaddings(Sailfish::Crypto::Key::SignaturePaddingNone);
+keyTemplate.setDigests(Sailfish::Crypto::Key::DigestSha256);
+keyTemplate.setOperations(Sailfish::Crypto::Key::Encrypt
+                         |Sailfish::Crypto::Key::Decrypt);
+
+// Set the identifier for the key.
+// This assumes the existence of an "ExampleCollection" secure storage
+// collection, in which the key will be stored.
+// See Sailfish::Secrets::SecretManager::createCollection().
+keyTemplate.setIdentifier(QStringLiteral("ExampleKey"),
+                          QStringLiteral("ExampleCollection"));
+
+// Ask the system service to generate and store the key securely.
+Sailfish::Crypto::CryptoManager cm;
+QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key>
+        generateReply = cm.generateStoredKey(
+                keyTemplate,
+                Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
+generateReply.waitForFinished();
+if (generateReply.argumentAt<0>().code() == Sailfish::Crypto::Result::Failed) {
+    qWarning() << "Unable to generate and store symmetric key:"
+               << generateReply.argumentAt<0>().errorMessage();
+} else {
+    symmetricKeyReference = generateReply.argumentAt<1>();
+}
+\endcode
+
+Note that this example assumes that the "ExampleCollection" had already
+been created, via the appropriate call to
+\tt{Sailfish::Secrets::SecretManager::createCollection()}.
+
+*/

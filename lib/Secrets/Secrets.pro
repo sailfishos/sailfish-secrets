@@ -40,8 +40,8 @@ SOURCES += \
     $$PWD/interactionrequestwatcher.cpp \
     $$PWD/interactionservice.cpp
 
-develheaders.path = /usr/include/libsailfishsecrets/
-develheaders_secrets.path = /usr/include/libsailfishsecrets/Secrets/
+develheaders.path = /usr/include/Sailfish/
+develheaders_secrets.path = /usr/include/Sailfish/Secrets/
 develheaders_secrets.files = $$PUBLIC_HEADERS
 
 pkgconfig.files = $$TARGET.pc

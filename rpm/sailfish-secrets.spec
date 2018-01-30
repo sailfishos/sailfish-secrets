@@ -1,5 +1,5 @@
 Name:       libsailfishsecrets
-Summary:    Sailfish OS secrets storage system functionality library
+Summary:    Sailfish OS secrets storage system functionality client library
 Version:    0.0.1
 Release:    1
 Group:      System/Libraries
@@ -14,15 +14,33 @@ BuildRequires:  pkgconfig(Qt5DBus)
 %{summary}.
 
 %package devel
-Summary:    Development package for Sailfish OS secrets storage library.
+Summary:    Development package for Sailfish OS Secrets Library.
 Group:      System/Libraries
 Requires:   %{name} = %{version}-%{release}
 
 %description devel
 %{summary}.
 
+%package doc
+Summary: Documentation for Sailfish OS Secrets Library
+BuildRequires:  mer-qdoc-template
+BuildRequires:  qt5-qttools-qthelp-devel
+BuildRequires:  qt5-tools
+
+%description doc
+%{summary}.
+
+%package tests
+Summary:    Unit tests for the Sailfish OS Secrets Library.
+Group:      System/Libraries
+BuildRequires:  pkgconfig(Qt5Test)
+Requires:   %{name} = %{version}-%{release}
+
+%description tests
+%{summary}.
+
 %package -n libsailfishsecretsplugin
-Summary:    QML plugin providing types for clients of libsailfishsecrets.
+Summary:    QML plugin providing types for applications using libsailfishsecrets.
 Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5Quick)
 BuildRequires:  pkgconfig(Qt5Gui)
@@ -31,18 +49,55 @@ Requires:   %{name} = %{version}-%{release}
 %description -n libsailfishsecretsplugin
 %{summary}.
 
+%package -n libsailfishcrypto
+Summary:    Sailfish OS cryptographic operations system functionality client library
+Group:      System/Libraries
+BuildRequires:  pkgconfig(Qt5Core)
+BuildRequires:  pkgconfig(Qt5Sql)
+BuildRequires:  pkgconfig(Qt5DBus)
+
+%description -n libsailfishcrypto
+%{summary}.
+
+%package -n libsailfishcrypto-devel
+Summary:    Development package for Sailfish OS Crypto Library
+Group:      System/Libraries
+Requires:   libsailfishcrypto = %{version}-%{release}
+
+%description -n libsailfishcrypto-devel
+%{summary}.
+
+%package -n libsailfishcrypto-doc
+Summary: Documentation for Sailfish OS Crypto Library
+BuildRequires:  mer-qdoc-template
+BuildRequires:  qt5-qttools-qthelp-devel
+BuildRequires:  qt5-tools
+
+%description -n libsailfishcrypto-doc
+%{summary}.
+
+%package -n libsailfishcrypto-tests
+Summary:    Unit tests for the libsailfishcrypto library.
+Group:      System/Libraries
+BuildRequires:  pkgconfig(Qt5Test)
+Requires:   libsailfishcrypto = %{version}-%{release}
+
+%description -n libsailfishcrypto-tests
+%{summary}.
+
 %package -n sailfishsecretsdaemon
 Summary:    Sailfish OS secrets daemon (example).
 Group:      Applications/System
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(dbus-1)
-BuildRequires:  pkgconfig(libcrypto)
 BuildRequires:  qt5-plugin-sqldriver-sqlite
 Requires:   %{name} = %{version}-%{release}
+Requires:   libsailfishcrypto = %{version}-%{release}
 
 %description -n sailfishsecretsdaemon
-Provides an example secrets storage daemon service, which exposes functionality provided by libsailfishsecrets to clients via DBus.
+Provides an example secrets storage and cryptographic operations system daemon service,
+which exposes functionality provided by libsailfishsecrets and libsailfishcrypto to clients via DBus.
 
 %package -n sailfishsecretsdaemonplugins
 Summary:    Sailfish OS secrets daemon (example) plugins.
@@ -57,42 +112,6 @@ Requires:   sailfishsecretsdaemon = %{version}-%{release}
 
 %description -n sailfishsecretsdaemonplugins
 Provides a set of example secrets daemon plugins.
-
-%package tests
-Summary:    Unit tests for the libsailfishsecrets library.
-Group:      System/Libraries
-BuildRequires:  pkgconfig(Qt5Test)
-Requires:   %{name} = %{version}-%{release}
-
-%description tests
-%{summary}.
-
-%package -n libsailfishcrypto
-Summary:    Sailfish OS cryptographic operations library
-Group:      System/Libraries
-BuildRequires:  pkgconfig(Qt5Core)
-BuildRequires:  pkgconfig(Qt5Sql)
-BuildRequires:  pkgconfig(Qt5DBus)
-
-%description -n libsailfishcrypto
-%{summary}.
-
-%package -n libsailfishcrypto-devel
-Summary:    Development package for Sailfish OS cryptographic operations library
-Group:      System/Libraries
-Requires:   libsailfishcrypto = %{version}-%{release}
-
-%description -n libsailfishcrypto-devel
-%{summary}.
-
-%package -n libsailfishcrypto-tests
-Summary:    Unit tests for the libsailfishcrypto library.
-Group:      System/Libraries
-BuildRequires:  pkgconfig(Qt5Test)
-Requires:   libsailfishcrypto = %{version}-%{release}
-
-%description -n libsailfishcrypto-tests
-%{summary}.
 
 %package -n sailfishcryptodaemonplugins
 Summary:    Sailfish OS crypto daemon (example) plugins.
@@ -130,25 +149,33 @@ make %{?_smp_mflags}
 rm -rf %{buildroot}
 %qmake5_install
 
+mkdir -p %{buildroot}/%{_docdir}/Sailfish/Secrets/
+mkdir -p %{buildroot}/%{_docdir}/Sailfish/Crypto/
+cp -R lib/Secrets/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Secrets/
+cp -R lib/Crypto/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Crypto/
+
 %files
 %defattr(-,root,root,-)
 %{_libdir}/libsailfishsecrets.so.*
-
-%files -n libsailfishcrypto
-%defattr(-,root,root,-)
-%{_libdir}/libsailfishcrypto.so.*
 
 %files devel
 %defattr(-,root,root,-)
 %{_libdir}/libsailfishsecrets.so
 %{_libdir}/pkgconfig/sailfishsecrets.pc
-%{_includedir}/libsailfishsecrets/*
+%{_includedir}/Sailfish/Secrets/*
 
-%files -n libsailfishcrypto-devel
+%files doc
 %defattr(-,root,root,-)
-%{_libdir}/libsailfishcrypto.so
-%{_libdir}/pkgconfig/sailfishcrypto.pc
-%{_includedir}/libsailfishcrypto/*
+%{_docdir}/Sailfish/Secrets/*
+
+%files tests
+%defattr(-,root,root,-)
+/opt/tests/Sailfish/Secrets/tst_secrets
+/opt/tests/Sailfish/Secrets/tst_secrets.qml
+%{_libdir}/Sailfish/Secrets/libsailfishsecrets-testinappauth.so
+%{_libdir}/Sailfish/Secrets/libsailfishsecrets-testopenssl.so
+%{_libdir}/Sailfish/Secrets/libsailfishsecrets-testsqlcipher.so
+%{_libdir}/Sailfish/Secrets/libsailfishsecrets-testsqlite.so
 
 %files -n libsailfishsecretsplugin
 %defattr(-,root,root,-)
@@ -156,35 +183,40 @@ rm -rf %{buildroot}
 %{_libdir}/qt5/qml/Sailfish/Secrets/qmldir
 %{_libdir}/qt5/qml/Sailfish/Secrets/InteractionView.qml
 
+%files -n libsailfishcrypto
+%defattr(-,root,root,-)
+%{_libdir}/libsailfishcrypto.so.*
+
+%files -n libsailfishcrypto-devel
+%defattr(-,root,root,-)
+%{_libdir}/libsailfishcrypto.so
+%{_libdir}/pkgconfig/sailfishcrypto.pc
+%{_includedir}/Sailfish/Crypto/*
+
+%files -n libsailfishcrypto-doc
+%defattr(-,root,root,-)
+%{_docdir}/Sailfish/Crypto/*
+
+%files -n libsailfishcrypto-tests
+%defattr(-,root,root,-)
+/opt/tests/Sailfish/Crypto/tst_crypto
+/opt/tests/Sailfish/Crypto/tst_cryptosecrets
+%{_libdir}/Sailfish/Crypto/libsailfishcrypto-testopenssl.so
+
 %files -n sailfishsecretsdaemon
 %defattr(-,root,root,-)
 %{_bindir}/sailfishsecretsd
 
 %files -n sailfishsecretsdaemonplugins
 %defattr(-,root,root,-)
-%{_libdir}/sailfish/secrets/libsailfishsecrets-inappauth.so
-%{_libdir}/sailfish/secrets/libsailfishsecrets-openssl.so
-%{_libdir}/sailfish/secrets/libsailfishsecrets-sqlcipher.so
-%{_libdir}/sailfish/secrets/libsailfishsecrets-sqlite.so
+%{_libdir}/Sailfish/Secrets/libsailfishsecrets-inappauth.so
+%{_libdir}/Sailfish/Secrets/libsailfishsecrets-openssl.so
+%{_libdir}/Sailfish/Secrets/libsailfishsecrets-sqlcipher.so
+%{_libdir}/Sailfish/Secrets/libsailfishsecrets-sqlite.so
 
 %files -n sailfishcryptodaemonplugins
 %defattr(-,root,root,-)
-%{_libdir}/sailfish/crypto/libsailfishcrypto-openssl.so
-
-%files tests
-%defattr(-,root,root,-)
-/opt/tests/Sailfish/Secrets/tst_secrets
-/opt/tests/Sailfish/Secrets/tst_secrets.qml
-%{_libdir}/sailfish/secrets/libsailfishsecrets-testinappauth.so
-%{_libdir}/sailfish/secrets/libsailfishsecrets-testopenssl.so
-%{_libdir}/sailfish/secrets/libsailfishsecrets-testsqlcipher.so
-%{_libdir}/sailfish/secrets/libsailfishsecrets-testsqlite.so
-
-%files -n libsailfishcrypto-tests
-%defattr(-,root,root,-)
-/opt/tests/Sailfish/Crypto/tst_crypto
-/opt/tests/Sailfish/Crypto/tst_cryptosecrets
-%{_libdir}/sailfish/crypto/libsailfishcrypto-testopenssl.so
+%{_libdir}/Sailfish/Crypto/libsailfishcrypto-openssl.so
 
 %files -n qt5-plugin-sqldriver-sqlcipher
 %defattr(-,root,root,-)

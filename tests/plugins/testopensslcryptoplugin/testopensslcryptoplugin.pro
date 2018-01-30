@@ -18,5 +18,5 @@ SOURCES += \
 OTHER_FILES += \
     $$PWD/../../../plugins/opensslcryptoplugin/cryptoplugin_common.cpp
 
-target.path=/usr/lib/sailfish/crypto/
+target.path=/usr/lib/Sailfish/Crypto/
 INSTALLS += target

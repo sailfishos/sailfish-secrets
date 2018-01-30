@@ -15,5 +15,5 @@ HEADERS += \
 SOURCES += \
     $$PWD/../../../plugins/opensslplugin/plugin.cpp
 
-target.path=/usr/lib/sailfish/secrets/
+target.path=/usr/lib/Sailfish/Secrets/
 INSTALLS += target
