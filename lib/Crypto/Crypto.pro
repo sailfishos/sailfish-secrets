@@ -19,6 +19,7 @@ PUBLIC_HEADERS += \
     $$PWD/cryptomanager.h \
     $$PWD/extensionplugins.h \
     $$PWD/key.h \
+    $$PWD/request.h \
     $$PWD/result.h \
     $$PWD/x509certificate.h
 
@@ -39,6 +40,7 @@ SOURCES += \
     $$PWD/cryptomanager.cpp \
     $$PWD/extensionplugins.cpp \
     $$PWD/key.cpp \
+    $$PWD/request.cpp \
     $$PWD/serialisation.cpp \
     $$PWD/x509certificate.cpp
 
