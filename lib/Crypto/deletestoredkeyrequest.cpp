@@ -9,6 +9,8 @@
 #include "Crypto/deletestoredkeyrequest_p.h"
 
 #include "Crypto/cryptomanager.h"
+#include "Crypto/cryptomanager_p.h"
+#include "Crypto/serialisation_p.h"
 
 #include <QtDBus/QDBusPendingReply>
 #include <QtDBus/QDBusPendingCallWatcher>
@@ -74,7 +76,7 @@ void DeleteStoredKeyRequest::startRequest()
         }
 
         QDBusPendingReply<Result> reply =
-                d->m_manager->deleteStoredKey(d->m_identifier);
+                d->m_manager->d_ptr->deleteStoredKey(d->m_identifier);
         if (reply.isFinished()) {
             d->m_status = Request::Finished;
             d->m_result = reply.argumentAt<0>();

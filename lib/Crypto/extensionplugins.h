@@ -20,9 +20,6 @@
 #include <QtCore/QHash>
 #include <QtCore/QMap>
 
-#include <QtDBus/QDBusArgument>
-#include <QtDBus/QDBusMetaType>
-
 #define Sailfish_Crypto_CryptoPlugin_IID "org.sailfishos.crypto.CryptoPlugin/1.0"
 
 namespace Sailfish {
@@ -148,9 +145,6 @@ public:
 private:
     CryptoPluginInfoData *m_data;
 };
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CryptoPluginInfo &pluginInfo) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CryptoPluginInfo &pluginInfo) SAILFISH_CRYPTO_API;
 
 } // namespace Crypto
 

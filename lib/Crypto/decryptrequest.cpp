@@ -9,6 +9,8 @@
 #include "Crypto/decryptrequest_p.h"
 
 #include "Crypto/cryptomanager.h"
+#include "Crypto/cryptomanager_p.h"
+#include "Crypto/serialisation_p.h"
 
 #include <QtDBus/QDBusPendingReply>
 #include <QtDBus/QDBusPendingCallWatcher>
@@ -175,12 +177,12 @@ void DecryptRequest::startRequest()
         }
 
         QDBusPendingReply<Result, QByteArray> reply =
-                d->m_manager->decrypt(d->m_data,
-                                      d->m_key,
-                                      d->m_blockMode,
-                                      d->m_padding,
-                                      d->m_digest,
-                                      d->m_cryptoPluginName);
+                d->m_manager->d_ptr->decrypt(d->m_data,
+                                             d->m_key,
+                                             d->m_blockMode,
+                                             d->m_padding,
+                                             d->m_digest,
+                                             d->m_cryptoPluginName);
         if (reply.isFinished()) {
             d->m_status = Request::Finished;
             d->m_result = reply.argumentAt<0>();

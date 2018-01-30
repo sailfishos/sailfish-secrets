@@ -17,9 +17,6 @@
 #include <QtCore/QHash>
 #include <QtCore/QMap>
 
-#include <QtDBus/QDBusArgument>
-#include <QtDBus/QDBusMetaType>
-
 namespace Sailfish {
 
 namespace Crypto {
@@ -241,41 +238,6 @@ public:
 protected:
     KeyData *m_data;
 };
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key &key) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key &key) SAILFISH_CRYPTO_API;
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Identifier &identifier) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Identifier &identifier) SAILFISH_CRYPTO_API;
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::FilterData &filterData) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::FilterData &filterData) SAILFISH_CRYPTO_API;
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Origin origin) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Origin &origin) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Algorithm algorithm) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Algorithm &algorithm) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::BlockMode mode) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::BlockMode &mode) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::EncryptionPadding padding) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::EncryptionPadding &padding) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::SignaturePadding padding) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::SignaturePadding &padding) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Digest digest) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Digest &digest) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Operation operation) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Operation &operation) SAILFISH_CRYPTO_API;
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::BlockModes modes) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::BlockModes &modes) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::EncryptionPaddings paddings) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::EncryptionPaddings &paddings) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::SignaturePaddings paddings) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::SignaturePaddings &paddings) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Digests digests) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Digests &digests) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Operations operations) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Operations &operations) SAILFISH_CRYPTO_API;
 
 } // namespace Crypto
 

@@ -16,9 +16,6 @@
 #include <QtCore/QHash>
 #include <QtCore/QVariantMap>
 
-#include <QtDBus/QDBusArgument>
-#include <QtDBus/QDBusMetaType>
-
 namespace Sailfish {
 
 namespace Crypto {
@@ -68,9 +65,6 @@ protected:
     Certificate(CertificateData *data);
     CertificateData *m_data;
 };
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Certificate &certificate) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Certificate &certificate) SAILFISH_CRYPTO_API;
 
 } // namespace Crypto
 

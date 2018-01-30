@@ -7,6 +7,7 @@
 
 #include "Crypto/cryptomanager.h"
 #include "Crypto/cryptomanager_p.h"
+#include "Crypto/serialisation_p.h"
 #include "Crypto/key.h"
 #include "Crypto/certificate.h"
 
@@ -31,11 +32,10 @@ const QString CryptoManager::DefaultCryptoPluginName = QStringLiteral("org.sailf
 const QString CryptoManager::DefaultCryptoStoragePluginName = QStringLiteral("org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher");
 
 CryptoManagerPrivate::CryptoManagerPrivate(CryptoManager *parent)
-    : QObject(parent)
-    , m_parent(parent)
+    : m_parent(parent)
     , m_crypto(CryptoDaemonConnection::instance())
     , m_interface(m_crypto->connect()
-                  ? m_crypto->createInterface(QLatin1String("/Sailfish/Crypto"), QLatin1String("org.sailfishos.crypto"), this)
+                  ? m_crypto->createInterface(QLatin1String("/Sailfish/Crypto"), QLatin1String("org.sailfishos.crypto"), parent)
                   : Q_NULLPTR)
 {
 }
@@ -46,40 +46,19 @@ CryptoManagerPrivate::~CryptoManagerPrivate()
 }
 
 /*!
-  \brief Constructs a new CryptoManager instance with the given \a parent.
- */
-CryptoManager::CryptoManager(QObject *parent)
-    : QObject(parent)
-    , m_data(new CryptoManagerPrivate(this))
-{
-    if (!m_data->m_interface) {
-        qCWarning(lcSailfishCrypto) << "Unable to connect to the crypto daemon!  No functionality will be available!";
-        return;
-    }
-}
-
-/*!
-  \brief Returns true if the DBus connection to the crypto daemon has been established, otherwise false
- */
-bool CryptoManager::isInitialised() const
-{
-    return m_data->m_interface;
-}
-
-/*!
  * \brief Returns information about crypto plugins as well as the names of storage plugins
  */
 QDBusPendingReply<Result, QVector<CryptoPluginInfo>, QStringList>
-CryptoManager::getPluginInfo()
+CryptoManagerPrivate::getPluginInfo()
 {
-    if (!m_data->m_interface) {
+    if (!m_interface) {
         return QDBusPendingReply<Result, QVector<CryptoPluginInfo>, QStringList>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
     QDBusPendingReply<Result, QVector<CryptoPluginInfo>, QStringList> reply
-            = m_data->m_interface->asyncCall("getPluginInfo");
+            = m_interface->asyncCall("getPluginInfo");
 
     return reply;
 }
@@ -91,18 +70,18 @@ CryptoManager::getPluginInfo()
  * any cryptographic operations required to validate the authenticity of the certificate.
  */
 QDBusPendingReply<Result, bool>
-CryptoManager::validateCertificateChain(
+CryptoManagerPrivate::validateCertificateChain(
         const QVector<Certificate> &chain,
         const QString &cryptosystemProviderName)
 {
-    if (!m_data->m_interface) {
+    if (!m_interface) {
         return QDBusPendingReply<Result, bool>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
     QDBusPendingReply<Result, bool> reply
-            = m_data->m_interface->asyncCallWithArgumentList(
+            = m_interface->asyncCallWithArgumentList(
                 "validateCertificateChain",
                 QVariantList() << QVariant::fromValue<QVector<Certificate> >(chain)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
@@ -116,18 +95,18 @@ CryptoManager::validateCertificateChain(
  * be returned in its complete form to the caller.
  */
 QDBusPendingReply<Result, Key>
-CryptoManager::generateKey(
+CryptoManagerPrivate::generateKey(
         const Key &keyTemplate,
         const QString &cryptosystemProviderName)
 {
-    if (!m_data->m_interface) {
+    if (!m_interface) {
         return QDBusPendingReply<Result, Key>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
     QDBusPendingReply<Result, Key> reply
-            = m_data->m_interface->asyncCallWithArgumentList(
+            = m_interface->asyncCallWithArgumentList(
                 "generateKey",
                 QVariantList() << QVariant::fromValue<Key>(keyTemplate)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
@@ -149,19 +128,19 @@ CryptoManager::generateKey(
  * cryptosystem provider plugin, if that plugin supports storing keys.
  */
 QDBusPendingReply<Result, Key>
-CryptoManager::generateStoredKey(
+CryptoManagerPrivate::generateStoredKey(
         const Key &keyTemplate,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName)
 {
-    if (!m_data->m_interface) {
+    if (!m_interface) {
         return QDBusPendingReply<Result, Key>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
     QDBusPendingReply<Result, Key> reply
-            = m_data->m_interface->asyncCallWithArgumentList(
+            = m_interface->asyncCallWithArgumentList(
                 "generateStoredKey",
                 QVariantList() << QVariant::fromValue<Key>(keyTemplate)
                                << QVariant::fromValue<QString>(cryptosystemProviderName)
@@ -176,26 +155,19 @@ CryptoManager::generateStoredKey(
  * has not previously been granted permission by the user to access the key data.
  */
 QDBusPendingReply<Result, Key>
-CryptoManager::storedKey(
+CryptoManagerPrivate::storedKey(
         const Key::Identifier &identifier) // TODO: do we need parameter: just get metadata/public vs get private data, etc?
 {
-    if (!m_data->m_interface) {
+    if (!m_interface) {
         return QDBusPendingReply<Result, Key>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
     QDBusPendingReply<Result, Key> reply
-            = m_data->m_interface->asyncCallWithArgumentList(
+            = m_interface->asyncCallWithArgumentList(
                 "storedKey",
                 QVariantList() << QVariant::fromValue<Key::Identifier>(identifier));
-    // TODO: does this also need collectionName ? or is name a combo of secretName+collectionName somehow?
-    // I think the crypto daemon can handle that:
-    //    when storing, specify name + crypto + storage
-    //    create row in secrets database: name -> SailfishCryptoCollection_storage, storage, crypto
-    //    We should also prevent random apps from creating any collection with name starting with SailfishCrypto
-    // That way we have a unique mapping from name to collection+name, etc.
-    // Hrm.  I dunno, maybe collection name is a good idea...
     return reply;
 }
 
@@ -206,17 +178,17 @@ CryptoManager::storedKey(
  * has not previously been granted permission by the user to access the key data.
  */
 QDBusPendingReply<Result>
-CryptoManager::deleteStoredKey(
+CryptoManagerPrivate::deleteStoredKey(
         const Key::Identifier &identifier)
 {
-    if (!m_data->m_interface) {
+    if (!m_interface) {
         return QDBusPendingReply<Result>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
     QDBusPendingReply<Result> reply
-            = m_data->m_interface->asyncCallWithArgumentList(
+            = m_interface->asyncCallWithArgumentList(
                 "deleteStoredKey",
                 QVariantList() << QVariant::fromValue<Key::Identifier>(identifier));
     return reply;
@@ -233,16 +205,16 @@ CryptoManager::deleteStoredKey(
  * may trigger further access control UI flows.
  */
 QDBusPendingReply<Result, QVector<Key::Identifier> >
-CryptoManager::storedKeyIdentifiers() // TODO: UI interaction mode param, if NoUserInteraction then just show the keys already permitted?
+CryptoManagerPrivate::storedKeyIdentifiers() // TODO: UI interaction mode param, if NoUserInteraction then just show the keys already permitted?
 {
-    if (!m_data->m_interface) {
+    if (!m_interface) {
         return QDBusPendingReply<Result, QVector<Key::Identifier> >(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
     QDBusPendingReply<Result, QVector<Key::Identifier> > reply
-            = m_data->m_interface->asyncCall("storedKeyIdentifiers");
+            = m_interface->asyncCall("storedKeyIdentifiers");
     return reply;
 }
 
@@ -255,21 +227,21 @@ CryptoManager::storedKeyIdentifiers() // TODO: UI interaction mode param, if NoU
  * required to sign data).
  */
 QDBusPendingReply<Result, QByteArray>
-CryptoManager::sign(
+CryptoManagerPrivate::sign(
         const QByteArray &data,
         const Key &key,
         Key::SignaturePadding padding,
         Key::Digest digest,
         const QString &cryptosystemProviderName)
 {
-    if (!m_data->m_interface) {
+    if (!m_interface) {
         return QDBusPendingReply<Result, QByteArray>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
     QDBusPendingReply<Result, QByteArray> reply
-            = m_data->m_interface->asyncCallWithArgumentList(
+            = m_interface->asyncCallWithArgumentList(
                 "sign",
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<Key>(key)
@@ -288,21 +260,21 @@ CryptoManager::sign(
  * required to verify signed data).
  */
 QDBusPendingReply<Result, bool>
-CryptoManager::verify(
+CryptoManagerPrivate::verify(
         const QByteArray &data,
         const Key &key,
         Key::SignaturePadding padding,
         Key::Digest digest,
         const QString &cryptosystemProviderName)
 {
-    if (!m_data->m_interface) {
+    if (!m_interface) {
         return QDBusPendingReply<Result, bool>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
     QDBusPendingReply<Result, bool> reply
-            = m_data->m_interface->asyncCallWithArgumentList(
+            = m_interface->asyncCallWithArgumentList(
                 "verify",
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<Key>(key)
@@ -322,7 +294,7 @@ CryptoManager::verify(
  * required to encrypt data).
  */
 QDBusPendingReply<Result, QByteArray>
-CryptoManager::encrypt(
+CryptoManagerPrivate::encrypt(
         const QByteArray &data,
         const Key &key, // or keyreference, i.e. Key(keyName)
         Key::BlockMode blockMode,
@@ -330,14 +302,14 @@ CryptoManager::encrypt(
         Key::Digest digest,
         const QString &cryptosystemProviderName)
 {
-    if (!m_data->m_interface) {
+    if (!m_interface) {
         return QDBusPendingReply<Result>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
     QDBusPendingReply<Result, QByteArray> reply
-            = m_data->m_interface->asyncCallWithArgumentList(
+            = m_interface->asyncCallWithArgumentList(
                 "encrypt",
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<Key>(key)
@@ -358,7 +330,7 @@ CryptoManager::encrypt(
  * required to decrypt data).
  */
 QDBusPendingReply<Result, QByteArray>
-CryptoManager::decrypt(
+CryptoManagerPrivate::decrypt(
         const QByteArray &data,
         const Key &key, // or keyreference, i.e. Key(keyName)
         Key::BlockMode blockMode,
@@ -366,14 +338,14 @@ CryptoManager::decrypt(
         Key::Digest digest,
         const QString &cryptosystemProviderName)
 {
-    if (!m_data->m_interface) {
+    if (!m_interface) {
         return QDBusPendingReply<Result>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
     QDBusPendingReply<Result, QByteArray> reply
-            = m_data->m_interface->asyncCallWithArgumentList(
+            = m_interface->asyncCallWithArgumentList(
                 "decrypt",
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<Key>(key)
@@ -384,3 +356,31 @@ CryptoManager::decrypt(
     return reply;
 }
 
+/*!
+  \brief Constructs a new CryptoManager instance with the given \a parent.
+ */
+CryptoManager::CryptoManager(QObject *parent)
+    : QObject(parent)
+    , d_ptr(new CryptoManagerPrivate(this))
+{
+    if (!d_ptr->m_interface) {
+        qCWarning(lcSailfishCrypto) << "Unable to connect to the crypto daemon!  No functionality will be available!";
+        return;
+    }
+}
+
+/*!
+  \brief Destroys the CryptoManager.
+ */
+CryptoManager::~CryptoManager()
+{
+}
+
+/*!
+  \brief Returns true if the manager is initialised and can be used to perform requests.
+ */
+bool CryptoManager::isInitialised() const
+{
+    Q_D(const CryptoManager);
+    return d->m_interface;
+}

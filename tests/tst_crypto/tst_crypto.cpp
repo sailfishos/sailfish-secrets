@@ -10,6 +10,8 @@
 #include <QDBusReply>
 
 #include "Crypto/cryptomanager.h"
+#include "Crypto/cryptomanager_p.h"
+#include "Crypto/serialisation_p.h"
 #include "Crypto/key.h"
 #include "Crypto/result.h"
 #include "Crypto/x509certificate.h"
@@ -40,7 +42,7 @@ private slots:
     void validateCertificateChain();
 
 private:
-    CryptoManager cm;
+    CryptoManagerPrivate cm;
 };
 
 void tst_crypto::init()

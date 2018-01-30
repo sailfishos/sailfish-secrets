@@ -14,7 +14,6 @@ DEPENDPATH += $$INCLUDEPATH $$PWD
 
 PUBLIC_HEADERS += \
     $$PWD/certificate.h \
-    $$PWD/cryptodaemonconnection.h \
     $$PWD/cryptoglobal.h \
     $$PWD/cryptomanager.h \
     $$PWD/decryptrequest.h \
@@ -34,9 +33,13 @@ PUBLIC_HEADERS += \
     $$PWD/verifyrequest.h \
     $$PWD/x509certificate.h
 
+INTERNAL_PUBLIC_HEADERS += \
+    $$PWD/cryptodaemonconnection_p.h \
+    $$PWD/serialisation_p.h
+
 PRIVATE_HEADERS += \
     $$PWD/certificate_p.h \
-    $$PWD/cryptodaemonconnection_p.h \
+    $$PWD/cryptodaemonconnection_p_p.h \
     $$PWD/cryptomanager_p.h \
     $$PWD/decryptrequest_p.h \
     $$PWD/deletestoredkeyrequest_p.h \
@@ -54,6 +57,7 @@ PRIVATE_HEADERS += \
 
 HEADERS += \
     $$PUBLIC_HEADERS \
+    $$INTERNAL_PUBLIC_HEADERS \
     $$PRIVATE_HEADERS
 
 SOURCES += \
@@ -79,7 +83,7 @@ SOURCES += \
 
 develheaders.path = /usr/include/Sailfish/
 develheaders_crypto.path = /usr/include/Sailfish/Crypto/
-develheaders_crypto.files = $$PUBLIC_HEADERS
+develheaders_crypto.files = $$PUBLIC_HEADERS $$INTERNAL_PUBLIC_HEADERS
 
 pkgconfig.files = $$TARGET.pc
 pkgconfig.path = $$target.path/pkgconfig

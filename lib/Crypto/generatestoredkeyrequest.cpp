@@ -9,6 +9,8 @@
 #include "Crypto/generatestoredkeyrequest_p.h"
 
 #include "Crypto/cryptomanager.h"
+#include "Crypto/cryptomanager_p.h"
+#include "Crypto/serialisation_p.h"
 
 #include <QtDBus/QDBusPendingReply>
 #include <QtDBus/QDBusPendingCallWatcher>
@@ -118,9 +120,9 @@ void GenerateStoredKeyRequest::startRequest()
         }
 
         QDBusPendingReply<Result, Key> reply =
-                d->m_manager->generateStoredKey(d->m_keyTemplate,
-                                                d->m_cryptoPluginName,
-                                                d->m_storagePluginName);
+                d->m_manager->d_ptr->generateStoredKey(d->m_keyTemplate,
+                                                       d->m_cryptoPluginName,
+                                                       d->m_storagePluginName);
         if (reply.isFinished()) {
             d->m_status = Request::Finished;
             d->m_result = reply.argumentAt<0>();

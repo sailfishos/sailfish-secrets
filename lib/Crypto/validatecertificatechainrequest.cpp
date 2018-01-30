@@ -9,6 +9,8 @@
 #include "Crypto/validatecertificatechainrequest_p.h"
 
 #include "Crypto/cryptomanager.h"
+#include "Crypto/cryptomanager_p.h"
+#include "Crypto/serialisation_p.h"
 #include "Crypto/certificate.h"
 
 #include <QtDBus/QDBusPendingReply>
@@ -101,8 +103,8 @@ void ValidateCertificateChainRequest::startRequest()
         }
 
         QDBusPendingReply<Result, bool> reply =
-                d->m_manager->validateCertificateChain(d->m_certificateChain,
-                                                       d->m_cryptoPluginName);
+                d->m_manager->d_ptr->validateCertificateChain(d->m_certificateChain,
+                                                              d->m_cryptoPluginName);
         if (reply.isFinished()) {
             d->m_status = Request::Finished;
             d->m_result = reply.argumentAt<0>();
