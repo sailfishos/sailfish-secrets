@@ -24,6 +24,7 @@ PUBLIC_HEADERS += \
     $$PWD/plugininforequest.h \
     $$PWD/request.h \
     $$PWD/result.h \
+    $$PWD/storedkeyidentifiersrequest.h \
     $$PWD/storedkeyrequest.h \
     $$PWD/validatecertificatechainrequest.h \
     $$PWD/x509certificate.h
@@ -37,6 +38,7 @@ PRIVATE_HEADERS += \
     $$PWD/generatestoredkeyrequest_p.h \
     $$PWD/key_p.h \
     $$PWD/plugininforequest_p.h \
+    $$PWD/storedkeyidentifiersrequest_p.h \
     $$PWD/storedkeyrequest_p.h \
     $$PWD/validatecertificatechainrequest_p.h
 
@@ -55,6 +57,7 @@ SOURCES += \
     $$PWD/plugininforequest.cpp \
     $$PWD/request.cpp \
     $$PWD/serialisation.cpp \
+    $$PWD/storedkeyidentifiersrequest.cpp \
     $$PWD/storedkeyrequest.cpp \
     $$PWD/validatecertificatechainrequest.cpp \
     $$PWD/x509certificate.cpp
