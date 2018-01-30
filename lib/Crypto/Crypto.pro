@@ -17,6 +17,7 @@ PUBLIC_HEADERS += \
     $$PWD/cryptodaemonconnection.h \
     $$PWD/cryptoglobal.h \
     $$PWD/cryptomanager.h \
+    $$PWD/deletestoredkeyrequest.h \
     $$PWD/extensionplugins.h \
     $$PWD/generatekeyrequest.h \
     $$PWD/generatestoredkeyrequest.h \
@@ -33,6 +34,7 @@ PRIVATE_HEADERS += \
     $$PWD/certificate_p.h \
     $$PWD/cryptodaemonconnection_p.h \
     $$PWD/cryptomanager_p.h \
+    $$PWD/deletestoredkeyrequest_p.h \
     $$PWD/extensionplugins_p.h \
     $$PWD/generatekeyrequest_p.h \
     $$PWD/generatestoredkeyrequest_p.h \
@@ -50,6 +52,7 @@ SOURCES += \
     $$PWD/certificate.cpp \
     $$PWD/cryptodaemonconnection.cpp \
     $$PWD/cryptomanager.cpp \
+    $$PWD/deletestoredkeyrequest.cpp \
     $$PWD/extensionplugins.cpp \
     $$PWD/generatekeyrequest.cpp \
     $$PWD/generatestoredkeyrequest.cpp \
