@@ -19,6 +19,7 @@ PUBLIC_HEADERS += \
     $$PWD/cryptomanager.h \
     $$PWD/extensionplugins.h \
     $$PWD/generatekeyrequest.h \
+    $$PWD/generatestoredkeyrequest.h \
     $$PWD/key.h \
     $$PWD/plugininforequest.h \
     $$PWD/request.h \
@@ -33,6 +34,7 @@ PRIVATE_HEADERS += \
     $$PWD/cryptomanager_p.h \
     $$PWD/extensionplugins_p.h \
     $$PWD/generatekeyrequest_p.h \
+    $$PWD/generatestoredkeyrequest_p.h \
     $$PWD/key_p.h \
     $$PWD/plugininforequest_p.h \
     $$PWD/storedkeyrequest_p.h \
@@ -48,6 +50,7 @@ SOURCES += \
     $$PWD/cryptomanager.cpp \
     $$PWD/extensionplugins.cpp \
     $$PWD/generatekeyrequest.cpp \
+    $$PWD/generatestoredkeyrequest.cpp \
     $$PWD/key.cpp \
     $$PWD/plugininforequest.cpp \
     $$PWD/request.cpp \
