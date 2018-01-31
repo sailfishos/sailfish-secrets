@@ -200,6 +200,7 @@ cp -R lib/Crypto/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Crypto/
 %files -n libsailfishcrypto-tests
 %defattr(-,root,root,-)
 /opt/tests/Sailfish/Crypto/tst_crypto
+/opt/tests/Sailfish/Crypto/tst_cryptorequests
 /opt/tests/Sailfish/Crypto/tst_cryptosecrets
 %{_libdir}/Sailfish/Crypto/libsailfishcrypto-testopenssl.so
 
