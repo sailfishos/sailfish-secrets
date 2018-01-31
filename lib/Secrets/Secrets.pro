@@ -13,6 +13,7 @@ INCLUDEPATH += $$PWD/../
 DEPENDPATH += $$INCLUDEPATH $$PWD
 
 PUBLIC_HEADERS += \
+    $$PWD/createcollectionrequest.h \
     $$PWD/extensionplugins.h \
     $$PWD/request.h \
     $$PWD/result.h \
@@ -25,6 +26,7 @@ PUBLIC_HEADERS += \
     $$PWD/interactionview.h
 
 PRIVATE_HEADERS += \
+    $$PWD/createcollectionrequest_p.h \
     $$PWD/secretsdaemonconnection_p.h \
     $$PWD/secretmanager_p.h \
     $$PWD/interactionservice_p.h
@@ -34,6 +36,7 @@ HEADERS += \
     $$PRIVATE_HEADERS
 
 SOURCES += \
+    $$PWD/createcollectionrequest.cpp \
     $$PWD/extensionplugins.cpp \
     $$PWD/request.cpp \
     $$PWD/secretsdaemonconnection.cpp \
