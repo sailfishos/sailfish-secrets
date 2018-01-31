@@ -72,16 +72,17 @@ keyTemplate.setIdentifier(QStringLiteral("ExampleKey"),
 
 // Ask the system service to generate and store the key securely.
 Sailfish::Crypto::CryptoManager cm;
-QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key>
-        generateReply = cm.generateStoredKey(
-                keyTemplate,
-                Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
-generateReply.waitForFinished();
-if (generateReply.argumentAt<0>().code() == Sailfish::Crypto::Result::Failed) {
+Sailfish::Crypto::GenerateStoredKeyRequest generateRequest(&cm);
+generateRequest.setKeyTemplate(keyTemplate);
+generateRequest.setCryptoPluginName(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
+generateRequest.setStoragePluginName(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
+generateRequest.startRequest();
+generateRequest.waitForFinished();
+if (generateRequest.result().code() == Sailfish::Crypto::Result::Failed) {
     qWarning() << "Unable to generate and store symmetric key:"
-               << generateReply.argumentAt<0>().errorMessage();
+               << generateRequest.result().errorMessage();
 } else {
-    symmetricKeyReference = generateReply.argumentAt<1>();
+    symmetricKeyReference = generateRequest.generatedKeyReference();
 }
 \endcode
 

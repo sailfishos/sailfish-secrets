@@ -24,22 +24,40 @@ VerifyRequestPrivate::VerifyRequestPrivate(CryptoManager *manager)
 {
 }
 
+/*!
+ * \class VerifyRequest
+ * \brief Allows a client request the system crypto service to verify that data was signed with a specific key
+ */
+
+/*!
+ * \brief Constructs a new VerifyRequest object which interfaces to the system
+ *        crypto service via the given \a manager, with the given \a parent.
+ */
 VerifyRequest::VerifyRequest(CryptoManager *manager, QObject *parent)
     : Request(parent)
     , d_ptr(new VerifyRequestPrivate(manager))
 {
 }
 
+/*!
+ * \brief Destroys the VerifyRequest
+ */
 VerifyRequest::~VerifyRequest()
 {
 }
 
+/*!
+ * \brief Returns the signature data which the client wishes the system service to verify
+ */
 QByteArray VerifyRequest::data() const
 {
     Q_D(const VerifyRequest);
     return d->m_data;
 }
 
+/*!
+ * \brief Sets the signature data which the client wishes the system service to verify to \a data
+ */
 void VerifyRequest::setData(const QByteArray &data)
 {
     Q_D(VerifyRequest);
@@ -57,12 +75,18 @@ void VerifyRequest::setData(const QByteArray &data)
     }
 }
 
+/*!
+ * \brief Returns the key which the client wishes the system service to use to verify the data
+ */
 Key VerifyRequest::key() const
 {
     Q_D(const VerifyRequest);
     return d->m_key;
 }
 
+/*!
+ * \brief Sets the key which the client wishes the system service to use to verify the data to \a key
+ */
 void VerifyRequest::setKey(const Key &key)
 {
     Q_D(VerifyRequest);
@@ -80,12 +104,18 @@ void VerifyRequest::setKey(const Key &key)
     }
 }
 
+/*!
+ * \brief Returns the signature padding mode which was used when signing the data
+ */
 Sailfish::Crypto::Key::SignaturePadding VerifyRequest::padding() const
 {
     Q_D(const VerifyRequest);
     return d->m_padding;
 }
 
+/*!
+ * \brief Sets the signature padding mode which was used when signing the data to \a padding
+ */
 void VerifyRequest::setPadding(Sailfish::Crypto::Key::SignaturePadding padding)
 {
     Q_D(VerifyRequest);
@@ -103,12 +133,18 @@ void VerifyRequest::setPadding(Sailfish::Crypto::Key::SignaturePadding padding)
     }
 }
 
+/*!
+ * \brief Returns the digest which was used to generate the signature
+ */
 Sailfish::Crypto::Key::Digest VerifyRequest::digest() const
 {
     Q_D(const VerifyRequest);
     return d->m_digest;
 }
 
+/*!
+ * \brief Sets the digest which was used to generate the signature to \a digest
+ */
 void VerifyRequest::setDigest(Sailfish::Crypto::Key::Digest digest)
 {
     Q_D(VerifyRequest);
@@ -126,12 +162,18 @@ void VerifyRequest::setDigest(Sailfish::Crypto::Key::Digest digest)
     }
 }
 
+/*!
+ * \brief Returns the name of the crypto plugin which the client wishes to perform the verification operation
+ */
 QString VerifyRequest::cryptoPluginName() const
 {
     Q_D(const VerifyRequest);
     return d->m_cryptoPluginName;
 }
 
+/*!
+ * \brief Sets the name of the crypto plugin which the client wishes to perform the verification operation to \a pluginName
+ */
 void VerifyRequest::setCryptoPluginName(const QString &pluginName)
 {
     Q_D(VerifyRequest);
@@ -149,6 +191,11 @@ void VerifyRequest::setCryptoPluginName(const QString &pluginName)
     }
 }
 
+/*!
+ * \brief Returns true if signature data was determined to have been signed with the specified key.
+ *
+ * Note: this value is only valid if the status of the request is Request::Finished.
+ */
 bool VerifyRequest::verified() const
 {
     Q_D(const VerifyRequest);

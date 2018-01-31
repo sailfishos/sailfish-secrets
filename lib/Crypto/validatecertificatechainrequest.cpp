@@ -25,22 +25,40 @@ ValidateCertificateChainRequestPrivate::ValidateCertificateChainRequestPrivate(C
 {
 }
 
+/*!
+ * \class ValidateCertificateChainRequest
+ * \brief Allows a client to request the system crypto service to validate a certificate chain's authenticity and validity
+ */
+
+/*!
+ * \brief Constructs a new ValidateCertificateChainRequest object which interfaces to the system
+ *        crypto service via the given \a manager, with the given \a parent.
+ */
 ValidateCertificateChainRequest::ValidateCertificateChainRequest(CryptoManager *manager, QObject *parent)
     : Request(parent)
     , d_ptr(new ValidateCertificateChainRequestPrivate(manager))
 {
 }
 
+/*!
+ * \brief Destroys the ValidateCertificateChainRequest
+ */
 ValidateCertificateChainRequest::~ValidateCertificateChainRequest()
 {
 }
 
+/*!
+ * \brief Returns the name of the crypto plugin which the client wishes to perform the encryption operation
+ */
 QString ValidateCertificateChainRequest::cryptoPluginName() const
 {
     Q_D(const ValidateCertificateChainRequest);
     return d->m_cryptoPluginName;
 }
 
+/*!
+ * \brief Sets the name of the crypto plugin which the client wishes to perform the encryption operation to \a name
+ */
 void ValidateCertificateChainRequest::setCryptoPluginName(const QString &name)
 {
     Q_D(ValidateCertificateChainRequest);
@@ -54,12 +72,18 @@ void ValidateCertificateChainRequest::setCryptoPluginName(const QString &name)
     }
 }
 
+/*!
+ * \brief Returns the chain of certificates that the client wishes to validate
+ */
 QVector<Certificate> ValidateCertificateChainRequest::certificateChain() const
 {
     Q_D(const ValidateCertificateChainRequest);
     return d->m_certificateChain;
 }
 
+/*!
+ * \brief Sets the chain of certificates that the client wishes to validate to \a chain
+ */
 void ValidateCertificateChainRequest::setCertificateChain(const QVector<Certificate> &chain)
 {
     Q_D(ValidateCertificateChainRequest);
@@ -73,6 +97,11 @@ void ValidateCertificateChainRequest::setCertificateChain(const QVector<Certific
     }
 }
 
+/*!
+ * \brief Returns true if the validity and authenticity of the certificate chain was able to be verified, otherwise false.
+ *
+ * Note: this value is only valid if the status of the request is Request::Finished.
+ */
 bool ValidateCertificateChainRequest::validated() const
 {
     Q_D(const ValidateCertificateChainRequest);

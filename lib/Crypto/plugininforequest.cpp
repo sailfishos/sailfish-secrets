@@ -23,22 +23,44 @@ PluginInfoRequestPrivate::PluginInfoRequestPrivate(CryptoManager *manager)
 {
 }
 
+/*!
+ * \class PluginInfoRequest
+ * \brief Allows a client request information about available crypto and storage plugins
+ */
+
+/*!
+ * \brief Constructs a new PluginInfoRequest object which interfaces to the system
+ *        crypto service via the given \a manager, with the given \a parent.
+ */
 PluginInfoRequest::PluginInfoRequest(CryptoManager *manager, QObject *parent)
     : Request(parent)
     , d_ptr(new PluginInfoRequestPrivate(manager))
 {
 }
 
+/*!
+ * \brief Destroys the PluginInfoRequest
+ */
 PluginInfoRequest::~PluginInfoRequest()
 {
 }
 
+/*!
+ * \brief Returns information about available crypto plugins
+ *
+ * Note: this value is only valid if the status of the request is Request::Finished.
+ */
 QVector<Sailfish::Crypto::CryptoPluginInfo> PluginInfoRequest::cryptoPlugins() const
 {
     Q_D(const PluginInfoRequest);
     return d->m_cryptoPlugins;
 }
 
+/*!
+ * \brief Returns the name of available storage plugins
+ *
+ * Note: this value is only valid if the status of the request is Request::Finished.
+ */
 QStringList PluginInfoRequest::storagePlugins() const
 {
     Q_D(const PluginInfoRequest);

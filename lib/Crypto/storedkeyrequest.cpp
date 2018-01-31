@@ -23,22 +23,41 @@ StoredKeyRequestPrivate::StoredKeyRequestPrivate(CryptoManager *manager)
 {
 }
 
+/*!
+ * \class StoredKeyRequest
+ * \brief Allows a client request a securely-stored key from the system crypto service
+ */
+
+/*!
+ * \brief Constructs a new StoredKeyRequest object which interfaces to the system
+ *        crypto service via the given \a manager, with the given \a parent.
+ */
 StoredKeyRequest::StoredKeyRequest(CryptoManager *manager, QObject *parent)
     : Request(parent)
     , d_ptr(new StoredKeyRequestPrivate(manager))
 {
 }
 
+/*!
+ * \brief Destroys the StoredKeyRequest
+ */
 StoredKeyRequest::~StoredKeyRequest()
 {
 }
 
+/*!
+ * \brief Returns the identifier of the securely-stored key which the client wishes to retrieve
+ */
 Key::Identifier StoredKeyRequest::identifier() const
 {
     Q_D(const StoredKeyRequest);
     return d->m_identifier;
 }
 
+
+/*!
+ * \brief Sets the identifier of the securely-stored key which the client wishes to retrieve to \a ident
+ */
 void StoredKeyRequest::setIdentifier(const Key::Identifier &ident)
 {
     Q_D(StoredKeyRequest);
@@ -52,6 +71,11 @@ void StoredKeyRequest::setIdentifier(const Key::Identifier &ident)
     }
 }
 
+/*!
+ * \brief Returns the retrieved key
+ *
+ * Note: this value is only valid if the status of the request is Request::Finished.
+ */
 Key StoredKeyRequest::storedKey() const
 {
     Q_D(const StoredKeyRequest);

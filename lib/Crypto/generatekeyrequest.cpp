@@ -23,22 +23,40 @@ GenerateKeyRequestPrivate::GenerateKeyRequestPrivate(CryptoManager *manager)
 {
 }
 
+/*!
+ * \class GenerateKeyRequest
+ * \brief Allows a client request that the system crypto service generate a key based on a template.
+ */
+
+/*!
+ * \brief Constructs a new GenerateKeyRequest object which interfaces to the system
+ *        crypto service via the given \a manager, with the given \a parent.
+ */
 GenerateKeyRequest::GenerateKeyRequest(CryptoManager *manager, QObject *parent)
     : Request(parent)
     , d_ptr(new GenerateKeyRequestPrivate(manager))
 {
 }
 
+/*!
+ * \brief Destroys the GenerateKeyRequest
+ */
 GenerateKeyRequest::~GenerateKeyRequest()
 {
 }
 
+/*!
+ * \brief Returns the name of the crypto plugin which the client wishes to perform the key generation operation
+ */
 QString GenerateKeyRequest::cryptoPluginName() const
 {
     Q_D(const GenerateKeyRequest);
     return d->m_cryptoPluginName;
 }
 
+/*!
+ * \brief Sets the name of the crypto plugin which the client wishes to perform the key generation operation to \a pluginName
+ */
 void GenerateKeyRequest::setCryptoPluginName(const QString &pluginName)
 {
     Q_D(GenerateKeyRequest);
@@ -52,12 +70,18 @@ void GenerateKeyRequest::setCryptoPluginName(const QString &pluginName)
     }
 }
 
+/*!
+ * \brief Returns the key which should be used as a template when generating the full key
+ */
 Key GenerateKeyRequest::keyTemplate() const
 {
     Q_D(const GenerateKeyRequest);
     return d->m_keyTemplate;
 }
 
+/*!
+ * \brief Sets the key which should be used as a template when generating the full key to \a key
+ */
 void GenerateKeyRequest::setKeyTemplate(const Key &key)
 {
     Q_D(GenerateKeyRequest);
@@ -71,6 +95,11 @@ void GenerateKeyRequest::setKeyTemplate(const Key &key)
     }
 }
 
+/*!
+ * \brief Returns the generated key
+ *
+ * Note: this value is only valid if the status of the request is Request::Finished.
+ */
 Key GenerateKeyRequest::generatedKey() const
 {
     Q_D(const GenerateKeyRequest);

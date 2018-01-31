@@ -23,16 +23,33 @@ StoredKeyIdentifiersRequestPrivate::StoredKeyIdentifiersRequestPrivate(CryptoMan
 {
 }
 
+/*!
+ * \class StoredKeyIdentifiersRequest
+ * \brief Allows a client request the identifiers of securely-stored keys from the system crypto service
+ */
+
+/*!
+ * \brief Constructs a new StoredKeyIdentifiersRequest object which interfaces to the system
+ *        crypto service via the given \a manager, with the given \a parent.
+ */
 StoredKeyIdentifiersRequest::StoredKeyIdentifiersRequest(CryptoManager *manager, QObject *parent)
     : Request(parent)
     , d_ptr(new StoredKeyIdentifiersRequestPrivate(manager))
 {
 }
 
+/*!
+ * \brief Destroys the StoredKeyIdentifiersRequest
+ */
 StoredKeyIdentifiersRequest::~StoredKeyIdentifiersRequest()
 {
 }
 
+/*!
+ * \brief Returns the identifiers of securely-stored keys
+ *
+ * Note: this value is only valid if the status of the request is Request::Finished.
+ */
 QVector<Key::Identifier> StoredKeyIdentifiersRequest::identifiers() const
 {
     Q_D(const StoredKeyIdentifiersRequest);

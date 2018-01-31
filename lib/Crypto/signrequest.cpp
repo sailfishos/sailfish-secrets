@@ -23,22 +23,40 @@ SignRequestPrivate::SignRequestPrivate(CryptoManager *manager)
 {
 }
 
+/*!
+ * \class SignRequest
+ * \brief Allows a client request the system crypto service to sign data with a specific key
+ */
+
+/*!
+ * \brief Constructs a new SignRequest object which interfaces to the system
+ *        crypto service via the given \a manager, with the given \a parent.
+ */
 SignRequest::SignRequest(CryptoManager *manager, QObject *parent)
     : Request(parent)
     , d_ptr(new SignRequestPrivate(manager))
 {
 }
 
+/*!
+ * \brief Destroys the SignRequest
+ */
 SignRequest::~SignRequest()
 {
 }
 
+/*!
+ * \brief Returns the data which the client wishes the system service to sign
+ */
 QByteArray SignRequest::data() const
 {
     Q_D(const SignRequest);
     return d->m_data;
 }
 
+/*!
+ * \brief Sets the data which the client wishes the system service to sign to \a data
+ */
 void SignRequest::setData(const QByteArray &data)
 {
     Q_D(SignRequest);
@@ -52,12 +70,18 @@ void SignRequest::setData(const QByteArray &data)
     }
 }
 
+/*!
+ * \brief Returns the key which the client wishes the system service to use to sign the data
+ */
 Key SignRequest::key() const
 {
     Q_D(const SignRequest);
     return d->m_key;
 }
 
+/*!
+ * \brief Sets the key which the client wishes the system service to use to sign the data to \a key
+ */
 void SignRequest::setKey(const Key &key)
 {
     Q_D(SignRequest);
@@ -71,12 +95,18 @@ void SignRequest::setKey(const Key &key)
     }
 }
 
+/*!
+ * \brief Returns the signature padding mode which should be used when signing the data
+ */
 Sailfish::Crypto::Key::SignaturePadding SignRequest::padding() const
 {
     Q_D(const SignRequest);
     return d->m_padding;
 }
 
+/*!
+ * \brief Sets the signature padding mode which should be used when signing the data to \a padding
+ */
 void SignRequest::setPadding(Sailfish::Crypto::Key::SignaturePadding padding)
 {
     Q_D(SignRequest);
@@ -90,12 +120,18 @@ void SignRequest::setPadding(Sailfish::Crypto::Key::SignaturePadding padding)
     }
 }
 
+/*!
+ * \brief Returns the digest which should be used to generate the signature
+ */
 Sailfish::Crypto::Key::Digest SignRequest::digest() const
 {
     Q_D(const SignRequest);
     return d->m_digest;
 }
 
+/*!
+ * \brief Sets the digest which should be used to generate the signature to \a digest
+ */
 void SignRequest::setDigest(Sailfish::Crypto::Key::Digest digest)
 {
     Q_D(SignRequest);
@@ -109,12 +145,18 @@ void SignRequest::setDigest(Sailfish::Crypto::Key::Digest digest)
     }
 }
 
+/*!
+ * \brief Returns the name of the crypto plugin which the client wishes to perform the sign operation
+ */
 QString SignRequest::cryptoPluginName() const
 {
     Q_D(const SignRequest);
     return d->m_cryptoPluginName;
 }
 
+/*!
+ * \brief Sets the name of the crypto plugin which the client wishes to perform the sign operation to \a pluginName
+ */
 void SignRequest::setCryptoPluginName(const QString &pluginName)
 {
     Q_D(SignRequest);
@@ -128,6 +170,11 @@ void SignRequest::setCryptoPluginName(const QString &pluginName)
     }
 }
 
+/*!
+ * \brief Returns the signature result of the sign operation.
+ *
+ * Note: this value is only valid if the status of the request is Request::Finished.
+ */
 QByteArray SignRequest::signature() const
 {
     Q_D(const SignRequest);

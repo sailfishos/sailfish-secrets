@@ -23,22 +23,40 @@ GenerateStoredKeyRequestPrivate::GenerateStoredKeyRequestPrivate(CryptoManager *
 {
 }
 
+/*!
+ * \class GenerateKeyRequest
+ * \brief Allows a client request that the system crypto service generate and secure store a key based on a template.
+ */
+
+/*!
+ * \brief Constructs a new GenerateStoredKeyRequest object which interfaces to the system
+ *        crypto service via the given \a manager, with the given \a parent.
+ */
 GenerateStoredKeyRequest::GenerateStoredKeyRequest(CryptoManager *manager, QObject *parent)
     : Request(parent)
     , d_ptr(new GenerateStoredKeyRequestPrivate(manager))
 {
 }
 
+/*!
+ * \brief Destroys the GenerateStoredKeyRequest
+ */
 GenerateStoredKeyRequest::~GenerateStoredKeyRequest()
 {
 }
 
+/*!
+ * \brief Returns the name of the crypto plugin which the client wishes to perform the key generation operation
+ */
 QString GenerateStoredKeyRequest::cryptoPluginName() const
 {
     Q_D(const GenerateStoredKeyRequest);
     return d->m_cryptoPluginName;
 }
 
+/*!
+ * \brief Sets the name of the crypto plugin which the client wishes to perform the key generation operation to \a pluginName
+ */
 void GenerateStoredKeyRequest::setCryptoPluginName(const QString &pluginName)
 {
     Q_D(GenerateStoredKeyRequest);
@@ -52,12 +70,18 @@ void GenerateStoredKeyRequest::setCryptoPluginName(const QString &pluginName)
     }
 }
 
+/*!
+ * \brief Returns the name of the storage plugin which the client wishes the generated key to be stored in
+ */
 QString GenerateStoredKeyRequest::storagePluginName() const
 {
     Q_D(const GenerateStoredKeyRequest);
     return d->m_storagePluginName;
 }
 
+/*!
+ * \brief Sets the name of the storage plugin which the client wishes the generated key to be stored in to \a pluginName
+ */
 void GenerateStoredKeyRequest::setStoragePluginName(const QString &pluginName)
 {
     Q_D(GenerateStoredKeyRequest);
@@ -71,12 +95,18 @@ void GenerateStoredKeyRequest::setStoragePluginName(const QString &pluginName)
     }
 }
 
+/*!
+ * \brief Returns the key which should be used as a template when generating the full key
+ */
 Key GenerateStoredKeyRequest::keyTemplate() const
 {
     Q_D(const GenerateStoredKeyRequest);
     return d->m_keyTemplate;
 }
 
+/*!
+ * \brief Sets the key which should be used as a template when generating the full key to \a key
+ */
 void GenerateStoredKeyRequest::setKeyTemplate(const Key &key)
 {
     Q_D(GenerateStoredKeyRequest);
@@ -90,6 +120,13 @@ void GenerateStoredKeyRequest::setKeyTemplate(const Key &key)
     }
 }
 
+/*!
+ * \brief Returns a key reference to the securely-stored generated key
+ *
+ * Note: this value is only valid if the status of the request is Request::Finished.
+ *
+ * The key reference will contain metadata and a valid identifier, but no private or secret key data.
+ */
 Key GenerateStoredKeyRequest::generatedKeyReference() const
 {
     Q_D(const GenerateStoredKeyRequest);

@@ -23,22 +23,40 @@ DeleteStoredKeyRequestPrivate::DeleteStoredKeyRequestPrivate(CryptoManager *mana
 {
 }
 
+/*!
+ * \class DeleteStoredKeyRequest
+ * \brief Allows a client request that the system crypto service delete a stored key
+ */
+
+/*!
+ * \brief Constructs a new DeleteStoredKeyRequest object which interfaces to the system
+ *        crypto service via the given \a manager, with the given \a parent.
+ */
 DeleteStoredKeyRequest::DeleteStoredKeyRequest(CryptoManager *manager, QObject *parent)
     : Request(parent)
     , d_ptr(new DeleteStoredKeyRequestPrivate(manager))
 {
 }
 
+/*!
+ * \brief Destroys the DeleteStoredKeyRequest
+ */
 DeleteStoredKeyRequest::~DeleteStoredKeyRequest()
 {
 }
 
+/*!
+ * \brief Returns the identifier of the stored key which the client wishes to be deleted
+ */
 Key::Identifier DeleteStoredKeyRequest::identifier() const
 {
     Q_D(const DeleteStoredKeyRequest);
     return d->m_identifier;
 }
 
+/*!
+ * \brief Sets the identifier of the stored key which the client wishes to be deleted to \a ident
+ */
 void DeleteStoredKeyRequest::setIdentifier(const Key::Identifier &ident)
 {
     Q_D(DeleteStoredKeyRequest);

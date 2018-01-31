@@ -23,22 +23,40 @@ EncryptRequestPrivate::EncryptRequestPrivate(CryptoManager *manager)
 {
 }
 
+/*!
+ * \class EncryptRequest
+ * \brief Allows a client request that the system crypto service encrypt data with a specific key.
+ */
+
+/*!
+ * \brief Constructs a new EncryptRequest object which interfaces to the system
+ *        crypto service via the given \a manager, with the given \a parent.
+ */
 EncryptRequest::EncryptRequest(CryptoManager *manager, QObject *parent)
     : Request(parent)
     , d_ptr(new EncryptRequestPrivate(manager))
 {
 }
 
+/*!
+ * \brief Destroys the EncryptRequest
+ */
 EncryptRequest::~EncryptRequest()
 {
 }
 
+/*!
+ * \brief Returns the data which the client wishes the system service to encrypt
+ */
 QByteArray EncryptRequest::data() const
 {
     Q_D(const EncryptRequest);
     return d->m_data;
 }
 
+/*!
+ * \brief Sets the data which the client wishes the system service to encrypt to \a data
+ */
 void EncryptRequest::setData(const QByteArray &data)
 {
     Q_D(EncryptRequest);
@@ -52,12 +70,18 @@ void EncryptRequest::setData(const QByteArray &data)
     }
 }
 
+/*!
+ * \brief Returns the key which the client wishes the system service to use to encrypt the data
+ */
 Key EncryptRequest::key() const
 {
     Q_D(const EncryptRequest);
     return d->m_key;
 }
 
+/*!
+ * \brief Sets the key which the client wishes the system service to use to encrypt the data to \a key
+ */
 void EncryptRequest::setKey(const Key &key)
 {
     Q_D(EncryptRequest);
@@ -71,12 +95,18 @@ void EncryptRequest::setKey(const Key &key)
     }
 }
 
+/*!
+ * \brief Returns the block mode which should be used when encrypting the data
+ */
 Sailfish::Crypto::Key::BlockMode EncryptRequest::blockMode() const
 {
     Q_D(const EncryptRequest);
     return d->m_blockMode;
 }
 
+/*!
+ * \brief Sets the block mode which should be used when encrypting the data to \a mode
+ */
 void EncryptRequest::setBlockMode(Sailfish::Crypto::Key::BlockMode mode)
 {
     Q_D(EncryptRequest);
@@ -90,12 +120,18 @@ void EncryptRequest::setBlockMode(Sailfish::Crypto::Key::BlockMode mode)
     }
 }
 
+/*!
+ * \brief Returns the encryption padding mode which should be used when encrypting the data
+ */
 Sailfish::Crypto::Key::EncryptionPadding EncryptRequest::padding() const
 {
     Q_D(const EncryptRequest);
     return d->m_padding;
 }
 
+/*!
+ * \brief Sets the encryption padding mode which should be used when encrypting the data to \a padding
+ */
 void EncryptRequest::setPadding(Sailfish::Crypto::Key::EncryptionPadding padding)
 {
     Q_D(EncryptRequest);
@@ -109,12 +145,18 @@ void EncryptRequest::setPadding(Sailfish::Crypto::Key::EncryptionPadding padding
     }
 }
 
+/*!
+ * \brief Returns the digest which should be used to hash the encrypted data
+ */
 Sailfish::Crypto::Key::Digest EncryptRequest::digest() const
 {
     Q_D(const EncryptRequest);
     return d->m_digest;
 }
 
+/*!
+ * \brief Sets the digest which should be used to hash the encrypted data to \a digest
+ */
 void EncryptRequest::setDigest(Sailfish::Crypto::Key::Digest digest)
 {
     Q_D(EncryptRequest);
@@ -128,12 +170,18 @@ void EncryptRequest::setDigest(Sailfish::Crypto::Key::Digest digest)
     }
 }
 
+/*!
+ * \brief Returns the name of the crypto plugin which the client wishes to perform the encryption operation
+ */
 QString EncryptRequest::cryptoPluginName() const
 {
     Q_D(const EncryptRequest);
     return d->m_cryptoPluginName;
 }
 
+/*!
+ * \brief Sets the name of the crypto plugin which the client wishes to perform the encryption operation to \a pluginName
+ */
 void EncryptRequest::setCryptoPluginName(const QString &pluginName)
 {
     Q_D(EncryptRequest);
@@ -147,6 +195,11 @@ void EncryptRequest::setCryptoPluginName(const QString &pluginName)
     }
 }
 
+/*!
+ * \brief Returns the ciphertext result of the encryption operation.
+ *
+ * Note: this value is only valid if the status of the request is Request::Finished.
+ */
 QByteArray EncryptRequest::ciphertext() const
 {
     Q_D(const EncryptRequest);

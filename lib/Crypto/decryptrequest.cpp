@@ -23,22 +23,40 @@ DecryptRequestPrivate::DecryptRequestPrivate(CryptoManager *manager)
 {
 }
 
+/*!
+ * \class DecryptRequest
+ * \brief Allows a client request that the system crypto service decrypt data with a specific key.
+ */
+
+/*!
+ * \brief Constructs a new DecryptRequest object which interfaces to the system
+ *        crypto service via the given \a manager, with the given \a parent.
+ */
 DecryptRequest::DecryptRequest(CryptoManager *manager, QObject *parent)
     : Request(parent)
     , d_ptr(new DecryptRequestPrivate(manager))
 {
 }
 
+/*!
+ * \brief Destroys the DecryptRequest
+ */
 DecryptRequest::~DecryptRequest()
 {
 }
 
+/*!
+ * \brief Returns the data which the client wishes to decrypt
+ */
 QByteArray DecryptRequest::data() const
 {
     Q_D(const DecryptRequest);
     return d->m_data;
 }
 
+/*!
+ * \brief Sets the data which the client wishes to decrypt to \a data
+ */
 void DecryptRequest::setData(const QByteArray &data)
 {
     Q_D(DecryptRequest);
@@ -52,12 +70,18 @@ void DecryptRequest::setData(const QByteArray &data)
     }
 }
 
+/*!
+ * \brief Returns the key the client wishes to be used to decrypt data
+ */
 Key DecryptRequest::key() const
 {
     Q_D(const DecryptRequest);
     return d->m_key;
 }
 
+/*!
+ * \brief Sets the key the client wishes to be used to decrypt data to \a key
+ */
 void DecryptRequest::setKey(const Key &key)
 {
     Q_D(DecryptRequest);
@@ -71,12 +95,18 @@ void DecryptRequest::setKey(const Key &key)
     }
 }
 
+/*!
+ * \brief Returns the block mode to be used when decrypting the data
+ */
 Sailfish::Crypto::Key::BlockMode DecryptRequest::blockMode() const
 {
     Q_D(const DecryptRequest);
     return d->m_blockMode;
 }
 
+/*!
+ * \brief Sets the block mode to be used when decrypting the data to the given \a mode
+ */
 void DecryptRequest::setBlockMode(Sailfish::Crypto::Key::BlockMode mode)
 {
     Q_D(DecryptRequest);
@@ -90,12 +120,18 @@ void DecryptRequest::setBlockMode(Sailfish::Crypto::Key::BlockMode mode)
     }
 }
 
+/*!
+ * \brief Returns the encryption padding mode to be used when decrypting the data
+ */
 Sailfish::Crypto::Key::EncryptionPadding DecryptRequest::padding() const
 {
     Q_D(const DecryptRequest);
     return d->m_padding;
 }
 
+/*!
+ * \brief Sets the encryption padding mode to be used when decrypting the data to the given \a padding
+ */
 void DecryptRequest::setPadding(Sailfish::Crypto::Key::EncryptionPadding padding)
 {
     Q_D(DecryptRequest);
@@ -109,12 +145,18 @@ void DecryptRequest::setPadding(Sailfish::Crypto::Key::EncryptionPadding padding
     }
 }
 
+/*!
+ * \brief Returns the digest used to hash the encrypted data
+ */
 Sailfish::Crypto::Key::Digest DecryptRequest::digest() const
 {
     Q_D(const DecryptRequest);
     return d->m_digest;
 }
 
+/*!
+ * \brief Sets the digest used to hash the encrypted data to the given \a digest
+ */
 void DecryptRequest::setDigest(Sailfish::Crypto::Key::Digest digest)
 {
     Q_D(DecryptRequest);
@@ -128,12 +170,18 @@ void DecryptRequest::setDigest(Sailfish::Crypto::Key::Digest digest)
     }
 }
 
+/*!
+ * \brief Returns the name of the crypto plugin which the client wishes to perform the decryption operation
+ */
 QString DecryptRequest::cryptoPluginName() const
 {
     Q_D(const DecryptRequest);
     return d->m_cryptoPluginName;
 }
 
+/*!
+ * \brief Sets the name of the crypto plugin which the client wishes to perform the decryption operation to \a pluginName
+ */
 void DecryptRequest::setCryptoPluginName(const QString &pluginName)
 {
     Q_D(DecryptRequest);
@@ -147,6 +195,11 @@ void DecryptRequest::setCryptoPluginName(const QString &pluginName)
     }
 }
 
+/*!
+ * \brief Returns the plaintext result of the decryption operation.
+ *
+ * Note: this value is only valid if the status of the request is Request::Finished.
+ */
 QByteArray DecryptRequest::plaintext() const
 {
     Q_D(const DecryptRequest);

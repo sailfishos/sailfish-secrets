@@ -31,6 +31,15 @@ using namespace Sailfish::Crypto;
 const QString CryptoManager::DefaultCryptoPluginName = QStringLiteral("org.sailfishos.crypto.plugin.crypto.openssl");
 const QString CryptoManager::DefaultCryptoStoragePluginName = QStringLiteral("org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher");
 
+/*!
+ * \internal
+ * \class CryptoManagerPrivate
+ * \brief Performs DBus calls to the system crypto service
+ */
+
+/*!
+ * \internal
+ */
 CryptoManagerPrivate::CryptoManagerPrivate(CryptoManager *parent)
     : m_parent(parent)
     , m_crypto(CryptoDaemonConnection::instance())
@@ -40,12 +49,16 @@ CryptoManagerPrivate::CryptoManagerPrivate(CryptoManager *parent)
 {
 }
 
+/*!
+ * \internal
+ */
 CryptoManagerPrivate::~CryptoManagerPrivate()
 {
     CryptoDaemonConnection::releaseInstance();
 }
 
 /*!
+ * \internal
  * \brief Returns information about crypto plugins as well as the names of storage plugins
  */
 QDBusPendingReply<Result, QVector<CryptoPluginInfo>, QStringList>
@@ -64,6 +77,7 @@ CryptoManagerPrivate::getPluginInfo()
 }
 
 /*!
+ * \internal
  * \brief Attempts to verify the validity of the first certificate in the given certificate chain
  *
  * The cryptosystem provider identified by the given \a cryptosystemProviderName will perform
@@ -89,6 +103,7 @@ CryptoManagerPrivate::validateCertificateChain(
 }
 
 /*!
+ * \internal
  * \brief Uses the cryptosystem provider identified by \a cryptosystemProviderName to generate a key according to the specified \a keyTemplate.
  *
  * This key will not be stored securely by the crypto daemon, but instead will
@@ -115,6 +130,7 @@ CryptoManagerPrivate::generateKey(
 
 
 /*!
+ * \internal
  * \brief Uses the cryptosystem provider identified by \a cryptosystemProviderName to generate a key according to the specified \a keyTemplate.
  *
  * This key will be stored securely by the crypto daemon via the storage
@@ -149,6 +165,7 @@ CryptoManagerPrivate::generateStoredKey(
 }
 
 /*!
+ * \internal
  * \brief Returns the full stored key identified by the given \a identifier.
  *
  * This may trigger a system access control dialog if the calling application
@@ -172,6 +189,7 @@ CryptoManagerPrivate::storedKey(
 }
 
 /*!
+ * \internal
  * \brief Deletes the stored key identified by the given \a identifier.
  *
  * This may trigger a system access control dialog if the calling application
@@ -195,6 +213,7 @@ CryptoManagerPrivate::deleteStoredKey(
 }
 
 /*!
+ * \internal
  * \brief Returns the names of stored keys which the application is permitted to enumerate.
  *
  * This may trigger a system access control UI flow within which the user
@@ -219,6 +238,7 @@ CryptoManagerPrivate::storedKeyIdentifiers() // TODO: UI interaction mode param,
 }
 
 /*!
+ * \internal
  * \brief Attempt to sign the given \a data with the provided \a key with padding mode \a padding and hash function \a digest.
  *
  * The \a key may be a key reference (that is, a key containing just an identifier)
@@ -252,6 +272,7 @@ CryptoManagerPrivate::sign(
 }
 
 /*!
+ * \internal
  * \brief Attempt to verify the given signed \a data with the provided \a key assuming padding mode \a padding and hash function \a digest.
  *
  * The \a key may be a key reference (that is, a key containing just an identifier)
@@ -285,6 +306,7 @@ CryptoManagerPrivate::verify(
 }
 
 /*!
+ * \internal
  * \brief Attempt to encrypt the given \a data with the provided \a key with
  *        block mode \a blockMode, padding mode \a padding, and hash function \a digest.
  *
@@ -321,6 +343,7 @@ CryptoManagerPrivate::encrypt(
 }
 
 /*!
+ * \internal
  * \brief Attempt to decrypt the given \a data with the provided \a key assuming
  *        block mode \a blockMode, padding mode \a padding, and hash function \a digest.
  *
@@ -355,6 +378,29 @@ CryptoManagerPrivate::decrypt(
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
+
+/*!
+  \class CryptoManager
+  \brief Allows clients to make requests of the system crypto service.
+
+  The CryptoManager class provides an interface to the system crypto service.
+  In order to perform requests, clients should use the \l Request
+  type specific for their needs:
+
+  \list
+  \li \l{PluginInfoRequest} to retrieve information about crypto plugins
+  \li \l{ValidateCertificateChainRequest} to validate certificates
+  \li \l{GenerateKeyRequest} to generate a \l{Key}
+  \li \l{GenerateStoredKeyRequest} to generate a securely-stored \l{Key}
+  \li \l{StoredKeyRequest} to retrieve a securely-stored \l{Key}
+  \li \l{StoredKeyIdentifiersRequest} to retrieve the identifiers of securely-stored \l{Key}{Keys}
+  \li \l{DeleteStoredKeyRequest} to delete a securely-stored \l{Key}
+  \li \l{EncryptRequest} to encrypt data with a given \l{Key}
+  \li \l{DecryptRequest} to decrypt data with a given \l{Key}
+  \li \l{SignRequest} to generate a signature for some data with a given \l{Key}
+  \li \l{VerifyRequest} to verify if a signature was generated with a given \l{Key}
+  \endlist
+ */
 
 /*!
   \brief Constructs a new CryptoManager instance with the given \a parent.
