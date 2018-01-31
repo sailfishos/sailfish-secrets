@@ -14,6 +14,7 @@ DEPENDPATH += $$INCLUDEPATH $$PWD
 
 PUBLIC_HEADERS += \
     $$PWD/extensionplugins.h \
+    $$PWD/request.h \
     $$PWD/result.h \
     $$PWD/secret.h \
     $$PWD/secretmanager.h \
@@ -34,6 +35,7 @@ HEADERS += \
 
 SOURCES += \
     $$PWD/extensionplugins.cpp \
+    $$PWD/request.cpp \
     $$PWD/secretsdaemonconnection.cpp \
     $$PWD/secretmanager.cpp \
     $$PWD/serialisation.cpp \
