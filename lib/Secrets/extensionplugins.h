@@ -256,15 +256,6 @@ private:
     AuthenticationPluginInfoPrivate *d;
 };
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::EncryptionPluginInfo &info) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::EncryptionPluginInfo &info) SAILFISH_SECRETS_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::StoragePluginInfo &info) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::StoragePluginInfo &info) SAILFISH_SECRETS_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::EncryptedStoragePluginInfo &info) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::EncryptedStoragePluginInfo &info) SAILFISH_SECRETS_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::AuthenticationPluginInfo &info) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::AuthenticationPluginInfo &info) SAILFISH_SECRETS_API;
-
 } // namespace Secrets
 
 } // namespace Sailfish

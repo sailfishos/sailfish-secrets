@@ -10,6 +10,7 @@
 
 #include "Secrets/secretmanager.h"
 #include "Secrets/secretmanager_p.h"
+#include "Secrets/serialisation_p.h"
 
 #include <QtDBus/QDBusPendingReply>
 #include <QtDBus/QDBusPendingCallWatcher>
@@ -341,21 +342,22 @@ void CreateCollectionRequest::startRequest()
 
         QDBusPendingReply<Result> reply;
         if (d->m_collectionLockType == CreateCollectionRequest::CustomLock) {
-            reply = d->m_manager->createCollection(d->m_collectionName,
-                                                   d->m_storagePluginName,
-                                                   d->m_encryptionPluginName,
-                                                   d->m_authenticationPluginName,
-                                                   d->m_customLockUnlockSemantic,
-                                                   d->m_customLockTimeout,
-                                                   d->m_accessControlMode,
-                                                   d->m_userInteractionMode);
+            reply = d->m_manager->d_ptr->createCollection(d->m_collectionName,
+                                                          d->m_storagePluginName,
+                                                          d->m_encryptionPluginName,
+                                                          d->m_authenticationPluginName,
+                                                          d->m_customLockUnlockSemantic,
+                                                          d->m_customLockTimeout,
+                                                          d->m_accessControlMode,
+                                                          d->m_userInteractionMode);
         } else {
-            reply = d->m_manager->createCollection(d->m_collectionName,
-                                                   d->m_storagePluginName,
-                                                   d->m_encryptionPluginName,
-                                                   d->m_deviceLockUnlockSemantic,
-                                                   d->m_accessControlMode);
+            reply = d->m_manager->d_ptr->createCollection(d->m_collectionName,
+                                                          d->m_storagePluginName,
+                                                          d->m_encryptionPluginName,
+                                                          d->m_deviceLockUnlockSemantic,
+                                                          d->m_accessControlMode);
         }
+
         if (reply.isFinished()) {
             d->m_status = Request::Finished;
             d->m_result = reply.argumentAt<0>();

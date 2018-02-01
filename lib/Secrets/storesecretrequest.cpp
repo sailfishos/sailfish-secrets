@@ -10,6 +10,7 @@
 
 #include "Secrets/secretmanager.h"
 #include "Secrets/secretmanager_p.h"
+#include "Secrets/serialisation_p.h"
 
 #include <QtDBus/QDBusPendingReply>
 #include <QtDBus/QDBusPendingCallWatcher>
@@ -369,24 +370,24 @@ void StoreSecretRequest::startRequest()
 
         QDBusPendingReply<Result> reply;
         if (d->m_secretStorageType == StoreSecretRequest::CollectionSecret) {
-            reply = d->m_manager->setSecret(d->m_secret,
-                                            d->m_userInteractionMode);
+            reply = d->m_manager->d_ptr->setSecret(d->m_secret,
+                                                   d->m_userInteractionMode);
         } else if (d->m_secretStorageType == StoreSecretRequest::StandaloneCustomLockSecret) {
-            reply = d->m_manager->setSecret(d->m_storagePluginName,
-                                            d->m_encryptionPluginName,
-                                            d->m_authenticationPluginName,
-                                            d->m_secret,
-                                            d->m_customLockUnlockSemantic,
-                                            d->m_customLockTimeout,
-                                            d->m_accessControlMode,
-                                            d->m_userInteractionMode);
+            reply = d->m_manager->d_ptr->setSecret(d->m_storagePluginName,
+                                                   d->m_encryptionPluginName,
+                                                   d->m_authenticationPluginName,
+                                                   d->m_secret,
+                                                   d->m_customLockUnlockSemantic,
+                                                   d->m_customLockTimeout,
+                                                   d->m_accessControlMode,
+                                                   d->m_userInteractionMode);
         } else { // StandaloneDeviceLockSecret
-            reply = d->m_manager->setSecret(d->m_storagePluginName,
-                                            d->m_encryptionPluginName,
-                                            d->m_secret,
-                                            d->m_deviceLockUnlockSemantic,
-                                            d->m_accessControlMode,
-                                            d->m_userInteractionMode);
+            reply = d->m_manager->d_ptr->setSecret(d->m_storagePluginName,
+                                                   d->m_encryptionPluginName,
+                                                   d->m_secret,
+                                                   d->m_deviceLockUnlockSemantic,
+                                                   d->m_accessControlMode,
+                                                   d->m_userInteractionMode);
         }
 
         if (reply.isFinished()) {

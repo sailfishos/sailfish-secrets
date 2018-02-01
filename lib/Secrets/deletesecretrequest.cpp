@@ -10,6 +10,7 @@
 
 #include "Secrets/secretmanager.h"
 #include "Secrets/secretmanager_p.h"
+#include "Secrets/serialisation_p.h"
 
 #include <QtDBus/QDBusPendingReply>
 #include <QtDBus/QDBusPendingCallWatcher>
@@ -118,7 +119,7 @@ void DeleteSecretRequest::startRequest()
             emit resultChanged();
         }
 
-        QDBusPendingReply<Result> reply = d->m_manager->deleteSecret(
+        QDBusPendingReply<Result> reply = d->m_manager->d_ptr->deleteSecret(
                                                         d->m_identifier,
                                                         d->m_userInteractionMode);
         if (reply.isFinished()) {

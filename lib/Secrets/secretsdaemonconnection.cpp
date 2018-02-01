@@ -5,8 +5,9 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#include "Secrets/secretsdaemonconnection.h"
 #include "Secrets/secretsdaemonconnection_p.h"
+#include "Secrets/secretsdaemonconnection_p_p.h"
+#include "Secrets/serialisation_p.h"
 
 #include "Secrets/secretmanager.h"
 #include "Secrets/interactionrequest.h"

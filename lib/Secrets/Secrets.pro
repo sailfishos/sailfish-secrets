@@ -23,12 +23,15 @@ PUBLIC_HEADERS += \
     $$PWD/result.h \
     $$PWD/secret.h \
     $$PWD/secretmanager.h \
-    $$PWD/secretsdaemonconnection.h \
     $$PWD/secretsglobal.h \
     $$PWD/storesecretrequest.h \
     $$PWD/interactionrequest.h \
     $$PWD/interactionrequestwatcher.h \
     $$PWD/interactionview.h
+
+INTERNAL_PUBLIC_HEADERS += \
+    $$PWD/secretsdaemonconnection_p.h \
+    $$PWD/serialisation_p.h
 
 PRIVATE_HEADERS += \
     $$PWD/createcollectionrequest_p.h \
@@ -36,13 +39,14 @@ PRIVATE_HEADERS += \
     $$PWD/deletesecretrequest_p.h \
     $$PWD/findsecretsrequest_p.h \
     $$PWD/getsecretrequest_p.h \
-    $$PWD/secretsdaemonconnection_p.h \
+    $$PWD/secretsdaemonconnection_p_p.h \
     $$PWD/secretmanager_p.h \
     $$PWD/storesecretrequest_p.h \
     $$PWD/interactionservice_p.h
 
 HEADERS += \
     $$PUBLIC_HEADERS \
+    $$INTERNAL_PUBLIC_HEADERS \
     $$PRIVATE_HEADERS
 
 SOURCES += \
@@ -62,7 +66,7 @@ SOURCES += \
 
 develheaders.path = /usr/include/Sailfish/
 develheaders_secrets.path = /usr/include/Sailfish/Secrets/
-develheaders_secrets.files = $$PUBLIC_HEADERS
+develheaders_secrets.files = $$PUBLIC_HEADERS $$INTERNAL_PUBLIC_HEADERS
 
 pkgconfig.files = $$TARGET.pc
 pkgconfig.path = $$target.path/pkgconfig

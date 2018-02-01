@@ -10,8 +10,7 @@
 
 #include "Secrets/secretsglobal.h"
 
-#include <QtDBus/QDBusArgument>
-
+#include <QtCore/QMetaType>
 #include <QtCore/QString>
 #include <QtCore/QByteArray>
 #include <QtCore/QVector>
@@ -136,12 +135,6 @@ private:
     Sailfish::Secrets::Secret::Identifier m_identifier;
     QByteArray m_data;
 };
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secret &secret) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::Secret &secret) SAILFISH_SECRETS_API;
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secret::Identifier &identifier) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::Secret::Identifier &identifier) SAILFISH_SECRETS_API;
 
 } // namespace Secrets
 

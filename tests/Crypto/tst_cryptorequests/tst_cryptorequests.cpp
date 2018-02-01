@@ -30,6 +30,8 @@
 
 #include "Secrets/result.h"
 #include "Secrets/secretmanager.h"
+#include "Secrets/secretmanager_p.h"
+#include "Secrets/serialisation_p.h"
 
 using namespace Sailfish::Crypto;
 
@@ -45,6 +47,17 @@ using namespace Sailfish::Crypto;
 
 #define DEFAULT_TEST_CRYPTO_PLUGIN_NAME CryptoManager::DefaultCryptoPluginName + QLatin1String(".test")
 #define DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test")
+
+class TestSecretManager : public Sailfish::Secrets::SecretManager
+{
+    Q_OBJECT
+
+public:
+    TestSecretManager(Sailfish::Secrets::SecretManager::InitialisationMode mode = AsynchronousInitialisationMode, QObject *parent = Q_NULLPTR)
+        : Sailfish::Secrets::SecretManager(mode, parent) {}
+    ~TestSecretManager() {}
+    Sailfish::Secrets::SecretManagerPrivate *d_ptr() const { return Sailfish::Secrets::SecretManager::pimpl(); }
+};
 
 class tst_cryptorequests : public QObject
 {
@@ -63,7 +76,7 @@ private slots:
 
 private:
     CryptoManager cm;
-    Sailfish::Secrets::SecretManager sm;
+    TestSecretManager sm;
 };
 
 void tst_cryptorequests::init()
@@ -289,7 +302,7 @@ void tst_cryptorequests::storedKeyRequests()
     keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
 
     // first, create the collection via the Secrets API.
-    QDBusPendingReply<Sailfish::Secrets::Result> secretsreply = sm.createCollection(
+    QDBusPendingReply<Sailfish::Secrets::Result> secretsreply = sm.d_ptr()->createCollection(
                 QLatin1String("tstcryptosecretsgcsked"),
                 DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME,
                 DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME,
@@ -393,7 +406,7 @@ void tst_cryptorequests::storedKeyRequests()
     // ensure that we can get a reference to that Key via the Secrets API
     Sailfish::Secrets::Secret::FilterData filter;
     filter.insert(QLatin1String("test"), keyTemplate.filterData(QLatin1String("test")));
-    QDBusPendingReply<Sailfish::Secrets::Result, QVector<Sailfish::Secrets::Secret::Identifier> > filterReply = sm.findSecrets(
+    QDBusPendingReply<Sailfish::Secrets::Result, QVector<Sailfish::Secrets::Secret::Identifier> > filterReply = sm.d_ptr()->findSecrets(
                 keyTemplate.identifier().collectionName(),
                 filter,
                 Sailfish::Secrets::SecretManager::OperatorAnd,
@@ -407,7 +420,7 @@ void tst_cryptorequests::storedKeyRequests()
 
     // and ensure that the filter operation doesn't return incorrect results
     filter.insert(QLatin1String("test"), QString(QLatin1String("not %1")).arg(keyTemplate.filterData(QLatin1String("test"))));
-    filterReply = sm.findSecrets(
+    filterReply = sm.d_ptr()->findSecrets(
                 keyTemplate.identifier().collectionName(),
                 filter,
                 Sailfish::Secrets::SecretManager::OperatorAnd,
@@ -418,7 +431,7 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(filterReply.argumentAt<1>().size(), 0);
 
     // clean up by deleting the collection in which the secret is stored.
-    secretsreply = sm.deleteCollection(
+    secretsreply = sm.d_ptr()->deleteCollection(
                 QLatin1String("tstcryptosecretsgcsked"),
                 Sailfish::Secrets::SecretManager::PreventInteraction);
     secretsreply.waitForFinished();
@@ -433,7 +446,7 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(dr.result().errorCode(), Sailfish::Crypto::Result::InvalidKeyIdentifier);
 
     // recreate the collection and the key, and encrypt/decrypt again, then delete via deleteStoredKey().
-    secretsreply = sm.createCollection(
+    secretsreply = sm.d_ptr()->createCollection(
                 QLatin1String("tstcryptosecretsgcsked"),
                 DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME,
                 DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME,
@@ -486,7 +499,7 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(dr.result().errorCode(), Sailfish::Crypto::Result::InvalidKeyIdentifier);
 
     // ensure that the deletion was cascaded to the Secrets internal database table.
-    QDBusPendingReply<Sailfish::Secrets::Result, Sailfish::Secrets::Secret> secretReply = sm.getSecret(
+    QDBusPendingReply<Sailfish::Secrets::Result, Sailfish::Secrets::Secret> secretReply = sm.d_ptr()->getSecret(
             Sailfish::Secrets::Secret::Identifier(
                     keyReference.identifier().name(),
                     keyReference.identifier().collectionName()),
@@ -497,7 +510,7 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(secretReply.argumentAt<0>().errorCode(), Sailfish::Secrets::Result::InvalidSecretError);
 
     // clean up by deleting the collection.
-    secretsreply = sm.deleteCollection(
+    secretsreply = sm.d_ptr()->deleteCollection(
                 QLatin1String("tstcryptosecretsgcsked"),
                 Sailfish::Secrets::SecretManager::PreventInteraction);
     secretsreply.waitForFinished();

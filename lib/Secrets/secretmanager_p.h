@@ -9,12 +9,16 @@
 #define LIBSAILFISHSECRETS_SECRETMANAGER_P_H
 
 #include "Secrets/secretmanager.h"
-#include "Secrets/secretsdaemonconnection.h"
+#include "Secrets/secretsdaemonconnection_p.h"
 #include "Secrets/extensionplugins.h"
 #include "Secrets/interactionview.h"
 #include "Secrets/interactionservice_p.h"
 
 #include <QtDBus/QDBusInterface>
+#include <QtDBus/QDBusContext>
+#include <QtDBus/QDBusPendingReply>
+#include <QtDBus/QDBusMetaType>
+#include <QtDBus/QDBusArgument>
 
 #include <QtCore/QObject>
 
@@ -36,6 +40,78 @@ public:
 
     // register the ui service if required, and return it's address.
     Sailfish::Secrets::Result registerInteractionService(Sailfish::Secrets::SecretManager::UserInteractionMode mode, QString *address);
+
+    // create a DeviceLock-protected collection
+    QDBusPendingReply<Sailfish::Secrets::Result> createCollection(
+            const QString &collectionName,
+            const QString &storagePluginName,
+            const QString &encryptionPluginName,
+            Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic unlockSemantic,
+            Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode);
+
+    // create a CustomLock-protected collection
+    QDBusPendingReply<Sailfish::Secrets::Result> createCollection(
+            const QString &collectionName,
+            const QString &storagePluginName,
+            const QString &encryptionPluginName,
+            const QString &authenticationPluginName,
+            Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic unlockSemantic,
+            int customLockTimeoutMs,
+            Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
+
+    // delete a collection
+    QDBusPendingReply<Sailfish::Secrets::Result> deleteCollection(
+            const QString &collectionName,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
+
+    // set a secret in a collection.  Will immediately fail if the secret's identifier is standalone.
+    QDBusPendingReply<Sailfish::Secrets::Result> setSecret(
+            const Sailfish::Secrets::Secret &secret,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
+
+    // set a standalone DeviceLock-protected secret
+    QDBusPendingReply<Sailfish::Secrets::Result> setSecret(
+            const QString &storagePluginName,
+            const QString &encryptionPluginName,
+            const Sailfish::Secrets::Secret &secret,
+            Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic unlockSemantic,
+            Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
+
+    // set a standalone CustomLock-protected secret
+    QDBusPendingReply<Sailfish::Secrets::Result> setSecret(
+            const QString &storagePluginName,
+            const QString &encryptionPluginName,
+            const QString &authenticationPluginName,
+            const Sailfish::Secrets::Secret &secret,
+            Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic unlockSemantic,
+            int customLockTimeoutMs,
+            Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
+
+    // get a secret (either from a collection or standalone, depending on the identifier)
+    QDBusPendingReply<Sailfish::Secrets::Result, Sailfish::Secrets::Secret> getSecret(
+            const Sailfish::Secrets::Secret::Identifier &identifier,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
+
+    // find secrets from a collection via filter
+    QDBusPendingReply<Sailfish::Secrets::Result, QVector<Sailfish::Secrets::Secret::Identifier> > findSecrets(
+            const QString &collectionName,
+            const Sailfish::Secrets::Secret::FilterData &filter,
+            Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
+
+    // find standalone secrets via filter
+    QDBusPendingReply<Sailfish::Secrets::Result, QVector<Sailfish::Secrets::Secret::Identifier> > findSecrets(
+            const Sailfish::Secrets::Secret::FilterData &filter,
+            Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
+
+    // delete a secret (either from a collection or standalone, depending on the identifier)
+    QDBusPendingReply<Sailfish::Secrets::Result> deleteSecret(
+            const Sailfish::Secrets::Secret::Identifier &identifier,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
 private:
     friend class SecretManager;

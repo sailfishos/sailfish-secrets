@@ -10,6 +10,7 @@
 
 #include "Secrets/secretmanager.h"
 #include "Secrets/secretmanager_p.h"
+#include "Secrets/serialisation_p.h"
 
 #include <QtDBus/QDBusPendingReply>
 #include <QtDBus/QDBusPendingCallWatcher>
@@ -192,14 +193,14 @@ void FindSecretsRequest::startRequest()
 
         QDBusPendingReply<Result, QVector<Secret::Identifier> > reply;
         if (d->m_collectionName.isEmpty()) {
-            reply = d->m_manager->findSecrets(d->m_filter,
-                                              d->m_filterOperator,
-                                              d->m_userInteractionMode);
+            reply = d->m_manager->d_ptr->findSecrets(d->m_filter,
+                                                     d->m_filterOperator,
+                                                     d->m_userInteractionMode);
         } else {
-            reply = d->m_manager->findSecrets(d->m_collectionName,
-                                              d->m_filter,
-                                              d->m_filterOperator,
-                                              d->m_userInteractionMode);
+            reply = d->m_manager->d_ptr->findSecrets(d->m_collectionName,
+                                                     d->m_filter,
+                                                     d->m_filterOperator,
+                                                     d->m_userInteractionMode);
         }
 
         if (reply.isFinished()) {

@@ -10,6 +10,7 @@
 
 #include "Secrets/secretmanager.h"
 #include "Secrets/secretmanager_p.h"
+#include "Secrets/serialisation_p.h"
 
 #include <QtDBus/QDBusPendingReply>
 #include <QtDBus/QDBusPendingCallWatcher>
@@ -127,7 +128,7 @@ void GetSecretRequest::startRequest()
             emit resultChanged();
         }
 
-        QDBusPendingReply<Result, Secret> reply = d->m_manager->getSecret(
+        QDBusPendingReply<Result, Secret> reply = d->m_manager->d_ptr->getSecret(
                                                         d->m_identifier,
                                                         d->m_userInteractionMode);
         if (reply.isFinished()) {
