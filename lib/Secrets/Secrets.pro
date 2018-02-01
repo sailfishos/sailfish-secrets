@@ -15,6 +15,7 @@ DEPENDPATH += $$INCLUDEPATH $$PWD
 PUBLIC_HEADERS += \
     $$PWD/createcollectionrequest.h \
     $$PWD/deletecollectionrequest.h \
+    $$PWD/deletesecretrequest.h \
     $$PWD/extensionplugins.h \
     $$PWD/findsecretsrequest.h \
     $$PWD/getsecretrequest.h \
@@ -32,6 +33,7 @@ PUBLIC_HEADERS += \
 PRIVATE_HEADERS += \
     $$PWD/createcollectionrequest_p.h \
     $$PWD/deletecollectionrequest_p.h \
+    $$PWD/deletesecretrequest_p.h \
     $$PWD/findsecretsrequest_p.h \
     $$PWD/getsecretrequest_p.h \
     $$PWD/secretsdaemonconnection_p.h \
@@ -46,6 +48,7 @@ HEADERS += \
 SOURCES += \
     $$PWD/createcollectionrequest.cpp \
     $$PWD/deletecollectionrequest.cpp \
+    $$PWD/deletesecretrequest.cpp \
     $$PWD/extensionplugins.cpp \
     $$PWD/findsecretsrequest.cpp \
     $$PWD/getsecretrequest.cpp \
