@@ -172,6 +172,8 @@ cp -R lib/Crypto/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Crypto/
 %defattr(-,root,root,-)
 /opt/tests/Sailfish/Secrets/tst_secrets
 /opt/tests/Sailfish/Secrets/tst_secrets.qml
+/opt/tests/Sailfish/Secrets/tst_secretsrequests
+/opt/tests/Sailfish/Secrets/tst_secretsrequests.qml
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-testinappauth.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-testopenssl.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-testsqlcipher.so

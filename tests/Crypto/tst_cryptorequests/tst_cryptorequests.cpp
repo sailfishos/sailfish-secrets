@@ -30,34 +30,26 @@
 
 #include "Secrets/result.h"
 #include "Secrets/secretmanager.h"
-#include "Secrets/secretmanager_p.h"
-#include "Secrets/serialisation_p.h"
+#include "Secrets/createcollectionrequest.h"
+#include "Secrets/deletecollectionrequest.h"
+#include "Secrets/getsecretrequest.h"
+#include "Secrets/findsecretsrequest.h"
 
 using namespace Sailfish::Crypto;
 
 // Cannot use waitForFinished() for some replies, as ui flows require user interaction / event handling.
-#define WAIT_FOR_FINISHED_WITHOUT_BLOCKING(request)                     \
-    do {                                                                \
-        int maxWait = 10000;                                            \
-        while (request.status() != Request::Finished && maxWait > 0) {  \
-            QTest::qWait(100);                                          \
-            maxWait -= 100;                                             \
-        }                                                               \
+#define WAIT_FOR_FINISHED_WITHOUT_BLOCKING(request)                         \
+    do {                                                                    \
+        int maxWait = 10000;                                                \
+        while (request.status() != (int)Request::Finished && maxWait > 0) { \
+            QTest::qWait(100);                                              \
+            maxWait -= 100;                                                 \
+        }                                                                   \
     } while (0)
 
 #define DEFAULT_TEST_CRYPTO_PLUGIN_NAME CryptoManager::DefaultCryptoPluginName + QLatin1String(".test")
 #define DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test")
-
-class TestSecretManager : public Sailfish::Secrets::SecretManager
-{
-    Q_OBJECT
-
-public:
-    TestSecretManager(Sailfish::Secrets::SecretManager::InitialisationMode mode = AsynchronousInitialisationMode, QObject *parent = Q_NULLPTR)
-        : Sailfish::Secrets::SecretManager(mode, parent) {}
-    ~TestSecretManager() {}
-    Sailfish::Secrets::SecretManagerPrivate *d_ptr() const { return Sailfish::Secrets::SecretManager::pimpl(); }
-};
+#define IN_APP_TEST_AUTHENTICATION_PLUGIN Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName + QLatin1String(".test")
 
 class tst_cryptorequests : public QObject
 {
@@ -76,7 +68,7 @@ private slots:
 
 private:
     CryptoManager cm;
-    TestSecretManager sm;
+    Sailfish::Secrets::SecretManager sm;
 };
 
 void tst_cryptorequests::init()
@@ -287,7 +279,6 @@ void tst_cryptorequests::signVerify()
     QSKIP("TODO - sign/verify not yet implemented!");
 }
 
-#include <QtDBus/QDBusPendingReply>
 void tst_cryptorequests::storedKeyRequests()
 {
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
@@ -302,15 +293,19 @@ void tst_cryptorequests::storedKeyRequests()
     keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
 
     // first, create the collection via the Secrets API.
-    QDBusPendingReply<Sailfish::Secrets::Result> secretsreply = sm.d_ptr()->createCollection(
-                QLatin1String("tstcryptosecretsgcsked"),
-                DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME,
-                DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME,
-                Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked,
-                Sailfish::Secrets::SecretManager::OwnerOnlyMode);
-    secretsreply.waitForFinished();
-    QVERIFY(secretsreply.isValid());
-    QCOMPARE(secretsreply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
+    Sailfish::Secrets::CreateCollectionRequest ccr(&sm);
+    ccr.setCollectionLockType(Sailfish::Secrets::CreateCollectionRequest::DeviceLock);
+    ccr.setCollectionName(QLatin1String("tstcryptosecretsgcsked"));
+    ccr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+    ccr.setEncryptionPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+    ccr.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
+    ccr.setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked);
+    ccr.setAccessControlMode(Sailfish::Secrets::SecretManager::OwnerOnlyMode);
+    ccr.setUserInteractionMode(Sailfish::Secrets::SecretManager::ApplicationInteraction);
+    ccr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ccr);
+    QCOMPARE(ccr.status(), Sailfish::Secrets::Request::Finished);
+    QCOMPARE(ccr.result().code(), Sailfish::Secrets::Result::Succeeded);
 
     // request that the secret key be generated and stored into that collection.
     keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(QLatin1String("storedkey"), QLatin1String("tstcryptosecretsgcsked")));
@@ -406,37 +401,36 @@ void tst_cryptorequests::storedKeyRequests()
     // ensure that we can get a reference to that Key via the Secrets API
     Sailfish::Secrets::Secret::FilterData filter;
     filter.insert(QLatin1String("test"), keyTemplate.filterData(QLatin1String("test")));
-    QDBusPendingReply<Sailfish::Secrets::Result, QVector<Sailfish::Secrets::Secret::Identifier> > filterReply = sm.d_ptr()->findSecrets(
-                keyTemplate.identifier().collectionName(),
-                filter,
-                Sailfish::Secrets::SecretManager::OperatorAnd,
-                Sailfish::Secrets::SecretManager::PreventInteraction);
-    filterReply.waitForFinished();
-    QVERIFY(filterReply.isValid());
-    QCOMPARE(filterReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
-    QCOMPARE(filterReply.argumentAt<1>().size(), 1);
-    QCOMPARE(filterReply.argumentAt<1>().at(0).name(), keyTemplate.identifier().name());
-    QCOMPARE(filterReply.argumentAt<1>().at(0).collectionName(), keyTemplate.identifier().collectionName());
+    Sailfish::Secrets::FindSecretsRequest fsr(&sm);
+    fsr.setFilter(filter);
+    fsr.setFilterOperator(Sailfish::Secrets::SecretManager::OperatorAnd);
+    fsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
+    fsr.setCollectionName(keyTemplate.identifier().collectionName());
+    fsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(fsr);
+    QCOMPARE(fsr.status(), Sailfish::Secrets::Request::Finished);
+    QCOMPARE(fsr.result().code(), Sailfish::Secrets::Result::Succeeded);
+    QCOMPARE(fsr.identifiers().size(), 1);
+    QCOMPARE(fsr.identifiers().at(0).name(), keyTemplate.identifier().name());
+    QCOMPARE(fsr.identifiers().at(0).collectionName(), keyTemplate.identifier().collectionName());
 
     // and ensure that the filter operation doesn't return incorrect results
     filter.insert(QLatin1String("test"), QString(QLatin1String("not %1")).arg(keyTemplate.filterData(QLatin1String("test"))));
-    filterReply = sm.d_ptr()->findSecrets(
-                keyTemplate.identifier().collectionName(),
-                filter,
-                Sailfish::Secrets::SecretManager::OperatorAnd,
-                Sailfish::Secrets::SecretManager::PreventInteraction);
-    filterReply.waitForFinished();
-    QVERIFY(filterReply.isValid());
-    QCOMPARE(filterReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
-    QCOMPARE(filterReply.argumentAt<1>().size(), 0);
+    fsr.setFilter(filter);
+    fsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(fsr);
+    QCOMPARE(fsr.status(), Sailfish::Secrets::Request::Finished);
+    QCOMPARE(fsr.result().code(), Sailfish::Secrets::Result::Succeeded);
+    QCOMPARE(fsr.identifiers().size(), 0);
 
     // clean up by deleting the collection in which the secret is stored.
-    secretsreply = sm.d_ptr()->deleteCollection(
-                QLatin1String("tstcryptosecretsgcsked"),
-                Sailfish::Secrets::SecretManager::PreventInteraction);
-    secretsreply.waitForFinished();
-    QVERIFY(secretsreply.isValid());
-    QCOMPARE(secretsreply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
+    Sailfish::Secrets::DeleteCollectionRequest dcr(&sm);
+    dcr.setCollectionName(QLatin1String("tstcryptosecretsgcsked"));
+    dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
+    dcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
+    QCOMPARE(dcr.status(), Sailfish::Secrets::Request::Finished);
+    QCOMPARE(dcr.result().code(), Sailfish::Secrets::Result::Succeeded);
 
     // ensure that the deletion was cascaded to the keyEntries internal database table.
     dr.setKey(keyReference);
@@ -446,15 +440,10 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(dr.result().errorCode(), Sailfish::Crypto::Result::InvalidKeyIdentifier);
 
     // recreate the collection and the key, and encrypt/decrypt again, then delete via deleteStoredKey().
-    secretsreply = sm.d_ptr()->createCollection(
-                QLatin1String("tstcryptosecretsgcsked"),
-                DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME,
-                DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME,
-                Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked,
-                Sailfish::Secrets::SecretManager::OwnerOnlyMode);
-    secretsreply.waitForFinished();
-    QVERIFY(secretsreply.isValid());
-    QCOMPARE(secretsreply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
+    ccr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ccr);
+    QCOMPARE(ccr.status(), Sailfish::Secrets::Request::Finished);
+    QCOMPARE(ccr.result().code(), Sailfish::Secrets::Result::Succeeded);
 
     gskr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gskr);
@@ -499,23 +488,20 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(dr.result().errorCode(), Sailfish::Crypto::Result::InvalidKeyIdentifier);
 
     // ensure that the deletion was cascaded to the Secrets internal database table.
-    QDBusPendingReply<Sailfish::Secrets::Result, Sailfish::Secrets::Secret> secretReply = sm.d_ptr()->getSecret(
-            Sailfish::Secrets::Secret::Identifier(
-                    keyReference.identifier().name(),
-                    keyReference.identifier().collectionName()),
-            Sailfish::Secrets::SecretManager::PreventInteraction);
-    secretReply.waitForFinished();
-    QVERIFY(secretReply.isValid());
-    QCOMPARE(secretReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Failed);
-    QCOMPARE(secretReply.argumentAt<0>().errorCode(), Sailfish::Secrets::Result::InvalidSecretError);
+    Sailfish::Secrets::GetSecretRequest gsr(&sm);
+    gsr.setIdentifier(Sailfish::Secrets::Secret::Identifier(
+                          keyReference.identifier().name(),
+                          keyReference.identifier().collectionName()));
+    gsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
+    gsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
+    QCOMPARE(gsr.result().code(), Sailfish::Secrets::Result::Failed);
+    QCOMPARE(gsr.result().errorCode(), Sailfish::Secrets::Result::InvalidSecretError);
 
     // clean up by deleting the collection.
-    secretsreply = sm.d_ptr()->deleteCollection(
-                QLatin1String("tstcryptosecretsgcsked"),
-                Sailfish::Secrets::SecretManager::PreventInteraction);
-    secretsreply.waitForFinished();
-    QVERIFY(secretsreply.isValid());
-    QCOMPARE(secretsreply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
+    dcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
+    QCOMPARE(dcr.result().code(), Sailfish::Secrets::Result::Succeeded);
 }
 
 #include "tst_cryptorequests.moc"
