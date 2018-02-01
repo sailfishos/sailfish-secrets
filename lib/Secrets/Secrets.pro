@@ -16,6 +16,7 @@ PUBLIC_HEADERS += \
     $$PWD/createcollectionrequest.h \
     $$PWD/deletecollectionrequest.h \
     $$PWD/extensionplugins.h \
+    $$PWD/findsecretsrequest.h \
     $$PWD/getsecretrequest.h \
     $$PWD/request.h \
     $$PWD/result.h \
@@ -31,6 +32,7 @@ PUBLIC_HEADERS += \
 PRIVATE_HEADERS += \
     $$PWD/createcollectionrequest_p.h \
     $$PWD/deletecollectionrequest_p.h \
+    $$PWD/findsecretsrequest_p.h \
     $$PWD/getsecretrequest_p.h \
     $$PWD/secretsdaemonconnection_p.h \
     $$PWD/secretmanager_p.h \
@@ -45,6 +47,7 @@ SOURCES += \
     $$PWD/createcollectionrequest.cpp \
     $$PWD/deletecollectionrequest.cpp \
     $$PWD/extensionplugins.cpp \
+    $$PWD/findsecretsrequest.cpp \
     $$PWD/getsecretrequest.cpp \
     $$PWD/request.cpp \
     $$PWD/secretsdaemonconnection.cpp \
