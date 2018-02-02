@@ -27,7 +27,7 @@ class DecryptRequestPrivate
     Q_DISABLE_COPY(DecryptRequestPrivate)
 
 public:
-    explicit DecryptRequestPrivate(Sailfish::Crypto::CryptoManager *manager);
+    explicit DecryptRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
     QByteArray m_data;

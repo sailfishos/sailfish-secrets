@@ -28,7 +28,7 @@ class FindSecretsRequestPrivate
     Q_DISABLE_COPY(FindSecretsRequestPrivate)
 
 public:
-    explicit FindSecretsRequestPrivate(Sailfish::Secrets::SecretManager *manager);
+    explicit FindSecretsRequestPrivate();
 
     QPointer<Sailfish::Secrets::SecretManager> m_manager;
     QString m_collectionName;

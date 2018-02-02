@@ -17,9 +17,8 @@
 
 using namespace Sailfish::Crypto;
 
-DecryptRequestPrivate::DecryptRequestPrivate(CryptoManager *manager)
-    : m_manager(manager)
-    , m_status(Request::Inactive)
+DecryptRequestPrivate::DecryptRequestPrivate()
+    : m_status(Request::Inactive)
 {
 }
 
@@ -29,12 +28,11 @@ DecryptRequestPrivate::DecryptRequestPrivate(CryptoManager *manager)
  */
 
 /*!
- * \brief Constructs a new DecryptRequest object which interfaces to the system
- *        crypto service via the given \a manager, with the given \a parent.
+ * \brief Constructs a new DecryptRequest object with the given \a parent.
  */
-DecryptRequest::DecryptRequest(CryptoManager *manager, QObject *parent)
+DecryptRequest::DecryptRequest(QObject *parent)
     : Request(parent)
-    , d_ptr(new DecryptRequestPrivate(manager))
+    , d_ptr(new DecryptRequestPrivate)
 {
 }
 
@@ -216,6 +214,21 @@ Result DecryptRequest::result() const
 {
     Q_D(const DecryptRequest);
     return d->m_result;
+}
+
+CryptoManager *DecryptRequest::manager() const
+{
+    Q_D(const DecryptRequest);
+    return d->m_manager.data();
+}
+
+void DecryptRequest::setManager(CryptoManager *manager)
+{
+    Q_D(DecryptRequest);
+    if (d->m_manager.data() != manager) {
+        d->m_manager = manager;
+        emit managerChanged();
+    }
 }
 
 void DecryptRequest::startRequest()

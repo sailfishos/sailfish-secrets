@@ -17,9 +17,8 @@
 
 using namespace Sailfish::Crypto;
 
-PluginInfoRequestPrivate::PluginInfoRequestPrivate(CryptoManager *manager)
-    : m_manager(manager)
-    , m_status(Request::Inactive)
+PluginInfoRequestPrivate::PluginInfoRequestPrivate()
+    : m_status(Request::Inactive)
 {
 }
 
@@ -29,12 +28,11 @@ PluginInfoRequestPrivate::PluginInfoRequestPrivate(CryptoManager *manager)
  */
 
 /*!
- * \brief Constructs a new PluginInfoRequest object which interfaces to the system
- *        crypto service via the given \a manager, with the given \a parent.
+ * \brief Constructs a new PluginInfoRequest object with the given \a parent.
  */
-PluginInfoRequest::PluginInfoRequest(CryptoManager *manager, QObject *parent)
+PluginInfoRequest::PluginInfoRequest(QObject *parent)
     : Request(parent)
-    , d_ptr(new PluginInfoRequestPrivate(manager))
+    , d_ptr(new PluginInfoRequestPrivate)
 {
 }
 
@@ -77,6 +75,21 @@ Result PluginInfoRequest::result() const
 {
     Q_D(const PluginInfoRequest);
     return d->m_result;
+}
+
+CryptoManager *PluginInfoRequest::manager() const
+{
+    Q_D(const PluginInfoRequest);
+    return d->m_manager.data();
+}
+
+void PluginInfoRequest::setManager(CryptoManager *manager)
+{
+    Q_D(PluginInfoRequest);
+    if (d->m_manager.data() != manager) {
+        d->m_manager = manager;
+        emit managerChanged();
+    }
 }
 
 void PluginInfoRequest::startRequest()

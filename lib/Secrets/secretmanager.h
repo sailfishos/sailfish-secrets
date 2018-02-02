@@ -121,5 +121,6 @@ Q_DECLARE_METATYPE(Sailfish::Secrets::SecretManager::UserInteractionMode)
 Q_DECLARE_METATYPE(Sailfish::Secrets::SecretManager::AccessControlMode)
 Q_DECLARE_METATYPE(Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic)
 Q_DECLARE_METATYPE(Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic)
+Q_DECLARE_METATYPE(Sailfish::Secrets::SecretManager::FilterOperator)
 
 #endif // LIBSAILFISHSECRETS_SECRETMANAGER_H

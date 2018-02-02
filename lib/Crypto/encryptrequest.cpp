@@ -17,9 +17,8 @@
 
 using namespace Sailfish::Crypto;
 
-EncryptRequestPrivate::EncryptRequestPrivate(CryptoManager *manager)
-    : m_manager(manager)
-    , m_status(Request::Inactive)
+EncryptRequestPrivate::EncryptRequestPrivate()
+    : m_status(Request::Inactive)
 {
 }
 
@@ -32,9 +31,9 @@ EncryptRequestPrivate::EncryptRequestPrivate(CryptoManager *manager)
  * \brief Constructs a new EncryptRequest object which interfaces to the system
  *        crypto service via the given \a manager, with the given \a parent.
  */
-EncryptRequest::EncryptRequest(CryptoManager *manager, QObject *parent)
+EncryptRequest::EncryptRequest(QObject *parent)
     : Request(parent)
-    , d_ptr(new EncryptRequestPrivate(manager))
+    , d_ptr(new EncryptRequestPrivate)
 {
 }
 
@@ -216,6 +215,21 @@ Result EncryptRequest::result() const
 {
     Q_D(const EncryptRequest);
     return d->m_result;
+}
+
+CryptoManager *EncryptRequest::manager() const
+{
+    Q_D(const EncryptRequest);
+    return d->m_manager.data();
+}
+
+void EncryptRequest::setManager(CryptoManager *manager)
+{
+    Q_D(EncryptRequest);
+    if (d->m_manager.data() != manager) {
+        d->m_manager = manager;
+        emit managerChanged();
+    }
 }
 
 void EncryptRequest::startRequest()

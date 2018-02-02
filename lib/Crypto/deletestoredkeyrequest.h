@@ -29,7 +29,7 @@ class SAILFISH_CRYPTO_API DeleteStoredKeyRequest : public Sailfish::Crypto::Requ
     Q_PROPERTY(Sailfish::Crypto::Key::Identifier identifier READ identifier NOTIFY identifierChanged)
 
 public:
-    DeleteStoredKeyRequest(Sailfish::Crypto::CryptoManager *manager, QObject *parent = Q_NULLPTR);
+    DeleteStoredKeyRequest(QObject *parent = Q_NULLPTR);
     ~DeleteStoredKeyRequest();
 
     Sailfish::Crypto::Key::Identifier identifier() const;
@@ -37,6 +37,9 @@ public:
 
     Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result result() const Q_DECL_OVERRIDE;
+
+    Sailfish::Crypto::CryptoManager *manager() const Q_DECL_OVERRIDE;
+    void setManager(Sailfish::Crypto::CryptoManager *manager) Q_DECL_OVERRIDE;
 
     void startRequest() Q_DECL_OVERRIDE;
     void waitForFinished() Q_DECL_OVERRIDE;

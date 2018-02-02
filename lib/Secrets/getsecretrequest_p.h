@@ -27,7 +27,7 @@ class GetSecretRequestPrivate
     Q_DISABLE_COPY(GetSecretRequestPrivate)
 
 public:
-    explicit GetSecretRequestPrivate(Sailfish::Secrets::SecretManager *manager);
+    explicit GetSecretRequestPrivate();
 
     QPointer<Sailfish::Secrets::SecretManager> m_manager;
     Sailfish::Secrets::Secret::Identifier m_identifier;

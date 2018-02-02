@@ -17,9 +17,8 @@
 
 using namespace Sailfish::Crypto;
 
-GenerateKeyRequestPrivate::GenerateKeyRequestPrivate(CryptoManager *manager)
-    : m_manager(manager)
-    , m_status(Request::Inactive)
+GenerateKeyRequestPrivate::GenerateKeyRequestPrivate()
+    : m_status(Request::Inactive)
 {
 }
 
@@ -32,12 +31,11 @@ GenerateKeyRequestPrivate::GenerateKeyRequestPrivate(CryptoManager *manager)
  */
 
 /*!
- * \brief Constructs a new GenerateKeyRequest object which interfaces to the system
- *        crypto service via the given \a manager, with the given \a parent.
+ * \brief Constructs a new GenerateKeyRequest object with the given \a parent.
  */
-GenerateKeyRequest::GenerateKeyRequest(CryptoManager *manager, QObject *parent)
+GenerateKeyRequest::GenerateKeyRequest(QObject *parent)
     : Request(parent)
-    , d_ptr(new GenerateKeyRequestPrivate(manager))
+    , d_ptr(new GenerateKeyRequestPrivate)
 {
 }
 
@@ -119,6 +117,21 @@ Result GenerateKeyRequest::result() const
 {
     Q_D(const GenerateKeyRequest);
     return d->m_result;
+}
+
+CryptoManager *GenerateKeyRequest::manager() const
+{
+    Q_D(const GenerateKeyRequest);
+    return d->m_manager.data();
+}
+
+void GenerateKeyRequest::setManager(CryptoManager *manager)
+{
+    Q_D(GenerateKeyRequest);
+    if (d->m_manager.data() != manager) {
+        d->m_manager = manager;
+        emit managerChanged();
+    }
 }
 
 void GenerateKeyRequest::startRequest()

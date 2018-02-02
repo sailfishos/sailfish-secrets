@@ -29,13 +29,16 @@ class SAILFISH_CRYPTO_API StoredKeyIdentifiersRequest : public Sailfish::Crypto:
     Q_PROPERTY(QVector<Sailfish::Crypto::Key::Identifier> identifiers READ identifiers NOTIFY identifiersChanged)
 
 public:
-    StoredKeyIdentifiersRequest(Sailfish::Crypto::CryptoManager *manager, QObject *parent = Q_NULLPTR);
+    StoredKeyIdentifiersRequest(QObject *parent = Q_NULLPTR);
     ~StoredKeyIdentifiersRequest();
 
     QVector<Sailfish::Crypto::Key::Identifier> identifiers() const;
 
     Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result result() const Q_DECL_OVERRIDE;
+
+    Sailfish::Crypto::CryptoManager *manager() const Q_DECL_OVERRIDE;
+    void setManager(Sailfish::Crypto::CryptoManager *manager) Q_DECL_OVERRIDE;
 
     void startRequest() Q_DECL_OVERRIDE;
     void waitForFinished() Q_DECL_OVERRIDE;

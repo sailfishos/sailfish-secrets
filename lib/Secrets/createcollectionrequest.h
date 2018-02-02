@@ -41,7 +41,7 @@ public:
         CustomLock
     };
 
-    CreateCollectionRequest(Sailfish::Secrets::SecretManager *manager, QObject *parent = Q_NULLPTR);
+    CreateCollectionRequest(QObject *parent = Q_NULLPTR);
     ~CreateCollectionRequest();
 
     CollectionLockType collectionLockType() const;
@@ -76,6 +76,9 @@ public:
 
     Sailfish::Secrets::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result result() const Q_DECL_OVERRIDE;
+
+    Sailfish::Secrets::SecretManager *manager() const Q_DECL_OVERRIDE;
+    void setManager(Sailfish::Secrets::SecretManager *manager) Q_DECL_OVERRIDE;
 
     void startRequest() Q_DECL_OVERRIDE;
     void waitForFinished() Q_DECL_OVERRIDE;

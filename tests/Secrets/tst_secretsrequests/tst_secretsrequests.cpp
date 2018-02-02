@@ -71,7 +71,8 @@ void tst_secretsrequests::cleanup()
 void tst_secretsrequests::devicelockCollection()
 {
     // create a new collection
-    CreateCollectionRequest ccr(&sm);
+    CreateCollectionRequest ccr;
+    ccr.setManager(&sm);
     QSignalSpy ccrss(&ccr, &CreateCollectionRequest::statusChanged);
     ccr.setCollectionLockType(CreateCollectionRequest::DeviceLock);
     QCOMPARE(ccr.collectionLockType(), CreateCollectionRequest::DeviceLock);
@@ -96,7 +97,8 @@ void tst_secretsrequests::devicelockCollection()
     QCOMPARE(ccr.result().code(), Result::Succeeded);
 
     // delete the collection
-    DeleteCollectionRequest dcr(&sm);
+    DeleteCollectionRequest dcr;
+    dcr.setManager(&sm);
     QSignalSpy dcrss(&dcr, &DeleteCollectionRequest::statusChanged);
     dcr.setCollectionName(QLatin1String("testcollection"));
     QCOMPARE(dcr.collectionName(), QLatin1String("testcollection"));
@@ -116,7 +118,8 @@ void tst_secretsrequests::devicelockCollection()
 void tst_secretsrequests::devicelockCollectionSecret()
 {
     // create a collection
-    CreateCollectionRequest ccr(&sm);
+    CreateCollectionRequest ccr;
+    ccr.setManager(&sm);
     QSignalSpy ccrss(&ccr, &CreateCollectionRequest::statusChanged);
     ccr.setCollectionLockType(CreateCollectionRequest::DeviceLock);
     QCOMPARE(ccr.collectionLockType(), CreateCollectionRequest::DeviceLock);
@@ -149,7 +152,8 @@ void tst_secretsrequests::devicelockCollectionSecret()
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
     testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
 
-    StoreSecretRequest ssr(&sm);
+    StoreSecretRequest ssr;
+    ssr.setManager(&sm);
     QSignalSpy ssrss(&ssr, &StoreSecretRequest::statusChanged);
     ssr.setSecretStorageType(StoreSecretRequest::CollectionSecret);
     QCOMPARE(ssr.secretStorageType(), StoreSecretRequest::CollectionSecret);
@@ -168,7 +172,8 @@ void tst_secretsrequests::devicelockCollectionSecret()
     QCOMPARE(ssr.result().code(), Result::Succeeded);
 
     // retrieve the secret, ensure it matches
-    GetSecretRequest gsr(&sm);
+    GetSecretRequest gsr;
+    gsr.setManager(&sm);
     QSignalSpy gsrss(&gsr, &GetSecretRequest::statusChanged);
     gsr.setIdentifier(testSecret.identifier());
     QCOMPARE(gsr.identifier(), testSecret.identifier());
@@ -190,7 +195,8 @@ void tst_secretsrequests::devicelockCollectionSecret()
     filter.insert(QLatin1String("domain"), testSecret.filterData(QLatin1String("domain")));
     filter.insert(QLatin1String("test"), testSecret.filterData(QLatin1String("test")));
 
-    FindSecretsRequest fsr(&sm);
+    FindSecretsRequest fsr;
+    fsr.setManager(&sm);
     QSignalSpy fsrss(&fsr, &FindSecretsRequest::statusChanged);
     fsr.setCollectionName(QLatin1String("testcollection"));
     QCOMPARE(fsr.collectionName(), QLatin1String("testcollection"));
@@ -240,7 +246,8 @@ void tst_secretsrequests::devicelockCollectionSecret()
     QCOMPARE(fsr.identifiers().size(), 0);
 
     // delete the secret
-    DeleteSecretRequest dsr(&sm);
+    DeleteSecretRequest dsr;
+    dsr.setManager(&sm);
     QSignalSpy dsrss(&dsr, &DeleteSecretRequest::statusChanged);
     dsr.setIdentifier(testSecret.identifier());
     QCOMPARE(dsr.identifier(), testSecret.identifier());
@@ -262,7 +269,8 @@ void tst_secretsrequests::devicelockCollectionSecret()
     QCOMPARE(gsr.result().code(), Result::Failed);
 
     // finally, clean up the collection
-    DeleteCollectionRequest dcr(&sm);
+    DeleteCollectionRequest dcr;
+    dcr.setManager(&sm);
     QSignalSpy dcrss(&dcr, &DeleteCollectionRequest::statusChanged);
     dcr.setCollectionName(QLatin1String("testcollection"));
     QCOMPARE(dcr.collectionName(), QLatin1String("testcollection"));
@@ -289,7 +297,8 @@ void tst_secretsrequests::devicelockStandaloneSecret()
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
     testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
 
-    StoreSecretRequest ssr(&sm);
+    StoreSecretRequest ssr;
+    ssr.setManager(&sm);
     QSignalSpy ssrss(&ssr, &StoreSecretRequest::statusChanged);
     ssr.setSecretStorageType(StoreSecretRequest::StandaloneDeviceLockSecret);
     QCOMPARE(ssr.secretStorageType(), StoreSecretRequest::StandaloneDeviceLockSecret);
@@ -316,7 +325,8 @@ void tst_secretsrequests::devicelockStandaloneSecret()
     QCOMPARE(ssr.result().code(), Result::Succeeded);
 
     // read the secret
-    GetSecretRequest gsr(&sm);
+    GetSecretRequest gsr;
+    gsr.setManager(&sm);
     QSignalSpy gsrss(&gsr, &GetSecretRequest::statusChanged);
     gsr.setIdentifier(testSecret.identifier());
     QCOMPARE(gsr.identifier(), testSecret.identifier());
@@ -334,7 +344,8 @@ void tst_secretsrequests::devicelockStandaloneSecret()
     QCOMPARE(gsr.secret(), testSecret);
 
     // delete the secret
-    DeleteSecretRequest dsr(&sm);
+    DeleteSecretRequest dsr;
+    dsr.setManager(&sm);
     QSignalSpy dsrss(&dsr, &DeleteSecretRequest::statusChanged);
     dsr.setIdentifier(testSecret.identifier());
     QCOMPARE(dsr.identifier(), testSecret.identifier());
@@ -366,7 +377,8 @@ void tst_secretsrequests::customlockCollection()
     QMetaObject::invokeMethod(interactionView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &sm));
 
     // create a new custom-lock collection
-    CreateCollectionRequest ccr(&sm);
+    CreateCollectionRequest ccr;
+    ccr.setManager(&sm);
     QSignalSpy ccrss(&ccr, &CreateCollectionRequest::statusChanged);
     ccr.setCollectionLockType(CreateCollectionRequest::CustomLock);
     QCOMPARE(ccr.collectionLockType(), CreateCollectionRequest::CustomLock);
@@ -395,7 +407,8 @@ void tst_secretsrequests::customlockCollection()
     QCOMPARE(ccr.result().code(), Result::Succeeded);
 
     // delete the collection
-    DeleteCollectionRequest dcr(&sm);
+    DeleteCollectionRequest dcr;
+    dcr.setManager(&sm);
     QSignalSpy dcrss(&dcr, &DeleteCollectionRequest::statusChanged);
     dcr.setCollectionName(QLatin1String("testcollection"));
     QCOMPARE(dcr.collectionName(), QLatin1String("testcollection"));
@@ -422,7 +435,8 @@ void tst_secretsrequests::customlockCollectionSecret()
     QMetaObject::invokeMethod(interactionView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &sm));
 
     // create a new custom-lock collection
-    CreateCollectionRequest ccr(&sm);
+    CreateCollectionRequest ccr;
+    ccr.setManager(&sm);
     QSignalSpy ccrss(&ccr, &CreateCollectionRequest::statusChanged);
     ccr.setCollectionLockType(CreateCollectionRequest::CustomLock);
     QCOMPARE(ccr.collectionLockType(), CreateCollectionRequest::CustomLock);
@@ -460,7 +474,8 @@ void tst_secretsrequests::customlockCollectionSecret()
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
     testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
 
-    StoreSecretRequest ssr(&sm);
+    StoreSecretRequest ssr;
+    ssr.setManager(&sm);
     QSignalSpy ssrss(&ssr, &StoreSecretRequest::statusChanged);
     ssr.setSecretStorageType(StoreSecretRequest::CollectionSecret);
     QCOMPARE(ssr.secretStorageType(), StoreSecretRequest::CollectionSecret);
@@ -479,7 +494,8 @@ void tst_secretsrequests::customlockCollectionSecret()
     QCOMPARE(ssr.result().code(), Result::Succeeded);
 
     // retrieve the secret
-    GetSecretRequest gsr(&sm);
+    GetSecretRequest gsr;
+    gsr.setManager(&sm);
     QSignalSpy gsrss(&gsr, &GetSecretRequest::statusChanged);
     gsr.setIdentifier(testSecret.identifier());
     QCOMPARE(gsr.identifier(), testSecret.identifier());
@@ -497,7 +513,8 @@ void tst_secretsrequests::customlockCollectionSecret()
     QCOMPARE(gsr.secret(), testSecret);
 
     // delete the secret
-    DeleteSecretRequest dsr(&sm);
+    DeleteSecretRequest dsr;
+    dsr.setManager(&sm);
     QSignalSpy dsrss(&dsr, &DeleteSecretRequest::statusChanged);
     dsr.setIdentifier(testSecret.identifier());
     QCOMPARE(dsr.identifier(), testSecret.identifier());
@@ -519,7 +536,8 @@ void tst_secretsrequests::customlockCollectionSecret()
     QCOMPARE(gsr.result().code(), Result::Failed);
 
     // finally, clean up the collection
-    DeleteCollectionRequest dcr(&sm);
+    DeleteCollectionRequest dcr;
+    dcr.setManager(&sm);
     QSignalSpy dcrss(&dcr, &DeleteCollectionRequest::statusChanged);
     dcr.setCollectionName(QLatin1String("testcollection"));
     QCOMPARE(dcr.collectionName(), QLatin1String("testcollection"));
@@ -553,7 +571,8 @@ void tst_secretsrequests::customlockStandaloneSecret()
     testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
 
     // store the secret
-    StoreSecretRequest ssr(&sm);
+    StoreSecretRequest ssr;
+    ssr.setManager(&sm);
     QSignalSpy ssrss(&ssr, &StoreSecretRequest::statusChanged);
     ssr.setSecretStorageType(StoreSecretRequest::StandaloneCustomLockSecret);
     QCOMPARE(ssr.secretStorageType(), StoreSecretRequest::StandaloneCustomLockSecret);
@@ -582,7 +601,8 @@ void tst_secretsrequests::customlockStandaloneSecret()
     QCOMPARE(ssr.result().code(), Result::Succeeded);
 
     // retrieve the secret
-    GetSecretRequest gsr(&sm);
+    GetSecretRequest gsr;
+    gsr.setManager(&sm);
     QSignalSpy gsrss(&gsr, &GetSecretRequest::statusChanged);
     gsr.setIdentifier(testSecret.identifier());
     QCOMPARE(gsr.identifier(), testSecret.identifier());
@@ -600,7 +620,8 @@ void tst_secretsrequests::customlockStandaloneSecret()
     QCOMPARE(gsr.secret(), testSecret);
 
     // delete the secret
-    DeleteSecretRequest dsr(&sm);
+    DeleteSecretRequest dsr;
+    dsr.setManager(&sm);
     QSignalSpy dsrss(&dsr, &DeleteSecretRequest::statusChanged);
     dsr.setIdentifier(testSecret.identifier());
     QCOMPARE(dsr.identifier(), testSecret.identifier());
@@ -632,7 +653,8 @@ void tst_secretsrequests::encryptedStorageCollection()
     QMetaObject::invokeMethod(interactionView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &sm));
 
     // create a new custom-lock collection stored in by an encrypted storage plugin
-    CreateCollectionRequest ccr(&sm);
+    CreateCollectionRequest ccr;
+    ccr.setManager(&sm);
     QSignalSpy ccrss(&ccr, &CreateCollectionRequest::statusChanged);
     ccr.setCollectionLockType(CreateCollectionRequest::CustomLock);
     QCOMPARE(ccr.collectionLockType(), CreateCollectionRequest::CustomLock);
@@ -670,7 +692,8 @@ void tst_secretsrequests::encryptedStorageCollection()
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
     testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
 
-    StoreSecretRequest ssr(&sm);
+    StoreSecretRequest ssr;
+    ssr.setManager(&sm);
     QSignalSpy ssrss(&ssr, &StoreSecretRequest::statusChanged);
     ssr.setSecretStorageType(StoreSecretRequest::CollectionSecret);
     QCOMPARE(ssr.secretStorageType(), StoreSecretRequest::CollectionSecret);
@@ -689,7 +712,8 @@ void tst_secretsrequests::encryptedStorageCollection()
     QCOMPARE(ssr.result().code(), Result::Succeeded);
 
     // retrieve the secret, ensure it matches
-    GetSecretRequest gsr(&sm);
+    GetSecretRequest gsr;
+    gsr.setManager(&sm);
     QSignalSpy gsrss(&gsr, &GetSecretRequest::statusChanged);
     gsr.setIdentifier(testSecret.identifier());
     QCOMPARE(gsr.identifier(), testSecret.identifier());
@@ -707,7 +731,8 @@ void tst_secretsrequests::encryptedStorageCollection()
     QCOMPARE(gsr.secret(), testSecret);
 
     // delete the secret
-    DeleteSecretRequest dsr(&sm);
+    DeleteSecretRequest dsr;
+    dsr.setManager(&sm);
     QSignalSpy dsrss(&dsr, &DeleteSecretRequest::statusChanged);
     dsr.setIdentifier(testSecret.identifier());
     QCOMPARE(dsr.identifier(), testSecret.identifier());
@@ -729,7 +754,8 @@ void tst_secretsrequests::encryptedStorageCollection()
     QCOMPARE(gsr.result().code(), Result::Failed);
 
     // finally, clean up the collection
-    DeleteCollectionRequest dcr(&sm);
+    DeleteCollectionRequest dcr;
+    dcr.setManager(&sm);
     QSignalSpy dcrss(&dcr, &DeleteCollectionRequest::statusChanged);
     dcr.setCollectionName(QLatin1String("testencryptedcollection"));
     QCOMPARE(dcr.collectionName(), QLatin1String("testencryptedcollection"));

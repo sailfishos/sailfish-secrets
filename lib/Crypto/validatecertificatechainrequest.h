@@ -30,7 +30,7 @@ class SAILFISH_CRYPTO_API ValidateCertificateChainRequest : public Sailfish::Cry
     Q_PROPERTY(bool validated READ validated NOTIFY validatedChanged)
 
 public:
-    ValidateCertificateChainRequest(Sailfish::Crypto::CryptoManager *manager, QObject *parent = Q_NULLPTR);
+    ValidateCertificateChainRequest(QObject *parent = Q_NULLPTR);
     ~ValidateCertificateChainRequest();
 
     QString cryptoPluginName() const;
@@ -43,6 +43,9 @@ public:
 
     Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result result() const Q_DECL_OVERRIDE;
+
+    Sailfish::Crypto::CryptoManager *manager() const Q_DECL_OVERRIDE;
+    void setManager(Sailfish::Crypto::CryptoManager *manager) Q_DECL_OVERRIDE;
 
     void startRequest() Q_DECL_OVERRIDE;
     void waitForFinished() Q_DECL_OVERRIDE;

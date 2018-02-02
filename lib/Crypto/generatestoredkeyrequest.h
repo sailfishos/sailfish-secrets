@@ -32,7 +32,7 @@ class SAILFISH_CRYPTO_API GenerateStoredKeyRequest : public Sailfish::Crypto::Re
     Q_PROPERTY(Sailfish::Crypto::Key generatedKeyReference READ generatedKeyReference NOTIFY generatedKeyReferenceChanged)
 
 public:
-    GenerateStoredKeyRequest(Sailfish::Crypto::CryptoManager *manager, QObject *parent = Q_NULLPTR);
+    GenerateStoredKeyRequest(QObject *parent = Q_NULLPTR);
     ~GenerateStoredKeyRequest();
 
     QString cryptoPluginName() const;
@@ -48,6 +48,9 @@ public:
 
     Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result result() const Q_DECL_OVERRIDE;
+
+    Sailfish::Crypto::CryptoManager *manager() const Q_DECL_OVERRIDE;
+    void setManager(Sailfish::Crypto::CryptoManager *manager) Q_DECL_OVERRIDE;
 
     void startRequest() Q_DECL_OVERRIDE;
     void waitForFinished() Q_DECL_OVERRIDE;

@@ -17,9 +17,8 @@
 
 using namespace Sailfish::Secrets;
 
-StoreSecretRequestPrivate::StoreSecretRequestPrivate(SecretManager *manager)
-    : m_manager(manager)
-    , m_secretStorageType(StoreSecretRequest::CollectionSecret)
+StoreSecretRequestPrivate::StoreSecretRequestPrivate()
+    : m_secretStorageType(StoreSecretRequest::CollectionSecret)
     , m_deviceLockUnlockSemantic(SecretManager::DeviceLockKeepUnlocked)
     , m_customLockUnlockSemantic(SecretManager::CustomLockKeepUnlocked)
     , m_accessControlMode(SecretManager::OwnerOnlyMode)
@@ -94,7 +93,9 @@ StoreSecretRequestPrivate::StoreSecretRequestPrivate(SecretManager *manager)
  *                             QLatin1String("true"));
  *
  * // Request that the secret be securely stored.
- * Sailfish::Secrets::StoreSecretRequest ssr(&sm);
+ * Sailfish::Secrets::SecretManager sm;
+ * Sailfish::Secrets::StoreSecretRequest ssr;
+ * ssr.setManager(&sm);
  * ssr.setSecretStorageType(Sailfish::Secrets::StoreSecretRequest::CollectionSecret);
  * ssr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
  * ssr.setSecret(exampleSecret);
@@ -116,7 +117,8 @@ StoreSecretRequestPrivate::StoreSecretRequestPrivate(SecretManager *manager)
  *
  * // Request that the secret be stored by the default storage plugin
  * Sailfish::Secrets::SecretManager sm;
- * Sailfish::Secrets::StoreSecretRequest ssr(&sm);
+ * Sailfish::Secrets::StoreSecretRequest ssr;
+ * ssr.setManager(&sm);
  * ssr.setSecretStorageType(StoreSecretRequest::StandaloneDeviceLockSecret);
  * ssr.setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked);
  * ssr.setAccessControlMode(Sailfish::Secrets::SecretManager::OwnerOnlyMode);
@@ -129,12 +131,11 @@ StoreSecretRequestPrivate::StoreSecretRequestPrivate(SecretManager *manager)
  */
 
 /*!
- * \brief Constructs a new StoreSecretRequest object which interfaces to the system
- *        crypto service via the given \a manager, with the given \a parent.
+ * \brief Constructs a new StoreSecretRequest object with the given \a parent.
  */
-StoreSecretRequest::StoreSecretRequest(SecretManager *manager, QObject *parent)
+StoreSecretRequest::StoreSecretRequest(QObject *parent)
     : Request(parent)
-    , d_ptr(new StoreSecretRequestPrivate(manager))
+    , d_ptr(new StoreSecretRequestPrivate)
 {
 }
 
@@ -449,6 +450,21 @@ Result StoreSecretRequest::result() const
 {
     Q_D(const StoreSecretRequest);
     return d->m_result;
+}
+
+SecretManager *StoreSecretRequest::manager() const
+{
+    Q_D(const StoreSecretRequest);
+    return d->m_manager.data();
+}
+
+void StoreSecretRequest::setManager(SecretManager *manager)
+{
+    Q_D(StoreSecretRequest);
+    if (d->m_manager.data() != manager) {
+        d->m_manager = manager;
+        emit managerChanged();
+    }
 }
 
 void StoreSecretRequest::startRequest()

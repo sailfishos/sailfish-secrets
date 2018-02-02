@@ -27,7 +27,7 @@ class CreateCollectionRequestPrivate
     Q_DISABLE_COPY(CreateCollectionRequestPrivate)
 
 public:
-    explicit CreateCollectionRequestPrivate(Sailfish::Secrets::SecretManager *manager);
+    explicit CreateCollectionRequestPrivate();
 
     QPointer<Sailfish::Secrets::SecretManager> m_manager;
     CreateCollectionRequest::CollectionLockType m_collectionLockType;

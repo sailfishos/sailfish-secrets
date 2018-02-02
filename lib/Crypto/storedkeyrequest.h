@@ -29,7 +29,7 @@ class SAILFISH_CRYPTO_API StoredKeyRequest : public Sailfish::Crypto::Request
     Q_PROPERTY(Sailfish::Crypto::Key storedKey READ storedKey NOTIFY storedKeyChanged)
 
 public:
-    StoredKeyRequest(Sailfish::Crypto::CryptoManager *manager, QObject *parent = Q_NULLPTR);
+    StoredKeyRequest(QObject *parent = Q_NULLPTR);
     ~StoredKeyRequest();
 
     Sailfish::Crypto::Key::Identifier identifier() const;
@@ -39,6 +39,9 @@ public:
 
     Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result result() const Q_DECL_OVERRIDE;
+
+    Sailfish::Crypto::CryptoManager *manager() const Q_DECL_OVERRIDE;
+    void setManager(Sailfish::Crypto::CryptoManager *manager) Q_DECL_OVERRIDE;
 
     void startRequest() Q_DECL_OVERRIDE;
     void waitForFinished() Q_DECL_OVERRIDE;

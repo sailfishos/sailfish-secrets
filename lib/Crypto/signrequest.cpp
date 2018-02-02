@@ -17,9 +17,8 @@
 
 using namespace Sailfish::Crypto;
 
-SignRequestPrivate::SignRequestPrivate(CryptoManager *manager)
-    : m_manager(manager)
-    , m_status(Request::Inactive)
+SignRequestPrivate::SignRequestPrivate()
+    : m_status(Request::Inactive)
 {
 }
 
@@ -29,12 +28,11 @@ SignRequestPrivate::SignRequestPrivate(CryptoManager *manager)
  */
 
 /*!
- * \brief Constructs a new SignRequest object which interfaces to the system
- *        crypto service via the given \a manager, with the given \a parent.
+ * \brief Constructs a new SignRequest object with the given \a parent.
  */
-SignRequest::SignRequest(CryptoManager *manager, QObject *parent)
+SignRequest::SignRequest(QObject *parent)
     : Request(parent)
-    , d_ptr(new SignRequestPrivate(manager))
+    , d_ptr(new SignRequestPrivate)
 {
 }
 
@@ -191,6 +189,21 @@ Result SignRequest::result() const
 {
     Q_D(const SignRequest);
     return d->m_result;
+}
+
+CryptoManager *SignRequest::manager() const
+{
+    Q_D(const SignRequest);
+    return d->m_manager.data();
+}
+
+void SignRequest::setManager(CryptoManager *manager)
+{
+    Q_D(SignRequest);
+    if (d->m_manager.data() != manager) {
+        d->m_manager = manager;
+        emit managerChanged();
+    }
 }
 
 void SignRequest::startRequest()

@@ -27,7 +27,7 @@ class StoredKeyIdentifiersRequestPrivate
     Q_DISABLE_COPY(StoredKeyIdentifiersRequestPrivate)
 
 public:
-    explicit StoredKeyIdentifiersRequestPrivate(Sailfish::Crypto::CryptoManager *manager);
+    explicit StoredKeyIdentifiersRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
     QVector<Sailfish::Crypto::Key::Identifier> m_identifiers;

@@ -29,7 +29,7 @@ class ValidateCertificateChainRequestPrivate
     Q_DISABLE_COPY(ValidateCertificateChainRequestPrivate)
 
 public:
-    explicit ValidateCertificateChainRequestPrivate(Sailfish::Crypto::CryptoManager *manager);
+    explicit ValidateCertificateChainRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
     QString m_cryptoPluginName;

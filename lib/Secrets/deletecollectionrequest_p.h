@@ -27,7 +27,7 @@ class DeleteCollectionRequestPrivate
     Q_DISABLE_COPY(DeleteCollectionRequestPrivate)
 
 public:
-    explicit DeleteCollectionRequestPrivate(Sailfish::Secrets::SecretManager *manager);
+    explicit DeleteCollectionRequestPrivate();
 
     QPointer<Sailfish::Secrets::SecretManager> m_manager;
     QString m_collectionName;

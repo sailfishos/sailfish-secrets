@@ -17,9 +17,8 @@
 
 using namespace Sailfish::Secrets;
 
-DeleteSecretRequestPrivate::DeleteSecretRequestPrivate(SecretManager *manager)
-    : m_manager(manager)
-    , m_userInteractionMode(SecretManager::PreventInteraction)
+DeleteSecretRequestPrivate::DeleteSecretRequestPrivate()
+    : m_userInteractionMode(SecretManager::PreventInteraction)
     , m_status(Request::Inactive)
 {
 }
@@ -42,7 +41,8 @@ DeleteSecretRequestPrivate::DeleteSecretRequestPrivate(SecretManager *manager)
  *
  * \code
  * Sailfish::Secrets::SecretManager sm;
- * Sailfish::Secrets::DeleteSecretRequest dsr(&sm);
+ * Sailfish::Secrets::DeleteSecretRequest dsr;
+ * dsr.setManager(&sm);
  * dsr.setIdentifier(Sailfish::Secrets::Secret::Identifier("ExampleSecret", "ExampleCollection"));
  * dsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
  * dsr.startRequest(); // status() will change to Finished when complete
@@ -50,12 +50,11 @@ DeleteSecretRequestPrivate::DeleteSecretRequestPrivate(SecretManager *manager)
  */
 
 /*!
- * \brief Constructs a new DeleteSecretRequest object which interfaces to the system
- *        crypto service via the given \a manager, with the given \a parent.
+ * \brief Constructs a new DeleteSecretRequest object with the given \a parent.
  */
-DeleteSecretRequest::DeleteSecretRequest(SecretManager *manager, QObject *parent)
+DeleteSecretRequest::DeleteSecretRequest(QObject *parent)
     : Request(parent)
-    , d_ptr(new DeleteSecretRequestPrivate(manager))
+    , d_ptr(new DeleteSecretRequestPrivate)
 {
 }
 
@@ -126,6 +125,21 @@ Result DeleteSecretRequest::result() const
 {
     Q_D(const DeleteSecretRequest);
     return d->m_result;
+}
+
+SecretManager *DeleteSecretRequest::manager() const
+{
+    Q_D(const DeleteSecretRequest);
+    return d->m_manager.data();
+}
+
+void DeleteSecretRequest::setManager(SecretManager *manager)
+{
+    Q_D(DeleteSecretRequest);
+    if (d->m_manager.data() != manager) {
+        d->m_manager = manager;
+        emit managerChanged();
+    }
 }
 
 void DeleteSecretRequest::startRequest()

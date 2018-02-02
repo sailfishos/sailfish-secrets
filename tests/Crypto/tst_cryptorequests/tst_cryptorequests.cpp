@@ -81,7 +81,8 @@ void tst_cryptorequests::cleanup()
 
 void tst_cryptorequests::getPluginInfo()
 {
-    PluginInfoRequest r(&cm);
+    PluginInfoRequest r;
+    r.setManager(&cm);
     QSignalSpy ss(&r, &PluginInfoRequest::statusChanged);
     QSignalSpy cs(&r, &PluginInfoRequest::cryptoPluginsChanged);
     QCOMPARE(r.status(), Request::Inactive);
@@ -115,7 +116,8 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     keyTemplate.setOperations(Key::Encrypt | Key::Decrypt);
     keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
 
-    GenerateKeyRequest gkr(&cm);
+    GenerateKeyRequest gkr;
+    gkr.setManager(&cm);
     QSignalSpy gkrss(&gkr, &GenerateKeyRequest::statusChanged);
     QSignalSpy gkrks(&gkr, &GenerateKeyRequest::generatedKeyChanged);
     gkr.setKeyTemplate(keyTemplate);
@@ -139,7 +141,8 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
 
     // test encrypting some plaintext with the generated key
     QByteArray plaintext = "Test plaintext data";
-    EncryptRequest er(&cm);
+    EncryptRequest er;
+    er.setManager(&cm);
     QSignalSpy erss(&er, &EncryptRequest::statusChanged);
     QSignalSpy ercs(&er, &EncryptRequest::ciphertextChanged);
     er.setData(plaintext);
@@ -170,7 +173,8 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QVERIFY(ciphertext != plaintext);
 
     // test decrypting the ciphertext, and ensure that the roundtrip works.
-    DecryptRequest dr(&cm);
+    DecryptRequest dr;
+    dr.setManager(&cm);
     QSignalSpy drss(&dr, &DecryptRequest::statusChanged);
     QSignalSpy drps(&dr, &DecryptRequest::plaintextChanged);
     dr.setData(ciphertext);
@@ -209,7 +213,8 @@ void tst_cryptorequests::validateCertificateChain()
     cert.setSignatureValue(QByteArray("testing"));
     chain << cert;
 
-    ValidateCertificateChainRequest vcr(&cm);
+    ValidateCertificateChainRequest vcr;
+    vcr.setManager(&cm);
     QSignalSpy vcrss(&vcr, &ValidateCertificateChainRequest::statusChanged);
     QSignalSpy vcrvs(&vcr, &ValidateCertificateChainRequest::validatedChanged);
     vcr.setCertificateChain(chain);
@@ -233,7 +238,8 @@ void tst_cryptorequests::signVerify()
     // TODO: sign/verify not yet implemented in test plugin.
     QByteArray plaintext = "Test plaintext data", signature;
 
-    SignRequest sr(&cm);
+    SignRequest sr;
+    sr.setManager(&cm);
     QSignalSpy srss(&sr, &SignRequest::statusChanged);
     QSignalSpy srvs(&sr, &SignRequest::signatureChanged);
     sr.setData(plaintext);
@@ -254,7 +260,8 @@ void tst_cryptorequests::signVerify()
     //QCOMPARE(srvs.count(), 1);
     //signature = sr.signature();
 
-    VerifyRequest vr(&cm);
+    VerifyRequest vr;
+    vr.setManager(&cm);
     QSignalSpy vrss(&vr, &VerifyRequest::statusChanged);
     QSignalSpy vrvs(&vr, &VerifyRequest::verifiedChanged);
     QCOMPARE(vr.verified(), false);
@@ -293,7 +300,8 @@ void tst_cryptorequests::storedKeyRequests()
     keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
 
     // first, create the collection via the Secrets API.
-    Sailfish::Secrets::CreateCollectionRequest ccr(&sm);
+    Sailfish::Secrets::CreateCollectionRequest ccr;
+    ccr.setManager(&sm);
     ccr.setCollectionLockType(Sailfish::Secrets::CreateCollectionRequest::DeviceLock);
     ccr.setCollectionName(QLatin1String("tstcryptosecretsgcsked"));
     ccr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
@@ -310,7 +318,8 @@ void tst_cryptorequests::storedKeyRequests()
     // request that the secret key be generated and stored into that collection.
     keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(QLatin1String("storedkey"), QLatin1String("tstcryptosecretsgcsked")));
     // note that the secret key data will never enter the client process address space.
-    GenerateStoredKeyRequest gskr(&cm);
+    GenerateStoredKeyRequest gskr;
+    gskr.setManager(&cm);
     QSignalSpy gskrss(&gskr, &GenerateStoredKeyRequest::statusChanged);
     QSignalSpy gskrks(&gskr, &GenerateStoredKeyRequest::generatedKeyReferenceChanged);
     gskr.setKeyTemplate(keyTemplate);
@@ -337,7 +346,8 @@ void tst_cryptorequests::storedKeyRequests()
 
     // test encrypting some plaintext with the stored key.
     QByteArray plaintext = "Test plaintext data";
-    EncryptRequest er(&cm);
+    EncryptRequest er;
+    er.setManager(&cm);
     QSignalSpy erss(&er, &EncryptRequest::statusChanged);
     QSignalSpy ercs(&er, &EncryptRequest::ciphertextChanged);
     er.setData(plaintext);
@@ -368,7 +378,8 @@ void tst_cryptorequests::storedKeyRequests()
     QVERIFY(ciphertext != plaintext);
 
     // test decrypting the ciphertext, and ensure that the roundtrip works.
-    DecryptRequest dr(&cm);
+    DecryptRequest dr;
+    dr.setManager(&cm);
     QSignalSpy drss(&dr, &DecryptRequest::statusChanged);
     QSignalSpy drps(&dr, &DecryptRequest::plaintextChanged);
     dr.setData(ciphertext);
@@ -401,7 +412,8 @@ void tst_cryptorequests::storedKeyRequests()
     // ensure that we can get a reference to that Key via the Secrets API
     Sailfish::Secrets::Secret::FilterData filter;
     filter.insert(QLatin1String("test"), keyTemplate.filterData(QLatin1String("test")));
-    Sailfish::Secrets::FindSecretsRequest fsr(&sm);
+    Sailfish::Secrets::FindSecretsRequest fsr;
+    fsr.setManager(&sm);
     fsr.setFilter(filter);
     fsr.setFilterOperator(Sailfish::Secrets::SecretManager::OperatorAnd);
     fsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
@@ -424,7 +436,8 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(fsr.identifiers().size(), 0);
 
     // clean up by deleting the collection in which the secret is stored.
-    Sailfish::Secrets::DeleteCollectionRequest dcr(&sm);
+    Sailfish::Secrets::DeleteCollectionRequest dcr;
+    dcr.setManager(&sm);
     dcr.setCollectionName(QLatin1String("tstcryptosecretsgcsked"));
     dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
     dcr.startRequest();
@@ -466,7 +479,8 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(decrypted, plaintext);
 
     // delete the key via deleteStoredKey, and test that the deletion worked.
-    DeleteStoredKeyRequest dskr(&cm);
+    DeleteStoredKeyRequest dskr;
+    dskr.setManager(&cm);
     QSignalSpy dskrss(&dskr, &DeleteStoredKeyRequest::statusChanged);
     dskr.setIdentifier(keyTemplate.identifier());
     QCOMPARE(dskr.identifier(), keyTemplate.identifier());
@@ -488,7 +502,8 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(dr.result().errorCode(), Sailfish::Crypto::Result::InvalidKeyIdentifier);
 
     // ensure that the deletion was cascaded to the Secrets internal database table.
-    Sailfish::Secrets::GetSecretRequest gsr(&sm);
+    Sailfish::Secrets::GetSecretRequest gsr;
+    gsr.setManager(&sm);
     gsr.setIdentifier(Sailfish::Secrets::Secret::Identifier(
                           keyReference.identifier().name(),
                           keyReference.identifier().collectionName()));

@@ -42,6 +42,16 @@ Request::~Request()
  */
 
 /*!
+ * \fn Request::setManager(CryptoManager *manager)
+ * \brief Sets the manager through which the request interfaces to the system crypto service to \a manager
+ */
+
+/*!
+ * \fn Request::manager() const
+ * \brief Returns the manager through which the request interfaces to the system crypto service
+ */
+
+/*!
  * \fn Request::status() const
  * \brief Returns the current status of the Request
  */

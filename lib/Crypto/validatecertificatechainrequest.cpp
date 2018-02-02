@@ -18,9 +18,8 @@
 
 using namespace Sailfish::Crypto;
 
-ValidateCertificateChainRequestPrivate::ValidateCertificateChainRequestPrivate(CryptoManager *manager)
-    : m_manager(manager)
-    , m_validated(false)
+ValidateCertificateChainRequestPrivate::ValidateCertificateChainRequestPrivate()
+    : m_validated(false)
     , m_status(Request::Inactive)
 {
 }
@@ -34,12 +33,11 @@ ValidateCertificateChainRequestPrivate::ValidateCertificateChainRequestPrivate(C
  */
 
 /*!
- * \brief Constructs a new ValidateCertificateChainRequest object which interfaces to the system
- *        crypto service via the given \a manager, with the given \a parent.
+ * \brief Constructs a new ValidateCertificateChainRequest object with the given \a parent.
  */
-ValidateCertificateChainRequest::ValidateCertificateChainRequest(CryptoManager *manager, QObject *parent)
+ValidateCertificateChainRequest::ValidateCertificateChainRequest(QObject *parent)
     : Request(parent)
-    , d_ptr(new ValidateCertificateChainRequestPrivate(manager))
+    , d_ptr(new ValidateCertificateChainRequestPrivate)
 {
 }
 
@@ -121,6 +119,21 @@ Result ValidateCertificateChainRequest::result() const
 {
     Q_D(const ValidateCertificateChainRequest);
     return d->m_result;
+}
+
+CryptoManager *ValidateCertificateChainRequest::manager() const
+{
+    Q_D(const ValidateCertificateChainRequest);
+    return d->m_manager.data();
+}
+
+void ValidateCertificateChainRequest::setManager(CryptoManager *manager)
+{
+    Q_D(ValidateCertificateChainRequest);
+    if (d->m_manager.data() != manager) {
+        d->m_manager = manager;
+        emit managerChanged();
+    }
 }
 
 void ValidateCertificateChainRequest::startRequest()

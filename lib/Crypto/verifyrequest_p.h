@@ -27,7 +27,7 @@ class VerifyRequestPrivate
     Q_DISABLE_COPY(VerifyRequestPrivate)
 
 public:
-    explicit VerifyRequestPrivate(Sailfish::Crypto::CryptoManager *manager);
+    explicit VerifyRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
     QByteArray m_data;

@@ -17,9 +17,8 @@
 
 using namespace Sailfish::Secrets;
 
-FindSecretsRequestPrivate::FindSecretsRequestPrivate(SecretManager *manager)
-    : m_manager(manager)
-    , m_userInteractionMode(SecretManager::PreventInteraction)
+FindSecretsRequestPrivate::FindSecretsRequestPrivate()
+    : m_userInteractionMode(SecretManager::PreventInteraction)
     , m_status(Request::Inactive)
 {
 }
@@ -65,7 +64,8 @@ FindSecretsRequestPrivate::FindSecretsRequestPrivate(SecretManager *manager)
  * filter.insert(QLatin1String("example"), testSecret.filterData(QLatin1String("true")));
  *
  * Sailfish::Secrets::SecretManager sm;
- * Sailfish::Secrets::FindSecretsRequest fsr(&sm);
+ * Sailfish::Secrets::FindSecretsRequest fsr;
+ * fsr.setManager(&sm);
  * fsr.setCollectionName(QLatin1String("ExampleCollection"));
  * fsr.setFilter(filter);
  * fsr.setFilterOperator(Sailfish::Secrets::SecretManager::OperatorAnd);
@@ -75,12 +75,11 @@ FindSecretsRequestPrivate::FindSecretsRequestPrivate(SecretManager *manager)
  */
 
 /*!
- * \brief Constructs a new FindSecretsRequest object which interfaces to the system
- *        crypto service via the given \a manager, with the given \a parent.
+ * \brief Constructs a new FindSecretsRequest object with the given \a parent.
  */
-FindSecretsRequest::FindSecretsRequest(SecretManager *manager, QObject *parent)
+FindSecretsRequest::FindSecretsRequest(QObject *parent)
     : Request(parent)
-    , d_ptr(new FindSecretsRequestPrivate(manager))
+    , d_ptr(new FindSecretsRequestPrivate)
 {
 }
 
@@ -228,6 +227,21 @@ Result FindSecretsRequest::result() const
 {
     Q_D(const FindSecretsRequest);
     return d->m_result;
+}
+
+SecretManager *FindSecretsRequest::manager() const
+{
+    Q_D(const FindSecretsRequest);
+    return d->m_manager.data();
+}
+
+void FindSecretsRequest::setManager(SecretManager *manager)
+{
+    Q_D(FindSecretsRequest);
+    if (d->m_manager.data() != manager) {
+        d->m_manager = manager;
+        emit managerChanged();
+    }
 }
 
 void FindSecretsRequest::startRequest()

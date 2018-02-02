@@ -27,7 +27,7 @@ class StoreSecretRequestPrivate
     Q_DISABLE_COPY(StoreSecretRequestPrivate)
 
 public:
-    explicit StoreSecretRequestPrivate(Sailfish::Secrets::SecretManager *manager);
+    explicit StoreSecretRequestPrivate();
 
     QPointer<Sailfish::Secrets::SecretManager> m_manager;
     StoreSecretRequest::SecretStorageType m_secretStorageType;

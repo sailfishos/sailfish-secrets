@@ -33,7 +33,7 @@ class SAILFISH_SECRETS_API FindSecretsRequest : public Sailfish::Secrets::Reques
     Q_PROPERTY(QVector<Sailfish::Secrets::Secret::Identifier> identifiers READ identifiers NOTIFY identifiersChanged)
 
 public:
-    FindSecretsRequest(Sailfish::Secrets::SecretManager *manager, QObject *parent = Q_NULLPTR);
+    FindSecretsRequest(QObject *parent = Q_NULLPTR);
     ~FindSecretsRequest();
 
     QString collectionName() const;
@@ -52,6 +52,9 @@ public:
 
     Sailfish::Secrets::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result result() const Q_DECL_OVERRIDE;
+
+    Sailfish::Secrets::SecretManager *manager() const Q_DECL_OVERRIDE;
+    void setManager(Sailfish::Secrets::SecretManager *manager) Q_DECL_OVERRIDE;
 
     void startRequest() Q_DECL_OVERRIDE;
     void waitForFinished() Q_DECL_OVERRIDE;

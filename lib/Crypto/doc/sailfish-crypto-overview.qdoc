@@ -131,7 +131,8 @@ keyTemplate.setIdentifier(QStringLiteral("ExampleKey"),
 
 // Ask the system service to generate and store the key securely.
 Sailfish::Crypto::CryptoManager cm;
-Sailfish::Crypto::GenerateStoredKeyRequest generateRequest(&cm);
+Sailfish::Crypto::GenerateStoredKeyRequest generateRequest;
+generateRequest.setManager(&cm);
 generateRequest.setKeyTemplate(keyTemplate);
 generateRequest.setCryptoPluginName(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
 generateRequest.setStoragePluginName(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
@@ -158,7 +159,8 @@ in the previous snippet.
 \code
 QByteArray ciphertext, plaintext = "Example plaintext data";
 
-EncryptRequest encryptRequest(&cm);
+EncryptRequest encryptRequest;
+encryptRequest.setManager(&cm);
 encryptRequest.setData(plaintext);
 encryptRequest.setKey(symmetricKeyReference);
 encryptRequest.setBlockMode(Sailfish::Crypto::Key::BlockModeCBC);
@@ -182,7 +184,8 @@ the client asks the system service to decrypt the ciphertext with the same
 key reference, to produce decrypted data.
 
 \code
-DecryptRequest decryptRequest(&cm);
+DecryptRequest decryptRequest;
+decryptRequest.setManager(&cm);
 decryptRequest.setData(ciphertext);
 decryptRequest.setKey(symmetricKeyReference);
 decryptRequest.setBlockMode(Sailfish::Crypto::Key::BlockModeCBC);

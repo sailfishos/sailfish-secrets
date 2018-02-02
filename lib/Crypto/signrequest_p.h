@@ -27,7 +27,7 @@ class SignRequestPrivate
     Q_DISABLE_COPY(SignRequestPrivate)
 
 public:
-    explicit SignRequestPrivate(Sailfish::Crypto::CryptoManager *manager);
+    explicit SignRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
     QByteArray m_data;

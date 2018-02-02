@@ -17,9 +17,8 @@
 
 using namespace Sailfish::Crypto;
 
-DeleteStoredKeyRequestPrivate::DeleteStoredKeyRequestPrivate(CryptoManager *manager)
-    : m_manager(manager)
-    , m_status(Request::Inactive)
+DeleteStoredKeyRequestPrivate::DeleteStoredKeyRequestPrivate()
+    : m_status(Request::Inactive)
 {
 }
 
@@ -29,12 +28,11 @@ DeleteStoredKeyRequestPrivate::DeleteStoredKeyRequestPrivate(CryptoManager *mana
  */
 
 /*!
- * \brief Constructs a new DeleteStoredKeyRequest object which interfaces to the system
- *        crypto service via the given \a manager, with the given \a parent.
+ * \brief Constructs a new DeleteStoredKeyRequest object with the given \a parent.
  */
-DeleteStoredKeyRequest::DeleteStoredKeyRequest(CryptoManager *manager, QObject *parent)
+DeleteStoredKeyRequest::DeleteStoredKeyRequest(QObject *parent)
     : Request(parent)
-    , d_ptr(new DeleteStoredKeyRequestPrivate(manager))
+    , d_ptr(new DeleteStoredKeyRequestPrivate)
 {
 }
 
@@ -80,6 +78,21 @@ Result DeleteStoredKeyRequest::result() const
 {
     Q_D(const DeleteStoredKeyRequest);
     return d->m_result;
+}
+
+CryptoManager *DeleteStoredKeyRequest::manager() const
+{
+    Q_D(const DeleteStoredKeyRequest);
+    return d->m_manager.data();
+}
+
+void DeleteStoredKeyRequest::setManager(CryptoManager *manager)
+{
+    Q_D(DeleteStoredKeyRequest);
+    if (d->m_manager.data() != manager) {
+        d->m_manager = manager;
+        emit managerChanged();
+    }
 }
 
 void DeleteStoredKeyRequest::startRequest()

@@ -30,7 +30,7 @@ class SAILFISH_SECRETS_API GetSecretRequest : public Sailfish::Secrets::Request
     Q_PROPERTY(Sailfish::Secrets::Secret secret READ secret NOTIFY secretChanged)
 
 public:
-    GetSecretRequest(Sailfish::Secrets::SecretManager *manager, QObject *parent = Q_NULLPTR);
+    GetSecretRequest(QObject *parent = Q_NULLPTR);
     ~GetSecretRequest();
 
     Sailfish::Secrets::Secret::Identifier identifier() const;
@@ -43,6 +43,9 @@ public:
 
     Sailfish::Secrets::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result result() const Q_DECL_OVERRIDE;
+
+    Sailfish::Secrets::SecretManager *manager() const Q_DECL_OVERRIDE;
+    void setManager(Sailfish::Secrets::SecretManager *manager) Q_DECL_OVERRIDE;
 
     void startRequest() Q_DECL_OVERRIDE;
     void waitForFinished() Q_DECL_OVERRIDE;

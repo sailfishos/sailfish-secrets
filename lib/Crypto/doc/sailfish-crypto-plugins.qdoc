@@ -72,7 +72,8 @@ keyTemplate.setIdentifier(QStringLiteral("ExampleKey"),
 
 // Ask the system service to generate and store the key securely.
 Sailfish::Crypto::CryptoManager cm;
-Sailfish::Crypto::GenerateStoredKeyRequest generateRequest(&cm);
+Sailfish::Crypto::GenerateStoredKeyRequest generateRequest;
+generateRequest.setManager(&cm);
 generateRequest.setKeyTemplate(keyTemplate);
 generateRequest.setCryptoPluginName(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
 generateRequest.setStoragePluginName(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);

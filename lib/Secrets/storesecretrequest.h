@@ -43,7 +43,7 @@ public:
         StandaloneCustomLockSecret
     };
 
-    StoreSecretRequest(Sailfish::Secrets::SecretManager *manager, QObject *parent = Q_NULLPTR);
+    StoreSecretRequest(QObject *parent = Q_NULLPTR);
     ~StoreSecretRequest();
 
     SecretStorageType secretStorageType() const;
@@ -78,6 +78,9 @@ public:
 
     Sailfish::Secrets::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result result() const Q_DECL_OVERRIDE;
+
+    Sailfish::Secrets::SecretManager *manager() const Q_DECL_OVERRIDE;
+    void setManager(Sailfish::Secrets::SecretManager *manager) Q_DECL_OVERRIDE;
 
     void startRequest() Q_DECL_OVERRIDE;
     void waitForFinished() Q_DECL_OVERRIDE;

@@ -17,9 +17,8 @@
 
 using namespace Sailfish::Crypto;
 
-StoredKeyIdentifiersRequestPrivate::StoredKeyIdentifiersRequestPrivate(CryptoManager *manager)
-    : m_manager(manager)
-    , m_status(Request::Inactive)
+StoredKeyIdentifiersRequestPrivate::StoredKeyIdentifiersRequestPrivate()
+    : m_status(Request::Inactive)
 {
 }
 
@@ -29,12 +28,11 @@ StoredKeyIdentifiersRequestPrivate::StoredKeyIdentifiersRequestPrivate(CryptoMan
  */
 
 /*!
- * \brief Constructs a new StoredKeyIdentifiersRequest object which interfaces to the system
- *        crypto service via the given \a manager, with the given \a parent.
+ * \brief Constructs a new StoredKeyIdentifiersRequest object with the given \a parent.
  */
-StoredKeyIdentifiersRequest::StoredKeyIdentifiersRequest(CryptoManager *manager, QObject *parent)
+StoredKeyIdentifiersRequest::StoredKeyIdentifiersRequest(QObject *parent)
     : Request(parent)
-    , d_ptr(new StoredKeyIdentifiersRequestPrivate(manager))
+    , d_ptr(new StoredKeyIdentifiersRequestPrivate)
 {
 }
 
@@ -66,6 +64,21 @@ Result StoredKeyIdentifiersRequest::result() const
 {
     Q_D(const StoredKeyIdentifiersRequest);
     return d->m_result;
+}
+
+CryptoManager *StoredKeyIdentifiersRequest::manager() const
+{
+    Q_D(const StoredKeyIdentifiersRequest);
+    return d->m_manager.data();
+}
+
+void StoredKeyIdentifiersRequest::setManager(CryptoManager *manager)
+{
+    Q_D(StoredKeyIdentifiersRequest);
+    if (d->m_manager.data() != manager) {
+        d->m_manager = manager;
+        emit managerChanged();
+    }
 }
 
 void StoredKeyIdentifiersRequest::startRequest()

@@ -17,9 +17,8 @@
 
 using namespace Sailfish::Secrets;
 
-CreateCollectionRequestPrivate::CreateCollectionRequestPrivate(SecretManager *manager)
-    : m_manager(manager)
-    , m_collectionLockType(CreateCollectionRequest::DeviceLock)
+CreateCollectionRequestPrivate::CreateCollectionRequestPrivate()
+    : m_collectionLockType(CreateCollectionRequest::DeviceLock)
     , m_deviceLockUnlockSemantic(SecretManager::DeviceLockKeepUnlocked)
     , m_customLockUnlockSemantic(SecretManager::CustomLockKeepUnlocked)
     , m_accessControlMode(SecretManager::OwnerOnlyMode)
@@ -64,7 +63,8 @@ CreateCollectionRequestPrivate::CreateCollectionRequestPrivate(SecretManager *ma
  *
  * \code
  * Sailfish::Secrets::SecretManager sm;
- * Sailfish::Secrets::CreateCollectionRequest ccr(&sm);
+ * Sailfish::Secrets::CreateCollectionRequest ccr;
+ * ccr.setManager(&sm);
  * ccr.setCollectionName(QLatin1String("ExampleCollection"));
  * ccr.setAccessControlMode(Sailfish::Secrets::SecretManager::OwnerOnlyMode);
  * ccr.setCollectionLockType(Sailfish::Secrets::CreateCollectionRequest::DeviceLock);
@@ -76,12 +76,11 @@ CreateCollectionRequestPrivate::CreateCollectionRequestPrivate(SecretManager *ma
  */
 
 /*!
- * \brief Constructs a new CreateCollectionRequest object which interfaces to the system
- *        crypto service via the given \a manager, with the given \a parent.
+ * \brief Constructs a new CreateCollectionRequest object with the given \a parent.
  */
-CreateCollectionRequest::CreateCollectionRequest(SecretManager *manager, QObject *parent)
+CreateCollectionRequest::CreateCollectionRequest(QObject *parent)
     : Request(parent)
-    , d_ptr(new CreateCollectionRequestPrivate(manager))
+    , d_ptr(new CreateCollectionRequestPrivate)
 {
 }
 
@@ -368,6 +367,21 @@ Result CreateCollectionRequest::result() const
 {
     Q_D(const CreateCollectionRequest);
     return d->m_result;
+}
+
+SecretManager *CreateCollectionRequest::manager() const
+{
+    Q_D(const CreateCollectionRequest);
+    return d->m_manager.data();
+}
+
+void CreateCollectionRequest::setManager(SecretManager *manager)
+{
+    Q_D(CreateCollectionRequest);
+    if (d->m_manager.data() != manager) {
+        d->m_manager = manager;
+        emit managerChanged();
+    }
 }
 
 void CreateCollectionRequest::startRequest()

@@ -17,9 +17,8 @@
 
 using namespace Sailfish::Secrets;
 
-DeleteCollectionRequestPrivate::DeleteCollectionRequestPrivate(SecretManager *manager)
-    : m_manager(manager)
-    , m_userInteractionMode(SecretManager::PreventInteraction)
+DeleteCollectionRequestPrivate::DeleteCollectionRequestPrivate()
+    : m_userInteractionMode(SecretManager::PreventInteraction)
     , m_status(Request::Inactive)
 {
 }
@@ -45,7 +44,9 @@ DeleteCollectionRequestPrivate::DeleteCollectionRequestPrivate(SecretManager *ma
  * An example of deleting a collection is as follows:
  *
  * \code
- * Sailfish::Secrets::DeleteCollectionRequest dcr(&sm);
+ * Sailfish::Secrets::SecretManager sm;
+ * Sailfish::Secrets::DeleteCollectionRequest dcr;
+ * dcr.setManager(&sm);
  * dcr.setCollectionName(QLatin1String("ExampleCollection"));
  * dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
  * dcr.startRequest(); // status() will change to Finished when complete
@@ -58,9 +59,9 @@ DeleteCollectionRequestPrivate::DeleteCollectionRequestPrivate(SecretManager *ma
  * \brief Constructs a new DeleteCollectionRequest object which interfaces to the system
  *        crypto service via the given \a manager, with the given \a parent.
  */
-DeleteCollectionRequest::DeleteCollectionRequest(SecretManager *manager, QObject *parent)
+DeleteCollectionRequest::DeleteCollectionRequest(QObject *parent)
     : Request(parent)
-    , d_ptr(new DeleteCollectionRequestPrivate(manager))
+    , d_ptr(new DeleteCollectionRequestPrivate)
 {
 }
 
@@ -131,6 +132,21 @@ Result DeleteCollectionRequest::result() const
 {
     Q_D(const DeleteCollectionRequest);
     return d->m_result;
+}
+
+SecretManager *DeleteCollectionRequest::manager() const
+{
+    Q_D(const DeleteCollectionRequest);
+    return d->m_manager.data();
+}
+
+void DeleteCollectionRequest::setManager(SecretManager *manager)
+{
+    Q_D(DeleteCollectionRequest);
+    if (d->m_manager.data() != manager) {
+        d->m_manager = manager;
+        emit managerChanged();
+    }
 }
 
 void DeleteCollectionRequest::startRequest()

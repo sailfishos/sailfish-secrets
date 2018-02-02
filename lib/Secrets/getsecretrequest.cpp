@@ -17,9 +17,8 @@
 
 using namespace Sailfish::Secrets;
 
-GetSecretRequestPrivate::GetSecretRequestPrivate(SecretManager *manager)
-    : m_manager(manager)
-    , m_userInteractionMode(SecretManager::PreventInteraction)
+GetSecretRequestPrivate::GetSecretRequestPrivate()
+    : m_userInteractionMode(SecretManager::PreventInteraction)
     , m_status(Request::Inactive)
 {
 }
@@ -56,7 +55,9 @@ GetSecretRequestPrivate::GetSecretRequestPrivate(SecretManager *manager)
  * An example of retrieving a collection-stored secret follows:
  *
  * \code
- * Sailfish::Secrets::GetSecretRequest gsr(&sm);
+ * Sailfish::Secrets::SecretManager sm;
+ * Sailfish::Secrets::GetSecretRequest gsr;
+ * gsr.setManager(&sm);
  * gsr.setIdentifier(Sailfish::Secrets::Secret::Identifier("ExampleSecret", "ExampleCollection"));
  * gsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
  * gsr.startRequest(); // status() will change to Finished when complete
@@ -64,12 +65,11 @@ GetSecretRequestPrivate::GetSecretRequestPrivate(SecretManager *manager)
  */
 
 /*!
- * \brief Constructs a new GetSecretRequest object which interfaces to the system
- *        crypto service via the given \a manager, with the given \a parent.
+ * \brief Constructs a new GetSecretRequest object with the given \a parent.
  */
-GetSecretRequest::GetSecretRequest(SecretManager *manager, QObject *parent)
+GetSecretRequest::GetSecretRequest(QObject *parent)
     : Request(parent)
-    , d_ptr(new GetSecretRequestPrivate(manager))
+    , d_ptr(new GetSecretRequestPrivate)
 {
 }
 
@@ -149,6 +149,21 @@ Result GetSecretRequest::result() const
 {
     Q_D(const GetSecretRequest);
     return d->m_result;
+}
+
+SecretManager *GetSecretRequest::manager() const
+{
+    Q_D(const GetSecretRequest);
+    return d->m_manager.data();
+}
+
+void GetSecretRequest::setManager(SecretManager *manager)
+{
+    Q_D(GetSecretRequest);
+    if (d->m_manager.data() != manager) {
+        d->m_manager = manager;
+        emit managerChanged();
+    }
 }
 
 void GetSecretRequest::startRequest()

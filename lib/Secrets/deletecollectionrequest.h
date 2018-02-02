@@ -28,7 +28,7 @@ class SAILFISH_SECRETS_API DeleteCollectionRequest : public Sailfish::Secrets::R
     Q_PROPERTY(Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode READ userInteractionMode WRITE setUserInteractionMode NOTIFY userInteractionModeChanged)
 
 public:
-    DeleteCollectionRequest(Sailfish::Secrets::SecretManager *manager, QObject *parent = Q_NULLPTR);
+    DeleteCollectionRequest(QObject *parent = Q_NULLPTR);
     ~DeleteCollectionRequest();
 
     QString collectionName() const;
@@ -39,6 +39,9 @@ public:
 
     Sailfish::Secrets::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result result() const Q_DECL_OVERRIDE;
+
+    Sailfish::Secrets::SecretManager *manager() const Q_DECL_OVERRIDE;
+    void setManager(Sailfish::Secrets::SecretManager *manager) Q_DECL_OVERRIDE;
 
     void startRequest() Q_DECL_OVERRIDE;
     void waitForFinished() Q_DECL_OVERRIDE;

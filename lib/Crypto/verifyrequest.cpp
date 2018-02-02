@@ -17,9 +17,8 @@
 
 using namespace Sailfish::Crypto;
 
-VerifyRequestPrivate::VerifyRequestPrivate(CryptoManager *manager)
-    : m_manager(manager)
-    , m_verified(false)
+VerifyRequestPrivate::VerifyRequestPrivate()
+    : m_verified(false)
     , m_status(Request::Inactive)
 {
 }
@@ -30,12 +29,11 @@ VerifyRequestPrivate::VerifyRequestPrivate(CryptoManager *manager)
  */
 
 /*!
- * \brief Constructs a new VerifyRequest object which interfaces to the system
- *        crypto service via the given \a manager, with the given \a parent.
+ * \brief Constructs a new VerifyRequest object with the given \a parent
  */
-VerifyRequest::VerifyRequest(CryptoManager *manager, QObject *parent)
+VerifyRequest::VerifyRequest(QObject *parent)
     : Request(parent)
-    , d_ptr(new VerifyRequestPrivate(manager))
+    , d_ptr(new VerifyRequestPrivate)
 {
 }
 
@@ -212,6 +210,21 @@ Result VerifyRequest::result() const
 {
     Q_D(const VerifyRequest);
     return d->m_result;
+}
+
+CryptoManager *VerifyRequest::manager() const
+{
+    Q_D(const VerifyRequest);
+    return d->m_manager.data();
+}
+
+void VerifyRequest::setManager(CryptoManager *manager)
+{
+    Q_D(VerifyRequest);
+    if (d->m_manager.data() != manager) {
+        d->m_manager = manager;
+        emit managerChanged();
+    }
 }
 
 void VerifyRequest::startRequest()

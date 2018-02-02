@@ -27,7 +27,7 @@ class PluginInfoRequestPrivate
     Q_DISABLE_COPY(PluginInfoRequestPrivate)
 
 public:
-    explicit PluginInfoRequestPrivate(Sailfish::Crypto::CryptoManager *manager);
+    explicit PluginInfoRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
     QVector<Sailfish::Crypto::CryptoPluginInfo> m_cryptoPlugins;

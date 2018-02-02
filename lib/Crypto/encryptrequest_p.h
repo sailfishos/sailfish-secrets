@@ -27,7 +27,7 @@ class EncryptRequestPrivate
     Q_DISABLE_COPY(EncryptRequestPrivate)
 
 public:
-    explicit EncryptRequestPrivate(Sailfish::Crypto::CryptoManager *manager);
+    explicit EncryptRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
     QByteArray m_data;

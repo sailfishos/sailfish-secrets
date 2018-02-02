@@ -27,7 +27,7 @@ class GenerateStoredKeyRequestPrivate
     Q_DISABLE_COPY(GenerateStoredKeyRequestPrivate)
 
 public:
-    explicit GenerateStoredKeyRequestPrivate(Sailfish::Crypto::CryptoManager *manager);
+    explicit GenerateStoredKeyRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
     QString m_cryptoPluginName;

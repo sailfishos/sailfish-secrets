@@ -29,7 +29,7 @@ class SAILFISH_SECRETS_API DeleteSecretRequest : public Sailfish::Secrets::Reque
     Q_PROPERTY(Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode READ userInteractionMode WRITE setUserInteractionMode NOTIFY userInteractionModeChanged)
 
 public:
-    DeleteSecretRequest(Sailfish::Secrets::SecretManager *manager, QObject *parent = Q_NULLPTR);
+    DeleteSecretRequest(QObject *parent = Q_NULLPTR);
     ~DeleteSecretRequest();
 
     Sailfish::Secrets::Secret::Identifier identifier() const;
@@ -40,6 +40,9 @@ public:
 
     Sailfish::Secrets::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result result() const Q_DECL_OVERRIDE;
+
+    Sailfish::Secrets::SecretManager *manager() const Q_DECL_OVERRIDE;
+    void setManager(Sailfish::Secrets::SecretManager *manager) Q_DECL_OVERRIDE;
 
     void startRequest() Q_DECL_OVERRIDE;
     void waitForFinished() Q_DECL_OVERRIDE;
