@@ -17,7 +17,7 @@
 #include "Secrets/deletecollectionrequest.h"
 #include "Secrets/deletesecretrequest.h"
 #include "Secrets/findsecretsrequest.h"
-#include "Secrets/getsecretrequest.h"
+#include "Secrets/storedsecretrequest.h"
 #include "Secrets/storesecretrequest.h"
 
 using namespace Sailfish::Secrets;
@@ -172,9 +172,9 @@ void tst_secretsrequests::devicelockCollectionSecret()
     QCOMPARE(ssr.result().code(), Result::Succeeded);
 
     // retrieve the secret, ensure it matches
-    GetSecretRequest gsr;
+    StoredSecretRequest gsr;
     gsr.setManager(&sm);
-    QSignalSpy gsrss(&gsr, &GetSecretRequest::statusChanged);
+    QSignalSpy gsrss(&gsr, &StoredSecretRequest::statusChanged);
     gsr.setIdentifier(testSecret.identifier());
     QCOMPARE(gsr.identifier(), testSecret.identifier());
     gsr.setUserInteractionMode(SecretManager::ApplicationInteraction);
@@ -325,9 +325,9 @@ void tst_secretsrequests::devicelockStandaloneSecret()
     QCOMPARE(ssr.result().code(), Result::Succeeded);
 
     // read the secret
-    GetSecretRequest gsr;
+    StoredSecretRequest gsr;
     gsr.setManager(&sm);
-    QSignalSpy gsrss(&gsr, &GetSecretRequest::statusChanged);
+    QSignalSpy gsrss(&gsr, &StoredSecretRequest::statusChanged);
     gsr.setIdentifier(testSecret.identifier());
     QCOMPARE(gsr.identifier(), testSecret.identifier());
     gsr.setUserInteractionMode(SecretManager::ApplicationInteraction);
@@ -494,9 +494,9 @@ void tst_secretsrequests::customlockCollectionSecret()
     QCOMPARE(ssr.result().code(), Result::Succeeded);
 
     // retrieve the secret
-    GetSecretRequest gsr;
+    StoredSecretRequest gsr;
     gsr.setManager(&sm);
-    QSignalSpy gsrss(&gsr, &GetSecretRequest::statusChanged);
+    QSignalSpy gsrss(&gsr, &StoredSecretRequest::statusChanged);
     gsr.setIdentifier(testSecret.identifier());
     QCOMPARE(gsr.identifier(), testSecret.identifier());
     gsr.setUserInteractionMode(SecretManager::ApplicationInteraction);
@@ -601,9 +601,9 @@ void tst_secretsrequests::customlockStandaloneSecret()
     QCOMPARE(ssr.result().code(), Result::Succeeded);
 
     // retrieve the secret
-    GetSecretRequest gsr;
+    StoredSecretRequest gsr;
     gsr.setManager(&sm);
-    QSignalSpy gsrss(&gsr, &GetSecretRequest::statusChanged);
+    QSignalSpy gsrss(&gsr, &StoredSecretRequest::statusChanged);
     gsr.setIdentifier(testSecret.identifier());
     QCOMPARE(gsr.identifier(), testSecret.identifier());
     gsr.setUserInteractionMode(SecretManager::ApplicationInteraction);
@@ -712,9 +712,9 @@ void tst_secretsrequests::encryptedStorageCollection()
     QCOMPARE(ssr.result().code(), Result::Succeeded);
 
     // retrieve the secret, ensure it matches
-    GetSecretRequest gsr;
+    StoredSecretRequest gsr;
     gsr.setManager(&sm);
-    QSignalSpy gsrss(&gsr, &GetSecretRequest::statusChanged);
+    QSignalSpy gsrss(&gsr, &StoredSecretRequest::statusChanged);
     gsr.setIdentifier(testSecret.identifier());
     QCOMPARE(gsr.identifier(), testSecret.identifier());
     gsr.setUserInteractionMode(SecretManager::ApplicationInteraction);

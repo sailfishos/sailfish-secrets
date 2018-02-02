@@ -18,12 +18,12 @@ PUBLIC_HEADERS += \
     $$PWD/deletesecretrequest.h \
     $$PWD/extensionplugins.h \
     $$PWD/findsecretsrequest.h \
-    $$PWD/getsecretrequest.h \
     $$PWD/request.h \
     $$PWD/result.h \
     $$PWD/secret.h \
     $$PWD/secretmanager.h \
     $$PWD/secretsglobal.h \
+    $$PWD/storedsecretrequest.h \
     $$PWD/storesecretrequest.h \
     $$PWD/interactionrequest.h \
     $$PWD/interactionrequestwatcher.h \
@@ -38,9 +38,9 @@ PRIVATE_HEADERS += \
     $$PWD/deletecollectionrequest_p.h \
     $$PWD/deletesecretrequest_p.h \
     $$PWD/findsecretsrequest_p.h \
-    $$PWD/getsecretrequest_p.h \
     $$PWD/secretsdaemonconnection_p_p.h \
     $$PWD/secretmanager_p.h \
+    $$PWD/storedsecretrequest_p.h \
     $$PWD/storesecretrequest_p.h \
     $$PWD/interactionservice_p.h
 
@@ -55,11 +55,11 @@ SOURCES += \
     $$PWD/deletesecretrequest.cpp \
     $$PWD/extensionplugins.cpp \
     $$PWD/findsecretsrequest.cpp \
-    $$PWD/getsecretrequest.cpp \
     $$PWD/request.cpp \
     $$PWD/secretsdaemonconnection.cpp \
     $$PWD/secretmanager.cpp \
     $$PWD/serialisation.cpp \
+    $$PWD/storedsecretrequest.cpp \
     $$PWD/storesecretrequest.cpp \
     $$PWD/interactionrequestwatcher.cpp \
     $$PWD/interactionservice.cpp

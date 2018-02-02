@@ -27,7 +27,7 @@ class CreateCollectionRequest;
 class DeleteCollectionRequest;
 class DeleteSecretRequest;
 class FindSecretsRequest;
-class GetSecretRequest;
+class StoredSecretRequest;
 class StoreSecretRequest;
 class InteractionView;
 class SecretManagerPrivate;
@@ -109,7 +109,7 @@ private:
     friend class DeleteCollectionRequest;
     friend class DeleteSecretRequest;
     friend class FindSecretsRequest;
-    friend class GetSecretRequest;
+    friend class StoredSecretRequest;
     friend class StoreSecretRequest;
 };
 

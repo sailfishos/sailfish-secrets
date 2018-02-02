@@ -21,8 +21,8 @@ namespace Sailfish {
 
 namespace Secrets {
 
-class GetSecretRequestPrivate;
-class SAILFISH_SECRETS_API GetSecretRequest : public Sailfish::Secrets::Request
+class StoredSecretRequestPrivate;
+class SAILFISH_SECRETS_API StoredSecretRequest : public Sailfish::Secrets::Request
 {
     Q_OBJECT
     Q_PROPERTY(Sailfish::Secrets::Secret::Identifier identifier READ identifier WRITE setIdentifier NOTIFY identifierChanged)
@@ -30,8 +30,8 @@ class SAILFISH_SECRETS_API GetSecretRequest : public Sailfish::Secrets::Request
     Q_PROPERTY(Sailfish::Secrets::Secret secret READ secret NOTIFY secretChanged)
 
 public:
-    GetSecretRequest(QObject *parent = Q_NULLPTR);
-    ~GetSecretRequest();
+    StoredSecretRequest(QObject *parent = Q_NULLPTR);
+    ~StoredSecretRequest();
 
     Sailfish::Secrets::Secret::Identifier identifier() const;
     void setIdentifier(const Sailfish::Secrets::Secret::Identifier &ident);
@@ -56,8 +56,8 @@ Q_SIGNALS:
     void secretChanged();
 
 private:
-    QScopedPointer<GetSecretRequestPrivate> const d_ptr;
-    Q_DECLARE_PRIVATE(GetSecretRequest)
+    QScopedPointer<StoredSecretRequestPrivate> const d_ptr;
+    Q_DECLARE_PRIVATE(StoredSecretRequest)
 };
 
 } // namespace Secrets

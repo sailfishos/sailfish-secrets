@@ -22,12 +22,12 @@ namespace Sailfish {
 
 namespace Secrets {
 
-class GetSecretRequestPrivate
+class StoredSecretRequestPrivate
 {
-    Q_DISABLE_COPY(GetSecretRequestPrivate)
+    Q_DISABLE_COPY(StoredSecretRequestPrivate)
 
 public:
-    explicit GetSecretRequestPrivate();
+    explicit StoredSecretRequestPrivate();
 
     QPointer<Sailfish::Secrets::SecretManager> m_manager;
     Sailfish::Secrets::Secret::Identifier m_identifier;

@@ -459,7 +459,7 @@ SecretManagerPrivate *SecretManager::pimpl() const
   \li \l{Sailfish::Secrets::CreateCollectionRequest} to create a collection in which to store secrets
   \li \l{Sailfish::Secrets::DeleteCollectionRequest} to delete a collection of secrets
   \li \l{Sailfish::Secrets::StoreSecretRequest} to store a secret either in a collection or standalone
-  \li \l{Sailfish::Secrets::GetSecretRequest} to retrieve a secret
+  \li \l{Sailfish::Secrets::StoredSecretRequest} to retrieve a secret
   \li \l{Sailfish::Secrets::FindSecretsRequest} to search a collection for secrets matching a filter
   \li \l{Sailfish::Secrets::DeleteSecretRequest} to delete a secret
   \endlist

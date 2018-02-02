@@ -5,8 +5,8 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#include "Secrets/getsecretrequest.h"
-#include "Secrets/getsecretrequest_p.h"
+#include "Secrets/storedsecretrequest.h"
+#include "Secrets/storedsecretrequest_p.h"
 
 #include "Secrets/secretmanager.h"
 #include "Secrets/secretmanager_p.h"
@@ -17,14 +17,14 @@
 
 using namespace Sailfish::Secrets;
 
-GetSecretRequestPrivate::GetSecretRequestPrivate()
+StoredSecretRequestPrivate::StoredSecretRequestPrivate()
     : m_userInteractionMode(SecretManager::PreventInteraction)
     , m_status(Request::Inactive)
 {
 }
 
 /*!
- * \class GetSecretRequest
+ * \class StoredSecretRequest
  * \brief Allows a client request a secret from the system's secure secret storage service
  *
  * This class allows clients to request the Secrets service to retrieve a secret
@@ -56,45 +56,45 @@ GetSecretRequestPrivate::GetSecretRequestPrivate()
  *
  * \code
  * Sailfish::Secrets::SecretManager sm;
- * Sailfish::Secrets::GetSecretRequest gsr;
- * gsr.setManager(&sm);
- * gsr.setIdentifier(Sailfish::Secrets::Secret::Identifier("ExampleSecret", "ExampleCollection"));
- * gsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
- * gsr.startRequest(); // status() will change to Finished when complete
+ * Sailfish::Secrets::StoredSecretRequest ssr;
+ * ssr.setManager(&sm);
+ * ssr.setIdentifier(Sailfish::Secrets::Secret::Identifier("ExampleSecret", "ExampleCollection"));
+ * ssr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
+ * ssr.startRequest(); // status() will change to Finished when complete
  * \endcode
  */
 
 /*!
- * \brief Constructs a new GetSecretRequest object with the given \a parent.
+ * \brief Constructs a new StoredSecretRequest object with the given \a parent.
  */
-GetSecretRequest::GetSecretRequest(QObject *parent)
+StoredSecretRequest::StoredSecretRequest(QObject *parent)
     : Request(parent)
-    , d_ptr(new GetSecretRequestPrivate)
+    , d_ptr(new StoredSecretRequestPrivate)
 {
 }
 
 /*!
- * \brief Destroys the GetSecretRequest
+ * \brief Destroys the StoredSecretRequest
  */
-GetSecretRequest::~GetSecretRequest()
+StoredSecretRequest::~StoredSecretRequest()
 {
 }
 
 /*!
  * \brief Returns the identifier of the secret which the client wishes to retrieve
  */
-Secret::Identifier GetSecretRequest::identifier() const
+Secret::Identifier StoredSecretRequest::identifier() const
 {
-    Q_D(const GetSecretRequest);
+    Q_D(const StoredSecretRequest);
     return d->m_identifier;
 }
 
 /*!
  * \brief Sets the identifier of the secret which the client wishes to retrieve to \a ident
  */
-void GetSecretRequest::setIdentifier(const Secret::Identifier &ident)
+void StoredSecretRequest::setIdentifier(const Secret::Identifier &ident)
 {
-    Q_D(GetSecretRequest);
+    Q_D(StoredSecretRequest);
     if (d->m_status != Request::Active && d->m_identifier != ident) {
         d->m_identifier = ident;
         if (d->m_status == Request::Finished) {
@@ -108,27 +108,27 @@ void GetSecretRequest::setIdentifier(const Secret::Identifier &ident)
 /*!
  * \brief Returns the secret which was retrieved for the client
  */
-Secret GetSecretRequest::secret() const
+Secret StoredSecretRequest::secret() const
 {
-    Q_D(const GetSecretRequest);
+    Q_D(const StoredSecretRequest);
     return d->m_secret;
 }
 
 /*!
  * \brief Returns the user interaction mode required when retrieving the secret (e.g. if a custom lock code must be requested from the user)
  */
-SecretManager::UserInteractionMode GetSecretRequest::userInteractionMode() const
+SecretManager::UserInteractionMode StoredSecretRequest::userInteractionMode() const
 {
-    Q_D(const GetSecretRequest);
+    Q_D(const StoredSecretRequest);
     return d->m_userInteractionMode;
 }
 
 /*!
  * \brief Sets the user interaction mode required when retrieving the secret (e.g. if a custom lock code must be requested from the user) to \a mode
  */
-void GetSecretRequest::setUserInteractionMode(SecretManager::UserInteractionMode mode)
+void StoredSecretRequest::setUserInteractionMode(SecretManager::UserInteractionMode mode)
 {
-    Q_D(GetSecretRequest);
+    Q_D(StoredSecretRequest);
     if (d->m_status != Request::Active && d->m_userInteractionMode != mode) {
         d->m_userInteractionMode = mode;
         if (d->m_status == Request::Finished) {
@@ -139,36 +139,36 @@ void GetSecretRequest::setUserInteractionMode(SecretManager::UserInteractionMode
     }
 }
 
-Request::Status GetSecretRequest::status() const
+Request::Status StoredSecretRequest::status() const
 {
-    Q_D(const GetSecretRequest);
+    Q_D(const StoredSecretRequest);
     return d->m_status;
 }
 
-Result GetSecretRequest::result() const
+Result StoredSecretRequest::result() const
 {
-    Q_D(const GetSecretRequest);
+    Q_D(const StoredSecretRequest);
     return d->m_result;
 }
 
-SecretManager *GetSecretRequest::manager() const
+SecretManager *StoredSecretRequest::manager() const
 {
-    Q_D(const GetSecretRequest);
+    Q_D(const StoredSecretRequest);
     return d->m_manager.data();
 }
 
-void GetSecretRequest::setManager(SecretManager *manager)
+void StoredSecretRequest::setManager(SecretManager *manager)
 {
-    Q_D(GetSecretRequest);
+    Q_D(StoredSecretRequest);
     if (d->m_manager.data() != manager) {
         d->m_manager = manager;
         emit managerChanged();
     }
 }
 
-void GetSecretRequest::startRequest()
+void StoredSecretRequest::startRequest()
 {
-    Q_D(GetSecretRequest);
+    Q_D(StoredSecretRequest);
     if (d->m_status != Request::Active && !d->m_manager.isNull()) {
         d->m_status = Request::Active;
         emit statusChanged();
@@ -205,9 +205,9 @@ void GetSecretRequest::startRequest()
     }
 }
 
-void GetSecretRequest::waitForFinished()
+void StoredSecretRequest::waitForFinished()
 {
-    Q_D(GetSecretRequest);
+    Q_D(StoredSecretRequest);
     if (d->m_status == Request::Active && !d->m_watcher.isNull()) {
         d->m_watcher->waitForFinished();
     }

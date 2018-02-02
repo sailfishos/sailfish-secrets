@@ -32,8 +32,8 @@
 #include "Secrets/secretmanager.h"
 #include "Secrets/createcollectionrequest.h"
 #include "Secrets/deletecollectionrequest.h"
-#include "Secrets/getsecretrequest.h"
 #include "Secrets/findsecretsrequest.h"
+#include "Secrets/storedsecretrequest.h"
 
 using namespace Sailfish::Crypto;
 
@@ -502,7 +502,7 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(dr.result().errorCode(), Sailfish::Crypto::Result::InvalidKeyIdentifier);
 
     // ensure that the deletion was cascaded to the Secrets internal database table.
-    Sailfish::Secrets::GetSecretRequest gsr;
+    Sailfish::Secrets::StoredSecretRequest gsr;
     gsr.setManager(&sm);
     gsr.setIdentifier(Sailfish::Secrets::Secret::Identifier(
                           keyReference.identifier().name(),
