@@ -25,7 +25,7 @@ StoredKeyRequestPrivate::StoredKeyRequestPrivate(CryptoManager *manager)
 
 /*!
  * \class StoredKeyRequest
- * \brief Allows a client request a securely-stored key from the system crypto service
+ * \brief Allows a client request a securely-stored key from the system crypto service.
  */
 
 /*!

@@ -32,6 +32,47 @@ CreateCollectionRequestPrivate::CreateCollectionRequestPrivate(SecretManager *ma
 /*!
  * \class CreateCollectionRequest
  * \brief Allows a client request that the system secrets service create a collection for secrets storage
+ *
+ * This class allows clients to request the Secrets service to create a collection
+ * with the particular collectionName(), which will be stored by the storage plugin
+ * identified by its storagePluginName().
+ *
+ * The collection may be either a device-lock protected collection or a custom-lock
+ * protected collection, and different unlock semantics may apply in each case.
+ * Creating a custom-lock collection will also require an authentication flow to
+ * be specified so that the user can enter an appropriate lock-code or pass-phrase.
+ * In either case, secrets stored in the collection will be encrypted with a key
+ * derived from the appropriate authentication code, by the encryption plugin
+ * identified by its encryptionPluginName().
+ *
+ * If the collection is protected by a custom-lock and the customLockUnlockSemantic()
+ * specified is \c CustomLockTimoutRelock then the specified customLockTimeout() will
+ * be used as the timeout (in milliseconds) after the collection is unlocked which
+ * will trigger it to be relocked.
+ *
+ * If the storagePluginName() and encryptionPluginName() are specified to be the
+ * same plugin, then that plugin is assumed to be an \tt EncryptedStoragePlugin
+ * which performs block-level encryption of the entire collection, instead of
+ * per-value encryption of individual secrets.
+ *
+ * An accessControlMode() may also be specified for the collection, which will be
+ * enforced by the system secrets service, in order to allow or prevent other
+ * applications from reading the secret.
+ *
+ * An example of creating a device-lock protected, block-level encrypted collection
+ * is as follows:
+ *
+ * \code
+ * Sailfish::Secrets::SecretManager sm;
+ * Sailfish::Secrets::CreateCollectionRequest ccr(&sm);
+ * ccr.setCollectionName(QLatin1String("ExampleCollection"));
+ * ccr.setAccessControlMode(Sailfish::Secrets::SecretManager::OwnerOnlyMode);
+ * ccr.setCollectionLockType(Sailfish::Secrets::CreateCollectionRequest::DeviceLock);
+ * ccr.setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked);
+ * ccr.setStoragePluginName(Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
+ * ccr.setEncryptionPluginName(Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
+ * ccr.startRequest(); // status() will change to Finished when complete
+ * \endcode
  */
 
 /*!

@@ -26,6 +26,17 @@ GenerateStoredKeyRequestPrivate::GenerateStoredKeyRequestPrivate(CryptoManager *
 /*!
  * \class GenerateKeyRequest
  * \brief Allows a client request that the system crypto service generate and secure store a key based on a template.
+ *
+ * The generated key will be stored securely by the crypto daemon via the storage
+ * plugin identified by the given storagePluginName(), and the returned
+ * key will not contain any private or secret key data.
+ *
+ * Available storage providers can be enumerated from the Sailfish Secrets API.
+ *
+ * If the cryptoPluginName() and \a storagePluginName() are the
+ * same, then the key will be stored in storage managed by the
+ * crypto provider plugin, if that plugin supports storing keys.
+ * In that case, the crypto plugin must also be a Sailfish::Secrets::EncryptedStoragePlugin.
  */
 
 /*!

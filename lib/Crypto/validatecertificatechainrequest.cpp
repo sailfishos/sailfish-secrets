@@ -27,7 +27,10 @@ ValidateCertificateChainRequestPrivate::ValidateCertificateChainRequestPrivate(C
 
 /*!
  * \class ValidateCertificateChainRequest
- * \brief Allows a client to request the system crypto service to validate a certificate chain's authenticity and validity
+ * \brief Allows a client to request the system crypto service to validate a certificate chain's authenticity and validity.
+ *
+ * The cryptosystem provider identified by the given cryptoPluginName() will perform
+ * any cryptographic operations required to validate the authenticity of the certificates.
  */
 
 /*!

@@ -27,6 +27,31 @@ DeleteCollectionRequestPrivate::DeleteCollectionRequestPrivate(SecretManager *ma
 /*!
  * \class DeleteCollectionRequest
  * \brief Allows a client request that the system secrets service delete a collection from secrets storage
+ *
+ * This class allows clients to request the Secrets service to delete a collection
+ * with the particular collectionName().
+ *
+ * If the calling application is the creator of the collection, or alternatively
+ * if the user has granted the application permission to delete the collection,
+ * then the Secrets service will instruct the storage plugin to delete the
+ * collection and any secrets it contains.
+ *
+ * If the application is not the creator of the collection and the user has not yet
+ * been asked if the application should have permission to delete the collection,
+ * a system-mediated access control UI flow may be triggered to obtain the user's
+ * permission (unless the given \a userInteractionMode is \a PreventInteraction
+ * in which case the request will fail).
+ *
+ * An example of deleting a collection is as follows:
+ *
+ * \code
+ * Sailfish::Secrets::DeleteCollectionRequest dcr(&sm);
+ * dcr.setCollectionName(QLatin1String("ExampleCollection"));
+ * dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
+ * dcr.startRequest(); // status() will change to Finished when complete
+ * \endcode
+}
+\endcode
  */
 
 /*!
