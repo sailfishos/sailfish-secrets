@@ -66,7 +66,7 @@ keyTemplate.setOperations(Sailfish::Crypto::Key::Encrypt
 // Set the identifier for the key.
 // This assumes the existence of an "ExampleCollection" secure storage
 // collection, in which the key will be stored.
-// See Sailfish::Secrets::SecretManager::createCollection().
+// See Sailfish::Secrets::CreateCollectionRequest.
 keyTemplate.setIdentifier(QStringLiteral("ExampleKey"),
                           QStringLiteral("ExampleCollection"));
 
@@ -87,7 +87,6 @@ if (generateRequest.result().code() == Sailfish::Crypto::Result::Failed) {
 \endcode
 
 Note that this example assumes that the "ExampleCollection" had already
-been created, via the appropriate call to
-\tt{Sailfish::Secrets::SecretManager::createCollection()}.
+been created, via a Sailfish::Secrets::CreateCollectionRequest.
 
 */

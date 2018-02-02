@@ -125,7 +125,7 @@ keyTemplate.setOperations(Sailfish::Crypto::Key::Encrypt
 // Set the identifier for the key.
 // This assumes the existence of an "ExampleCollection" secure storage
 // collection, in which the key will be stored.
-// See Sailfish::Secrets::SecretManager::createCollection().
+// See Sailfish::Secrets::CreateCollectionRequest.
 keyTemplate.setIdentifier(QStringLiteral("ExampleKey"),
                           QStringLiteral("ExampleCollection"));
 
