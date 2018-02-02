@@ -1,3 +1,4 @@
 TEMPLATE = subdirs
 SUBDIRS += \
-    $$PWD/openpgpplugin
+   $$PWD/openpgpplugin \
+   $$PWD/pinentry

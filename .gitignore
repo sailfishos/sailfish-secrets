@@ -23,3 +23,4 @@ debugsources.list
 /tests/Secrets/tst_secrets/tst_secrets
 /tests/Secrets/tst_secretsrequests/tst_secretsrequests
 tests/plugins/testgnupgplugin/tst_gnupgplugin
+plugins/gnupgplugin/pinentry/pinentry
