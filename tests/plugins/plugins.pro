@@ -1,5 +1,6 @@
 TEMPLATE = subdirs
 SUBDIRS += \
+    $$PWD/testpasswordagentauthplugin \
     $$PWD/testinappauthplugin \
     $$PWD/testsqliteplugin \
     $$PWD/testopensslplugin \

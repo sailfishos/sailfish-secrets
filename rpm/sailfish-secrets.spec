@@ -9,6 +9,7 @@ Source0:    %{name}-%{version}.tar.bz2
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Sql)
 BuildRequires:  pkgconfig(Qt5DBus)
+BuildRequires:  pkgconfig(qt5-boostable)
 
 %description
 %{summary}.
@@ -180,14 +181,17 @@ cp -R lib/Crypto/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Crypto/
 
 %files tests
 %defattr(-,root,root,-)
+/opt/tests/Sailfish/Secrets/authentication-client
 /opt/tests/Sailfish/Secrets/tst_secrets
 /opt/tests/Sailfish/Secrets/tst_secrets.qml
 /opt/tests/Sailfish/Secrets/tst_secretsrequests
 /opt/tests/Sailfish/Secrets/tst_secretsrequests.qml
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-testinappauth.so
+%{_libdir}/Sailfish/Secrets/libsailfishsecrets-testpasswordagentauth.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-testopenssl.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-testsqlcipher.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-testsqlite.so
+%{_datadir}/polkit-1/actions/org.sailfishos.secrets.policy
 
 %files -n libsailfishsecretsplugin
 %defattr(-,root,root,-)
@@ -230,6 +234,7 @@ cp -R lib/Crypto/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Crypto/
 %defattr(-,root,root,-)
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-inappauth.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-openssl.so
+%{_libdir}/Sailfish/Secrets/libsailfishsecrets-passwordagentauth.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-sqlcipher.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-sqlite.so
 
