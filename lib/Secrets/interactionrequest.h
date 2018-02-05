@@ -11,7 +11,6 @@
 #include "Secrets/secretsglobal.h"
 #include "Secrets/result.h"
 
-#include <QtDBus/QDBusArgument>
 #include <QtCore/QVariantMap>
 #include <QtCore/QString>
 #include <QtCore/QMetaType>
@@ -90,12 +89,6 @@ public:
     QByteArray authenticationKey() const { return m_values.value(AuthenticationKey).toByteArray(); }
     void setAuthenticationKey(const QByteArray &value) { m_values.insert(AuthenticationKey, value); }
 };
-
-QDBusArgument &operator<<(QDBusArgument &argument, const InteractionRequest &request) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionRequest &request) SAILFISH_SECRETS_API;
-
-QDBusArgument &operator<<(QDBusArgument &argument, const InteractionResponse &response) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionResponse &response) SAILFISH_SECRETS_API;
 
 } // namespace Secrets
 

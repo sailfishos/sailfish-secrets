@@ -10,8 +10,7 @@
 
 #include "Secrets/secretsglobal.h"
 
-#include <QtDBus/QDBusArgument>
-
+#include <QtCore/QMetaType>
 #include <QtCore/QString>
 #include <QtCore/QByteArray>
 #include <QtCore/QVector>
@@ -49,6 +48,10 @@ public:
 
         bool operator==(const Sailfish::Secrets::Secret::Identifier &other) const {
             return m_name == other.m_name && m_collectionName == other.m_collectionName;
+        }
+
+        bool operator!=(const Sailfish::Secrets::Secret::Identifier &other) const {
+            return m_name != other.m_name || m_collectionName != other.m_collectionName;
         }
 
         bool operator<(const Sailfish::Secrets::Secret::Identifier &other) const {
@@ -100,6 +103,10 @@ public:
         return type() == other.type() && m_data == other.m_data;
     }
 
+    bool operator!=(const Sailfish::Secrets::Secret &other) const {
+        return type() != other.type() || m_data != other.m_data;
+    }
+
     bool operator<(const Sailfish::Secrets::Secret &other) const {
         if (type() < other.type())
             return true;
@@ -128,12 +135,6 @@ private:
     Sailfish::Secrets::Secret::Identifier m_identifier;
     QByteArray m_data;
 };
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secret &secret) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::Secret &secret) SAILFISH_SECRETS_API;
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Secret::Identifier &identifier) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::Secret::Identifier &identifier) SAILFISH_SECRETS_API;
 
 } // namespace Secrets
 

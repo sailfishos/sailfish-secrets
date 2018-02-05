@@ -12,13 +12,6 @@
 #include "Secrets/result.h"
 #include "Secrets/interactionrequest.h"
 
-#include <QtDBus/QDBusServer>
-#include <QtDBus/QDBusContext>
-#include <QtDBus/QDBusConnection>
-#include <QtDBus/QDBusInterface>
-#include <QtDBus/QDBusMessage>
-#include <QtDBus/QDBusPendingCallWatcher>
-
 #include <QtCore/QObject>
 #include <QtCore/QVariantMap>
 #include <QtCore/QList>

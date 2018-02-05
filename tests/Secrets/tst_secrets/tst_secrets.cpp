@@ -13,6 +13,8 @@
 
 #include "Secrets/secretmanager.h"
 #include "Secrets/secret.h"
+#include "Secrets/secretmanager_p.h"
+#include "Secrets/serialisation_p.h"
 
 using namespace Sailfish::Secrets;
 
@@ -25,6 +27,17 @@ using namespace Sailfish::Secrets;
             maxWait -= 100;                                 \
         }                                                   \
     } while (0)
+
+class TestSecretManager : public Sailfish::Secrets::SecretManager
+{
+    Q_OBJECT
+
+public:
+    TestSecretManager(Sailfish::Secrets::SecretManager::InitialisationMode mode = AsynchronousInitialisationMode, QObject *parent = Q_NULLPTR)
+        : Sailfish::Secrets::SecretManager(mode, parent) {}
+    ~TestSecretManager() {}
+    Sailfish::Secrets::SecretManagerPrivate *d_ptr() const { return Sailfish::Secrets::SecretManager::pimpl(); }
+};
 
 class tst_secrets : public QObject
 {
@@ -46,7 +59,7 @@ private slots:
     void encryptedStorageCollection();
 
 private:
-    SecretManager m;
+    TestSecretManager m;
 };
 
 void tst_secrets::init()
@@ -59,7 +72,7 @@ void tst_secrets::cleanup()
 
 void tst_secrets::devicelockCollection()
 {
-    QDBusPendingReply<Result> reply = m.createCollection(
+    QDBusPendingReply<Result> reply = m.d_ptr()->createCollection(
                 QLatin1String("testcollection"),
                 SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
@@ -69,7 +82,7 @@ void tst_secrets::devicelockCollection()
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
 
-    reply = m.deleteCollection(
+    reply = m.d_ptr()->deleteCollection(
                 QLatin1String("testcollection"),
                 SecretManager::ApplicationInteraction);
     reply.waitForFinished();
@@ -79,7 +92,7 @@ void tst_secrets::devicelockCollection()
 
 void tst_secrets::devicelockCollectionSecret()
 {
-    QDBusPendingReply<Result> reply = m.createCollection(
+    QDBusPendingReply<Result> reply = m.d_ptr()->createCollection(
                 QLatin1String("testcollection"),
                 SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
@@ -97,14 +110,14 @@ void tst_secrets::devicelockCollectionSecret()
     testSecret.setType(Secret::TypeBlob);
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
     testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
-    reply = m.setSecret(
+    reply = m.d_ptr()->setSecret(
                 testSecret,
                 SecretManager::ApplicationInteraction);
     reply.waitForFinished();
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
 
-    QDBusPendingReply<Result, Secret> secretReply = m.getSecret(
+    QDBusPendingReply<Result, Secret> secretReply = m.d_ptr()->getSecret(
                 testSecret.identifier(),
                 SecretManager::ApplicationInteraction);
     secretReply.waitForFinished();
@@ -117,7 +130,7 @@ void tst_secrets::devicelockCollectionSecret()
     Secret::FilterData filter;
     filter.insert(QLatin1String("domain"), testSecret.filterData(QLatin1String("domain")));
     filter.insert(QLatin1String("test"), testSecret.filterData(QLatin1String("test")));
-    QDBusPendingReply<Result, QVector<Secret::Identifier> > filterReply = m.findSecrets(
+    QDBusPendingReply<Result, QVector<Secret::Identifier> > filterReply = m.d_ptr()->findSecrets(
                 QLatin1String("testcollection"),
                 filter,
                 SecretManager::OperatorAnd,
@@ -130,7 +143,7 @@ void tst_secrets::devicelockCollectionSecret()
 
     // now test filtering with AND with one matching and one non-matching value, expect no-match
     filter.insert(QLatin1String("test"), QLatin1String("false"));
-    filterReply = m.findSecrets(
+    filterReply = m.d_ptr()->findSecrets(
                 QLatin1String("testcollection"),
                 filter,
                 SecretManager::OperatorAnd,
@@ -141,7 +154,7 @@ void tst_secrets::devicelockCollectionSecret()
     QCOMPARE(filterReply.argumentAt<1>().size(), 0);
 
     // test filtering with OR with one matching and one non-matching value, expect match
-    filterReply = m.findSecrets(
+    filterReply = m.d_ptr()->findSecrets(
                 QLatin1String("testcollection"),
                 filter,
                 SecretManager::OperatorOr,
@@ -154,7 +167,7 @@ void tst_secrets::devicelockCollectionSecret()
 
     // test filtering with OR with zero matching values, expect no-match
     filter.insert(QLatin1String("domain"), QLatin1String("jolla.com"));
-    filterReply = m.findSecrets(
+    filterReply = m.d_ptr()->findSecrets(
                 QLatin1String("testcollection"),
                 filter,
                 SecretManager::OperatorOr,
@@ -165,7 +178,7 @@ void tst_secrets::devicelockCollectionSecret()
     QCOMPARE(filterReply.argumentAt<1>().size(), 0);
 
     // delete the secret
-    reply = m.deleteSecret(
+    reply = m.d_ptr()->deleteSecret(
                 testSecret.identifier(),
                 SecretManager::ApplicationInteraction);
     reply.waitForFinished();
@@ -173,14 +186,14 @@ void tst_secrets::devicelockCollectionSecret()
     QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
 
     // ensure that the delete worked properly.
-    secretReply = m.getSecret(
+    secretReply = m.d_ptr()->getSecret(
                 testSecret.identifier(),
                 SecretManager::ApplicationInteraction);
     secretReply.waitForFinished();
     QVERIFY(secretReply.isValid());
     QCOMPARE(secretReply.argumentAt<0>().code(), Result::Failed);
 
-    reply = m.deleteCollection(
+    reply = m.d_ptr()->deleteCollection(
                 QLatin1String("testcollection"),
                 SecretManager::ApplicationInteraction);
     reply.waitForFinished();
@@ -197,7 +210,7 @@ void tst_secrets::devicelockStandaloneSecret()
     testSecret.setType(Secret::TypeBlob);
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
     testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
-    QDBusPendingReply<Result> reply = m.setSecret(
+    QDBusPendingReply<Result> reply = m.d_ptr()->setSecret(
                 SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
                 testSecret,
@@ -209,7 +222,7 @@ void tst_secrets::devicelockStandaloneSecret()
     QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
 
     // read the secret
-    QDBusPendingReply<Result, Secret> secretReply = m.getSecret(
+    QDBusPendingReply<Result, Secret> secretReply = m.d_ptr()->getSecret(
                 testSecret.identifier(),
                 SecretManager::ApplicationInteraction);
     secretReply.waitForFinished();
@@ -218,7 +231,7 @@ void tst_secrets::devicelockStandaloneSecret()
     QCOMPARE(secretReply.argumentAt<1>().data(), testSecret.data());
 
     // delete the secret
-    reply = m.deleteSecret(
+    reply = m.d_ptr()->deleteSecret(
                 testSecret.identifier(),
                 SecretManager::ApplicationInteraction);
     reply.waitForFinished();
@@ -226,7 +239,7 @@ void tst_secrets::devicelockStandaloneSecret()
     QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
 
     // ensure that the delete worked properly.
-    secretReply = m.getSecret(
+    secretReply = m.d_ptr()->getSecret(
                 testSecret.identifier(),
                 SecretManager::ApplicationInteraction);
     secretReply.waitForFinished();
@@ -243,7 +256,7 @@ void tst_secrets::customlockCollection()
     QVERIFY(interactionView);
     QMetaObject::invokeMethod(interactionView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &m));
 
-    QDBusPendingReply<Result> reply = m.createCollection(
+    QDBusPendingReply<Result> reply = m.d_ptr()->createCollection(
                 QLatin1String("testcollection"),
                 SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
@@ -256,7 +269,7 @@ void tst_secrets::customlockCollection()
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
 
-    reply = m.deleteCollection(
+    reply = m.d_ptr()->deleteCollection(
                 QLatin1String("testcollection"),
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
@@ -273,7 +286,7 @@ void tst_secrets::customlockCollectionSecret()
     QVERIFY(interactionView);
     QMetaObject::invokeMethod(interactionView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &m));
 
-    QDBusPendingReply<Result> reply = m.createCollection(
+    QDBusPendingReply<Result> reply = m.d_ptr()->createCollection(
                 QLatin1String("testcollection"),
                 SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
@@ -294,14 +307,14 @@ void tst_secrets::customlockCollectionSecret()
     testSecret.setType(Secret::TypeBlob);
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
     testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
-    reply = m.setSecret(
+    reply = m.d_ptr()->setSecret(
                 testSecret,
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
 
-    QDBusPendingReply<Result, Secret> secretReply = m.getSecret(
+    QDBusPendingReply<Result, Secret> secretReply = m.d_ptr()->getSecret(
                 testSecret.identifier(),
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretReply);
@@ -309,7 +322,7 @@ void tst_secrets::customlockCollectionSecret()
     QCOMPARE(secretReply.argumentAt<0>().code(), Result::Succeeded);
     QCOMPARE(secretReply.argumentAt<1>().data(), testSecret.data());
 
-    reply = m.deleteSecret(
+    reply = m.d_ptr()->deleteSecret(
                 testSecret.identifier(),
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
@@ -317,14 +330,14 @@ void tst_secrets::customlockCollectionSecret()
     QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
 
     // ensure that the delete worked properly.
-    secretReply = m.getSecret(
+    secretReply = m.d_ptr()->getSecret(
                 testSecret.identifier(),
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretReply);
     QVERIFY(secretReply.isValid());
     QCOMPARE(secretReply.argumentAt<0>().code(), Result::Failed);
 
-    reply = m.deleteCollection(
+    reply = m.d_ptr()->deleteCollection(
                 QLatin1String("testcollection"),
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
@@ -347,7 +360,7 @@ void tst_secrets::customlockStandaloneSecret()
     testSecret.setType(Secret::TypeBlob);
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
     testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
-    QDBusPendingReply<Result> reply = m.setSecret(
+    QDBusPendingReply<Result> reply = m.d_ptr()->setSecret(
                 SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
                 SecretManager::InAppAuthenticationPluginName + QLatin1String(".test"),
@@ -360,7 +373,7 @@ void tst_secrets::customlockStandaloneSecret()
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
 
-    QDBusPendingReply<Result, Secret> secretReply = m.getSecret(
+    QDBusPendingReply<Result, Secret> secretReply = m.d_ptr()->getSecret(
                 testSecret.identifier(),
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretReply);
@@ -368,7 +381,7 @@ void tst_secrets::customlockStandaloneSecret()
     QCOMPARE(secretReply.argumentAt<0>().code(), Result::Succeeded);
     QCOMPARE(secretReply.argumentAt<1>().data(), testSecret.data());
 
-    reply = m.deleteSecret(
+    reply = m.d_ptr()->deleteSecret(
                 testSecret.identifier(),
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
@@ -376,7 +389,7 @@ void tst_secrets::customlockStandaloneSecret()
     QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
 
     // ensure that the delete worked properly.
-    secretReply = m.getSecret(
+    secretReply = m.d_ptr()->getSecret(
                     testSecret.identifier(),
                     SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretReply);
@@ -393,7 +406,7 @@ void tst_secrets::encryptedStorageCollection()
     QVERIFY(interactionView);
     QMetaObject::invokeMethod(interactionView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &m));
 
-    QDBusPendingReply<Result> reply = m.createCollection(
+    QDBusPendingReply<Result> reply = m.d_ptr()->createCollection(
                 QLatin1String("testencryptedcollection"),
                 SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"),
                 SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"),
@@ -414,14 +427,14 @@ void tst_secrets::encryptedStorageCollection()
     testSecret.setType(Secret::TypeBlob);
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
     testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
-    reply = m.setSecret(
+    reply = m.d_ptr()->setSecret(
                 testSecret,
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
 
-    QDBusPendingReply<Result, Secret> secretReply = m.getSecret(
+    QDBusPendingReply<Result, Secret> secretReply = m.d_ptr()->getSecret(
                 testSecret.identifier(),
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretReply);
@@ -429,7 +442,7 @@ void tst_secrets::encryptedStorageCollection()
     QCOMPARE(secretReply.argumentAt<0>().code(), Result::Succeeded);
     QCOMPARE(secretReply.argumentAt<1>().data(), testSecret.data());
 
-    reply = m.deleteSecret(
+    reply = m.d_ptr()->deleteSecret(
                 testSecret.identifier(),
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
@@ -437,14 +450,14 @@ void tst_secrets::encryptedStorageCollection()
     QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
 
     // ensure that the delete worked properly.
-    secretReply = m.getSecret(
+    secretReply = m.d_ptr()->getSecret(
                 testSecret.identifier(),
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretReply);
     QVERIFY(secretReply.isValid());
     QCOMPARE(secretReply.argumentAt<0>().code(), Result::Failed);
 
-    reply = m.deleteCollection(
+    reply = m.d_ptr()->deleteCollection(
                 QLatin1String("testencryptedcollection"),
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);

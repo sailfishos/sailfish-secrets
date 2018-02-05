@@ -5,8 +5,9 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#include "Crypto/cryptodaemonconnection.h"
 #include "Crypto/cryptodaemonconnection_p.h"
+#include "Crypto/cryptodaemonconnection_p_p.h"
+#include "Crypto/serialisation_p.h"
 
 #include "Crypto/cryptomanager.h"
 #include "Crypto/result.h"

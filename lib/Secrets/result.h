@@ -10,14 +10,14 @@
 
 #include "Secrets/secretsglobal.h"
 
-#include <QtDBus/QDBusArgument>
 #include <QtCore/QString>
+#include <QtCore/QMetaType>
 
 namespace Sailfish {
 
 namespace Secrets {
 
-class Result {
+class SAILFISH_SECRETS_API Result {
 public:
     enum ResultCode {
         Succeeded = 0,
@@ -163,9 +163,6 @@ private:
     Sailfish::Secrets::Result::ErrorCode m_errorCode;
     Sailfish::Secrets::Result::ResultCode m_code;
 };
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Result &result) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::Result &result) SAILFISH_SECRETS_API;
 
 } // Secrets
 

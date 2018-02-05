@@ -8,35 +8,52 @@
 #ifndef LIBSAILFISHCRYPTO_CRYPTODAEMONCONNECTION_P_H
 #define LIBSAILFISHCRYPTO_CRYPTODAEMONCONNECTION_P_H
 
-#include "Crypto/cryptodaemonconnection.h"
+// WARNING!
+//
+// This is private API, used for internal implementation only!
+// No BC/SC guarantees are made for the methods in this file!
+
+#include "Crypto/cryptoglobal.h"
 
 #include <QtDBus/QDBusConnection>
 #include <QtDBus/QDBusInterface>
 
 #include <QtCore/QObject>
-#include <QtCore/QPointer>
+#include <QtCore/QString>
+#include <QtCore/QAtomicInt>
+#include <QtCore/QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(lcSailfishCryptoDaemonConnection)
 
 namespace Sailfish {
 
 namespace Crypto {
 
-class CryptoDaemonConnection;
-class CryptoDaemonConnectionPrivate : public QObject
+class CryptoDaemonConnectionPrivate;
+class SAILFISH_CRYPTO_API CryptoDaemonConnection : public QObject
 {
     Q_OBJECT
 
 public:
-    CryptoDaemonConnectionPrivate(CryptoDaemonConnection *parent = Q_NULLPTR);
-    QDBusConnection *connection() { return &m_connection; }
-    bool connect();
+    static CryptoDaemonConnection *instance();
+    static void releaseInstance();
 
-public Q_SLOTS:
+    bool connect();
+    QDBusConnection *connection();
+    QDBusInterface *createInterface(const QString &objectPath,
+                                    const QString &interface,
+                                    QObject *parent = Q_NULLPTR);
+
+    static void registerDBusTypes();
+
+Q_SIGNALS:
     void disconnected();
 
 private:
-    friend class CryptoDaemonConnection;
-    QDBusConnection m_connection;
-    QPointer<CryptoDaemonConnection> m_parent;
+    Q_DISABLE_COPY(CryptoDaemonConnection)
+    CryptoDaemonConnection();
+    CryptoDaemonConnectionPrivate *m_data;
+    QAtomicInt m_refCount;
 };
 
 } // namespace Crypto

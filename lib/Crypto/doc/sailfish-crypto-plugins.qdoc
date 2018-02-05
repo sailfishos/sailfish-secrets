@@ -66,27 +66,28 @@ keyTemplate.setOperations(Sailfish::Crypto::Key::Encrypt
 // Set the identifier for the key.
 // This assumes the existence of an "ExampleCollection" secure storage
 // collection, in which the key will be stored.
-// See Sailfish::Secrets::SecretManager::createCollection().
+// See Sailfish::Secrets::CreateCollectionRequest.
 keyTemplate.setIdentifier(QStringLiteral("ExampleKey"),
                           QStringLiteral("ExampleCollection"));
 
 // Ask the system service to generate and store the key securely.
 Sailfish::Crypto::CryptoManager cm;
-QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key>
-        generateReply = cm.generateStoredKey(
-                keyTemplate,
-                Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
-generateReply.waitForFinished();
-if (generateReply.argumentAt<0>().code() == Sailfish::Crypto::Result::Failed) {
+Sailfish::Crypto::GenerateStoredKeyRequest generateRequest;
+generateRequest.setManager(&cm);
+generateRequest.setKeyTemplate(keyTemplate);
+generateRequest.setCryptoPluginName(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
+generateRequest.setStoragePluginName(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
+generateRequest.startRequest();
+generateRequest.waitForFinished();
+if (generateRequest.result().code() == Sailfish::Crypto::Result::Failed) {
     qWarning() << "Unable to generate and store symmetric key:"
-               << generateReply.argumentAt<0>().errorMessage();
+               << generateRequest.result().errorMessage();
 } else {
-    symmetricKeyReference = generateReply.argumentAt<1>();
+    symmetricKeyReference = generateRequest.generatedKeyReference();
 }
 \endcode
 
 Note that this example assumes that the "ExampleCollection" had already
-been created, via the appropriate call to
-\tt{Sailfish::Secrets::SecretManager::createCollection()}.
+been created, via a Sailfish::Secrets::CreateCollectionRequest.
 
 */

@@ -11,7 +11,8 @@
 
 #include "Secrets/result.h"
 #include "Secrets/secretmanager.h"
-#include "Secrets/secretsdaemonconnection.h"
+#include "Secrets/secretsdaemonconnection_p.h"
+#include "Secrets/serialisation_p.h"
 
 #include "SecretsImpl/secretsdatabase_p.h"
 

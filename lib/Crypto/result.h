@@ -10,14 +10,14 @@
 
 #include "Crypto/cryptoglobal.h"
 
-#include <QtDBus/QDBusArgument>
 #include <QtCore/QString>
+#include <QtCore/QMetaType>
 
 namespace Sailfish {
 
 namespace Crypto {
 
-class Result
+class SAILFISH_CRYPTO_API Result
 {
 public:
     enum ResultCode {
@@ -154,9 +154,6 @@ private:
     Sailfish::Crypto::Result::ErrorCode m_errorCode;
     Sailfish::Crypto::Result::ResultCode m_code;
 };
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Result &result) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Result &result) SAILFISH_CRYPTO_API;
 
 } // Crypto
 

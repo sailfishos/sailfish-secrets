@@ -8,7 +8,7 @@
 #include "requestqueue_p.h"
 #include "logging_p.h"
 
-#include "Secrets/secretsdaemonconnection.h"
+#include "Secrets/secretsdaemonconnection_p.h"
 
 #include <QtCore/QElapsedTimer>
 

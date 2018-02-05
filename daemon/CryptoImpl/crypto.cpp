@@ -9,11 +9,13 @@
 #include "cryptorequestprocessor_p.h"
 #include "logging_p.h"
 
+#include "Crypto/serialisation_p.h"
+#include "Crypto/cryptodaemonconnection_p.h"
+
 #include "Crypto/key.h"
 #include "Crypto/certificate.h"
 #include "Crypto/result.h"
 #include "Crypto/cryptomanager.h"
-#include "Crypto/cryptodaemonconnection.h"
 
 #include <QtCore/QString>
 #include <QtCore/QVector>
