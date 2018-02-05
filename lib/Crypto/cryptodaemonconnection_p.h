@@ -46,7 +46,7 @@ public:
 
     static void registerDBusTypes();
 
-signals:
+Q_SIGNALS:
     void disconnected();
 
 private:
