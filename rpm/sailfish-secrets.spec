@@ -211,6 +211,8 @@ cp -R lib/Crypto/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Crypto/
 %defattr(-,root,root,-)
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-inappauth.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-openssl.so
+%{_libdir}/Sailfish/Secrets/libsailfishsecrets-passwordagentauth.so
+%{_libdir}/Sailfish/Secrets/libsailfishsecrets-polkitauth.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-sqlcipher.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-sqlite.so
 
