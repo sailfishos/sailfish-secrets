@@ -115,6 +115,7 @@ public:
 
     Sailfish::Crypto::Result storedKey(
             const Sailfish::Crypto::Key::Identifier &identifier,
+            Sailfish::Crypto::StoredKeyRequest::KeyComponents keyComponents,
             Sailfish::Crypto::Key *key) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result storedKeyIdentifiers(

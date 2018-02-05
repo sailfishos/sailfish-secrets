@@ -12,6 +12,7 @@
 #include "Crypto/certificate.h"
 #include "Crypto/key.h"
 #include "Crypto/result.h"
+#include "Crypto/storedkeyrequest.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QString>
@@ -66,6 +67,7 @@ public:
 
     virtual Sailfish::Crypto::Result storedKey(
             const Sailfish::Crypto::Key::Identifier &identifier,
+            Sailfish::Crypto::StoredKeyRequest::KeyComponents keyComponents,
             Sailfish::Crypto::Key *key) = 0;
 
     // This doesn't exist - if you can store keys, then you must also

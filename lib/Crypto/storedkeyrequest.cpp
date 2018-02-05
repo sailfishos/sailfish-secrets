@@ -18,7 +18,8 @@
 using namespace Sailfish::Crypto;
 
 StoredKeyRequestPrivate::StoredKeyRequestPrivate()
-    : m_status(Request::Inactive)
+    : m_keyComponents(StoredKeyRequest::MetaData | StoredKeyRequest::PublicKeyData)
+    , m_status(Request::Inactive)
 {
 }
 
@@ -66,6 +67,46 @@ void StoredKeyRequest::setIdentifier(const Key::Identifier &ident)
             emit statusChanged();
         }
         emit identifierChanged();
+    }
+}
+
+/*!
+ * \brief Returns the flags describing which components of the stored key the client wishes to retrieve
+ */
+StoredKeyRequest::KeyComponents StoredKeyRequest::keyComponents() const
+{
+    Q_D(const StoredKeyRequest);
+    return d->m_keyComponents;
+}
+
+/*!
+ * \brief Sets the flags describing which components of the stored key the client wishes to retrieve to \a components
+ *
+ * If the \a components includes \c StoredKeyRequest::MetaData then information
+ * about the key (including its origin, algorithm, supported block modes,
+ * supported encryption and signature paddings, supported digests, operations,
+ * and filter data) will be retrieved.
+ *
+ * If the \a components includes \c StoredKeyRequest::PublicKeyData then
+ * public key data will be retrieved.
+ *
+ * If the \a components includes \c StoredKeyRequest::SecretKeyData then
+ * private key data and secret key data will be retrieved.
+ *
+ * Depending on the storage plugin, the custom parameters associated with the
+ * key may be considered to be either metadata, public key data, or secret
+ * key data, and will be retrieved or omitted accordingly.
+ */
+void StoredKeyRequest::setKeyComponents(KeyComponents components)
+{
+    Q_D(StoredKeyRequest);
+    if (d->m_status != Request::Active && d->m_keyComponents != components) {
+        d->m_keyComponents = components;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit keyComponentsChanged();
     }
 }
 
@@ -119,7 +160,8 @@ void StoredKeyRequest::startRequest()
         }
 
         QDBusPendingReply<Result, Key> reply =
-                d->m_manager->d_ptr->storedKey(d->m_identifier);
+                d->m_manager->d_ptr->storedKey(d->m_identifier,
+                                               d->m_keyComponents);
         if (reply.isFinished()) {
             d->m_status = Request::Finished;
             d->m_result = reply.argumentAt<0>();

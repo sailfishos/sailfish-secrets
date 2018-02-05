@@ -26,14 +26,27 @@ class SAILFISH_CRYPTO_API StoredKeyRequest : public Sailfish::Crypto::Request
 {
     Q_OBJECT
     Q_PROPERTY(Sailfish::Crypto::Key::Identifier identifier READ identifier NOTIFY identifierChanged)
+    Q_PROPERTY(KeyComponents keyComponents READ keyComponents WRITE setKeyComponents NOTIFY keyComponentsChanged)
     Q_PROPERTY(Sailfish::Crypto::Key storedKey READ storedKey NOTIFY storedKeyChanged)
 
 public:
+    enum KeyComponent {
+        NoData          = 0,
+        MetaData        = 1,
+        PublicKeyData   = 2,
+        SecretKeyData   = 4
+    };
+    Q_DECLARE_FLAGS(KeyComponents, KeyComponent)
+    Q_FLAG(KeyComponents)
+
     StoredKeyRequest(QObject *parent = Q_NULLPTR);
     ~StoredKeyRequest();
 
     Sailfish::Crypto::Key::Identifier identifier() const;
     void setIdentifier(const Sailfish::Crypto::Key::Identifier &ident);
+
+    KeyComponents keyComponents() const;
+    void setKeyComponents(KeyComponents components);
 
     Sailfish::Crypto::Key storedKey() const;
 
@@ -48,6 +61,7 @@ public:
 
 Q_SIGNALS:
     void identifierChanged();
+    void keyComponentsChanged();
     void storedKeyChanged();
 
 private:
@@ -58,5 +72,9 @@ private:
 } // namespace Crypto
 
 } // namespace Sailfish
+
+Q_DECLARE_METATYPE(Sailfish::Crypto::StoredKeyRequest::KeyComponent);
+Q_DECLARE_METATYPE(Sailfish::Crypto::StoredKeyRequest::KeyComponents);
+Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::StoredKeyRequest::KeyComponents);
 
 #endif // LIBSAILFISHCRYPTO_STOREDKEYREQUEST_H

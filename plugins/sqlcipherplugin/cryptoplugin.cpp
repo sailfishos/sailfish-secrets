@@ -20,6 +20,34 @@
 #include <QtCore/QUuid>
 #include <QtCore/QCryptographicHash>
 
+namespace {
+    void nullifyKeyFields(Sailfish::Crypto::Key *key, Sailfish::Crypto::StoredKeyRequest::KeyComponents keep) {
+        // Null-out fields if the client hasn't specified that they be kept.
+        // Note that by default we treat CustomParameters as PublicKeyData.
+        if (!(keep & Sailfish::Crypto::StoredKeyRequest::MetaData)) {
+            key->setIdentifier(Sailfish::Crypto::Key::Identifier());
+            key->setOrigin(Sailfish::Crypto::Key::OriginUnknown);
+            key->setAlgorithm(Sailfish::Crypto::Key::AlgorithmUnknown);
+            key->setBlockModes(Sailfish::Crypto::Key::BlockModeUnknown);
+            key->setEncryptionPaddings(Sailfish::Crypto::Key::EncryptionPaddingUnknown);
+            key->setSignaturePaddings(Sailfish::Crypto::Key::SignaturePaddingUnknown);
+            key->setDigests(Sailfish::Crypto::Key::DigestUnknown);
+            key->setOperations(Sailfish::Crypto::Key::OperationUnknown);
+            key->setFilterData(Sailfish::Crypto::Key::FilterData());
+        }
+
+        if (!(keep & Sailfish::Crypto::StoredKeyRequest::PublicKeyData)) {
+            key->setCustomParameters(QVector<QByteArray>());
+            key->setPublicKey(QByteArray());
+        }
+
+        if (!(keep & Sailfish::Crypto::StoredKeyRequest::SecretKeyData)) {
+            key->setPrivateKey(QByteArray());
+            key->setSecretKey(QByteArray());
+        }
+    }
+}
+
 void Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::init_aes_encryption()
 {
     osslevp_init();
@@ -74,6 +102,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::generateAndStoreKey(
 Sailfish::Crypto::Result
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::storedKey(
         const Sailfish::Crypto::Key::Identifier &identifier,
+        Sailfish::Crypto::StoredKeyRequest::KeyComponents keyComponents,
         Sailfish::Crypto::Key *key)
 {
     if (identifier.name().isEmpty()) {
@@ -118,6 +147,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::storedKey(
     fullKey.setIdentifier(Sailfish::Crypto::Key::Identifier(identifier.name(), identifier.collectionName()));
     fullKey.setFilterData(filterData);
     *key = fullKey;
+    nullifyKeyFields(key, keyComponents);
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
 }
 

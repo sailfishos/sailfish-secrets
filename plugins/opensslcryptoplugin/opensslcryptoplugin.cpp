@@ -46,9 +46,11 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateAndStoreKey(
 Result
 Daemon::Plugins::OpenSslCryptoPlugin::storedKey(
         const Key::Identifier &identifier,
+        StoredKeyRequest::KeyComponents keyComponents,
         Key *key)
 {
     Q_UNUSED(identifier);
+    Q_UNUSED(keyComponents);
     Q_UNUSED(key);
     return Result(Result::UnsupportedOperation,
                   QLatin1String("The OpenSSL crypto plugin doesn't support storing keys"));

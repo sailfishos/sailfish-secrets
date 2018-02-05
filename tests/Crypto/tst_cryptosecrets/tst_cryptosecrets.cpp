@@ -307,6 +307,7 @@ void tst_cryptosecrets::cryptoStoredKey()
     keyTemplate.setDigests(Sailfish::Crypto::Key::DigestSha256);
     keyTemplate.setOperations(Sailfish::Crypto::Key::Encrypt | Sailfish::Crypto::Key::Decrypt);
     keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
+    keyTemplate.setCustomParameters(QVector<QByteArray>() << QByteArray("testparameter"));
 
     // first, create the collection via the Secrets API.
     QDBusPendingReply<Sailfish::Secrets::Result> secretsreply = sm.d_ptr()->createCollection(
@@ -390,6 +391,42 @@ void tst_cryptosecrets::cryptoStoredKey()
     QVERIFY(filterReply.isValid());
     QCOMPARE(filterReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
     QCOMPARE(filterReply.argumentAt<1>().size(), 0);
+
+    // ensure that we can get a reference via a stored key request
+    QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> storedKeyReply = cm.storedKey(
+            keyReference.identifier(),
+            Sailfish::Crypto::StoredKeyRequest::MetaData);
+    storedKeyReply.waitForFinished();
+    QVERIFY(storedKeyReply.isValid());
+    QCOMPARE(storedKeyReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
+    QCOMPARE(storedKeyReply.argumentAt<1>().algorithm(), keyTemplate.algorithm());
+    QVERIFY(storedKeyReply.argumentAt<1>().customParameters().isEmpty());
+    QVERIFY(storedKeyReply.argumentAt<1>().secretKey().isEmpty());
+
+    // and that we can read back public key data and custom parameters via a stored key request
+    storedKeyReply = cm.storedKey(
+                keyReference.identifier(),
+                Sailfish::Crypto::StoredKeyRequest::MetaData
+                    | Sailfish::Crypto::StoredKeyRequest::PublicKeyData);
+        storedKeyReply.waitForFinished();
+        QVERIFY(storedKeyReply.isValid());
+        QCOMPARE(storedKeyReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
+        QCOMPARE(storedKeyReply.argumentAt<1>().algorithm(), keyTemplate.algorithm());
+        QCOMPARE(storedKeyReply.argumentAt<1>().customParameters(), keyTemplate.customParameters());
+        QVERIFY(storedKeyReply.argumentAt<1>().secretKey().isEmpty());
+
+    // and that we can read back the secret key data via a stored key request
+    storedKeyReply = cm.storedKey(
+                keyReference.identifier(),
+                Sailfish::Crypto::StoredKeyRequest::MetaData
+                    | Sailfish::Crypto::StoredKeyRequest::PublicKeyData
+                    | Sailfish::Crypto::StoredKeyRequest::SecretKeyData);
+        storedKeyReply.waitForFinished();
+        QVERIFY(storedKeyReply.isValid());
+        QCOMPARE(storedKeyReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
+        QCOMPARE(storedKeyReply.argumentAt<1>().algorithm(), keyTemplate.algorithm());
+        QCOMPARE(storedKeyReply.argumentAt<1>().customParameters(), keyTemplate.customParameters());
+        QVERIFY(!storedKeyReply.argumentAt<1>().secretKey().isEmpty());
 
     // clean up by deleting the collection in which the secret is stored.
     secretsreply = sm.d_ptr()->deleteCollection(
@@ -483,6 +520,162 @@ void tst_cryptosecrets::cryptoStoredKey()
 
     // ensure that the deletion was cascaded to the Secrets internal database table.
     QDBusPendingReply<Sailfish::Secrets::Result, Sailfish::Secrets::Secret> secretReply = sm.d_ptr()->getSecret(
+            Sailfish::Secrets::Secret::Identifier(
+                    keyReference.identifier().name(),
+                    keyReference.identifier().collectionName()),
+            Sailfish::Secrets::SecretManager::PreventInteraction);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretReply);
+    QVERIFY(secretReply.isValid());
+    QCOMPARE(secretReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Failed);
+    QCOMPARE(secretReply.argumentAt<0>().errorCode(), Sailfish::Secrets::Result::InvalidSecretError);
+
+    // clean up by deleting the collection.
+    secretsreply = sm.d_ptr()->deleteCollection(
+                QLatin1String("tstcryptosecretsgcsked"),
+                Sailfish::Secrets::SecretManager::PreventInteraction);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretsreply);
+    QVERIFY(secretsreply.isValid());
+    QCOMPARE(secretsreply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
+
+    // now test the case where the key is stored in a "normal" storage plugin rather than a crypto plugin.
+    secretsreply = sm.d_ptr()->createCollection(
+                    QLatin1String("tstcryptosecretsgcsked2"),
+                    Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
+                    Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
+                    Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked,
+                    Sailfish::Secrets::SecretManager::OwnerOnlyMode);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretsreply);
+    QVERIFY(secretsreply.isValid());
+    QCOMPARE(secretsreply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
+
+    // request that the secret key be generated and stored into that collection.
+    keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(QLatin1String("storedkey2"),
+                                                                QLatin1String("tstcryptosecretsgcsked2")));
+    reply = cm.generateStoredKey(
+                keyTemplate,
+                Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"),
+                Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"));
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
+    QVERIFY(reply.isValid());
+    QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
+    keyReference = reply.argumentAt<1>();
+    QVERIFY(keyReference.secretKey().isEmpty());
+    QVERIFY(keyReference.privateKey().isEmpty());
+
+    // test encrypting some plaintext with the stored key.
+    encryptReply = cm.encrypt(
+            plaintext,
+            keyReference,
+            Sailfish::Crypto::Key::BlockModeCBC,
+            Sailfish::Crypto::Key::EncryptionPaddingNone,
+            Sailfish::Crypto::Key::DigestSha256,
+            Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
+    QVERIFY(encryptReply.isValid());
+    QCOMPARE(encryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
+    encrypted = encryptReply.argumentAt<1>();
+    QVERIFY(!encrypted.isEmpty());
+    QVERIFY(encrypted != plaintext);
+
+    // test decrypting the ciphertext, and ensure that the roundtrip works.
+    decryptReply = cm.decrypt(
+            encrypted,
+            keyReference,
+            Sailfish::Crypto::Key::BlockModeCBC,
+            Sailfish::Crypto::Key::EncryptionPaddingNone,
+            Sailfish::Crypto::Key::DigestSha256,
+            Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
+    QVERIFY(decryptReply.isValid());
+    QCOMPARE(decryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
+    decrypted = decryptReply.argumentAt<1>();
+    QVERIFY(!decrypted.isEmpty());
+    QCOMPARE(decrypted, plaintext);
+
+    // ensure that we can get a reference to that Key via the Secrets API
+    filter.clear();
+    filter.insert(QLatin1String("test"), keyTemplate.filterData(QLatin1String("test")));
+    filterReply = sm.d_ptr()->findSecrets(
+                keyTemplate.identifier().collectionName(),
+                filter,
+                Sailfish::Secrets::SecretManager::OperatorAnd,
+                Sailfish::Secrets::SecretManager::PreventInteraction);
+    filterReply.waitForFinished();
+    QVERIFY(filterReply.isValid());
+    QCOMPARE(filterReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
+    QCOMPARE(filterReply.argumentAt<1>().size(), 1);
+    QCOMPARE(filterReply.argumentAt<1>().at(0).name(), keyTemplate.identifier().name());
+    QCOMPARE(filterReply.argumentAt<1>().at(0).collectionName(), keyTemplate.identifier().collectionName());
+
+    // and ensure that the filter operation doesn't return incorrect results
+    filter.insert(QLatin1String("test"), QString(QLatin1String("not %1")).arg(keyTemplate.filterData(QLatin1String("test"))));
+    filterReply = sm.d_ptr()->findSecrets(
+                keyTemplate.identifier().collectionName(),
+                filter,
+                Sailfish::Secrets::SecretManager::OperatorAnd,
+                Sailfish::Secrets::SecretManager::PreventInteraction);
+    filterReply.waitForFinished();
+    QVERIFY(filterReply.isValid());
+    QCOMPARE(filterReply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
+    QCOMPARE(filterReply.argumentAt<1>().size(), 0);
+
+    // ensure that we can get a reference via a stored key request
+    storedKeyReply = cm.storedKey(
+            keyReference.identifier(),
+            Sailfish::Crypto::StoredKeyRequest::MetaData);
+    storedKeyReply.waitForFinished();
+    QVERIFY(storedKeyReply.isValid());
+    QCOMPARE(storedKeyReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
+    QCOMPARE(storedKeyReply.argumentAt<1>().algorithm(), keyTemplate.algorithm());
+    QVERIFY(storedKeyReply.argumentAt<1>().customParameters().isEmpty());
+    QVERIFY(storedKeyReply.argumentAt<1>().secretKey().isEmpty());
+
+    // and that we can read back public key data and custom parameters via a stored key request
+    storedKeyReply = cm.storedKey(
+                keyReference.identifier(),
+                Sailfish::Crypto::StoredKeyRequest::MetaData
+                    | Sailfish::Crypto::StoredKeyRequest::PublicKeyData);
+    storedKeyReply.waitForFinished();
+    QVERIFY(storedKeyReply.isValid());
+    QCOMPARE(storedKeyReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
+    QCOMPARE(storedKeyReply.argumentAt<1>().algorithm(), keyTemplate.algorithm());
+    QCOMPARE(storedKeyReply.argumentAt<1>().customParameters(), keyTemplate.customParameters());
+    QVERIFY(storedKeyReply.argumentAt<1>().secretKey().isEmpty());
+
+    // and that we can read back the secret key data via a stored key request
+    storedKeyReply = cm.storedKey(
+                keyReference.identifier(),
+                Sailfish::Crypto::StoredKeyRequest::MetaData
+                    | Sailfish::Crypto::StoredKeyRequest::PublicKeyData
+                    | Sailfish::Crypto::StoredKeyRequest::SecretKeyData);
+    storedKeyReply.waitForFinished();
+    QVERIFY(storedKeyReply.isValid());
+    QCOMPARE(storedKeyReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
+    QCOMPARE(storedKeyReply.argumentAt<1>().algorithm(), keyTemplate.algorithm());
+    QCOMPARE(storedKeyReply.argumentAt<1>().customParameters(), keyTemplate.customParameters());
+    QVERIFY(!storedKeyReply.argumentAt<1>().secretKey().isEmpty());
+
+    // delete the key via deleteStoredKey, and test that the deletion worked.
+    deleteKeyReply = cm.deleteStoredKey(
+                keyReference.identifier());
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(deleteKeyReply);
+    QVERIFY(deleteKeyReply.isValid());
+    QCOMPARE(deleteKeyReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
+
+    decryptReply = cm.decrypt(
+            encrypted,
+            keyReference,
+            Sailfish::Crypto::Key::BlockModeCBC,
+            Sailfish::Crypto::Key::EncryptionPaddingNone,
+            Sailfish::Crypto::Key::DigestSha256,
+            Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
+    QVERIFY(decryptReply.isValid());
+    QCOMPARE(decryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Failed);
+    QCOMPARE(decryptReply.argumentAt<0>().errorCode(), Sailfish::Crypto::Result::InvalidKeyIdentifier);
+
+    // ensure that the deletion was cascaded to the Secrets internal database table.
+    secretReply = sm.d_ptr()->getSecret(
             Sailfish::Secrets::Secret::Identifier(
                     keyReference.identifier().name(),
                     keyReference.identifier().collectionName()),

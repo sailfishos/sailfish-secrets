@@ -29,6 +29,33 @@ namespace {
         }
         return retn;
     }
+
+    void nullifyKeyFields(Sailfish::Crypto::Key *key, Sailfish::Crypto::StoredKeyRequest::KeyComponents keep) {
+        // This method is called for keys stored in generic secrets storage plugins.
+        // Null-out fields if the client hasn't specified that they be kept.
+        // Note that by default we treat CustomParameters as PublicKeyData.
+        if (!(keep & Sailfish::Crypto::StoredKeyRequest::MetaData)) {
+            key->setIdentifier(Sailfish::Crypto::Key::Identifier());
+            key->setOrigin(Sailfish::Crypto::Key::OriginUnknown);
+            key->setAlgorithm(Sailfish::Crypto::Key::AlgorithmUnknown);
+            key->setBlockModes(Sailfish::Crypto::Key::BlockModeUnknown);
+            key->setEncryptionPaddings(Sailfish::Crypto::Key::EncryptionPaddingUnknown);
+            key->setSignaturePaddings(Sailfish::Crypto::Key::SignaturePaddingUnknown);
+            key->setDigests(Sailfish::Crypto::Key::DigestUnknown);
+            key->setOperations(Sailfish::Crypto::Key::OperationUnknown);
+            key->setFilterData(Sailfish::Crypto::Key::FilterData());
+        }
+
+        if (!(keep & Sailfish::Crypto::StoredKeyRequest::PublicKeyData)) {
+            key->setCustomParameters(QVector<QByteArray>());
+            key->setPublicKey(QByteArray());
+        }
+
+        if (!(keep & Sailfish::Crypto::StoredKeyRequest::SecretKeyData)) {
+            key->setPrivateKey(QByteArray());
+            key->setSecretKey(QByteArray());
+        }
+    }
 }
 
 using namespace Sailfish::Crypto;
@@ -415,6 +442,7 @@ Daemon::ApiImpl::RequestProcessor::storedKey(
         pid_t callerPid,
         quint64 requestId,
         const Key::Identifier &identifier,
+        StoredKeyRequest::KeyComponents keyComponents,
         Key *key)
 {
     // TODO: access control
@@ -439,7 +467,7 @@ Daemon::ApiImpl::RequestProcessor::storedKey(
     }
 
     if (m_cryptoPlugins.contains(storagePluginName)) {
-        return m_cryptoPlugins[storagePluginName]->storedKey(identifier, key);
+        return m_cryptoPlugins[storagePluginName]->storedKey(identifier, keyComponents, key);
     }
 
     QByteArray serialisedKey;
@@ -454,24 +482,28 @@ Daemon::ApiImpl::RequestProcessor::storedKey(
                                      callerPid,
                                      requestId,
                                      Daemon::ApiImpl::StoredKeyRequest,
-                                     QVariantList() << QVariant::fromValue<Key::Identifier>(identifier)));
+                                     QVariantList() << QVariant::fromValue<Key::Identifier>(identifier)
+                                                    << QVariant::fromValue<StoredKeyRequest::KeyComponents>(keyComponents)));
         return retn;
     }
 
     *key = Key::deserialise(serialisedKey);
     key->setFilterData(filterData);
+    nullifyKeyFields(key, keyComponents);
     return retn;
 }
 
 void
 Daemon::ApiImpl::RequestProcessor::storedKey2(
         quint64 requestId,
+        StoredKeyRequest::KeyComponents keyComponents,
         const Result &result,
         const QByteArray &serialisedKey,
         const QMap<QString, QString> &filterData)
 {
     Key retn(Key::deserialise(serialisedKey));
     retn.setFilterData(filterData);
+    nullifyKeyFields(&retn, keyComponents);
 
     // finish the request.
     QList<QVariant> outParams;
@@ -975,7 +1007,9 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
         Daemon::ApiImpl::RequestProcessor::PendingRequest pr = m_pendingRequests.take(requestId);
         switch (pr.requestType) {
             case StoredKeyRequest: {
-                storedKey2(requestId, returnResult, serialisedKey, filterData);
+                (void)pr.parameters.takeFirst(); // the identifier, we don't need it.
+                StoredKeyRequest::KeyComponents keyComponents = pr.parameters.takeFirst().value<StoredKeyRequest::KeyComponents>();
+                storedKey2(requestId, keyComponents, returnResult, serialisedKey, filterData);
                 break;
             }
             case SignRequest: {

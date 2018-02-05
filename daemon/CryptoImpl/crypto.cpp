@@ -105,6 +105,7 @@ void Daemon::ApiImpl::CryptoDBusObject::generateStoredKey(
 
 void Daemon::ApiImpl::CryptoDBusObject::storedKey(
         const Key::Identifier &identifier,
+        StoredKeyRequest::KeyComponents keyComponents,
         const QDBusMessage &message,
         Result &result,
         Key &key)
@@ -112,6 +113,7 @@ void Daemon::ApiImpl::CryptoDBusObject::storedKey(
     Q_UNUSED(key);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<Key::Identifier>(identifier);
+    inParams << QVariant::fromValue<StoredKeyRequest::KeyComponents>(keyComponents);
     m_requestQueue->handleRequest(Daemon::ApiImpl::StoredKeyRequest,
                                   inParams,
                                   connection(),
@@ -394,11 +396,17 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
         case StoredKeyRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling StoredKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             Key key;
-            QString name = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            Key::Identifier ident = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Key::Identifier>()
+                    : Key::Identifier();
+            StoredKeyRequest::KeyComponents components = request->inParams.size()
+                    ? request->inParams.takeFirst().value<StoredKeyRequest::KeyComponents>()
+                    : (StoredKeyRequest::MetaData | StoredKeyRequest::PublicKeyData);
             Result result = m_requestProcessor->storedKey(
                         request->remotePid,
                         request->requestId,
-                        name,
+                        ident,
+                        components,
                         &key);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {
