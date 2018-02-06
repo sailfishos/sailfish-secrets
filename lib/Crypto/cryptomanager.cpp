@@ -76,6 +76,50 @@ CryptoManagerPrivate::getPluginInfo()
     return reply;
 }
 
+QDBusPendingReply<Sailfish::Crypto::Result, QByteArray>
+CryptoManagerPrivate::generateRandomData(
+        quint64 numberBytes,
+        const QString &csprngEngineName,
+        const QString &cryptosystemProviderName)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result, QByteArray>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result, QByteArray> reply
+            = m_interface->asyncCallWithArgumentList(
+                "generateRandomData",
+                QVariantList() << QVariant::fromValue<quint64>(numberBytes)
+                               << QVariant::fromValue<QString>(csprngEngineName)
+                               << QVariant::fromValue<QString>(cryptosystemProviderName));
+    return reply;
+}
+
+QDBusPendingReply<Sailfish::Crypto::Result>
+CryptoManagerPrivate::seedRandomDataGenerator(
+        const QByteArray &seedData,
+        double entropyEstimate,
+        const QString &csprngEngineName,
+        const QString &cryptosystemProviderName)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result, QByteArray>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result> reply
+            = m_interface->asyncCallWithArgumentList(
+                "seedRandomDataGenerator",
+                QVariantList() << QVariant::fromValue<QByteArray>(seedData)
+                               << QVariant::fromValue<double>(entropyEstimate)
+                               << QVariant::fromValue<QString>(csprngEngineName)
+                               << QVariant::fromValue<QString>(cryptosystemProviderName));
+    return reply;
+}
+
 QDBusPendingReply<Result, bool>
 CryptoManagerPrivate::validateCertificateChain(
         const QVector<Certificate> &chain,
@@ -299,6 +343,8 @@ CryptoManagerPrivate::decrypt(
 
   \list
   \li \l{PluginInfoRequest} to retrieve information about crypto plugins
+  \li \l{SeedRandomDataGeneratorRequest} to seed a crypto plugin's random number generator
+  \li \l{GenerateRandomDataRequest} to generate random data
   \li \l{ValidateCertificateChainRequest} to validate certificates
   \li \l{GenerateKeyRequest} to generate a \l{Key}
   \li \l{GenerateStoredKeyRequest} to generate a securely-stored \l{Key}

@@ -15,8 +15,10 @@
 #include "Crypto/deletestoredkeyrequest.h"
 #include "Crypto/encryptrequest.h"
 #include "Crypto/generatekeyrequest.h"
+#include "Crypto/generaterandomdatarequest.h"
 #include "Crypto/generatestoredkeyrequest.h"
 #include "Crypto/plugininforequest.h"
+#include "Crypto/seedrandomdatageneratorrequest.h"
 #include "Crypto/signrequest.h"
 #include "Crypto/storedkeyidentifiersrequest.h"
 #include "Crypto/storedkeyrequest.h"
@@ -61,6 +63,7 @@ public slots:
 
 private slots:
     void getPluginInfo();
+    void randomData();
     void generateKeyEncryptDecrypt();
     void validateCertificateChain();
     void signVerify();
@@ -101,6 +104,86 @@ void tst_cryptorequests::getPluginInfo()
         cryptoPluginNames.append(p.name());
     }
     QVERIFY(cryptoPluginNames.contains(DEFAULT_TEST_CRYPTO_PLUGIN_NAME));
+}
+
+void tst_cryptorequests::randomData()
+{
+    // test generating random data
+    GenerateRandomDataRequest grdr;
+    grdr.setManager(&cm);
+    QSignalSpy grdrss(&grdr, &GenerateRandomDataRequest::statusChanged);
+    QSignalSpy grdrds(&grdr, &GenerateRandomDataRequest::generatedDataChanged);
+    grdr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+    QCOMPARE(grdr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+    grdr.setCsprngEngineName(GenerateRandomDataRequest::DefaultCsprngEngineName);
+    QCOMPARE(grdr.csprngEngineName(), GenerateRandomDataRequest::DefaultCsprngEngineName);
+    grdr.setNumberBytes(2048);
+    QCOMPARE(grdr.status(), Request::Inactive);
+    grdr.startRequest();
+    QCOMPARE(grdrss.count(), 1);
+    QCOMPARE(grdr.status(), Request::Active);
+    QCOMPARE(grdr.result().code(), Result::Pending);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(grdr);
+    QCOMPARE(grdrss.count(), 2);
+    QCOMPARE(grdr.status(), Request::Finished);
+    QCOMPARE(grdr.result().code(), Result::Succeeded);
+    QCOMPARE(grdrds.count(), 1);
+    QByteArray randomData = grdr.generatedData();
+    QCOMPARE(randomData.size(), 2048);
+    bool allNull = true;
+    for (auto c : randomData) {
+        if (c != '\0') {
+            allNull = false;
+            break;
+        }
+    }
+    QVERIFY(!allNull);
+
+    // test seeding the random number generator
+    SeedRandomDataGeneratorRequest srdgr;
+    srdgr.setManager(&cm);
+    QSignalSpy srdgrss(&srdgr, &SeedRandomDataGeneratorRequest::statusChanged);
+    srdgr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+    QCOMPARE(srdgr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+    srdgr.setCsprngEngineName(GenerateRandomDataRequest::DefaultCsprngEngineName);
+    QCOMPARE(srdgr.csprngEngineName(), GenerateRandomDataRequest::DefaultCsprngEngineName);
+    srdgr.setSeedData(QByteArray("seed"));
+    QCOMPARE(srdgr.seedData(), QByteArray("seed"));
+    srdgr.setEntropyEstimate(0.5);
+    QCOMPARE(srdgr.entropyEstimate(), 0.5);
+    QCOMPARE(srdgr.status(), Request::Inactive);
+    srdgr.startRequest();
+    QCOMPARE(srdgrss.count(), 1);
+    QCOMPARE(srdgr.status(), Request::Active);
+    QCOMPARE(srdgr.result().code(), Result::Pending);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(srdgr);
+    QCOMPARE(srdgrss.count(), 2);
+    QCOMPARE(srdgr.status(), Request::Finished);
+    QCOMPARE(srdgr.result().code(), Result::Succeeded);
+
+    // ensure that we get different random data to the original set
+    grdr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(grdr);
+    QByteArray seededData = grdr.generatedData();
+    QCOMPARE(seededData.size(), 2048);
+    QVERIFY(randomData != seededData);
+
+    // try a different engine (/dev/urandom)
+    // and use the random data to generate a random number
+    // in some range
+    grdr.setCsprngEngineName(QStringLiteral("/dev/urandom"));
+    grdr.setNumberBytes(8);
+    grdr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(grdr);
+    QByteArray randomBytes = grdr.generatedData();
+    quint64 randomU64 = 0;
+    memcpy(&randomU64, randomBytes.constData(), 8);
+    double randomDouble = (randomU64 >> 11) * (1.0/9007199254740992.0); // 53 bits / 2**53
+    QVERIFY(randomDouble >= 0.0);
+    QVERIFY(randomDouble <= 1.0);
+    int randomInRange = qRound((7777 - 30) * randomDouble) + 30;
+    QVERIFY(randomInRange >= 30);
+    QVERIFY(randomInRange <= 7777);
 }
 
 void tst_cryptorequests::generateKeyEncryptDecrypt()

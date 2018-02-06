@@ -47,6 +47,46 @@ void Daemon::ApiImpl::CryptoDBusObject::getPluginInfo(
                                   result);
 }
 
+void Daemon::ApiImpl::CryptoDBusObject::generateRandomData(
+        quint64 numberBytes,
+        const QString &csprngEngineName,
+        const QString &cryptosystemProviderName,
+        const QDBusMessage &message,
+        Result &result,
+        QByteArray &randomData)
+{
+    Q_UNUSED(randomData);  // outparam, set in handlePendingRequest / handleFinishedRequest
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<quint64>(numberBytes);
+    inParams << QVariant::fromValue<QString>(csprngEngineName);
+    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    m_requestQueue->handleRequest(Daemon::ApiImpl::GenerateRandomDataRequest,
+                                  inParams,
+                                  connection(),
+                                  message,
+                                  result);
+}
+
+void Daemon::ApiImpl::CryptoDBusObject::seedRandomDataGenerator(
+        const QByteArray &seedData,
+        double entropyEstimate,
+        const QString &csprngEngineName,
+        const QString &cryptosystemProviderName,
+        const QDBusMessage &message,
+        Result &result)
+{
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<QByteArray>(seedData);
+    inParams << QVariant::fromValue<double>(entropyEstimate);
+    inParams << QVariant::fromValue<QString>(csprngEngineName);
+    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    m_requestQueue->handleRequest(Daemon::ApiImpl::SeedRandomDataGeneratorRequest,
+                                  inParams,
+                                  connection(),
+                                  message,
+                                  result);
+}
+
 void Daemon::ApiImpl::CryptoDBusObject::validateCertificateChain(
         const QVector<Certificate> &chain,
         const QString &cryptosystemProviderName,
@@ -284,6 +324,8 @@ QString Daemon::ApiImpl::CryptoRequestQueue::requestTypeToString(int type) const
     switch (type) {
         case InvalidRequest:                   return QLatin1String("InvalidRequest");
         case GetPluginInfoRequest:             return QLatin1String("GetPluginInfoRequest");
+        case GenerateRandomDataRequest:        return QLatin1String("GenerateRandomDataRequest");
+        case SeedRandomDataGeneratorRequest:   return QLatin1String("SeedRandomDataGeneratorRequest");
         case ValidateCertificateChainRequest:  return QLatin1String("ValidateCertificateChainRequest");
         case GenerateKeyRequest:               return QLatin1String("GenerateKeyRequest");
         case GenerateStoredKeyRequest:         return QLatin1String("GenerateStoredKeyRequest");
@@ -321,6 +363,53 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<QVector<CryptoPluginInfo> >(cryptoPlugins)
                                                                         << QVariant::fromValue<QStringList>(storagePlugins));
+                *completed = true;
+            }
+            break;
+        }
+        case GenerateRandomDataRequest: {
+            qCDebug(lcSailfishCryptoDaemon) << "Handling GenerateRandomDataRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            QByteArray randomData;
+            quint64 numberBytes = request->inParams.size() ? request->inParams.takeFirst().value<quint64>() : 0;
+            QString csprngEngineName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            Result result = m_requestProcessor->generateRandomData(
+                        request->remotePid,
+                        request->requestId,
+                        numberBytes,
+                        csprngEngineName,
+                        cryptosystemProviderName,
+                        &randomData);
+            // send the reply to the calling peer.
+            if (result.code() == Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<QByteArray>(randomData));
+                *completed = true;
+            }
+            break;
+        }
+        case SeedRandomDataGeneratorRequest: {
+            qCDebug(lcSailfishCryptoDaemon) << "Handling SeedRandomDataGeneratorRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            QByteArray seedData = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
+            double entropyEstimate = request->inParams.size() ? request->inParams.takeFirst().value<double>() : 1.0;
+            QString csprngEngineName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            Result result = m_requestProcessor->seedRandomDataGenerator(
+                        request->remotePid,
+                        request->requestId,
+                        seedData,
+                        entropyEstimate,
+                        csprngEngineName,
+                        cryptosystemProviderName);
+            // send the reply to the calling peer.
+            if (result.code() == Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result));
                 *completed = true;
             }
             break;
@@ -486,7 +575,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
         }
         case VerifyRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling VerifyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            bool verified;
+            bool verified = false;
             QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
             Key::SignaturePadding padding = request->inParams.size() ? request->inParams.takeFirst().value<Key::SignaturePadding>() : Key::SignaturePaddingUnknown;
@@ -605,6 +694,38 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<QVector<CryptoPluginInfo> >(cryptoPlugins)
                                                                         << QVariant::fromValue<QStringList>(storagePlugins));
+                *completed = true;
+            }
+            break;
+        }
+        case GenerateRandomDataRequest: {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of GenerateRandomDataRequest request"));
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishCryptoDaemon) << "GenerateRandomDataRequest:" << request->requestId << "finished as pending!";
+                *completed = true;
+            } else {
+                QByteArray randomData = request->outParams.size() ? request->outParams.takeFirst().value<QByteArray>() : QByteArray();
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<QByteArray>(randomData));
+                *completed = true;
+            }
+            break;
+        }
+        case SeedRandomDataGeneratorRequest: {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of SeedRandomDataGeneratorRequest request"));
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishCryptoDaemon) << "SeedRandomDataGeneratorRequest:" << request->requestId << "finished as pending!";
+                *completed = true;
+            } else {
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result));
                 *completed = true;
             }
             break;
