@@ -239,10 +239,10 @@ void Daemon::ApiImpl::CryptoDBusObject::verify(
 
 void Daemon::ApiImpl::CryptoDBusObject::encrypt(
         const QByteArray &data,
+        const QByteArray &iv,
         const Key &key,
         Key::BlockMode blockMode,
         Key::EncryptionPadding padding,
-        Key::Digest digest,
         const QString &cryptosystemProviderName,
         const QDBusMessage &message,
         Result &result,
@@ -251,10 +251,10 @@ void Daemon::ApiImpl::CryptoDBusObject::encrypt(
     Q_UNUSED(encrypted);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
+    inParams << QVariant::fromValue<QByteArray>(iv);
     inParams << QVariant::fromValue<Key>(key);
     inParams << QVariant::fromValue<Key::BlockMode>(blockMode);
     inParams << QVariant::fromValue<Key::EncryptionPadding>(padding);
-    inParams << QVariant::fromValue<Key::Digest>(digest);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
     m_requestQueue->handleRequest(Daemon::ApiImpl::EncryptRequest,
                                   inParams,
@@ -265,10 +265,10 @@ void Daemon::ApiImpl::CryptoDBusObject::encrypt(
 
 void Daemon::ApiImpl::CryptoDBusObject::decrypt(
         const QByteArray &data,
+        const QByteArray &iv,
         const Key &key,
         Key::BlockMode blockMode,
         Key::EncryptionPadding padding,
-        Key::Digest digest,
         const QString &cryptosystemProviderName,
         const QDBusMessage &message,
         Result &result,
@@ -277,10 +277,10 @@ void Daemon::ApiImpl::CryptoDBusObject::decrypt(
     Q_UNUSED(decrypted);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
+    inParams << QVariant::fromValue<QByteArray>(iv);
     inParams << QVariant::fromValue<Key>(key);
     inParams << QVariant::fromValue<Key::BlockMode>(blockMode);
     inParams << QVariant::fromValue<Key::EncryptionPadding>(padding);
-    inParams << QVariant::fromValue<Key::Digest>(digest);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
     m_requestQueue->handleRequest(Daemon::ApiImpl::DecryptRequest,
                                   inParams,
@@ -605,19 +605,19 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             qCDebug(lcSailfishCryptoDaemon) << "Handling EncryptRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             QByteArray encrypted;
             QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
+            QByteArray iv = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
             Key::BlockMode blockMode = request->inParams.size() ? request->inParams.takeFirst().value<Key::BlockMode>() : Key::BlockModeUnknown;
             Key::EncryptionPadding padding = request->inParams.size() ? request->inParams.takeFirst().value<Key::EncryptionPadding>() : Key::EncryptionPaddingUnknown;
-            Key::Digest digest = request->inParams.size() ? request->inParams.takeFirst().value<Key::Digest>() : Key::DigestUnknown;
             QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             Result result = m_requestProcessor->encrypt(
                         request->remotePid,
                         request->requestId,
                         data,
+                        iv,
                         key,
                         blockMode,
                         padding,
-                        digest,
                         cryptosystemProviderName,
                         &encrypted);
             // send the reply to the calling peer.
@@ -635,19 +635,19 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             qCDebug(lcSailfishCryptoDaemon) << "Handling DecryptRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             QByteArray decrypted;
             QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
+            QByteArray iv = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
             Key::BlockMode blockMode = request->inParams.size() ? request->inParams.takeFirst().value<Key::BlockMode>() : Key::BlockModeUnknown;
             Key::EncryptionPadding padding = request->inParams.size() ? request->inParams.takeFirst().value<Key::EncryptionPadding>() : Key::EncryptionPaddingUnknown;
-            Key::Digest digest = request->inParams.size() ? request->inParams.takeFirst().value<Key::Digest>() : Key::DigestUnknown;
             QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             Result result = m_requestProcessor->decrypt(
                         request->remotePid,
                         request->requestId,
                         data,
+                        iv,
                         key,
                         blockMode,
                         padding,
-                        digest,
                         cryptosystemProviderName,
                         &decrypted);
             // send the reply to the calling peer.

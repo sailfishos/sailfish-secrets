@@ -146,12 +146,13 @@ void tst_crypto::generateKeyEncryptDecrypt()
 
     // test encrypting some plaintext with the generated key
     QByteArray plaintext = "Test plaintext data";
+    QByteArray initVector = "Test initialisation vector";
     QDBusPendingReply<Result, QByteArray> encryptReply = cm.encrypt(
             plaintext,
+            initVector,
             fullKey,
             Key::BlockModeCBC,
             Key::EncryptionPaddingNone,
-            Key::DigestSha256,
             CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
     QVERIFY(encryptReply.isValid());
@@ -163,10 +164,10 @@ void tst_crypto::generateKeyEncryptDecrypt()
     // test decrypting the ciphertext, and ensure that the roundtrip works.
     QDBusPendingReply<Result, QByteArray> decryptReply = cm.decrypt(
             encrypted,
+            initVector,
             fullKey,
             Key::BlockModeCBC,
             Key::EncryptionPaddingNone,
-            Key::DigestSha256,
             CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());

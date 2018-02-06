@@ -107,18 +107,18 @@ public:
 
     virtual Sailfish::Crypto::Result encrypt(
             const QByteArray &data,
+            const QByteArray &iv,
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::Key::BlockMode blockMode,
             Sailfish::Crypto::Key::EncryptionPadding padding,
-            Sailfish::Crypto::Key::Digest digest,
             QByteArray *encrypted) = 0;
 
     virtual Sailfish::Crypto::Result decrypt(
             const QByteArray &data,
+            const QByteArray &iv,
             const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
             Sailfish::Crypto::Key::BlockMode blockMode,
             Sailfish::Crypto::Key::EncryptionPadding padding,
-            Sailfish::Crypto::Key::Digest digest,
             QByteArray *decrypted) = 0;
 };
 

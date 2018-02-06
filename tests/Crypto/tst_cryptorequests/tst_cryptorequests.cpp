@@ -224,20 +224,21 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
 
     // test encrypting some plaintext with the generated key
     QByteArray plaintext = "Test plaintext data";
+    QByteArray initVector = "Test initialisation vector";
     EncryptRequest er;
     er.setManager(&cm);
     QSignalSpy erss(&er, &EncryptRequest::statusChanged);
     QSignalSpy ercs(&er, &EncryptRequest::ciphertextChanged);
     er.setData(plaintext);
     QCOMPARE(er.data(), plaintext);
+    er.setInitialisationVector(initVector);
+    QCOMPARE(er.initialisationVector(), initVector);
     er.setKey(fullKey);
     QCOMPARE(er.key(), fullKey);
     er.setBlockMode(Key::BlockModeCBC);
     QCOMPARE(er.blockMode(), Key::BlockModeCBC);
     er.setPadding(Key::EncryptionPaddingNone);
     QCOMPARE(er.padding(), Key::EncryptionPaddingNone);
-    er.setDigest(Key::DigestSha256);
-    QCOMPARE(er.digest(), Key::DigestSha256);
     er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(er.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(er.status(), Request::Inactive);
@@ -262,14 +263,14 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QSignalSpy drps(&dr, &DecryptRequest::plaintextChanged);
     dr.setData(ciphertext);
     QCOMPARE(dr.data(), ciphertext);
+    dr.setInitialisationVector(initVector);
+    QCOMPARE(dr.initialisationVector(), initVector);
     dr.setKey(fullKey);
     QCOMPARE(dr.key(), fullKey);
     dr.setBlockMode(Key::BlockModeCBC);
     QCOMPARE(dr.blockMode(), Key::BlockModeCBC);
     dr.setPadding(Key::EncryptionPaddingNone);
     QCOMPARE(dr.padding(), Key::EncryptionPaddingNone);
-    dr.setDigest(Key::DigestSha256);
-    QCOMPARE(dr.digest(), Key::DigestSha256);
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.status(), Request::Inactive);
@@ -430,20 +431,21 @@ void tst_cryptorequests::storedKeyRequests()
 
     // test encrypting some plaintext with the stored key.
     QByteArray plaintext = "Test plaintext data";
+    QByteArray initVector = "Test initialisation vector";
     EncryptRequest er;
     er.setManager(&cm);
     QSignalSpy erss(&er, &EncryptRequest::statusChanged);
     QSignalSpy ercs(&er, &EncryptRequest::ciphertextChanged);
     er.setData(plaintext);
     QCOMPARE(er.data(), plaintext);
+    er.setInitialisationVector(initVector);
+    QCOMPARE(er.initialisationVector(), initVector);
     er.setKey(keyReference);
     QCOMPARE(er.key(), keyReference);
     er.setBlockMode(Key::BlockModeCBC);
     QCOMPARE(er.blockMode(), Key::BlockModeCBC);
     er.setPadding(Key::EncryptionPaddingNone);
     QCOMPARE(er.padding(), Key::EncryptionPaddingNone);
-    er.setDigest(Key::DigestSha256);
-    QCOMPARE(er.digest(), Key::DigestSha256);
     er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(er.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(er.status(), Request::Inactive);
@@ -468,14 +470,14 @@ void tst_cryptorequests::storedKeyRequests()
     QSignalSpy drps(&dr, &DecryptRequest::plaintextChanged);
     dr.setData(ciphertext);
     QCOMPARE(dr.data(), ciphertext);
+    dr.setInitialisationVector(initVector);
+    QCOMPARE(dr.initialisationVector(), initVector);
     dr.setKey(keyReference);
     QCOMPARE(dr.key(), keyReference);
     dr.setBlockMode(Key::BlockModeCBC);
     QCOMPARE(dr.blockMode(), Key::BlockModeCBC);
     dr.setPadding(Key::EncryptionPaddingNone);
     QCOMPARE(dr.padding(), Key::EncryptionPaddingNone);
-    dr.setDigest(Key::DigestSha256);
-    QCOMPARE(dr.digest(), Key::DigestSha256);
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.status(), Request::Inactive);

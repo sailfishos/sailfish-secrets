@@ -28,10 +28,10 @@ class SAILFISH_CRYPTO_API EncryptRequest : public Sailfish::Crypto::Request
 {
     Q_OBJECT
     Q_PROPERTY(QByteArray data READ data WRITE setData NOTIFY dataChanged)
+    Q_PROPERTY(QByteArray initialisationVector READ initialisationVector WRITE setInitialisationVector NOTIFY initialisationVectorChanged)
     Q_PROPERTY(Sailfish::Crypto::Key key READ key WRITE setKey NOTIFY keyChanged)
     Q_PROPERTY(Sailfish::Crypto::Key::BlockMode blockMode READ blockMode WRITE setBlockMode NOTIFY blockModeChanged)
     Q_PROPERTY(Sailfish::Crypto::Key::EncryptionPadding padding READ padding WRITE setPadding NOTIFY paddingChanged)
-    Q_PROPERTY(Sailfish::Crypto::Key::Digest digest READ digest WRITE setDigest NOTIFY digestChanged)
     Q_PROPERTY(QString cryptoPluginName READ cryptoPluginName WRITE setCryptoPluginName NOTIFY cryptoPluginNameChanged)
     Q_PROPERTY(QByteArray ciphertext READ ciphertext NOTIFY ciphertextChanged)
 
@@ -42,6 +42,9 @@ public:
     QByteArray data() const;
     void setData(const QByteArray &data);
 
+    QByteArray initialisationVector() const;
+    void setInitialisationVector(const QByteArray &iv);
+
     Sailfish::Crypto::Key key() const;
     void setKey(const Sailfish::Crypto::Key &key);
 
@@ -50,9 +53,6 @@ public:
 
     Sailfish::Crypto::Key::EncryptionPadding padding() const;
     void setPadding(Sailfish::Crypto::Key::EncryptionPadding padding);
-
-    Sailfish::Crypto::Key::Digest digest() const;
-    void setDigest(Sailfish::Crypto::Key::Digest digest);
 
     QString cryptoPluginName() const;
     void setCryptoPluginName(const QString &pluginName);
@@ -70,10 +70,10 @@ public:
 
 Q_SIGNALS:
     void dataChanged();
+    void initialisationVectorChanged();
     void keyChanged();
     void blockModeChanged();
     void paddingChanged();
-    void digestChanged();
     void cryptoPluginNameChanged();
     void ciphertextChanged();
 

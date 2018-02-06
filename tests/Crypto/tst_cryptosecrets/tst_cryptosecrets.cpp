@@ -129,12 +129,13 @@ void tst_cryptosecrets::secretsStoredKey()
 
     // test encrypting some plaintext with the stored key.
     QByteArray plaintext = "Test plaintext data";
+    QByteArray initVector = "Test initialisation vector";
     QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> encryptReply = cm.encrypt(
             plaintext,
+            initVector,
             keyReference,
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
-            Sailfish::Crypto::Key::DigestSha256,
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
     QVERIFY(encryptReply.isValid());
@@ -146,10 +147,10 @@ void tst_cryptosecrets::secretsStoredKey()
     // test decrypting the ciphertext, and ensure that the roundtrip works.
     QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> decryptReply = cm.decrypt(
             encrypted,
+            initVector,
             keyReference,
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
-            Sailfish::Crypto::Key::DigestSha256,
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
@@ -196,10 +197,10 @@ void tst_cryptosecrets::secretsStoredKey()
     // ensure that the deletion was cascaded to the keyEntries internal database table.
     decryptReply = cm.decrypt(
             encrypted,
+            initVector,
             keyReference,
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
-            Sailfish::Crypto::Key::DigestSha256,
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
@@ -230,10 +231,10 @@ void tst_cryptosecrets::secretsStoredKey()
 
     encryptReply = cm.encrypt(
             plaintext,
+            initVector,
             keyReference,
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
-            Sailfish::Crypto::Key::DigestSha256,
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
     QVERIFY(encryptReply.isValid());
@@ -244,10 +245,10 @@ void tst_cryptosecrets::secretsStoredKey()
 
     decryptReply = cm.decrypt(
             encrypted,
+            initVector,
             keyReference,
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
-            Sailfish::Crypto::Key::DigestSha256,
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
@@ -265,10 +266,10 @@ void tst_cryptosecrets::secretsStoredKey()
 
     decryptReply = cm.decrypt(
             encrypted,
+            initVector,
             keyReference,
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
-            Sailfish::Crypto::Key::DigestSha256,
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
@@ -336,12 +337,13 @@ void tst_cryptosecrets::cryptoStoredKey()
 
     // test encrypting some plaintext with the stored key.
     QByteArray plaintext = "Test plaintext data";
+    QByteArray initVector = "Test initialisation vector";
     QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> encryptReply = cm.encrypt(
             plaintext,
+            initVector,
             keyReference,
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
-            Sailfish::Crypto::Key::DigestSha256,
             Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
     QVERIFY(encryptReply.isValid());
@@ -353,10 +355,10 @@ void tst_cryptosecrets::cryptoStoredKey()
     // test decrypting the ciphertext, and ensure that the roundtrip works.
     QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> decryptReply = cm.decrypt(
             encrypted,
+            initVector,
             keyReference,
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
-            Sailfish::Crypto::Key::DigestSha256,
             Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
@@ -439,10 +441,10 @@ void tst_cryptosecrets::cryptoStoredKey()
     // ensure that the deletion was cascaded to the keyEntries internal database table.
     decryptReply = cm.decrypt(
             encrypted,
+            initVector,
             keyReference,
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
-            Sailfish::Crypto::Key::DigestSha256,
             Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
@@ -473,10 +475,10 @@ void tst_cryptosecrets::cryptoStoredKey()
 
     encryptReply = cm.encrypt(
             plaintext,
+            initVector,
             keyReference,
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
-            Sailfish::Crypto::Key::DigestSha256,
             Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
     QVERIFY(encryptReply.isValid());
@@ -487,10 +489,10 @@ void tst_cryptosecrets::cryptoStoredKey()
 
     decryptReply = cm.decrypt(
             encrypted,
+            initVector,
             keyReference,
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
-            Sailfish::Crypto::Key::DigestSha256,
             Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
@@ -508,10 +510,10 @@ void tst_cryptosecrets::cryptoStoredKey()
 
     decryptReply = cm.decrypt(
             encrypted,
+            initVector,
             keyReference,
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
-            Sailfish::Crypto::Key::DigestSha256,
             Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
@@ -565,10 +567,10 @@ void tst_cryptosecrets::cryptoStoredKey()
     // test encrypting some plaintext with the stored key.
     encryptReply = cm.encrypt(
             plaintext,
+            initVector,
             keyReference,
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
-            Sailfish::Crypto::Key::DigestSha256,
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
     QVERIFY(encryptReply.isValid());
@@ -580,10 +582,10 @@ void tst_cryptosecrets::cryptoStoredKey()
     // test decrypting the ciphertext, and ensure that the roundtrip works.
     decryptReply = cm.decrypt(
             encrypted,
+            initVector,
             keyReference,
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
-            Sailfish::Crypto::Key::DigestSha256,
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
@@ -664,10 +666,10 @@ void tst_cryptosecrets::cryptoStoredKey()
 
     decryptReply = cm.decrypt(
             encrypted,
+            initVector,
             keyReference,
             Sailfish::Crypto::Key::BlockModeCBC,
             Sailfish::Crypto::Key::EncryptionPaddingNone,
-            Sailfish::Crypto::Key::DigestSha256,
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
