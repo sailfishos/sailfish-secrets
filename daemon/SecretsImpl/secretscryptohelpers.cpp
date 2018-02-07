@@ -72,6 +72,52 @@ Daemon::ApiImpl::RequestProcessor::confirmCollectionStoragePlugin(
     return Result(Result::Succeeded);
 }
 
+Result
+Daemon::ApiImpl::RequestProcessor::confirmKeyStoragePlugin(
+        const QString &hashedKeyName,
+        const QString &collectionName,
+        const QString &storagePluginName) const
+{
+    Daemon::Sqlite::DatabaseLocker locker(m_db);
+
+    const QString selectCollectionPluginsQuery = QStringLiteral(
+                 "SELECT"
+                    " StoragePluginName"
+                  " FROM Secrets"
+                  " WHERE HashedSecretName = ?"
+                  " AND CollectionName = ?;"
+             );
+
+    QString errorText;
+    Daemon::Sqlite::Database::Query sq = m_db->prepare(selectCollectionPluginsQuery, &errorText);
+    if (!errorText.isEmpty()) {
+        return Result(Result::DatabaseQueryError,
+                      QString::fromLatin1("Unable to prepare select key plugins query: %1").arg(errorText));
+    }
+
+    QVariantList values;
+    values << QVariant::fromValue<QString>(hashedKeyName);
+    values << QVariant::fromValue<QString>(collectionName);
+    sq.bindValues(values);
+
+    if (!m_db->execute(sq, &errorText)) {
+        return Result(Result::DatabaseQueryError,
+                      QString::fromLatin1("Unable to execute select key plugins query: %1").arg(errorText));
+    }
+
+    QString keyStoragePluginName;
+    if (sq.next()) {
+        keyStoragePluginName = sq.value(0).value<QString>();
+    }
+
+    if (storagePluginName != keyStoragePluginName) {
+        return Result(Result::InvalidExtensionPluginError,
+                      QString::fromLatin1("The identified key is not stored by that plugin"));
+    }
+
+    return Result(Result::Succeeded);
+}
+
 QMap<QString, QObject*>
 Daemon::ApiImpl::SecretsRequestQueue::potentialCryptoStoragePlugins() const
 {
@@ -117,6 +163,22 @@ Daemon::ApiImpl::SecretsRequestQueue::confirmCollectionStoragePlugin(
     Q_UNUSED(cryptoRequestId)
 
     return m_requestProcessor->confirmCollectionStoragePlugin(collectionName, storagePluginName);
+}
+
+
+Result
+Daemon::ApiImpl::SecretsRequestQueue::confirmKeyStoragePlugin(
+        pid_t callerPid,
+        quint64 cryptoRequestId,
+        const QString &hashedKeyName,
+        const QString &collectionName,
+        const QString &storagePluginName) const
+{
+    // TODO: Access control
+    Q_UNUSED(callerPid)
+    Q_UNUSED(cryptoRequestId)
+
+    return m_requestProcessor->confirmKeyStoragePlugin(hashedKeyName, collectionName, storagePluginName);
 }
 
 Result

@@ -189,6 +189,10 @@ public:
 public: // helper methods for crypto API bridge (secretscryptohelpers)
     QMap<QString, QObject*> potentialCryptoStoragePlugins() const;
     QStringList storagePluginNames() const;
+    Sailfish::Secrets::Result confirmKeyStoragePlugin(
+            const QString &hashedKeyName,
+            const QString &collectionName,
+            const QString &storagePluginName) const;
     Sailfish::Secrets::Result confirmCollectionStoragePlugin(
             const QString &collectionName,
             const QString &storagePluginName) const;

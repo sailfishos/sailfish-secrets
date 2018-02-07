@@ -333,6 +333,100 @@ CryptoManagerPrivate::decrypt(
     return reply;
 }
 
+QDBusPendingReply<Sailfish::Crypto::Result, quint32, QByteArray>
+CryptoManagerPrivate::initialiseCipherSession(
+        const QByteArray &initialisationVector,
+        const Sailfish::Crypto::Key &key, // or keyreference
+        const Sailfish::Crypto::Key::Operation operation,
+        const Sailfish::Crypto::Key::BlockMode blockMode,
+        const Sailfish::Crypto::Key::EncryptionPadding encryptionPadding,
+        const Sailfish::Crypto::Key::SignaturePadding signaturePadding,
+        const Sailfish::Crypto::Key::Digest digest,
+        const QString &cryptosystemProviderName)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result, quint32, QByteArray>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result, quint32, QByteArray> reply
+            = m_interface->asyncCallWithArgumentList(
+                "initialiseCipherSession",
+                QVariantList() << QVariant::fromValue<QByteArray>(initialisationVector)
+                               << QVariant::fromValue<Key>(key)
+                               << QVariant::fromValue<Key::Operation>(operation)
+                               << QVariant::fromValue<Key::BlockMode>(blockMode)
+                               << QVariant::fromValue<Key::EncryptionPadding>(encryptionPadding)
+                               << QVariant::fromValue<Key::SignaturePadding>(signaturePadding)
+                               << QVariant::fromValue<Key::Digest>(digest)
+                               << QVariant::fromValue<QString>(cryptosystemProviderName));
+    return reply;
+}
+
+QDBusPendingReply<Sailfish::Crypto::Result>
+CryptoManagerPrivate::updateCipherSessionAuthentication(
+        const QByteArray &authenticationData,
+        const QString &cryptosystemProviderName,
+        quint32 cipherSessionToken)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result> reply
+            = m_interface->asyncCallWithArgumentList(
+                "updateCipherSessionAuthentication",
+                QVariantList() << QVariant::fromValue<QByteArray>(authenticationData)
+                               << QVariant::fromValue<QString>(cryptosystemProviderName)
+                               << QVariant::fromValue<quint32>(cipherSessionToken));
+    return reply;
+}
+
+QDBusPendingReply<Sailfish::Crypto::Result, QByteArray>
+CryptoManagerPrivate::updateCipherSession(
+        const QByteArray &data,
+        const QString &cryptosystemProviderName,
+        quint32 cipherSessionToken)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result, QByteArray>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result, QByteArray> reply
+            = m_interface->asyncCallWithArgumentList(
+                "updateCipherSession",
+                QVariantList() << QVariant::fromValue<QByteArray>(data)
+                               << QVariant::fromValue<QString>(cryptosystemProviderName)
+                               << QVariant::fromValue<quint32>(cipherSessionToken));
+    return reply;
+}
+
+QDBusPendingReply<Sailfish::Crypto::Result, QByteArray, bool>
+CryptoManagerPrivate::finaliseCipherSession(
+        const QByteArray &data,
+        const QString &cryptosystemProviderName,
+        quint32 cipherSessionToken)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result, QByteArray, bool>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result, QByteArray, bool> reply
+            = m_interface->asyncCallWithArgumentList(
+                "finaliseCipherSession",
+                QVariantList() << QVariant::fromValue<QByteArray>(data)
+                               << QVariant::fromValue<QString>(cryptosystemProviderName)
+                               << QVariant::fromValue<quint32>(cipherSessionToken));
+    return reply;
+}
+
 /*!
   \class CryptoManager
   \brief Allows clients to make requests of the system crypto service.
@@ -355,6 +449,7 @@ CryptoManagerPrivate::decrypt(
   \li \l{DecryptRequest} to decrypt data with a given \l{Key}
   \li \l{SignRequest} to generate a signature for some data with a given \l{Key}
   \li \l{VerifyRequest} to verify if a signature was generated with a given \l{Key}
+  \li \l{CipherRequest} to start a cipher session with which to encrypt, decrypt, sign or verify a stream of data
   \endlist
  */
 

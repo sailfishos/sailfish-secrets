@@ -191,6 +191,22 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::storedKeyIdentifiers(
                                     QLatin1String("This operation is deliberately not supported"));
 }
 
+
+Sailfish::Crypto::Key
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::getFullKey(
+        const Sailfish::Crypto::Key &key)
+{
+    Sailfish::Crypto::Key fullKey;
+    if (storedKey(key.identifier(),
+                  Sailfish::Crypto::StoredKeyRequest::MetaData
+                    | Sailfish::Crypto::StoredKeyRequest::PublicKeyData
+                    | Sailfish::Crypto::StoredKeyRequest::SecretKeyData,
+                  &fullKey).code() == Sailfish::Crypto::Result::Succeeded) {
+        return fullKey;
+    }
+    return key;
+}
+
 #define CRYPTOPLUGINCOMMON_NAMESPACE Sailfish::Secrets::Daemon::Plugins
 #define CRYPTOPLUGINCOMMON_CLASS SqlCipherPlugin
 #include "../opensslcryptoplugin/cryptoplugin_common.cpp"

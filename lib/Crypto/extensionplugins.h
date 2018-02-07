@@ -120,6 +120,36 @@ public:
             Sailfish::Crypto::Key::BlockMode blockMode,
             Sailfish::Crypto::Key::EncryptionPadding padding,
             QByteArray *decrypted) = 0;
+
+    virtual Sailfish::Crypto::Result initialiseCipherSession(
+            quint64 clientId,
+            const QByteArray &iv,
+            const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
+            Sailfish::Crypto::Key::Operation operation,
+            Sailfish::Crypto::Key::BlockMode blockMode,
+            Sailfish::Crypto::Key::EncryptionPadding encryptionPadding,
+            Sailfish::Crypto::Key::SignaturePadding signaturePadding,
+            Sailfish::Crypto::Key::Digest digest,
+            quint32 *cipherSessionToken,
+            QByteArray *generatedIV) = 0;
+
+    virtual Sailfish::Crypto::Result updateCipherSessionAuthentication(
+            quint64 clientId,
+            const QByteArray &authenticationData,
+            quint32 cipherSessionToken) = 0;
+
+    virtual Sailfish::Crypto::Result updateCipherSession(
+            quint64 clientId,
+            const QByteArray &data,
+            quint32 cipherSessionToken,
+            QByteArray *generatedData) = 0;
+
+    virtual Sailfish::Crypto::Result finaliseCipherSession(
+            quint64 clientId,
+            const QByteArray &data,
+            quint32 cipherSessionToken,
+            QByteArray *generatedData,
+            bool *verified) = 0;
 };
 
 class CryptoPluginInfoData;
