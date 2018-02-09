@@ -663,26 +663,37 @@ Daemon::ApiImpl::RequestProcessor::sign(
             }
         }
 
-        QByteArray serialisedKey;
-        QMap<QString, QString> filterData;
-        retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData));
-        if (retn.code() == Result::Failed) {
-            return retn;
-        } else if (retn.code() == Result::Pending) {
-            // asynchronous flow required, will call back to sign2().
-            m_pendingRequests.insert(requestId,
-                                     Daemon::ApiImpl::RequestProcessor::PendingRequest(
-                                         callerPid,
-                                         requestId,
-                                         Daemon::ApiImpl::SignRequest,
-                                         QVariantList() << QVariant::fromValue<QByteArray>(data)
-                                                        << QVariant::fromValue<Key::SignaturePadding>(padding)
-                                                        << QVariant::fromValue<Key::Digest>(digest)
-                                                        << QVariant::fromValue<QString>(cryptosystemProviderName)));
-            return retn;
-        }
+        // find out if the key is stored in the crypto plugin.
+        // if so, we don't need to pull it into the daemon process address space.
+        const QString keyCollectionName = key.identifier().collectionName().isEmpty() ? QLatin1String("standalone") : key.identifier().collectionName();
+        const QString hashedKeyName = Sailfish::Secrets::Daemon::Util::generateHashedSecretName(keyCollectionName, key.identifier().name());
+        Sailfish::Secrets::Result pluginResult = m_secrets->confirmKeyStoragePlugin(callerPid, requestId, hashedKeyName, keyCollectionName, cryptosystemProviderName);
+        if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
+            // yes, it is stored in the plugin.
+            fullKey = key; // not a full key, but a reference to a key that the plugin stores.
+        } else {
+            // no, it is stored in some other plugin
+            QByteArray serialisedKey;
+            QMap<QString, QString> filterData;
+            retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData));
+            if (retn.code() == Result::Failed) {
+                return retn;
+            } else if (retn.code() == Result::Pending) {
+                // asynchronous flow required, will call back to sign2().
+                m_pendingRequests.insert(requestId,
+                                         Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                             callerPid,
+                                             requestId,
+                                             Daemon::ApiImpl::SignRequest,
+                                             QVariantList() << QVariant::fromValue<QByteArray>(data)
+                                                            << QVariant::fromValue<Key::SignaturePadding>(padding)
+                                                            << QVariant::fromValue<Key::Digest>(digest)
+                                                            << QVariant::fromValue<QString>(cryptosystemProviderName)));
+                return retn;
+            }
 
-        fullKey = Key::deserialise(serialisedKey);
+            fullKey = Key::deserialise(serialisedKey);
+        }
     } else {
         fullKey = key;
     }
@@ -763,26 +774,37 @@ Daemon::ApiImpl::RequestProcessor::verify(
             }
         }
 
-        QByteArray serialisedKey;
-        QMap<QString, QString> filterData;
-        retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData));
-        if (retn.code() == Result::Failed) {
-            return retn;
-        } else if (retn.code() == Result::Pending) {
-            // asynchronous flow required, will call back to verify2().
-            m_pendingRequests.insert(requestId,
-                                     Daemon::ApiImpl::RequestProcessor::PendingRequest(
-                                         callerPid,
-                                         requestId,
-                                         Daemon::ApiImpl::VerifyRequest,
-                                         QVariantList() << QVariant::fromValue<QByteArray>(data)
-                                                        << QVariant::fromValue<Key::SignaturePadding>(padding)
-                                                        << QVariant::fromValue<Key::Digest>(digest)
-                                                        << QVariant::fromValue<QString>(cryptosystemProviderName)));
-            return retn;
-        }
+        // find out if the key is stored in the crypto plugin.
+        // if so, we don't need to pull it into the daemon process address space.
+        const QString keyCollectionName = key.identifier().collectionName().isEmpty() ? QLatin1String("standalone") : key.identifier().collectionName();
+        const QString hashedKeyName = Sailfish::Secrets::Daemon::Util::generateHashedSecretName(keyCollectionName, key.identifier().name());
+        Sailfish::Secrets::Result pluginResult = m_secrets->confirmKeyStoragePlugin(callerPid, requestId, hashedKeyName, keyCollectionName, cryptosystemProviderName);
+        if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
+            // yes, it is stored in the plugin.
+            fullKey = key; // not a full key, but a reference to a key that the plugin stores.
+        } else {
+            // no, it is stored in some other plugin
+            QByteArray serialisedKey;
+            QMap<QString, QString> filterData;
+            retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData));
+            if (retn.code() == Result::Failed) {
+                return retn;
+            } else if (retn.code() == Result::Pending) {
+                // asynchronous flow required, will call back to verify2().
+                m_pendingRequests.insert(requestId,
+                                         Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                             callerPid,
+                                             requestId,
+                                             Daemon::ApiImpl::VerifyRequest,
+                                             QVariantList() << QVariant::fromValue<QByteArray>(data)
+                                                            << QVariant::fromValue<Key::SignaturePadding>(padding)
+                                                            << QVariant::fromValue<Key::Digest>(digest)
+                                                            << QVariant::fromValue<QString>(cryptosystemProviderName)));
+                return retn;
+            }
 
-        fullKey = Key::deserialise(serialisedKey);
+            fullKey = Key::deserialise(serialisedKey);
+        }
     } else {
         fullKey = key;
     }
@@ -864,27 +886,38 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
             }
         }
 
-        QByteArray serialisedKey;
-        QMap<QString, QString> filterData;
-        retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData));
-        if (retn.code() == Result::Failed) {
-            return retn;
-        } else if (retn.code() == Result::Pending) {
-            // asynchronous flow required, will call back to encrypt2().
-            m_pendingRequests.insert(requestId,
-                                     Daemon::ApiImpl::RequestProcessor::PendingRequest(
-                                         callerPid,
-                                         requestId,
-                                         Daemon::ApiImpl::EncryptRequest,
-                                         QVariantList() << QVariant::fromValue<QByteArray>(data)
-                                                        << QVariant::fromValue<QByteArray>(iv)
-                                                        << QVariant::fromValue<Key::BlockMode>(blockMode)
-                                                        << QVariant::fromValue<Key::EncryptionPadding>(padding)
-                                                        << QVariant::fromValue<QString>(cryptosystemProviderName)));
-            return retn;
-        }
+        // find out if the key is stored in the crypto plugin.
+        // if so, we don't need to pull it into the daemon process address space.
+        const QString keyCollectionName = key.identifier().collectionName().isEmpty() ? QLatin1String("standalone") : key.identifier().collectionName();
+        const QString hashedKeyName = Sailfish::Secrets::Daemon::Util::generateHashedSecretName(keyCollectionName, key.identifier().name());
+        Sailfish::Secrets::Result pluginResult = m_secrets->confirmKeyStoragePlugin(callerPid, requestId, hashedKeyName, keyCollectionName, cryptosystemProviderName);
+        if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
+            // yes, it is stored in the plugin.
+            fullKey = key; // not a full key, but a reference to a key that the plugin stores.
+        } else {
+            // no, it is stored in some other plugin
+            QByteArray serialisedKey;
+            QMap<QString, QString> filterData;
+            retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData));
+            if (retn.code() == Result::Failed) {
+                return retn;
+            } else if (retn.code() == Result::Pending) {
+                // asynchronous flow required, will call back to encrypt2().
+                m_pendingRequests.insert(requestId,
+                                         Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                             callerPid,
+                                             requestId,
+                                             Daemon::ApiImpl::EncryptRequest,
+                                             QVariantList() << QVariant::fromValue<QByteArray>(data)
+                                                            << QVariant::fromValue<QByteArray>(iv)
+                                                            << QVariant::fromValue<Key::BlockMode>(blockMode)
+                                                            << QVariant::fromValue<Key::EncryptionPadding>(padding)
+                                                            << QVariant::fromValue<QString>(cryptosystemProviderName)));
+                return retn;
+            }
 
-        fullKey = Key::deserialise(serialisedKey);
+            fullKey = Key::deserialise(serialisedKey);
+        }
     } else {
         fullKey = key;
     }
@@ -974,28 +1007,38 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
             }
         }
 
-        // TODO: FIXME: if the crypto plugin is the storage plugin for the key, call it directly instead of fetching the key!
-        QByteArray serialisedKey;
-        QMap<QString, QString> filterData;
-        retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData));
-        if (retn.code() == Result::Failed) {
-            return retn;
-        } else if (retn.code() == Result::Pending) {
-            // asynchronous flow required, will call back to decrypt2().
-            m_pendingRequests.insert(requestId,
-                                     Daemon::ApiImpl::RequestProcessor::PendingRequest(
-                                         callerPid,
-                                         requestId,
-                                         Daemon::ApiImpl::DecryptRequest,
-                                         QVariantList() << QVariant::fromValue<QByteArray>(data)
-                                                        << QVariant::fromValue<QByteArray>(iv)
-                                                        << QVariant::fromValue<Key::BlockMode>(blockMode)
-                                                        << QVariant::fromValue<Key::EncryptionPadding>(padding)
-                                                        << QVariant::fromValue<QString>(cryptosystemProviderName)));
-            return retn;
-        }
+        // find out if the key is stored in the crypto plugin.
+        // if so, we don't need to pull it into the daemon process address space.
+        const QString keyCollectionName = key.identifier().collectionName().isEmpty() ? QLatin1String("standalone") : key.identifier().collectionName();
+        const QString hashedKeyName = Sailfish::Secrets::Daemon::Util::generateHashedSecretName(keyCollectionName, key.identifier().name());
+        Sailfish::Secrets::Result pluginResult = m_secrets->confirmKeyStoragePlugin(callerPid, requestId, hashedKeyName, keyCollectionName, cryptosystemProviderName);
+        if (pluginResult.code() == Sailfish::Secrets::Result::Succeeded) {
+            // yes, it is stored in the plugin.
+            fullKey = key; // not a full key, but a reference to a key that the plugin stores.
+        } else {
+            // no, it is stored in some other plugin
+            QByteArray serialisedKey;
+            QMap<QString, QString> filterData;
+            retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData));
+            if (retn.code() == Result::Failed) {
+                return retn;
+            } else if (retn.code() == Result::Pending) {
+                // asynchronous flow required, will call back to decrypt2().
+                m_pendingRequests.insert(requestId,
+                                         Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                             callerPid,
+                                             requestId,
+                                             Daemon::ApiImpl::DecryptRequest,
+                                             QVariantList() << QVariant::fromValue<QByteArray>(data)
+                                                            << QVariant::fromValue<QByteArray>(iv)
+                                                            << QVariant::fromValue<Key::BlockMode>(blockMode)
+                                                            << QVariant::fromValue<Key::EncryptionPadding>(padding)
+                                                            << QVariant::fromValue<QString>(cryptosystemProviderName)));
+                return retn;
+            }
 
-        fullKey = Key::deserialise(serialisedKey);
+            fullKey = Key::deserialise(serialisedKey);
+        }
     } else {
         fullKey = key;
     }
