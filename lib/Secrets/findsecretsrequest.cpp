@@ -267,7 +267,9 @@ void FindSecretsRequest::startRequest()
                                                      d->m_userInteractionMode);
         }
 
-        if (reply.isFinished()) {
+        if (reply.isFinished()
+                // work around a bug in QDBusAbstractInterface / QDBusConnection...
+                && reply.argumentAt<0>().code() != Sailfish::Secrets::Result::Succeeded) {
             d->m_status = Request::Finished;
             d->m_result = reply.argumentAt<0>();
             d->m_identifiers = reply.argumentAt<1>();

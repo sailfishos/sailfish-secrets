@@ -184,7 +184,9 @@ void GenerateStoredKeyRequest::startRequest()
                 d->m_manager->d_ptr->generateStoredKey(d->m_keyTemplate,
                                                        d->m_cryptoPluginName,
                                                        d->m_storagePluginName);
-        if (reply.isFinished()) {
+        if (reply.isFinished()
+                // work around a bug in QDBusAbstractInterface / QDBusConnection...
+                && reply.argumentAt<0>().code() != Sailfish::Crypto::Result::Succeeded) {
             d->m_status = Request::Finished;
             d->m_result = reply.argumentAt<0>();
             d->m_generatedKeyReference = reply.argumentAt<1>();
