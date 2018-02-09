@@ -105,7 +105,7 @@ SecretManagerPrivate::createCollection(
 
     QDBusPendingReply<Result> reply
             = m_interface->asyncCallWithArgumentList(
-                "createCollection",
+                QStringLiteral("createCollection"),
                 QVariantList() << QVariant::fromValue<QString>(collectionName)
                                << QVariant::fromValue<QString>(storagePluginName)
                                << QVariant::fromValue<QString>(encryptionPluginName)
@@ -141,7 +141,7 @@ SecretManagerPrivate::createCollection(
 
     QDBusPendingReply<Result> reply
             = m_interface->asyncCallWithArgumentList(
-                "createCollection",
+                QStringLiteral("createCollection"),
                 QVariantList() << QVariant::fromValue<QString>(collectionName)
                                << QVariant::fromValue<QString>(storagePluginName)
                                << QVariant::fromValue<QString>(encryptionPluginName)
@@ -167,7 +167,7 @@ SecretManagerPrivate::deleteCollection(
 
     QDBusPendingReply<Result> reply
             = m_interface->asyncCallWithArgumentList(
-                "deleteCollection",
+                QStringLiteral("deleteCollection"),
                 QVariantList() << QVariant::fromValue<QString>(collectionName)
                                << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode));
     return reply;
@@ -202,7 +202,7 @@ SecretManagerPrivate::setSecret(
 
     QDBusPendingReply<Result> reply
             = m_interface->asyncCallWithArgumentList(
-                "setSecret",
+                QStringLiteral("setSecret"),
                 QVariantList() << QVariant::fromValue<Secret>(secret)
                                << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
                                << QVariant::fromValue<QString>(interactionServiceAddress));
@@ -234,7 +234,7 @@ SecretManagerPrivate::setSecret(
 
     QDBusPendingReply<Result> reply
             = m_interface->asyncCallWithArgumentList(
-                "setSecret",
+                QStringLiteral("setSecret"),
                 QVariantList() << QVariant::fromValue<QString>(storagePluginName)
                                << QVariant::fromValue<QString>(encryptionPluginName)
                                << QVariant::fromValue<Secret>(secret)
@@ -279,7 +279,7 @@ SecretManagerPrivate::setSecret(
 
     QDBusPendingReply<Result> reply
             = m_interface->asyncCallWithArgumentList(
-                "setSecret",
+                QStringLiteral("setSecret"),
                 QVariantList() << QVariant::fromValue<QString>(storagePluginName)
                                << QVariant::fromValue<QString>(encryptionPluginName)
                                << QVariant::fromValue<QString>(authenticationPluginName)
@@ -321,7 +321,7 @@ SecretManagerPrivate::getSecret(
 
     QDBusPendingReply<Result, Secret> reply
             = m_interface->asyncCallWithArgumentList(
-                "getSecret",
+                QStringLiteral("getSecret"),
                 QVariantList() << QVariant::fromValue<Secret::Identifier>(identifier)
                                << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
                                << QVariant::fromValue<QString>(interactionServiceAddress));
@@ -361,7 +361,7 @@ SecretManagerPrivate::findSecrets(
 
     QDBusPendingReply<Result, QVector<Secret::Identifier> > reply
             = m_interface->asyncCallWithArgumentList(
-                "findSecrets",
+                QStringLiteral("findSecrets"),
                 QVariantList() << QVariant::fromValue<QString>(collectionName)
                                << QVariant::fromValue<Secret::FilterData>(filter)
                                << QVariant::fromValue<SecretManager::FilterOperator>(filterOperator)
@@ -392,7 +392,7 @@ SecretManagerPrivate::findSecrets(
 
     QDBusPendingReply<Result, Secret> reply
             = m_interface->asyncCallWithArgumentList(
-                "findSecrets",
+                QStringLiteral("findSecrets"),
                 QVariantList() << QVariant::fromValue<QString>(QString())
                                << QVariant::fromValue<Secret::FilterData>(filter)
                                << QVariant::fromValue<SecretManager::FilterOperator>(filterOperator)
@@ -430,7 +430,7 @@ SecretManagerPrivate::deleteSecret(
 
     QDBusPendingReply<Result> reply
             = m_interface->asyncCallWithArgumentList(
-                "deleteSecret",
+                QStringLiteral("deleteSecret"),
                 QVariantList() << QVariant::fromValue<Secret::Identifier>(identifier)
                                << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
                                << QVariant::fromValue<QString>(interactionServiceAddress));
