@@ -298,6 +298,7 @@ void tst_cryptorequests::storedKeyRequests()
     keyTemplate.setDigests(Sailfish::Crypto::Key::DigestSha256);
     keyTemplate.setOperations(Sailfish::Crypto::Key::Encrypt | Sailfish::Crypto::Key::Decrypt);
     keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
+    keyTemplate.setCustomParameters(QVector<QByteArray>() << QByteArray("testparameter"));
 
     // first, create the collection via the Secrets API.
     Sailfish::Secrets::CreateCollectionRequest ccr;
@@ -434,6 +435,46 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(fsr.status(), Sailfish::Secrets::Request::Finished);
     QCOMPARE(fsr.result().code(), Sailfish::Secrets::Result::Succeeded);
     QCOMPARE(fsr.identifiers().size(), 0);
+
+    // ensure we can get a key reference via a stored key request
+    StoredKeyRequest skr;
+    skr.setManager(&cm);
+    QSignalSpy skrss(&skr, &StoredKeyRequest::statusChanged);
+    QSignalSpy skrks(&skr, &StoredKeyRequest::storedKeyChanged);
+    skr.setIdentifier(keyReference.identifier());
+    QCOMPARE(skr.identifier(), keyReference.identifier());
+    skr.setKeyComponents(StoredKeyRequest::MetaData);
+    QCOMPARE(skr.keyComponents(), StoredKeyRequest::MetaData);
+    QCOMPARE(skr.status(), Request::Inactive);
+    skr.startRequest();
+    QCOMPARE(skrss.count(), 1);
+    QCOMPARE(skr.status(), Request::Active);
+    QCOMPARE(skr.result().code(), Result::Pending);
+    QCOMPARE(skrks.count(), 0);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(skr);
+    QCOMPARE(skrss.count(), 2);
+    QCOMPARE(skr.status(), Request::Finished);
+    QCOMPARE(skr.result().code(), Result::Succeeded);
+    QCOMPARE(skrks.count(), 1);
+    QCOMPARE(skr.storedKey().algorithm(), keyTemplate.algorithm());
+    QVERIFY(skr.storedKey().customParameters().isEmpty()); // considered public key data, not fetched
+    QVERIFY(skr.storedKey().secretKey().isEmpty()); // secret key data, not fetched
+
+    // and that we can get the public key data + custom parameters
+    skr.setKeyComponents(StoredKeyRequest::MetaData | StoredKeyRequest::PublicKeyData);
+    skr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(skr);
+    QCOMPARE(skr.result().code(), Result::Succeeded);
+    QCOMPARE(skr.storedKey().customParameters(), keyTemplate.customParameters());
+    QVERIFY(skr.storedKey().secretKey().isEmpty()); // secret key data, not fetched
+
+    // and that we can get the secret key data
+    skr.setKeyComponents(StoredKeyRequest::MetaData | StoredKeyRequest::PublicKeyData | StoredKeyRequest::SecretKeyData);
+    skr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(skr);
+    QCOMPARE(skr.result().code(), Result::Succeeded);
+    QCOMPARE(skr.storedKey().customParameters(), keyTemplate.customParameters());
+    QVERIFY(!skr.storedKey().secretKey().isEmpty());
 
     // clean up by deleting the collection in which the secret is stored.
     Sailfish::Secrets::DeleteCollectionRequest dcr;

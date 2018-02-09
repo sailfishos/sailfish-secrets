@@ -745,6 +745,42 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Operations &
     return argument;
 }
 
+QDBusArgument &operator<<(QDBusArgument &argument, const StoredKeyRequest::KeyComponent component)
+{
+    argument.beginStructure();
+    argument << static_cast<int>(component);
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, StoredKeyRequest::KeyComponent &component)
+{
+    int iv = 0;
+    argument.beginStructure();
+    argument >> iv;
+    argument.endStructure();
+    component = static_cast<StoredKeyRequest::KeyComponent>(iv);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const StoredKeyRequest::KeyComponents components)
+{
+    argument.beginStructure();
+    argument << static_cast<int>(components);
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, StoredKeyRequest::KeyComponents &components)
+{
+    int iv = 0;
+    argument.beginStructure();
+    argument >> iv;
+    argument.endStructure();
+    components = static_cast<StoredKeyRequest::KeyComponents>(iv);
+    return argument;
+}
+
 QDBusArgument &operator<<(QDBusArgument &argument, const Result &result)
 {
     argument.beginStructure();

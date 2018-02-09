@@ -137,7 +137,8 @@ CryptoManagerPrivate::generateStoredKey(
 
 QDBusPendingReply<Result, Key>
 CryptoManagerPrivate::storedKey(
-        const Key::Identifier &identifier) // TODO: do we need parameter: just get metadata/public vs get private data, etc?
+        const Key::Identifier &identifier,
+        StoredKeyRequest::KeyComponents keyComponents)
 {
     if (!m_interface) {
         return QDBusPendingReply<Result, Key>(
@@ -148,7 +149,8 @@ CryptoManagerPrivate::storedKey(
     QDBusPendingReply<Result, Key> reply
             = m_interface->asyncCallWithArgumentList(
                 "storedKey",
-                QVariantList() << QVariant::fromValue<Key::Identifier>(identifier));
+                QVariantList() << QVariant::fromValue<Key::Identifier>(identifier)
+                               << QVariant::fromValue<StoredKeyRequest::KeyComponents>(keyComponents));
     return reply;
 }
 

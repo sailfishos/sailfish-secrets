@@ -15,6 +15,7 @@
 #include "Crypto/key.h"
 #include "Crypto/certificate.h"
 #include "Crypto/extensionplugins.h"
+#include "Crypto/storedkeyrequest.h"
 
 #include <QtDBus/QDBusContext>
 #include <QtDBus/QDBusPendingReply>
@@ -55,7 +56,8 @@ public:
             const QString &storageProviderName);
 
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> storedKey(
-            const Sailfish::Crypto::Key::Identifier &identifier);
+            const Sailfish::Crypto::Key::Identifier &identifier,
+            StoredKeyRequest::KeyComponents keyComponents);
 
     QDBusPendingReply<Sailfish::Crypto::Result> deleteStoredKey(
             const Sailfish::Crypto::Key::Identifier &identifier);

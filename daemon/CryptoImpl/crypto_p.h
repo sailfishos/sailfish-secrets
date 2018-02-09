@@ -13,6 +13,7 @@
 #include "applicationpermissions_p.h"
 
 #include "Crypto/extensionplugins.h"
+#include "Crypto/storedkeyrequest.h"
 
 #include <QtDBus/QDBusContext>
 
@@ -75,9 +76,11 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "      </method>\n"
     "      <method name=\"storedKey\">\n"
     "          <arg name=\"identifier\" type=\"(ss)\" direction=\"in\" />\n"
+    "          <arg name=\"keyComponents\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"key\" type=\"(ay)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Crypto::Key::Identifier\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Crypto::StoredKeyRequest::KeyComponents\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Crypto::Key\" />\n"
     "      </method>\n"
@@ -186,6 +189,7 @@ public Q_SLOTS:
 
     void storedKey(
             const Sailfish::Crypto::Key::Identifier &identifier,
+            Sailfish::Crypto::StoredKeyRequest::KeyComponents keyComponents,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
             Sailfish::Crypto::Key &key);

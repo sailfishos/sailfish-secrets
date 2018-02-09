@@ -24,6 +24,7 @@
 #include "Crypto/key.h"
 #include "Crypto/certificate.h"
 #include "Crypto/extensionplugins.h"
+#include "Crypto/storedkeyrequest.h"
 
 #include "CryptoImpl/crypto_p.h"
 
@@ -93,6 +94,7 @@ public:
             pid_t callerPid,
             quint64 requestId,
             const Sailfish::Crypto::Key::Identifier &identifier,
+            StoredKeyRequest::KeyComponents keyComponents,
             Sailfish::Crypto::Key *key);
 
     Sailfish::Crypto::Result deleteStoredKey(
@@ -186,6 +188,7 @@ private:
 
     void storedKey2(
             quint64 requestId,
+            StoredKeyRequest::KeyComponents keyComponents,
             const Sailfish::Crypto::Result &result,
             const QByteArray &serialisedKey,
             const QMap<QString, QString> &filterData);

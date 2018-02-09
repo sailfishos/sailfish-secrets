@@ -122,7 +122,7 @@ public:
 
     class Identifier {
     public:
-        Identifier(const QString &name = QString(), const QString &collectionName = QString())
+        explicit Identifier(const QString &name = QString(), const QString &collectionName = QString())
             : m_name(name), m_collectionName(collectionName) {}
         Identifier(const Sailfish::Crypto::Key::Identifier &other)
             : m_name(other.m_name), m_collectionName(other.m_collectionName) {}

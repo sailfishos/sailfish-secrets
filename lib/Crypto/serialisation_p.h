@@ -19,6 +19,7 @@
 #include "Crypto/extensionplugins.h"
 #include "Crypto/key.h"
 #include "Crypto/result.h"
+#include "Crypto/storedkeyrequest.h"
 
 #include <QtDBus/QDBusArgument>
 #include <QtDBus/QDBusMetaType>
@@ -64,6 +65,11 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Digests &digests) SAILFISH_CRYPTO_API;
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Operations operations) SAILFISH_CRYPTO_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Operations &operations) SAILFISH_CRYPTO_API;
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::StoredKeyRequest::KeyComponent component) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::StoredKeyRequest::KeyComponent &component) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::StoredKeyRequest::KeyComponents components) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::StoredKeyRequest::KeyComponents &components) SAILFISH_CRYPTO_API;
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Result &result) SAILFISH_CRYPTO_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Result &result) SAILFISH_CRYPTO_API;
