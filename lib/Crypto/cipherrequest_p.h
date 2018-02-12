@@ -15,6 +15,7 @@
 #include <QtCore/QPointer>
 #include <QtCore/QScopedPointer>
 #include <QtCore/QString>
+#include <QtCore/QQueue>
 
 #include <QtDBus/QDBusPendingCallWatcher>
 
@@ -45,7 +46,8 @@ public:
     QByteArray m_generatedInitialisationVector;
     bool m_verified;
 
-    QScopedPointer<QDBusPendingCallWatcher> m_watcher;
+    QQueue<QDBusPendingCallWatcher*> m_watcherQueue;
+    QHash<QDBusPendingCallWatcher*, bool> m_completedHash;
     Sailfish::Crypto::Request::Status m_status;
     Sailfish::Crypto::Result m_result;
 };
