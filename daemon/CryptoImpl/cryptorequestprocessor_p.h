@@ -147,10 +147,10 @@ public:
             pid_t callerPid,
             quint64 requestId,
             const QByteArray &data,
+            const QByteArray &iv,
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::Key::BlockMode blockMode,
             Sailfish::Crypto::Key::EncryptionPadding padding,
-            Sailfish::Crypto::Key::Digest digest,
             const QString &cryptosystemProviderName,
             QByteArray *encrypted);
 
@@ -158,10 +158,10 @@ public:
             pid_t callerPid,
             quint64 requestId,
             const QByteArray &data,
+            const QByteArray &iv,
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::Key::BlockMode blockMode,
             Sailfish::Crypto::Key::EncryptionPadding padding,
-            Sailfish::Crypto::Key::Digest digest,
             const QString &cryptosystemProviderName,
             QByteArray *decrypted);
 
@@ -261,9 +261,9 @@ private:
             const Sailfish::Crypto::Result &result,
             const QByteArray &serialisedKey,
             const QByteArray &data,
+            const QByteArray &iv,
             Sailfish::Crypto::Key::BlockMode blockMode,
             Sailfish::Crypto::Key::EncryptionPadding padding,
-            Sailfish::Crypto::Key::Digest digest,
             const QString &cryptoPluginName);
 
     void decrypt2(
@@ -271,9 +271,9 @@ private:
             const Sailfish::Crypto::Result &result,
             const QByteArray &serialisedKey,
             const QByteArray &data,
+            const QByteArray &iv,
             Sailfish::Crypto::Key::BlockMode blockMode,
             Sailfish::Crypto::Key::EncryptionPadding padding,
-            Sailfish::Crypto::Key::Digest digest,
             const QString &cryptoPluginName);
 
 private:

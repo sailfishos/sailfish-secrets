@@ -69,6 +69,41 @@ void DecryptRequest::setData(const QByteArray &data)
 }
 
 /*!
+ * \brief Returns the initialisation vector which the client wishes to use when decrypting the data
+ */
+QByteArray DecryptRequest::initialisationVector() const
+{
+    Q_D(const DecryptRequest);
+    return d->m_initialisationVector;
+}
+
+/*!
+ * \brief Sets the initialisation vector which the client wishes to use when decrypting the data to \a iv
+ *
+ * Note that this is only applicable for certain key types using certain
+ * modes of encryption (e.g. CBC mode with AES symmetric keys).
+ *
+ * The client must specify the same initialisation vector when decrypting
+ * the cipher text as they used when encrypting it.  The initialisation
+ * vector is not secret, and can be stored along with the ciphertext,
+ * however it should be generated using a cryptographically secure
+ * random number generator (see \l{GenerateRandomDataRequest}) and must
+ * be the appropriate size according to the cipher.
+ */
+void DecryptRequest::setInitialisationVector(const QByteArray &iv)
+{
+    Q_D(DecryptRequest);
+    if (d->m_status != Request::Active && d->m_initialisationVector != iv) {
+        d->m_initialisationVector = iv;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit initialisationVectorChanged();
+    }
+}
+
+/*!
  * \brief Returns the key the client wishes to be used to decrypt data
  */
 Key DecryptRequest::key() const
@@ -140,31 +175,6 @@ void DecryptRequest::setPadding(Sailfish::Crypto::Key::EncryptionPadding padding
             emit statusChanged();
         }
         emit paddingChanged();
-    }
-}
-
-/*!
- * \brief Returns the digest used to hash the encrypted data
- */
-Sailfish::Crypto::Key::Digest DecryptRequest::digest() const
-{
-    Q_D(const DecryptRequest);
-    return d->m_digest;
-}
-
-/*!
- * \brief Sets the digest used to hash the encrypted data to the given \a digest
- */
-void DecryptRequest::setDigest(Sailfish::Crypto::Key::Digest digest)
-{
-    Q_D(DecryptRequest);
-    if (d->m_status != Request::Active && d->m_digest != digest) {
-        d->m_digest = digest;
-        if (d->m_status == Request::Finished) {
-            d->m_status = Request::Inactive;
-            emit statusChanged();
-        }
-        emit digestChanged();
     }
 }
 
@@ -244,10 +254,10 @@ void DecryptRequest::startRequest()
 
         QDBusPendingReply<Result, QByteArray> reply =
                 d->m_manager->d_ptr->decrypt(d->m_data,
+                                             d->m_initialisationVector,
                                              d->m_key,
                                              d->m_blockMode,
                                              d->m_padding,
-                                             d->m_digest,
                                              d->m_cryptoPluginName);
         if (reply.isFinished()) {
             d->m_status = Request::Finished;

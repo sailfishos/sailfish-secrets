@@ -31,10 +31,10 @@ public:
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
     QByteArray m_data;
+    QByteArray m_initialisationVector;
     Sailfish::Crypto::Key m_key;
     Sailfish::Crypto::Key::BlockMode m_blockMode;
     Sailfish::Crypto::Key::EncryptionPadding m_padding;
-    Sailfish::Crypto::Key::Digest m_digest;
     QString m_cryptoPluginName;
     QByteArray m_ciphertext;
 

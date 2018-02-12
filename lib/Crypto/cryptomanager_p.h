@@ -94,18 +94,18 @@ public:
 
     QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> encrypt(
             const QByteArray &data,
+            const QByteArray &iv,
             const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
             Sailfish::Crypto::Key::BlockMode blockMode,
             Sailfish::Crypto::Key::EncryptionPadding padding,
-            Sailfish::Crypto::Key::Digest digest,
             const QString &cryptosystemProviderName);
 
     QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> decrypt(
             const QByteArray &data,
+            const QByteArray &iv,
             const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
             Sailfish::Crypto::Key::BlockMode blockMode,
             Sailfish::Crypto::Key::EncryptionPadding padding,
-            Sailfish::Crypto::Key::Digest digest,
             const QString &cryptosystemProviderName);
 
     // do we also need "continueEncrypt(data, ...)" etc?  Do we need "cipher sessions"?  what about denial of service / resource exhaustion etc?

@@ -282,10 +282,10 @@ CryptoManagerPrivate::verify(
 QDBusPendingReply<Result, QByteArray>
 CryptoManagerPrivate::encrypt(
         const QByteArray &data,
+        const QByteArray &iv,
         const Key &key, // or keyreference, i.e. Key(keyName)
         Key::BlockMode blockMode,
         Key::EncryptionPadding padding,
-        Key::Digest digest,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -298,10 +298,10 @@ CryptoManagerPrivate::encrypt(
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("encrypt"),
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
+                               << QVariant::fromValue<QByteArray>(iv)
                                << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<Key::BlockMode>(blockMode)
                                << QVariant::fromValue<Key::EncryptionPadding>(padding)
-                               << QVariant::fromValue<Key::Digest>(digest)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -309,10 +309,10 @@ CryptoManagerPrivate::encrypt(
 QDBusPendingReply<Result, QByteArray>
 CryptoManagerPrivate::decrypt(
         const QByteArray &data,
+        const QByteArray &iv,
         const Key &key, // or keyreference, i.e. Key(keyName)
         Key::BlockMode blockMode,
         Key::EncryptionPadding padding,
-        Key::Digest digest,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -325,10 +325,10 @@ CryptoManagerPrivate::decrypt(
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("decrypt"),
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
+                               << QVariant::fromValue<QByteArray>(iv)
                                << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<Key::BlockMode>(blockMode)
                                << QVariant::fromValue<Key::EncryptionPadding>(padding)
-                               << QVariant::fromValue<Key::Digest>(digest)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }

@@ -174,10 +174,10 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::verify(
 Sailfish::Crypto::Result
 CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::encrypt(
         const QByteArray &data,
+        const QByteArray &iv,
         const Sailfish::Crypto::Key &key,
         Sailfish::Crypto::Key::BlockMode blockMode,
         Sailfish::Crypto::Key::EncryptionPadding padding,
-        Sailfish::Crypto::Key::Digest digest,
         QByteArray *encrypted)
 {
     if (key.algorithm() != Sailfish::Crypto::Key::Aes256) {
@@ -195,22 +195,15 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::encrypt(
                                         QLatin1String("TODO: encryption padding other than None"));
     }
 
-    if (digest != Sailfish::Crypto::Key::DigestSha256) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: digests other than Sha256"));
-    }
-
     if (key.secretKey().isEmpty()) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptySecretKey,
                                         QLatin1String("Cannot encrypt with empty secret key"));
     }
 
-    // generate initialisation vector and key hash
+    // generate key hash and normalise init vector
     QCryptographicHash keyHash(QCryptographicHash::Sha512);
     keyHash.addData(key.secretKey());
-    QCryptographicHash ivHash(QCryptographicHash::Sha256);
-    ivHash.addData(key.secretKey());
-    QByteArray initVector = ivHash.result();
+    QByteArray initVector = iv;
     if (initVector.size() > 16) {
         initVector.chop(initVector.size() - 16);
     } else while (initVector.size() < 16) {
@@ -233,10 +226,10 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::encrypt(
 Sailfish::Crypto::Result
 CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::decrypt(
         const QByteArray &data,
+        const QByteArray &iv,
         const Sailfish::Crypto::Key &key,
         Sailfish::Crypto::Key::BlockMode blockMode,
         Sailfish::Crypto::Key::EncryptionPadding padding,
-        Sailfish::Crypto::Key::Digest digest,
         QByteArray *decrypted)
 {
 
@@ -255,22 +248,15 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::decrypt(
                                         QLatin1String("TODO: encryption padding other than None"));
     }
 
-    if (digest != Sailfish::Crypto::Key::DigestSha256) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: digests other than Sha256"));
-    }
-
     if (key.secretKey().isEmpty()) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptySecretKey,
                                         QLatin1String("Cannot encrypt with empty secret key"));
     }
 
-    // generate initialisation vector and key hash
+    // generate key hash and normalise init vector
     QCryptographicHash keyHash(QCryptographicHash::Sha512);
     keyHash.addData(key.secretKey());
-    QCryptographicHash ivHash(QCryptographicHash::Sha256);
-    ivHash.addData(key.secretKey());
-    QByteArray initVector = ivHash.result();
+    QByteArray initVector = iv;
     if (initVector.size() > 16) {
         initVector.chop(initVector.size() - 16);
     } else while (initVector.size() < 16) {
