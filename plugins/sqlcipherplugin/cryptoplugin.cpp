@@ -12,6 +12,7 @@
 
 #include "Crypto/key.h"
 #include "Crypto/certificate.h"
+#include "Crypto/generaterandomdatarequest.h"
 
 #include <QtCore/QByteArray>
 #include <QtCore/QMap>
@@ -19,6 +20,11 @@
 #include <QtCore/QString>
 #include <QtCore/QUuid>
 #include <QtCore/QCryptographicHash>
+
+#include <fstream>
+#include <cstdlib>
+
+#include <openssl/rand.h>
 
 namespace {
     void nullifyKeyFields(Sailfish::Crypto::Key *key, Sailfish::Crypto::StoredKeyRequest::KeyComponents keep) {
@@ -50,7 +56,30 @@ namespace {
 
 void Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::init_aes_encryption()
 {
+    // seed the RNG
+    char seed[1024] = {0};
+    std::ifstream rand("/dev/urandom");
+    rand.read(seed, 1024);
+    rand.close();
+    RAND_add(seed, 1024, 1.0);
+
+    // initialise EVP
     osslevp_init();
+}
+
+Sailfish::Crypto::Result
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::seedRandomDataGenerator(
+        quint64 callerIdent,
+        const QString &csprngEngineName,
+        const QByteArray &seedData,
+        double entropyEstimate)
+{
+    Q_UNUSED(callerIdent)
+    Q_UNUSED(csprngEngineName)
+    Q_UNUSED(seedData)
+    Q_UNUSED(entropyEstimate)
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginRandomDataError,
+                                    QLatin1String("The SQLCipher crypto plugin doesn't support client-provided seed data"));
 }
 
 Sailfish::Crypto::Result

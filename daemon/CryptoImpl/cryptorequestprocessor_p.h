@@ -68,6 +68,22 @@ public:
             QVector<Sailfish::Crypto::CryptoPluginInfo> *cryptoPlugins,
             QStringList *storagePlugins);
 
+    Sailfish::Crypto::Result generateRandomData(
+            pid_t callerPid,
+            quint64 requestId,
+            quint64 numberBytes,
+            const QString &csprngEngineName,
+            const QString &cryptosystemProviderName,
+            QByteArray *randomData);
+
+    Sailfish::Crypto::Result seedRandomDataGenerator(
+            pid_t callerPid,
+            quint64 requestId,
+            const QByteArray &seedData,
+            double entropyEstimate,
+            const QString &csprngEngineName,
+            const QString &cryptosystemProviderName);
+
     Sailfish::Crypto::Result validateCertificateChain(
             pid_t callerPid,
             quint64 requestId,

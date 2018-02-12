@@ -15,6 +15,9 @@
 #include <QtCore/QUuid>
 #include <QtCore/QCryptographicHash>
 
+#include <fstream>
+#include <cstdlib>
+
 QVector<Sailfish::Crypto::Key::Algorithm>
 CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedAlgorithms() const
 {
@@ -62,6 +65,45 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedOperations() co
     QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Operations> retn;
     retn.insert(Sailfish::Crypto::Key::Aes256, Sailfish::Crypto::Key::Encrypt | Sailfish::Crypto::Key::Decrypt);
     return retn;
+}
+
+Sailfish::Crypto::Result
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::generateRandomData(
+        quint64 callerIdent,
+        const QString &csprngEngineName,
+        quint64 numberBytes,
+        QByteArray *randomData)
+{
+    Q_UNUSED(callerIdent)
+
+    static const int maxBytes = 4096;
+    bool useDevURandom = false;
+
+    if (csprngEngineName == QStringLiteral("/dev/urandom")) {
+        useDevURandom = true;
+    } else if (csprngEngineName != Sailfish::Crypto::GenerateRandomDataRequest::DefaultCsprngEngineName) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginRandomDataError,
+                                        QLatin1String("This crypto plugin only supports default and /dev/urandom engines"));
+    }
+
+    if (!numberBytes || numberBytes > maxBytes) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginRandomDataError,
+                                        QLatin1String("This crypto plugin can only generate up to 4096 bytes of random data at a time"));
+    }
+
+    int nbytes = numberBytes;
+    QScopedPointer<char> buf(new char[nbytes]);
+    if (useDevURandom) {
+        std::ifstream rand("/dev/urandom");
+        rand.read(buf.data(), nbytes);
+        rand.close();
+    } else if (RAND_bytes(reinterpret_cast<unsigned char*>(buf.data()), nbytes) != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginRandomDataError,
+                                        QLatin1String("This crypto plugin failed to generate the random data"));
+    }
+
+    *randomData = QByteArray(reinterpret_cast<const char *>(buf.data()), nbytes);
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
 }
 
 Sailfish::Crypto::Result

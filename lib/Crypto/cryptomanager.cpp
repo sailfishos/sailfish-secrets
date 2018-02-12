@@ -76,6 +76,50 @@ CryptoManagerPrivate::getPluginInfo()
     return reply;
 }
 
+QDBusPendingReply<Sailfish::Crypto::Result, QByteArray>
+CryptoManagerPrivate::generateRandomData(
+        quint64 numberBytes,
+        const QString &csprngEngineName,
+        const QString &cryptosystemProviderName)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result, QByteArray>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result, QByteArray> reply
+            = m_interface->asyncCallWithArgumentList(
+                QStringLiteral("generateRandomData"),
+                QVariantList() << QVariant::fromValue<quint64>(numberBytes)
+                               << QVariant::fromValue<QString>(csprngEngineName)
+                               << QVariant::fromValue<QString>(cryptosystemProviderName));
+    return reply;
+}
+
+QDBusPendingReply<Sailfish::Crypto::Result>
+CryptoManagerPrivate::seedRandomDataGenerator(
+        const QByteArray &seedData,
+        double entropyEstimate,
+        const QString &csprngEngineName,
+        const QString &cryptosystemProviderName)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result, QByteArray>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result> reply
+            = m_interface->asyncCallWithArgumentList(
+                QStringLiteral("seedRandomDataGenerator"),
+                QVariantList() << QVariant::fromValue<QByteArray>(seedData)
+                               << QVariant::fromValue<double>(entropyEstimate)
+                               << QVariant::fromValue<QString>(csprngEngineName)
+                               << QVariant::fromValue<QString>(cryptosystemProviderName));
+    return reply;
+}
+
 QDBusPendingReply<Result, bool>
 CryptoManagerPrivate::validateCertificateChain(
         const QVector<Certificate> &chain,
@@ -89,7 +133,7 @@ CryptoManagerPrivate::validateCertificateChain(
 
     QDBusPendingReply<Result, bool> reply
             = m_interface->asyncCallWithArgumentList(
-                "validateCertificateChain",
+                QStringLiteral("validateCertificateChain"),
                 QVariantList() << QVariant::fromValue<QVector<Certificate> >(chain)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
@@ -108,7 +152,7 @@ CryptoManagerPrivate::generateKey(
 
     QDBusPendingReply<Result, Key> reply
             = m_interface->asyncCallWithArgumentList(
-                "generateKey",
+                QStringLiteral("generateKey"),
                 QVariantList() << QVariant::fromValue<Key>(keyTemplate)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
@@ -128,7 +172,7 @@ CryptoManagerPrivate::generateStoredKey(
 
     QDBusPendingReply<Result, Key> reply
             = m_interface->asyncCallWithArgumentList(
-                "generateStoredKey",
+                QStringLiteral("generateStoredKey"),
                 QVariantList() << QVariant::fromValue<Key>(keyTemplate)
                                << QVariant::fromValue<QString>(cryptosystemProviderName)
                                << QVariant::fromValue<QString>(storageProviderName));
@@ -148,7 +192,7 @@ CryptoManagerPrivate::storedKey(
 
     QDBusPendingReply<Result, Key> reply
             = m_interface->asyncCallWithArgumentList(
-                "storedKey",
+                QStringLiteral("storedKey"),
                 QVariantList() << QVariant::fromValue<Key::Identifier>(identifier)
                                << QVariant::fromValue<StoredKeyRequest::KeyComponents>(keyComponents));
     return reply;
@@ -166,7 +210,7 @@ CryptoManagerPrivate::deleteStoredKey(
 
     QDBusPendingReply<Result> reply
             = m_interface->asyncCallWithArgumentList(
-                "deleteStoredKey",
+                QStringLiteral("deleteStoredKey"),
                 QVariantList() << QVariant::fromValue<Key::Identifier>(identifier));
     return reply;
 }
@@ -201,7 +245,7 @@ CryptoManagerPrivate::sign(
 
     QDBusPendingReply<Result, QByteArray> reply
             = m_interface->asyncCallWithArgumentList(
-                "sign",
+                QStringLiteral("sign"),
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<Key::SignaturePadding>(padding)
@@ -226,7 +270,7 @@ CryptoManagerPrivate::verify(
 
     QDBusPendingReply<Result, bool> reply
             = m_interface->asyncCallWithArgumentList(
-                "verify",
+                QStringLiteral("verify"),
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<Key::SignaturePadding>(padding)
@@ -252,7 +296,7 @@ CryptoManagerPrivate::encrypt(
 
     QDBusPendingReply<Result, QByteArray> reply
             = m_interface->asyncCallWithArgumentList(
-                "encrypt",
+                QStringLiteral("encrypt"),
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<Key::BlockMode>(blockMode)
@@ -279,7 +323,7 @@ CryptoManagerPrivate::decrypt(
 
     QDBusPendingReply<Result, QByteArray> reply
             = m_interface->asyncCallWithArgumentList(
-                "decrypt",
+                QStringLiteral("decrypt"),
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<Key::BlockMode>(blockMode)
@@ -299,6 +343,8 @@ CryptoManagerPrivate::decrypt(
 
   \list
   \li \l{PluginInfoRequest} to retrieve information about crypto plugins
+  \li \l{SeedRandomDataGeneratorRequest} to seed a crypto plugin's random number generator
+  \li \l{GenerateRandomDataRequest} to generate random data
   \li \l{ValidateCertificateChainRequest} to validate certificates
   \li \l{GenerateKeyRequest} to generate a \l{Key}
   \li \l{GenerateStoredKeyRequest} to generate a securely-stored \l{Key}

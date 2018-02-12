@@ -21,11 +21,13 @@ PUBLIC_HEADERS += \
     $$PWD/encryptrequest.h \
     $$PWD/extensionplugins.h \
     $$PWD/generatekeyrequest.h \
+    $$PWD/generaterandomdatarequest.h \
     $$PWD/generatestoredkeyrequest.h \
     $$PWD/key.h \
     $$PWD/plugininforequest.h \
     $$PWD/request.h \
     $$PWD/result.h \
+    $$PWD/seedrandomdatageneratorrequest.h \
     $$PWD/signrequest.h \
     $$PWD/storedkeyidentifiersrequest.h \
     $$PWD/storedkeyrequest.h \
@@ -46,9 +48,11 @@ PRIVATE_HEADERS += \
     $$PWD/encryptrequest_p.h \
     $$PWD/extensionplugins_p.h \
     $$PWD/generatekeyrequest_p.h \
+    $$PWD/generaterandomdatarequest_p.h \
     $$PWD/generatestoredkeyrequest_p.h \
     $$PWD/key_p.h \
     $$PWD/plugininforequest_p.h \
+    $$PWD/seedrandomdatageneratorrequest_p.h \
     $$PWD/signrequest_p.h \
     $$PWD/storedkeyidentifiersrequest_p.h \
     $$PWD/storedkeyrequest_p.h \
@@ -69,10 +73,12 @@ SOURCES += \
     $$PWD/encryptrequest.cpp \
     $$PWD/extensionplugins.cpp \
     $$PWD/generatekeyrequest.cpp \
+    $$PWD/generaterandomdatarequest.cpp \
     $$PWD/generatestoredkeyrequest.cpp \
     $$PWD/key.cpp \
     $$PWD/plugininforequest.cpp \
     $$PWD/request.cpp \
+    $$PWD/seedrandomdatageneratorrequest.cpp \
     $$PWD/serialisation.cpp \
     $$PWD/signrequest.cpp \
     $$PWD/storedkeyidentifiersrequest.cpp \

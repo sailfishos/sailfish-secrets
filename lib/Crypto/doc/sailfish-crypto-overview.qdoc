@@ -63,6 +63,8 @@ classes which provide this functionality:
 
 \list
 \li \l{Sailfish::Crypto::PluginInfoRequest} to retrieve information about crypto plugins
+\li \l{Sailfish::Crypto::SeedRandomDataGeneratorRequest} to seed a crypto plugin's random number generator
+\li \l{Sailfish::Crypto::GenerateRandomDataRequest} to generate random data
 \li \l{Sailfish::Crypto::ValidateCertificateChainRequest} to validate certificates
 \li \l{Sailfish::Crypto::GenerateKeyRequest} to generate a \l{Key}
 \li \l{Sailfish::Crypto::GenerateStoredKeyRequest} to generate a securely-stored \l{Key}

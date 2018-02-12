@@ -53,6 +53,18 @@ public:
     virtual QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Digests> supportedDigests() const = 0;
     virtual QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Operations> supportedOperations() const = 0;
 
+    virtual Sailfish::Crypto::Result generateRandomData(
+            quint64 callerIdent,
+            const QString &csprngEngineName,
+            quint64 numberBytes,
+            QByteArray *randomData) = 0;
+
+    virtual Sailfish::Crypto::Result seedRandomDataGenerator(
+            quint64 callerIdent,
+            const QString &csprngEngineName,
+            const QByteArray &seedData,
+            double entropyEstimate) = 0;
+
     virtual Sailfish::Crypto::Result validateCertificateChain(
             const QVector<Sailfish::Crypto::Certificate> &chain,
             bool *validated) = 0;

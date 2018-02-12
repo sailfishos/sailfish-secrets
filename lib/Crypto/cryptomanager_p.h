@@ -42,6 +42,20 @@ public:
 
     QDBusPendingReply<Sailfish::Crypto::Result, QVector<Sailfish::Crypto::CryptoPluginInfo>, QStringList> getPluginInfo();
 
+    QDBusPendingReply<Sailfish::Crypto::Result> seedRandomDataGenerator(
+            const QByteArray &seedData,
+            double entropyEstimate,
+            const QString &csprngEngineName,
+            const QString &cryptosystemProviderName);
+
+    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> generateRandomData(
+            quint64 numberBytes,
+            const QString &csprngEngineName,
+            const QString &cryptosystemProviderName);
+
+    // TODO: add a method (and corresponding Request type) to generateRandomNumber
+    // perhaps with range limits, precision parameters, etc.
+
     QDBusPendingReply<Sailfish::Crypto::Result, bool> validateCertificateChain(
             const QVector<Sailfish::Crypto::Certificate> &chain,
             const QString &cryptosystemProviderName);
@@ -95,7 +109,6 @@ public:
             const QString &cryptosystemProviderName);
 
     // do we also need "continueEncrypt(data, ...)" etc?  Do we need "cipher sessions"?  what about denial of service / resource exhaustion etc?
-    // do we also need "generateRandom()" methods?
 
 private:
     friend class CryptoManager;

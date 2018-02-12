@@ -47,6 +47,22 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"QVector<Sailfish::Crypto::CryptoPluginInfo>\" />\n"
     "      </method>\n"
+    "      <method name=\"generateRandomData\">\n"
+    "          <arg name=\"numberBytes\" type=\"t\" direction=\"in\" />\n"
+    "          <arg name=\"csprngEngineName\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
+    "          <arg name=\"randomData\" type=\"ay\" direction=\"out\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
+    "      </method>\n"
+    "      <method name=\"seedRandomDataGenerator\">\n"
+    "          <arg name=\"seedData\" type=\"ay\" direction=\"in\" />\n"
+    "          <arg name=\"entropyEstimate\" type=\"d\" direction=\"in\" />\n"
+    "          <arg name=\"csprngEngineName\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
+    "      </method>\n"
     "      <method name=\"validateCertificateChain\">\n"
     "          <arg name=\"chain\" type=\"a(iay)\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
@@ -165,6 +181,22 @@ public Q_SLOTS:
             QVector<Sailfish::Crypto::CryptoPluginInfo> &cryptoPlugins,
             QStringList &storagePlugins);
 
+    void generateRandomData(
+            quint64 numberBytes,
+            const QString &csprngEngineName,
+            const QString &cryptosystemProviderName,
+            const QDBusMessage &message,
+            Sailfish::Crypto::Result &result,
+            QByteArray &randomData);
+
+    void seedRandomDataGenerator(
+            const QByteArray &seedData,
+            double entropyEstimate,
+            const QString &csprngEngineName,
+            const QString &cryptosystemProviderName,
+            const QDBusMessage &message,
+            Sailfish::Crypto::Result &result);
+
     void validateCertificateChain(
             const QVector<Sailfish::Crypto::Certificate> &chain,
             const QString &cryptosystemProviderName,
@@ -273,6 +305,8 @@ private:
 enum RequestType {
     InvalidRequest = 0,
     GetPluginInfoRequest,
+    GenerateRandomDataRequest,
+    SeedRandomDataGeneratorRequest,
     ValidateCertificateChainRequest,
     GenerateKeyRequest,
     GenerateStoredKeyRequest,

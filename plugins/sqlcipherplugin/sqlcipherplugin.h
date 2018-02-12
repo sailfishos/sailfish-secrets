@@ -101,6 +101,18 @@ public:
     QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Digests> supportedDigests() const Q_DECL_OVERRIDE;
     QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Operations> supportedOperations() const Q_DECL_OVERRIDE;
 
+    Sailfish::Crypto::Result generateRandomData(
+            quint64 callerIdent,
+            const QString &csprngEngineName,
+            quint64 numberBytes,
+            QByteArray *randomData) Q_DECL_OVERRIDE;
+
+    Sailfish::Crypto::Result seedRandomDataGenerator(
+            quint64 callerIdent,
+            const QString &csprngEngineName,
+            const QByteArray &seedData,
+            double entropyEstimate) Q_DECL_OVERRIDE;
+
     Sailfish::Crypto::Result validateCertificateChain(
             const QVector<Sailfish::Crypto::Certificate> &chain,
             bool *validated) Q_DECL_OVERRIDE;

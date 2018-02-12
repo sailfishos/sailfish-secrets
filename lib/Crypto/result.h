@@ -50,6 +50,7 @@ public:
 
         CryptoPluginEncryptionError = 40,
         CryptoPluginDecryptionError,
+        CryptoPluginRandomDataError,
 
         NetworkError = 98,
         NetworkSslError = 99,

@@ -38,8 +38,10 @@ private:
     friend class DeleteStoredKeyRequest;
     friend class EncryptRequest;
     friend class GenerateKeyRequest;
+    friend class GenerateRandomDataRequest;
     friend class GenerateStoredKeyRequest;
     friend class PluginInfoRequest;
+    friend class SeedRandomDataGeneratorRequest;
     friend class SignRequest;
     friend class StoredKeyIdentifiersRequest;
     friend class StoredKeyRequest;

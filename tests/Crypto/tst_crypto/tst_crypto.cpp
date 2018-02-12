@@ -38,6 +38,7 @@ public slots:
 
 private slots:
     void getPluginInfo();
+    void randomData();
     void generateKeyEncryptDecrypt();
     void validateCertificateChain();
 
@@ -66,6 +67,58 @@ void tst_crypto::getPluginInfo()
     }
     QVERIFY(cryptoPluginNames.size());
     QVERIFY(cryptoPluginNames.contains(CryptoManager::DefaultCryptoPluginName + QLatin1String(".test")));
+}
+
+void tst_crypto::randomData()
+{
+    // test generating random data
+    QDBusPendingReply<Result, QByteArray> reply = cm.generateRandomData(
+            2048,
+            QLatin1String("default"),
+            CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
+    QVERIFY(reply.isValid());
+    QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
+    QByteArray randomData = reply.argumentAt<1>();
+    QCOMPARE(randomData.size(), 2048);
+    bool allNull = true;
+    for (auto c : randomData) {
+        if (c != '\0') {
+            allNull = false;
+            break;
+        }
+    }
+    QVERIFY(!allNull);
+
+    // test seeding the random number generator
+    QDBusPendingReply<Result> seedReply = cm.seedRandomDataGenerator(
+            QByteArray("seed"),
+            1.0,
+            QLatin1String("default"),
+            CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(seedReply);
+    QVERIFY(seedReply.isValid());
+    QCOMPARE(seedReply.argumentAt<0>().code(), Result::Succeeded);
+
+    // ensure that we get different random data to the original set
+    reply = cm.generateRandomData(
+            2048,
+            QLatin1String("default"),
+            CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
+    QVERIFY(reply.isValid());
+    QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
+    QByteArray seededData = reply.argumentAt<1>();
+    QCOMPARE(seededData.size(), 2048);
+    allNull = true;
+    for (auto c : seededData) {
+        if (c != '\0') {
+            allNull = false;
+            break;
+        }
+    }
+    QVERIFY(!allNull);
+    QVERIFY(seededData != randomData);
 }
 
 void tst_crypto::generateKeyEncryptDecrypt()

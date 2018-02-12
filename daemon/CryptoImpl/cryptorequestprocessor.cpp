@@ -150,6 +150,48 @@ Daemon::ApiImpl::RequestProcessor::getPluginInfo(
 }
 
 Result
+Daemon::ApiImpl::RequestProcessor::generateRandomData(
+        pid_t callerPid,
+        quint64 requestId,
+        quint64 numberBytes,
+        const QString &csprngEngineName,
+        const QString &cryptosystemProviderName,
+        QByteArray *randomData)
+{
+    // TODO: access control!
+    Q_UNUSED(requestId);
+
+    if (!m_cryptoPlugins.contains(cryptosystemProviderName)) {
+        return Result(Result::InvalidCryptographicServiceProvider,
+                      QLatin1String("No such cryptographic service provider plugin exists"));
+    }
+
+    return m_cryptoPlugins[cryptosystemProviderName]->generateRandomData(
+                static_cast<quint64>(callerPid), csprngEngineName, numberBytes, randomData);
+}
+
+Result
+Daemon::ApiImpl::RequestProcessor::seedRandomDataGenerator(
+        pid_t callerPid,
+        quint64 requestId,
+        const QByteArray &seedData,
+        double entropyEstimate,
+        const QString &csprngEngineName,
+        const QString &cryptosystemProviderName)
+{
+    // TODO: access control!
+    Q_UNUSED(requestId);
+
+    if (!m_cryptoPlugins.contains(cryptosystemProviderName)) {
+        return Result(Result::InvalidCryptographicServiceProvider,
+                      QLatin1String("No such cryptographic service provider plugin exists"));
+    }
+
+    return m_cryptoPlugins[cryptosystemProviderName]->seedRandomDataGenerator(
+                static_cast<quint64>(callerPid), csprngEngineName, seedData, entropyEstimate);
+}
+
+Result
 Daemon::ApiImpl::RequestProcessor::validateCertificateChain(
         pid_t callerPid,
         quint64 requestId,
