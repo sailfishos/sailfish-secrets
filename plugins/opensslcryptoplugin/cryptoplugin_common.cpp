@@ -8,6 +8,7 @@
 #include "Crypto/key.h"
 #include "Crypto/certificate.h"
 
+#include <QtCore/QTimer>
 #include <QtCore/QByteArray>
 #include <QtCore/QMap>
 #include <QtCore/QVector>
@@ -21,6 +22,7 @@
 
 #include <openssl/rand.h>
 
+#define CIPHER_SESSION_INACTIVITY_TIMEOUT 10000 /* 1 minute */
 #define MAX_CIPHER_SESSIONS_PER_CLIENT 5
 #define SAILFISH_CRYPTO_GCM_TAG_SIZE 16
 
@@ -38,6 +40,7 @@ public:
     QByteArray generatedIV;
     EVP_MD_CTX *evp_md_ctx = nullptr;
     EVP_CIPHER_CTX *evp_cipher_ctx = nullptr;
+    QTimer *timeout;
 };
 struct CipherSessionDataDeleter
 {
@@ -48,6 +51,9 @@ struct CipherSessionDataDeleter
         }
         if (csd->evp_md_ctx) {
             EVP_MD_CTX_destroy(csd->evp_md_ctx);
+        }
+        if (csd->timeout) {
+            csd->timeout->deleteLater();
         }
         delete csd;
     }
@@ -452,7 +458,29 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::initialiseCipherSession(
     csd->generatedIV = *generatedIV;
     csd->evp_cipher_ctx = evp_cipher_ctx;
     csd->evp_md_ctx = evp_md_ctx;
+    QTimer *timeout = new QTimer(this);
+    timeout->setSingleShot(true);
+    timeout->setInterval(CIPHER_SESSION_INACTIVITY_TIMEOUT);
+    QObject::connect(timeout, &QTimer::timeout,
+                     [this, timeout] {
+        CipherSessionLookup lookup(this->m_cipherSessionTimeouts.take(timeout));
+        if (lookup.csd) {
+            this->m_cipherSessions[lookup.clientId].remove(lookup.sessionToken);
+            QScopedPointer<CipherSessionData,CipherSessionDataDeleter> csdd(lookup.csd);
+        } else {
+            timeout->deleteLater();
+        }
+    });
+    timeout->start();
+    csd->timeout = timeout;
     m_cipherSessions[clientId].insert(sessionToken, csd);
+
+    CipherSessionLookup lookup;
+    lookup.csd = csd;
+    lookup.sessionToken = sessionToken;
+    lookup.clientId = clientId;
+    m_cipherSessionTimeouts.insert(timeout, lookup);
+
     *cipherSessionToken = sessionToken;
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
 }
@@ -478,6 +506,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::updateCipherSessionAuthe
                                         QLatin1String("Cipher context has not been initialised"));
     }
 
+    csd->timeout->start(); // restart the timeout due to activity.
     int len = 0;
     if (csd->operation == Sailfish::Crypto::Key::Encrypt) {
         if (EVP_EncryptUpdate(csd->evp_cipher_ctx, NULL, &len,
@@ -520,6 +549,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::updateCipherSession(
                                         QLatin1String("Cipher context has not been initialised"));
     }
 
+    csd->timeout->start(); // restart the timeout due to activity.
     int blockSizeForCipher = 16; // TODO: lookup for different algorithms, but AES is 128 bit blocks = 16 bytes
     QScopedPointer<unsigned char> generatedDataBuf(new unsigned char[data.size() + blockSizeForCipher]);
     int generatedDataSize = 0;
@@ -569,6 +599,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::finaliseCipherSession(
     }
 
     QScopedPointer<CipherSessionData,CipherSessionDataDeleter> csdd(m_cipherSessions[clientId].take(cipherSessionToken));
+    m_cipherSessionTimeouts.remove(csd->timeout);
     int blockSizeForCipher = 16; // TODO: lookup for different algorithms, but AES is 128 bit blocks = 16 bytes
     QScopedPointer<unsigned char> generatedDataBuf(new unsigned char[blockSizeForCipher*2]); // final 1 or 2 blocks.
     int generatedDataSize = 0;

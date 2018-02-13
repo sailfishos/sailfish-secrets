@@ -16,6 +16,7 @@
 #include <QMap>
 
 class CipherSessionData;
+class QTimer;
 
 namespace Sailfish {
 
@@ -152,6 +153,12 @@ private:
 
     Sailfish::Crypto::Key getFullKey(const Sailfish::Crypto::Key &key);
     QMap<quint64, QMap<quint32, CipherSessionData*> > m_cipherSessions; // clientId to token to data
+    struct CipherSessionLookup {
+        CipherSessionData *csd = 0;
+        quint32 sessionToken = 0;
+        quint64 clientId = 0;
+    };
+    QMap<QTimer *, CipherSessionLookup> m_cipherSessionTimeouts;
 };
 
 } // namespace Plugins
