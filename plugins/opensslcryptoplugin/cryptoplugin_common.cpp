@@ -22,7 +22,7 @@
 
 #include <openssl/rand.h>
 
-#define CIPHER_SESSION_INACTIVITY_TIMEOUT 10000 /* 1 minute */
+#define CIPHER_SESSION_INACTIVITY_TIMEOUT 60000 /* 1 minute, change to 10 sec for timeout test */
 #define MAX_CIPHER_SESSIONS_PER_CLIENT 5
 #define SAILFISH_CRYPTO_GCM_TAG_SIZE 16
 

@@ -1163,7 +1163,7 @@ void tst_cryptorequests::cipherBenchmark()
 
 void tst_cryptorequests::cipherTimeout()
 {
-    //QSKIP("This test should only be run manually after changing CIPHER_SESSION_INACTIVITY_TIMEOUT to 10000");
+    QSKIP("This test should only be run manually after changing CIPHER_SESSION_INACTIVITY_TIMEOUT to 10000");
 
     // this test ensures that cipher sessions time out after some period of time.
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
