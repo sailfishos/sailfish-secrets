@@ -23,9 +23,10 @@
 #include <sys/types.h>
 
 #include "Secrets/result.h"
-#include "Secrets/interactionrequest.h"
+#include "Secrets/interactionparameters.h"
 #include "Secrets/secretmanager.h"
 #include "Secrets/secret.h"
+#include "Secrets/interactionparameters.h"
 #include "Secrets/extensionplugins.h"
 
 #include "SecretsImpl/secrets_p.h"
@@ -209,9 +210,11 @@ private Q_SLOTS:
     void authenticationCompleted(
             uint callerPid,
             qint64 requestId,
-            const QString &callerApplicationId,
-            const QString &collectionName,
-            const QString &secretName,
+            const Sailfish::Secrets::Result &result);
+    void userInputInteractionCompleted(
+            uint callerPid,
+            qint64 requestId,
+            const Sailfish::Secrets::InteractionParameters &request,
             const QString &interactionServiceAddress,
             const Sailfish::Secrets::Result &result,
             const QByteArray &authenticationKey);

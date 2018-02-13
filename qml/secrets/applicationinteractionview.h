@@ -9,7 +9,7 @@
 #define SAILFISHSECRETS_QML_APPLICATIONINTERACTIONVIEW_H
 
 #include "Secrets/interactionview.h"
-#include "Secrets/interactionrequest.h"
+#include "Secrets/interactionparameters.h"
 
 #include <QtQuick/QQuickItem>
 
@@ -35,14 +35,6 @@ public:
         Deny
     };
 
-    enum RequestType {
-        InvalidRequest = Sailfish::Secrets::InteractionRequest::InvalidRequest,
-        DeleteSecretConfirmationRequest = Sailfish::Secrets::InteractionRequest::DeleteSecretConfirmationRequest,
-        ModifySecretConfirmationRequest = Sailfish::Secrets::InteractionRequest::ModifySecretConfirmationRequest,
-        UserVerificationConfirmationRequest = Sailfish::Secrets::InteractionRequest::UserVerificationConfirmationRequest,
-        AuthenticationKeyRequest = Sailfish::Secrets::InteractionRequest::AuthenticationKeyRequest
-    };
-
     ApplicationInteractionView(QQuickItem *parent = Q_NULLPTR);
     ~ApplicationInteractionView();
 
@@ -55,8 +47,8 @@ Q_SIGNALS:
     void secretManagerChanged();
 
 protected:
-    void performRequest(const Sailfish::Secrets::InteractionRequest &request) Q_DECL_OVERRIDE;
-    void continueRequest(const Sailfish::Secrets::InteractionRequest &request) Q_DECL_OVERRIDE;
+    void performRequest(const Sailfish::Secrets::InteractionParameters &request) Q_DECL_OVERRIDE;
+    void continueRequest(const Sailfish::Secrets::InteractionParameters &request) Q_DECL_OVERRIDE;
     void cancelRequest() Q_DECL_OVERRIDE;
     void finishRequest() Q_DECL_OVERRIDE;
 
@@ -68,8 +60,7 @@ public:
 
 private:
     friend class ApplicationInteractionViewPrivate;
-    Q_INVOKABLE void sendResponseHelper(const Sailfish::Secrets::Result &result,
-                                        const Sailfish::Secrets::InteractionResponse &response);
+    Q_INVOKABLE void sendResponseHelper(const Sailfish::Secrets::InteractionResponse &response);
     QQuickItem *m_childItem;
     ApplicationInteractionViewPrivate *m_adapter;
 };

@@ -9,6 +9,8 @@
 #define LIBSAILFISHSECRETS_SECRETMANAGER_P_H
 
 #include "Secrets/secretmanager.h"
+#include "Secrets/secret.h"
+#include "Secrets/interactionparameters.h"
 #include "Secrets/secretsdaemonconnection_p.h"
 #include "Secrets/extensionplugins.h"
 #include "Secrets/interactionview.h"

@@ -16,9 +16,11 @@
 #include "Secrets/secretsglobal.h"
 #include "Secrets/result.h"
 #include "Secrets/secret.h"
+#include "Secrets/interactionparameters.h"
 #include "Secrets/extensionplugins.h"
 #include "Secrets/secretmanager.h"
-#include "Secrets/interactionrequest.h"
+#include "Secrets/interactionparameters.h"
+#include "Secrets/interactionresponse.h"
 
 #include <QtDBus/QDBusArgument>
 #include <QtDBus/QDBusMetaType>
@@ -56,10 +58,16 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::AuthenticationPluginInfo &info) SAILFISH_SECRETS_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::AuthenticationPluginInfo &info) SAILFISH_SECRETS_API;
 
-QDBusArgument &operator<<(QDBusArgument &argument, const InteractionRequest &request) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionRequest &request) SAILFISH_SECRETS_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const InteractionResponse &response) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionResponse &response) SAILFISH_SECRETS_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionParameters::InputType &type) SAILFISH_SECRETS_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionParameters::InputType &type) SAILFISH_SECRETS_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionParameters::EchoMode &mode) SAILFISH_SECRETS_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionParameters::EchoMode &mode) SAILFISH_SECRETS_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionParameters::Operation &op) SAILFISH_SECRETS_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionParameters::Operation &op) SAILFISH_SECRETS_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionParameters &request) SAILFISH_SECRETS_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionParameters &request) SAILFISH_SECRETS_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionResponse &response) SAILFISH_SECRETS_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionResponse &response) SAILFISH_SECRETS_API;
 
 } // namespace Secrets
 

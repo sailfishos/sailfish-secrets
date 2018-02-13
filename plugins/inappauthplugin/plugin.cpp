@@ -22,21 +22,29 @@ Daemon::Plugins::InAppPlugin::~InAppPlugin()
 {
 }
 
+
 Result
 Daemon::Plugins::InAppPlugin::beginAuthentication(
             uint callerPid,
+            qint64 requestId)
+{
+    Q_UNUSED(callerPid);
+    Q_UNUSED(requestId);
+    return Result(Result::OperationRequiresSystemUserInteraction,
+                  QLatin1String("In-App plugin cannot properly authenticate the user"));
+}
+
+Result
+Daemon::Plugins::InAppPlugin::beginUserInputInteraction(
+            uint callerPid,
             qint64 requestId,
-            const QString &callerApplicationId,
-            const QString &collectionName,
-            const QString &secretName,
+            const Sailfish::Secrets::InteractionParameters &interactionParameters,
             const QString &interactionServiceAddress)
 {
     InteractionRequestWatcher *watcher = new InteractionRequestWatcher(this);
     watcher->setRequestId(requestId);
     watcher->setCallerPid(callerPid);
-    watcher->setCallerApplicationId(callerApplicationId);
-    watcher->setCollectionName(collectionName);
-    watcher->setSecretName(secretName);
+    watcher->setInteractionParameters(interactionParameters);
     watcher->setInteractionServiceAddress(interactionServiceAddress);
     connect(watcher, static_cast<void (InteractionRequestWatcher::*)(quint64)>(&InteractionRequestWatcher::interactionRequestFinished),
             this, &Daemon::Plugins::InAppPlugin::interactionRequestFinished);
@@ -50,12 +58,11 @@ Daemon::Plugins::InAppPlugin::beginAuthentication(
                     QString::fromUtf8("Unable to connect to ui service"));
     }
 
-    // TODO: include the collectionName + secretName + in the future operation type (read/update/insert/delete)
-    if (!watcher->sendInteractionRequest(InteractionRequest(InteractionRequest::AuthenticationKeyRequest))) {
+    if (!watcher->sendInteractionRequest()) {
         watcher->deleteLater();
         return Result(
                     Result::InteractionServiceRequestFailedError,
-                    QString::fromUtf8("Unable to send authentication key request to ui service"));
+                    QString::fromUtf8("Unable to send interaction request to ui service"));
     }
 
     m_requests.insert(requestId, watcher);
@@ -65,7 +72,6 @@ Daemon::Plugins::InAppPlugin::beginAuthentication(
 void
 Daemon::Plugins::InAppPlugin::interactionRequestResponse(
         quint64 requestId,
-        const Result &result,
         const InteractionResponse &response)
 {
     InteractionRequestWatcher *watcher = m_requests.value(requestId);
@@ -74,15 +80,13 @@ Daemon::Plugins::InAppPlugin::interactionRequestResponse(
         return;
     }
 
-    emit authenticationCompleted(
+    emit userInputInteractionCompleted(
                 watcher->callerPid(),
                 watcher->requestId(),
-                watcher->callerApplicationId(),
-                watcher->collectionName(),
-                watcher->secretName(),
+                watcher->interactionParameters(),
                 watcher->interactionServiceAddress(),
-                result,
-                response.authenticationKey());
+                response.result(),
+                response.responseData());
 
     watcher->finishInteractionRequest();
 }

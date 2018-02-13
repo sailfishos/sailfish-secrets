@@ -11,6 +11,7 @@
 #include "Secrets/secretsglobal.h"
 #include "Secrets/request.h"
 #include "Secrets/secret.h"
+#include "Secrets/interactionparameters.h"
 #include "Secrets/secretmanager.h"
 
 #include <QtCore/QObject>

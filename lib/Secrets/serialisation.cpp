@@ -5,10 +5,12 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
+#include "Secrets/serialisation_p.h"
 #include "Secrets/secretmanager.h"
 #include "Secrets/secret.h"
 #include "Secrets/result.h"
-#include "Secrets/interactionrequest.h"
+#include "Secrets/interactionparameters.h"
+#include "Secrets/interactionresponse.h"
 
 #include <QtDBus/QDBusArgument>
 #include <QtCore/QString>
@@ -19,55 +21,6 @@ Q_LOGGING_CATEGORY(lcSailfishSecretsSerialisation, "org.sailfishos.secrets.seria
 namespace Sailfish {
 
 namespace Secrets {
-
-QDBusArgument &operator<<(QDBusArgument &argument, const InteractionResponse &response)
-{
-    argument.beginStructure();
-    argument << response.type();
-    argument << response.values();
-    argument.endStructure();
-    return argument;
-}
-
-const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionResponse &response)
-{
-    int type = 0;
-    QVariantMap values;
-    argument.beginStructure();
-    argument >> type;
-    argument >> values;
-    argument.endStructure();
-    response = InteractionResponse(static_cast<InteractionRequest::Type>(type), values);
-    return argument;
-}
-
-QDBusArgument &operator<<(QDBusArgument &argument, const InteractionRequest &request)
-{
-    argument.beginStructure();
-    argument << static_cast<int>(request.type());
-    argument << request.isResponse();
-    argument << request.values();
-    argument.endStructure();
-    return argument;
-}
-
-const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionRequest &request)
-{
-    int type = 0;
-    bool isResponse = false;
-    QVariantMap values;
-    argument.beginStructure();
-    argument >> type;
-    argument >> isResponse;
-    argument >> values;
-    argument.endStructure();
-    if (isResponse) {
-        request = InteractionResponse(static_cast<InteractionRequest::Type>(type), values);
-    } else {
-        request = InteractionRequest(static_cast<InteractionRequest::Type>(type), values);
-    }
-    return argument;
-}
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Result &result)
 {
@@ -308,9 +261,10 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, EncryptedStorageP
 
 QDBusArgument &operator<<(QDBusArgument &argument, const AuthenticationPluginInfo &info)
 {
-    int type = static_cast<int>(info.authenticationType());
+    int atypes = static_cast<int>(info.authenticationTypes());
+    int itypes = static_cast<int>(info.inputTypes());
     argument.beginStructure();
-    argument << info.name() << type;
+    argument << info.name() << atypes << itypes;
     argument.endStructure();
     return argument;
 }
@@ -318,12 +272,146 @@ QDBusArgument &operator<<(QDBusArgument &argument, const AuthenticationPluginInf
 const QDBusArgument &operator>>(const QDBusArgument &argument, AuthenticationPluginInfo &info)
 {
     QString name;
-    int itype = 0;
+    int atypes = 0;
+    int itypes = 0;
     argument.beginStructure();
-    argument >> name >> itype;
+    argument >> name >> atypes >> itypes;
     argument.endStructure();
     info.setName(name);
-    info.setAuthenticationType(static_cast<AuthenticationPlugin::AuthenticationType>(itype));
+    info.setAuthenticationTypes(static_cast<AuthenticationPlugin::AuthenticationType>(atypes));
+    info.setInputTypes(static_cast<InteractionParameters::InputTypes>(itypes));
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionParameters::InputType &type)
+{
+    int itype = static_cast<int>(type);
+    argument.beginStructure();
+    argument << itype;
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionParameters::InputType &type)
+{
+    int itype = 0;
+    argument.beginStructure();
+    argument >> itype;
+    argument.endStructure();
+    type = static_cast<InteractionParameters::InputType>(itype);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionParameters::EchoMode &mode)
+{
+    int imode = static_cast<int>(mode);
+    argument.beginStructure();
+    argument << imode;
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionParameters::EchoMode &mode)
+{
+    int imode = 0;
+    argument.beginStructure();
+    argument >> imode;
+    argument.endStructure();
+    mode = static_cast<InteractionParameters::EchoMode>(imode);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionParameters::Operation &op)
+{
+    int iop = static_cast<int>(op);
+    argument.beginStructure();
+    argument << iop;
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionParameters::Operation &op)
+{
+    int iop = 0;
+    argument.beginStructure();
+    argument >> iop;
+    argument.endStructure();
+    op = static_cast<InteractionParameters::Operation>(iop);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const InteractionParameters &request)
+{
+    argument.beginStructure();
+    argument << request.secretName()
+             << request.collectionName()
+             << request.applicationId()
+             << request.operation()
+             << request.authenticationPluginName()
+             << request.promptText()
+             << request.promptTrId()
+             << request.inputType()
+             << request.echoMode();
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionParameters &request)
+{
+    QString secretName;
+    QString collectionName;
+    QString applicationId;
+    InteractionParameters::Operation operation = InteractionParameters::UnknownOperation;
+    QString authenticationPluginName;
+    QString promptText;
+    QString promptTrId;
+    InteractionParameters::InputType inputType = InteractionParameters::UnknownInput;
+    InteractionParameters::EchoMode echoMode = InteractionParameters::PasswordEchoOnEdit;
+
+    argument.beginStructure();
+    argument >> secretName
+             >> collectionName
+             >> applicationId
+             >> operation
+             >> authenticationPluginName
+             >> promptText
+             >> promptTrId
+             >> inputType
+             >> echoMode;
+    argument.endStructure();
+
+    request.setSecretName(secretName);
+    request.setCollectionName(collectionName);
+    request.setApplicationId(applicationId);
+    request.setOperation(operation);
+    request.setAuthenticationPluginName(authenticationPluginName);
+    request.setPromptText(promptText);
+    request.setPromptTrId(promptTrId);
+    request.setInputType(inputType);
+    request.setEchoMode(echoMode);
+
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const InteractionResponse &response)
+{
+    argument.beginStructure();
+    argument << response.result();
+    argument << response.responseData();
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionResponse &response)
+{
+    Result result;
+    QByteArray responseData;
+    argument.beginStructure();
+    argument >> result;
+    argument >> responseData;
+    argument.endStructure();
+    response.setResult(result);
+    response.setResponseData(responseData);
     return argument;
 }
 

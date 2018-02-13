@@ -35,6 +35,7 @@ public:
         OperationNotSupportedError,
         OperationRequiresUserInteraction,
         OperationRequiresApplicationUserInteraction,
+        OperationRequiresSystemUserInteraction,
         SecretManagerNotInitialisedError,
 
         SecretsDaemonRequestPidError = 20,
@@ -141,6 +142,16 @@ public:
     Result(const Sailfish::Secrets::Result &other)
         : m_errorMessage(other.m_errorMessage), m_errorCode(other.m_errorCode), m_code(other.m_code) {}
     Result(Sailfish::Secrets::Result &&) = default;
+
+    bool operator==(const Sailfish::Secrets::Result &other) const {
+        return m_errorMessage == other.m_errorMessage
+                && m_errorCode == other.m_errorCode
+                && m_code == other.m_code;
+    }
+
+    bool operator!=(const Sailfish::Secrets::Result &other) const {
+        return !operator==(other);
+    }
 
     Result &operator=(const Sailfish::Secrets::Result &other) {
         m_errorMessage = other.m_errorMessage;

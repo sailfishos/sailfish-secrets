@@ -10,7 +10,8 @@
 
 #include "Secrets/secretsglobal.h"
 #include "Secrets/result.h"
-#include "Secrets/interactionrequest.h"
+#include "Secrets/interactionparameters.h"
+#include "Secrets/interactionresponse.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QVariantMap>
@@ -38,11 +39,10 @@ public:
     virtual ~InteractionView();
 
 protected:
-    void sendResponse(const Sailfish::Secrets::Result &result,
-                      const Sailfish::Secrets::InteractionResponse &response);
+    void sendResponse(const Sailfish::Secrets::InteractionResponse &response);
 
-    virtual void performRequest(const Sailfish::Secrets::InteractionRequest &request) = 0;
-    virtual void continueRequest(const Sailfish::Secrets::InteractionRequest &request) = 0;
+    virtual void performRequest(const Sailfish::Secrets::InteractionParameters &request) = 0;
+    virtual void continueRequest(const Sailfish::Secrets::InteractionParameters &request) = 0;
     virtual void cancelRequest() = 0;
     virtual void finishRequest() = 0;
 
@@ -52,8 +52,8 @@ protected:
 
 private:
     friend class InteractionService;
-    bool performRequest(QObject *sender, const Sailfish::Secrets::InteractionRequest &request);
-    bool continueRequest(QObject *sender, const Sailfish::Secrets::InteractionRequest &request);
+    bool performRequest(QObject *sender, const Sailfish::Secrets::InteractionParameters &request);
+    bool continueRequest(QObject *sender, const Sailfish::Secrets::InteractionParameters &request);
     bool cancelRequest(QObject *sender);
     bool finishRequest(QObject *sender);
     InteractionViewData *data;

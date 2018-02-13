@@ -10,7 +10,7 @@
 
 #include "Secrets/secretmanager.h"
 #include "Secrets/result.h"
-#include "Secrets/interactionrequest.h"
+#include "Secrets/interactionparameters.h"
 
 #include <QtQml/QQmlComponent>
 #include <QtQml/QQmlContext>
@@ -66,15 +66,14 @@ void Plugin::ApplicationInteractionView::parentSizeChanged()
     }
 }
 
-void Plugin::ApplicationInteractionView::performRequest(const InteractionRequest &request)
+void Plugin::ApplicationInteractionView::performRequest(const InteractionParameters &request)
 {
-    if (request.type() == InteractionRequest::InvalidRequest) {
+    if (request.inputType() == InteractionParameters::UnknownInput) {
         qCWarning(lcSailfishSecretsInteractionView) << "ApplicationInteractionView unable to perform invalid request!";
-        Result result(Result::InteractionViewRequestError,
-                                         QStringLiteral("Unable to perform invalid request"));
         InteractionResponse response;
-        QMetaObject::invokeMethod(this, "sendResponseAsync", Qt::QueuedConnection,
-                                  Q_ARG(Result, result),
+        response.setResult(Result(Result::InteractionViewRequestError,
+                                  QStringLiteral("Unable to perform invalid request")));
+        QMetaObject::invokeMethod(this, "sendResponseHelper", Qt::QueuedConnection,
                                   Q_ARG(InteractionResponse, response));
         return;
     }
@@ -82,11 +81,10 @@ void Plugin::ApplicationInteractionView::performRequest(const InteractionRequest
     QQuickItem *parent = parentItem();
     if (!parent) {
         qCWarning(lcSailfishSecretsInteractionView) << "Error creating in-process ui view: invalid parent item";
-        Result result(Result::InteractionViewParentError,
-                                         QStringLiteral("Invalid parent item, view cannot be shown"));
         InteractionResponse response;
-        QMetaObject::invokeMethod(this, "sendResponseAsync", Qt::QueuedConnection,
-                                  Q_ARG(Result, result),
+        response.setResult(Result(Result::InteractionViewParentError,
+                                  QStringLiteral("Invalid parent item, view cannot be shown")));
+        QMetaObject::invokeMethod(this, "sendResponseHelper", Qt::QueuedConnection,
                                   Q_ARG(InteractionResponse, response));
         return;
     }
@@ -98,20 +96,19 @@ void Plugin::ApplicationInteractionView::performRequest(const InteractionRequest
     connect(parent, &QQuickItem::heightChanged, this, &ApplicationInteractionView::parentSizeChanged);
 
     // create the in-process view as a child item
-    QUrl sourceUrl = request.interactionViewQmlFileUrl().isEmpty()
-            ? QUrl(QStringLiteral("qrc:/defaultInteractionView.qml"))
-            : QUrl::fromLocalFile(request.interactionViewQmlFileUrl());
-    m_adapter->setRequestType(request.type());
+    const QString overrideQml = QCoreApplication::instance()->property("Sailfish::Secrets::ApplicationInteractionView::sourceUrl").toString();
+    QUrl sourceUrl(overrideQml.isEmpty() ? QStringLiteral("qrc:/defaultInteractionView.qml") : overrideQml);
+    m_adapter->setInteractionParameters(request);
 
     qCDebug(lcSailfishSecretsInteractionView) << "Creating ApplicationInteractionView with source url:" << sourceUrl;
     QQmlComponent *component = new QQmlComponent(qmlEngine(parent), sourceUrl, parent);
     if (!component->errors().isEmpty()) {
         qCWarning(lcSailfishSecretsInteractionView) << "Error creating in-process ui view:" << component->errors();
-        Result result(Result::InteractionViewError,
-                                         QStringLiteral("QML file failed to compile: %1").arg(component->errors().first().toString()));
         InteractionResponse response;
-        QMetaObject::invokeMethod(this, "sendResponseAsync", Qt::QueuedConnection,
-                                  Q_ARG(Result, result),
+        response.setResult(Result(Result::InteractionViewError,
+                                  QStringLiteral("QML file failed to compile: %1")
+                                      .arg(component->errors().first().toString())));
+        QMetaObject::invokeMethod(this, "sendResponseHelper", Qt::QueuedConnection,
                                   Q_ARG(InteractionResponse, response));
         return;
     } else {
@@ -119,11 +116,10 @@ void Plugin::ApplicationInteractionView::performRequest(const InteractionRequest
         m_childItem = qobject_cast<QQuickItem*>(childObject);
         if (!m_childItem) {
             qCWarning(lcSailfishSecretsInteractionView) << "Error creating in-process ui view child item:" << component->errors();
-            Result result(Result::InteractionViewChildError,
-                                             QStringLiteral("Could not instantiate QML child item"));
             InteractionResponse response;
-            QMetaObject::invokeMethod(this, "sendResponseAsync", Qt::QueuedConnection,
-                                      Q_ARG(Result, result),
+            response.setResult(Result(Result::InteractionViewChildError,
+                                      QStringLiteral("Could not instantiate QML child item")));
+            QMetaObject::invokeMethod(this, "sendResponseHelper", Qt::QueuedConnection,
                                       Q_ARG(InteractionResponse, response));
             return;
         } else {
@@ -137,7 +133,7 @@ void Plugin::ApplicationInteractionView::performRequest(const InteractionRequest
     }
 }
 
-void Plugin::ApplicationInteractionView::continueRequest(const InteractionRequest &request)
+void Plugin::ApplicationInteractionView::continueRequest(const InteractionParameters &request)
 {
     // TODO
     Q_UNUSED(request)
@@ -166,7 +162,6 @@ Plugin::ApplicationInteractionViewPrivate::ApplicationInteractionViewPrivate(App
     : QObject(parent)
     , m_parent(parent)
     , m_secretManager(Q_NULLPTR)
-    , m_requestType(InteractionRequest::InvalidRequest)
     , m_confirmation(Plugin::ApplicationInteractionView::Unknown)
     , m_ready(false)
 {
@@ -174,29 +169,26 @@ Plugin::ApplicationInteractionViewPrivate::ApplicationInteractionViewPrivate(App
 
 void Plugin::ApplicationInteractionViewPrivate::sendResponse(bool confirmed)
 {
-    Result result(Result::Succeeded);
-    InteractionResponse response(static_cast<InteractionRequest::Type>(requestType()));
-    response.setConfirmation(confirmed);
+    InteractionResponse response;
+    response.setResult(Result(Result::Succeeded));
+    response.setResponseData(confirmed ? QByteArray("true") : QByteArray());
     QMetaObject::invokeMethod(m_parent, "sendResponseHelper", Qt::QueuedConnection,
-                              Q_ARG(Sailfish::Secrets::Result, result),
                               Q_ARG(Sailfish::Secrets::InteractionResponse, response));
 }
 
-void Plugin::ApplicationInteractionViewPrivate::sendResponse(const QByteArray &authenticationKey)
+void Plugin::ApplicationInteractionViewPrivate::sendResponse(const QByteArray &userInput)
 {
-    Result result(Result::Succeeded);
-    InteractionResponse response(static_cast<InteractionRequest::Type>(requestType()));
-    response.setAuthenticationKey(authenticationKey);
+    InteractionResponse response;
+    response.setResult(Result(Result::Succeeded));
+    response.setResponseData(userInput);
     QMetaObject::invokeMethod(m_parent, "sendResponseHelper", Qt::QueuedConnection,
-                              Q_ARG(Sailfish::Secrets::Result, result),
                               Q_ARG(Sailfish::Secrets::InteractionResponse, response));
 }
 
 // Helper slot which can be invoked via QueuedConnection.
 void Sailfish::Secrets::Plugin::ApplicationInteractionView::sendResponseHelper(
-        const Sailfish::Secrets::Result &error,
         const Sailfish::Secrets::InteractionResponse &response)
 {
-    Sailfish::Secrets::InteractionView::sendResponse(error, response);
+    Sailfish::Secrets::InteractionView::sendResponse(response);
 }
 

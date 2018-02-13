@@ -70,15 +70,19 @@ namespace Secrets {
     {
     public:
         AuthenticationPluginInfoPrivate()
-            : authenticationType(AuthenticationPlugin::NoAuthentication) {}
+            : authenticationTypes(AuthenticationPlugin::NoAuthentication)
+            , inputTypes(InteractionParameters::UnknownInput) {}
         AuthenticationPluginInfoPrivate(const AuthenticationPlugin *plugin)
             : name(plugin->name())
-            , authenticationType(plugin->authenticationType()) {}
+            , authenticationTypes(plugin->authenticationTypes())
+            , inputTypes(plugin->inputTypes()) {}
         AuthenticationPluginInfoPrivate(const AuthenticationPluginInfoPrivate &other)
             : name(other.name)
-            , authenticationType(other.authenticationType) {}
+            , authenticationTypes(other.authenticationTypes)
+            , inputTypes(other.inputTypes) {}
         QString name;
-        AuthenticationPlugin::AuthenticationType authenticationType;
+        AuthenticationPlugin::AuthenticationTypes authenticationTypes;
+        InteractionParameters::InputTypes inputTypes;
     };
 } // namespace Secrets
 } // namespace Sailfish
@@ -265,14 +269,24 @@ void AuthenticationPluginInfo::setName(const QString &name)
     d->name = name;
 }
 
-AuthenticationPlugin::AuthenticationType AuthenticationPluginInfo::authenticationType() const
+AuthenticationPlugin::AuthenticationTypes AuthenticationPluginInfo::authenticationTypes() const
 {
-    return d->authenticationType;
+    return d->authenticationTypes;
 }
 
-void AuthenticationPluginInfo::setAuthenticationType(AuthenticationPlugin::AuthenticationType type)
+void AuthenticationPluginInfo::setAuthenticationTypes(AuthenticationPlugin::AuthenticationTypes types)
 {
-    d->authenticationType = type;
+    d->authenticationTypes = types;
+}
+
+InteractionParameters::InputTypes AuthenticationPluginInfo::inputTypes() const
+{
+    return d->inputTypes;
+}
+
+void AuthenticationPluginInfo::setInputTypes(InteractionParameters::InputTypes types)
+{
+    d->inputTypes = types;
 }
 
 EncryptionPlugin::EncryptionPlugin(QObject *parent)
