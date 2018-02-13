@@ -165,6 +165,44 @@ public:
             const QString &cryptosystemProviderName,
             QByteArray *decrypted);
 
+    Sailfish::Crypto::Result initialiseCipherSession(
+            pid_t callerPid,
+            quint64 requestId,
+            const QByteArray &iv,
+            const Sailfish::Crypto::Key &key,
+            Sailfish::Crypto::Key::Operation operation,
+            Sailfish::Crypto::Key::BlockMode blockMode,
+            Sailfish::Crypto::Key::EncryptionPadding encryptionPadding,
+            Sailfish::Crypto::Key::SignaturePadding signaturePadding,
+            Sailfish::Crypto::Key::Digest digest,
+            const QString &cryptosystemProviderName,
+            quint32 *cipherSessionToken,
+            QByteArray *generatedIV);
+
+    Sailfish::Crypto::Result updateCipherSessionAuthentication(
+            pid_t callerPid,
+            quint64 requestId,
+            const QByteArray &authenticationData,
+            const QString &cryptosystemProviderName,
+            quint32 cipherSessionToken);
+
+    Sailfish::Crypto::Result updateCipherSession(
+            pid_t callerPid,
+            quint64 requestId,
+            const QByteArray &data,
+            const QString &cryptosystemProviderName,
+            quint32 cipherSessionToken,
+            QByteArray *generatedData);
+
+    Sailfish::Crypto::Result finaliseCipherSession(
+            pid_t callerPid,
+            quint64 requestId,
+            const QByteArray &data,
+            const QString &cryptosystemProviderName,
+            quint32 cipherSessionToken,
+            QByteArray *generatedData,
+            bool *verified);
+
 public Q_SLOTS:
     void secretsStoreKeyCompleted(
             quint64 requestId,
@@ -274,6 +312,19 @@ private:
             const QByteArray &iv,
             Sailfish::Crypto::Key::BlockMode blockMode,
             Sailfish::Crypto::Key::EncryptionPadding padding,
+            const QString &cryptoPluginName);
+
+    void initialiseCipherSession2(
+            quint64 requestId,
+            const Sailfish::Crypto::Result &result,
+            const QByteArray &serialisedKey,
+            pid_t callerPid,
+            const QByteArray &iv,
+            Sailfish::Crypto::Key::Operation operation,
+            Sailfish::Crypto::Key::BlockMode blockMode,
+            Sailfish::Crypto::Key::EncryptionPadding encryptionPadding,
+            Sailfish::Crypto::Key::SignaturePadding signaturePadding,
+            Sailfish::Crypto::Key::Digest digest,
             const QString &cryptoPluginName);
 
 private:

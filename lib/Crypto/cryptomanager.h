@@ -34,6 +34,7 @@ public:
 private:
     QScopedPointer<CryptoManagerPrivate> const d_ptr;
     Q_DECLARE_PRIVATE(CryptoManager)
+    friend class CipherRequest;
     friend class DecryptRequest;
     friend class DeleteStoredKeyRequest;
     friend class EncryptRequest;

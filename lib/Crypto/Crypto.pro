@@ -14,6 +14,7 @@ DEPENDPATH += $$INCLUDEPATH $$PWD
 
 PUBLIC_HEADERS += \
     $$PWD/certificate.h \
+    $$PWD/cipherrequest.h \
     $$PWD/cryptoglobal.h \
     $$PWD/cryptomanager.h \
     $$PWD/decryptrequest.h \
@@ -41,6 +42,7 @@ INTERNAL_PUBLIC_HEADERS += \
 
 PRIVATE_HEADERS += \
     $$PWD/certificate_p.h \
+    $$PWD/cipherrequest_p.h \
     $$PWD/cryptodaemonconnection_p_p.h \
     $$PWD/cryptomanager_p.h \
     $$PWD/decryptrequest_p.h \
@@ -66,6 +68,7 @@ HEADERS += \
 
 SOURCES += \
     $$PWD/certificate.cpp \
+    $$PWD/cipherrequest.cpp \
     $$PWD/cryptodaemonconnection.cpp \
     $$PWD/cryptomanager.cpp \
     $$PWD/decryptrequest.cpp \

@@ -296,6 +296,7 @@ public: // Crypto API helper methods.
     void asynchronousCryptoRequestCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QVariantList &parameters);
     // the first methods are synchronous:
     Sailfish::Secrets::Result confirmCollectionStoragePlugin(pid_t callerPid, quint64 cryptoRequestId, const QString &collectionName, const QString &storagePluginName) const;
+    Sailfish::Secrets::Result confirmKeyStoragePlugin(pid_t callerPid, quint64 cryptoRequestId, const QString &hashedKeyName, const QString &collectionName, const QString &storagePluginName) const;
     Sailfish::Secrets::Result storagePluginNames(pid_t callerPid, quint64 cryptoRequestId, QStringList *names) const;
     Sailfish::Secrets::Result keyEntryIdentifiers(pid_t callerPid, quint64 cryptoRequestId, QVector<Sailfish::Crypto::Key::Identifier> *identifiers);
     Sailfish::Secrets::Result keyEntry(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, QString *cryptoPluginName, QString *storagePluginName);

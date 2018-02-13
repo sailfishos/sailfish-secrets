@@ -150,7 +150,9 @@ void ValidateCertificateChainRequest::startRequest()
         QDBusPendingReply<Result, bool> reply =
                 d->m_manager->d_ptr->validateCertificateChain(d->m_certificateChain,
                                                               d->m_cryptoPluginName);
-        if (reply.isFinished()) {
+        if (reply.isFinished()
+                // work around a bug in QDBusAbstractInterface / QDBusConnection...
+                && reply.argumentAt<0>().code() != Sailfish::Crypto::Result::Succeeded) {
             d->m_status = Request::Finished;
             d->m_result = reply.argumentAt<0>();
             d->m_validated = reply.argumentAt<1>();

@@ -75,6 +75,7 @@ classes which provide this functionality:
 \li \l{Sailfish::Crypto::DecryptRequest} to decrypt data with a given \l{Key}
 \li \l{Sailfish::Crypto::SignRequest} to generate a signature for some data with a given \l{Key}
 \li \l{Sailfish::Crypto::VerifyRequest} to verify if a signature was generated with a given \l{Key}
+\li \l{Sailfish::Crypto::CipherRequest} to start a cipher session with which to encrypt, decrypt, sign or verify a stream of data
 \endlist
 
 \section3 Usage Examples

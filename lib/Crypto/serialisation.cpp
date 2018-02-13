@@ -10,7 +10,9 @@
 #include "Crypto/key.h"
 #include "Crypto/certificate.h"
 #include "Crypto/extensionplugins.h"
+#include "Crypto/cipherrequest.h"
 
+#include "Crypto/serialisation_p.h"
 #include "Crypto/key_p.h"
 
 #include <QtDBus/QDBusArgument>
@@ -822,6 +824,24 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoPluginInfo 
     argument >> cpidata;
     argument.endStructure();
     pluginInfo = CryptoPluginInfo::deserialise(cpidata);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const CipherRequest::CipherMode mode)
+{
+    argument.beginStructure();
+    argument << static_cast<int>(mode);
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, CipherRequest::CipherMode &mode)
+{
+    int iv = 0;
+    argument.beginStructure();
+    argument >> iv;
+    argument.endStructure();
+    mode = static_cast<CipherRequest::CipherMode>(iv);
     return argument;
 }
 

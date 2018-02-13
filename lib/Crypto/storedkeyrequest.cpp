@@ -160,9 +160,12 @@ void StoredKeyRequest::startRequest()
         }
 
         QDBusPendingReply<Result, Key> reply =
+
                 d->m_manager->d_ptr->storedKey(d->m_identifier,
                                                d->m_keyComponents);
-        if (reply.isFinished()) {
+        if (reply.isFinished()
+                // work around a bug in QDBusAbstractInterface / QDBusConnection...
+                && reply.argumentAt<0>().code() != Sailfish::Crypto::Result::Succeeded) {
             d->m_status = Request::Finished;
             d->m_result = reply.argumentAt<0>();
             d->m_storedKey = reply.argumentAt<1>();

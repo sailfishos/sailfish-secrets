@@ -13,6 +13,10 @@
 #include <QObject>
 #include <QByteArray>
 #include <QCryptographicHash>
+#include <QMap>
+
+class CipherSessionData;
+class QTimer;
 
 namespace Sailfish {
 
@@ -113,9 +117,48 @@ public:
             Sailfish::Crypto::Key::EncryptionPadding padding,
             QByteArray *decrypted) Q_DECL_OVERRIDE;
 
+    Sailfish::Crypto::Result initialiseCipherSession(
+            quint64 clientId,
+            const QByteArray &iv,
+            const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
+            Sailfish::Crypto::Key::Operation operation,
+            Sailfish::Crypto::Key::BlockMode blockMode,
+            Sailfish::Crypto::Key::EncryptionPadding encryptionPadding,
+            Sailfish::Crypto::Key::SignaturePadding signaturePadding,
+            Sailfish::Crypto::Key::Digest digest,
+            quint32 *cipherSessionToken,
+            QByteArray *generatedIV) Q_DECL_OVERRIDE;
+
+    Sailfish::Crypto::Result updateCipherSessionAuthentication(
+            quint64 clientId,
+            const QByteArray &authenticationData,
+            quint32 cipherSessionToken) Q_DECL_OVERRIDE;
+
+    Sailfish::Crypto::Result updateCipherSession(
+            quint64 clientId,
+            const QByteArray &data,
+            quint32 cipherSessionToken,
+            QByteArray *generatedData) Q_DECL_OVERRIDE;
+
+    Sailfish::Crypto::Result finaliseCipherSession(
+            quint64 clientId,
+            const QByteArray &data,
+            quint32 cipherSessionToken,
+            QByteArray *generatedData,
+            bool *verified) Q_DECL_OVERRIDE;
+
 private:
     QByteArray aes_encrypt_plaintext(const QByteArray &plaintext, const QByteArray &key, const QByteArray &init_vector);
     QByteArray aes_decrypt_ciphertext(const QByteArray &ciphertext, const QByteArray &key, const QByteArray &init_vector);
+
+    Sailfish::Crypto::Key getFullKey(const Sailfish::Crypto::Key &key);
+    QMap<quint64, QMap<quint32, CipherSessionData*> > m_cipherSessions; // clientId to token to data
+    struct CipherSessionLookup {
+        CipherSessionData *csd = 0;
+        quint32 sessionToken = 0;
+        quint64 clientId = 0;
+    };
+    QMap<QTimer *, CipherSessionLookup> m_cipherSessionTimeouts;
 };
 
 } // namespace Plugins

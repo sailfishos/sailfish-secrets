@@ -20,6 +20,7 @@
 #include "Crypto/key.h"
 #include "Crypto/result.h"
 #include "Crypto/storedkeyrequest.h"
+#include "Crypto/cipherrequest.h"
 
 #include <QtDBus/QDBusArgument>
 #include <QtDBus/QDBusMetaType>
@@ -76,6 +77,9 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto:
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CryptoPluginInfo &pluginInfo) SAILFISH_CRYPTO_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CryptoPluginInfo &pluginInfo) SAILFISH_CRYPTO_API;
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CipherRequest::CipherMode mode) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CipherRequest::CipherMode &mode) SAILFISH_CRYPTO_API;
 
 } // Crypto
 

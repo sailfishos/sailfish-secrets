@@ -100,6 +100,13 @@ Daemon::Plugins::OpenSslCryptoPlugin::storedKeyIdentifiers(
                   QLatin1String("The OpenSSL crypto plugin doesn't support storing keys"));
 }
 
+Key
+Daemon::Plugins::OpenSslCryptoPlugin::getFullKey(
+        const Sailfish::Crypto::Key &key)
+{
+    return key; // OpenSSL Crypto Plugin doesn't store keys, so we get what we were given.
+}
+
 #define CRYPTOPLUGINCOMMON_NAMESPACE Daemon::Plugins
 #define CRYPTOPLUGINCOMMON_CLASS OpenSslCryptoPlugin
 #include "cryptoplugin_common.cpp"

@@ -156,7 +156,9 @@ void DeleteSecretRequest::startRequest()
         QDBusPendingReply<Result> reply = d->m_manager->d_ptr->deleteSecret(
                                                         d->m_identifier,
                                                         d->m_userInteractionMode);
-        if (reply.isFinished()) {
+        if (reply.isFinished()
+                // work around a bug in QDBusAbstractInterface / QDBusConnection...
+                && reply.argumentAt<0>().code() != Sailfish::Secrets::Result::Succeeded) {
             d->m_status = Request::Finished;
             d->m_result = reply.argumentAt<0>();
             emit statusChanged();

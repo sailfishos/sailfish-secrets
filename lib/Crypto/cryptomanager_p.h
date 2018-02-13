@@ -108,7 +108,30 @@ public:
             Sailfish::Crypto::Key::EncryptionPadding padding,
             const QString &cryptosystemProviderName);
 
-    // do we also need "continueEncrypt(data, ...)" etc?  Do we need "cipher sessions"?  what about denial of service / resource exhaustion etc?
+    QDBusPendingReply<Sailfish::Crypto::Result, quint32, QByteArray> initialiseCipherSession(
+            const QByteArray &initialisationVector,
+            const Sailfish::Crypto::Key &key, // or keyreference
+            const Sailfish::Crypto::Key::Operation operation,
+            const Sailfish::Crypto::Key::BlockMode blockMode,
+            const Sailfish::Crypto::Key::EncryptionPadding encryptionPadding,
+            const Sailfish::Crypto::Key::SignaturePadding signaturePadding,
+            const Sailfish::Crypto::Key::Digest digest,
+            const QString &cryptosystemProviderName);
+
+    QDBusPendingReply<Sailfish::Crypto::Result> updateCipherSessionAuthentication(
+            const QByteArray &authenticationData,
+            const QString &cryptosystemProviderName,
+            quint32 cipherSessionToken);
+
+    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> updateCipherSession(
+            const QByteArray &data,
+            const QString &cryptosystemProviderName,
+            quint32 cipherSessionToken);
+
+    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray, bool> finaliseCipherSession(
+            const QByteArray &data,
+            const QString &cryptosystemProviderName,
+            quint32 cipherSessionToken);
 
 private:
     friend class CryptoManager;

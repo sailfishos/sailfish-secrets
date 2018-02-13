@@ -15,6 +15,7 @@
 #include "Crypto/certificate.h"
 #include "Crypto/extensionplugins.h"
 #include "Crypto/storedkeyrequest.h"
+#include "Crypto/cipherrequest.h"
 
 #include <QtDBus/QDBusReply>
 #include <QtDBus/QDBusInterface>
@@ -175,6 +176,7 @@ void Sailfish::Crypto::CryptoDaemonConnection::registerDBusTypes()
     qRegisterMetaType<QVector<Sailfish::Crypto::CryptoPluginInfo> >("QVector<Sailfish::Crypto::CryptoPluginInfo>");
     qRegisterMetaType<Sailfish::Crypto::StoredKeyRequest::KeyComponent>("Sailfish::Crypto::StoredKeyRequest::KeyComponent");
     qRegisterMetaType<Sailfish::Crypto::StoredKeyRequest::KeyComponents>("Sailfish::Crypto::StoredKeyRequest::KeyComponents");
+    qRegisterMetaType<Sailfish::Crypto::CipherRequest::CipherMode>("Sailfish::Crypto::CipherRequest::CipherMode");
 
     qDBusRegisterMetaType<Sailfish::Crypto::Key::Origin>();
     qDBusRegisterMetaType<Sailfish::Crypto::Key::Algorithm>();
@@ -198,4 +200,5 @@ void Sailfish::Crypto::CryptoDaemonConnection::registerDBusTypes()
     qDBusRegisterMetaType<QVector<Sailfish::Crypto::CryptoPluginInfo> >();
     qDBusRegisterMetaType<Sailfish::Crypto::StoredKeyRequest::KeyComponent>();
     qDBusRegisterMetaType<Sailfish::Crypto::StoredKeyRequest::KeyComponents>();
+    qDBusRegisterMetaType<Sailfish::Crypto::CipherRequest::CipherMode>();
 }
