@@ -88,6 +88,9 @@ public:
     ~InteractionParameters();
     InteractionParameters& operator=(const InteractionParameters &other);
     bool operator==(const InteractionParameters &other) const;
+    bool operator!=(const InteractionParameters &other) const {
+        return !operator==(other);
+    }
 
     bool isValid() const;
 

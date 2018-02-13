@@ -176,6 +176,7 @@ SecretManagerPrivate::deleteCollection(
 QDBusPendingReply<Result>
 SecretManagerPrivate::setSecret(
         const Secret &secret,
+        const InteractionParameters &uiParams,
         SecretManager::UserInteractionMode userInteractionMode)
 {
     if (!m_interface) {
@@ -204,6 +205,7 @@ SecretManagerPrivate::setSecret(
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("setSecret"),
                 QVariantList() << QVariant::fromValue<Secret>(secret)
+                               << QVariant::fromValue<InteractionParameters>(uiParams)
                                << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
                                << QVariant::fromValue<QString>(interactionServiceAddress));
     return reply;
@@ -214,6 +216,7 @@ SecretManagerPrivate::setSecret(
         const QString &storagePluginName,
         const QString &encryptionPluginName,
         const Secret &secret,
+        const InteractionParameters &uiParams,
         SecretManager::DeviceLockUnlockSemantic unlockSemantic,
         SecretManager::AccessControlMode accessControlMode,
         SecretManager::UserInteractionMode userInteractionMode)
@@ -232,15 +235,25 @@ SecretManagerPrivate::setSecret(
                         QVariantList() << QVariant::fromValue<Result>(identifierError)));
     }
 
+    QString interactionServiceAddress;
+    Result uiServiceResult = registerInteractionService(userInteractionMode, &interactionServiceAddress);
+    if (uiServiceResult.code() == Result::Failed) {
+        return QDBusPendingReply<Result>(
+                QDBusMessage().createReply(
+                        QVariantList() << QVariant::fromValue<Result>(uiServiceResult)));
+    }
+
     QDBusPendingReply<Result> reply
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("setSecret"),
                 QVariantList() << QVariant::fromValue<QString>(storagePluginName)
                                << QVariant::fromValue<QString>(encryptionPluginName)
                                << QVariant::fromValue<Secret>(secret)
+                               << QVariant::fromValue<InteractionParameters>(uiParams)
                                << QVariant::fromValue<SecretManager::DeviceLockUnlockSemantic>(unlockSemantic)
                                << QVariant::fromValue<SecretManager::AccessControlMode>(accessControlMode)
-                               << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode));
+                               << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
+                               << QVariant::fromValue<QString>(interactionServiceAddress));
     return reply;
 }
 
@@ -250,6 +263,7 @@ SecretManagerPrivate::setSecret(
         const QString &encryptionPluginName,
         const QString &authenticationPluginName,
         const Secret &secret,
+        const InteractionParameters &uiParams,
         SecretManager::CustomLockUnlockSemantic unlockSemantic,
         int customLockTimeoutMs,
         SecretManager::AccessControlMode accessControlMode,
@@ -284,6 +298,7 @@ SecretManagerPrivate::setSecret(
                                << QVariant::fromValue<QString>(encryptionPluginName)
                                << QVariant::fromValue<QString>(authenticationPluginName)
                                << QVariant::fromValue<Secret>(secret)
+                               << QVariant::fromValue<InteractionParameters>(uiParams)
                                << QVariant::fromValue<SecretManager::CustomLockUnlockSemantic>(unlockSemantic)
                                << QVariant::fromValue<int>(customLockTimeoutMs)
                                << QVariant::fromValue<SecretManager::AccessControlMode>(accessControlMode)

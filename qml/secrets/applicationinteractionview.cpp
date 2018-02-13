@@ -74,7 +74,7 @@ void Plugin::ApplicationInteractionView::performRequest(const InteractionParamet
         response.setResult(Result(Result::InteractionViewRequestError,
                                   QStringLiteral("Unable to perform invalid request")));
         QMetaObject::invokeMethod(this, "sendResponseHelper", Qt::QueuedConnection,
-                                  Q_ARG(InteractionResponse, response));
+                                  Q_ARG(Sailfish::Secrets::InteractionResponse, response));
         return;
     }
 
@@ -85,7 +85,7 @@ void Plugin::ApplicationInteractionView::performRequest(const InteractionParamet
         response.setResult(Result(Result::InteractionViewParentError,
                                   QStringLiteral("Invalid parent item, view cannot be shown")));
         QMetaObject::invokeMethod(this, "sendResponseHelper", Qt::QueuedConnection,
-                                  Q_ARG(InteractionResponse, response));
+                                  Q_ARG(Sailfish::Secrets::InteractionResponse, response));
         return;
     }
 
@@ -109,7 +109,7 @@ void Plugin::ApplicationInteractionView::performRequest(const InteractionParamet
                                   QStringLiteral("QML file failed to compile: %1")
                                       .arg(component->errors().first().toString())));
         QMetaObject::invokeMethod(this, "sendResponseHelper", Qt::QueuedConnection,
-                                  Q_ARG(InteractionResponse, response));
+                                  Q_ARG(Sailfish::Secrets::InteractionResponse, response));
         return;
     } else {
         QObject *childObject = component->beginCreate(qmlContext(parent));
@@ -120,7 +120,7 @@ void Plugin::ApplicationInteractionView::performRequest(const InteractionParamet
             response.setResult(Result(Result::InteractionViewChildError,
                                       QStringLiteral("Could not instantiate QML child item")));
             QMetaObject::invokeMethod(this, "sendResponseHelper", Qt::QueuedConnection,
-                                      Q_ARG(InteractionResponse, response));
+                                      Q_ARG(Sailfish::Secrets::InteractionResponse, response));
             return;
         } else {
             qCDebug(lcSailfishSecretsInteractionView) << "Successfully created in-process child item with parent:"

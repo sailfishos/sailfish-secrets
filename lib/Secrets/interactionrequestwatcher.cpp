@@ -107,8 +107,9 @@ bool InteractionRequestWatcher::connectToInteractionService()
 {
     const QString name = QString::fromLatin1("sailfishsecretsd-ui-connection-%1").arg(m_data->m_requestId);
 
-    qCDebug(lcSailfishSecretsInteractionServiceConnection) << "Connecting to ui service via p2p address:" << m_data->m_interactionServiceAddress
-                                                  << "with connection name:" << name;
+    qCDebug(lcSailfishSecretsInteractionServiceConnection) << "Connecting to ui service via p2p address:"
+                                                           << m_data->m_interactionServiceAddress
+                                                           << "with connection name:" << name;
 
     QDBusConnection p2pc = QDBusConnection::connectToPeer(m_data->m_interactionServiceAddress, name);
     if (!p2pc.isConnected()) {

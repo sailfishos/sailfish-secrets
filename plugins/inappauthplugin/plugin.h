@@ -72,6 +72,7 @@ private Q_SLOTS:
 
 private:
     QMap<quint64, Sailfish::Secrets::InteractionRequestWatcher *> m_requests;
+    QMap<quint64, InteractionResponse> m_responses;
 };
 
 } // namespace Plugins

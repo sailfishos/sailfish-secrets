@@ -31,6 +31,7 @@ class SAILFISH_SECRETS_API StoreSecretRequest : public Sailfish::Secrets::Reques
     Q_PROPERTY(QString encryptionPluginName READ encryptionPluginName WRITE setEncryptionPluginName NOTIFY encryptionPluginNameChanged)
     Q_PROPERTY(QString authenticationPluginName READ authenticationPluginName WRITE setAuthenticationPluginName NOTIFY authenticationPluginNameChanged)
     Q_PROPERTY(Sailfish::Secrets::Secret secret READ secret WRITE setSecret NOTIFY secretChanged)
+    Q_PROPERTY(Sailfish::Secrets::InteractionParameters uiParameters READ uiParameters WRITE setUiParameters NOTIFY uiParametersChanged)
     Q_PROPERTY(Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic deviceLockUnlockSemantic READ deviceLockUnlockSemantic WRITE setDeviceLockUnlockSemantic NOTIFY deviceLockUnlockSemanticChanged)
     Q_PROPERTY(Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic customLockUnlockSemantic READ customLockUnlockSemantic WRITE setCustomLockUnlockSemantic NOTIFY customLockUnlockSemanticChanged)
     Q_PROPERTY(Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode READ accessControlMode WRITE setAccessControlMode NOTIFY accessControlModeChanged)
@@ -62,6 +63,9 @@ public:
     Sailfish::Secrets::Secret secret() const;
     void setSecret(const Sailfish::Secrets::Secret &secret);
 
+    InteractionParameters uiParameters() const;
+    void setUiParameters(const InteractionParameters &params);
+
     Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic deviceLockUnlockSemantic() const;
     void setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic semantic);
 
@@ -92,6 +96,7 @@ Q_SIGNALS:
     void encryptionPluginNameChanged();
     void authenticationPluginNameChanged();
     void secretChanged();
+    void uiParametersChanged();
     void deviceLockUnlockSemanticChanged();
     void customLockUnlockSemanticChanged();
     void accessControlModeChanged();

@@ -27,6 +27,9 @@ public:
     ~InteractionResponse();
     InteractionResponse& operator=(const InteractionResponse &other);
     bool operator==(const InteractionResponse &other) const;
+    bool operator!=(const InteractionResponse &other) const {
+        return !operator==(other);
+    }
 
     Sailfish::Secrets::Result result() const;
     void setResult(const Sailfish::Secrets::Result &result);

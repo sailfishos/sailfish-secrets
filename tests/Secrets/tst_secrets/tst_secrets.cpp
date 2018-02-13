@@ -112,6 +112,7 @@ void tst_secrets::devicelockCollectionSecret()
     testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
     reply = m.d_ptr()->setSecret(
                 testSecret,
+                InteractionParameters(),
                 SecretManager::ApplicationInteraction);
     reply.waitForFinished();
     QVERIFY(reply.isValid());
@@ -214,6 +215,7 @@ void tst_secrets::devicelockStandaloneSecret()
                 SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
                 testSecret,
+                InteractionParameters(),
                 SecretManager::DeviceLockKeepUnlocked,
                 SecretManager::OwnerOnlyMode,
                 SecretManager::ApplicationInteraction);
@@ -309,6 +311,7 @@ void tst_secrets::customlockCollectionSecret()
     testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
     reply = m.d_ptr()->setSecret(
                 testSecret,
+                InteractionParameters(),
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
@@ -365,6 +368,7 @@ void tst_secrets::customlockStandaloneSecret()
                 SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
                 SecretManager::InAppAuthenticationPluginName + QLatin1String(".test"),
                 testSecret,
+                InteractionParameters(),
                 SecretManager::CustomLockKeepUnlocked,
                 0,
                 SecretManager::OwnerOnlyMode,
@@ -429,6 +433,7 @@ void tst_secrets::encryptedStorageCollection()
     testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
     reply = m.d_ptr()->setSecret(
                 testSecret,
+                InteractionParameters(),
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());

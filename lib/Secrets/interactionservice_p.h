@@ -109,6 +109,7 @@ private:
         Waiting
     };
     ActiveRequestState m_activeRequestState;
+    int m_connectedClients;
 };
 
 } // namespace Secrets

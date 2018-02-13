@@ -48,6 +48,7 @@ InteractionService::InteractionService(SecretManagerPrivate *parent)
     , m_dbusServer(Q_NULLPTR)
     , m_activeConnection(QLatin1String("org.sailfishos.secrets.interaction.invalidConnection"))
     , m_activeRequestState(Inactive)
+    , m_connectedClients(0)
 {
 }
 
@@ -212,11 +213,13 @@ void InteractionService::finishInteractionRequest(
 
 void InteractionService::clientDisconnected()
 {
-    qCDebug(lcSailfishSecretsUi) << "Active connection client disconnected from InteractionService!";
-    m_activeConnection = QDBusConnection(QLatin1String("org.sailfishos.secrets.interaction.invalidConnection"));
-    m_activeReply = QDBusMessage();
-    m_activeRequestId = QString();
-    m_activeRequestState = InteractionService::Inactive;
+    if (!m_activeConnection.isConnected()) {
+        qCDebug(lcSailfishSecretsUi) << "Active connection client disconnected from InteractionService!";
+        m_activeConnection = QDBusConnection(QLatin1String("org.sailfishos.secrets.interaction.invalidConnection"));
+        m_activeReply = QDBusMessage();
+        m_activeRequestId = QString();
+        m_activeRequestState = InteractionService::Inactive;
+    }
 }
 
 // -------------- View:

@@ -80,14 +80,7 @@ Daemon::Plugins::InAppPlugin::interactionRequestResponse(
         return;
     }
 
-    emit userInputInteractionCompleted(
-                watcher->callerPid(),
-                watcher->requestId(),
-                watcher->interactionParameters(),
-                watcher->interactionServiceAddress(),
-                response.result(),
-                response.responseData());
-
+    m_responses.insert(requestId, response);
     watcher->finishInteractionRequest();
 }
 
@@ -95,11 +88,21 @@ void
 Daemon::Plugins::InAppPlugin::interactionRequestFinished(
         quint64 requestId)
 {
-    InteractionRequestWatcher *watcher = m_requests.value(requestId);
+    InteractionRequestWatcher *watcher = m_requests.take(requestId);
     if (watcher == Q_NULLPTR) {
         qCDebug(lcSailfishSecretsPluginInapp) << "Unknown ui request finished:" << requestId;
         return;
     }
+
     watcher->disconnectFromInteractionService();
     watcher->deleteLater();
+
+    InteractionResponse response = m_responses.take(requestId);
+    emit userInputInteractionCompleted(
+                watcher->callerPid(),
+                watcher->requestId(),
+                watcher->interactionParameters(),
+                watcher->interactionServiceAddress(),
+                response.result(),
+                response.responseData());
 }
