@@ -28,14 +28,14 @@ class SAILFISH_CRYPTO_API CipherRequest : public Sailfish::Crypto::Request
 {
     Q_OBJECT
     Q_PROPERTY(CipherMode cipherMode READ cipherMode WRITE setCipherMode NOTIFY cipherModeChanged)
-    Q_PROPERTY(Key::Operation operation READ operation WRITE setOperation NOTIFY operationChanged)
+    Q_PROPERTY(CryptoManager::Operation operation READ operation WRITE setOperation NOTIFY operationChanged)
     Q_PROPERTY(QByteArray data READ data WRITE setData NOTIFY dataChanged)
     Q_PROPERTY(QByteArray initialisationVector READ initialisationVector WRITE setInitialisationVector NOTIFY initialisationVectorChanged)
     Q_PROPERTY(Sailfish::Crypto::Key key READ key WRITE setKey NOTIFY keyChanged)
-    Q_PROPERTY(Sailfish::Crypto::Key::BlockMode blockMode READ blockMode WRITE setBlockMode NOTIFY blockModeChanged)
-    Q_PROPERTY(Sailfish::Crypto::Key::EncryptionPadding encryptionPadding READ encryptionPadding WRITE setEncryptionPadding NOTIFY encryptionPaddingChanged)
-    Q_PROPERTY(Sailfish::Crypto::Key::SignaturePadding signaturePadding READ signaturePadding WRITE setSignaturePadding NOTIFY signaturePaddingChanged)
-    Q_PROPERTY(Sailfish::Crypto::Key::Digest digest READ digest WRITE setDigest NOTIFY digestChanged)
+    Q_PROPERTY(Sailfish::Crypto::CryptoManager::BlockMode blockMode READ blockMode WRITE setBlockMode NOTIFY blockModeChanged)
+    Q_PROPERTY(Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding READ encryptionPadding WRITE setEncryptionPadding NOTIFY encryptionPaddingChanged)
+    Q_PROPERTY(Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding READ signaturePadding WRITE setSignaturePadding NOTIFY signaturePaddingChanged)
+    Q_PROPERTY(Sailfish::Crypto::CryptoManager::DigestFunction digestFunction READ digestFunction WRITE setDigestFunction NOTIFY digestFunctionChanged)
     Q_PROPERTY(QString cryptoPluginName READ cryptoPluginName WRITE setCryptoPluginName NOTIFY cryptoPluginNameChanged)
     Q_PROPERTY(QByteArray generatedData READ generatedData NOTIFY generatedDataChanged)
     Q_PROPERTY(QByteArray generatedInitialisationVector READ generatedInitialisationVector NOTIFY generatedInitialisationVectorChanged)
@@ -56,8 +56,8 @@ public:
     CipherMode cipherMode() const;
     void setCipherMode(CipherMode mode);
 
-    Key::Operation operation() const;
-    void setOperation(Key::Operation op);
+    CryptoManager::Operation operation() const;
+    void setOperation(CryptoManager::Operation op);
 
     QByteArray data() const;
     void setData(const QByteArray &data);
@@ -68,17 +68,17 @@ public:
     Sailfish::Crypto::Key key() const;
     void setKey(const Sailfish::Crypto::Key &key);
 
-    Sailfish::Crypto::Key::BlockMode blockMode() const;
-    void setBlockMode(Sailfish::Crypto::Key::BlockMode mode);
+    Sailfish::Crypto::CryptoManager::BlockMode blockMode() const;
+    void setBlockMode(Sailfish::Crypto::CryptoManager::BlockMode mode);
 
-    Sailfish::Crypto::Key::EncryptionPadding encryptionPadding() const;
-    void setEncryptionPadding(Sailfish::Crypto::Key::EncryptionPadding padding);
+    Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding() const;
+    void setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPadding padding);
 
-    Sailfish::Crypto::Key::SignaturePadding signaturePadding() const;
-    void setSignaturePadding(Sailfish::Crypto::Key::SignaturePadding padding);
+    Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding() const;
+    void setSignaturePadding(Sailfish::Crypto::CryptoManager::SignaturePadding padding);
 
-    Sailfish::Crypto::Key::Digest digest() const;
-    void setDigest(Sailfish::Crypto::Key::Digest digest);
+    Sailfish::Crypto::CryptoManager::DigestFunction digestFunction() const;
+    void setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digest);
 
     QString cryptoPluginName() const;
     void setCryptoPluginName(const QString &pluginName);
@@ -105,7 +105,7 @@ Q_SIGNALS:
     void blockModeChanged();
     void encryptionPaddingChanged();
     void signaturePaddingChanged();
-    void digestChanged();
+    void digestFunctionChanged();
     void cryptoPluginNameChanged();
     void generatedDataChanged();
     void generatedInitialisationVectorChanged();

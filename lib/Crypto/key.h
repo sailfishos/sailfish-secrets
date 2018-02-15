@@ -9,6 +9,7 @@
 #define LIBSAILFISHCRYPTO_KEY_H
 
 #include "Crypto/cryptoglobal.h"
+#include "Crypto/cryptomanager.h"
 #include "Crypto/certificate.h"
 
 #include <QtCore/QString>
@@ -16,17 +17,30 @@
 #include <QtCore/QVector>
 #include <QtCore/QHash>
 #include <QtCore/QMap>
+#include <QtCore/QSharedDataPointer>
+#include <QtCore/QMetaType>
 
 namespace Sailfish {
 
 namespace Crypto {
 
-// Represents metadata about a key, and optionally the key data
-// Do we need subclass for RSA with public exponent etc?
-// Do we need subclass for EC curve with affine X / Y etc?
-class KeyData;
+class KeyPrivate;
+class KeyIdentifierPrivate;
 class SAILFISH_CRYPTO_API Key
 {
+    Q_GADGET
+    Q_PROPERTY(QString name READ name WRITE setName)
+    Q_PROPERTY(QString collectionName READ collectionName WRITE setCollectionName)
+    Q_PROPERTY(Origin origin READ origin WRITE setOrigin)
+    Q_PROPERTY(Sailfish::Crypto::CryptoManager::Algorithm algorithm READ algorithm WRITE setAlgorithm)
+    Q_PROPERTY(Sailfish::Crypto::CryptoManager::Operations operations READ operations WRITE setOperations)
+    Q_PROPERTY(Sailfish::Crypto::Key::Components componentConstraints READ componentConstraints WRITE setComponentConstraints)
+    Q_PROPERTY(int keySize READ keySize WRITE setKeySize)
+    Q_PROPERTY(QByteArray publicKey READ publicKey WRITE setPublicKey)
+    Q_PROPERTY(QByteArray privateKey READ privateKey WRITE setPrivateKey)
+    Q_PROPERTY(QByteArray secretKey READ secretKey WRITE setSecretKey)
+    Q_PROPERTY(QVector<QByteArray> customParameters READ customParameters WRITE setCustomParameters)
+
 public:
     enum Origin {
         OriginUnknown       = 0,
@@ -34,120 +48,39 @@ public:
         OriginDevice,
         OriginSecureDevice
     };
+    Q_ENUM(Origin)
 
-    // How do we map to/from the Certificate algorithm id name?
-    // Can we do, e.g. Rsa2048 with DigestSha256 maps to "sha256WithRSAEncryption"
-    // Or do we need an unambiguous one-to-one mapping to Certificate algorithmID?
-    // Should we separate keysize from algorithm family?
-    enum Algorithm {
-        AlgorithmUnknown    = 0,
-
-        Aes128              = 10,
-        Aes196,
-        Aes256,
-
-        Dsa512              = 20,
-        Dsa1024,
-        Dsa2048,
-        Dsa3072,
-        Dsa4096,
-
-        Rsa512              = 30,
-        Rsa1028,
-        Rsa2048,
-        Rsa3072,
-        Rsa4096,
-
-        NistEcc192          = 40,
-        NistEcc224,
-        NistEcc256,
-        NistEcc384,
-        NistEcc521,
-
-        BpEcc160            = 50,
-        BpEcc192,
-        BpEcc224,
-        BpEcc256,
-        BpEcc320,
-        BpEcc384,
-        BpEcc512
+    enum Component {
+        NoData          = 0,
+        MetaData        = 1,
+        PublicKeyData   = 2,
+        PrivateKeyData  = 4,
+        SecretKeyData   = PrivateKeyData
     };
-
-    enum BlockMode {
-        BlockModeUnknown    = 0,
-        BlockModeCBC        = 1,
-        BlockModeCTR        = 2,
-        BlockModeECB        = 4,
-        BlockModeGCM        = 8
-    };
-    Q_DECLARE_FLAGS(BlockModes, BlockMode)
-
-    enum EncryptionPadding {
-        EncryptionPaddingUnknown    = 0,
-        EncryptionPaddingNone       = 1,
-        EncryptionPaddingPkcs7      = 2,
-        EncryptionPaddingRsaOaep    = 4,
-        EncryptionPaddingRsaOaepMgf1= 8,
-        EncryptionPaddingRsaPkcs1   = 16,
-        EncryptionPaddingAnsiX923   = 32
-    };
-    Q_DECLARE_FLAGS(EncryptionPaddings, EncryptionPadding)
-
-    enum SignaturePadding {
-        SignaturePaddingUnknown     = 0,
-        SignaturePaddingNone        = 1,
-        SignaturePaddingRsaPss      = 2,
-        SignaturePaddingRsaPkcs1    = EncryptionPaddingRsaPkcs1,
-        SignaturePaddingAnsiX923    = EncryptionPaddingAnsiX923
-    };
-    Q_DECLARE_FLAGS(SignaturePaddings, SignaturePadding)
-
-    enum Digest {
-        DigestUnknown       = 0,
-        DigestSha1          = 1,
-        DigestSha256        = 2,
-        DigestSha384        = 4,
-        DigestSha512        = 8
-    };
-    Q_DECLARE_FLAGS(Digests, Digest)
-
-    enum Operation {
-        OperationUnknown    = 0,
-        Sign                = 1,
-        Verify              = 2,
-        Encrypt             = 4,
-        Decrypt             = 8
-    };
-    Q_DECLARE_FLAGS(Operations, Operation)
+    Q_ENUM(Component)
+    Q_DECLARE_FLAGS(Components, Component)
+    Q_FLAG(Components)
 
     class Identifier {
     public:
-        explicit Identifier(const QString &name = QString(), const QString &collectionName = QString())
-            : m_name(name), m_collectionName(collectionName) {}
-        Identifier(const Sailfish::Crypto::Key::Identifier &other)
-            : m_name(other.m_name), m_collectionName(other.m_collectionName) {}
-        Identifier(Sailfish::Crypto::Key::Identifier &&) = default;
-        Identifier &operator=(const Sailfish::Crypto::Key::Identifier &other) {
-            m_name = other.m_name;
-            m_collectionName = other.m_collectionName;
-            return *this;
-        }
-        bool operator==(const Sailfish::Crypto::Key::Identifier &other) const {
-            return m_name == other.m_name && m_collectionName == other.m_collectionName;
-        }
+        Identifier();
+        explicit Identifier(const QString &name, const QString &collectionName = QString());
+        Identifier(const Sailfish::Crypto::Key::Identifier &other);
+        ~Identifier();
+
+        Identifier &operator=(const Sailfish::Crypto::Key::Identifier &other);
+        bool operator==(const Sailfish::Crypto::Key::Identifier &other) const;
         bool operator!=(const Sailfish::Crypto::Key::Identifier &other) const {
-            return m_name != other.m_name || m_collectionName != other.m_collectionName;
+            return !operator==(other);
         }
-        bool operator<(const Sailfish::Crypto::Key::Identifier &other) const {
-            return (m_collectionName < other.m_collectionName) ? true : (m_name < other.m_name);
-        }
-        QString name() const { return m_name; }
-        QString collectionName() const { return m_collectionName; }
-        void setName(const QString &name) { m_name = name; }
-        void setCollectionName(const QString &collectionName) { m_collectionName = collectionName; }
+
+        QString name() const;
+        void setName(const QString &name);
+        QString collectionName() const;
+        void setCollectionName(const QString &collectionName);
     private:
-        QString m_name;
-        QString m_collectionName;
+        QSharedDataPointer<KeyIdentifierPrivate> d_ptr;
+        friend class KeyIdentifierPrivate;
     };
 
     class FilterData : public QMap<QString,QString> {
@@ -165,41 +98,35 @@ public:
     explicit Key(const QString &keyName, const QString &collection);
     virtual ~Key();
 
-    Sailfish::Crypto::Key & operator=(const Sailfish::Crypto::Key &other);
+    Sailfish::Crypto::Key& operator=(const Sailfish::Crypto::Key &other);
     bool operator==(const Sailfish::Crypto::Key &other) const;
-    bool operator!=(const Sailfish::Crypto::Key &other) const;
-    bool operator<(const Sailfish::Crypto::Key &other) const;
+    bool operator!=(const Sailfish::Crypto::Key &other) const {
+        return !operator==(other);
+    }
 
     Sailfish::Crypto::Key::Identifier identifier() const;
     void setIdentifier(const Sailfish::Crypto::Key::Identifier &identifier);
 
+    QString name() const { return identifier().name(); }
+    void setName(const QString &name) { setIdentifier(Identifier(name, collectionName())); }
+    QString collectionName() const { return identifier().collectionName(); }
+    void setCollectionName(const QString &collectionName) { setIdentifier(Identifier(name(), collectionName)); }
+
     Sailfish::Crypto::Key::Origin origin() const;
     void setOrigin(Sailfish::Crypto::Key::Origin origin);
 
-    Sailfish::Crypto::Key::Algorithm algorithm() const;
-    void setAlgorithm(Sailfish::Crypto::Key::Algorithm algorithm);
+    Sailfish::Crypto::CryptoManager::Algorithm algorithm() const;
+    void setAlgorithm(Sailfish::Crypto::CryptoManager::Algorithm algorithm);
 
-    Sailfish::Crypto::Key::BlockModes blockModes() const;
-    void setBlockModes(Sailfish::Crypto::Key::BlockModes modes);
+    Sailfish::Crypto::CryptoManager::Operations operations() const;
+    void setOperations(Sailfish::Crypto::CryptoManager::Operations operations);
 
-    Sailfish::Crypto::Key::EncryptionPaddings encryptionPaddings() const;
-    void setEncryptionPaddings(Sailfish::Crypto::Key::EncryptionPaddings paddings);
+    Sailfish::Crypto::Key::Components componentConstraints() const;
+    void setComponentConstraints(Sailfish::Crypto::Key::Components components);
 
-    Sailfish::Crypto::Key::SignaturePaddings signaturePaddings() const;
-    void setSignaturePaddings(Sailfish::Crypto::Key::SignaturePaddings paddings);
+    int keySize() const;
+    void setKeySize(int size);
 
-    Sailfish::Crypto::Key::Digests digests() const;
-    void setDigests(Sailfish::Crypto::Key::Digests digests);
-
-    Sailfish::Crypto::Key::Operations operations() const;
-    void setOperations(Sailfish::Crypto::Key::Operations operations);
-
-    // TODO: this might need to be a certificate chain rather than a public key.
-    // The public key associated with a certificate is embedded within the certificate.
-    // Alternatively, the certificate chain could be entirely separate, and we could have:
-    //   -> manager.generateCertificateChain(key, (self signed, or passing in some cert authority data?))
-    //   -> manager.verifyCertificateChain(key, certChain)
-    //   -> etc.
     QByteArray publicKey() const;
     void setPublicKey(const QByteArray &key);
 
@@ -209,23 +136,15 @@ public:
     QByteArray secretKey() const;
     void setSecretKey(const QByteArray &key);
 
-    // Then there's the question: is validity period a property of the key, or the certificate?  Or both, separately?
-    QDateTime validityStart() const;
-    void setValidityStart(const QDateTime &timestamp);
-
-    QDateTime validityEnd() const;
-    void setValidityEnd(const QDateTime &timestamp);
-
-    // Another open question: authentication to get access to the ability to perform operations with the key... via storage API?
-
     QVector<QByteArray> customParameters() const;
     void setCustomParameters(const QVector<QByteArray> &parameters);
 
     Sailfish::Crypto::Key::FilterData filterData() const;
-    QString filterData(const QString &field) const;
     void setFilterData(const Sailfish::Crypto::Key::FilterData &data);
-    void setFilterData(const QString &field, const QString &value);
-    bool hasFilterData(const QString &field);
+    QStringList filterDataFields() const;
+    Q_INVOKABLE QString filterData(const QString &field) const;
+    Q_INVOKABLE void setFilterData(const QString &field, const QString &value);
+    Q_INVOKABLE bool hasFilterData(const QString &field);
 
     enum SerialisationMode {
         LossySerialisationMode = 0, // don't serialise filter data or identifier, reduce known-plaintext surface.
@@ -236,7 +155,8 @@ public:
     static Sailfish::Crypto::Key fromCertificate(const Sailfish::Crypto::Certificate &certificate);
 
 protected:
-    KeyData *m_data;
+    QSharedDataPointer<KeyPrivate> d_ptr;
+    friend class KeyPrivate;
 };
 
 } // namespace Crypto
@@ -244,30 +164,18 @@ protected:
 } // namespace Sailfish
 
 Q_DECLARE_METATYPE(Sailfish::Crypto::Key);
+Q_DECLARE_TYPEINFO(Sailfish::Crypto::Key, Q_MOVABLE_TYPE);
 Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Identifier);
 Q_DECLARE_TYPEINFO(Sailfish::Crypto::Key::Identifier, Q_MOVABLE_TYPE);
 Q_DECLARE_METATYPE(Sailfish::Crypto::Key::FilterData);
 Q_DECLARE_TYPEINFO(Sailfish::Crypto::Key::FilterData, Q_MOVABLE_TYPE);
 
 Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Origin);
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Algorithm);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Component);
+Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Components);
+Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::Components);
 
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::BlockMode);
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::EncryptionPadding);
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::SignaturePadding);
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Digest);
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Operation);
-
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::BlockModes);
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::EncryptionPaddings);
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::SignaturePaddings);
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Digests);
-Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Operations);
-
-Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::BlockModes);
-Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::EncryptionPaddings);
-Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::SignaturePaddings);
-Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::Digests);
-Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::Operations);
+bool operator<(const Sailfish::Crypto::Key &lhs, const Sailfish::Crypto::Key &rhs);
+bool operator<(const Sailfish::Crypto::Key::Identifier &lhs, const Sailfish::Crypto::Key::Identifier &rhs);
 
 #endif // LIBSAILFISHCRYPTO_KEY_H

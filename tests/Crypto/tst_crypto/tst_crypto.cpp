@@ -125,13 +125,9 @@ void tst_crypto::generateKeyEncryptDecrypt()
 {
     // test generating a symmetric cipher key
     Key keyTemplate;
-    keyTemplate.setAlgorithm(Key::Aes256);
+    keyTemplate.setAlgorithm(CryptoManager::AlgorithmAes);
     keyTemplate.setOrigin(Key::OriginDevice);
-    keyTemplate.setBlockModes(Key::BlockModeCBC);
-    keyTemplate.setEncryptionPaddings(Key::EncryptionPaddingNone);
-    keyTemplate.setSignaturePaddings(Key::SignaturePaddingNone);
-    keyTemplate.setDigests(Key::DigestSha256);
-    keyTemplate.setOperations(Key::Encrypt | Key::Decrypt);
+    keyTemplate.setOperations(CryptoManager::OperationEncrypt | CryptoManager::OperationDecrypt);
     keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
 
     QDBusPendingReply<Result, Key> reply = cm.generateKey(
@@ -151,8 +147,8 @@ void tst_crypto::generateKeyEncryptDecrypt()
             plaintext,
             initVector,
             fullKey,
-            Key::BlockModeCBC,
-            Key::EncryptionPaddingNone,
+            CryptoManager::BlockModeCbc,
+            CryptoManager::EncryptionPaddingNone,
             CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
     QVERIFY(encryptReply.isValid());
@@ -166,8 +162,8 @@ void tst_crypto::generateKeyEncryptDecrypt()
             encrypted,
             initVector,
             fullKey,
-            Key::BlockModeCBC,
-            Key::EncryptionPaddingNone,
+            CryptoManager::BlockModeCbc,
+            CryptoManager::EncryptionPaddingNone,
             CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());

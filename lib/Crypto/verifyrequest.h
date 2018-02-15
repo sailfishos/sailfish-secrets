@@ -29,8 +29,8 @@ class SAILFISH_CRYPTO_API VerifyRequest : public Sailfish::Crypto::Request
     Q_OBJECT
     Q_PROPERTY(QByteArray data READ data WRITE setData NOTIFY dataChanged)
     Q_PROPERTY(Sailfish::Crypto::Key key READ key WRITE setKey NOTIFY keyChanged)
-    Q_PROPERTY(Sailfish::Crypto::Key::SignaturePadding padding READ padding WRITE setPadding NOTIFY paddingChanged)
-    Q_PROPERTY(Sailfish::Crypto::Key::Digest digest READ digest WRITE setDigest NOTIFY digestChanged)
+    Q_PROPERTY(Sailfish::Crypto::CryptoManager::SignaturePadding padding READ padding WRITE setPadding NOTIFY paddingChanged)
+    Q_PROPERTY(Sailfish::Crypto::CryptoManager::DigestFunction digestFunction READ digestFunction WRITE setDigestFunction NOTIFY digestFunctionChanged)
     Q_PROPERTY(QString cryptoPluginName READ cryptoPluginName WRITE setCryptoPluginName NOTIFY cryptoPluginNameChanged)
     Q_PROPERTY(bool verified READ verified NOTIFY verifiedChanged)
 
@@ -44,11 +44,11 @@ public:
     Sailfish::Crypto::Key key() const;
     void setKey(const Sailfish::Crypto::Key &key);
 
-    Sailfish::Crypto::Key::SignaturePadding padding() const;
-    void setPadding(Sailfish::Crypto::Key::SignaturePadding padding);
+    Sailfish::Crypto::CryptoManager::SignaturePadding padding() const;
+    void setPadding(Sailfish::Crypto::CryptoManager::SignaturePadding padding);
 
-    Sailfish::Crypto::Key::Digest digest() const;
-    void setDigest(Sailfish::Crypto::Key::Digest digest);
+    Sailfish::Crypto::CryptoManager::DigestFunction digestFunction() const;
+    void setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digest);
 
     QString cryptoPluginName() const;
     void setCryptoPluginName(const QString &pluginName);
@@ -68,7 +68,7 @@ Q_SIGNALS:
     void dataChanged();
     void keyChanged();
     void paddingChanged();
-    void digestChanged();
+    void digestFunctionChanged();
     void cryptoPluginNameChanged();
     void verifiedChanged();
 

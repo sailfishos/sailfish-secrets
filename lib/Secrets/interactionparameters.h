@@ -75,7 +75,7 @@ public:
         Decrypt          = 256,
         Sign             = 512,
         Verify           = 1024,
-        CalculateDigest  = 2048,
+        CalculateDigestFunction  = 2048,
 
         // reserved
         LastOperation    = 65536
@@ -126,6 +126,7 @@ public:
 
 private:
     QSharedDataPointer<InteractionParametersPrivate> d_ptr;
+    friend class InteractionParametersPrivate;
 };
 
 } // Secrets

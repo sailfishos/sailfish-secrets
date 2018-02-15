@@ -39,6 +39,7 @@ public:
 
 private:
     QSharedDataPointer<InteractionResponsePrivate> d_ptr;
+    friend class InteractionResponsePrivate;
 };
 
 } // Secrets

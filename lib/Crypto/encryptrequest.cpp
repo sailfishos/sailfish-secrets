@@ -132,7 +132,7 @@ void EncryptRequest::setKey(const Key &key)
 /*!
  * \brief Returns the block mode which should be used when encrypting the data
  */
-Sailfish::Crypto::Key::BlockMode EncryptRequest::blockMode() const
+Sailfish::Crypto::CryptoManager::BlockMode EncryptRequest::blockMode() const
 {
     Q_D(const EncryptRequest);
     return d->m_blockMode;
@@ -141,7 +141,7 @@ Sailfish::Crypto::Key::BlockMode EncryptRequest::blockMode() const
 /*!
  * \brief Sets the block mode which should be used when encrypting the data to \a mode
  */
-void EncryptRequest::setBlockMode(Sailfish::Crypto::Key::BlockMode mode)
+void EncryptRequest::setBlockMode(Sailfish::Crypto::CryptoManager::BlockMode mode)
 {
     Q_D(EncryptRequest);
     if (d->m_status != Request::Active && d->m_blockMode != mode) {
@@ -157,7 +157,7 @@ void EncryptRequest::setBlockMode(Sailfish::Crypto::Key::BlockMode mode)
 /*!
  * \brief Returns the encryption padding mode which should be used when encrypting the data
  */
-Sailfish::Crypto::Key::EncryptionPadding EncryptRequest::padding() const
+Sailfish::Crypto::CryptoManager::EncryptionPadding EncryptRequest::padding() const
 {
     Q_D(const EncryptRequest);
     return d->m_padding;
@@ -166,7 +166,7 @@ Sailfish::Crypto::Key::EncryptionPadding EncryptRequest::padding() const
 /*!
  * \brief Sets the encryption padding mode which should be used when encrypting the data to \a padding
  */
-void EncryptRequest::setPadding(Sailfish::Crypto::Key::EncryptionPadding padding)
+void EncryptRequest::setPadding(Sailfish::Crypto::CryptoManager::EncryptionPadding padding)
 {
     Q_D(EncryptRequest);
     if (d->m_status != Request::Active && d->m_padding != padding) {

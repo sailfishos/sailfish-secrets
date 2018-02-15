@@ -18,6 +18,7 @@
 #include <QtCore/QMap>
 #include <QtCore/QByteArray>
 #include <QtCore/QVector>
+#include <QtCore/QSharedDataPointer>
 
 #define Sailfish_Secrets_StoragePlugin_IID "org.sailfishos.secrets.StoragePlugin/1.0"
 #define Sailfish_Secrets_EncryptionPlugin_IID "org.sailfishos.secrets.EncryptionPlugin/1.0"
@@ -67,6 +68,8 @@ public:
     EncryptionPluginInfo(const Sailfish::Secrets::EncryptionPlugin *plugin);
     ~EncryptionPluginInfo();
 
+    EncryptionPluginInfo& operator=(const EncryptionPluginInfo &other);
+
     QString name() const;
     void setName(const QString &name);
 
@@ -77,7 +80,8 @@ public:
     void setEncryptionAlgorithm(Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm algorithm);
 
 private:
-    EncryptionPluginInfoPrivate *d;
+    QSharedDataPointer<EncryptionPluginInfoPrivate> d_ptr;
+    friend class EncryptionPluginInfoPrivate;
 };
 
 class SAILFISH_SECRETS_API StoragePlugin : public QObject
@@ -130,6 +134,8 @@ public:
     StoragePluginInfo(const Sailfish::Secrets::StoragePlugin *plugin);
     ~StoragePluginInfo();
 
+    StoragePluginInfo& operator=(const StoragePluginInfo &other);
+
     QString name() const;
     void setName(const QString &name);
 
@@ -137,7 +143,8 @@ public:
     void setStorageType(Sailfish::Secrets::StoragePlugin::StorageType type);
 
 private:
-    StoragePluginInfoPrivate *d;
+    QSharedDataPointer<StoragePluginInfoPrivate> d_ptr;
+    friend class StoragePluginInfoPrivate;
 };
 
 class SAILFISH_SECRETS_API EncryptedStoragePlugin : public QObject
@@ -178,6 +185,8 @@ public:
     EncryptedStoragePluginInfo(const Sailfish::Secrets::EncryptedStoragePlugin *plugin);
     ~EncryptedStoragePluginInfo();
 
+    EncryptedStoragePluginInfo& operator=(const EncryptedStoragePluginInfo &other);
+
     QString name() const;
     void setName(const QString &name);
 
@@ -191,7 +200,8 @@ public:
     void setEncryptionAlgorithm(Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm algorithm);
 
 private:
-    EncryptedStoragePluginInfoPrivate *d;
+    QSharedDataPointer<EncryptedStoragePluginInfoPrivate> d_ptr;
+    friend class EncryptedSotragePluginInfoPrivate;
 };
 
 class SAILFISH_SECRETS_API AuthenticationPlugin : public QObject
@@ -253,6 +263,8 @@ public:
     AuthenticationPluginInfo(const Sailfish::Secrets::AuthenticationPlugin *plugin);
     ~AuthenticationPluginInfo();
 
+    AuthenticationPluginInfo& operator=(const AuthenticationPluginInfo &other);
+
     QString name() const;
     void setName(const QString &name);
 
@@ -263,7 +275,8 @@ public:
     void setInputTypes(Sailfish::Secrets::InteractionParameters::InputTypes types);
 
 private:
-    AuthenticationPluginInfoPrivate *d;
+    QSharedDataPointer<AuthenticationPluginInfoPrivate> d_ptr;
+    friend class AuthenticationPluginInfoPrivate;
 };
 
 } // namespace Secrets

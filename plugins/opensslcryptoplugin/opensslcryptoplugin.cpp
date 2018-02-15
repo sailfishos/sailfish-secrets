@@ -81,7 +81,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateAndStoreKey(
 Result
 Daemon::Plugins::OpenSslCryptoPlugin::storedKey(
         const Key::Identifier &identifier,
-        StoredKeyRequest::KeyComponents keyComponents,
+        Key::Components keyComponents,
         Key *key)
 {
     Q_UNUSED(identifier);

@@ -54,14 +54,10 @@ database managed by that same plugin:
 \code
 // Set the key template metadata.
 Sailfish::Crypto::Key keyTemplate, symmetricKeyReference;
-keyTemplate.setAlgorithm(Sailfish::Crypto::Key::Aes256);
+keyTemplate.setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmAes);
 keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
-keyTemplate.setBlockModes(Sailfish::Crypto::Key::BlockModeCBC);
-keyTemplate.setEncryptionPaddings(Sailfish::Crypto::Key::EncryptionPaddingNone);
-keyTemplate.setSignaturePaddings(Sailfish::Crypto::Key::SignaturePaddingNone);
-keyTemplate.setDigests(Sailfish::Crypto::Key::DigestSha256);
-keyTemplate.setOperations(Sailfish::Crypto::Key::Encrypt
-                         |Sailfish::Crypto::Key::Decrypt);
+keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt
+                         |Sailfish::Crypto::CryptoManager::OperationDecrypt);
 
 // Set the identifier for the key.
 // This assumes the existence of an "ExampleCollection" secure storage

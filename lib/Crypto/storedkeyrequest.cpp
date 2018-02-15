@@ -18,7 +18,7 @@
 using namespace Sailfish::Crypto;
 
 StoredKeyRequestPrivate::StoredKeyRequestPrivate()
-    : m_keyComponents(StoredKeyRequest::MetaData | StoredKeyRequest::PublicKeyData)
+    : m_keyComponents(Key::MetaData | Key::PublicKeyData)
     , m_status(Request::Inactive)
 {
 }
@@ -73,7 +73,7 @@ void StoredKeyRequest::setIdentifier(const Key::Identifier &ident)
 /*!
  * \brief Returns the flags describing which components of the stored key the client wishes to retrieve
  */
-StoredKeyRequest::KeyComponents StoredKeyRequest::keyComponents() const
+Key::Components StoredKeyRequest::keyComponents() const
 {
     Q_D(const StoredKeyRequest);
     return d->m_keyComponents;
@@ -82,22 +82,22 @@ StoredKeyRequest::KeyComponents StoredKeyRequest::keyComponents() const
 /*!
  * \brief Sets the flags describing which components of the stored key the client wishes to retrieve to \a components
  *
- * If the \a components includes \c StoredKeyRequest::MetaData then information
+ * If the \a components includes \c Key::MetaData then information
  * about the key (including its origin, algorithm, supported block modes,
  * supported encryption and signature paddings, supported digests, operations,
  * and filter data) will be retrieved.
  *
- * If the \a components includes \c StoredKeyRequest::PublicKeyData then
+ * If the \a components includes \c Key::PublicKeyData then
  * public key data will be retrieved.
  *
- * If the \a components includes \c StoredKeyRequest::SecretKeyData then
+ * If the \a components includes \c Key::PrivateKeyData then
  * private key data and secret key data will be retrieved.
  *
  * Depending on the storage plugin, the custom parameters associated with the
  * key may be considered to be either metadata, public key data, or secret
  * key data, and will be retrieved or omitted accordingly.
  */
-void StoredKeyRequest::setKeyComponents(KeyComponents components)
+void StoredKeyRequest::setKeyComponents(Key::Components components)
 {
     Q_D(StoredKeyRequest);
     if (d->m_status != Request::Active && d->m_keyComponents != components) {
