@@ -334,6 +334,7 @@ QString Daemon::ApiImpl::SecretsRequestQueue::requestTypeToString(int type) cons
         case DeleteStandaloneSecretRequest:         return QLatin1String("DeleteStandaloneSecretRequest");
         case SetCollectionSecretMetadataRequest:    return QLatin1String("SetCollectionSecretMetadataRequest");
         case DeleteCollectionSecretMetadataRequest: return QLatin1String("DeleteCollectionSecretMetadataRequest");
+        case UserInputRequest:                      return QLatin1String("UserInputRequest");
         default: break;
     }
     return QLatin1String("Unknown Secrets Request!");
@@ -841,6 +842,26 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
             }
             break;
         }
+        case UserInputRequest: {
+            qCDebug(lcSailfishSecretsDaemon) << "Handling UserInputRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            InteractionParameters uiParams = request->inParams.size()
+                    ? request->inParams.takeFirst().value<InteractionParameters>()
+                    : InteractionParameters();
+            Result result = m_requestProcessor->userInput(
+                        request->remotePid,
+                        request->requestId,
+                        uiParams);
+            // send the reply to the calling peer.
+            if (result.code() == Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                // This request type exists solely to implement Crypto API functionality.
+                asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList());
+                *completed = true;
+            }
+            break;
+        }
         default: {
             qCWarning(lcSailfishSecretsDaemon) << "Cannot handle request:" << request->requestId
                                                << "with invalid type:" << requestTypeToString(request->type);
@@ -1071,6 +1092,29 @@ void Daemon::ApiImpl::SecretsRequestQueue::handleFinishedRequest(
                     asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList());
                 } else {
                     request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result));
+                }
+                *completed = true;
+            }
+            break;
+        }
+        case UserInputRequest: {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of UserInputRequest request"));
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishSecretsDaemon) << "UserInputRequest:" << request->requestId << "finished as pending!";
+                *completed = true;
+            } else {
+                if (request->isSecretsCryptoRequest) {
+                    QByteArray userInput = request->outParams.size()
+                            ? request->outParams.takeFirst().value<QByteArray>()
+                            : QByteArray();
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << userInput);
+                } else {
+                    // shouldn't happen!
+                    qCWarning(lcSailfishSecretsDaemon) << "Error: UserInputRequest not a secrets crypto request!";
                 }
                 *completed = true;
             }

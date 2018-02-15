@@ -19,10 +19,10 @@ using namespace Sailfish::Crypto;
 
 CipherRequestPrivate::CipherRequestPrivate()
     : m_cipherMode(CipherRequest::InitialiseCipher)
-    , m_blockMode(Key::BlockModeCBC)
-    , m_encryptionPadding(Key::EncryptionPaddingNone)
-    , m_signaturePadding(Key::SignaturePaddingNone)
-    , m_digest(Key::DigestSha256)
+    , m_blockMode(CryptoManager::BlockModeCbc)
+    , m_encryptionPadding(CryptoManager::EncryptionPaddingNone)
+    , m_signaturePadding(CryptoManager::SignaturePaddingNone)
+    , m_digest(CryptoManager::DigestSha256)
     , m_cipherSessionToken(0)
     , m_verified(false)
     , m_status(Request::Inactive)
@@ -83,8 +83,8 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * // Initialise the cipher.
  * cr.setCipherMode(CipherRequest::InitialiseCipher);
  * cr.setKey(key); // a valid AES 256 key or key reference
- * cr.setBlockMode(Sailfish::Crypto::Key::BlockModeCBC);
- * cr.setOperation(Sailfish::Crypto::Key::Encrypt);
+ * cr.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
+ * cr.setOperation(Sailfish::Crypto::CryptoManager::OperationEncrypt);
  * cr.startRequest();
  * cr.waitForFinished();
  * QByteArray iv = cr.generatedInitialisationVector();
@@ -117,8 +117,8 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * // Initialise the cipher.
  * cr.setCipherMode(CipherRequest::InitialiseCipher);
  * cr.setKey(key); // a valid AES 256 key or key reference
- * cr.setBlockMode(Sailfish::Crypto::Key::BlockModeCBC);
- * cr.setOperation(Sailfish::Crypto::Key::Decrypt);
+ * cr.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
+ * cr.setOperation(Sailfish::Crypto::CryptoManager::OperationDecrypt);
  * cr.setInitialisationVector(iv); // IV used during encryption.
  * cr.startRequest();
  * cr.waitForFinished();
@@ -144,7 +144,7 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * Note that authenticated encryption and decryption is slightly
  * different, as encryption finalisation produces a tag, which must
  * be provided during decryption finalisation for verification.
- * For example, after encrypting data using BlockModeGCM:
+ * For example, after encrypting data using BlockModeGcm:
  *
  * \code
  * // Finalise the GCM encryption cipher session.
@@ -169,7 +169,7 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * Note that if the \a mode is CipherRequest::InitialiseCipher then
  * when the request is finished the generatedInitialisationVector()
  * should contain the initialisation vector data, if the operation()
- * was Key::Encrypt.
+ * was CryptoManager::OperationEncrypt.
  *
  * If \a mode is either CipherRequest::UpdateCipher or
  * CipherRequest::FinaliseCipher then when the request is finished
@@ -178,8 +178,9 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * encrypted, decrypted, or signature data) or alternatively
  * verified() should contain whether the signature data was
  * verified or if authenticated decryption succeeded, if the
- * operation() was Key::Encrypt, Key::Decrypt, Key::Sign, or
- * Key::Verify or Key::Decrypt with BlockModeGCM respectively.
+ * operation() was CryptoManager::OperationEncrypt, CryptoManager::OperationDecrypt,
+ * CryptoManager::Sign, or CryptoManager::Verify or CryptoManager::OperationDecrypt
+ * with BlockModeGcm respectively.
  */
 void CipherRequest::setCipherMode(CipherRequest::CipherMode mode)
 {
@@ -197,7 +198,7 @@ void CipherRequest::setCipherMode(CipherRequest::CipherMode mode)
 /*!
  * \brief Returns the operation which the client wishes to perform with the cipher session
  */
-Key::Operation CipherRequest::operation() const
+CryptoManager::Operation CipherRequest::operation() const
 {
     Q_D(const CipherRequest);
     return d->m_operation;
@@ -209,7 +210,7 @@ Key::Operation CipherRequest::operation() const
  * Note: this parameter is only meaningful prior to initialising the cipher.  Once
  * initialised, the operation of the cipher cannot be changed.
  */
-void CipherRequest::setOperation(Key::Operation op)
+void CipherRequest::setOperation(CryptoManager::Operation op)
 {
     Q_D(CipherRequest);
     if (d->m_status != Request::Active && d->m_operation != op) {
@@ -276,7 +277,7 @@ QByteArray CipherRequest::initialisationVector() const
  * generate a valid, random initialisation vector as part of the
  * cipher initialisation, and that generated initialisation vector
  * will be returned to the client via generatedInitialisationVector(),
- * if the operation is Key::Encrypt.
+ * if the operation is CryptoManager::OperationEncrypt.
  */
 void CipherRequest::setInitialisationVector(const QByteArray &iv)
 {
@@ -319,7 +320,7 @@ void CipherRequest::setKey(const Key &key)
 /*!
  * \brief Returns the block mode which should be used when encrypting the data
  */
-Sailfish::Crypto::Key::BlockMode CipherRequest::blockMode() const
+Sailfish::Crypto::CryptoManager::BlockMode CipherRequest::blockMode() const
 {
     Q_D(const CipherRequest);
     return d->m_blockMode;
@@ -328,7 +329,7 @@ Sailfish::Crypto::Key::BlockMode CipherRequest::blockMode() const
 /*!
  * \brief Sets the block mode which should be used when encrypting the data to \a mode
  */
-void CipherRequest::setBlockMode(Sailfish::Crypto::Key::BlockMode mode)
+void CipherRequest::setBlockMode(Sailfish::Crypto::CryptoManager::BlockMode mode)
 {
     Q_D(CipherRequest);
     if (d->m_status != Request::Active && d->m_blockMode != mode) {
@@ -344,7 +345,7 @@ void CipherRequest::setBlockMode(Sailfish::Crypto::Key::BlockMode mode)
 /*!
  * \brief Returns the encryption padding mode which should be used when encrypting or decrypting the data
  */
-Sailfish::Crypto::Key::EncryptionPadding CipherRequest::encryptionPadding() const
+Sailfish::Crypto::CryptoManager::EncryptionPadding CipherRequest::encryptionPadding() const
 {
     Q_D(const CipherRequest);
     return d->m_encryptionPadding;
@@ -353,7 +354,7 @@ Sailfish::Crypto::Key::EncryptionPadding CipherRequest::encryptionPadding() cons
 /*!
  * \brief Sets the encryption padding mode which should be used when encrypting or decrypting the data to \a padding
  */
-void CipherRequest::setEncryptionPadding(Sailfish::Crypto::Key::EncryptionPadding padding)
+void CipherRequest::setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPadding padding)
 {
     Q_D(CipherRequest);
     if (d->m_status != Request::Active && d->m_encryptionPadding != padding) {
@@ -369,7 +370,7 @@ void CipherRequest::setEncryptionPadding(Sailfish::Crypto::Key::EncryptionPaddin
 /*!
  * \brief Returns the signature padding mode which should be used when signing or verifying the data
  */
-Sailfish::Crypto::Key::SignaturePadding CipherRequest::signaturePadding() const
+Sailfish::Crypto::CryptoManager::SignaturePadding CipherRequest::signaturePadding() const
 {
     Q_D(const CipherRequest);
     return d->m_signaturePadding;
@@ -378,7 +379,7 @@ Sailfish::Crypto::Key::SignaturePadding CipherRequest::signaturePadding() const
 /*!
  * \brief Sets the signature padding mode which should be used when signing or verifying the data to \a padding
  */
-void CipherRequest::setSignaturePadding(Sailfish::Crypto::Key::SignaturePadding padding)
+void CipherRequest::setSignaturePadding(Sailfish::Crypto::CryptoManager::SignaturePadding padding)
 {
     Q_D(CipherRequest);
     if (d->m_status != Request::Active && d->m_signaturePadding != padding) {
@@ -394,7 +395,7 @@ void CipherRequest::setSignaturePadding(Sailfish::Crypto::Key::SignaturePadding 
 /*!
  * \brief Returns the digest which should be used when signing or verifying the data
  */
-Sailfish::Crypto::Key::Digest CipherRequest::digest() const
+Sailfish::Crypto::CryptoManager::DigestFunction CipherRequest::digestFunction() const
 {
     Q_D(const CipherRequest);
     return d->m_digest;
@@ -403,7 +404,7 @@ Sailfish::Crypto::Key::Digest CipherRequest::digest() const
 /*!
  * \brief Sets tthe digest which should be used when signing or verifying the data to \a digest
  */
-void CipherRequest::setDigest(Sailfish::Crypto::Key::Digest digest)
+void CipherRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digest)
 {
     Q_D(CipherRequest);
     if (d->m_status != Request::Active && d->m_digest != digest) {
@@ -412,7 +413,7 @@ void CipherRequest::setDigest(Sailfish::Crypto::Key::Digest digest)
             d->m_status = Request::Inactive;
             emit statusChanged();
         }
-        emit digestChanged();
+        emit digestFunctionChanged();
     }
 }
 
@@ -469,7 +470,8 @@ QByteArray CipherRequest::generatedInitialisationVector() const
  * \brief Returns the true if the verify operation succeeded
  *
  * Note: this value is only valid if the status of the request is Request::Finished
- * and the cipher session has been finalised and the operation() was Key::Verify.
+ * and the cipher session has been finalised and the operation() was
+ * CryptoManager::OperationVerify.
  */
 bool CipherRequest::verified() const
 {
@@ -540,7 +542,7 @@ void CipherRequest::startRequest()
                 d->m_result = reply.argumentAt<0>();
                 d->m_cipherSessionToken = reply.argumentAt<1>();
                 bool needsIvEmit = false;
-                if (d->m_operation == Key::Encrypt && d->m_generatedInitialisationVector != reply.argumentAt<2>()) {
+                if (d->m_operation == CryptoManager::OperationEncrypt && d->m_generatedInitialisationVector != reply.argumentAt<2>()) {
                     needsIvEmit = true;
                     d->m_generatedInitialisationVector = reply.argumentAt<2>();
                 }
@@ -564,7 +566,7 @@ void CipherRequest::startRequest()
                     this->d_ptr->m_result = reply.argumentAt<0>();
                     this->d_ptr->m_cipherSessionToken = reply.argumentAt<1>();
                     bool needsIvEmit = false;
-                    if (this->d_ptr->m_operation == Key::Encrypt && this->d_ptr->m_generatedInitialisationVector != reply.argumentAt<2>()) {
+                    if (this->d_ptr->m_operation == CryptoManager::OperationEncrypt && this->d_ptr->m_generatedInitialisationVector != reply.argumentAt<2>()) {
                         needsIvEmit = true;
                         this->d_ptr->m_generatedInitialisationVector = reply.argumentAt<2>();
                     }

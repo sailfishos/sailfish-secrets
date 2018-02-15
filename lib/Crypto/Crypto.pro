@@ -24,7 +24,9 @@ PUBLIC_HEADERS += \
     $$PWD/generatekeyrequest.h \
     $$PWD/generaterandomdatarequest.h \
     $$PWD/generatestoredkeyrequest.h \
+    $$PWD/interactionparameters.h \
     $$PWD/key.h \
+    $$PWD/keyderivationparameters.h \
     $$PWD/plugininforequest.h \
     $$PWD/request.h \
     $$PWD/result.h \
@@ -52,7 +54,9 @@ PRIVATE_HEADERS += \
     $$PWD/generatekeyrequest_p.h \
     $$PWD/generaterandomdatarequest_p.h \
     $$PWD/generatestoredkeyrequest_p.h \
+    $$PWD/interactionparameters_p.h \
     $$PWD/key_p.h \
+    $$PWD/keyderivationparameters_p.h \
     $$PWD/plugininforequest_p.h \
     $$PWD/seedrandomdatageneratorrequest_p.h \
     $$PWD/signrequest_p.h \
@@ -78,7 +82,9 @@ SOURCES += \
     $$PWD/generatekeyrequest.cpp \
     $$PWD/generaterandomdatarequest.cpp \
     $$PWD/generatestoredkeyrequest.cpp \
+    $$PWD/interactionparameters.cpp \
     $$PWD/key.cpp \
+    $$PWD/keyderivationparameters.cpp \
     $$PWD/plugininforequest.cpp \
     $$PWD/request.cpp \
     $$PWD/seedrandomdatageneratorrequest.cpp \

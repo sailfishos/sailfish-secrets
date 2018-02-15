@@ -87,6 +87,7 @@ private slots:
     void validateCertificateChain();
     void signVerify();
     void storedKeyRequests();
+    void storedDerivedKeyRequests();
     void cipherEncryptDecrypt();
     void cipherBenchmark();
     void cipherTimeout();
@@ -212,13 +213,10 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
 {
     // test generating a symmetric cipher key
     Key keyTemplate;
-    keyTemplate.setAlgorithm(Key::Aes256);
+    keyTemplate.setSize(256);
+    keyTemplate.setAlgorithm(CryptoManager::AlgorithmAes);
     keyTemplate.setOrigin(Key::OriginDevice);
-    keyTemplate.setBlockModes(Key::BlockModeCBC);
-    keyTemplate.setEncryptionPaddings(Key::EncryptionPaddingNone);
-    keyTemplate.setSignaturePaddings(Key::SignaturePaddingNone);
-    keyTemplate.setDigests(Key::DigestSha256);
-    keyTemplate.setOperations(Key::Encrypt | Key::Decrypt);
+    keyTemplate.setOperations(CryptoManager::OperationEncrypt | CryptoManager::OperationDecrypt);
     keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
 
     GenerateKeyRequest gkr;
@@ -257,10 +255,10 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QCOMPARE(er.initialisationVector(), initVector);
     er.setKey(fullKey);
     QCOMPARE(er.key(), fullKey);
-    er.setBlockMode(Key::BlockModeCBC);
-    QCOMPARE(er.blockMode(), Key::BlockModeCBC);
-    er.setPadding(Key::EncryptionPaddingNone);
-    QCOMPARE(er.padding(), Key::EncryptionPaddingNone);
+    er.setBlockMode(CryptoManager::BlockModeCbc);
+    QCOMPARE(er.blockMode(), CryptoManager::BlockModeCbc);
+    er.setPadding(CryptoManager::EncryptionPaddingNone);
+    QCOMPARE(er.padding(), CryptoManager::EncryptionPaddingNone);
     er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(er.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(er.status(), Request::Inactive);
@@ -289,10 +287,10 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QCOMPARE(dr.initialisationVector(), initVector);
     dr.setKey(fullKey);
     QCOMPARE(dr.key(), fullKey);
-    dr.setBlockMode(Key::BlockModeCBC);
-    QCOMPARE(dr.blockMode(), Key::BlockModeCBC);
-    dr.setPadding(Key::EncryptionPaddingNone);
-    QCOMPARE(dr.padding(), Key::EncryptionPaddingNone);
+    dr.setBlockMode(CryptoManager::BlockModeCbc);
+    QCOMPARE(dr.blockMode(), CryptoManager::BlockModeCbc);
+    dr.setPadding(CryptoManager::EncryptionPaddingNone);
+    QCOMPARE(dr.padding(), CryptoManager::EncryptionPaddingNone);
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.status(), Request::Inactive);
@@ -396,13 +394,11 @@ void tst_cryptorequests::storedKeyRequests()
 {
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
     Sailfish::Crypto::Key keyTemplate;
-    keyTemplate.setAlgorithm(Sailfish::Crypto::Key::Aes256);
+    keyTemplate.setSize(256);
+    keyTemplate.setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmAes);
     keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
-    keyTemplate.setBlockModes(Sailfish::Crypto::Key::BlockModeCBC);
-    keyTemplate.setEncryptionPaddings(Sailfish::Crypto::Key::EncryptionPaddingNone);
-    keyTemplate.setSignaturePaddings(Sailfish::Crypto::Key::SignaturePaddingNone);
-    keyTemplate.setDigests(Sailfish::Crypto::Key::DigestSha256);
-    keyTemplate.setOperations(Sailfish::Crypto::Key::Encrypt | Sailfish::Crypto::Key::Decrypt);
+    keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt | Sailfish::Crypto::CryptoManager::OperationDecrypt);
+    keyTemplate.setComponentConstraints(Sailfish::Crypto::Key::MetaData | Sailfish::Crypto::Key::PublicKeyData | Sailfish::Crypto::Key::PrivateKeyData);
     keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
     keyTemplate.setCustomParameters(QVector<QByteArray>() << QByteArray("testparameter"));
 
@@ -464,10 +460,10 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(er.initialisationVector(), initVector);
     er.setKey(keyReference);
     QCOMPARE(er.key(), keyReference);
-    er.setBlockMode(Key::BlockModeCBC);
-    QCOMPARE(er.blockMode(), Key::BlockModeCBC);
-    er.setPadding(Key::EncryptionPaddingNone);
-    QCOMPARE(er.padding(), Key::EncryptionPaddingNone);
+    er.setBlockMode(CryptoManager::BlockModeCbc);
+    QCOMPARE(er.blockMode(), CryptoManager::BlockModeCbc);
+    er.setPadding(CryptoManager::EncryptionPaddingNone);
+    QCOMPARE(er.padding(), CryptoManager::EncryptionPaddingNone);
     er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(er.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(er.status(), Request::Inactive);
@@ -496,10 +492,10 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(dr.initialisationVector(), initVector);
     dr.setKey(keyReference);
     QCOMPARE(dr.key(), keyReference);
-    dr.setBlockMode(Key::BlockModeCBC);
-    QCOMPARE(dr.blockMode(), Key::BlockModeCBC);
-    dr.setPadding(Key::EncryptionPaddingNone);
-    QCOMPARE(dr.padding(), Key::EncryptionPaddingNone);
+    dr.setBlockMode(CryptoManager::BlockModeCbc);
+    QCOMPARE(dr.blockMode(), CryptoManager::BlockModeCbc);
+    dr.setPadding(CryptoManager::EncryptionPaddingNone);
+    QCOMPARE(dr.padding(), CryptoManager::EncryptionPaddingNone);
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.status(), Request::Inactive);
@@ -550,8 +546,8 @@ void tst_cryptorequests::storedKeyRequests()
     QSignalSpy skrks(&skr, &StoredKeyRequest::storedKeyChanged);
     skr.setIdentifier(keyReference.identifier());
     QCOMPARE(skr.identifier(), keyReference.identifier());
-    skr.setKeyComponents(StoredKeyRequest::MetaData);
-    QCOMPARE(skr.keyComponents(), StoredKeyRequest::MetaData);
+    skr.setKeyComponents(Key::MetaData);
+    QCOMPARE(skr.keyComponents(), Key::MetaData);
     QCOMPARE(skr.status(), Request::Inactive);
     skr.startRequest();
     QCOMPARE(skrss.count(), 1);
@@ -568,7 +564,7 @@ void tst_cryptorequests::storedKeyRequests()
     QVERIFY(skr.storedKey().secretKey().isEmpty()); // secret key data, not fetched
 
     // and that we can get the public key data + custom parameters
-    skr.setKeyComponents(StoredKeyRequest::MetaData | StoredKeyRequest::PublicKeyData);
+    skr.setKeyComponents(Key::MetaData | Key::PublicKeyData);
     skr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(skr);
     QCOMPARE(skr.result().code(), Result::Succeeded);
@@ -576,7 +572,7 @@ void tst_cryptorequests::storedKeyRequests()
     QVERIFY(skr.storedKey().secretKey().isEmpty()); // secret key data, not fetched
 
     // and that we can get the secret key data
-    skr.setKeyComponents(StoredKeyRequest::MetaData | StoredKeyRequest::PublicKeyData | StoredKeyRequest::SecretKeyData);
+    skr.setKeyComponents(Key::MetaData | Key::PublicKeyData | Key::SecretKeyData);
     skr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(skr);
     QCOMPARE(skr.result().code(), Result::Succeeded);
@@ -668,18 +664,307 @@ void tst_cryptorequests::storedKeyRequests()
 }
 
 
+void tst_cryptorequests::storedDerivedKeyRequests()
+{
+    // test generating a symmetric cipher key via a key derivation function
+    // and storing securely in the same plugin which produces the key.
+    Sailfish::Crypto::Key keyTemplate;
+    keyTemplate.setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmAes);
+    keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
+    keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt | Sailfish::Crypto::CryptoManager::OperationDecrypt);
+    keyTemplate.setComponentConstraints(Sailfish::Crypto::Key::MetaData | Sailfish::Crypto::Key::PublicKeyData | Sailfish::Crypto::Key::PrivateKeyData);
+    keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
+    keyTemplate.setCustomParameters(QVector<QByteArray>() << QByteArray("testparameter"));
+
+    Sailfish::Crypto::KeyDerivationParameters skdf;
+    skdf.setKeyDerivationFunction(Sailfish::Crypto::CryptoManager::KdfPkcs5Pbkdf2);
+    skdf.setKeyDerivationMac(Sailfish::Crypto::CryptoManager::MacHmac);
+    skdf.setKeyDerivationDigestFunction(Sailfish::Crypto::CryptoManager::DigestSha1);
+    skdf.setIterations(16384);
+    skdf.setSalt(QByteArray("0123456789abcdef"));
+    //skdf.setInputData(QByteArray("example user passphrase")); // TODO: this is implemented, but not covered by the unit test if uiParams exists!
+    skdf.setOutputKeySize(256);
+
+    Sailfish::Crypto::InteractionParameters uiParams;
+    uiParams.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
+    uiParams.setInputType(Sailfish::Crypto::InteractionParameters::AlphaNumericInput);
+    uiParams.setEchoMode(Sailfish::Crypto::InteractionParameters::NormalEcho);
+    uiParams.setPromptText(QLatin1String("Enter the passphrase for the unit test"));
+
+    // first, create the collection via the Secrets API.
+    Sailfish::Secrets::CreateCollectionRequest ccr;
+    ccr.setManager(&sm);
+    ccr.setCollectionLockType(Sailfish::Secrets::CreateCollectionRequest::DeviceLock);
+    ccr.setCollectionName(QLatin1String("tstcryptosecretsgcsked"));
+    ccr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+    ccr.setEncryptionPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+    ccr.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
+    ccr.setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked);
+    ccr.setAccessControlMode(Sailfish::Secrets::SecretManager::OwnerOnlyMode);
+    ccr.setUserInteractionMode(Sailfish::Secrets::SecretManager::ApplicationInteraction);
+    ccr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ccr);
+    QCOMPARE(ccr.status(), Sailfish::Secrets::Request::Finished);
+    QCOMPARE(ccr.result().code(), Sailfish::Secrets::Result::Succeeded);
+
+    // request that the secret key be generated and stored into that collection.
+    keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(QLatin1String("storedkey"), QLatin1String("tstcryptosecretsgcsked")));
+    // note that the secret key data will never enter the client process address space.
+    GenerateStoredKeyRequest gskr;
+    gskr.setManager(&cm);
+    QSignalSpy gskrss(&gskr, &GenerateStoredKeyRequest::statusChanged);
+    QSignalSpy gskrks(&gskr, &GenerateStoredKeyRequest::generatedKeyReferenceChanged);
+    gskr.setKeyTemplate(keyTemplate);
+    QCOMPARE(gskr.keyTemplate(), keyTemplate);
+    gskr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+    QCOMPARE(gskr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+    gskr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+    QCOMPARE(gskr.storagePluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+    gskr.setKeyDerivationParameters(skdf);
+    QCOMPARE(gskr.keyDerivationParameters(), skdf);
+    gskr.setInteractionParameters(uiParams);
+    QCOMPARE(gskr.interactionParameters(), uiParams);
+    QCOMPARE(gskr.status(), Request::Inactive);
+    gskr.startRequest();
+    QCOMPARE(gskrss.count(), 1);
+    QCOMPARE(gskr.status(), Request::Active);
+    QCOMPARE(gskr.result().code(), Result::Pending);
+    QCOMPARE(gskrks.count(), 0);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gskr);
+    QCOMPARE(gskrss.count(), 2);
+    QCOMPARE(gskr.status(), Request::Finished);
+    QCOMPARE(gskr.result().code(), Result::Succeeded);
+    QCOMPARE(gskrks.count(), 1);
+    Sailfish::Crypto::Key keyReference = gskr.generatedKeyReference();
+    QVERIFY(keyReference.secretKey().isEmpty());
+    QVERIFY(keyReference.privateKey().isEmpty());
+    QCOMPARE(keyReference.filterData(), keyTemplate.filterData());
+
+    // test encrypting some plaintext with the stored key.
+    QByteArray plaintext = "Test plaintext data";
+    QByteArray initVector = "Test initialisation vector";
+    EncryptRequest er;
+    er.setManager(&cm);
+    QSignalSpy erss(&er, &EncryptRequest::statusChanged);
+    QSignalSpy ercs(&er, &EncryptRequest::ciphertextChanged);
+    er.setData(plaintext);
+    QCOMPARE(er.data(), plaintext);
+    er.setInitialisationVector(initVector);
+    QCOMPARE(er.initialisationVector(), initVector);
+    er.setKey(keyReference);
+    QCOMPARE(er.key(), keyReference);
+    er.setBlockMode(CryptoManager::BlockModeCbc);
+    QCOMPARE(er.blockMode(), CryptoManager::BlockModeCbc);
+    er.setPadding(CryptoManager::EncryptionPaddingNone);
+    QCOMPARE(er.padding(), CryptoManager::EncryptionPaddingNone);
+    er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+    QCOMPARE(er.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+    QCOMPARE(er.status(), Request::Inactive);
+    er.startRequest();
+    QCOMPARE(erss.count(), 1);
+    QCOMPARE(er.status(), Request::Active);
+    QCOMPARE(er.result().code(), Result::Pending);
+    QCOMPARE(ercs.count(), 0);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(er);
+    QCOMPARE(erss.count(), 2);
+    QCOMPARE(er.status(), Request::Finished);
+    QCOMPARE(er.result().code(), Result::Succeeded);
+    QCOMPARE(ercs.count(), 1);
+    QByteArray ciphertext = er.ciphertext();
+    QVERIFY(!ciphertext.isEmpty());
+    QVERIFY(ciphertext != plaintext);
+
+    // test decrypting the ciphertext, and ensure that the roundtrip works.
+    DecryptRequest dr;
+    dr.setManager(&cm);
+    QSignalSpy drss(&dr, &DecryptRequest::statusChanged);
+    QSignalSpy drps(&dr, &DecryptRequest::plaintextChanged);
+    dr.setData(ciphertext);
+    QCOMPARE(dr.data(), ciphertext);
+    dr.setInitialisationVector(initVector);
+    QCOMPARE(dr.initialisationVector(), initVector);
+    dr.setKey(keyReference);
+    QCOMPARE(dr.key(), keyReference);
+    dr.setBlockMode(CryptoManager::BlockModeCbc);
+    QCOMPARE(dr.blockMode(), CryptoManager::BlockModeCbc);
+    dr.setPadding(CryptoManager::EncryptionPaddingNone);
+    QCOMPARE(dr.padding(), CryptoManager::EncryptionPaddingNone);
+    dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+    QCOMPARE(dr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+    QCOMPARE(dr.status(), Request::Inactive);
+    dr.startRequest();
+    QCOMPARE(drss.count(), 1);
+    QCOMPARE(dr.status(), Request::Active);
+    QCOMPARE(dr.result().code(), Result::Pending);
+    QCOMPARE(drps.count(), 0);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dr);
+    QCOMPARE(drss.count(), 2);
+    QCOMPARE(dr.status(), Request::Finished);
+    QCOMPARE(dr.result().code(), Result::Succeeded);
+    QCOMPARE(drps.count(), 1);
+    QByteArray decrypted = dr.plaintext();
+    QVERIFY(!decrypted.isEmpty());
+    QCOMPARE(plaintext, decrypted);
+
+    // ensure that we can get a reference to that Key via the Secrets API
+    Sailfish::Secrets::Secret::FilterData filter;
+    filter.insert(QLatin1String("test"), keyTemplate.filterData(QLatin1String("test")));
+    Sailfish::Secrets::FindSecretsRequest fsr;
+    fsr.setManager(&sm);
+    fsr.setFilter(filter);
+    fsr.setFilterOperator(Sailfish::Secrets::SecretManager::OperatorAnd);
+    fsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
+    fsr.setCollectionName(keyTemplate.identifier().collectionName());
+    fsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(fsr);
+    QCOMPARE(fsr.status(), Sailfish::Secrets::Request::Finished);
+    QCOMPARE(fsr.result().code(), Sailfish::Secrets::Result::Succeeded);
+    QCOMPARE(fsr.identifiers().size(), 1);
+    QCOMPARE(fsr.identifiers().at(0).name(), keyTemplate.identifier().name());
+    QCOMPARE(fsr.identifiers().at(0).collectionName(), keyTemplate.identifier().collectionName());
+
+    // and ensure that the filter operation doesn't return incorrect results
+    filter.insert(QLatin1String("test"), QString(QLatin1String("not %1")).arg(keyTemplate.filterData(QLatin1String("test"))));
+    fsr.setFilter(filter);
+    fsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(fsr);
+    QCOMPARE(fsr.status(), Sailfish::Secrets::Request::Finished);
+    QCOMPARE(fsr.result().code(), Sailfish::Secrets::Result::Succeeded);
+    QCOMPARE(fsr.identifiers().size(), 0);
+
+    // ensure we can get a key reference via a stored key request
+    StoredKeyRequest skr;
+    skr.setManager(&cm);
+    QSignalSpy skrss(&skr, &StoredKeyRequest::statusChanged);
+    QSignalSpy skrks(&skr, &StoredKeyRequest::storedKeyChanged);
+    skr.setIdentifier(keyReference.identifier());
+    QCOMPARE(skr.identifier(), keyReference.identifier());
+    skr.setKeyComponents(Key::MetaData);
+    QCOMPARE(skr.keyComponents(), Key::MetaData);
+    QCOMPARE(skr.status(), Request::Inactive);
+    skr.startRequest();
+    QCOMPARE(skrss.count(), 1);
+    QCOMPARE(skr.status(), Request::Active);
+    QCOMPARE(skr.result().code(), Result::Pending);
+    QCOMPARE(skrks.count(), 0);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(skr);
+    QCOMPARE(skrss.count(), 2);
+    QCOMPARE(skr.status(), Request::Finished);
+    QCOMPARE(skr.result().code(), Result::Succeeded);
+    QCOMPARE(skrks.count(), 1);
+    QCOMPARE(skr.storedKey().algorithm(), keyTemplate.algorithm());
+    QVERIFY(skr.storedKey().customParameters().isEmpty()); // considered public key data, not fetched
+    QVERIFY(skr.storedKey().secretKey().isEmpty()); // secret key data, not fetched
+
+    // and that we can get the public key data + custom parameters
+    skr.setKeyComponents(Key::MetaData | Key::PublicKeyData);
+    skr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(skr);
+    QCOMPARE(skr.result().code(), Result::Succeeded);
+    QCOMPARE(skr.storedKey().customParameters(), keyTemplate.customParameters());
+    QVERIFY(skr.storedKey().secretKey().isEmpty()); // secret key data, not fetched
+
+    // and that we can get the secret key data
+    skr.setKeyComponents(Key::MetaData | Key::PublicKeyData | Key::SecretKeyData);
+    skr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(skr);
+    QCOMPARE(skr.result().code(), Result::Succeeded);
+    QCOMPARE(skr.storedKey().customParameters(), keyTemplate.customParameters());
+    QVERIFY(!skr.storedKey().secretKey().isEmpty());
+
+    // clean up by deleting the collection in which the secret is stored.
+    Sailfish::Secrets::DeleteCollectionRequest dcr;
+    dcr.setManager(&sm);
+    dcr.setCollectionName(QLatin1String("tstcryptosecretsgcsked"));
+    dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
+    dcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
+    QCOMPARE(dcr.status(), Sailfish::Secrets::Request::Finished);
+    QCOMPARE(dcr.result().code(), Sailfish::Secrets::Result::Succeeded);
+
+    // ensure that the deletion was cascaded to the keyEntries internal database table.
+    dr.setKey(keyReference);
+    dr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dr);
+    QCOMPARE(dr.result().code(), Sailfish::Crypto::Result::Failed);
+    QCOMPARE(dr.result().errorCode(), Sailfish::Crypto::Result::InvalidKeyIdentifier);
+
+    // recreate the collection and the key, and encrypt/decrypt again, then delete via deleteStoredKey().
+    ccr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ccr);
+    QCOMPARE(ccr.status(), Sailfish::Secrets::Request::Finished);
+    QCOMPARE(ccr.result().code(), Sailfish::Secrets::Result::Succeeded);
+
+    gskr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gskr);
+    QCOMPARE(gskr.result().code(), Sailfish::Crypto::Result::Succeeded);
+    keyReference = gskr.generatedKeyReference();
+
+    er.setKey(keyReference);
+    er.setData(plaintext);
+    er.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(er);
+    QCOMPARE(er.result().code(), Sailfish::Crypto::Result::Succeeded);
+    ciphertext = er.ciphertext();
+
+    dr.setKey(keyReference);
+    dr.setData(ciphertext);
+    dr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dr);
+    QCOMPARE(dr.result().code(), Sailfish::Crypto::Result::Succeeded);
+    decrypted = dr.plaintext();
+    QCOMPARE(decrypted, plaintext);
+
+    // delete the key via deleteStoredKey, and test that the deletion worked.
+    DeleteStoredKeyRequest dskr;
+    dskr.setManager(&cm);
+    QSignalSpy dskrss(&dskr, &DeleteStoredKeyRequest::statusChanged);
+    dskr.setIdentifier(keyTemplate.identifier());
+    QCOMPARE(dskr.identifier(), keyTemplate.identifier());
+    QCOMPARE(dskr.status(), Request::Inactive);
+    dskr.startRequest();
+    QCOMPARE(dskrss.count(), 1);
+    QCOMPARE(dskr.status(), Request::Active);
+    QCOMPARE(dskr.result().code(), Result::Pending);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dskr);
+    QCOMPARE(dskrss.count(), 2);
+    QCOMPARE(dskr.status(), Request::Finished);
+    QCOMPARE(dskr.result().code(), Result::Succeeded);
+
+    // ensure that the deletion was cascaded to the keyEntries internal database table.
+    dr.setKey(keyReference);
+    dr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dr);
+    QCOMPARE(dr.result().code(), Sailfish::Crypto::Result::Failed);
+    QCOMPARE(dr.result().errorCode(), Sailfish::Crypto::Result::InvalidKeyIdentifier);
+
+    // ensure that the deletion was cascaded to the Secrets internal database table.
+    Sailfish::Secrets::StoredSecretRequest gsr;
+    gsr.setManager(&sm);
+    gsr.setIdentifier(Sailfish::Secrets::Secret::Identifier(
+                          keyReference.identifier().name(),
+                          keyReference.identifier().collectionName()));
+    gsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
+    gsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
+    QCOMPARE(gsr.result().code(), Sailfish::Secrets::Result::Failed);
+    QCOMPARE(gsr.result().errorCode(), Sailfish::Secrets::Result::InvalidSecretError);
+
+    // clean up by deleting the collection.
+    dcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
+    QCOMPARE(dcr.result().code(), Sailfish::Secrets::Result::Succeeded);
+}
+
 void tst_cryptorequests::cipherEncryptDecrypt()
 {
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
     // then use that stored key to perform stream cipher encrypt/decrypt operations.
     Sailfish::Crypto::Key keyTemplate;
-    keyTemplate.setAlgorithm(Sailfish::Crypto::Key::Aes256);
+    keyTemplate.setSize(256);
+    keyTemplate.setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmAes);
     keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
-    keyTemplate.setBlockModes(Sailfish::Crypto::Key::BlockModeCBC);
-    keyTemplate.setEncryptionPaddings(Sailfish::Crypto::Key::EncryptionPaddingNone);
-    keyTemplate.setSignaturePaddings(Sailfish::Crypto::Key::SignaturePaddingNone);
-    keyTemplate.setDigests(Sailfish::Crypto::Key::DigestSha256);
-    keyTemplate.setOperations(Sailfish::Crypto::Key::Encrypt | Sailfish::Crypto::Key::Decrypt);
+    keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt | Sailfish::Crypto::CryptoManager::OperationDecrypt);
     keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
 
     // first, create the collection via the Secrets API.
@@ -745,12 +1030,12 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     QSignalSpy erivs(&er, &CipherRequest::generatedInitialisationVectorChanged);
     er.setKey(minimalKeyReference);
     QCOMPARE(er.key(), minimalKeyReference);
-    er.setOperation(Sailfish::Crypto::Key::Encrypt);
-    QCOMPARE(er.operation(), Sailfish::Crypto::Key::Encrypt);
-    er.setBlockMode(Sailfish::Crypto::Key::BlockModeCBC);
-    QCOMPARE(er.blockMode(), Sailfish::Crypto::Key::BlockModeCBC);
-    er.setEncryptionPadding(Sailfish::Crypto::Key::EncryptionPaddingNone);
-    QCOMPARE(er.encryptionPadding(), Sailfish::Crypto::Key::EncryptionPaddingNone);
+    er.setOperation(Sailfish::Crypto::CryptoManager::OperationEncrypt);
+    QCOMPARE(er.operation(), Sailfish::Crypto::CryptoManager::OperationEncrypt);
+    er.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
+    QCOMPARE(er.blockMode(), Sailfish::Crypto::CryptoManager::BlockModeCbc);
+    er.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
+    QCOMPARE(er.encryptionPadding(), Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
     er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(er.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     er.setCipherMode(CipherRequest::InitialiseCipher);
@@ -820,12 +1105,12 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     QCOMPARE(dr.key(), minimalKeyReference);
     dr.setInitialisationVector(iv);
     QCOMPARE(dr.initialisationVector(), iv);
-    dr.setOperation(Sailfish::Crypto::Key::Decrypt);
-    QCOMPARE(dr.operation(), Sailfish::Crypto::Key::Decrypt);
-    dr.setBlockMode(Sailfish::Crypto::Key::BlockModeCBC);
-    QCOMPARE(dr.blockMode(), Sailfish::Crypto::Key::BlockModeCBC);
-    dr.setEncryptionPadding(Sailfish::Crypto::Key::EncryptionPaddingNone);
-    QCOMPARE(dr.encryptionPadding(), Sailfish::Crypto::Key::EncryptionPaddingNone);
+    dr.setOperation(Sailfish::Crypto::CryptoManager::OperationDecrypt);
+    QCOMPARE(dr.operation(), Sailfish::Crypto::CryptoManager::OperationDecrypt);
+    dr.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
+    QCOMPARE(dr.blockMode(), Sailfish::Crypto::CryptoManager::BlockModeCbc);
+    dr.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
+    QCOMPARE(dr.encryptionPadding(), Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(dr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     dr.setCipherMode(CipherRequest::InitialiseCipher);
@@ -906,13 +1191,10 @@ void tst_cryptorequests::cipherBenchmark()
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
     // then use that stored key to perform stream cipher encrypt/decrypt operations.
     Sailfish::Crypto::Key keyTemplate;
-    keyTemplate.setAlgorithm(Sailfish::Crypto::Key::Aes256);
+    keyTemplate.setSize(256);
+    keyTemplate.setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmAes);
     keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
-    keyTemplate.setBlockModes(Sailfish::Crypto::Key::BlockModeCBC);
-    keyTemplate.setEncryptionPaddings(Sailfish::Crypto::Key::EncryptionPaddingNone);
-    keyTemplate.setSignaturePaddings(Sailfish::Crypto::Key::SignaturePaddingNone);
-    keyTemplate.setDigests(Sailfish::Crypto::Key::DigestSha256);
-    keyTemplate.setOperations(Sailfish::Crypto::Key::Encrypt | Sailfish::Crypto::Key::Decrypt);
+    keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt | Sailfish::Crypto::CryptoManager::OperationDecrypt);
     keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
 
     // first, create the collection via the Secrets API.
@@ -986,9 +1268,9 @@ void tst_cryptorequests::cipherBenchmark()
         CipherRequest er;
         er.setManager(&cm);
         er.setKey(minimalKeyReference);
-        er.setOperation(Sailfish::Crypto::Key::Encrypt);
-        er.setBlockMode(Sailfish::Crypto::Key::BlockModeCBC);
-        er.setEncryptionPadding(Sailfish::Crypto::Key::EncryptionPaddingNone);
+        er.setOperation(Sailfish::Crypto::CryptoManager::OperationEncrypt);
+        er.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
+        er.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
         er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
         er.setCipherMode(CipherRequest::InitialiseCipher);
         er.startRequest();
@@ -1021,9 +1303,9 @@ void tst_cryptorequests::cipherBenchmark()
         dr.setManager(&cm);
         dr.setKey(minimalKeyReference);
         dr.setInitialisationVector(iv);
-        dr.setOperation(Sailfish::Crypto::Key::Decrypt);
-        dr.setBlockMode(Sailfish::Crypto::Key::BlockModeCBC);
-        dr.setEncryptionPadding(Sailfish::Crypto::Key::EncryptionPaddingNone);
+        dr.setOperation(Sailfish::Crypto::CryptoManager::OperationDecrypt);
+        dr.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
+        dr.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
         dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
         dr.setCipherMode(CipherRequest::InitialiseCipher);
         dr.startRequest();
@@ -1083,9 +1365,9 @@ void tst_cryptorequests::cipherBenchmark()
         er.setManager(&cm);
         er.setKey(minimalKeyReference);
         er.setInitialisationVector(iv);
-        er.setOperation(Sailfish::Crypto::Key::Encrypt);
-        er.setBlockMode(Sailfish::Crypto::Key::BlockModeCBC);
-        er.setEncryptionPadding(Sailfish::Crypto::Key::EncryptionPaddingNone);
+        er.setOperation(Sailfish::Crypto::CryptoManager::OperationEncrypt);
+        er.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
+        er.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
         er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
         er.setCipherMode(CipherRequest::InitialiseCipher);
         er.startRequest();
@@ -1118,9 +1400,9 @@ void tst_cryptorequests::cipherBenchmark()
         dr.setManager(&cm);
         dr.setKey(minimalKeyReference);
         dr.setInitialisationVector(iv);
-        dr.setOperation(Sailfish::Crypto::Key::Decrypt);
-        dr.setBlockMode(Sailfish::Crypto::Key::BlockModeCBC);
-        dr.setEncryptionPadding(Sailfish::Crypto::Key::EncryptionPaddingNone);
+        dr.setOperation(Sailfish::Crypto::CryptoManager::OperationDecrypt);
+        dr.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
+        dr.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
         dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
         dr.setCipherMode(CipherRequest::InitialiseCipher);
         dr.startRequest();
@@ -1169,13 +1451,10 @@ void tst_cryptorequests::cipherTimeout()
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
     // then use that stored key to perform stream cipher encrypt/decrypt operations.
     Sailfish::Crypto::Key keyTemplate;
-    keyTemplate.setAlgorithm(Sailfish::Crypto::Key::Aes256);
+    keyTemplate.setSize(256);
+    keyTemplate.setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmAes);
     keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
-    keyTemplate.setBlockModes(Sailfish::Crypto::Key::BlockModeCBC);
-    keyTemplate.setEncryptionPaddings(Sailfish::Crypto::Key::EncryptionPaddingNone);
-    keyTemplate.setSignaturePaddings(Sailfish::Crypto::Key::SignaturePaddingNone);
-    keyTemplate.setDigests(Sailfish::Crypto::Key::DigestSha256);
-    keyTemplate.setOperations(Sailfish::Crypto::Key::Encrypt | Sailfish::Crypto::Key::Decrypt);
+    keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt | Sailfish::Crypto::CryptoManager::OperationDecrypt);
     keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
 
     // first, create the collection via the Secrets API.
@@ -1241,12 +1520,12 @@ void tst_cryptorequests::cipherTimeout()
     QSignalSpy erivs(&er, &CipherRequest::generatedInitialisationVectorChanged);
     er.setKey(minimalKeyReference);
     QCOMPARE(er.key(), minimalKeyReference);
-    er.setOperation(Sailfish::Crypto::Key::Encrypt);
-    QCOMPARE(er.operation(), Sailfish::Crypto::Key::Encrypt);
-    er.setBlockMode(Sailfish::Crypto::Key::BlockModeCBC);
-    QCOMPARE(er.blockMode(), Sailfish::Crypto::Key::BlockModeCBC);
-    er.setEncryptionPadding(Sailfish::Crypto::Key::EncryptionPaddingNone);
-    QCOMPARE(er.encryptionPadding(), Sailfish::Crypto::Key::EncryptionPaddingNone);
+    er.setOperation(Sailfish::Crypto::CryptoManager::OperationEncrypt);
+    QCOMPARE(er.operation(), Sailfish::Crypto::CryptoManager::OperationEncrypt);
+    er.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
+    QCOMPARE(er.blockMode(), Sailfish::Crypto::CryptoManager::BlockModeCbc);
+    er.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
+    QCOMPARE(er.encryptionPadding(), Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
     er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(er.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     er.setCipherMode(CipherRequest::InitialiseCipher);

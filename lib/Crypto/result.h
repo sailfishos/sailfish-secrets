@@ -52,6 +52,7 @@ public:
         CryptoPluginDecryptionError,
         CryptoPluginRandomDataError,
         CryptoPluginCipherSessionError,
+        CryptoPluginKeyGenerationError,
 
         NetworkError = 98,
         NetworkSslError = 99,

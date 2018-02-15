@@ -548,6 +548,29 @@ Daemon::ApiImpl::SecretsRequestQueue::storedKey(
     return Result(Result::Pending);
 }
 
+Result
+Daemon::ApiImpl::SecretsRequestQueue::userInput(
+        pid_t callerPid,
+        quint64 cryptoRequestId,
+        const Sailfish::Secrets::InteractionParameters &uiParams)
+{
+    // perform the "get user input" request, as a secrets-for-crypto request.
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<InteractionParameters>(uiParams);
+    Result enqueueResult(Result::Succeeded);
+    handleRequest(
+                callerPid,
+                cryptoRequestId,
+                Daemon::ApiImpl::UserInputRequest,
+                inParams,
+                enqueueResult);
+    if (enqueueResult.code() == Result::Failed) {
+        return enqueueResult;
+    }
+    m_cryptoApiHelperRequests.insert(cryptoRequestId, Daemon::ApiImpl::SecretsRequestQueue::UserInputCryptoApiHelperRequest);
+    return Result(Result::Pending);
+}
+
 void
 Daemon::ApiImpl::SecretsRequestQueue::asynchronousCryptoRequestCompleted(
         quint64 cryptoRequestId,
@@ -580,6 +603,11 @@ Daemon::ApiImpl::SecretsRequestQueue::asynchronousCryptoRequestCompleted(
         }
         case DeleteStoredKeyMetadataCryptoApiHelperRequest: {
             emit deleteStoredKeyMetadataCompleted(cryptoRequestId, result);
+            break;
+        }
+        case UserInputCryptoApiHelperRequest: {
+            QByteArray input = parameters.size() ? parameters.first().value<QByteArray>() : QByteArray();
+            emit userInputCompleted(cryptoRequestId, result, input);
             break;
         }
         default: {

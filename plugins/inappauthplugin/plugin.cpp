@@ -7,6 +7,8 @@
 
 #include "plugin.h"
 
+#include <QtCore/QMetaObject>
+
 Q_PLUGIN_METADATA(IID Sailfish_Secrets_AuthenticationPlugin_IID)
 
 Q_LOGGING_CATEGORY(lcSailfishSecretsPluginInapp, "org.sailfishos.secrets.plugin.authentication.inapp", QtWarningMsg)
@@ -41,6 +43,21 @@ Daemon::Plugins::InAppPlugin::beginUserInputInteraction(
             const Sailfish::Secrets::InteractionParameters &interactionParameters,
             const QString &interactionServiceAddress)
 {
+#ifdef SAILFISHSECRETS_TESTPLUGIN
+    if (interactionServiceAddress.isEmpty() &&
+            interactionParameters.promptText()
+                == QLatin1String("Enter the passphrase for the unit test")) {
+        QMetaObject::invokeMethod(this, "userInputInteractionCompleted", Qt::QueuedConnection,
+                                  Q_ARG(uint, callerPid),
+                                  Q_ARG(qint64, requestId),
+                                  Q_ARG(Sailfish::Secrets::InteractionParameters, interactionParameters),
+                                  Q_ARG(QString, interactionServiceAddress),
+                                  Q_ARG(Sailfish::Secrets::Result, Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded)),
+                                  Q_ARG(QByteArray, QByteArray("example passphrase for unit test")));
+        return Result(Result::Pending);
+    }
+#endif
+
     InteractionRequestWatcher *watcher = new InteractionRequestWatcher(this);
     watcher->setRequestId(requestId);
     watcher->setCallerPid(callerPid);

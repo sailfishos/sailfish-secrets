@@ -33,8 +33,8 @@ public:
     QByteArray m_data;
     QByteArray m_initialisationVector;
     Sailfish::Crypto::Key m_key;
-    Sailfish::Crypto::Key::BlockMode m_blockMode;
-    Sailfish::Crypto::Key::EncryptionPadding m_padding;
+    Sailfish::Crypto::CryptoManager::BlockMode m_blockMode;
+    Sailfish::Crypto::CryptoManager::EncryptionPadding m_padding;
     QString m_cryptoPluginName;
     QByteArray m_ciphertext;
 

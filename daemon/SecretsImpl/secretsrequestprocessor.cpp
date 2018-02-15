@@ -1133,6 +1133,51 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretMetadata(
     return Result(Result::Succeeded);
 }
 
+// this method is a helper for the crypto API.
+// Get data from the user to use as input data to a key derivation function.
+Result
+Daemon::ApiImpl::RequestProcessor::userInput(
+        pid_t callerPid,
+        quint64 requestId,
+        const InteractionParameters &uiParams)
+{
+    // TODO: perform access control request to see if the application has permission to request user input.
+    const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
+    const QString callerApplicationId = applicationIsPlatformApplication
+                ? m_appPermissions->platformApplicationId()
+                : m_appPermissions->applicationId(callerPid);
+
+    QString userInputPlugin = uiParams.authenticationPluginName();
+    if (uiParams.authenticationPluginName().isEmpty()) {
+        // TODO: depending on type, choose the appropriate authentication plugin
+        userInputPlugin = SecretManager::DefaultAuthenticationPluginName;
+    }
+    if (!m_authenticationPlugins.contains(userInputPlugin)) {
+        return Result(Result::InvalidExtensionPluginError,
+                      QString::fromLatin1("Cannot get user input from invalid authentication plugin: %1")
+                      .arg(uiParams.authenticationPluginName()));
+    }
+
+    InteractionParameters ikdRequest(uiParams);
+    ikdRequest.setApplicationId(callerApplicationId);
+    Result interactionResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
+                callerPid,
+                requestId,
+                ikdRequest,
+                QString());
+    if (interactionResult.code() == Result::Failed) {
+        return interactionResult;
+    }
+
+    m_pendingRequests.insert(requestId,
+                             Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                 callerPid,
+                                 requestId,
+                                 Daemon::ApiImpl::UserInputRequest,
+                                 QVariantList() << QVariant::fromValue<InteractionParameters>(ikdRequest)));
+    return Result(Result::Pending);
+}
+
 // set a secret in a collection
 Result
 Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
@@ -3958,6 +4003,7 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
     Q_UNUSED(interactionParameters)
     Q_UNUSED(interactionServiceAddress);
 
+    bool returnUserInput = false;
     Secret secret;
     QVector<Secret::Identifier> identifiers;
     Result returnResult = result;
@@ -4179,6 +4225,16 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                     }
                     break;
                 }
+                case UserInputRequest: {
+                    if (pr.parameters.size() != 1) {
+                        returnResult = Result(Result::UnknownError,
+                                              QLatin1String("Internal error: incorrect parameter count!"));
+                    } else {
+                        returnUserInput = true;
+                        returnResult = result; // Succeeded.
+                    }
+                    break;
+                }
                 default: {
                     returnResult = Result(Result::UnknownError,
                                           QLatin1String("Internal error: unknown continuation for asynchronous request!"));
@@ -4197,6 +4253,8 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
         outParams << QVariant::fromValue<Result>(returnResult);
         if (secret.identifier().isValid()) {
             outParams << QVariant::fromValue<Secret>(secret);
+        } else if (returnUserInput) {
+            outParams << QVariant::fromValue<QByteArray>(userInput);
         } else {
             outParams << QVariant::fromValue<QVector<Secret::Identifier> >(identifiers);
         }

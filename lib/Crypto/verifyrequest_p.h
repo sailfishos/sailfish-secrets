@@ -32,8 +32,8 @@ public:
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
     QByteArray m_data;
     Sailfish::Crypto::Key m_key;
-    Sailfish::Crypto::Key::SignaturePadding m_padding;
-    Sailfish::Crypto::Key::Digest m_digest;
+    Sailfish::Crypto::CryptoManager::SignaturePadding m_padding;
+    Sailfish::Crypto::CryptoManager::DigestFunction m_digest;
     QString m_cryptoPluginName;
     bool m_verified;
 

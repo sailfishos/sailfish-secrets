@@ -12,9 +12,14 @@
 #include "requestqueue_p.h"
 #include "applicationpermissions_p.h"
 
+#include "Crypto/key.h"
 #include "Crypto/extensionplugins.h"
 #include "Crypto/storedkeyrequest.h"
+#include "Crypto/interactionparameters.h"
+#include "Crypto/keyderivationparameters.h"
 
+#include <QtCore/QByteArray>
+#include <QtCore/QString>
 #include <QtDBus/QDBusContext>
 
 namespace Sailfish {
@@ -73,20 +78,26 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "      </method>\n"
     "      <method name=\"generateKey\">\n"
     "          <arg name=\"keyTemplate\" type=\"(ay)\" direction=\"in\" />\n"
+    "          <arg name=\"skdfParameters\" type=\"(ayay(i)(i)(i)(i)xiiia{sv})\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"key\" type=\"(ay)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Crypto::Key\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Crypto::KeyDerivationParameters\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Crypto::Key\" />\n"
     "      </method>\n"
     "      <method name=\"generateStoredKey\">\n"
     "          <arg name=\"keyTemplate\" type=\"(ay)\" direction=\"in\" />\n"
+    "          <arg name=\"skdfParameters\" type=\"(ayay(i)(i)(i)(i)xiiia{sv})\" direction=\"in\" />\n"
+    "          <arg name=\"uiParams\" type=\"(sss(i)sss(i)(i))\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"storageProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"key\" type=\"(ay)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Crypto::Key\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Crypto::KeyDerivationParameters\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::InteractionParameters\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Crypto::Key\" />\n"
     "      </method>\n"
@@ -96,7 +107,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"key\" type=\"(ay)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Crypto::Key::Identifier\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Crypto::StoredKeyRequest::KeyComponents\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Crypto::Key::Components\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Crypto::Key\" />\n"
     "      </method>\n"
@@ -121,8 +132,8 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"signature\" type=\"ay\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Crypto::Key\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::Key::SignaturePadding\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Crypto::Key::Digest\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::CryptoManager::SignaturePadding\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Crypto::CryptoManager::Digest\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "      </method>\n"
     "      <method name=\"verify\">\n"
@@ -134,8 +145,8 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"verified\" type=\"b\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Crypto::Key\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::Key::SignaturePadding\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Crypto::Key::Digest\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::CryptoManager::SignaturePadding\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Crypto::CryptoManager::Digest\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "      </method>\n"
     "      <method name=\"encrypt\">\n"
@@ -148,8 +159,8 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"encrypted\" type=\"ay\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::Key\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Crypto::Key::BlockMode\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Crypto::Key::EncryptionPadding\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Crypto::CryptoManager::BlockMode\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Crypto::CryptoManager::EncryptionPadding\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "      </method>\n"
     "      <method name=\"decrypt\">\n"
@@ -162,8 +173,8 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"decrypted\" type=\"ay\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::Key\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Crypto::Key::BlockMode\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Crypto::Key::EncryptionPadding\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Crypto::CryptoManager::BlockMode\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Crypto::CryptoManager::EncryptionPadding\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "      </method>\n"
     "      <method name=\"initialiseCipherSession\">\n"
@@ -179,11 +190,11 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"cipherSessionToken\" type=\"u\" direction=\"out\" />\n"
     "          <arg name=\"generatedInitialisationVector\" type=\"ay\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Crypto::Key\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::Key::Operation\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::Key::BlockMode\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Crypto::Key::EncryptionPadding\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Crypto::Key::SignaturePadding\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In5\" value=\"Sailfish::Crypto::Key::Digest\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::CryptoManager::Operation\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::CryptoManager::BlockMode\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Crypto::CryptoManager::EncryptionPadding\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Crypto::CryptoManager::SignaturePadding\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In5\" value=\"Sailfish::Crypto::CryptoManager::Digest\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "      </method>\n"
     "      <method name=\"updateCipherSessionAuthentication\">\n"
@@ -248,6 +259,7 @@ public Q_SLOTS:
 
     void generateKey(
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
@@ -255,6 +267,8 @@ public Q_SLOTS:
 
     void generateStoredKey(
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+            const Sailfish::Crypto::InteractionParameters &uiParams,
             const QString &cryptosystemProviderName,
             const QString &storageProviderName,
             const QDBusMessage &message,
@@ -263,7 +277,7 @@ public Q_SLOTS:
 
     void storedKey(
             const Sailfish::Crypto::Key::Identifier &identifier,
-            Sailfish::Crypto::StoredKeyRequest::KeyComponents keyComponents,
+            Sailfish::Crypto::Key::Components keyComponents,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
             Sailfish::Crypto::Key &key);
@@ -281,8 +295,8 @@ public Q_SLOTS:
     void sign(
             const QByteArray &data,
             const Sailfish::Crypto::Key &key,
-            Sailfish::Crypto::Key::SignaturePadding padding,
-            Sailfish::Crypto::Key::Digest digest,
+            Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+            Sailfish::Crypto::CryptoManager::DigestFunction digest,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
@@ -291,8 +305,8 @@ public Q_SLOTS:
     void verify(
             const QByteArray &data,
             const Sailfish::Crypto::Key &key,
-            Sailfish::Crypto::Key::SignaturePadding padding,
-            Sailfish::Crypto::Key::Digest digest,
+            Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+            Sailfish::Crypto::CryptoManager::DigestFunction digest,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
@@ -302,8 +316,8 @@ public Q_SLOTS:
             const QByteArray &data,
             const QByteArray &iv,
             const Sailfish::Crypto::Key &key,
-            Sailfish::Crypto::Key::BlockMode blockMode,
-            Sailfish::Crypto::Key::EncryptionPadding padding,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
@@ -313,8 +327,8 @@ public Q_SLOTS:
             const QByteArray &data,
             const QByteArray &iv,
             const Sailfish::Crypto::Key &key,
-            Sailfish::Crypto::Key::BlockMode blockMode,
-            Sailfish::Crypto::Key::EncryptionPadding padding,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
@@ -323,11 +337,11 @@ public Q_SLOTS:
     void initialiseCipherSession(
             const QByteArray &initialisationVector,
             const Sailfish::Crypto::Key &key,
-            Sailfish::Crypto::Key::Operation operation,
-            Sailfish::Crypto::Key::BlockMode blockMode,
-            Sailfish::Crypto::Key::EncryptionPadding encryptionPadding,
-            Sailfish::Crypto::Key::SignaturePadding signaturePadding,
-            Sailfish::Crypto::Key::Digest digest,
+            Sailfish::Crypto::CryptoManager::Operation operation,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
+            Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
+            Sailfish::Crypto::CryptoManager::DigestFunction digest,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,

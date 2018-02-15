@@ -14,94 +14,169 @@
 
 using namespace Sailfish::Crypto;
 
-KeyData::KeyData()
-    : m_origin(Key::OriginUnknown)
-    , m_algorithm(Key::AlgorithmUnknown)
-    , m_blockModes(Key::BlockModeUnknown)
-    , m_encryptionPaddings(Key::EncryptionPaddingUnknown)
-    , m_signaturePaddings(Key::SignaturePaddingUnknown)
-    , m_digests(Key::DigestUnknown)
-    , m_operations(Key::OperationUnknown)
+//--------------------------------------------
+
+KeyIdentifierPrivate::KeyIdentifierPrivate()
+    : QSharedData()
+{
+}
+
+KeyIdentifierPrivate::KeyIdentifierPrivate(const KeyIdentifierPrivate &other)
+    : QSharedData(other)
+    , m_name(other.m_name)
+    , m_collectionName(other.m_collectionName)
+{
+}
+
+
+KeyIdentifierPrivate::~KeyIdentifierPrivate()
+{
+}
+
+//--------------------------------------------
+
+KeyPrivate::KeyPrivate()
+    : QSharedData()
+    , m_origin(Key::OriginUnknown)
+    , m_algorithm(CryptoManager::AlgorithmUnknown)
+    , m_operations(CryptoManager::OperationUnknown)
+    , m_componentConstraints(Key::MetaData | Key::PublicKeyData)
+    , m_size(0)
 {
     m_filterData.insert(SAILFISH_SECRETS_SECRET_FILTERDATAFIELDTYPE, SAILFISH_SECRETS_SECRET_TYPECRYPTOKEY);
 }
 
-KeyData::KeyData(const KeyData &other)
-    : m_filterData(other.m_filterData)
+KeyPrivate::KeyPrivate(const KeyPrivate &other)
+    : QSharedData(other)
+    , m_filterData(other.m_filterData)
     , m_customParameters(other.m_customParameters)
     , m_publicKey(other.m_publicKey)
     , m_privateKey(other.m_privateKey)
     , m_secretKey(other.m_secretKey)
-    , m_validityStart(other.m_validityStart)
-    , m_validityEnd(other.m_validityEnd)
     , m_identifier(other.m_identifier)
     , m_origin(other.m_origin)
     , m_algorithm(other.m_algorithm)
-    , m_blockModes(other.m_blockModes)
-    , m_encryptionPaddings(other.m_encryptionPaddings)
-    , m_signaturePaddings(other.m_signaturePaddings)
-    , m_digests(other.m_digests)
     , m_operations(other.m_operations)
+    , m_componentConstraints(other.m_componentConstraints)
+    , m_size(other.m_size)
 {
 }
 
-KeyData &KeyData::operator=(const KeyData &other)
+KeyPrivate::~KeyPrivate()
 {
-    if (this != &other) {
-        m_filterData = other.m_filterData;
-        m_customParameters = other.m_customParameters;
-        m_publicKey = other.m_publicKey;
-        m_privateKey = other.m_privateKey;
-        m_secretKey = other.m_secretKey;
-        m_validityStart = other.m_validityStart;
-        m_validityEnd = other.m_validityEnd;
-        m_identifier = other.m_identifier;
-        m_origin = other.m_origin;
-        m_algorithm = other.m_algorithm;
-        m_blockModes = other.m_blockModes;
-        m_encryptionPaddings = other.m_encryptionPaddings;
-        m_signaturePaddings = other.m_signaturePaddings;
-        m_digests = other.m_digests;
-        m_operations = other.m_operations;
-    }
+}
+
+//--------------------------------------------
+
+/*!
+ * \class Key::Identifier
+ * \brief An identifier for a key
+ *
+ * The identifier consists of the name (alias) of the key, along with
+ * the name of the collection in which the key is stored (note that the
+ * collection name can be empty if the key is stored as a standalone
+ * secret).
+ *
+ * Together, the key name and collection name uniquely identify the key
+ * as a specific secret in the secrets storage.
+ */
+
+/*!
+ * \brief Constructs a new, empty identifier
+ */
+Key::Identifier::Identifier()
+    : d_ptr(new KeyIdentifierPrivate)
+{
+}
+
+/*!
+ * \brief Constructs a new identifier from the given key \a name and \a collectionName
+ */
+Key::Identifier::Identifier(const QString &name, const QString &collectionName)
+        : d_ptr(new KeyIdentifierPrivate)
+{
+    d_ptr->m_name = name;
+    d_ptr->m_collectionName = collectionName;
+}
+
+/*!
+ * \brief Constructs a copy of the \a other identifier
+ */
+Key::Identifier::Identifier(const Key::Identifier &other)
+    : d_ptr(other.d_ptr)
+{
+}
+
+/*!
+ * \brief Destroys the identifier
+ */
+Key::Identifier::~Identifier()
+{
+}
+
+/*!
+ * \brief Assigns the \a other identifier to this identifier
+ */
+Key::Identifier& Key::Identifier::operator=(const Key::Identifier &other)
+{
+    d_ptr = other.d_ptr;
     return *this;
 }
 
-bool KeyData::identical(const KeyData &other) const
+/*!
+ * \brief Returns true if the key name and collection name are identical to that of the \a other identifier
+ */
+bool Key::Identifier::operator==(const Key::Identifier &other) const
 {
-    return m_filterData == other.m_filterData
-        && m_customParameters == other.m_customParameters
-        && m_publicKey == other.m_publicKey
-        && m_privateKey == other.m_privateKey
-        && m_secretKey == other.m_secretKey
-        && m_validityStart == other.m_validityStart
-        && m_validityStart == other.m_validityEnd
-        && m_identifier == other.m_identifier
-        && m_origin == other.m_origin
-        && m_algorithm == other.m_algorithm
-        && m_blockModes == other.m_blockModes
-        && m_encryptionPaddings == other.m_encryptionPaddings
-        && m_signaturePaddings == other.m_signaturePaddings
-        && m_digests == other.m_digests
-        && m_operations == other.m_operations;
+    return d_ptr->m_name == other.d_ptr->m_name
+            && d_ptr->m_collectionName == other.d_ptr->m_collectionName;
 }
 
-bool KeyData::keysEqual(const KeyData &other) const
+/*!
+ * \brief Returns true if this identifier should sort before the \a other identifier
+ *
+ * It is sorted first on collection name, and then on the key name.
+ */
+bool operator<(const Key::Identifier &lhs, const Key::Identifier &rhs)
 {
-    return m_publicKey == other.m_publicKey
-        && m_privateKey == other.m_privateKey
-        && m_secretKey == other.m_secretKey;
+    return (lhs.collectionName() == rhs.collectionName())
+            ? (lhs.name() < rhs.name())
+            : (lhs.collectionName() < rhs.collectionName());
 }
 
-bool KeyData::lessThan(const KeyData &other) const
+/*!
+ * \brief Returns the key name from the identifier
+ */
+QString Key::Identifier::name() const
 {
-    return m_publicKey < other.m_publicKey
-        || m_privateKey < other.m_privateKey
-        || m_secretKey < other.m_secretKey
-        || m_algorithm < other.m_algorithm
-        || m_identifier < other.m_identifier;
+    return d_ptr->m_name;
 }
 
+/*!
+ * \brief Sets the key name in the identifier to \a name
+ */
+void Key::Identifier::setName(const QString &name)
+{
+    d_ptr->m_name = name;
+}
+
+/*!
+ * \brief Returns the collection name from the identifier
+ */
+QString Key::Identifier::collectionName() const
+{
+    return d_ptr->m_collectionName;
+}
+
+/*!
+ * \brief Sets the collection name in the identifier to \a collectionName
+ */
+void Key::Identifier::setCollectionName(const QString &collectionName)
+{
+    d_ptr->m_collectionName = collectionName;
+}
+
+//--------------------------------------------
 
 /*!
  * \class Key
@@ -123,7 +198,7 @@ bool KeyData::lessThan(const KeyData &other) const
  * \brief Constructs an empty key
  */
 Key::Key()
-    : m_data(new KeyData)
+    : d_ptr(new KeyPrivate)
 {
 }
 
@@ -131,23 +206,8 @@ Key::Key()
  * \brief Constructs a copy of the \a other key
  */
 Key::Key(const Key &other)
-    : m_data(new KeyData)
+    : d_ptr(other.d_ptr)
 {
-    setFilterData(other.filterData());
-    setCustomParameters(other.customParameters());
-    setPublicKey(other.publicKey());
-    setPrivateKey(other.privateKey());
-    setSecretKey(other.secretKey());
-    setValidityStart(other.validityStart());
-    setValidityEnd(other.validityEnd());
-    setIdentifier(other.identifier());
-    setOrigin(other.origin());
-    setAlgorithm(other.algorithm());
-    setBlockModes(other.blockModes());
-    setEncryptionPaddings(other.encryptionPaddings());
-    setSignaturePaddings(other.signaturePaddings());
-    setDigests(other.digests());
-    setOperations(other.operations());
 }
 
 /*!
@@ -158,34 +218,9 @@ Key::Key(const Key &other)
  * be exposed to the client process.
  */
 Key::Key(const QString &name, const QString &collection)
-    : m_data(new KeyData)
+    : d_ptr(new KeyPrivate)
 {
     setIdentifier(Key::Identifier(name, collection));
-}
-
-/*!
- * \brief Assigns the \a other key to this key, and returns a reference to this key
- */
-Key& Key::operator=(const Key &other)
-{
-    if (this != &other) {
-        setFilterData(other.filterData());
-        setCustomParameters(other.customParameters());
-        setPublicKey(other.publicKey());
-        setPrivateKey(other.privateKey());
-        setSecretKey(other.secretKey());
-        setValidityStart(other.validityStart());
-        setValidityEnd(other.validityEnd());
-        setIdentifier(other.identifier());
-        setOrigin(other.origin());
-        setAlgorithm(other.algorithm());
-        setBlockModes(other.blockModes());
-        setEncryptionPaddings(other.encryptionPaddings());
-        setSignaturePaddings(other.signaturePaddings());
-        setDigests(other.digests());
-        setOperations(other.operations());
-    }
-    return *this;
 }
 
 /*!
@@ -193,7 +228,15 @@ Key& Key::operator=(const Key &other)
  */
 Key::~Key()
 {
-    delete m_data;
+}
+
+/*!
+ * \brief Assigns the \a other key to this key, and returns a reference to this key
+ */
+Key& Key::operator=(const Key &other)
+{
+    d_ptr = other.d_ptr;
+    return *this;
 }
 
 /*!
@@ -201,23 +244,36 @@ Key::~Key()
  */
 bool Key::operator==(const Key &other) const
 {
-    return m_data->identical(*other.m_data);
-}
-
-/*!
- * \brief Returns true if the underlying data and metadata in this key are not identical to those in \a other, otherwise false
- */
-bool Key::operator!=(const Sailfish::Crypto::Key &other) const
-{
-    return !m_data->identical(*other.m_data);
+    return d_ptr->m_filterData == other.d_ptr->m_filterData
+        && d_ptr->m_customParameters == other.d_ptr->m_customParameters
+        && d_ptr->m_publicKey == other.d_ptr->m_publicKey
+        && d_ptr->m_privateKey == other.d_ptr->m_privateKey
+        && d_ptr->m_secretKey == other.d_ptr->m_secretKey
+        && d_ptr->m_identifier == other.d_ptr->m_identifier
+        && d_ptr->m_origin == other.d_ptr->m_origin
+        && d_ptr->m_algorithm == other.d_ptr->m_algorithm
+        && d_ptr->m_operations == other.d_ptr->m_operations
+        && d_ptr->m_size == other.d_ptr->m_size;
 }
 
 /*!
  * \brief Returns true if this key should sort before the \a other key
  */
-bool Key::operator<(const Key &other) const
+bool operator<(const Key &lhs, const Key &rhs)
 {
-    return m_data->lessThan(*other.m_data);
+    if (lhs.size() != 0 && rhs.size() != 0 && lhs.size() != rhs.size()) {
+        return lhs.size() < rhs.size();
+    } else if (lhs.identifier() != rhs.identifier()) {
+        return lhs.identifier() < rhs.identifier();
+    } else if (lhs.publicKey() != rhs.publicKey()) {
+        return lhs.publicKey() < rhs.publicKey();
+    } else if (lhs.privateKey() != rhs.privateKey()) {
+        return lhs.privateKey() < rhs.privateKey();
+    } else if (lhs.secretKey() != rhs.secretKey()) {
+        return lhs.secretKey() < rhs.secretKey();
+    } else {
+        return lhs.algorithm() < rhs.algorithm();
+    }
 }
 
 /*!
@@ -225,7 +281,7 @@ bool Key::operator<(const Key &other) const
  */
 Key::Identifier Key::identifier() const
 {
-    return m_data->m_identifier;
+    return d_ptr->m_identifier;
 }
 
 /*!
@@ -233,7 +289,7 @@ Key::Identifier Key::identifier() const
  */
 void Key::setIdentifier(const Key::Identifier &identifier)
 {
-    m_data->m_identifier = identifier;
+    d_ptr->m_identifier = identifier;
 }
 
 /*!
@@ -241,7 +297,7 @@ void Key::setIdentifier(const Key::Identifier &identifier)
  */
 Key::Origin Key::origin() const
 {
-    return m_data->m_origin;
+    return d_ptr->m_origin;
 }
 
 /*!
@@ -249,103 +305,141 @@ Key::Origin Key::origin() const
  */
 void Key::setOrigin(Key::Origin origin)
 {
-    m_data->m_origin = origin;
+    d_ptr->m_origin = origin;
 }
 
 /*!
  * \brief Returns the cryptosystem algorithm this key is intended to be used with
  */
-Key::Algorithm Key::algorithm() const
+CryptoManager::Algorithm Key::algorithm() const
 {
-    return m_data->m_algorithm;
+    return d_ptr->m_algorithm;
 }
 
 /*!
  * \brief Sets the cryptosystem algorithm this key is intended to be used with to \a algorithm
  */
-void Key::setAlgorithm(Key::Algorithm algorithm)
+void Key::setAlgorithm(CryptoManager::Algorithm algorithm)
 {
-    m_data->m_algorithm = algorithm;
-}
-
-/*!
- * \brief Returns the set of cipher block modes which are supported for use with this key
- */
-Key::BlockModes Key::blockModes() const
-{
-    return m_data->m_blockModes;
-}
-
-/*!
- * \brief Sets the cipher block modes which are supported for use with this key to \a modes
- */
-void Key::setBlockModes(Key::BlockModes modes)
-{
-    m_data->m_blockModes = modes;
-}
-
-/*!
- * \brief Returns the set of encryption padding schemes which are supported for use with this key
- */
-Key::EncryptionPaddings Key::encryptionPaddings() const
-{
-    return m_data->m_encryptionPaddings;
-}
-
-/*!
- * \brief Sets the encryption padding schemes which are supported for use with this key to \a paddings
- */
-void Key::setEncryptionPaddings(Key::EncryptionPaddings paddings)
-{
-    m_data->m_encryptionPaddings = paddings;
-}
-
-/*!
- * \brief Returns the set of signature padding schemes which are supported for use with this key
- */
-Key::SignaturePaddings Key::signaturePaddings() const
-{
-    return m_data->m_signaturePaddings;
-}
-
-/*!
- * \brief Sets the signature padding schemes which are supported for use with this key to \a paddings
- */
-void Key::setSignaturePaddings(Key::SignaturePaddings paddings)
-{
-    m_data->m_signaturePaddings = paddings;
-}
-
-/*!
- * \brief Returns the set of digests (or hash functions) which are supported for use with this key
- */
-Key::Digests Key::digests() const
-{
-    return m_data->m_digests;
-}
-
-/*!
- * \brief Sets the digests (or hash functions) which are supported for use with this key to \a digests
- */
-void Key::setDigests(Key::Digests digests)
-{
-    m_data->m_digests = digests;
+    d_ptr->m_algorithm = algorithm;
 }
 
 /*!
  * \brief Returns the set of operations which are supported for this key
  */
-Key::Operations Key::operations() const
+CryptoManager::Operations Key::operations() const
 {
-    return m_data->m_operations;
+    return d_ptr->m_operations;
 }
 
 /*!
  * \brief Sets the operations which are supported for this key to \a operations
+ *
+ * This should generally only be called by the client when specifying a template
+ * key as a parameter to a \l{GenerateStoredKeyRequest}.
+ *
+ * Some crypto storage plugins will enforce these as constraints, so that a
+ * key whose operations contains only \l{CryptoManager::OperationSign} and
+ * \l{CryptoManager::OperationVerify} will not be able to be used in
+ * encryption or decryption operations, for example.
+ *
+ * Please see the documentation for the crypto plugin you intend to use, for
+ * more information about whether it enforces such constraints.
  */
-void Key::setOperations(Key::Operations operations)
+void Key::setOperations(CryptoManager::Operations operations)
 {
-    m_data->m_operations = operations;
+    d_ptr->m_operations = operations;
+}
+
+/*!
+ * \brief Returns the types of key components which the client is allowed to retrieve after the key has been stored
+ */
+Key::Components Key::componentConstraints() const
+{
+    return d_ptr->m_componentConstraints;
+}
+
+/*!
+ * \brief Sets the types of key components which the client is allowed to retrieve after the key has been stored to \a components
+ *
+ * This should generally only be called by the client when specifying a template
+ * key as a parameter to a \l{GenerateStoredKeyRequest}.  Clients are only able
+ * to retrieve the key components specified in the componentsConstraints() after
+ * the key has been stored.
+ *
+ * When a key is generated and stored, the client can specify constraints which
+ * should be enforced by the crypto storage plugin in which the key is stored.
+ * This allows the client to specify, for example, that no client (including
+ * itself) is allowed to retrieve the secret key data from the key, after the
+ * key has been stored, to ensure the security of the key is maintained.
+ *
+ * By default, only Key::MetaData and Key::PublicKeyData are included in the
+ * components constraints, and so any secret or private key data will NOT
+ * be able to be read back by clients, if the key is stored in a crypto plugin
+ * which enforces key component constraints.
+ *
+ * Note that only crypto storage plugins (that is, any plugin which implements both
+ * the Sailfish::Crypto::CryptoPlugin and the Sailfish::Secrets::EncryptedStoragePlugin
+ * interfaces) can enforce these key component constraints.  If the key is stored
+ * in any other type of storage plugin (e.g. a Sailfish::Secrets::StoragePlugin)
+ * then the key component constraints will not be enforced.
+ *
+ * Also note that whether the crypto storage plugin enforces the constraint or not
+ * is up to the plugin.  Please see the documentation for the plugin you intend
+ * to use, to see if it supports enforcing key component constraints.
+ */
+void Key::setComponentConstraints(Key::Components components)
+{
+    d_ptr->m_componentConstraints = components;
+}
+
+/*!
+ * \brief Returns the security size, in bits, of the key.
+ *
+ * Note that this will NOT necessarily be the data size of any of
+ * the key fields, depending on the type of algorithm the key
+ * is designed to be used for.
+ *
+ * For symmetric algorithm keys, the security size is generally also
+ * the data size (in bits) of the secret key.
+ *
+ * For asymmetric keys, the security size is generally the size
+ * of the modulus (in the case of RSA keys) or the curve group
+ * size (in the case of ECC keys), and the actual data size of
+ * the private and public key data may be much larger (for example,
+ * the private key data for an RSA key could include modulus,
+ * public exponent, private exponent, prime factors, reduced modulo
+ * factors, and inverse factor modulo, in order to avoid having to
+ * recalculate those pieces of data at every use - which altogether
+ * adds up to a much larger data size than the security size).
+ *
+ * As such, an RSA key with a security size of 2048 bits could
+ * have a data (storage) size of 1232 bytes (in PKCS#8 format).
+ */
+int Key::size() const
+{
+    return d_ptr->m_size;
+}
+
+/*!
+ * \brief Sets the security size, in bits, of the key to \a size
+ *
+ * Clients should call this when generating a key (either via
+ * GenerateKeyRequest or GeneratedStoredKeyRequest).
+ *
+ * Note that if the client also passes KeyDerivationParameters
+ * to such a request, the size specified here will be ignored, in
+ * favour of the output key size specified in those parameters.
+ *
+ * If no valid symmetric key derivation parameters are passed to
+ * the request, then the crypto plugin will generate a key appropriate
+ * for the specified algorithm according to this size (for symmetric
+ * algorithms, this means that the plugin will usually generate random
+ * data of the appropriate size).
+ */
+void Key::setSize(int size)
+{
+    d_ptr->m_size = size;
 }
 
 /*!
@@ -353,7 +447,7 @@ void Key::setOperations(Key::Operations operations)
  */
 QByteArray Key::publicKey() const
 {
-    return m_data->m_publicKey;
+    return d_ptr->m_publicKey;
 }
 
 /*!
@@ -361,7 +455,7 @@ QByteArray Key::publicKey() const
  */
 void Key::setPublicKey(const QByteArray &key)
 {
-    m_data->m_publicKey = key;
+    d_ptr->m_publicKey = key;
 }
 
 /*!
@@ -369,7 +463,7 @@ void Key::setPublicKey(const QByteArray &key)
  */
 QByteArray Key::privateKey() const
 {
-    return m_data->m_privateKey;
+    return d_ptr->m_privateKey;
 }
 
 /*!
@@ -380,7 +474,7 @@ QByteArray Key::privateKey() const
  */
 void Key::setPrivateKey(const QByteArray &key)
 {
-    m_data->m_privateKey = key;
+    d_ptr->m_privateKey = key;
 }
 
 /*!
@@ -388,7 +482,7 @@ void Key::setPrivateKey(const QByteArray &key)
  */
 QByteArray Key::secretKey() const
 {
-    return m_data->m_secretKey;
+    return d_ptr->m_secretKey;
 }
 
 /*!
@@ -399,39 +493,7 @@ QByteArray Key::secretKey() const
  */
 void Key::setSecretKey(const QByteArray &key)
 {
-    m_data->m_secretKey = key;
-}
-
-/*!
- * \brief Returns the date from which this key has become, will become, or was, valid
- */
-QDateTime Key::validityStart() const
-{
-    return m_data->m_validityStart;
-}
-
-/*!
- * \brief Sets the date from which this key has become, will become, or was, valid, to \a timestamp
- */
-void Key::setValidityStart(const QDateTime &timestamp)
-{
-    m_data->m_validityStart = timestamp;
-}
-
-/*!
- * \brief Returns the date from which this key has become or will become invalid
- */
-QDateTime Key::validityEnd() const
-{
-    return m_data->m_validityEnd;
-}
-
-/*!
- * \brief Sets the date from which this key has become or will become invalid to \a timestamp
- */
-void Key::setValidityEnd(const QDateTime &timestamp)
-{
-    m_data->m_validityEnd = timestamp;
+    d_ptr->m_secretKey = key;
 }
 
 /*!
@@ -439,7 +501,7 @@ void Key::setValidityEnd(const QDateTime &timestamp)
  */
 QVector<QByteArray> Key::customParameters() const
 {
-    return m_data->m_customParameters;
+    return d_ptr->m_customParameters;
 }
 
 /*!
@@ -454,14 +516,13 @@ QVector<QByteArray> Key::customParameters() const
  */
 void Key::setCustomParameters(const QVector<QByteArray> &parameters)
 {
-    m_data->m_customParameters = parameters;
+    d_ptr->m_customParameters = parameters;
 }
 
 /*!
  * \brief Extracts metadata and the public key from the given \a certificate and returns a Key encapsulating that data
  */
-Key
-Key::fromCertificate(const Certificate &certificate)
+Key Key::fromCertificate(const Certificate &certificate)
 {
     if (certificate.type() != Certificate::X509) {
         // TODO: other certificate types.
@@ -487,19 +548,17 @@ Key::fromCertificate(const Certificate &certificate)
  * if they have permission to access it.  The filter data
  * is a simple map of string field to string value.
  */
-Key::FilterData
-Key::filterData() const
+Key::FilterData Key::filterData() const
 {
-    return m_data->m_filterData;
+    return d_ptr->m_filterData;
 }
 
 /*!
  * \brief Returns the filter data value for the given \a field.
  */
-QString
-Key::filterData(const QString &field) const
+QString Key::filterData(const QString &field) const
 {
-    return m_data->m_filterData.value(field);
+    return d_ptr->m_filterData.value(field);
 }
 
 /*!
@@ -508,12 +567,11 @@ Key::filterData(const QString &field) const
  * Note that the field "Type" will always have the value "CryptoKey"
  * and this field value cannot be overwritten.
  */
-void
-Key::setFilterData(const Key::FilterData &data)
+void Key::setFilterData(const Key::FilterData &data)
 {
     Key::FilterData v(data);
     v.insert(SAILFISH_SECRETS_SECRET_FILTERDATAFIELDTYPE, SAILFISH_SECRETS_SECRET_TYPECRYPTOKEY);
-    m_data->m_filterData = v;
+    d_ptr->m_filterData = v;
 }
 
 /*!
@@ -522,11 +580,10 @@ Key::setFilterData(const Key::FilterData &data)
  * Note that the field "Type" will always have the value "CryptoKey"
  * and this field value cannot be overwritten.
  */
-void
-Key::setFilterData(const QString &field, const QString &value)
+void Key::setFilterData(const QString &field, const QString &value)
 {
     if (field.compare(SAILFISH_SECRETS_SECRET_FILTERDATAFIELDTYPE, Qt::CaseInsensitive) != 0) {
-        m_data->m_filterData.insert(field, value);
+        d_ptr->m_filterData.insert(field, value);
     }
 }
 
@@ -535,8 +592,7 @@ Key::setFilterData(const QString &field, const QString &value)
  *
  * Note that this function will always return true for the field "Type".
  */
-bool
-Key::hasFilterData(const QString &field)
+bool Key::hasFilterData(const QString &field)
 {
-    return m_data->m_filterData.contains(field);
+    return d_ptr->m_filterData.contains(field);
 }

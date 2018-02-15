@@ -27,27 +27,29 @@
 #include <openssl/rand.h>
 
 namespace {
-    void nullifyKeyFields(Sailfish::Crypto::Key *key, Sailfish::Crypto::StoredKeyRequest::KeyComponents keep) {
-        // Null-out fields if the client hasn't specified that they be kept.
+    void nullifyKeyFields(Sailfish::Crypto::Key *key, Sailfish::Crypto::Key::Components keep) {
+        // Null-out fields if the client hasn't specified that they be kept,
+        // or which the key component constraints don't allow to be read back.
         // Note that by default we treat CustomParameters as PublicKeyData.
-        if (!(keep & Sailfish::Crypto::StoredKeyRequest::MetaData)) {
+        Sailfish::Crypto::Key::Components kcc = key->componentConstraints();
+        if (!(keep & Sailfish::Crypto::Key::MetaData)
+                || !(kcc & Sailfish::Crypto::Key::MetaData)) {
             key->setIdentifier(Sailfish::Crypto::Key::Identifier());
             key->setOrigin(Sailfish::Crypto::Key::OriginUnknown);
-            key->setAlgorithm(Sailfish::Crypto::Key::AlgorithmUnknown);
-            key->setBlockModes(Sailfish::Crypto::Key::BlockModeUnknown);
-            key->setEncryptionPaddings(Sailfish::Crypto::Key::EncryptionPaddingUnknown);
-            key->setSignaturePaddings(Sailfish::Crypto::Key::SignaturePaddingUnknown);
-            key->setDigests(Sailfish::Crypto::Key::DigestUnknown);
-            key->setOperations(Sailfish::Crypto::Key::OperationUnknown);
+            key->setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmUnknown);
+            key->setOperations(Sailfish::Crypto::CryptoManager::OperationUnknown);
+            key->setComponentConstraints(Sailfish::Crypto::Key::NoData);
             key->setFilterData(Sailfish::Crypto::Key::FilterData());
         }
 
-        if (!(keep & Sailfish::Crypto::StoredKeyRequest::PublicKeyData)) {
+        if (!(keep & Sailfish::Crypto::Key::PublicKeyData)
+                || !(kcc & Sailfish::Crypto::Key::PublicKeyData)) {
             key->setCustomParameters(QVector<QByteArray>());
             key->setPublicKey(QByteArray());
         }
 
-        if (!(keep & Sailfish::Crypto::StoredKeyRequest::SecretKeyData)) {
+        if (!(keep & Sailfish::Crypto::Key::PrivateKeyData)
+                || !(kcc & Sailfish::Crypto::Key::PrivateKeyData)) {
             key->setPrivateKey(QByteArray());
             key->setSecretKey(QByteArray());
         }
@@ -85,6 +87,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::seedRandomDataGenerator(
 Sailfish::Crypto::Result
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::generateAndStoreKey(
         const Sailfish::Crypto::Key &keyTemplate,
+        const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
         Sailfish::Crypto::Key *keyMetadata)
 {
     if (keyTemplate.identifier().name().isEmpty()) {
@@ -99,7 +102,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::generateAndStoreKey(
     }
 
     Sailfish::Crypto::Key fullKey(keyTemplate);
-    Sailfish::Crypto::Result retn = generateKey(keyTemplate, &fullKey);
+    Sailfish::Crypto::Result retn = generateKey(keyTemplate, skdfParams, &fullKey);
     if (retn.code() == Sailfish::Crypto::Result::Failed) {
         return retn;
     }
@@ -129,9 +132,8 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::generateAndStoreKey(
 }
 
 Sailfish::Crypto::Result
-Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::storedKey(
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::storedKey_internal(
         const Sailfish::Crypto::Key::Identifier &identifier,
-        Sailfish::Crypto::StoredKeyRequest::KeyComponents keyComponents,
         Sailfish::Crypto::Key *key)
 {
     if (identifier.name().isEmpty()) {
@@ -176,8 +178,22 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::storedKey(
     fullKey.setIdentifier(Sailfish::Crypto::Key::Identifier(identifier.name(), identifier.collectionName()));
     fullKey.setFilterData(filterData);
     *key = fullKey;
-    nullifyKeyFields(key, keyComponents);
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
+}
+
+Sailfish::Crypto::Result
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::storedKey(
+        const Sailfish::Crypto::Key::Identifier &identifier,
+        Sailfish::Crypto::Key::Components keyComponents,
+        Sailfish::Crypto::Key *key)
+{
+    Sailfish::Crypto::Key fullKey;
+    Sailfish::Crypto::Result retn = storedKey_internal(
+                identifier,
+                &fullKey);
+    *key = fullKey;
+    nullifyKeyFields(key, keyComponents);
+    return retn;
 }
 
 Sailfish::Crypto::Result
@@ -197,11 +213,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::getFullKey(
         const Sailfish::Crypto::Key &key)
 {
     Sailfish::Crypto::Key fullKey;
-    if (storedKey(key.identifier(),
-                  Sailfish::Crypto::StoredKeyRequest::MetaData
-                    | Sailfish::Crypto::StoredKeyRequest::PublicKeyData
-                    | Sailfish::Crypto::StoredKeyRequest::SecretKeyData,
-                  &fullKey).code() == Sailfish::Crypto::Result::Succeeded) {
+    if (storedKey_internal(key.identifier(), &fullKey).code() == Sailfish::Crypto::Result::Succeeded) {
         return fullKey;
     }
     return key;
