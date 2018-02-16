@@ -1,13 +1,14 @@
-TEMPLATE=lib
-CONFIG+=plugin
-TARGET=sailfishcrypto-openssl
+TEMPLATE = lib
+CONFIG += plugin
+TARGET = sailfishcrypto-openssl
 TARGET = $$qtLibraryTarget($$TARGET)
 
 include($$PWD/../../common.pri)
-include($$PWD/../../api/libsailfishcrypto/libsailfishcrypto.pri)
+include($$PWD/../../lib/libsailfishcrypto.pri)
 
-HEADERS+=evp_p.h plugin.h
-SOURCES+=plugin.cpp
+HEADERS += $$PWD/evp_p.h $$PWD/opensslcryptoplugin.h
+SOURCES += $$PWD/opensslcryptoplugin.cpp
+OTHER_FILES += $$PWD/cryptoplugin_common.cpp
 
-target.path=/usr/lib/sailfishcrypto/
+target.path=/usr/lib/Sailfish/Crypto/
 INSTALLS += target

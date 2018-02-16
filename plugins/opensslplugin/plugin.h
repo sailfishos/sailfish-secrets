@@ -31,15 +31,13 @@ class Q_DECL_EXPORT OpenSslPlugin : public Sailfish::Secrets::EncryptionPlugin
 public:
     OpenSslPlugin(QObject *parent = Q_NULLPTR);
     ~OpenSslPlugin();
-
-    bool isTestPlugin() const Q_DECL_OVERRIDE {
-#ifdef SAILFISH_SECRETS_BUILD_TEST_PLUGIN
-        return true;
+    QString name() const Q_DECL_OVERRIDE {
+#ifdef SAILFISHSECRETS_TESTPLUGIN
+        return QLatin1String("org.sailfishos.secrets.plugin.encryption.openssl.test");
 #else
-        return false;
+        return QLatin1String("org.sailfishos.secrets.plugin.encryption.openssl");
 #endif
     }
-    QString name() const Q_DECL_OVERRIDE { return QLatin1String("org.sailfishos.secrets.plugin.encryption.openssl"); }
 
     Sailfish::Secrets::EncryptionPlugin::EncryptionType encryptionType() const Q_DECL_OVERRIDE { return Sailfish::Secrets::EncryptionPlugin::SoftwareEncryption; }
     Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm encryptionAlgorithm() const Q_DECL_OVERRIDE { return Sailfish::Secrets::EncryptionPlugin::AES_256_CBC; }

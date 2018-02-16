@@ -13,10 +13,8 @@
 
 Q_DECLARE_LOGGING_CATEGORY(lcSailfishCryptoDaemon)
 Q_DECLARE_LOGGING_CATEGORY(lcSailfishCryptoDaemonDBus)
-Q_DECLARE_LOGGING_CATEGORY(lcSailfishCryptoDaemonDatabase)
 
 Q_DECLARE_LOGGING_CATEGORY(lcSailfishSecretsDaemon)
 Q_DECLARE_LOGGING_CATEGORY(lcSailfishSecretsDaemonDBus)
-Q_DECLARE_LOGGING_CATEGORY(lcSailfishSecretsDaemonDatabase)
 
 #endif // SAILFISHSECRETS_DAEMON_LOGGING_P_H

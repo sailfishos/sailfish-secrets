@@ -10,8 +10,8 @@
 
 #include "Secrets/extensionplugins.h"
 #include "Secrets/result.h"
-#include "Secrets/uirequest.h"
-#include "Secrets/uirequestwatcher.h"
+#include "Secrets/interactionrequest.h"
+#include "Secrets/interactionrequestwatcher.h"
 
 #include <QObject>
 #include <QVector>
@@ -41,15 +41,13 @@ public:
     InAppPlugin(QObject *parent = Q_NULLPTR);
     ~InAppPlugin();
 
-    bool isTestPlugin() const Q_DECL_OVERRIDE {
-#ifdef SAILFISH_SECRETS_BUILD_TEST_PLUGIN
-        return true;
+    QString name() const Q_DECL_OVERRIDE {
+#ifdef SAILFISHSECRETS_TESTPLUGIN
+        return QLatin1String("org.sailfishos.secrets.plugin.authentication.inapp.test");
 #else
-        return false;
+        return QLatin1String("org.sailfishos.secrets.plugin.authentication.inapp");
 #endif
     }
-
-    QString name() const Q_DECL_OVERRIDE { return QLatin1String("org.sailfishos.secrets.plugin.authentication.inapp"); }
     Sailfish::Secrets::AuthenticationPlugin::AuthenticationType authenticationType() const Q_DECL_OVERRIDE { return Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication; }
 
     Sailfish::Secrets::Result beginAuthentication(
@@ -58,16 +56,16 @@ public:
                 const QString &callerApplicationId,
                 const QString &collectionName,
                 const QString &secretName,
-                const QString &uiServiceAddress) Q_DECL_OVERRIDE;
+                const QString &interactionServiceAddress) Q_DECL_OVERRIDE;
 
 private Q_SLOTS:
-    void uiRequestFinished(quint64 requestId);
-    void uiRequestResponse(quint64 requestId,
+    void interactionRequestFinished(quint64 requestId);
+    void interactionRequestResponse(quint64 requestId,
                            const Sailfish::Secrets::Result &result,
-                           const Sailfish::Secrets::UiResponse &response);
+                           const Sailfish::Secrets::InteractionResponse &response);
 
 private:
-    QMap<quint64, Sailfish::Secrets::UiRequestWatcher *> m_requests;
+    QMap<quint64, Sailfish::Secrets::InteractionRequestWatcher *> m_requests;
 };
 
 } // namespace Plugins

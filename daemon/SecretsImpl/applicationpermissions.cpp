@@ -19,6 +19,7 @@ QString Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions::applicationI
     // special case handling of the pid 999999 for demonstration testing purposes only!
     // TODO: remove this special case handling!
     if (pid == 999999) {
+        qWarning() << "WARNING! Special case pid handling needs to be removed once access control / application management API exists!";
         return QLatin1String("test-third-party-application");
     }
 

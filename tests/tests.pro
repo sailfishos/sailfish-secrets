@@ -1,2 +1,5 @@
 TEMPLATE = subdirs
-SUBDIRS = tst_secrets tst_crypto
+SUBDIRS = \
+    $$PWD/plugins \
+    $$PWD/Crypto \
+    $$PWD/Secrets

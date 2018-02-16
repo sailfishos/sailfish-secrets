@@ -1,0 +1,231 @@
+/****************************************************************************************
+**
+** Copyright (C) 2018 Jolla Ltd.
+** Contact: Chris Adams <chris.adams@jollamobile.com>
+** All rights reserved.
+**
+****************************************************************************************/
+
+/*!
+\contentspage {Sailfish OS Crypto Library Contents}
+\page sailfish-crypto-overview.html
+
+\title Sailfish OS Crypto Library Overview
+
+The Sailfish OS Crypto Library provides applications with API to access the
+cryptography functionality offered by the system service daemon as part of the
+Sailfish OS Secrets and Crypto Framework.  Please see the Sailfish OS Secrets
+documentation for more in-depth documentation about the framework architecture,
+and broad overview of the features the framework provides.
+
+\section1 Using the Sailfish OS Crypto Library
+
+As described in the Sailfish OS Secrets and Crypto Framework overview
+documentation, client applications can use the Sailfish OS Crypto Library
+in order to make use of the cryptographic services provided by the
+Sailfish OS Secrets and Crypto Framework.
+
+This library provides client applications written in C++ (with Qt) with API to
+make use of the cryptographic services provided by the Sailfish OS Secrets and
+Crypto Framework.
+
+To make use of this library, applications should depend on the
+"sailfishcrypto.pc" pkgconfig file.
+
+e.g. in a qmake-based project:
+
+\code
+CONFIG += link_pkgconfig
+PKGCONFIG += sailfishcrypto
+\endcode
+
+\section2 Client API
+
+The client API consists of a variety of C++ classes which represent the
+inputs to cryptographic operations (including secret keys and certificates),
+the result of a cryptographic operation (that is, whether it succeeded or
+failed, along with some information about the reason for the failure),
+and one class which provides an interface to the remote service.
+
+\list
+\li \l{Sailfish::Crypto::Key} represents a (possibly partial or reference) cryptographic key
+\li \l{Sailfish::Crypto::Key::Identifier} consists of a key name and optionally a collection name
+\li \l{Sailfish::Crypto::Certificate} represents a cryptographic certificate
+\li \l{Sailfish::Crypto::X509Certificate} represents an X.509 certificate
+\li \l{Sailfish::Crypto::Result} represents the result (but not the output) of a cryptographic operation
+\li \l{Sailfish::Crypto::CryptoManager} provides an interface to the system cryptography service
+\endlist
+
+In order to perform a cryptographic operation, clients must request that the
+system service perform the operation on their behalf, and either return the
+result to them, or store it securely.  There are a variety of request-specific
+classes which provide this functionality:
+
+\list
+\li \l{Sailfish::Crypto::PluginInfoRequest} to retrieve information about crypto plugins
+\li \l{Sailfish::Crypto::SeedRandomDataGeneratorRequest} to seed a crypto plugin's random number generator
+\li \l{Sailfish::Crypto::GenerateRandomDataRequest} to generate random data
+\li \l{Sailfish::Crypto::ValidateCertificateChainRequest} to validate certificates
+\li \l{Sailfish::Crypto::GenerateKeyRequest} to generate a \l{Key}
+\li \l{Sailfish::Crypto::GenerateStoredKeyRequest} to generate a securely-stored \l{Key}
+\li \l{Sailfish::Crypto::StoredKeyRequest} to retrieve a securely-stored \l{Key}
+\li \l{Sailfish::Crypto::StoredKeyIdentifiersRequest} to retrieve the identifiers of securely-stored \l{Key}{Keys}
+\li \l{Sailfish::Crypto::DeleteStoredKeyRequest} to delete a securely-stored \l{Key}
+\li \l{Sailfish::Crypto::EncryptRequest} to encrypt data with a given \l{Key}
+\li \l{Sailfish::Crypto::DecryptRequest} to decrypt data with a given \l{Key}
+\li \l{Sailfish::Crypto::SignRequest} to generate a signature for some data with a given \l{Key}
+\li \l{Sailfish::Crypto::VerifyRequest} to verify if a signature was generated with a given \l{Key}
+\li \l{Sailfish::Crypto::CipherRequest} to start a cipher session with which to encrypt, decrypt, sign or verify a stream of data
+\endlist
+
+\section3 Usage Examples
+
+The examples directory in the source repository contains a variety of examples
+of usage of the Sailfish OS Crypto Library as well as the Sailfish OS Secrets
+Library.  Please see those for complete, working examples.
+
+Some snippets showing commonly-required functionality are included below.
+
+\section4 Generating a securely-stored symmetric cipher key
+
+This snippet shows how to generate a symmetric cipher key which will be stored
+securely by the Sailfish OS Secrets and Crypto Framework. It assumes that a
+secure storage collection has previously been created, in which to store the
+key. Please see the Sailfish OS Secrets Library documentation for information
+about how to create such a collection.
+
+First, the client defines the algorithm, supported block modes, supported
+padding schemes, and supported operations in a template key.  That template key
+is given an identifier which includes the name of the key and the name of the
+secure storage collection in which it should be stored, and is then set as a
+parameter in the GenerateStoredKeyRequest instance, which, when started,
+results in an IPC call to the secure Sailfish OS Secrets and Crypto Framework
+system service.
+
+The Sailfish OS Secrets and Crypto Framework system service will then delegate
+the operation to the specified crypto plugin, which in turn will generate a
+full symmetric key based upon the given template, and store it securely.  A
+reference key (that is, a key containing a valid identifier and metadata, but
+no secret key data) will be returned to the client application.
+
+Note that these operations are all asynchronous, however in the snippet we
+force the operation to be synchronous by calling the \tt{waitForFinished()}
+method of the request object.  In practice, the client application should
+instead listen to the signals which notify when the operation is complete.
+
+\code
+// Set the key template metadata.
+Sailfish::Crypto::Key keyTemplate, symmetricKeyReference;
+keyTemplate.setAlgorithm(Sailfish::Crypto::Key::Aes256);
+keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
+keyTemplate.setBlockModes(Sailfish::Crypto::Key::BlockModeCBC);
+keyTemplate.setEncryptionPaddings(Sailfish::Crypto::Key::EncryptionPaddingNone);
+keyTemplate.setSignaturePaddings(Sailfish::Crypto::Key::SignaturePaddingNone);
+keyTemplate.setDigests(Sailfish::Crypto::Key::DigestSha256);
+keyTemplate.setOperations(Sailfish::Crypto::Key::Encrypt
+                         |Sailfish::Crypto::Key::Decrypt);
+
+// Set the identifier for the key.
+// This assumes the existence of an "ExampleCollection" secure storage
+// collection, in which the key will be stored.
+// See Sailfish::Secrets::CreateCollectionRequest.
+keyTemplate.setIdentifier(QStringLiteral("ExampleKey"),
+                          QStringLiteral("ExampleCollection"));
+
+// Ask the system service to generate and store the key securely.
+Sailfish::Crypto::CryptoManager cm;
+Sailfish::Crypto::GenerateStoredKeyRequest generateRequest;
+generateRequest.setManager(&cm);
+generateRequest.setKeyTemplate(keyTemplate);
+generateRequest.setCryptoPluginName(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
+generateRequest.setStoragePluginName(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
+generateRequest.startRequest();
+generateRequest.waitForFinished();
+if (generateRequest.result().code() == Sailfish::Crypto::Result::Failed) {
+    qWarning() << "Unable to generate and store symmetric key:"
+               << generateRequest.result().errorMessage();
+} else {
+    symmetricKeyReference = generateRequest.generatedKeyReference();
+}
+\endcode
+
+\section4 Encrypting data with a symmetric key
+
+After generating a symmetric key, that key may be used to encrypt data.
+Note that the key may be either a key reference (that is, a key which contains
+only metadata and a valid identifier, which references a full key stored in
+secure storage) or a full key (that is, a key which contains secret key data).
+
+In this example, we use the reference key which was returned to the application
+in the previous snippet.
+
+\code
+QByteArray ciphertext, plaintext = "Example plaintext data";
+
+EncryptRequest encryptRequest;
+encryptRequest.setManager(&cm);
+encryptRequest.setData(plaintext);
+encryptRequest.setKey(symmetricKeyReference);
+encryptRequest.setBlockMode(Sailfish::Crypto::Key::BlockModeCBC);
+encryptRequest.setPadding(Sailfish::Crypto::Key::EncryptionPaddingNone);
+encryptRequest.setDigest(Sailfish::Crypto::Key::DigestSha256);
+encryptRequest.setCryptoPluginName(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
+encryptRequest.startRequest();
+encryptRequest.waitForFinished();
+if (encryptRequest.result().code() == Sailfish::Crypto::Result::Failed) {
+    qWarning() << "Failed to encrypt:"
+               << encryptRequest.result().errorMessage();
+} else {
+    ciphertext = encryptRequest.ciphertext();
+}
+\endcode
+
+\section4 Decrypting data with a symmetric key
+
+A symmetric key may also be used to decrypt data.  In the following snippet,
+the client asks the system service to decrypt the ciphertext with the same
+key reference, to produce decrypted data.
+
+\code
+DecryptRequest decryptRequest;
+decryptRequest.setManager(&cm);
+decryptRequest.setData(ciphertext);
+decryptRequest.setKey(symmetricKeyReference);
+decryptRequest.setBlockMode(Sailfish::Crypto::Key::BlockModeCBC);
+decryptRequest.setPadding(Sailfish::Crypto::Key::EncryptionPaddingNone);
+decryptRequest.setDigest(Sailfish::Crypto::Key::DigestSha256);
+decryptRequest.setCryptoPluginName(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
+decryptRequest.startRequest();
+decryptRequest.waitForFinished();
+if (decryptRequest.result().code() == Sailfish::Crypto::Result::Failed) {
+    qWarning() << "Failed to decrypt ciphertext:"
+               << decryptRequest.result().errorMessage();
+} else {
+    QByteArray decrypted = decryptRequest.plaintext();
+    qDebug() << "Decrypted:" << decrypted;
+}
+\endcode
+
+\section1 Extending the Sailfish OS Secrets and Crypto Framework with Crypto Plugins
+
+The Sailfish OS Crypto Library also provides a plugin base-class which may be
+extended by device vendors or trusted partners to allow them to build plugins
+to extend the Sailfish OS Secrets and Crypto Framework with additional
+cryptography functionality (for example, supporting different algorithms or
+block modes, or performing the operations via a Trusted Execution Environment
+application rather than in-process in the rich application process).
+
+The \l{Sailfish::Crypto::CryptoPlugin} class should be extended in order to
+achieve this, and the resulting plugin should be installed into the
+\tt{/usr/lib/Sailfish/Crypto/} directory.
+
+Note that if you wish to provide secure key storage as well as cryptographic
+services to clients, you also need to extend
+\l{Sailfish::Secrets::EncryptedStoragePlugin}.  For more information about that
+topic, please see the documentation about the \l{Sailfish OS Secrets library}.
+
+A variety of crypto plugins are shipped by default with the framework, and
+these are documented at the page about
+\l{Default Crypto Plugins for the Sailfish OS Secrets and Crypto Framework}.
+
+*/

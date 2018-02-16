@@ -1,9 +1,9 @@
-TEMPLATE=app
-TARGET=sailfishsecretsd
+TEMPLATE = app
+TARGET = sailfishsecretsd
 
 include($$PWD/../common.pri)
-include($$PWD/../api/libsailfishsecrets/libsailfishsecrets.pri)
-include($$PWD/../api/libsailfishcrypto/libsailfishcrypto.pri)
+include($$PWD/../lib/libsailfishsecrets.pri)
+include($$PWD/../lib/libsailfishcrypto.pri)
 
 QT += sql dbus
 
