@@ -13,6 +13,7 @@
 #include "Crypto/cryptomanager_p.h"
 #include "Crypto/serialisation_p.h"
 #include "Crypto/key.h"
+#include "Crypto/symmetrickeyderivationparameters.h"
 #include "Crypto/result.h"
 #include "Crypto/x509certificate.h"
 
@@ -125,6 +126,7 @@ void tst_crypto::generateKeyEncryptDecrypt()
 {
     // test generating a symmetric cipher key
     Key keyTemplate;
+    keyTemplate.setSize(256);
     keyTemplate.setAlgorithm(CryptoManager::AlgorithmAes);
     keyTemplate.setOrigin(Key::OriginDevice);
     keyTemplate.setOperations(CryptoManager::OperationEncrypt | CryptoManager::OperationDecrypt);
@@ -132,6 +134,7 @@ void tst_crypto::generateKeyEncryptDecrypt()
 
     QDBusPendingReply<Result, Key> reply = cm.generateKey(
             keyTemplate,
+            SymmetricKeyDerivationParameters(),
             CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());

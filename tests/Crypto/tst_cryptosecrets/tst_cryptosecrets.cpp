@@ -15,6 +15,8 @@
 #include "Crypto/cryptomanager_p.h"
 #include "Crypto/serialisation_p.h"
 #include "Crypto/key.h"
+#include "Crypto/symmetrickeyderivationparameters.h"
+#include "Crypto/interactionparameters.h"
 #include "Crypto/result.h"
 #include "Crypto/x509certificate.h"
 
@@ -93,6 +95,7 @@ void tst_cryptosecrets::secretsStoredKey()
 {
     // test generating a symmetric cipher key and storing securely.
     Sailfish::Crypto::Key keyTemplate;
+    keyTemplate.setSize(256);
     keyTemplate.setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmAes);
     keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
     keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt | Sailfish::Crypto::CryptoManager::OperationDecrypt);
@@ -114,6 +117,8 @@ void tst_cryptosecrets::secretsStoredKey()
     // note that the secret key data will never enter the client process address space.
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> reply = cm.generateStoredKey(
             keyTemplate,
+            Sailfish::Crypto::SymmetricKeyDerivationParameters(),
+            Sailfish::Crypto::InteractionParameters(),
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"),
             Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
@@ -216,6 +221,8 @@ void tst_cryptosecrets::secretsStoredKey()
 
     reply = cm.generateStoredKey(
                 keyTemplate,
+                Sailfish::Crypto::SymmetricKeyDerivationParameters(),
+                Sailfish::Crypto::InteractionParameters(),
                 Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"),
                 Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
@@ -296,6 +303,7 @@ void tst_cryptosecrets::cryptoStoredKey()
 {
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
     Sailfish::Crypto::Key keyTemplate;
+    keyTemplate.setSize(256);
     keyTemplate.setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmAes);
     keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
     keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt | Sailfish::Crypto::CryptoManager::OperationDecrypt);
@@ -318,6 +326,8 @@ void tst_cryptosecrets::cryptoStoredKey()
     // note that the secret key data will never enter the client process address space.
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> reply = cm.generateStoredKey(
             keyTemplate,
+            Sailfish::Crypto::SymmetricKeyDerivationParameters(),
+            Sailfish::Crypto::InteractionParameters(),
             Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"),
             Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
@@ -456,6 +466,8 @@ void tst_cryptosecrets::cryptoStoredKey()
 
     reply = cm.generateStoredKey(
                 keyTemplate,
+                Sailfish::Crypto::SymmetricKeyDerivationParameters(),
+                Sailfish::Crypto::InteractionParameters(),
                 Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"),
                 Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
@@ -547,6 +559,8 @@ void tst_cryptosecrets::cryptoStoredKey()
                                                                 QLatin1String("tstcryptosecretsgcsked2")));
     reply = cm.generateStoredKey(
                 keyTemplate,
+                Sailfish::Crypto::SymmetricKeyDerivationParameters(),
+                Sailfish::Crypto::InteractionParameters(),
                 Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"),
                 Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);

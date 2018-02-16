@@ -87,6 +87,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::seedRandomDataGenerator(
 Sailfish::Crypto::Result
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::generateAndStoreKey(
         const Sailfish::Crypto::Key &keyTemplate,
+        const Sailfish::Crypto::SymmetricKeyDerivationParameters &skdfParams,
         Sailfish::Crypto::Key *keyMetadata)
 {
     if (keyTemplate.identifier().name().isEmpty()) {
@@ -101,7 +102,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::generateAndStoreKey(
     }
 
     Sailfish::Crypto::Key fullKey(keyTemplate);
-    Sailfish::Crypto::Result retn = generateKey(keyTemplate, &fullKey);
+    Sailfish::Crypto::Result retn = generateKey(keyTemplate, skdfParams, &fullKey);
     if (retn.code() == Sailfish::Crypto::Result::Failed) {
         return retn;
     }

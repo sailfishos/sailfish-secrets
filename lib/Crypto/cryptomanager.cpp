@@ -142,6 +142,7 @@ CryptoManagerPrivate::validateCertificateChain(
 QDBusPendingReply<Result, Key>
 CryptoManagerPrivate::generateKey(
         const Key &keyTemplate,
+        const Sailfish::Crypto::SymmetricKeyDerivationParameters &skdfParams,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -154,6 +155,7 @@ CryptoManagerPrivate::generateKey(
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("generateKey"),
                 QVariantList() << QVariant::fromValue<Key>(keyTemplate)
+                               << QVariant::fromValue<SymmetricKeyDerivationParameters>(skdfParams)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -161,6 +163,8 @@ CryptoManagerPrivate::generateKey(
 QDBusPendingReply<Result, Key>
 CryptoManagerPrivate::generateStoredKey(
         const Key &keyTemplate,
+        const Sailfish::Crypto::SymmetricKeyDerivationParameters &skdfParams,
+        const Sailfish::Crypto::InteractionParameters &uiParams,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName)
 {
@@ -174,6 +178,8 @@ CryptoManagerPrivate::generateStoredKey(
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("generateStoredKey"),
                 QVariantList() << QVariant::fromValue<Key>(keyTemplate)
+                               << QVariant::fromValue<SymmetricKeyDerivationParameters>(skdfParams)
+                               << QVariant::fromValue<InteractionParameters>(uiParams)
                                << QVariant::fromValue<QString>(cryptosystemProviderName)
                                << QVariant::fromValue<QString>(storageProviderName));
     return reply;

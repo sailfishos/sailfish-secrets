@@ -11,6 +11,7 @@
 #include "Crypto/cryptoglobal.h"
 #include "Crypto/request.h"
 #include "Crypto/key.h"
+#include "Crypto/symmetrickeyderivationparameters.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QScopedPointer>
@@ -27,6 +28,7 @@ class SAILFISH_CRYPTO_API GenerateKeyRequest : public Sailfish::Crypto::Request
 {
     Q_OBJECT
     Q_PROPERTY(QString cryptoPluginName READ cryptoPluginName WRITE setCryptoPluginName NOTIFY cryptoPluginNameChanged)
+    Q_PROPERTY(Sailfish::Crypto::SymmetricKeyDerivationParameters symmetricKeyDerivationParameters READ symmetricKeyDerivationParameters WRITE setSymmetricKeyDerivationParameters NOTIFY symmetricKeyDerivationParametersChanged)
     Q_PROPERTY(Sailfish::Crypto::Key keyTemplate READ keyTemplate WRITE setKeyTemplate NOTIFY keyTemplateChanged)
     Q_PROPERTY(Sailfish::Crypto::Key generatedKey READ generatedKey NOTIFY generatedKeyChanged)
 
@@ -36,6 +38,9 @@ public:
 
     QString cryptoPluginName() const;
     void setCryptoPluginName(const QString &pluginName);
+
+    Sailfish::Crypto::SymmetricKeyDerivationParameters symmetricKeyDerivationParameters() const;
+    void setSymmetricKeyDerivationParameters(const Sailfish::Crypto::SymmetricKeyDerivationParameters &params);
 
     Sailfish::Crypto::Key keyTemplate() const;
     void setKeyTemplate(const Sailfish::Crypto::Key &key);
@@ -53,6 +58,7 @@ public:
 
 Q_SIGNALS:
     void cryptoPluginNameChanged();
+    void symmetricKeyDerivationParametersChanged();
     void keyTemplateChanged();
     void generatedKeyChanged();
 

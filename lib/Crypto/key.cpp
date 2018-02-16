@@ -41,7 +41,7 @@ KeyPrivate::KeyPrivate()
     , m_algorithm(CryptoManager::AlgorithmUnknown)
     , m_operations(CryptoManager::OperationUnknown)
     , m_componentConstraints(Key::MetaData | Key::PublicKeyData)
-    , m_keySize(0)
+    , m_size(0)
 {
     m_filterData.insert(SAILFISH_SECRETS_SECRET_FILTERDATAFIELDTYPE, SAILFISH_SECRETS_SECRET_TYPECRYPTOKEY);
 }
@@ -58,7 +58,7 @@ KeyPrivate::KeyPrivate(const KeyPrivate &other)
     , m_algorithm(other.m_algorithm)
     , m_operations(other.m_operations)
     , m_componentConstraints(other.m_componentConstraints)
-    , m_keySize(other.m_keySize)
+    , m_size(other.m_size)
 {
 }
 
@@ -331,6 +331,17 @@ CryptoManager::Operations Key::operations() const
 
 /*!
  * \brief Sets the operations which are supported for this key to \a operations
+ *
+ * This should generally only be called by the client when specifying a template
+ * key as a parameter to a \l{GenerateStoredKeyRequest}.
+ *
+ * Some crypto storage plugins will enforce these as constraints, so that a
+ * key whose operations contains only \l{CryptoManager::OperationSign} and
+ * \l{CryptoManager::OperationVerify} will not be able to be used in
+ * encryption or decryption operations, for example.
+ *
+ * Please see the documentation for the crypto plugin you intend to use, for
+ * more information about whether it enforces such constraints.
  */
 void Key::setOperations(CryptoManager::Operations operations)
 {
@@ -348,8 +359,10 @@ Key::Components Key::componentConstraints() const
 /*!
  * \brief Sets the types of key components which the client is allowed to retrieve after the key has been stored to \a components
  *
- * The client is able to retrieve the key components specified in the
- * componentsConstraints() after the key has been stored.
+ * This should generally only be called by the client when specifying a template
+ * key as a parameter to a \l{GenerateStoredKeyRequest}.  Clients are only able
+ * to retrieve the key components specified in the componentsConstraints() after
+ * the key has been stored.
  *
  * When a key is generated and stored, the client can specify constraints which
  * should be enforced by the crypto storage plugin in which the key is stored.
@@ -400,21 +413,30 @@ void Key::setComponentConstraints(Key::Components components)
  * As such, an RSA key with a security size of 2048 bits could
  * have a data (storage) size of 1232 bytes (in PKCS#8 format).
  */
-int Key::keySize() const
+int Key::size() const
 {
-    return d_ptr->m_keySize;
+    return d_ptr->m_size;
 }
 
 /*!
  * \brief Sets the security size, in bits, of the key to \a size
  *
- * In general, this should never be called by client applications,
- * as the required key security size is instead defined when
- * generating the key.
+ * Clients should call this when generating a key (either via
+ * GenerateKeyRequest or GeneratedStoredKeyRequest).
+ *
+ * Note that if the client also passes SymmetricKeyDerivationParameters
+ * to such a request, the size specified here will be ignored, in
+ * favour of the output key size specified in those parameters.
+ *
+ * If no valid symmetric key derivation parameters are passed to
+ * the request, then the crypto plugin will generate a key appropriate
+ * for the specified algorithm according to this size (for symmetric
+ * algorithms, this means that the plugin will usually generate random
+ * data of the appropriate size).
  */
-void Key::setKeySize(int size)
+void Key::setSize(int size)
 {
-    d_ptr->m_keySize = size;
+    d_ptr->m_size = size;
 }
 
 /*!

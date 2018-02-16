@@ -105,6 +105,71 @@ void GenerateStoredKeyRequest::setStoragePluginName(const QString &pluginName)
 }
 
 /*!
+ * \brief Returns the user input parameters which should be used when requesting the input data from the user
+ *
+ * These interaction parameters are only meaningful if the template key
+ * algorithm is a symmetric cipher algorithm, and if a set of valid
+ * symmetric key derivation parameters are also specified for the request.
+ *
+ * If specified, the user will be prompted to enter some data
+ * (for example, a passphrase or PIN) which will then be used as input data
+ * to the key derivation function, which will produce the key data.
+ */
+Sailfish::Crypto::InteractionParameters
+GenerateStoredKeyRequest::interactionParameters() const
+{
+    Q_D(const GenerateStoredKeyRequest);
+    return d->m_uiParams;
+}
+
+/*!
+ * \brief Sets the user input parameters which should be used when requesting the input data from the user to \a uiParams
+ */
+void GenerateStoredKeyRequest::setInteractionParameters(
+        const Sailfish::Crypto::InteractionParameters &uiParams)
+{
+    Q_D(GenerateStoredKeyRequest);
+    if (d->m_status != Request::Active && d->m_uiParams != uiParams) {
+        d->m_uiParams = uiParams;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit interactionParametersChanged();
+    }
+}
+
+/*!
+ * \brief Returns the symmetric key derivation parameters which should be used to generate the secret key data
+ *
+ * These interaction parameters are only meaningful if the template key
+ * algorithm is a symmetric cipher algorithm.
+ */
+Sailfish::Crypto::SymmetricKeyDerivationParameters
+GenerateStoredKeyRequest::symmetricKeyDerivationParameters() const
+{
+    Q_D(const GenerateStoredKeyRequest);
+    return d->m_skdfParams;
+}
+
+/*!
+ * \brief Sets the symmetric key derivation parameters which should be used to generate the secret key data to \a params
+ */
+void GenerateStoredKeyRequest::setSymmetricKeyDerivationParameters(
+        const Sailfish::Crypto::SymmetricKeyDerivationParameters &params)
+{
+    Q_D(GenerateStoredKeyRequest);
+    if (d->m_status != Request::Active && d->m_skdfParams != params) {
+        d->m_skdfParams = params;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit symmetricKeyDerivationParametersChanged();
+    }
+}
+
+/*!
  * \brief Returns the key which should be used as a template when generating the full key
  */
 Key GenerateStoredKeyRequest::keyTemplate() const
@@ -182,6 +247,8 @@ void GenerateStoredKeyRequest::startRequest()
 
         QDBusPendingReply<Result, Key> reply =
                 d->m_manager->d_ptr->generateStoredKey(d->m_keyTemplate,
+                                                       d->m_skdfParams,
+                                                       d->m_uiParams,
                                                        d->m_cryptoPluginName,
                                                        d->m_storagePluginName);
         if (reply.isFinished()

@@ -13,6 +13,7 @@
 #include "Crypto/key.h"
 #include "Crypto/result.h"
 #include "Crypto/storedkeyrequest.h"
+#include "Crypto/symmetrickeyderivationparameters.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QString>
@@ -52,6 +53,8 @@ public:
     virtual QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::EncryptionPadding> > supportedEncryptionPaddings() const = 0;
     virtual QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::SignaturePadding> > supportedSignaturePaddings() const = 0;
     virtual QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::DigestFunction> > supportedDigests() const = 0;
+    virtual QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::MessageAuthenticationCode> > supportedMessageAuthenticationCodes() const = 0;
+    virtual QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::KeyDerivationFunction> > supportedKeyDerivationFunctions() const = 0;
     virtual QMap<Sailfish::Crypto::CryptoManager::Algorithm, Sailfish::Crypto::CryptoManager::Operations> supportedOperations() const = 0;
 
     virtual Sailfish::Crypto::Result generateRandomData(
@@ -72,10 +75,12 @@ public:
 
     virtual Sailfish::Crypto::Result generateKey(
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::SymmetricKeyDerivationParameters &skdfParams,
             Sailfish::Crypto::Key *key) = 0;
 
     virtual Sailfish::Crypto::Result generateAndStoreKey(
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::SymmetricKeyDerivationParameters &skdfParams,
             Sailfish::Crypto::Key *keyMetadata) = 0;
 
     virtual Sailfish::Crypto::Result storedKey(

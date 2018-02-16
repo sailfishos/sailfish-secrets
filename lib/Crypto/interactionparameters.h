@@ -5,10 +5,10 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#ifndef LIBSAILFISHSECRETS_INTERACTIONREQUEST_H
-#define LIBSAILFISHSECRETS_INTERACTIONREQUEST_H
+#ifndef LIBSAILFISHCRYPTO_INTERACTIONREQUEST_H
+#define LIBSAILFISHCRYPTO_INTERACTIONREQUEST_H
 
-#include "Secrets/secretsglobal.h"
+#include "Crypto/cryptoglobal.h"
 
 #include <QtCore/QString>
 #include <QtCore/QSharedDataPointer>
@@ -16,12 +16,12 @@
 
 namespace Sailfish {
 
-namespace Secrets {
+namespace Crypto {
 
 class InteractionParametersPrivate;
-class SAILFISH_SECRETS_API InteractionParameters {
+class SAILFISH_CRYPTO_API InteractionParameters {
     Q_GADGET
-    Q_PROPERTY(QString secretName READ secretName WRITE setSecretName)
+    Q_PROPERTY(QString keyName READ keyName WRITE setKeyName)
     Q_PROPERTY(QString collectionName READ collectionName WRITE setCollectionName)
     Q_PROPERTY(QString applicationId READ applicationId WRITE setApplicationId)
     Q_PROPERTY(Operation operation READ operation WRITE setOperation)
@@ -96,8 +96,8 @@ public:
 
     bool isValid() const;
 
-    QString secretName() const;
-    void setSecretName(const QString &name);
+    QString keyName() const;
+    void setKeyName(const QString &name);
 
     QString collectionName() const;
     void setCollectionName(const QString &name);
@@ -131,22 +131,22 @@ private:
     friend class InteractionParametersPrivate;
 };
 
-} // Secrets
+} // Crypto
 
 } // Sailfish
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Secrets::InteractionParameters::InputTypes);
-Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Secrets::InteractionParameters::Operations);
-Q_DECLARE_METATYPE(Sailfish::Secrets::InteractionParameters::InputType);
-Q_DECLARE_METATYPE(Sailfish::Secrets::InteractionParameters::EchoMode);
-Q_DECLARE_METATYPE(Sailfish::Secrets::InteractionParameters::Operation);
-Q_DECLARE_METATYPE(Sailfish::Secrets::InteractionParameters);
-Q_DECLARE_TYPEINFO(Sailfish::Secrets::InteractionParameters, Q_MOVABLE_TYPE);
+Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::InteractionParameters::InputTypes);
+Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::InteractionParameters::Operations);
+Q_DECLARE_METATYPE(Sailfish::Crypto::InteractionParameters::InputType);
+Q_DECLARE_METATYPE(Sailfish::Crypto::InteractionParameters::EchoMode);
+Q_DECLARE_METATYPE(Sailfish::Crypto::InteractionParameters::Operation);
+Q_DECLARE_METATYPE(Sailfish::Crypto::InteractionParameters);
+Q_DECLARE_TYPEINFO(Sailfish::Crypto::InteractionParameters, Q_MOVABLE_TYPE);
 
-inline bool operator<(const Sailfish::Secrets::InteractionParameters &/*lhs*/, const Sailfish::Secrets::InteractionParameters &/*rhs*/)
+inline bool operator<(const Sailfish::Crypto::InteractionParameters &/*lhs*/, const Sailfish::Crypto::InteractionParameters &/*rhs*/)
 {
     qWarning("'<' operator not valid for InteractionParameters\n");
     return false;
 }
 
-#endif // LIBSAILFISHSECRETS_INTERACTIONREQUEST_H
+#endif // LIBSAILFISHCRYPTO_INTERACTIONREQUEST_H

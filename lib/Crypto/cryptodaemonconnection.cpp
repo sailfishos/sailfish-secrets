@@ -177,6 +177,8 @@ void Sailfish::Crypto::CryptoDaemonConnection::registerDBusTypes()
     qRegisterMetaType<Sailfish::Crypto::Key::Component>("Sailfish::Crypto::Key::Component");
     qRegisterMetaType<Sailfish::Crypto::Key::Components>("Sailfish::Crypto::Key::Components");
     qRegisterMetaType<Sailfish::Crypto::CipherRequest::CipherMode>("Sailfish::Crypto::CipherRequest::CipherMode");
+    qRegisterMetaType<Sailfish::Crypto::SymmetricKeyDerivationParameters>("Sailfish::Crypto::SymmetricKeyDerivationParameters");
+    qRegisterMetaType<Sailfish::Crypto::InteractionParameters>("Sailfish::Crypto::InteractionParameters");
 
     qDBusRegisterMetaType<Sailfish::Crypto::Key::Origin>();
     qDBusRegisterMetaType<Sailfish::Crypto::CryptoManager::Algorithm>();
@@ -201,4 +203,6 @@ void Sailfish::Crypto::CryptoDaemonConnection::registerDBusTypes()
     qDBusRegisterMetaType<Sailfish::Crypto::Key::Component>();
     qDBusRegisterMetaType<Sailfish::Crypto::Key::Components>();
     qDBusRegisterMetaType<Sailfish::Crypto::CipherRequest::CipherMode>();
+    qDBusRegisterMetaType<Sailfish::Crypto::SymmetricKeyDerivationParameters>();
+    qDBusRegisterMetaType<Sailfish::Crypto::InteractionParameters>();
 }

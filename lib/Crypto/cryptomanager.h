@@ -172,15 +172,15 @@ public:
     Q_ENUM(KeyDerivationFunction)
 
     enum Operation {
-        OperationUnknown    = 0,
-        OperationCustom     = 1,
-        OperationSign       = 2,
-        OperationVerify     = 4,
-        OperationEncrypt    = 8,
-        OperationDecrypt    = 16,
-        OperationDeriveHash = 32,
-        OperationDeriveMac  = 64,
-        OperationDeriveKey  = 128
+        OperationUnknown        = 0,
+        OperationCustom         = 1,
+        OperationSign           = 2,
+        OperationVerify         = 4,
+        OperationEncrypt        = 8,
+        OperationDecrypt        = 16,
+        OperationDeriveDigest   = 32,
+        OperationDeriveMac      = 64,
+        OperationDeriveKey      = 128
     };
     Q_ENUM(Operation)
     Q_DECLARE_FLAGS(Operations, Operation)

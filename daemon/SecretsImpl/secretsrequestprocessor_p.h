@@ -209,6 +209,10 @@ public: // helper methods for crypto API bridge (secretscryptohelpers)
             pid_t callerPid,
             quint64 requestId,
             const Sailfish::Secrets::Secret::Identifier &identifier);
+    Sailfish::Secrets::Result userInput(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Secrets::InteractionParameters &uiParams);
 
 private Q_SLOTS:
     void authenticationCompleted(

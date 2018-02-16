@@ -11,6 +11,8 @@
 #include "Crypto/certificate.h"
 #include "Crypto/extensionplugins.h"
 #include "Crypto/cipherrequest.h"
+#include "Crypto/interactionparameters.h"
+#include "Crypto/symmetrickeyderivationparameters.h"
 
 #include "Crypto/serialisation_p.h"
 #include "Crypto/key_p.h"
@@ -560,6 +562,42 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoManager::Di
     return argument;
 }
 
+QDBusArgument &operator<<(QDBusArgument &argument, const CryptoManager::MessageAuthenticationCode mac)
+{
+    argument.beginStructure();
+    argument << static_cast<int>(mac);
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoManager::MessageAuthenticationCode &mac)
+{
+    int iv = 0;
+    argument.beginStructure();
+    argument >> iv;
+    argument.endStructure();
+    mac = static_cast<CryptoManager::MessageAuthenticationCode>(iv);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const CryptoManager::KeyDerivationFunction kdf)
+{
+    argument.beginStructure();
+    argument << static_cast<int>(kdf);
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoManager::KeyDerivationFunction &kdf)
+{
+    int iv = 0;
+    argument.beginStructure();
+    argument >> iv;
+    argument.endStructure();
+    kdf = static_cast<CryptoManager::KeyDerivationFunction>(iv);
+    return argument;
+}
+
 QDBusArgument &operator<<(QDBusArgument &argument, const CryptoManager::Operation operation)
 {
     argument.beginStructure();
@@ -691,6 +729,177 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, CipherRequest::Ci
     argument >> iv;
     argument.endStructure();
     mode = static_cast<CipherRequest::CipherMode>(iv);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::InteractionParameters::InputType &type)
+{
+    int itype = static_cast<int>(type);
+    argument.beginStructure();
+    argument << itype;
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::InteractionParameters::InputType &type)
+{
+    int itype = 0;
+    argument.beginStructure();
+    argument >> itype;
+    argument.endStructure();
+    type = static_cast<InteractionParameters::InputType>(itype);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::InteractionParameters::EchoMode &mode)
+{
+    int imode = static_cast<int>(mode);
+    argument.beginStructure();
+    argument << imode;
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::InteractionParameters::EchoMode &mode)
+{
+    int imode = 0;
+    argument.beginStructure();
+    argument >> imode;
+    argument.endStructure();
+    mode = static_cast<InteractionParameters::EchoMode>(imode);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::InteractionParameters::Operation &op)
+{
+    int iop = static_cast<int>(op);
+    argument.beginStructure();
+    argument << iop;
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::InteractionParameters::Operation &op)
+{
+    int iop = 0;
+    argument.beginStructure();
+    argument >> iop;
+    argument.endStructure();
+    op = static_cast<InteractionParameters::Operation>(iop);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const InteractionParameters &request)
+{
+    argument.beginStructure();
+    argument << request.keyName()
+             << request.collectionName()
+             << request.applicationId()
+             << request.operation()
+             << request.authenticationPluginName()
+             << request.promptText()
+             << request.promptTrId()
+             << request.inputType()
+             << request.echoMode();
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionParameters &request)
+{
+    QString keyName;
+    QString collectionName;
+    QString applicationId;
+    InteractionParameters::Operation operation = InteractionParameters::UnknownOperation;
+    QString authenticationPluginName;
+    QString promptText;
+    QString promptTrId;
+    InteractionParameters::InputType inputType = InteractionParameters::UnknownInput;
+    InteractionParameters::EchoMode echoMode = InteractionParameters::PasswordEchoOnEdit;
+
+    argument.beginStructure();
+    argument >> keyName
+             >> collectionName
+             >> applicationId
+             >> operation
+             >> authenticationPluginName
+             >> promptText
+             >> promptTrId
+             >> inputType
+             >> echoMode;
+    argument.endStructure();
+
+    request.setKeyName(keyName);
+    request.setCollectionName(collectionName);
+    request.setApplicationId(applicationId);
+    request.setOperation(operation);
+    request.setAuthenticationPluginName(authenticationPluginName);
+    request.setPromptText(promptText);
+    request.setPromptTrId(promptTrId);
+    request.setInputType(inputType);
+    request.setEchoMode(echoMode);
+
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::SymmetricKeyDerivationParameters &skdfParams)
+{
+    argument.beginStructure();
+    argument << skdfParams.inputData()
+             << skdfParams.salt()
+             << skdfParams.keyDerivationFunction()
+             << skdfParams.keyDerivationMac()
+             << skdfParams.keyDerivationAlgorithm()
+             << skdfParams.keyDerivationDigestFunction()
+             << skdfParams.memorySize()
+             << skdfParams.iterations()
+             << skdfParams.parallelism()
+             << skdfParams.outputKeySize()
+             << skdfParams.customParameters();
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::SymmetricKeyDerivationParameters &skdfParams)
+{
+    QByteArray inputData;
+    QByteArray salt;
+    CryptoManager::KeyDerivationFunction keyDerivationFunction = CryptoManager::KdfUnknown;
+    CryptoManager::MessageAuthenticationCode keyDerivationMac = CryptoManager::MacUnknown;
+    CryptoManager::Algorithm keyDerivationAlgorithm = CryptoManager::AlgorithmUnknown;
+    CryptoManager::DigestFunction keyDerivationDigestFunction = CryptoManager::DigestUnknown;
+    qint64 memorySize = 0;
+    int iterations = 0;
+    int parallelism = 0;
+    int outputKeySize = 0;
+    QVariantMap customParameters;
+
+    argument.beginStructure();
+    argument >> inputData
+             >> salt
+             >> keyDerivationFunction
+             >> keyDerivationMac
+             >> keyDerivationAlgorithm
+             >> keyDerivationDigestFunction
+             >> memorySize
+             >> iterations
+             >> parallelism
+             >> outputKeySize
+             >> customParameters;
+    argument.endStructure();
+
+    skdfParams.setInputData(inputData);
+    skdfParams.setSalt(salt);
+    skdfParams.setKeyDerivationFunction(keyDerivationFunction);
+    skdfParams.setKeyDerivationMac(keyDerivationMac);
+    skdfParams.setKeyDerivationAlgorithm(keyDerivationAlgorithm);
+    skdfParams.setKeyDerivationDigestFunction(keyDerivationDigestFunction);
+    skdfParams.setMemorySize(memorySize);
+    skdfParams.setIterations(iterations);
+    skdfParams.setParallelism(parallelism);
+    skdfParams.setOutputKeySize(outputKeySize);
+    skdfParams.setCustomParameters(customParameters);
+
     return argument;
 }
 

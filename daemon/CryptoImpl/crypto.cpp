@@ -107,6 +107,7 @@ void Daemon::ApiImpl::CryptoDBusObject::validateCertificateChain(
 
 void Daemon::ApiImpl::CryptoDBusObject::generateKey(
         const Key &keyTemplate,
+        const SymmetricKeyDerivationParameters &skdfParams,
         const QString &cryptosystemProviderName,
         const QDBusMessage &message,
         Result &result,
@@ -115,6 +116,7 @@ void Daemon::ApiImpl::CryptoDBusObject::generateKey(
     Q_UNUSED(key);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<Key>(keyTemplate);
+    inParams << QVariant::fromValue<SymmetricKeyDerivationParameters>(skdfParams);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
     m_requestQueue->handleRequest(Daemon::ApiImpl::GenerateKeyRequest,
                                   inParams,
@@ -125,6 +127,8 @@ void Daemon::ApiImpl::CryptoDBusObject::generateKey(
 
 void Daemon::ApiImpl::CryptoDBusObject::generateStoredKey(
         const Key &keyTemplate,
+        const SymmetricKeyDerivationParameters &skdfParams,
+        const InteractionParameters &uiParams,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName,
         const QDBusMessage &message,
@@ -134,6 +138,8 @@ void Daemon::ApiImpl::CryptoDBusObject::generateStoredKey(
     Q_UNUSED(key);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<Key>(keyTemplate);
+    inParams << QVariant::fromValue<SymmetricKeyDerivationParameters>(skdfParams);
+    inParams << QVariant::fromValue<InteractionParameters>(uiParams);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
     inParams << QVariant::fromValue<QString>(storageProviderName);
     m_requestQueue->handleRequest(Daemon::ApiImpl::GenerateStoredKeyRequest,
@@ -536,11 +542,13 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             qCDebug(lcSailfishCryptoDaemon) << "Handling GenerateKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             Key key;
             Key templateKey = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
+            SymmetricKeyDerivationParameters skdfParams = request->inParams.size() ? request->inParams.takeFirst().value<SymmetricKeyDerivationParameters>() : SymmetricKeyDerivationParameters();
             QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             Result result = m_requestProcessor->generateKey(
                         request->remotePid,
                         request->requestId,
                         templateKey,
+                        skdfParams,
                         cryptosystemProviderName,
                         &key);
             // send the reply to the calling peer.
@@ -558,12 +566,16 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             qCDebug(lcSailfishCryptoDaemon) << "Handling GenerateStoredKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             Key key;
             Key templateKey = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
+            SymmetricKeyDerivationParameters skdfParams = request->inParams.size() ? request->inParams.takeFirst().value<SymmetricKeyDerivationParameters>() : SymmetricKeyDerivationParameters();
+            InteractionParameters uiParams = request->inParams.size() ? request->inParams.takeFirst().value<InteractionParameters>() : InteractionParameters();
             QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             QString storageProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             Result result = m_requestProcessor->generateStoredKey(
                         request->remotePid,
                         request->requestId,
                         templateKey,
+                        skdfParams,
+                        uiParams,
                         cryptosystemProviderName,
                         storageProviderName,
                         &key);

@@ -51,7 +51,7 @@ public:
     Sailfish::Crypto::CryptoManager::Algorithm m_algorithm;
     Sailfish::Crypto::CryptoManager::Operations m_operations;
     Sailfish::Crypto::Key::Components m_componentConstraints;
-    int m_keySize;
+    int m_size;
 };
 
 } // namespace Crypto

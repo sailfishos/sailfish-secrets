@@ -35,7 +35,7 @@ class SAILFISH_CRYPTO_API Key
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::Algorithm algorithm READ algorithm WRITE setAlgorithm)
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::Operations operations READ operations WRITE setOperations)
     Q_PROPERTY(Sailfish::Crypto::Key::Components componentConstraints READ componentConstraints WRITE setComponentConstraints)
-    Q_PROPERTY(int keySize READ keySize WRITE setKeySize)
+    Q_PROPERTY(int size READ size WRITE setSize)
     Q_PROPERTY(QByteArray publicKey READ publicKey WRITE setPublicKey)
     Q_PROPERTY(QByteArray privateKey READ privateKey WRITE setPrivateKey)
     Q_PROPERTY(QByteArray secretKey READ secretKey WRITE setSecretKey)
@@ -124,8 +124,8 @@ public:
     Sailfish::Crypto::Key::Components componentConstraints() const;
     void setComponentConstraints(Sailfish::Crypto::Key::Components components);
 
-    int keySize() const;
-    void setKeySize(int size);
+    int size() const;
+    void setSize(int size);
 
     QByteArray publicKey() const;
     void setPublicKey(const QByteArray &key);

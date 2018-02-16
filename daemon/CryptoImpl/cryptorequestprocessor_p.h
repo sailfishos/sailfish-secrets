@@ -25,6 +25,8 @@
 #include "Crypto/certificate.h"
 #include "Crypto/extensionplugins.h"
 #include "Crypto/storedkeyrequest.h"
+#include "Crypto/symmetrickeyderivationparameters.h"
+#include "Crypto/interactionparameters.h"
 
 #include "CryptoImpl/crypto_p.h"
 
@@ -95,6 +97,7 @@ public:
             pid_t callerPid,
             quint64 requestId,
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::SymmetricKeyDerivationParameters &skdfParams,
             const QString &cryptosystemProviderName,
             Sailfish::Crypto::Key *key);
 
@@ -102,6 +105,8 @@ public:
             pid_t callerPid,
             quint64 requestId,
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::SymmetricKeyDerivationParameters &skdfParams,
+            const Sailfish::Crypto::InteractionParameters &uiParams,
             const QString &cryptosystemProviderName,
             const QString &storageProviderName,
             Sailfish::Crypto::Key *key);
@@ -226,6 +231,11 @@ public Q_SLOTS:
             quint64 requestId,
             const Sailfish::Secrets::Result &result);
 
+    void secretsUserInputCompleted(
+            quint64 requestId,
+            const Sailfish::Secrets::Result &result,
+            const QByteArray &userInput);
+
 private:
     struct PendingRequest {
         PendingRequest()
@@ -247,6 +257,23 @@ private:
             const QByteArray &serialisedKey,
             const QMap<QString, QString> &filterData);
 
+    Sailfish::Crypto::Result generateStoredKey2(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::SymmetricKeyDerivationParameters &skdfParams,
+            const QString &cryptosystemProviderName,
+            const QString &storageProviderName);
+
+    void generateStoredKey_withInputData(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Crypto::Result &result,
+            const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::SymmetricKeyDerivationParameters &skdfParams,
+            const QString &cryptosystemProviderName,
+            const QString &storageProviderName);
+
     void generateStoredKey_inStoragePlugin(
             pid_t callerPid,
             quint64 requestId,
@@ -260,6 +287,7 @@ private:
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::SymmetricKeyDerivationParameters &skdfParams,
             const QString &cryptosystemProviderName,
             const QString &storagePluginName);
 

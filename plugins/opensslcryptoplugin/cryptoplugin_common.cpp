@@ -7,6 +7,7 @@
 
 #include "Crypto/key.h"
 #include "Crypto/certificate.h"
+#include "Crypto/symmetrickeyderivationparameters.h"
 
 #include <QtCore/QTimer>
 #include <QtCore/QByteArray>
@@ -20,6 +21,7 @@
 #include <fstream>
 #include <cstdlib>
 
+#include <openssl/evp.h>
 #include <openssl/rand.h>
 
 #define CIPHER_SESSION_INACTIVITY_TIMEOUT 60000 /* 1 minute, change to 10 sec for timeout test */
@@ -113,6 +115,22 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedDigests() const
     return retn;
 }
 
+QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::MessageAuthenticationCode> >
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedMessageAuthenticationCodes() const
+{
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::MessageAuthenticationCode> > retn;
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes, QVector<Sailfish::Crypto::CryptoManager::MessageAuthenticationCode>() << Sailfish::Crypto::CryptoManager::MacHmac);
+    return retn;
+}
+
+QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::KeyDerivationFunction> >
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedKeyDerivationFunctions() const
+{
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::KeyDerivationFunction> > retn;
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes, QVector<Sailfish::Crypto::CryptoManager::KeyDerivationFunction>() << Sailfish::Crypto::CryptoManager::KdfPkcs5Pbkdf2);
+    return retn;
+}
+
 QMap<Sailfish::Crypto::CryptoManager::Algorithm, Sailfish::Crypto::CryptoManager::Operations>
 CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedOperations() const
 {
@@ -175,18 +193,75 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::validateCertificateChain
 Sailfish::Crypto::Result
 CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::generateKey(
         const Sailfish::Crypto::Key &keyTemplate,
+        const Sailfish::Crypto::SymmetricKeyDerivationParameters &skdfParams,
         Sailfish::Crypto::Key *key)
 {
-    if (keyTemplate.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmAes) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: algorithms other than Aes256"));
+    if (!skdfParams.isValid()) {
+        if (keyTemplate.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmAes) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                            QLatin1String("TODO: algorithms other than Aes"));
+        }
+        if (keyTemplate.size() < 8 || keyTemplate.size() > 2048 || (keyTemplate.size() % 8) != 0) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                            QLatin1String("Unsupported key size specified"));
+        }
+        QByteArray randomKey;
+        Sailfish::Crypto::Result randomResult = generateRandomData(
+                    0, QStringLiteral("/dev/urandom"), keyTemplate.size() / 8, &randomKey);
+        if (randomResult.code() == Sailfish::Crypto::Result::Failed) {
+            return randomResult;
+        }
+        *key = keyTemplate;
+        key->setSecretKey(randomKey);
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
     }
 
-    const QUuid seed = QUuid::createUuid();
-    const QByteArray hashed = QCryptographicHash::hash(seed.toByteArray(), QCryptographicHash::Sha256);
-    *key = keyTemplate;
-    key->setSecretKey(hashed);
+    if (skdfParams.keyDerivationFunction() != Sailfish::Crypto::CryptoManager::KdfPkcs5Pbkdf2) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("Unsupported key derivation function specified"));
+    }
 
+    if (skdfParams.keyDerivationMac() != Sailfish::Crypto::CryptoManager::MacHmac) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("Unsupported key derivation message authentication code specified"));
+    }
+
+    if (skdfParams.keyDerivationDigestFunction() != Sailfish::Crypto::CryptoManager::DigestSha1) {
+        // TODO: support other digest functions with HMAC...
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("Unsupported key derivation digest function specified"));
+    }
+
+    if (skdfParams.outputKeySize() < 8 || skdfParams.outputKeySize() > 2048 || (skdfParams.outputKeySize() % 8) != 0) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("Unsupported key size specified"));
+    }
+
+    if (skdfParams.iterations() < 0 || skdfParams.iterations() > 32768) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("Unsupported iterations specified"));
+    }
+
+    int nbytes = skdfParams.outputKeySize() / 8;
+    QScopedPointer<char> buf(new char[nbytes]);
+    if (PKCS5_PBKDF2_HMAC_SHA1(
+            skdfParams.inputData().isEmpty()
+                    ? NULL
+                    : skdfParams.inputData().constData(),
+            skdfParams.inputData().size(),
+            skdfParams.salt().isEmpty()
+                    ? NULL
+                    : reinterpret_cast<const unsigned char*>(skdfParams.salt().constData()),
+            skdfParams.salt().size(),
+            skdfParams.iterations(),
+            nbytes,
+            reinterpret_cast<unsigned char*>(buf.data())) != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                        QLatin1String("The crypto plugin failed to derive the key data"));
+    }
+
+    *key = keyTemplate;
+    key->setSecretKey(QByteArray(buf.data(), nbytes));
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
 }
 

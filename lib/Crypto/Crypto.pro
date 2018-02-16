@@ -24,6 +24,7 @@ PUBLIC_HEADERS += \
     $$PWD/generatekeyrequest.h \
     $$PWD/generaterandomdatarequest.h \
     $$PWD/generatestoredkeyrequest.h \
+    $$PWD/interactionparameters.h \
     $$PWD/key.h \
     $$PWD/plugininforequest.h \
     $$PWD/request.h \
@@ -32,6 +33,7 @@ PUBLIC_HEADERS += \
     $$PWD/signrequest.h \
     $$PWD/storedkeyidentifiersrequest.h \
     $$PWD/storedkeyrequest.h \
+    $$PWD/symmetrickeyderivationparameters.h \
     $$PWD/validatecertificatechainrequest.h \
     $$PWD/verifyrequest.h \
     $$PWD/x509certificate.h
@@ -52,12 +54,14 @@ PRIVATE_HEADERS += \
     $$PWD/generatekeyrequest_p.h \
     $$PWD/generaterandomdatarequest_p.h \
     $$PWD/generatestoredkeyrequest_p.h \
+    $$PWD/interactionparameters_p.h \
     $$PWD/key_p.h \
     $$PWD/plugininforequest_p.h \
     $$PWD/seedrandomdatageneratorrequest_p.h \
     $$PWD/signrequest_p.h \
     $$PWD/storedkeyidentifiersrequest_p.h \
     $$PWD/storedkeyrequest_p.h \
+    $$PWD/symmetrickeyderivationparameters_p.h \
     $$PWD/validatecertificatechainrequest_p.h \
     $$PWD/verifyrequest_p.h
 
@@ -78,6 +82,7 @@ SOURCES += \
     $$PWD/generatekeyrequest.cpp \
     $$PWD/generaterandomdatarequest.cpp \
     $$PWD/generatestoredkeyrequest.cpp \
+    $$PWD/interactionparameters.cpp \
     $$PWD/key.cpp \
     $$PWD/plugininforequest.cpp \
     $$PWD/request.cpp \
@@ -86,6 +91,7 @@ SOURCES += \
     $$PWD/signrequest.cpp \
     $$PWD/storedkeyidentifiersrequest.cpp \
     $$PWD/storedkeyrequest.cpp \
+    $$PWD/symmetrickeyderivationparameters.cpp \
     $$PWD/validatecertificatechainrequest.cpp \
     $$PWD/verifyrequest.cpp \
     $$PWD/x509certificate.cpp

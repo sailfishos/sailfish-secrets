@@ -321,12 +321,14 @@ public: // Crypto API helper methods.
     Sailfish::Secrets::Result storeKeyMetadata(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, const QString &storagePluginName);
     Sailfish::Secrets::Result deleteStoredKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier);
     Sailfish::Secrets::Result deleteStoredKeyMetadata(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier);
+    Sailfish::Secrets::Result userInput(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Secrets::InteractionParameters &uiParams);
 Q_SIGNALS:
     void storedKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &serialisedKey, const QMap<QString,QString> &filterData);
     void storeKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
     void storeKeyMetadataCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
     void deleteStoredKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
     void deleteStoredKeyMetadataCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
+    void userInputCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &userInput);
 private:
     enum CryptoApiHelperRequestType {
         InvalidCryptoApiHelperRequest = 0,
@@ -339,7 +341,8 @@ private:
         DeleteStoredKeyCryptoApiHelperRequest,
         StoreKeyCryptoApiHelperRequest,
         StoreKeyMetadataCryptoApiHelperRequest,
-        DeleteStoredKeyMetadataCryptoApiHelperRequest
+        DeleteStoredKeyMetadataCryptoApiHelperRequest,
+        UserInputCryptoApiHelperRequest
     };
     QMap<quint64, CryptoApiHelperRequestType> m_cryptoApiHelperRequests; // crypto request id to crypto api call type.
 };
@@ -365,7 +368,8 @@ enum RequestType {
     SetStandaloneCustomLockUserInputSecretRequest,
     // Crypto API helper request types:
     SetCollectionSecretMetadataRequest,
-    DeleteCollectionSecretMetadataRequest
+    DeleteCollectionSecretMetadataRequest,
+    UserInputRequest
 };
 
 } // ApiImpl

@@ -9,6 +9,7 @@
 
 #include "SecretsImpl/secrets_p.h"
 #include "Secrets/result.h"
+#include "Secrets/interactionparameters.h"
 
 #include "util_p.h"
 #include "logging_p.h"
@@ -79,6 +80,8 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(
             this, &Daemon::ApiImpl::RequestProcessor::secretsDeleteStoredKeyCompleted);
     connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::deleteStoredKeyMetadataCompleted,
             this, &Daemon::ApiImpl::RequestProcessor::secretsDeleteStoredKeyMetadataCompleted);
+    connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::userInputCompleted,
+            this, &Daemon::ApiImpl::RequestProcessor::secretsUserInputCompleted);
 }
 
 bool
@@ -219,6 +222,7 @@ Daemon::ApiImpl::RequestProcessor::generateKey(
         pid_t callerPid,
         quint64 requestId,
         const Key &keyTemplate,
+        const SymmetricKeyDerivationParameters &skdfParams,
         const QString &cryptosystemProviderName,
         Key *key)
 {
@@ -231,7 +235,7 @@ Daemon::ApiImpl::RequestProcessor::generateKey(
                       QLatin1String("No such cryptographic service provider plugin exists"));
     }
 
-    return m_cryptoPlugins[cryptosystemProviderName]->generateKey(keyTemplate, key);
+    return m_cryptoPlugins[cryptosystemProviderName]->generateKey(keyTemplate, skdfParams, key);
 }
 
 Result
@@ -239,6 +243,8 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey(
         pid_t callerPid,
         quint64 requestId,
         const Key &keyTemplate,
+        const SymmetricKeyDerivationParameters &skdfParams,
+        const InteractionParameters &uiParams,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName,
         Key *key)
@@ -266,6 +272,58 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey(
                       QLatin1String("No such cryptographic service provider plugin exists"));
     }
 
+    // check to see if we need a user interaction flow to get a passphrase/PIN.
+    if (!skdfParams.isValid() || !uiParams.isValid()) {
+        // we don't need to perform a UI request to get the input data for the KDF.
+        return generateStoredKey2(
+                    callerPid,
+                    requestId,
+                    keyTemplate,
+                    skdfParams,
+                    cryptosystemProviderName,
+                    storageProviderName);
+    }
+
+    // yes, we need to perform a user interaction flow to get the input key data.
+    Sailfish::Secrets::InteractionParameters ikdRequest;
+    ikdRequest.setSecretName(keyTemplate.identifier().name());
+    ikdRequest.setCollectionName(keyTemplate.identifier().collectionName());
+    ikdRequest.setOperation(Sailfish::Secrets::InteractionParameters::DeriveKey);
+    ikdRequest.setAuthenticationPluginName(uiParams.authenticationPluginName());
+    ikdRequest.setPromptText(uiParams.promptText());
+    ikdRequest.setInputType(static_cast<Sailfish::Secrets::InteractionParameters::InputType>(uiParams.inputType()));
+    ikdRequest.setEchoMode(static_cast<Sailfish::Secrets::InteractionParameters::EchoMode>(uiParams.echoMode()));
+    retn = transformSecretsResult(m_secrets->userInput(
+                                        callerPid,
+                                        requestId,
+                                        ikdRequest));
+    if (retn.code() == Result::Failed) {
+        return retn;
+    }
+
+    // asynchronous operation, will call back to generateStoredKey_withInputData().
+    m_pendingRequests.insert(requestId,
+                             Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                 callerPid,
+                                 requestId,
+                                 Daemon::ApiImpl::GenerateStoredKeyRequest,
+                                 QVariantList() << QVariant::fromValue<Key>(keyTemplate)
+                                                << QVariant::fromValue<SymmetricKeyDerivationParameters>(skdfParams)
+                                                << QVariant::fromValue<QString>(cryptosystemProviderName)
+                                                << QVariant::fromValue<QString>(storageProviderName)));
+    return Result(Result::Pending);
+}
+
+Result
+Daemon::ApiImpl::RequestProcessor::generateStoredKey2(
+        pid_t callerPid,
+        quint64 requestId,
+        const Key &keyTemplate,
+        const SymmetricKeyDerivationParameters &skdfParams,
+        const QString &cryptosystemProviderName,
+        const QString &storageProviderName)
+{
+    Result retn(Result::Succeeded);
     if (storageProviderName == cryptosystemProviderName) {
         if (!m_cryptoPlugins[cryptosystemProviderName]->canStoreKeys()) {
             return Result(Result::StorageError,
@@ -285,13 +343,14 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey(
                                      requestId,
                                      Daemon::ApiImpl::GenerateStoredKeyRequest,
                                      QVariantList() << QVariant::fromValue<Key>(keyTemplate)
+                                                    << QVariant::fromValue<SymmetricKeyDerivationParameters>(skdfParams)
                                                     << QVariant::fromValue<QString>(cryptosystemProviderName)
                                                     << QVariant::fromValue<QString>(storageProviderName)));
         return Result(Result::Pending);
     } else {
         // generate the key
         Key fullKey(keyTemplate);
-        Result keyResult = m_cryptoPlugins[cryptosystemProviderName]->generateKey(keyTemplate, &fullKey);
+        Result keyResult = m_cryptoPlugins[cryptosystemProviderName]->generateKey(keyTemplate, skdfParams, &fullKey);
         if (keyResult.code() == Result::Failed) {
             return keyResult;
         }
@@ -317,6 +376,40 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey(
                                                     << QVariant::fromValue<QString>(cryptosystemProviderName)
                                                     << QVariant::fromValue<QString>(storageProviderName)));
         return Result(Result::Pending);
+    }
+}
+
+void
+Daemon::ApiImpl::RequestProcessor::generateStoredKey_withInputData(
+        pid_t callerPid,
+        quint64 requestId,
+        const Result &result,
+        const Key &keyTemplate,
+        const SymmetricKeyDerivationParameters &skdfParams,
+        const QString &cryptosystemProviderName,
+        const QString &storageProviderName)
+{
+    // This method is invoked after the user input has been retrieved
+    // from the user, but before the key has been generated or stored.
+    // If the user input was retrieved successfully, continue with
+    // key generation and storage.
+    Result retn(result);
+    if (result.code() == Result::Succeeded) {
+        retn = generateStoredKey2(
+                    callerPid,
+                    requestId,
+                    keyTemplate,
+                    skdfParams,
+                    cryptosystemProviderName,
+                    storageProviderName);
+    }
+
+    // finish the asynchronous request if it failed.
+    if (retn.code() == Result::Failed) {
+        QList<QVariant> outParams;
+        outParams << QVariant::fromValue<Result>(retn);
+        outParams << QVariant::fromValue<Key>(keyTemplate);
+        m_requestQueue->requestFinished(requestId, outParams);
     }
 }
 
@@ -371,6 +464,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_inCryptoPlugin(
         quint64 requestId,
         const Result &result,
         const Key &keyTemplate,
+        const SymmetricKeyDerivationParameters &skdfParams,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName)
 {
@@ -415,7 +509,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_inCryptoPlugin(
                                           << cleanupResult.storageErrorCode() << cleanupResult.errorMessage();
         m_secrets->removeKeyEntry(callerPid, requestId, keyTemplate.identifier());
     } else {
-        retn = m_cryptoPlugins[cryptosystemProviderName]->generateAndStoreKey(keyTemplate, &fullKey);
+        retn = m_cryptoPlugins[cryptosystemProviderName]->generateAndStoreKey(keyTemplate, skdfParams, &fullKey);
         if (retn.code() == Result::Failed) {
             // Attempt to remove the key metadata from secrets storage, to cleanup.
             // Note: the keyEntry should be cascade deleted automatically.
@@ -1394,9 +1488,10 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoreKeyMetadataCompleted(
         switch (pr.requestType) {
             case GenerateStoredKeyRequest: {
                 Key keyTemplate = pr.parameters.takeFirst().value<Key>();
+                SymmetricKeyDerivationParameters skdfParams = pr.parameters.takeFirst().value<SymmetricKeyDerivationParameters>();
                 QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
                 QString storagePluginName = pr.parameters.takeFirst().value<QString>();
-                generateStoredKey_inCryptoPlugin(pr.callerPid, requestId, returnResult, keyTemplate, cryptosystemProviderName, storagePluginName);
+                generateStoredKey_inCryptoPlugin(pr.callerPid, requestId, returnResult, keyTemplate, skdfParams, cryptosystemProviderName, storagePluginName);
                 break;
             }
             default: {
@@ -1471,5 +1566,38 @@ void Daemon::ApiImpl::RequestProcessor::secretsDeleteStoredKeyMetadataCompleted(
         }
     } else {
         qCWarning(lcSailfishCryptoDaemon) << "Secrets completed deleteStoredKeyMetadata() operation for unknown request:" << requestId;
+    }
+}
+
+// asynchronous operation (retrieve user input as KDF input data) has completed
+void Daemon::ApiImpl::RequestProcessor::secretsUserInputCompleted(
+        quint64 requestId,
+        const Sailfish::Secrets::Result &result,
+        const QByteArray &userInput)
+{
+    // look up the pending request in our list
+    if (m_pendingRequests.contains(requestId)) {
+        // transform the error code.
+        Result returnResult(transformSecretsResult(result));
+
+        // call the appropriate method to complete the request
+        Daemon::ApiImpl::RequestProcessor::PendingRequest pr = m_pendingRequests.take(requestId);
+        switch (pr.requestType) {
+            case GenerateStoredKeyRequest: {
+                Key keyTemplate = pr.parameters.takeFirst().value<Key>();
+                SymmetricKeyDerivationParameters skdfParams = pr.parameters.takeFirst().value<SymmetricKeyDerivationParameters>();
+                skdfParams.setInputData(userInput);
+                QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
+                QString storagePluginName = pr.parameters.takeFirst().value<QString>();
+                generateStoredKey_withInputData(pr.callerPid, requestId, returnResult, keyTemplate, skdfParams, cryptosystemProviderName, storagePluginName);
+                break;
+            }
+            default: {
+                qCWarning(lcSailfishCryptoDaemon) << "Secrets completed userInput() operation for request:" << requestId << "of invalid type:" << pr.requestType;
+                break;
+            }
+        }
+    } else {
+        qCWarning(lcSailfishCryptoDaemon) << "Secrets completed userInput() operation for unknown request:" << requestId;
     }
 }

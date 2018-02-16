@@ -11,6 +11,8 @@
 #include "Crypto/cryptoglobal.h"
 #include "Crypto/request.h"
 #include "Crypto/key.h"
+#include "Crypto/interactionparameters.h"
+#include "Crypto/symmetrickeyderivationparameters.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QScopedPointer>
@@ -28,6 +30,8 @@ class SAILFISH_CRYPTO_API GenerateStoredKeyRequest : public Sailfish::Crypto::Re
     Q_OBJECT
     Q_PROPERTY(QString cryptoPluginName READ cryptoPluginName WRITE setCryptoPluginName NOTIFY cryptoPluginNameChanged)
     Q_PROPERTY(QString storagePluginName READ storagePluginName WRITE setStoragePluginName NOTIFY storagePluginNameChanged)
+    Q_PROPERTY(Sailfish::Crypto::InteractionParameters interactionParameters READ interactionParameters WRITE setInteractionParameters NOTIFY interactionParametersChanged)
+    Q_PROPERTY(Sailfish::Crypto::SymmetricKeyDerivationParameters symmetricKeyDerivationParameters READ symmetricKeyDerivationParameters WRITE setSymmetricKeyDerivationParameters NOTIFY symmetricKeyDerivationParametersChanged)
     Q_PROPERTY(Sailfish::Crypto::Key keyTemplate READ keyTemplate WRITE setKeyTemplate NOTIFY keyTemplateChanged)
     Q_PROPERTY(Sailfish::Crypto::Key generatedKeyReference READ generatedKeyReference NOTIFY generatedKeyReferenceChanged)
 
@@ -40,6 +44,12 @@ public:
 
     QString storagePluginName() const;
     void setStoragePluginName(const QString &pluginName);
+
+    Sailfish::Crypto::InteractionParameters interactionParameters() const;
+    void setInteractionParameters(const Sailfish::Crypto::InteractionParameters &uiParams);
+
+    Sailfish::Crypto::SymmetricKeyDerivationParameters symmetricKeyDerivationParameters() const;
+    void setSymmetricKeyDerivationParameters(const Sailfish::Crypto::SymmetricKeyDerivationParameters &params);
 
     Sailfish::Crypto::Key keyTemplate() const;
     void setKeyTemplate(const Sailfish::Crypto::Key &key);
@@ -58,6 +68,8 @@ public:
 Q_SIGNALS:
     void cryptoPluginNameChanged();
     void storagePluginNameChanged();
+    void interactionParametersChanged();
+    void symmetricKeyDerivationParametersChanged();
     void keyTemplateChanged();
     void generatedKeyReferenceChanged();
 

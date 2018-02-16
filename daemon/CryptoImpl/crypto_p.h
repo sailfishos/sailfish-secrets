@@ -12,9 +12,14 @@
 #include "requestqueue_p.h"
 #include "applicationpermissions_p.h"
 
+#include "Crypto/key.h"
 #include "Crypto/extensionplugins.h"
 #include "Crypto/storedkeyrequest.h"
+#include "Crypto/interactionparameters.h"
+#include "Crypto/symmetrickeyderivationparameters.h"
 
+#include <QtCore/QByteArray>
+#include <QtCore/QString>
 #include <QtDBus/QDBusContext>
 
 namespace Sailfish {
@@ -73,20 +78,26 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "      </method>\n"
     "      <method name=\"generateKey\">\n"
     "          <arg name=\"keyTemplate\" type=\"(ay)\" direction=\"in\" />\n"
+    "          <arg name=\"skdfParameters\" type=\"(ayay(i)(i)(i)(i)xiiia{sv})\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"key\" type=\"(ay)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Crypto::Key\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Crypto::SymmetricKeyDerivationParameters\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Crypto::Key\" />\n"
     "      </method>\n"
     "      <method name=\"generateStoredKey\">\n"
     "          <arg name=\"keyTemplate\" type=\"(ay)\" direction=\"in\" />\n"
+    "          <arg name=\"skdfParameters\" type=\"(ayay(i)(i)(i)(i)xiiia{sv})\" direction=\"in\" />\n"
+    "          <arg name=\"uiParams\" type=\"(sss(i)sss(i)(i))\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"storageProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"key\" type=\"(ay)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Crypto::Key\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Crypto::SymmetricKeyDerivationParameters\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::InteractionParameters\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Crypto::Key\" />\n"
     "      </method>\n"
@@ -248,6 +259,7 @@ public Q_SLOTS:
 
     void generateKey(
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::SymmetricKeyDerivationParameters &skdfParams,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
@@ -255,6 +267,8 @@ public Q_SLOTS:
 
     void generateStoredKey(
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::SymmetricKeyDerivationParameters &skdfParams,
+            const Sailfish::Crypto::InteractionParameters &uiParams,
             const QString &cryptosystemProviderName,
             const QString &storageProviderName,
             const QDBusMessage &message,
