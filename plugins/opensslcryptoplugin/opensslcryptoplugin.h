@@ -75,11 +75,13 @@ public:
 
     Sailfish::Crypto::Result generateKey(
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             Sailfish::Crypto::Key *key) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result generateAndStoreKey(
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             Sailfish::Crypto::Key *keyMetadata) Q_DECL_OVERRIDE;
 

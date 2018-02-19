@@ -134,6 +134,7 @@ void tst_crypto::generateKeyEncryptDecrypt()
 
     QDBusPendingReply<Result, Key> reply = cm.generateKey(
             keyTemplate,
+            KeyPairGenerationParameters(),
             KeyDerivationParameters(),
             CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);

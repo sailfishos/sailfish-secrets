@@ -92,6 +92,40 @@ GenerateStoredKeyRequestPrivate::GenerateStoredKeyRequestPrivate()
  * gskr.setInteractionParameters(uiParams);
  * gskr.startRequest();
  * \endcode
+ *
+ * You can also generate an asymmetric cipher key; however, these are not
+ * derived from input key data, but instead generated randomly given certain
+ * starting parameters.  An example of generating an asymmetric RSA key pair
+ * follows:
+ *
+ * \code
+ * // Define the key metadata via a template.
+ * Sailfish::Crypto::Key keyTemplate;
+ * keyTemplate.setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmRsa);
+ * keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
+ * keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt
+ *                          |Sailfish::Crypto::CryptoManager::OperationDecrypt
+ *                          |Sailfish::Crypto::CryptoManager::OperationSign
+ *                          |Sailfish::Crypto::CryptoManager::OperationVerify);
+ * keyTemplate.setComponentConstraints(Sailfish::Crypto::Key::MetaData | Sailfish::Crypto::Key::PublicKeyData);
+ * keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(
+ *         QLatin1String("ExampleRsaKey"), QLatin1String("ExampleCollection")));
+ *
+ * // Define some parameters for key-pair generation
+ * Sailfish::Crypto::RsaKeyPairGenerationParameters kpg;
+ * kpg.setModulusLength(4096);
+ * kpg.setPublicExponent(65537);
+ * kpg.setNumberPrimes(2);
+ *
+ * // Ask the crypto service to perform the required operations.
+ * Sailfish::Crypto::GenerateStoredKeyRequest gskr;
+ * gskr.setManager(cryptoManager);
+ * gskr.setCryptoPluginName(Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
+ * gskr.setStoragePluginName(Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
+ * gskr.setKeyTemplate(keyTemplate);
+ * gskr.setKeyPairGenerationParameters(kpg);
+ * gskr.startRequest();
+ * \endcode
  */
 
 /*!
@@ -226,6 +260,38 @@ void GenerateStoredKeyRequest::setKeyDerivationParameters(
 }
 
 /*!
+ * \brief Returns the asymmetric key pair generation parameters which
+ *        should be used to generate the public and private key data
+ *
+ * These parameters are only meaningful if the template key
+ * algorithm is an asymmetric cipher algorithm.
+ */
+KeyPairGenerationParameters
+GenerateStoredKeyRequest::keyPairGenerationParameters() const
+{
+    Q_D(const GenerateStoredKeyRequest);
+    return d->m_kpgParams;
+}
+
+/*!
+ * \brief Sets the asymmetric key pair generation parameters which
+ *        should be used to generate the public and private key data to \a params
+ */
+void GenerateStoredKeyRequest::setKeyPairGenerationParameters(
+        const KeyPairGenerationParameters &params)
+{
+    Q_D(GenerateStoredKeyRequest);
+    if (d->m_status != Request::Active && d->m_kpgParams != params) {
+        d->m_kpgParams = params;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit keyPairGenerationParametersChanged();
+    }
+}
+
+/*!
  * \brief Returns the key which should be used as a template when generating the full key
  */
 Key GenerateStoredKeyRequest::keyTemplate() const
@@ -303,6 +369,7 @@ void GenerateStoredKeyRequest::startRequest()
 
         QDBusPendingReply<Result, Key> reply =
                 d->m_manager->d_ptr->generateStoredKey(d->m_keyTemplate,
+                                                       d->m_kpgParams,
                                                        d->m_skdfParams,
                                                        d->m_uiParams,
                                                        d->m_cryptoPluginName,

@@ -74,10 +74,10 @@ void GenerateKeyRequest::setCryptoPluginName(const QString &pluginName)
 /*!
  * \brief Returns the symmetric key derivation parameters which should be used to generate the secret key data
  *
- * These interaction parameters are only meaningful if the template key
+ * These parameters are only meaningful if the template key
  * algorithm is a symmetric cipher algorithm.
  */
-Sailfish::Crypto::KeyDerivationParameters
+KeyDerivationParameters
 GenerateKeyRequest::keyDerivationParameters() const
 {
     Q_D(const GenerateKeyRequest);
@@ -88,7 +88,7 @@ GenerateKeyRequest::keyDerivationParameters() const
  * \brief Sets the symmetric key derivation parameters which should be used to generate the secret key data to \a params
  */
 void GenerateKeyRequest::setKeyDerivationParameters(
-        const Sailfish::Crypto::KeyDerivationParameters &params)
+        const KeyDerivationParameters &params)
 {
     Q_D(GenerateKeyRequest);
     if (d->m_status != Request::Active && d->m_skdfParams != params) {
@@ -98,6 +98,38 @@ void GenerateKeyRequest::setKeyDerivationParameters(
             emit statusChanged();
         }
         emit keyDerivationParametersChanged();
+    }
+}
+
+/*!
+ * \brief Returns the asymmetric key pair generation parameters which
+ *        should be used to generate the public and private key data
+ *
+ * These parameters are only meaningful if the template key
+ * algorithm is an asymmetric cipher algorithm.
+ */
+KeyPairGenerationParameters
+GenerateKeyRequest::keyPairGenerationParameters() const
+{
+    Q_D(const GenerateKeyRequest);
+    return d->m_kpgParams;
+}
+
+/*!
+ * \brief Sets the asymmetric key pair generation parameters which
+ *        should be used to generate the public and private key data to \a params
+ */
+void GenerateKeyRequest::setKeyPairGenerationParameters(
+        const KeyPairGenerationParameters &params)
+{
+    Q_D(GenerateKeyRequest);
+    if (d->m_status != Request::Active && d->m_kpgParams != params) {
+        d->m_kpgParams = params;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit keyPairGenerationParametersChanged();
     }
 }
 
@@ -177,6 +209,7 @@ void GenerateKeyRequest::startRequest()
 
         QDBusPendingReply<Result, Key> reply =
                 d->m_manager->d_ptr->generateKey(d->m_keyTemplate,
+                                                 d->m_kpgParams,
                                                  d->m_skdfParams,
                                                  d->m_cryptoPluginName);
         if (reply.isFinished()

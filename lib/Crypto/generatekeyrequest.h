@@ -11,6 +11,7 @@
 #include "Crypto/cryptoglobal.h"
 #include "Crypto/request.h"
 #include "Crypto/key.h"
+#include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
 
 #include <QtCore/QObject>
@@ -29,6 +30,7 @@ class SAILFISH_CRYPTO_API GenerateKeyRequest : public Sailfish::Crypto::Request
     Q_OBJECT
     Q_PROPERTY(QString cryptoPluginName READ cryptoPluginName WRITE setCryptoPluginName NOTIFY cryptoPluginNameChanged)
     Q_PROPERTY(Sailfish::Crypto::KeyDerivationParameters keyDerivationParameters READ keyDerivationParameters WRITE setKeyDerivationParameters NOTIFY keyDerivationParametersChanged)
+    Q_PROPERTY(Sailfish::Crypto::KeyPairGenerationParameters keyPairGenerationParameters READ keyPairGenerationParameters WRITE setKeyPairGenerationParameters NOTIFY keyPairGenerationParametersChanged)
     Q_PROPERTY(Sailfish::Crypto::Key keyTemplate READ keyTemplate WRITE setKeyTemplate NOTIFY keyTemplateChanged)
     Q_PROPERTY(Sailfish::Crypto::Key generatedKey READ generatedKey NOTIFY generatedKeyChanged)
 
@@ -41,6 +43,9 @@ public:
 
     Sailfish::Crypto::KeyDerivationParameters keyDerivationParameters() const;
     void setKeyDerivationParameters(const Sailfish::Crypto::KeyDerivationParameters &params);
+
+    Sailfish::Crypto::KeyPairGenerationParameters keyPairGenerationParameters() const;
+    void setKeyPairGenerationParameters(const Sailfish::Crypto::KeyPairGenerationParameters &params);
 
     Sailfish::Crypto::Key keyTemplate() const;
     void setKeyTemplate(const Sailfish::Crypto::Key &key);
@@ -59,6 +64,7 @@ public:
 Q_SIGNALS:
     void cryptoPluginNameChanged();
     void keyDerivationParametersChanged();
+    void keyPairGenerationParametersChanged();
     void keyTemplateChanged();
     void generatedKeyChanged();
 

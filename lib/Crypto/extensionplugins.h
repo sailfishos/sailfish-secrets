@@ -13,6 +13,7 @@
 #include "Crypto/key.h"
 #include "Crypto/result.h"
 #include "Crypto/storedkeyrequest.h"
+#include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
 
 #include <QtCore/QObject>
@@ -75,11 +76,13 @@ public:
 
     virtual Sailfish::Crypto::Result generateKey(
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             Sailfish::Crypto::Key *key) = 0;
 
     virtual Sailfish::Crypto::Result generateAndStoreKey(
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             Sailfish::Crypto::Key *keyMetadata) = 0;
 

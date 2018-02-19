@@ -13,6 +13,8 @@
 #include "Crypto/cipherrequest.h"
 #include "Crypto/interactionparameters.h"
 #include "Crypto/keyderivationparameters.h"
+#include "Crypto/keypairgenerationparameters.h"
+#include "Crypto/keypairgenerationparameters_p.h"
 
 #include "Crypto/serialisation_p.h"
 #include "Crypto/key_p.h"
@@ -845,7 +847,7 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionParame
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::KeyDerivationParameters &skdfParams)
+QDBusArgument &operator<<(QDBusArgument &argument, const KeyDerivationParameters &skdfParams)
 {
     argument.beginStructure();
     argument << skdfParams.inputData()
@@ -863,7 +865,7 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::KeyDe
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::KeyDerivationParameters &skdfParams)
+const QDBusArgument &operator>>(const QDBusArgument &argument, KeyDerivationParameters &skdfParams)
 {
     QByteArray inputData;
     QByteArray salt;
@@ -902,6 +904,53 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto:
     skdfParams.setParallelism(parallelism);
     skdfParams.setOutputKeySize(outputKeySize);
     skdfParams.setCustomParameters(customParameters);
+
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const KeyPairGenerationParameters::KeyPairType type)
+{
+    argument.beginStructure();
+    argument << static_cast<int>(type);
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, KeyPairGenerationParameters::KeyPairType &type)
+{
+    int iv = 0;
+    argument.beginStructure();
+    argument >> iv;
+    argument.endStructure();
+    type = static_cast<KeyPairGenerationParameters::KeyPairType>(iv);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const KeyPairGenerationParameters &kpgParams)
+{
+    argument.beginStructure();
+    argument << static_cast<int>(kpgParams.keyPairType())
+             << KeyPairGenerationParametersPrivate::subclassParameters(kpgParams)
+             << kpgParams.customParameters();
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, KeyPairGenerationParameters &kpgParams)
+{
+    int ikeyPairType;
+    QVariantMap subclassParameters;
+    QVariantMap customParameters;
+
+    argument.beginStructure();
+    argument >> ikeyPairType
+             >> subclassParameters
+             >> customParameters;
+    argument.endStructure();
+
+    kpgParams.setKeyPairType(static_cast<KeyPairGenerationParameters::KeyPairType>(ikeyPairType));
+    KeyPairGenerationParametersPrivate::setSubclassParameters(kpgParams, subclassParameters);
+    kpgParams.setCustomParameters(customParameters);
 
     return argument;
 }

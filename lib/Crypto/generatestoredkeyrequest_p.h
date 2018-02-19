@@ -12,6 +12,7 @@
 #include "Crypto/generatestoredkeyrequest.h"
 #include "Crypto/cryptomanager.h"
 #include "Crypto/interactionparameters.h"
+#include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
 
 #include <QtCore/QPointer>
@@ -36,6 +37,7 @@ public:
     QString m_storagePluginName;
     Sailfish::Crypto::InteractionParameters m_uiParams;
     Sailfish::Crypto::KeyDerivationParameters m_skdfParams;
+    Sailfish::Crypto::KeyPairGenerationParameters m_kpgParams;
     Sailfish::Crypto::Key m_keyTemplate;
     Sailfish::Crypto::Key m_generatedKeyReference;
 

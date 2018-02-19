@@ -171,6 +171,129 @@ public:
     };
     Q_ENUM(KeyDerivationFunction)
 
+    enum EllipticCurve {
+        CurveUnknown            = 0,
+
+        // SECT curves
+        CurveSect163k1          = 10,
+        CurveSect163r1          = 11,
+        CurveSect163r2          = 12,
+        CurveSect193r1          = 13,
+        CurveSect193r2          = 14,
+        CurveSect233k1          = 15,
+        CurveSect233r1          = 16,
+        CurveSect239k1          = 17,
+        CurveSect283k1          = 18,
+        CurveSect283r1          = 19,
+        CurveSect409k1          = 20,
+        CurveSect409r1          = 21,
+        CurveSect571k1          = 22,
+        CurveSect571r1          = 23,
+
+        // SECP curves
+        CurveSecp160k1          = 50,
+        CurveSecp160r1          = 51,
+        CurveSecp160r2          = 52,
+        CurveSecp192k1          = 53,
+        CurveSecp192r1          = 54,
+        CurveSecp224k1          = 55,
+        CurveSecp224r1          = 56,
+        CurveSecp256k1          = 57,
+        CurveSecp256r1          = 58,
+        CurveSecp384r1          = 59,
+        CurveSecp521r1          = 60,
+
+        // NIST curves
+        CurveNistK163           = CurveSect163k1,
+        CurveNistB163           = CurveSect163r2,
+        CurveNistK233           = CurveSect233k1,
+        CurveNistB233           = CurveSect233r1,
+        CurveNistK283           = CurveSect283k1,
+        CurveNistB283           = CurveSect283r1,
+        CurveNistK409           = CurveSect409k1,
+        CurveNistB409           = CurveSect409r1,
+        CurveNistK571           = CurveSect571k1,
+        CurveNistB571           = CurveSect571k1,
+        CurveNistP192           = CurveSecp192r1,
+        CurveNistP224           = CurveSecp224r1,
+        CurveNistP256           = CurveSecp256r1,
+        CurveNistP384           = CurveSecp384r1,
+        CurveNistP521           = CurveSecp521r1,
+
+        // ANSI X9.62 primary field curves
+        CurveAX962prime192v1    = CurveSecp192r1,
+        CurveAX962prime192v2    = 101,
+        CurveAX962prime192v3    = 102,
+        CurveAX962prime239v1    = 103,
+        CurveAX962prime239v2    = 104,
+        CurveAX962prime239v3    = 105,
+        CurveAX962prime256v1    = CurveSecp256r1,
+
+        // ANSI X9.62 binary field curves
+        CurveAX962c2pnb163v1    = 150,
+        CurveAX962c2pnb163v2    = 151,
+        CurveAX962c2pnb163v3    = 152,
+        CurveAX962c2pnb176v1    = 153,
+        CurveAX962c2tnb191v1    = 154,
+        CurveAX962c2tnb191v2    = 155,
+        CurveAX962c2tnb191v3    = 156,
+        CurveAX962c2pnb208w1    = 157,
+        CurveAX962c2tnb239v1    = 158,
+        CurveAX962c2tnb239v2    = 159,
+        CurveAX962c2tnb239v3    = 160,
+        CurveAX962c2pnb272w1    = 161,
+        CurveAX962c2pnb304w1    = 162,
+        CurveAX962c2tnb359v1    = 163,
+        CurveAX962c2pnb368w1    = 164,
+        CurveAX962c2tnb431r1    = 165,
+
+        // WTLS
+        CurveWapWsgIdmEcidWtls1 = 200,
+        CurveWapWsgIdmEcidWtls2 = 201,
+        CurveWapWsgIdmEcidWtls3 = 202,
+        CurveWapWsgIdmEcidWtls4 = 203,
+        CurveWapWsgIdmEcidWtls5 = 204,
+        CurveWapWsgIdmEcidWtls6 = 205,
+        CurveWapWsgIdmEcidWtls7 = 206,
+        CurveWapWsgIdmEcidWtls8 = 207,
+        CurveWapWsgIdmEcidWtls9 = 208,
+        CurveWapWsgIdmEcidWtls10= 209,
+        CurveWapWsgIdmEcidWtls11= 210,
+        CurveWapWsgIdmEcidWtls12= 211,
+
+        // Independent "special" curves
+        Curve25519          = 250,  // 128 bit security
+        Curve41417          = 251,
+        Curve1174           = 252,
+        CurveM221           = 253,
+        CurveE222           = 254,
+        CurveE382           = 255,
+        CurveM383           = 256,
+        Curve448            = 257,  // 224 bit security
+        CurveEd448Goldilocks= 258,
+        CurveM511           = 259,
+        CurveE521           = 260,
+
+        // Brainpool "random" prime curves
+        CurveBrainpoolP160r1= 300,
+        CurveBrainpoolP160t1= 301,
+        CurveBrainpoolP192r1= 302,
+        CurveBrainpoolP192t1= 303,
+        CurveBrainpoolP224r1= 304,
+        CurveBrainpoolP224t1= 305,
+        CurveBrainpoolP256r1= 306,
+        CurveBrainpoolP256t1= 307,
+        CurveBrainpoolP320r1= 308,
+        CurveBrainpoolP320t1= 309,
+        CurveBrainpoolP384r1= 310,
+        CurveBrainpoolP384t1= 311,
+        CurveBrainpoolP512r1= 312,
+        CurveBrainpoolP512t1= 313,
+
+        LastCurve           = 4096 // reserve
+    };
+    Q_ENUM(EllipticCurve)
+
     enum Operation {
         OperationUnknown        = 0,
         OperationCustom         = 1,

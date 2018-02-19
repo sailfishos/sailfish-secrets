@@ -15,6 +15,7 @@
 #include "Crypto/cryptomanager_p.h"
 #include "Crypto/serialisation_p.h"
 #include "Crypto/key.h"
+#include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
 #include "Crypto/interactionparameters.h"
 #include "Crypto/result.h"
@@ -117,6 +118,7 @@ void tst_cryptosecrets::secretsStoredKey()
     // note that the secret key data will never enter the client process address space.
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> reply = cm.generateStoredKey(
             keyTemplate,
+            Sailfish::Crypto::KeyPairGenerationParameters(),
             Sailfish::Crypto::KeyDerivationParameters(),
             Sailfish::Crypto::InteractionParameters(),
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"),
@@ -221,6 +223,7 @@ void tst_cryptosecrets::secretsStoredKey()
 
     reply = cm.generateStoredKey(
                 keyTemplate,
+                Sailfish::Crypto::KeyPairGenerationParameters(),
                 Sailfish::Crypto::KeyDerivationParameters(),
                 Sailfish::Crypto::InteractionParameters(),
                 Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"),
@@ -326,6 +329,7 @@ void tst_cryptosecrets::cryptoStoredKey()
     // note that the secret key data will never enter the client process address space.
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> reply = cm.generateStoredKey(
             keyTemplate,
+            Sailfish::Crypto::KeyPairGenerationParameters(),
             Sailfish::Crypto::KeyDerivationParameters(),
             Sailfish::Crypto::InteractionParameters(),
             Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"),
@@ -466,6 +470,7 @@ void tst_cryptosecrets::cryptoStoredKey()
 
     reply = cm.generateStoredKey(
                 keyTemplate,
+                Sailfish::Crypto::KeyPairGenerationParameters(),
                 Sailfish::Crypto::KeyDerivationParameters(),
                 Sailfish::Crypto::InteractionParameters(),
                 Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"),
@@ -559,6 +564,7 @@ void tst_cryptosecrets::cryptoStoredKey()
                                                                 QLatin1String("tstcryptosecretsgcsked2")));
     reply = cm.generateStoredKey(
                 keyTemplate,
+                Sailfish::Crypto::KeyPairGenerationParameters(),
                 Sailfish::Crypto::KeyDerivationParameters(),
                 Sailfish::Crypto::InteractionParameters(),
                 Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"),

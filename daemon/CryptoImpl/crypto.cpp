@@ -107,6 +107,7 @@ void Daemon::ApiImpl::CryptoDBusObject::validateCertificateChain(
 
 void Daemon::ApiImpl::CryptoDBusObject::generateKey(
         const Key &keyTemplate,
+        const KeyPairGenerationParameters &kpgParams,
         const KeyDerivationParameters &skdfParams,
         const QString &cryptosystemProviderName,
         const QDBusMessage &message,
@@ -116,6 +117,7 @@ void Daemon::ApiImpl::CryptoDBusObject::generateKey(
     Q_UNUSED(key);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<Key>(keyTemplate);
+    inParams << QVariant::fromValue<KeyPairGenerationParameters>(kpgParams);
     inParams << QVariant::fromValue<KeyDerivationParameters>(skdfParams);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
     m_requestQueue->handleRequest(Daemon::ApiImpl::GenerateKeyRequest,
@@ -127,6 +129,7 @@ void Daemon::ApiImpl::CryptoDBusObject::generateKey(
 
 void Daemon::ApiImpl::CryptoDBusObject::generateStoredKey(
         const Key &keyTemplate,
+        const KeyPairGenerationParameters &kpgParams,
         const KeyDerivationParameters &skdfParams,
         const InteractionParameters &uiParams,
         const QString &cryptosystemProviderName,
@@ -138,6 +141,7 @@ void Daemon::ApiImpl::CryptoDBusObject::generateStoredKey(
     Q_UNUSED(key);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<Key>(keyTemplate);
+    inParams << QVariant::fromValue<KeyPairGenerationParameters>(kpgParams);
     inParams << QVariant::fromValue<KeyDerivationParameters>(skdfParams);
     inParams << QVariant::fromValue<InteractionParameters>(uiParams);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
@@ -541,13 +545,23 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
         case GenerateKeyRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling GenerateKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             Key key;
-            Key templateKey = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
-            KeyDerivationParameters skdfParams = request->inParams.size() ? request->inParams.takeFirst().value<KeyDerivationParameters>() : KeyDerivationParameters();
-            QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            Key templateKey = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Key>()
+                    : Key();
+            KeyPairGenerationParameters kpgParams = request->inParams.size()
+                    ? request->inParams.takeFirst().value<KeyPairGenerationParameters>()
+                    : KeyPairGenerationParameters();
+            KeyDerivationParameters skdfParams = request->inParams.size()
+                    ? request->inParams.takeFirst().value<KeyDerivationParameters>()
+                    : KeyDerivationParameters();
+            QString cryptosystemProviderName = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
             Result result = m_requestProcessor->generateKey(
                         request->remotePid,
                         request->requestId,
                         templateKey,
+                        kpgParams,
                         skdfParams,
                         cryptosystemProviderName,
                         &key);
@@ -565,15 +579,29 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
         case GenerateStoredKeyRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling GenerateStoredKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             Key key;
-            Key templateKey = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
-            KeyDerivationParameters skdfParams = request->inParams.size() ? request->inParams.takeFirst().value<KeyDerivationParameters>() : KeyDerivationParameters();
-            InteractionParameters uiParams = request->inParams.size() ? request->inParams.takeFirst().value<InteractionParameters>() : InteractionParameters();
-            QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            QString storageProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            Key templateKey = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Key>()
+                    : Key();
+            KeyPairGenerationParameters kpgParams = request->inParams.size()
+                    ? request->inParams.takeFirst().value<KeyPairGenerationParameters>()
+                    : KeyPairGenerationParameters();
+            KeyDerivationParameters skdfParams = request->inParams.size()
+                    ? request->inParams.takeFirst().value<KeyDerivationParameters>()
+                    : KeyDerivationParameters();
+            InteractionParameters uiParams = request->inParams.size()
+                    ? request->inParams.takeFirst().value<InteractionParameters>()
+                    : InteractionParameters();
+            QString cryptosystemProviderName = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
+            QString storageProviderName = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
             Result result = m_requestProcessor->generateStoredKey(
                         request->remotePid,
                         request->requestId,
                         templateKey,
+                        kpgParams,
                         skdfParams,
                         uiParams,
                         cryptosystemProviderName,

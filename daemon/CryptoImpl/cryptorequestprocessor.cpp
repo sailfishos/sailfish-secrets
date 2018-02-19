@@ -222,6 +222,7 @@ Daemon::ApiImpl::RequestProcessor::generateKey(
         pid_t callerPid,
         quint64 requestId,
         const Key &keyTemplate,
+        const KeyPairGenerationParameters &kpgParams,
         const KeyDerivationParameters &skdfParams,
         const QString &cryptosystemProviderName,
         Key *key)
@@ -235,7 +236,7 @@ Daemon::ApiImpl::RequestProcessor::generateKey(
                       QLatin1String("No such cryptographic service provider plugin exists"));
     }
 
-    return m_cryptoPlugins[cryptosystemProviderName]->generateKey(keyTemplate, skdfParams, key);
+    return m_cryptoPlugins[cryptosystemProviderName]->generateKey(keyTemplate, kpgParams, skdfParams, key);
 }
 
 Result
@@ -243,6 +244,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey(
         pid_t callerPid,
         quint64 requestId,
         const Key &keyTemplate,
+        const KeyPairGenerationParameters &kpgParams,
         const KeyDerivationParameters &skdfParams,
         const InteractionParameters &uiParams,
         const QString &cryptosystemProviderName,
@@ -279,6 +281,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey(
                     callerPid,
                     requestId,
                     keyTemplate,
+                    kpgParams,
                     skdfParams,
                     cryptosystemProviderName,
                     storageProviderName);
@@ -308,6 +311,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey(
                                  requestId,
                                  Daemon::ApiImpl::GenerateStoredKeyRequest,
                                  QVariantList() << QVariant::fromValue<Key>(keyTemplate)
+                                                << QVariant::fromValue<KeyPairGenerationParameters>(kpgParams)
                                                 << QVariant::fromValue<KeyDerivationParameters>(skdfParams)
                                                 << QVariant::fromValue<QString>(cryptosystemProviderName)
                                                 << QVariant::fromValue<QString>(storageProviderName)));
@@ -319,6 +323,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey2(
         pid_t callerPid,
         quint64 requestId,
         const Key &keyTemplate,
+        const KeyPairGenerationParameters &kpgParams,
         const KeyDerivationParameters &skdfParams,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName)
@@ -343,6 +348,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey2(
                                      requestId,
                                      Daemon::ApiImpl::GenerateStoredKeyRequest,
                                      QVariantList() << QVariant::fromValue<Key>(keyTemplate)
+                                                    << QVariant::fromValue<KeyPairGenerationParameters>(kpgParams)
                                                     << QVariant::fromValue<KeyDerivationParameters>(skdfParams)
                                                     << QVariant::fromValue<QString>(cryptosystemProviderName)
                                                     << QVariant::fromValue<QString>(storageProviderName)));
@@ -350,7 +356,8 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey2(
     } else {
         // generate the key
         Key fullKey(keyTemplate);
-        Result keyResult = m_cryptoPlugins[cryptosystemProviderName]->generateKey(keyTemplate, skdfParams, &fullKey);
+        Result keyResult = m_cryptoPlugins[cryptosystemProviderName]->generateKey(
+                    keyTemplate, kpgParams, skdfParams, &fullKey);
         if (keyResult.code() == Result::Failed) {
             return keyResult;
         }
@@ -385,6 +392,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_withInputData(
         quint64 requestId,
         const Result &result,
         const Key &keyTemplate,
+        const KeyPairGenerationParameters &kpgParams,
         const KeyDerivationParameters &skdfParams,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName)
@@ -399,6 +407,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_withInputData(
                     callerPid,
                     requestId,
                     keyTemplate,
+                    kpgParams,
                     skdfParams,
                     cryptosystemProviderName,
                     storageProviderName);
@@ -464,6 +473,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_inCryptoPlugin(
         quint64 requestId,
         const Result &result,
         const Key &keyTemplate,
+        const KeyPairGenerationParameters &kpgParams,
         const KeyDerivationParameters &skdfParams,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName)
@@ -509,7 +519,8 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_inCryptoPlugin(
                                           << cleanupResult.storageErrorCode() << cleanupResult.errorMessage();
         m_secrets->removeKeyEntry(callerPid, requestId, keyTemplate.identifier());
     } else {
-        retn = m_cryptoPlugins[cryptosystemProviderName]->generateAndStoreKey(keyTemplate, skdfParams, &fullKey);
+        retn = m_cryptoPlugins[cryptosystemProviderName]->generateAndStoreKey(
+                    keyTemplate, kpgParams, skdfParams, &fullKey);
         if (retn.code() == Result::Failed) {
             // Attempt to remove the key metadata from secrets storage, to cleanup.
             // Note: the keyEntry should be cascade deleted automatically.
@@ -1488,10 +1499,11 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoreKeyMetadataCompleted(
         switch (pr.requestType) {
             case GenerateStoredKeyRequest: {
                 Key keyTemplate = pr.parameters.takeFirst().value<Key>();
+                KeyPairGenerationParameters kpgParams = pr.parameters.takeFirst().value<KeyPairGenerationParameters>();
                 KeyDerivationParameters skdfParams = pr.parameters.takeFirst().value<KeyDerivationParameters>();
                 QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
                 QString storagePluginName = pr.parameters.takeFirst().value<QString>();
-                generateStoredKey_inCryptoPlugin(pr.callerPid, requestId, returnResult, keyTemplate, skdfParams, cryptosystemProviderName, storagePluginName);
+                generateStoredKey_inCryptoPlugin(pr.callerPid, requestId, returnResult, keyTemplate, kpgParams, skdfParams, cryptosystemProviderName, storagePluginName);
                 break;
             }
             default: {
@@ -1585,11 +1597,12 @@ void Daemon::ApiImpl::RequestProcessor::secretsUserInputCompleted(
         switch (pr.requestType) {
             case GenerateStoredKeyRequest: {
                 Key keyTemplate = pr.parameters.takeFirst().value<Key>();
+                KeyPairGenerationParameters kpgParams = pr.parameters.takeFirst().value<KeyPairGenerationParameters>();
                 KeyDerivationParameters skdfParams = pr.parameters.takeFirst().value<KeyDerivationParameters>();
                 skdfParams.setInputData(userInput);
                 QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
                 QString storagePluginName = pr.parameters.takeFirst().value<QString>();
-                generateStoredKey_withInputData(pr.callerPid, requestId, returnResult, keyTemplate, skdfParams, cryptosystemProviderName, storagePluginName);
+                generateStoredKey_withInputData(pr.callerPid, requestId, returnResult, keyTemplate, kpgParams, skdfParams, cryptosystemProviderName, storagePluginName);
                 break;
             }
             default: {

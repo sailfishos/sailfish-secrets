@@ -10,6 +10,9 @@
 #include "Crypto/serialisation_p.h"
 #include "Crypto/key.h"
 #include "Crypto/certificate.h"
+#include "Crypto/keypairgenerationparameters.h"
+#include "Crypto/keyderivationparameters.h"
+#include "Crypto/interactionparameters.h"
 
 #include <QtDBus/QDBusInterface>
 #include <QtDBus/QDBusConnection>
@@ -142,7 +145,8 @@ CryptoManagerPrivate::validateCertificateChain(
 QDBusPendingReply<Result, Key>
 CryptoManagerPrivate::generateKey(
         const Key &keyTemplate,
-        const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+        const KeyPairGenerationParameters &kpgParams,
+        const KeyDerivationParameters &skdfParams,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -155,6 +159,7 @@ CryptoManagerPrivate::generateKey(
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("generateKey"),
                 QVariantList() << QVariant::fromValue<Key>(keyTemplate)
+                               << QVariant::fromValue<KeyPairGenerationParameters>(kpgParams)
                                << QVariant::fromValue<KeyDerivationParameters>(skdfParams)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
@@ -163,8 +168,9 @@ CryptoManagerPrivate::generateKey(
 QDBusPendingReply<Result, Key>
 CryptoManagerPrivate::generateStoredKey(
         const Key &keyTemplate,
-        const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
-        const Sailfish::Crypto::InteractionParameters &uiParams,
+        const KeyPairGenerationParameters &kpgParams,
+        const KeyDerivationParameters &skdfParams,
+        const InteractionParameters &uiParams,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName)
 {
@@ -178,6 +184,7 @@ CryptoManagerPrivate::generateStoredKey(
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("generateStoredKey"),
                 QVariantList() << QVariant::fromValue<Key>(keyTemplate)
+                               << QVariant::fromValue<KeyPairGenerationParameters>(kpgParams)
                                << QVariant::fromValue<KeyDerivationParameters>(skdfParams)
                                << QVariant::fromValue<InteractionParameters>(uiParams)
                                << QVariant::fromValue<QString>(cryptosystemProviderName)

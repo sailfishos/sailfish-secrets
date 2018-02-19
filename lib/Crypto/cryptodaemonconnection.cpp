@@ -177,6 +177,8 @@ void Sailfish::Crypto::CryptoDaemonConnection::registerDBusTypes()
     qRegisterMetaType<Sailfish::Crypto::Key::Component>("Sailfish::Crypto::Key::Component");
     qRegisterMetaType<Sailfish::Crypto::Key::Components>("Sailfish::Crypto::Key::Components");
     qRegisterMetaType<Sailfish::Crypto::CipherRequest::CipherMode>("Sailfish::Crypto::CipherRequest::CipherMode");
+    qRegisterMetaType<Sailfish::Crypto::KeyPairGenerationParameters>("Sailfish::Crypto::KeyPairGenerationParameters");
+    qRegisterMetaType<Sailfish::Crypto::KeyPairGenerationParameters::KeyPairType>("Sailfish::Crypto::KeyPairGenerationParameters::KeyPairType");
     qRegisterMetaType<Sailfish::Crypto::KeyDerivationParameters>("Sailfish::Crypto::KeyDerivationParameters");
     qRegisterMetaType<Sailfish::Crypto::InteractionParameters>("Sailfish::Crypto::InteractionParameters");
 
@@ -203,6 +205,8 @@ void Sailfish::Crypto::CryptoDaemonConnection::registerDBusTypes()
     qDBusRegisterMetaType<Sailfish::Crypto::Key::Component>();
     qDBusRegisterMetaType<Sailfish::Crypto::Key::Components>();
     qDBusRegisterMetaType<Sailfish::Crypto::CipherRequest::CipherMode>();
+    qDBusRegisterMetaType<Sailfish::Crypto::KeyPairGenerationParameters>();
+    qDBusRegisterMetaType<Sailfish::Crypto::KeyPairGenerationParameters::KeyPairType>();
     qDBusRegisterMetaType<Sailfish::Crypto::KeyDerivationParameters>();
     qDBusRegisterMetaType<Sailfish::Crypto::InteractionParameters>();
 }

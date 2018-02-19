@@ -25,6 +25,7 @@
 #include "Crypto/certificate.h"
 #include "Crypto/extensionplugins.h"
 #include "Crypto/storedkeyrequest.h"
+#include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
 #include "Crypto/interactionparameters.h"
 
@@ -97,6 +98,7 @@ public:
             pid_t callerPid,
             quint64 requestId,
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             const QString &cryptosystemProviderName,
             Sailfish::Crypto::Key *key);
@@ -105,6 +107,7 @@ public:
             pid_t callerPid,
             quint64 requestId,
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             const Sailfish::Crypto::InteractionParameters &uiParams,
             const QString &cryptosystemProviderName,
@@ -261,6 +264,7 @@ private:
             pid_t callerPid,
             quint64 requestId,
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             const QString &cryptosystemProviderName,
             const QString &storageProviderName);
@@ -270,6 +274,7 @@ private:
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             const QString &cryptosystemProviderName,
             const QString &storageProviderName);
@@ -287,6 +292,7 @@ private:
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             const QString &cryptosystemProviderName,
             const QString &storagePluginName);

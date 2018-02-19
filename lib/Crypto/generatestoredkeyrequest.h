@@ -11,8 +11,9 @@
 #include "Crypto/cryptoglobal.h"
 #include "Crypto/request.h"
 #include "Crypto/key.h"
-#include "Crypto/interactionparameters.h"
+#include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
+#include "Crypto/interactionparameters.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QScopedPointer>
@@ -32,6 +33,7 @@ class SAILFISH_CRYPTO_API GenerateStoredKeyRequest : public Sailfish::Crypto::Re
     Q_PROPERTY(QString storagePluginName READ storagePluginName WRITE setStoragePluginName NOTIFY storagePluginNameChanged)
     Q_PROPERTY(Sailfish::Crypto::InteractionParameters interactionParameters READ interactionParameters WRITE setInteractionParameters NOTIFY interactionParametersChanged)
     Q_PROPERTY(Sailfish::Crypto::KeyDerivationParameters keyDerivationParameters READ keyDerivationParameters WRITE setKeyDerivationParameters NOTIFY keyDerivationParametersChanged)
+    Q_PROPERTY(Sailfish::Crypto::KeyPairGenerationParameters keyPairGenerationParameters READ keyPairGenerationParameters WRITE setKeyPairGenerationParameters NOTIFY keyPairGenerationParametersChanged)
     Q_PROPERTY(Sailfish::Crypto::Key keyTemplate READ keyTemplate WRITE setKeyTemplate NOTIFY keyTemplateChanged)
     Q_PROPERTY(Sailfish::Crypto::Key generatedKeyReference READ generatedKeyReference NOTIFY generatedKeyReferenceChanged)
 
@@ -50,6 +52,9 @@ public:
 
     Sailfish::Crypto::KeyDerivationParameters keyDerivationParameters() const;
     void setKeyDerivationParameters(const Sailfish::Crypto::KeyDerivationParameters &params);
+
+    Sailfish::Crypto::KeyPairGenerationParameters keyPairGenerationParameters() const;
+    void setKeyPairGenerationParameters(const Sailfish::Crypto::KeyPairGenerationParameters &params);
 
     Sailfish::Crypto::Key keyTemplate() const;
     void setKeyTemplate(const Sailfish::Crypto::Key &key);
@@ -70,6 +75,7 @@ Q_SIGNALS:
     void storagePluginNameChanged();
     void interactionParametersChanged();
     void keyDerivationParametersChanged();
+    void keyPairGenerationParametersChanged();
     void keyTemplateChanged();
     void generatedKeyReferenceChanged();
 

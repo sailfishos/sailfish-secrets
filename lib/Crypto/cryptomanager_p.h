@@ -16,6 +16,7 @@
 #include "Crypto/certificate.h"
 #include "Crypto/extensionplugins.h"
 #include "Crypto/storedkeyrequest.h"
+#include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
 #include "Crypto/interactionparameters.h"
 
@@ -64,11 +65,13 @@ public:
 
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> generateKey(
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyPairGenerationParameters &pkgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             const QString &cryptosystemProviderName);
 
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> generateStoredKey(
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyPairGenerationParameters &pkgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             const Sailfish::Crypto::InteractionParameters &uiParams,
             const QString &cryptosystemProviderName,

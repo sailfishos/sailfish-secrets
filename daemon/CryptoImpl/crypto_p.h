@@ -17,6 +17,7 @@
 #include "Crypto/storedkeyrequest.h"
 #include "Crypto/interactionparameters.h"
 #include "Crypto/keyderivationparameters.h"
+#include "Crypto/keypairgenerationparameters.h"
 
 #include <QtCore/QByteArray>
 #include <QtCore/QString>
@@ -78,17 +79,20 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "      </method>\n"
     "      <method name=\"generateKey\">\n"
     "          <arg name=\"keyTemplate\" type=\"(ay)\" direction=\"in\" />\n"
+    "          <arg name=\"kpgParameters\" type=\"(ia{sv}a{sv})\" direction=\"in\" />\n"
     "          <arg name=\"skdfParameters\" type=\"(ayay(i)(i)(i)(i)xiiia{sv})\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"key\" type=\"(ay)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Crypto::Key\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Crypto::KeyDerivationParameters\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Crypto::KeyPairGenerationParameters\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::KeyDerivationParameters\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Crypto::Key\" />\n"
     "      </method>\n"
     "      <method name=\"generateStoredKey\">\n"
     "          <arg name=\"keyTemplate\" type=\"(ay)\" direction=\"in\" />\n"
+    "          <arg name=\"kpgParameters\" type=\"(ia{sv}a{sv})\" direction=\"in\" />\n"
     "          <arg name=\"skdfParameters\" type=\"(ayay(i)(i)(i)(i)xiiia{sv})\" direction=\"in\" />\n"
     "          <arg name=\"uiParams\" type=\"(sss(i)sss(i)(i))\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
@@ -96,8 +100,9 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"key\" type=\"(ay)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Crypto::Key\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Crypto::KeyDerivationParameters\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::InteractionParameters\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Crypto::KeyPairGenerationParameters\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::KeyDerivationParameters\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Crypto::InteractionParameters\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Crypto::Key\" />\n"
     "      </method>\n"
@@ -259,6 +264,7 @@ public Q_SLOTS:
 
     void generateKey(
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
@@ -267,6 +273,7 @@ public Q_SLOTS:
 
     void generateStoredKey(
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             const Sailfish::Crypto::InteractionParameters &uiParams,
             const QString &cryptosystemProviderName,
