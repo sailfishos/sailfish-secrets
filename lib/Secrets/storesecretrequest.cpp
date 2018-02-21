@@ -128,6 +128,39 @@ StoreSecretRequestPrivate::StoreSecretRequestPrivate()
  * ssr.setSecret(standaloneSecret);
  * ssr.startRequest(); // status() will change to Finished when complete
  * \endcode
+ *
+ * An example of storing a secret into a pre-existing collection, where the
+ * secret data is requested securely from the user by the secrets service
+ * prior to storage, follows:
+ *
+ * \code
+ * // Define the secret data request prompt parameters.
+ * Sailfish::Secrets::InteractionParameters uiParams;
+ * uiParams.setInputType(Sailfish::Secrets::InteractionParameters::AlphaNumericInput);
+ * uiParams.setEchoMode(Sailfish::Secrets::InteractionParameters::NormalEcho);
+ * uiParams.setPromptText(tr("Enter the secret data"));
+ *
+ * // Define the secret.  Note that it contains metadata only.
+ * Sailfish::Secrets::Secret exampleSecret(
+ *         Sailfish::Secrets::Secret::Identifier(
+ *                 QLatin1String("ExampleSecret"),
+ *                 QLatin1String("ExampleCollection")));
+ * exampleSecret.setType(Sailfish::Secrets::Secret::TypeBlob);
+ * exampleSecret.setFilterData(QLatin1String("domain"),
+ *                             QLatin1String("sailfishos.org"));
+ * exampleSecret.setFilterData(QLatin1String("example"),
+ *                             QLatin1String("true"));
+ *
+ * // Request that the secret be securely stored.
+ * Sailfish::Secrets::SecretManager sm;
+ * Sailfish::Secrets::StoreSecretRequest ssr;
+ * ssr.setManager(&sm);
+ * ssr.setUiParameters(uiParams);
+ * ssr.setSecretStorageType(Sailfish::Secrets::StoreSecretRequest::CollectionSecret);
+ * ssr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
+ * ssr.setSecret(exampleSecret);
+ * ssr.startRequest(); // status() will change to Finished when complete
+ * \endcode
  */
 
 /*!
@@ -303,6 +336,47 @@ void StoreSecretRequest::setSecret(const Secret &secret)
 }
 
 /*!
+ * \brief Returns the user input parameters which should be used when requesting the secret data from the user
+ *
+ * If the user input parameters are not valid, the secret data which is contained
+ * within the secret() will be stored.  If the user input parameters are valid, then the
+ * secret data which is contained within the secret() will be overwritten prior to storage
+ * with the data retrieved from the user.
+ *
+ * Note: specifying user input parameters implies that system-mediated user interaction
+ * flows are allowed by the calling application.
+ */
+InteractionParameters StoreSecretRequest::uiParameters() const
+{
+    Q_D(const StoreSecretRequest);
+    return d->m_uiParameters;
+}
+
+/*!
+ * \brief Sets the user input parameters which should be used when requesting the secret data from the user to \a params
+ *
+ * If the user input parameters are not valid, the secret data which is contained
+ * within the secret() will be stored.  If the user input parameters are valid, then the
+ * secret data which is contained within the secret() will be overwritten prior to storage
+ * with the data retrieved from the user.
+ *
+ * Note: specifying user input parameters implies that system-mediated user interaction
+ * flows are allowed by the calling application.
+ */
+void StoreSecretRequest::setUiParameters(const InteractionParameters &params)
+{
+    Q_D(StoreSecretRequest);
+    if (d->m_status != Request::Active && d->m_uiParameters != params) {
+        d->m_uiParameters = params;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit uiParametersChanged();
+    }
+}
+
+/*!
  * \brief Returns the unlock semantic which will apply to the secret if it is protected by the device lock.
  */
 SecretManager::DeviceLockUnlockSemantic StoreSecretRequest::deviceLockUnlockSemantic() const
@@ -398,6 +472,9 @@ SecretManager::UserInteractionMode StoreSecretRequest::userInteractionMode() con
  * \brief Sets the user interaction mode required when storing the secret (e.g. if a custom lock code must be requested from the user) to \a mode
  *
  * Note: this will only apply to secrets whose secretStorageType() is StoreSecretRequest::StandaloneCustomLockSecret.
+ *
+ * Note: if uiParameters() are specified, a system-mediated user interaction flow to request
+ * the secret data will be performed, regardless of the value of the userInteractionMode().
  */
 void StoreSecretRequest::setUserInteractionMode(SecretManager::UserInteractionMode mode)
 {
@@ -481,12 +558,14 @@ void StoreSecretRequest::startRequest()
         QDBusPendingReply<Result> reply;
         if (d->m_secretStorageType == StoreSecretRequest::CollectionSecret) {
             reply = d->m_manager->d_ptr->setSecret(d->m_secret,
+                                                   d->m_uiParameters,
                                                    d->m_userInteractionMode);
         } else if (d->m_secretStorageType == StoreSecretRequest::StandaloneCustomLockSecret) {
             reply = d->m_manager->d_ptr->setSecret(d->m_storagePluginName,
                                                    d->m_encryptionPluginName,
                                                    d->m_authenticationPluginName,
                                                    d->m_secret,
+                                                   d->m_uiParameters,
                                                    d->m_customLockUnlockSemantic,
                                                    d->m_customLockTimeout,
                                                    d->m_accessControlMode,
@@ -495,6 +574,7 @@ void StoreSecretRequest::startRequest()
             reply = d->m_manager->d_ptr->setSecret(d->m_storagePluginName,
                                                    d->m_encryptionPluginName,
                                                    d->m_secret,
+                                                   d->m_uiParameters,
                                                    d->m_deviceLockUnlockSemantic,
                                                    d->m_accessControlMode,
                                                    d->m_userInteractionMode);

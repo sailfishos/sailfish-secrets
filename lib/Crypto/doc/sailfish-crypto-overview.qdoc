@@ -116,14 +116,10 @@ instead listen to the signals which notify when the operation is complete.
 \code
 // Set the key template metadata.
 Sailfish::Crypto::Key keyTemplate, symmetricKeyReference;
-keyTemplate.setAlgorithm(Sailfish::Crypto::Key::Aes256);
+keyTemplate.setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmAes);
 keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
-keyTemplate.setBlockModes(Sailfish::Crypto::Key::BlockModeCBC);
-keyTemplate.setEncryptionPaddings(Sailfish::Crypto::Key::EncryptionPaddingNone);
-keyTemplate.setSignaturePaddings(Sailfish::Crypto::Key::SignaturePaddingNone);
-keyTemplate.setDigests(Sailfish::Crypto::Key::DigestSha256);
-keyTemplate.setOperations(Sailfish::Crypto::Key::Encrypt
-                         |Sailfish::Crypto::Key::Decrypt);
+keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt
+                         |Sailfish::Crypto::CryptoManager::OperationDecrypt);
 
 // Set the identifier for the key.
 // This assumes the existence of an "ExampleCollection" secure storage
@@ -166,9 +162,9 @@ EncryptRequest encryptRequest;
 encryptRequest.setManager(&cm);
 encryptRequest.setData(plaintext);
 encryptRequest.setKey(symmetricKeyReference);
-encryptRequest.setBlockMode(Sailfish::Crypto::Key::BlockModeCBC);
-encryptRequest.setPadding(Sailfish::Crypto::Key::EncryptionPaddingNone);
-encryptRequest.setDigest(Sailfish::Crypto::Key::DigestSha256);
+encryptRequest.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
+encryptRequest.setPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
+encryptRequest.setDigestFunction(Sailfish::Crypto::CryptoManager::DigestSha256);
 encryptRequest.setCryptoPluginName(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
 encryptRequest.startRequest();
 encryptRequest.waitForFinished();
@@ -191,9 +187,9 @@ DecryptRequest decryptRequest;
 decryptRequest.setManager(&cm);
 decryptRequest.setData(ciphertext);
 decryptRequest.setKey(symmetricKeyReference);
-decryptRequest.setBlockMode(Sailfish::Crypto::Key::BlockModeCBC);
-decryptRequest.setPadding(Sailfish::Crypto::Key::EncryptionPaddingNone);
-decryptRequest.setDigest(Sailfish::Crypto::Key::DigestSha256);
+decryptRequest.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
+decryptRequest.setPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
+decryptRequest.setDigestFunction(Sailfish::Crypto::CryptoManager::DigestSha256);
 decryptRequest.setCryptoPluginName(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
 decryptRequest.startRequest();
 decryptRequest.waitForFinished();

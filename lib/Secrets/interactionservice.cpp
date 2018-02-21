@@ -9,7 +9,8 @@
 #include "secretmanager.h"
 #include "secretmanager_p.h"
 #include "interactionview.h"
-#include "interactionrequest.h"
+#include "interactionparameters.h"
+#include "interactionresponse.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QUuid>
@@ -24,12 +25,6 @@
 Q_LOGGING_CATEGORY(lcSailfishSecretsUi, "org.sailfishos.secrets.interaction", QtWarningMsg)
 
 using namespace Sailfish::Secrets;
-
-const QString InteractionRequest::InteractionViewQmlFileUrl = QStringLiteral("InteractionViewQmlFileUrl");
-const QString InteractionResponse::ResultCode = QStringLiteral("ResultCode");
-const QString InteractionResponse::ErrorMessage = QStringLiteral("ErrorMessage");
-const QString InteractionResponse::Confirmation = QStringLiteral("Confirmation");
-const QString InteractionResponse::AuthenticationKey = QStringLiteral("AuthenticationKey");
 
 void SecretManagerPrivate::handleUiConnection(const QDBusConnection &connection)
 {
@@ -53,6 +48,7 @@ InteractionService::InteractionService(SecretManagerPrivate *parent)
     , m_dbusServer(Q_NULLPTR)
     , m_activeConnection(QLatin1String("org.sailfishos.secrets.interaction.invalidConnection"))
     , m_activeRequestState(Inactive)
+    , m_connectedClients(0)
 {
 }
 
@@ -88,7 +84,6 @@ bool InteractionService::registerServer()
 }
 
 void InteractionService::sendResponse(
-        const Result &result,
         const InteractionResponse &response)
 {
     if (m_activeRequestId.isEmpty()) {
@@ -100,28 +95,25 @@ void InteractionService::sendResponse(
     m_activeRequestState = InteractionService::Waiting;
 
     // send the response.
-    m_activeReply << QVariant::fromValue<Result>(result);
     m_activeReply << QVariant::fromValue<InteractionResponse>(response);
     m_activeReply << QVariant::fromValue<QString>(m_activeRequestId);
     m_activeConnection.send(m_activeReply);
 }
 
 void InteractionService::performInteractionRequest(
-        const InteractionRequest &request,
+        const InteractionParameters &request,
         const QDBusMessage &message,
-        Result &result,
         InteractionResponse &response,
         QString &requestId)
 {
-    Q_UNUSED(response)  // outparam, will be set in sendResponse().
     Q_UNUSED(requestId) // outparam, will be set in sendResponse().
     qCDebug(lcSailfishSecretsUi) << "InteractionService received performInteractionRequest...";
     if (!m_activeRequestId.isEmpty()) {
-        result = Result(Result::InteractionServiceRequestBusyError,
-                        QLatin1String("Ui service is busy handling another request"));
+        response.setResult(Result(Result::InteractionServiceRequestBusyError,
+                                  QLatin1String("Ui service is busy handling another request")));
     } else if (!m_parent->m_interactionView || !m_parent->m_interactionView->performRequest(this, request)) {
-        result = Result(Result::InteractionViewUnavailableError,
-                        QLatin1String("Cannot perform ui request: view busy or no view registered"));
+        response.setResult(Result(Result::InteractionViewUnavailableError,
+                                  QLatin1String("Cannot perform ui request: view busy or no view registered")));
     } else {
         // successfully triggered the request in the view.
         if (m_activeConnection.isConnected()) {
@@ -147,22 +139,20 @@ void InteractionService::performInteractionRequest(
 // required before the request is complete.
 void InteractionService::continueInteractionRequest(
         const QString &requestId,
-        const InteractionRequest &request,
+        const InteractionParameters &request,
         const QDBusMessage &message,
-        Result &result,
         InteractionResponse &response)
 {
-    Q_UNUSED(response) // outparam, will be set in sendResponse().
     qCDebug(lcSailfishSecretsUi) << "InteractionService received continueInteractionRequest...";
     if (requestId != m_activeRequestId) {
-        result = Result(Result::InteractionServiceRequestInvalidError,
-                        QString::fromLatin1("Cannot continue non-active ui request: %1").arg(requestId));
+        response.setResult(Result(Result::InteractionServiceRequestInvalidError,
+                                  QString::fromLatin1("Cannot continue non-active ui request: %1").arg(requestId)));
     } else if (m_activeRequestState != InteractionService::Waiting) {
-        result = Result(Result::InteractionServiceRequestBusyError,
-                        QString::fromLatin1("Cannot continue non-waiting ui request: %1").arg(requestId));
+        response.setResult(Result(Result::InteractionServiceRequestBusyError,
+                                  QString::fromLatin1("Cannot continue non-waiting ui request: %1").arg(requestId)));
     } else if (!m_parent->m_interactionView || !m_parent->m_interactionView->continueRequest(this, request)) {
-        result = Result(Result::InteractionViewUnavailableError,
-                        QLatin1String("Cannot continue ui request: view busy or no view registered"));
+        response.setResult(Result(Result::InteractionViewUnavailableError,
+                                  QLatin1String("Cannot continue ui request: view busy or no view registered")));
     } else {
         // successfully triggered the sign on request in the view.
         m_activeConnection = connection();
@@ -223,11 +213,13 @@ void InteractionService::finishInteractionRequest(
 
 void InteractionService::clientDisconnected()
 {
-    qCDebug(lcSailfishSecretsUi) << "Active connection client disconnected from InteractionService!";
-    m_activeConnection = QDBusConnection(QLatin1String("org.sailfishos.secrets.interaction.invalidConnection"));
-    m_activeReply = QDBusMessage();
-    m_activeRequestId = QString();
-    m_activeRequestState = InteractionService::Inactive;
+    if (!m_activeConnection.isConnected()) {
+        qCDebug(lcSailfishSecretsUi) << "Active connection client disconnected from InteractionService!";
+        m_activeConnection = QDBusConnection(QLatin1String("org.sailfishos.secrets.interaction.invalidConnection"));
+        m_activeReply = QDBusMessage();
+        m_activeRequestId = QString();
+        m_activeRequestState = InteractionService::Inactive;
+    }
 }
 
 // -------------- View:
@@ -266,16 +258,15 @@ SecretManager *InteractionView::registeredWithSecretManager() const
 }
 
 void InteractionView::sendResponse(
-        const Result &result,
         const InteractionResponse &response)
 {
     if (data->m_uiService) {
-        qobject_cast<InteractionService*>(data->m_uiService)->sendResponse(result, response);
+        qobject_cast<InteractionService*>(data->m_uiService)->sendResponse(response);
         data->m_uiService = Q_NULLPTR;
     }
 }
 
-bool InteractionView::performRequest(QObject *sender, const InteractionRequest &request)
+bool InteractionView::performRequest(QObject *sender, const InteractionParameters &request)
 {
     if (data->m_uiService) {
         qCDebug(lcSailfishSecretsUi) << "Refusing to perform ui request: view already active with another request";
@@ -287,7 +278,7 @@ bool InteractionView::performRequest(QObject *sender, const InteractionRequest &
     return true;
 }
 
-bool InteractionView::continueRequest(QObject *sender, const InteractionRequest &request)
+bool InteractionView::continueRequest(QObject *sender, const InteractionParameters &request)
 {
     if (data->m_uiService) {
         qCDebug(lcSailfishSecretsUi) << "Refusing to continue ui request: view already active with another request";

@@ -9,55 +9,65 @@
 
 #include <QObject>
 #include <QString>
+#include <QSharedData>
 
 namespace Sailfish {
 namespace Secrets {
-    class EncryptionPluginInfoPrivate
+    class EncryptionPluginInfoPrivate : public QSharedData
     {
     public:
         EncryptionPluginInfoPrivate()
-            : encryptionType(EncryptionPlugin::NoEncryption)
+            : QSharedData()
+            , encryptionType(EncryptionPlugin::NoEncryption)
             , encryptionAlgorithm(EncryptionPlugin::NoAlgorithm) {}
         EncryptionPluginInfoPrivate(const EncryptionPlugin *plugin)
-            : name(plugin->name())
+            : QSharedData()
+            , name(plugin->name())
             , encryptionType(plugin->encryptionType())
             , encryptionAlgorithm(plugin->encryptionAlgorithm()) {}
         EncryptionPluginInfoPrivate(const EncryptionPluginInfoPrivate &other)
-            : name(other.name)
+            : QSharedData(other)
+            , name(other.name)
             , encryptionType(other.encryptionType)
             , encryptionAlgorithm(other.encryptionAlgorithm) {}
         QString name;
         EncryptionPlugin::EncryptionType encryptionType;
         EncryptionPlugin::EncryptionAlgorithm encryptionAlgorithm;
     };
-    class StoragePluginInfoPrivate
+    class StoragePluginInfoPrivate : public QSharedData
     {
     public:
         StoragePluginInfoPrivate()
-            : storageType(StoragePlugin::NoStorage) {}
+            : QSharedData()
+            , storageType(StoragePlugin::NoStorage) {}
         StoragePluginInfoPrivate(const StoragePlugin *plugin)
-            : name(plugin->name())
+            : QSharedData()
+            , name(plugin->name())
             , storageType(plugin->storageType()) {}
         StoragePluginInfoPrivate(const StoragePluginInfoPrivate &other)
-            : name(other.name)
+            : QSharedData(other)
+            , name(other.name)
             , storageType(other.storageType) {}
         QString name;
         StoragePlugin::StorageType storageType;
     };
-    class EncryptedStoragePluginInfoPrivate
+    class EncryptedStoragePluginInfoPrivate : public QSharedData
     {
     public:
         EncryptedStoragePluginInfoPrivate()
-            : storageType(StoragePlugin::NoStorage)
+            : QSharedData()
+            , storageType(StoragePlugin::NoStorage)
             , encryptionType(EncryptionPlugin::NoEncryption)
             , encryptionAlgorithm(EncryptionPlugin::NoAlgorithm) {}
         EncryptedStoragePluginInfoPrivate(const EncryptedStoragePlugin *plugin)
-            : name(plugin->name())
+            : QSharedData()
+            , name(plugin->name())
             , storageType(plugin->storageType())
             , encryptionType(plugin->encryptionType())
             , encryptionAlgorithm(plugin->encryptionAlgorithm()) {}
         EncryptedStoragePluginInfoPrivate(const EncryptedStoragePluginInfoPrivate &other)
-            : name(other.name)
+            : QSharedData(other)
+            , name(other.name)
             , storageType(other.storageType)
             , encryptionType(other.encryptionType)
             , encryptionAlgorithm(other.encryptionAlgorithm) {}
@@ -66,19 +76,26 @@ namespace Secrets {
         EncryptionPlugin::EncryptionType encryptionType;
         EncryptionPlugin::EncryptionAlgorithm encryptionAlgorithm;
     };
-    class AuthenticationPluginInfoPrivate
+    class AuthenticationPluginInfoPrivate : public QSharedData
     {
     public:
         AuthenticationPluginInfoPrivate()
-            : authenticationType(AuthenticationPlugin::NoAuthentication) {}
+            : QSharedData()
+            , authenticationTypes(AuthenticationPlugin::NoAuthentication)
+            , inputTypes(InteractionParameters::UnknownInput) {}
         AuthenticationPluginInfoPrivate(const AuthenticationPlugin *plugin)
-            : name(plugin->name())
-            , authenticationType(plugin->authenticationType()) {}
+            : QSharedData()
+            , name(plugin->name())
+            , authenticationTypes(plugin->authenticationTypes())
+            , inputTypes(plugin->inputTypes()) {}
         AuthenticationPluginInfoPrivate(const AuthenticationPluginInfoPrivate &other)
-            : name(other.name)
-            , authenticationType(other.authenticationType) {}
+            : QSharedData(other)
+            , name(other.name)
+            , authenticationTypes(other.authenticationTypes)
+            , inputTypes(other.inputTypes) {}
         QString name;
-        AuthenticationPlugin::AuthenticationType authenticationType;
+        AuthenticationPlugin::AuthenticationTypes authenticationTypes;
+        InteractionParameters::InputTypes inputTypes;
     };
 } // namespace Secrets
 } // namespace Sailfish
@@ -86,193 +103,227 @@ namespace Secrets {
 using namespace Sailfish::Secrets;
 
 EncryptionPluginInfo::EncryptionPluginInfo()
-    : d(new EncryptionPluginInfoPrivate)
+    : d_ptr(new EncryptionPluginInfoPrivate)
 {
 }
 
 EncryptionPluginInfo::EncryptionPluginInfo(const EncryptionPluginInfo &other)
-    : d(new EncryptionPluginInfoPrivate(*other.d))
+    : d_ptr(other.d_ptr)
 {
 }
 
 EncryptionPluginInfo::EncryptionPluginInfo(const EncryptionPlugin *plugin)
-    : d(new EncryptionPluginInfoPrivate(plugin))
+    : d_ptr(new EncryptionPluginInfoPrivate(plugin))
 {
 }
 
 EncryptionPluginInfo::~EncryptionPluginInfo()
 {
-    delete d;
+}
+
+EncryptionPluginInfo& EncryptionPluginInfo::operator=(
+        const EncryptionPluginInfo &other)
+{
+    d_ptr = other.d_ptr;
+    return *this;
 }
 
 QString EncryptionPluginInfo::name() const
 {
-    return d->name;
+    return d_ptr->name;
 }
 
 void EncryptionPluginInfo::setName(const QString &name)
 {
-    d->name = name;
+    d_ptr->name = name;
 }
 
 EncryptionPlugin::EncryptionType EncryptionPluginInfo::encryptionType() const
 {
-    return d->encryptionType;
+    return d_ptr->encryptionType;
 }
 
 void EncryptionPluginInfo::setEncryptionType(EncryptionPlugin::EncryptionType type)
 {
-    d->encryptionType = type;
+    d_ptr->encryptionType = type;
 }
 
 EncryptionPlugin::EncryptionAlgorithm EncryptionPluginInfo::encryptionAlgorithm() const
 {
-    return d->encryptionAlgorithm;
+    return d_ptr->encryptionAlgorithm;
 }
 
 void EncryptionPluginInfo::setEncryptionAlgorithm(EncryptionPlugin::EncryptionAlgorithm algorithm)
 {
-    d->encryptionAlgorithm = algorithm;
+    d_ptr->encryptionAlgorithm = algorithm;
 }
 
 StoragePluginInfo::StoragePluginInfo()
-    : d(new StoragePluginInfoPrivate)
+    : d_ptr(new StoragePluginInfoPrivate)
 {
 }
 
 StoragePluginInfo::StoragePluginInfo(const StoragePluginInfo &other)
-    : d(new StoragePluginInfoPrivate(*other.d))
+    : d_ptr(other.d_ptr)
 {
 }
 
 StoragePluginInfo::StoragePluginInfo(const StoragePlugin *plugin)
-    : d(new StoragePluginInfoPrivate(plugin))
+    : d_ptr(new StoragePluginInfoPrivate(plugin))
 {
 }
 
 StoragePluginInfo::~StoragePluginInfo()
 {
-    delete d;
+}
+
+StoragePluginInfo& StoragePluginInfo::operator=(
+        const StoragePluginInfo &other)
+{
+    d_ptr = other.d_ptr;
+    return *this;
 }
 
 QString StoragePluginInfo::name() const
 {
-    return d->name;
+    return d_ptr->name;
 }
 
 void StoragePluginInfo::setName(const QString &name)
 {
-    d->name = name;
+    d_ptr->name = name;
 }
 
 StoragePlugin::StorageType StoragePluginInfo::storageType() const
 {
-    return d->storageType;
+    return d_ptr->storageType;
 }
 
 void StoragePluginInfo::setStorageType(StoragePlugin::StorageType type)
 {
-    d->storageType = type;
+    d_ptr->storageType = type;
 }
 
 EncryptedStoragePluginInfo::EncryptedStoragePluginInfo()
-    : d(new EncryptedStoragePluginInfoPrivate)
+    : d_ptr(new EncryptedStoragePluginInfoPrivate)
 {
 }
 
 EncryptedStoragePluginInfo::EncryptedStoragePluginInfo(const EncryptedStoragePluginInfo &other)
-    : d(new EncryptedStoragePluginInfoPrivate(*other.d))
+    : d_ptr(other.d_ptr)
 {
 }
 
 EncryptedStoragePluginInfo::EncryptedStoragePluginInfo(const EncryptedStoragePlugin *plugin)
-    : d(new EncryptedStoragePluginInfoPrivate(plugin))
+    : d_ptr(new EncryptedStoragePluginInfoPrivate(plugin))
 {
 }
 
 EncryptedStoragePluginInfo::~EncryptedStoragePluginInfo()
 {
-    delete d;
+}
+
+EncryptedStoragePluginInfo& EncryptedStoragePluginInfo::operator=(
+        const EncryptedStoragePluginInfo &other)
+{
+    d_ptr = other.d_ptr;
+    return *this;
 }
 
 QString EncryptedStoragePluginInfo::name() const
 {
-    return d->name;
+    return d_ptr->name;
 }
 
 void EncryptedStoragePluginInfo::setName(const QString &name)
 {
-    d->name = name;
+    d_ptr->name = name;
 }
 
 StoragePlugin::StorageType EncryptedStoragePluginInfo::storageType() const
 {
-    return d->storageType;
+    return d_ptr->storageType;
 }
 
 void EncryptedStoragePluginInfo::setStorageType(StoragePlugin::StorageType type)
 {
-    d->storageType = type;
+    d_ptr->storageType = type;
 }
 
 EncryptionPlugin::EncryptionType EncryptedStoragePluginInfo::encryptionType() const
 {
-    return d->encryptionType;
+    return d_ptr->encryptionType;
 }
 
 void EncryptedStoragePluginInfo::setEncryptionType(EncryptionPlugin::EncryptionType type)
 {
-    d->encryptionType = type;
+    d_ptr->encryptionType = type;
 }
 
 EncryptionPlugin::EncryptionAlgorithm EncryptedStoragePluginInfo::encryptionAlgorithm() const
 {
-    return d->encryptionAlgorithm;
+    return d_ptr->encryptionAlgorithm;
 }
 
 void EncryptedStoragePluginInfo::setEncryptionAlgorithm(EncryptionPlugin::EncryptionAlgorithm algorithm)
 {
-    d->encryptionAlgorithm = algorithm;
+    d_ptr->encryptionAlgorithm = algorithm;
 }
 
 AuthenticationPluginInfo::AuthenticationPluginInfo()
-    : d(new AuthenticationPluginInfoPrivate)
+    : d_ptr(new AuthenticationPluginInfoPrivate)
 {
 }
 
 AuthenticationPluginInfo::AuthenticationPluginInfo(const AuthenticationPluginInfo &other)
-    : d(new AuthenticationPluginInfoPrivate(*other.d))
+    : d_ptr(other.d_ptr)
 {
 }
 
 AuthenticationPluginInfo::AuthenticationPluginInfo(const AuthenticationPlugin *plugin)
-    : d(new AuthenticationPluginInfoPrivate(plugin))
+    : d_ptr(new AuthenticationPluginInfoPrivate(plugin))
 {
 }
 
 AuthenticationPluginInfo::~AuthenticationPluginInfo()
 {
-    delete d;
+}
+
+AuthenticationPluginInfo& AuthenticationPluginInfo::operator=(
+        const AuthenticationPluginInfo &other)
+{
+    d_ptr = other.d_ptr;
+    return *this;
 }
 
 QString AuthenticationPluginInfo::name() const
 {
-    return d->name;
+    return d_ptr->name;
 }
 
 void AuthenticationPluginInfo::setName(const QString &name)
 {
-    d->name = name;
+    d_ptr->name = name;
 }
 
-AuthenticationPlugin::AuthenticationType AuthenticationPluginInfo::authenticationType() const
+AuthenticationPlugin::AuthenticationTypes AuthenticationPluginInfo::authenticationTypes() const
 {
-    return d->authenticationType;
+    return d_ptr->authenticationTypes;
 }
 
-void AuthenticationPluginInfo::setAuthenticationType(AuthenticationPlugin::AuthenticationType type)
+void AuthenticationPluginInfo::setAuthenticationTypes(AuthenticationPlugin::AuthenticationTypes types)
 {
-    d->authenticationType = type;
+    d_ptr->authenticationTypes = types;
+}
+
+InteractionParameters::InputTypes AuthenticationPluginInfo::inputTypes() const
+{
+    return d_ptr->inputTypes;
+}
+
+void AuthenticationPluginInfo::setInputTypes(InteractionParameters::InputTypes types)
+{
+    d_ptr->inputTypes = types;
 }
 
 EncryptionPlugin::EncryptionPlugin(QObject *parent)

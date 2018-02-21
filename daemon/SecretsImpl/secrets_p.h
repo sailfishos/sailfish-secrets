@@ -12,6 +12,8 @@
 #include "requestqueue_p.h"
 #include "applicationpermissions_p.h"
 
+#include "Secrets/secret.h"
+#include "Secrets/interactionparameters.h"
 #include "Secrets/extensionplugins.h"
 #include "Secrets/secretmanager.h"
 #include "Secrets/result.h"
@@ -41,7 +43,7 @@ class SecretsDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"storagePlugins\" type=\"(si)\" direction=\"out\" />\n"
     "          <arg name=\"encryptionPlugins\" type=\"(sii)\" direction=\"out\" />\n"
     "          <arg name=\"encryptedStoragePlugins\" type=\"(siii)\" direction=\"out\" />\n"
-    "          <arg name=\"authenticationPlugins\" type=\"(si)\" direction=\"out\" />\n"
+    "          <arg name=\"authenticationPlugins\" type=\"(sii)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"QVector<Sailfish::Secrets::StoragePluginInfo>\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out2\" value=\"QVector<Sailfish::Secrets::EncryptionPluginInfo>\" />\n"
@@ -85,25 +87,30 @@ class SecretsDBusObject : public QObject, protected QDBusContext
     "      </method>\n"
     "      <method name=\"setSecret\">\n"
     "          <arg name=\"secret\" type=\"((ss)aya{sv})\" direction=\"in\" />\n"
+    "          <arg name=\"uiParams\" type=\"(sss(i)sss(i)(i))\" direction=\"in\" />\n"
     "          <arg name=\"userInteractionMode\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"interactionServiceAddress\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Secrets::Secret\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Secrets::SecretManager::UserInteractionMode\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Secrets::InteractionParameters\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Secrets::SecretManager::UserInteractionMode\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
     "      </method>\n"
     "      <method name=\"setSecret\">\n"
     "          <arg name=\"storagePluginName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"encryptionPluginName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"secret\" type=\"((ss)aya{sv})\" direction=\"in\" />\n"
+    "          <arg name=\"uiParams\" type=\"(sss(i)sss(i)(i))\" direction=\"in\" />\n"
     "          <arg name=\"unlockSemantic\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"accessControlMode\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"userInteractionMode\" type=\"(i)\" direction=\"in\" />\n"
+    "          <arg name=\"interactionServiceAddress\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Secrets::Secret\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Secrets::SecretManager::AccessControlMode\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In5\" value=\"Sailfish::Secrets::SecretManager::UserInteractionMode\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Secrets::InteractionParameters\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In5\" value=\"Sailfish::Secrets::SecretManager::AccessControlMode\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In6\" value=\"Sailfish::Secrets::SecretManager::UserInteractionMode\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
     "      </method>\n"
     "      <method name=\"setSecret\">\n"
@@ -111,6 +118,7 @@ class SecretsDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"encryptionPluginName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"authenticationPluginName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"secret\" type=\"((ss)aya{sv})\" direction=\"in\" />\n"
+    "          <arg name=\"uiParams\" type=\"(sss(i)sss(i)(i))\" direction=\"in\" />\n"
     "          <arg name=\"unlockSemantic\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"customLockTimeoutMs\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"accessControlMode\" type=\"(i)\" direction=\"in\" />\n"
@@ -118,9 +126,10 @@ class SecretsDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"interactionServiceAddress\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Secrets::Secret\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In6\" value=\"Sailfish::Secrets::SecretManager::AccessControlMode\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In7\" value=\"Sailfish::Secrets::SecretManager::UserInteractionMode\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Secrets::InteractionParameters\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In5\" value=\"Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In7\" value=\"Sailfish::Secrets::SecretManager::AccessControlMode\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In8\" value=\"Sailfish::Secrets::SecretManager::UserInteractionMode\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
     "      </method>\n"
     "      <method name=\"getSecret\">\n"
@@ -207,6 +216,7 @@ public Q_SLOTS:
     // set a secret in a collection
     void setSecret(
             const Sailfish::Secrets::Secret &secret,
+            const Sailfish::Secrets::InteractionParameters &uiParams,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
             const QDBusMessage &message,
@@ -217,9 +227,11 @@ public Q_SLOTS:
             const QString &storagePluginName,
             const QString &encryptionPluginName,
             const Sailfish::Secrets::Secret &secret,
+            const Sailfish::Secrets::InteractionParameters &uiParams,
             Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic unlockSemantic,
             Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
             const QDBusMessage &message,
             Sailfish::Secrets::Result &result);
 
@@ -229,6 +241,7 @@ public Q_SLOTS:
             const QString &encryptionPluginName,
             const QString &authenticationPluginName,
             const Sailfish::Secrets::Secret &secret,
+            const Sailfish::Secrets::InteractionParameters &uiParams,
             Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic unlockSemantic,
             int customLockTimeoutMs,
             Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
@@ -308,12 +321,14 @@ public: // Crypto API helper methods.
     Sailfish::Secrets::Result storeKeyMetadata(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, const QString &storagePluginName);
     Sailfish::Secrets::Result deleteStoredKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier);
     Sailfish::Secrets::Result deleteStoredKeyMetadata(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier);
+    Sailfish::Secrets::Result userInput(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Secrets::InteractionParameters &uiParams);
 Q_SIGNALS:
     void storedKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &serialisedKey, const QMap<QString,QString> &filterData);
     void storeKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
     void storeKeyMetadataCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
     void deleteStoredKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
     void deleteStoredKeyMetadataCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
+    void userInputCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &userInput);
 private:
     enum CryptoApiHelperRequestType {
         InvalidCryptoApiHelperRequest = 0,
@@ -326,7 +341,8 @@ private:
         DeleteStoredKeyCryptoApiHelperRequest,
         StoreKeyCryptoApiHelperRequest,
         StoreKeyMetadataCryptoApiHelperRequest,
-        DeleteStoredKeyMetadataCryptoApiHelperRequest
+        DeleteStoredKeyMetadataCryptoApiHelperRequest,
+        UserInputCryptoApiHelperRequest
     };
     QMap<quint64, CryptoApiHelperRequestType> m_cryptoApiHelperRequests; // crypto request id to crypto api call type.
 };
@@ -346,9 +362,14 @@ enum RequestType {
     FindStandaloneSecretsRequest,
     DeleteCollectionSecretRequest,
     DeleteStandaloneSecretRequest,
+    // Internal user input request types:
+    SetCollectionUserInputSecretRequest,
+    SetStandaloneDeviceLockUserInputSecretRequest,
+    SetStandaloneCustomLockUserInputSecretRequest,
     // Crypto API helper request types:
     SetCollectionSecretMetadataRequest,
-    DeleteCollectionSecretMetadataRequest
+    DeleteCollectionSecretMetadataRequest,
+    UserInputRequest
 };
 
 } // ApiImpl

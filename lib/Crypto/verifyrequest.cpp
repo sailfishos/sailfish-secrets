@@ -105,7 +105,7 @@ void VerifyRequest::setKey(const Key &key)
 /*!
  * \brief Returns the signature padding mode which was used when signing the data
  */
-Sailfish::Crypto::Key::SignaturePadding VerifyRequest::padding() const
+Sailfish::Crypto::CryptoManager::SignaturePadding VerifyRequest::padding() const
 {
     Q_D(const VerifyRequest);
     return d->m_padding;
@@ -114,7 +114,7 @@ Sailfish::Crypto::Key::SignaturePadding VerifyRequest::padding() const
 /*!
  * \brief Sets the signature padding mode which was used when signing the data to \a padding
  */
-void VerifyRequest::setPadding(Sailfish::Crypto::Key::SignaturePadding padding)
+void VerifyRequest::setPadding(Sailfish::Crypto::CryptoManager::SignaturePadding padding)
 {
     Q_D(VerifyRequest);
     if (d->m_status != Request::Active && d->m_padding != padding) {
@@ -134,7 +134,7 @@ void VerifyRequest::setPadding(Sailfish::Crypto::Key::SignaturePadding padding)
 /*!
  * \brief Returns the digest which was used to generate the signature
  */
-Sailfish::Crypto::Key::Digest VerifyRequest::digest() const
+Sailfish::Crypto::CryptoManager::DigestFunction VerifyRequest::digestFunction() const
 {
     Q_D(const VerifyRequest);
     return d->m_digest;
@@ -143,7 +143,7 @@ Sailfish::Crypto::Key::Digest VerifyRequest::digest() const
 /*!
  * \brief Sets the digest which was used to generate the signature to \a digest
  */
-void VerifyRequest::setDigest(Sailfish::Crypto::Key::Digest digest)
+void VerifyRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digest)
 {
     Q_D(VerifyRequest);
     if (d->m_status != Request::Active && d->m_digest != digest) {
@@ -156,7 +156,7 @@ void VerifyRequest::setDigest(Sailfish::Crypto::Key::Digest digest)
             d->m_status = Request::Inactive;
             emit statusChanged();
         }
-        emit digestChanged();
+        emit digestFunctionChanged();
     }
 }
 

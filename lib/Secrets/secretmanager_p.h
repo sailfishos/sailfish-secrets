@@ -9,6 +9,8 @@
 #define LIBSAILFISHSECRETS_SECRETMANAGER_P_H
 
 #include "Secrets/secretmanager.h"
+#include "Secrets/secret.h"
+#include "Secrets/interactionparameters.h"
 #include "Secrets/secretsdaemonconnection_p.h"
 #include "Secrets/extensionplugins.h"
 #include "Secrets/interactionview.h"
@@ -68,6 +70,7 @@ public:
     // set a secret in a collection.  Will immediately fail if the secret's identifier is standalone.
     QDBusPendingReply<Sailfish::Secrets::Result> setSecret(
             const Sailfish::Secrets::Secret &secret,
+            const Sailfish::Secrets::InteractionParameters &uiParams,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
     // set a standalone DeviceLock-protected secret
@@ -75,6 +78,7 @@ public:
             const QString &storagePluginName,
             const QString &encryptionPluginName,
             const Sailfish::Secrets::Secret &secret,
+            const Sailfish::Secrets::InteractionParameters &uiParams,
             Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic unlockSemantic,
             Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
@@ -85,6 +89,7 @@ public:
             const QString &encryptionPluginName,
             const QString &authenticationPluginName,
             const Sailfish::Secrets::Secret &secret,
+            const Sailfish::Secrets::InteractionParameters &uiParams,
             Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic unlockSemantic,
             int customLockTimeoutMs,
             Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,

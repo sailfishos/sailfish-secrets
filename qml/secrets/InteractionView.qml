@@ -6,7 +6,8 @@ import Sailfish.Secrets 1.0 as Secrets
 Item {
     Rectangle {
         id: deleteConfirmationItem
-        visible: adapter.requestType == Secrets.ApplicationInteractionView.DeleteSecretConfirmationRequest
+        visible: adapter.interactionParameters.inputType == Secrets.InteractionParameters.ConfirmationInput
+                 && adapter.interactionParameters.operation == Secrets.InteractionParameters.DeleteSecret
         enabled: visible
         anchors.fill: parent
         color: "blue"
@@ -22,7 +23,8 @@ Item {
     }
     Rectangle {
         id: modifyConfirmationItem
-        visible: adapter.requestType == Secrets.ApplicationInteractionView.ModifySecretConfirmationRequest
+        visible: adapter.interactionParameters.inputType == Secrets.InteractionParameters.ConfirmationInput
+                 && adapter.interactionParameters.operation == Secrets.InteractionParameters.StoreSecret
         enabled: visible
         anchors.fill: parent
         color: "green"
@@ -38,13 +40,13 @@ Item {
     }
     Rectangle {
         id: userVerificationConfirmationItem
-        visible: adapter.requestType == Secrets.ApplicationInteractionView.UserVerificationConfirmationRequest
+        visible: adapter.interactionParameters.inputType == Secrets.InteractionParameters.AuthenticationInput
         enabled: visible
         anchors.fill: parent
         color: "yellow"
         Text {
             anchors.centerIn: parent
-            text: "PRESS ME TO VERIFY/CONTINUE"
+            text: "PRESS ME TO AUTHENTICATE/CONTINUE"
         }
         MouseArea {
             enabled: parent.enabled
@@ -54,13 +56,13 @@ Item {
     }
     Rectangle {
         id: encryptionPasswordItem
-        visible: adapter.requestType == Secrets.ApplicationInteractionView.AuthenticationKeyRequest
+        visible: adapter.interactionParameters.inputType == Secrets.InteractionParameters.AlphaNumericInput
         enabled: visible
         anchors.fill: parent
         color: "red"
         Text {
             anchors.centerIn: parent
-            text: "PRESS ME TO AUTH/CONTINUE"
+            text: "PRESS ME TO SUPPLY PASSWORD/CONTINUE"
         }
         MouseArea {
             enabled: parent.enabled

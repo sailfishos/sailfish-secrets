@@ -21,6 +21,9 @@
 #include "Crypto/result.h"
 #include "Crypto/storedkeyrequest.h"
 #include "Crypto/cipherrequest.h"
+#include "Crypto/interactionparameters.h"
+#include "Crypto/keyderivationparameters.h"
+#include "Crypto/keypairgenerationparameters.h"
 
 #include <QtDBus/QDBusArgument>
 #include <QtDBus/QDBusMetaType>
@@ -43,34 +46,30 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto:
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Origin origin) SAILFISH_CRYPTO_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Origin &origin) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Algorithm algorithm) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Algorithm &algorithm) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::BlockMode mode) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::BlockMode &mode) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::EncryptionPadding padding) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::EncryptionPadding &padding) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::SignaturePadding padding) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::SignaturePadding &padding) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Digest digest) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Digest &digest) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Operation operation) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Operation &operation) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CryptoManager::Algorithm algorithm) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CryptoManager::Algorithm &algorithm) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CryptoManager::BlockMode mode) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CryptoManager::BlockMode &mode) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CryptoManager::EncryptionPadding padding) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CryptoManager::EncryptionPadding &padding) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CryptoManager::SignaturePadding padding) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CryptoManager::SignaturePadding &padding) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CryptoManager::DigestFunction digest) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CryptoManager::DigestFunction &digest) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CryptoManager::MessageAuthenticationCode mac) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CryptoManager::MessageAuthenticationCode &mac) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CryptoManager::KeyDerivationFunction kdf) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CryptoManager::KeyDerivationFunction &kdf) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CryptoManager::Operation operation) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CryptoManager::Operation &operation) SAILFISH_CRYPTO_API;
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::BlockModes modes) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::BlockModes &modes) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::EncryptionPaddings paddings) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::EncryptionPaddings &paddings) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::SignaturePaddings paddings) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::SignaturePaddings &paddings) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Digests digests) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Digests &digests) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Operations operations) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Operations &operations) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CryptoManager::Operations operations) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CryptoManager::Operations &operations) SAILFISH_CRYPTO_API;
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::StoredKeyRequest::KeyComponent component) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::StoredKeyRequest::KeyComponent &component) SAILFISH_CRYPTO_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::StoredKeyRequest::KeyComponents components) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::StoredKeyRequest::KeyComponents &components) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Component component) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Component &component) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Components components) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Components &components) SAILFISH_CRYPTO_API;
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Result &result) SAILFISH_CRYPTO_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Result &result) SAILFISH_CRYPTO_API;
@@ -80,6 +79,24 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto:
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CipherRequest::CipherMode mode) SAILFISH_CRYPTO_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CipherRequest::CipherMode &mode) SAILFISH_CRYPTO_API;
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::InteractionParameters::InputType &type) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::InteractionParameters::InputType &type) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::InteractionParameters::EchoMode &mode) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::InteractionParameters::EchoMode &mode) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::InteractionParameters::Operation &op) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::InteractionParameters::Operation &op) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::InteractionParameters &request) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::InteractionParameters &request) SAILFISH_CRYPTO_API;
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::KeyDerivationParameters &skdfParams) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::KeyDerivationParameters &skdfParams) SAILFISH_CRYPTO_API;
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::KeyPairGenerationParameters::KeyPairType type) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::KeyPairGenerationParameters::KeyPairType &type) SAILFISH_CRYPTO_API;
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::KeyPairGenerationParameters &kpgParams) SAILFISH_CRYPTO_API;
 
 } // Crypto
 

@@ -11,6 +11,8 @@
 #include "Crypto/cryptoglobal.h"
 #include "Crypto/generatekeyrequest.h"
 #include "Crypto/cryptomanager.h"
+#include "Crypto/keypairgenerationparameters.h"
+#include "Crypto/keyderivationparameters.h"
 
 #include <QtCore/QPointer>
 #include <QtCore/QScopedPointer>
@@ -31,6 +33,8 @@ public:
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
     QString m_cryptoPluginName;
+    Sailfish::Crypto::KeyDerivationParameters m_skdfParams;
+    Sailfish::Crypto::KeyPairGenerationParameters m_kpgParams;
     Sailfish::Crypto::Key m_keyTemplate;
     Sailfish::Crypto::Key m_generatedKey;
 

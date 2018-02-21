@@ -70,9 +70,13 @@ Daemon::Plugins::OpenSslCryptoPlugin::seedRandomDataGenerator(
 Result
 Daemon::Plugins::OpenSslCryptoPlugin::generateAndStoreKey(
         const Key &keyTemplate,
+        const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
+        const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
         Key *keyMetadata)
 {
     Q_UNUSED(keyTemplate);
+    Q_UNUSED(kpgParams);
+    Q_UNUSED(skdfParams);
     Q_UNUSED(keyMetadata);
     return Result(Result::UnsupportedOperation,
                   QLatin1String("The OpenSSL crypto plugin doesn't support storing keys"));
@@ -81,7 +85,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateAndStoreKey(
 Result
 Daemon::Plugins::OpenSslCryptoPlugin::storedKey(
         const Key::Identifier &identifier,
-        StoredKeyRequest::KeyComponents keyComponents,
+        Key::Components keyComponents,
         Key *key)
 {
     Q_UNUSED(identifier);

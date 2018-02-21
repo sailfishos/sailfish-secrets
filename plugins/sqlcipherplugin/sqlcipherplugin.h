@@ -97,12 +97,14 @@ public:
     bool canStoreKeys() const Q_DECL_OVERRIDE { return true; }
     Sailfish::Crypto::CryptoPlugin::EncryptionType cryptoEncryptionType() const Q_DECL_OVERRIDE { return Sailfish::Crypto::CryptoPlugin::SoftwareEncryption; }
 
-    QVector<Sailfish::Crypto::Key::Algorithm> supportedAlgorithms() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::BlockModes> supportedBlockModes() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::EncryptionPaddings> supportedEncryptionPaddings() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::SignaturePaddings> supportedSignaturePaddings() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Digests> supportedDigests() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Operations> supportedOperations() const Q_DECL_OVERRIDE;
+    QVector<Sailfish::Crypto::CryptoManager::Algorithm> supportedAlgorithms() const Q_DECL_OVERRIDE;
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::BlockMode> > supportedBlockModes() const Q_DECL_OVERRIDE;
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::EncryptionPadding> > supportedEncryptionPaddings() const Q_DECL_OVERRIDE;
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::SignaturePadding> > supportedSignaturePaddings() const Q_DECL_OVERRIDE;
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::DigestFunction> > supportedDigests() const Q_DECL_OVERRIDE;
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::MessageAuthenticationCode> > supportedMessageAuthenticationCodes() const Q_DECL_OVERRIDE;
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::KeyDerivationFunction> > supportedKeyDerivationFunctions() const Q_DECL_OVERRIDE;
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, Sailfish::Crypto::CryptoManager::Operations> supportedOperations() const Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result generateRandomData(
             quint64 callerIdent,
@@ -122,15 +124,19 @@ public:
 
     Sailfish::Crypto::Result generateKey(
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
+            const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             Sailfish::Crypto::Key *key) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result generateAndStoreKey(
             const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
+            const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             Sailfish::Crypto::Key *keyMetadata) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result storedKey(
             const Sailfish::Crypto::Key::Identifier &identifier,
-            Sailfish::Crypto::StoredKeyRequest::KeyComponents keyComponents,
+            Sailfish::Crypto::Key::Components keyComponents,
             Sailfish::Crypto::Key *key) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result storedKeyIdentifiers(
@@ -139,42 +145,42 @@ public:
     Sailfish::Crypto::Result sign(
             const QByteArray &data,
             const Sailfish::Crypto::Key &key,
-            Sailfish::Crypto::Key::SignaturePadding padding,
-            Sailfish::Crypto::Key::Digest digest,
+            Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+            Sailfish::Crypto::CryptoManager::DigestFunction digest,
             QByteArray *signature) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result verify(
             const QByteArray &data,
             const Sailfish::Crypto::Key &key,
-            Sailfish::Crypto::Key::SignaturePadding padding,
-            Sailfish::Crypto::Key::Digest digest,
+            Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+            Sailfish::Crypto::CryptoManager::DigestFunction digest,
             bool *verified) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result encrypt(
             const QByteArray &data,
             const QByteArray &iv,
             const Sailfish::Crypto::Key &key,
-            Sailfish::Crypto::Key::BlockMode blockMode,
-            Sailfish::Crypto::Key::EncryptionPadding padding,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             QByteArray *encrypted) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result decrypt(
             const QByteArray &data,
             const QByteArray &iv,
             const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
-            Sailfish::Crypto::Key::BlockMode blockMode,
-            Sailfish::Crypto::Key::EncryptionPadding padding,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             QByteArray *decrypted) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result initialiseCipherSession(
             quint64 clientId,
             const QByteArray &iv,
             const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
-            Sailfish::Crypto::Key::Operation operation,
-            Sailfish::Crypto::Key::BlockMode blockMode,
-            Sailfish::Crypto::Key::EncryptionPadding encryptionPadding,
-            Sailfish::Crypto::Key::SignaturePadding signaturePadding,
-            Sailfish::Crypto::Key::Digest digest,
+            Sailfish::Crypto::CryptoManager::Operation operation,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
+            Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
+            Sailfish::Crypto::CryptoManager::DigestFunction digest,
             quint32 *cipherSessionToken,
             QByteArray *generatedIV) Q_DECL_OVERRIDE;
 
@@ -207,6 +213,9 @@ private:
     QString m_databaseSubdir;
     QString m_databaseDirPath;
 
+    Sailfish::Crypto::Result storedKey_internal(
+            const Sailfish::Crypto::Key::Identifier &identifier,
+            Sailfish::Crypto::Key *key);
     Sailfish::Crypto::Key getFullKey(const Sailfish::Crypto::Key &key);
     QMap<quint64, QMap<quint32, CipherSessionData*> > m_cipherSessions; // clientId to token to data
     struct CipherSessionLookup {

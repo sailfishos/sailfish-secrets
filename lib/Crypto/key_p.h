@@ -15,40 +15,43 @@
 #include <QtCore/QVector>
 #include <QtCore/QHash>
 #include <QtCore/QDateTime>
+#include <QtCore/QSharedData>
 
 namespace Sailfish {
 
 namespace Crypto {
 
-class KeyData
+class KeyIdentifierPrivate : public QSharedData
 {
 public:
-    KeyData();
-    KeyData(const KeyData &other);
-    KeyData &operator=(const KeyData &other);
+    KeyIdentifierPrivate();
+    KeyIdentifierPrivate(const KeyIdentifierPrivate &other);
+    ~KeyIdentifierPrivate();
 
-    bool identical(const Sailfish::Crypto::KeyData &other) const;
-    bool keysEqual(const Sailfish::Crypto::KeyData &other) const;
-    bool lessThan(const Sailfish::Crypto::KeyData &other) const;
+    QString m_name;
+    QString m_collectionName;
+};
+
+class KeyPrivate : public QSharedData
+{
+public:
+    KeyPrivate();
+    KeyPrivate(const KeyPrivate &other);
+    ~KeyPrivate();
 
     Sailfish::Crypto::Key::FilterData m_filterData;
     QVector<QByteArray> m_customParameters;
     QByteArray m_publicKey;
     QByteArray m_privateKey;
     QByteArray m_secretKey;
-    QDateTime m_validityStart;
-    QDateTime m_validityEnd;
 
     Sailfish::Crypto::Key::Identifier m_identifier;
 
     Sailfish::Crypto::Key::Origin m_origin;
-    Sailfish::Crypto::Key::Algorithm m_algorithm;
-
-    Sailfish::Crypto::Key::BlockModes m_blockModes;
-    Sailfish::Crypto::Key::EncryptionPaddings m_encryptionPaddings;
-    Sailfish::Crypto::Key::SignaturePaddings m_signaturePaddings;
-    Sailfish::Crypto::Key::Digests m_digests;
-    Sailfish::Crypto::Key::Operations m_operations;
+    Sailfish::Crypto::CryptoManager::Algorithm m_algorithm;
+    Sailfish::Crypto::CryptoManager::Operations m_operations;
+    Sailfish::Crypto::Key::Components m_componentConstraints;
+    int m_size;
 };
 
 } // namespace Crypto

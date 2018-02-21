@@ -32,14 +32,14 @@ public:
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
     CipherRequest::CipherMode m_cipherMode;
-    Key::Operation m_operation;
+    CryptoManager::Operation m_operation;
     QByteArray m_data;
     QByteArray m_initialisationVector;
     Sailfish::Crypto::Key m_key;
-    Sailfish::Crypto::Key::BlockMode m_blockMode;
-    Sailfish::Crypto::Key::EncryptionPadding m_encryptionPadding;
-    Sailfish::Crypto::Key::SignaturePadding m_signaturePadding;
-    Sailfish::Crypto::Key::Digest m_digest;
+    Sailfish::Crypto::CryptoManager::BlockMode m_blockMode;
+    Sailfish::Crypto::CryptoManager::EncryptionPadding m_encryptionPadding;
+    Sailfish::Crypto::CryptoManager::SignaturePadding m_signaturePadding;
+    Sailfish::Crypto::CryptoManager::DigestFunction m_digest;
     QString m_cryptoPluginName;
     quint32 m_cipherSessionToken;
     QByteArray m_generatedData;

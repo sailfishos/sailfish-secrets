@@ -25,7 +25,8 @@ PUBLIC_HEADERS += \
     $$PWD/secretsglobal.h \
     $$PWD/storedsecretrequest.h \
     $$PWD/storesecretrequest.h \
-    $$PWD/interactionrequest.h \
+    $$PWD/interactionparameters.h \
+    $$PWD/interactionresponse.h \
     $$PWD/interactionrequestwatcher.h \
     $$PWD/interactionview.h
 
@@ -38,6 +39,8 @@ PRIVATE_HEADERS += \
     $$PWD/deletecollectionrequest_p.h \
     $$PWD/deletesecretrequest_p.h \
     $$PWD/findsecretsrequest_p.h \
+    $$PWD/interactionparameters_p.h \
+    $$PWD/interactionresponse_p.h \
     $$PWD/secretsdaemonconnection_p_p.h \
     $$PWD/secretmanager_p.h \
     $$PWD/storedsecretrequest_p.h \
@@ -61,6 +64,8 @@ SOURCES += \
     $$PWD/serialisation.cpp \
     $$PWD/storedsecretrequest.cpp \
     $$PWD/storesecretrequest.cpp \
+    $$PWD/interactionparameters.cpp \
+    $$PWD/interactionresponse.cpp \
     $$PWD/interactionrequestwatcher.cpp \
     $$PWD/interactionservice.cpp
 

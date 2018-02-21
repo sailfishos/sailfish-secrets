@@ -11,7 +11,7 @@
 #include "applicationinteractionview.h"
 
 #include "Secrets/secretmanager.h"
-#include "Secrets/interactionrequest.h"
+#include "Secrets/interactionparameters.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QStringList>
@@ -25,15 +25,11 @@ namespace Secrets {
 
 namespace Plugin {
 
-// We have several different types of UI requests:
-// 1) request confirmation to delete a secret
-// 2) request confirmation to update/overwrite a secret
-// 3) request the device lock code to verify the user
-// 4) request a password (to use as an encryption/decryption key)
-
-// So, the result will be one of:
-// a) confirmationReceived (for 1/2/3)
-// b) passwordReceived (for 4)
+// We have a variety of different possible user interaction flows.
+// See the different InteractionParameters::InputTypes for data we
+// can request from the user.
+// See the different InteractionParameters::Operations for operations
+// we can request permission from the user for.
 
 class ApplicationInteractionView;
 class ApplicationInteractionViewPrivate : public QObject
@@ -41,7 +37,7 @@ class ApplicationInteractionViewPrivate : public QObject
     Q_OBJECT
     Q_PROPERTY(int confirmation READ confirmation WRITE setConfirmation NOTIFY confirmationChanged)
     Q_PROPERTY(QString password READ password WRITE setPassword NOTIFY passwordChanged)
-    Q_PROPERTY(int requestType READ requestType NOTIFY requestTypeChanged)
+    Q_PROPERTY(InteractionParameters interactionParameters READ interactionParameters NOTIFY interactionParametersChanged)
 
 public:
     ApplicationInteractionViewPrivate(ApplicationInteractionView *parent = Q_NULLPTR);
@@ -51,9 +47,7 @@ public:
         if (m_confirmation != v) {
             m_confirmation = v;
             emit confirmationChanged();
-            if (m_ready && (m_requestType == Sailfish::Secrets::InteractionRequest::DeleteSecretConfirmationRequest
-                            || m_requestType == Sailfish::Secrets::InteractionRequest::ModifySecretConfirmationRequest
-                            || m_requestType == Sailfish::Secrets::InteractionRequest::UserVerificationConfirmationRequest)) {
+            if (m_ready) {
                 sendResponse(v == Sailfish::Secrets::Plugin::ApplicationInteractionView::Allow);
                 m_confirmation = Sailfish::Secrets::Plugin::ApplicationInteractionView::Unknown; // reset.
             }
@@ -65,20 +59,24 @@ public:
         if (m_password != v) {
             m_password = v;
             emit passwordChanged();
-            if (m_ready && m_requestType == Sailfish::Secrets::InteractionRequest::AuthenticationKeyRequest) {
+            if (m_ready) {
                 sendResponse(v.toUtf8());
                 m_password.clear(); // reset.
             }
         }
     }
 
-    int requestType() const { return m_requestType; }
-    void setRequestType(Sailfish::Secrets::InteractionRequest::Type type) { m_ready = true; m_requestType = type; emit requestTypeChanged(); }
+    Sailfish::Secrets::InteractionParameters interactionParameters() const { return m_request; }
+    void setInteractionParameters(const Sailfish::Secrets::InteractionParameters &request) {
+        m_ready = true;
+        m_request = request;
+        emit interactionParametersChanged();
+    }
 
 Q_SIGNALS:
     void confirmationChanged();
     void passwordChanged();
-    void requestTypeChanged();
+    void interactionParametersChanged();
 
 private Q_SLOTS:
     void sendResponse(bool confirmed);
@@ -88,8 +86,8 @@ private:
     friend class ApplicationInteractionView;
     ApplicationInteractionView *m_parent;
     SecretManager *m_secretManager;
+    InteractionParameters m_request;
     QString m_password;
-    int m_requestType;
     int m_confirmation;
     bool m_ready;
 };

@@ -15,23 +15,39 @@
 
 using namespace Sailfish::Crypto;
 
-CryptoPluginInfoData::CryptoPluginInfoData()
-    : m_pluginName(QLatin1String("org.sailfishos.crypto.cryptoplugin.invalid"))
+CryptoPluginInfoPrivate::CryptoPluginInfoPrivate()
+    : QSharedData()
+    , m_pluginName(QLatin1String("org.sailfishos.crypto.cryptoplugin.invalid"))
     , m_canStoreKeys(false)
 {
 }
 
-CryptoPluginInfoData::CryptoPluginInfoData(
+CryptoPluginInfoPrivate::CryptoPluginInfoPrivate(const CryptoPluginInfoPrivate &other)
+    : QSharedData(other)
+    , m_pluginName(other.m_pluginName)
+    , m_canStoreKeys(other.m_canStoreKeys)
+    , m_encryptionType(other.m_encryptionType)
+    , m_supportedAlgorithms(other.m_supportedAlgorithms)
+    , m_supportedBlockModes(other.m_supportedBlockModes)
+    , m_supportedEncryptionPaddings(other.m_supportedEncryptionPaddings)
+    , m_supportedSignaturePaddings(other.m_supportedSignaturePaddings)
+    , m_supportedDigests(other.m_supportedDigests)
+    , m_supportedOperations(other.m_supportedOperations)
+{
+}
+
+CryptoPluginInfoPrivate::CryptoPluginInfoPrivate(
         const QString &pluginName,
         bool canStoreKeys,
         CryptoPlugin::EncryptionType encryptionType,
-        const QVector<Key::Algorithm> &supportedAlgorithms,
-        const QMap<Key::Algorithm, Key::BlockModes> &supportedBlockModes,
-        const QMap<Key::Algorithm, Key::EncryptionPaddings> &supportedEncryptionPaddings,
-        const QMap<Key::Algorithm, Key::SignaturePaddings> &supportedSignaturePaddings,
-        const QMap<Key::Algorithm, Key::Digests> &supportedDigests,
-        const QMap<Key::Algorithm, Key::Operations> &supportedOperations)
-    : m_pluginName(pluginName)
+        const QVector<CryptoManager::Algorithm> &supportedAlgorithms,
+        const QMap<CryptoManager::Algorithm, QVector<CryptoManager::BlockMode> > &supportedBlockModes,
+        const QMap<CryptoManager::Algorithm, QVector<CryptoManager::EncryptionPadding> > &supportedEncryptionPaddings,
+        const QMap<CryptoManager::Algorithm, QVector<CryptoManager::SignaturePadding> > &supportedSignaturePaddings,
+        const QMap<CryptoManager::Algorithm, QVector<CryptoManager::DigestFunction> > &supportedDigests,
+        const QMap<CryptoManager::Algorithm, CryptoManager::Operations> &supportedOperations)
+    : QSharedData()
+    , m_pluginName(pluginName)
     , m_canStoreKeys(canStoreKeys)
     , m_encryptionType(encryptionType)
     , m_supportedAlgorithms(supportedAlgorithms)
@@ -43,14 +59,18 @@ CryptoPluginInfoData::CryptoPluginInfoData(
 {
 }
 
+CryptoPluginInfoPrivate::~CryptoPluginInfoPrivate()
+{
+}
+
 CryptoPluginInfo::CryptoPluginInfo()
-    : m_data(new CryptoPluginInfoData)
+    : d_ptr(new CryptoPluginInfoPrivate)
 {
 }
 
 CryptoPluginInfo::CryptoPluginInfo(
         CryptoPlugin *plugin)
-    : m_data(new CryptoPluginInfoData(
+    : d_ptr(new CryptoPluginInfoPrivate(
                  plugin->name(),
                  plugin->canStoreKeys(),
                  plugin->encryptionType(),
@@ -63,151 +83,127 @@ CryptoPluginInfo::CryptoPluginInfo(
 {
 }
 
-CryptoPluginInfo::CryptoPluginInfo(const CryptoPluginInfo &other)
-    : m_data(new CryptoPluginInfoData(
-                 other.name(),
-                 other.canStoreKeys(),
-                 other.encryptionType(),
-                 other.supportedAlgorithms(),
-                 other.supportedBlockModes(),
-                 other.supportedEncryptionPaddings(),
-                 other.supportedSignaturePaddings(),
-                 other.supportedDigests(),
-                 other.supportedOperations()))
+CryptoPluginInfo::CryptoPluginInfo(
+        const CryptoPluginInfo &other)
+    : d_ptr(other.d_ptr)
 {
 }
 
 CryptoPluginInfo::~CryptoPluginInfo()
 {
-    delete m_data;
 }
 
-CryptoPluginInfo&
-CryptoPluginInfo::operator=(const CryptoPluginInfo &other)
+CryptoPluginInfo& CryptoPluginInfo::operator=(
+        const CryptoPluginInfo &other)
 {
-    if (this != &other) {
-        delete m_data;
-        m_data = new CryptoPluginInfoData(
-                         other.name(),
-                         other.canStoreKeys(),
-                         other.encryptionType(),
-                         other.supportedAlgorithms(),
-                         other.supportedBlockModes(),
-                         other.supportedEncryptionPaddings(),
-                         other.supportedSignaturePaddings(),
-                         other.supportedDigests(),
-                         other.supportedOperations());
-    }
-
+    d_ptr = other.d_ptr;
     return *this;
 }
 
-QString
-CryptoPluginInfo::name() const
+QString CryptoPluginInfo::name() const
 {
-    return m_data->m_pluginName;
+    return d_ptr->m_pluginName;
 }
 
-bool
-CryptoPluginInfo::canStoreKeys() const
+bool CryptoPluginInfo::canStoreKeys() const
 {
-    return m_data->m_canStoreKeys;
+    return d_ptr->m_canStoreKeys;
 }
 
 CryptoPlugin::EncryptionType
 CryptoPluginInfo::encryptionType() const
 {
-    return m_data->m_encryptionType;
+    return d_ptr->m_encryptionType;
 }
 
-QVector<Key::Algorithm>
+QVector<CryptoManager::Algorithm>
 CryptoPluginInfo::supportedAlgorithms() const
 {
-    return m_data->m_supportedAlgorithms;
+    return d_ptr->m_supportedAlgorithms;
 }
 
-QMap<Key::Algorithm, Key::BlockModes>
+QMap<CryptoManager::Algorithm, QVector<CryptoManager::BlockMode> >
 CryptoPluginInfo::supportedBlockModes() const
 {
-    return m_data->m_supportedBlockModes;
+    return d_ptr->m_supportedBlockModes;
 }
 
-QMap<Key::Algorithm, Key::EncryptionPaddings>
+QMap<CryptoManager::Algorithm, QVector<CryptoManager::EncryptionPadding> >
 CryptoPluginInfo::supportedEncryptionPaddings() const
 {
-    return m_data->m_supportedEncryptionPaddings;
+    return d_ptr->m_supportedEncryptionPaddings;
 }
 
-QMap<Key::Algorithm, Key::SignaturePaddings>
+QMap<CryptoManager::Algorithm, QVector<CryptoManager::SignaturePadding> >
 CryptoPluginInfo::supportedSignaturePaddings() const
 {
-    return m_data->m_supportedSignaturePaddings;
+    return d_ptr->m_supportedSignaturePaddings;
 }
 
-QMap<Key::Algorithm, Key::Digests>
+QMap<CryptoManager::Algorithm, QVector<CryptoManager::DigestFunction> >
 CryptoPluginInfo::supportedDigests() const
 {
-    return m_data->m_supportedDigests;
+    return d_ptr->m_supportedDigests;
 }
 
-QMap<Key::Algorithm, Key::Operations>
+QMap<CryptoManager::Algorithm, CryptoManager::Operations>
 CryptoPluginInfo::supportedOperations() const
 {
-    return m_data->m_supportedOperations;
+    return d_ptr->m_supportedOperations;
 }
 
 void CryptoPluginInfo::setName(
         const QString &name)
 {
-    m_data->m_pluginName = name;
+    d_ptr->m_pluginName = name;
 }
 
 void CryptoPluginInfo::setCanStoreKeys(
         bool v)
 {
-    m_data->m_canStoreKeys = v;
+    d_ptr->m_canStoreKeys = v;
 }
 
 void CryptoPluginInfo::setEncryptionType(
         CryptoPlugin::EncryptionType type)
 {
-    m_data->m_encryptionType = type;
+    d_ptr->m_encryptionType = type;
 }
 
 void CryptoPluginInfo::setSupportedAlgorithms(
-        const QVector<Key::Algorithm> &algorithms)
+        const QVector<CryptoManager::Algorithm> &algorithms)
 {
-    m_data->m_supportedAlgorithms = algorithms;
+    d_ptr->m_supportedAlgorithms = algorithms;
 }
 
 void CryptoPluginInfo::setSupportedBlockModes(
-        const QMap<Key::Algorithm, Key::BlockModes> &modes)
+        const QMap<CryptoManager::Algorithm, QVector<CryptoManager::BlockMode> > &modes)
 {
-    m_data->m_supportedBlockModes = modes;
+    d_ptr->m_supportedBlockModes = modes;
 }
 
 void CryptoPluginInfo::setSupportedEncryptionPaddings(
-        const QMap<Key::Algorithm, Key::EncryptionPaddings> &paddings)
+        const QMap<CryptoManager::Algorithm, QVector<CryptoManager::EncryptionPadding> > &paddings)
 {
-    m_data->m_supportedEncryptionPaddings = paddings;
+    d_ptr->m_supportedEncryptionPaddings = paddings;
 }
 
 void CryptoPluginInfo::setSupportedSignaturePaddings(
-        const QMap<Key::Algorithm, Key::SignaturePaddings> &paddings)
+        const QMap<CryptoManager::Algorithm, QVector<CryptoManager::SignaturePadding> > &paddings)
 {
-    m_data->m_supportedSignaturePaddings = paddings;
+    d_ptr->m_supportedSignaturePaddings = paddings;
 }
 
 void CryptoPluginInfo::setSupportedDigests(
-        const QMap<Key::Algorithm, Key::Digests> &digests)
+        const QMap<CryptoManager::Algorithm, QVector<CryptoManager::DigestFunction> > &digests)
 {
-    m_data->m_supportedDigests = digests;
+    d_ptr->m_supportedDigests = digests;
 }
 
 void CryptoPluginInfo::setSupportedOperations(
-        const QMap<Key::Algorithm, Key::Operations> &operations)
+        const QMap<CryptoManager::Algorithm, CryptoManager::Operations> &operations)
 {
-    m_data->m_supportedOperations = operations;
+    d_ptr->m_supportedOperations = operations;
 }
 
 //---------------------------------------------

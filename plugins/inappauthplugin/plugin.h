@@ -10,7 +10,7 @@
 
 #include "Secrets/extensionplugins.h"
 #include "Secrets/result.h"
-#include "Secrets/interactionrequest.h"
+#include "Secrets/interactionparameters.h"
 #include "Secrets/interactionrequestwatcher.h"
 
 #include <QObject>
@@ -48,24 +48,31 @@ public:
         return QLatin1String("org.sailfishos.secrets.plugin.authentication.inapp");
 #endif
     }
-    Sailfish::Secrets::AuthenticationPlugin::AuthenticationType authenticationType() const Q_DECL_OVERRIDE { return Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication; }
+    Sailfish::Secrets::AuthenticationPlugin::AuthenticationTypes authenticationTypes() const Q_DECL_OVERRIDE { return Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication; }
+    Sailfish::Secrets::InteractionParameters::InputTypes inputTypes() const Q_DECL_OVERRIDE {
+        return Sailfish::Secrets::InteractionParameters::ConfirmationInput
+                | Sailfish::Secrets::InteractionParameters::NumericInput
+                | Sailfish::Secrets::InteractionParameters::AlphaNumericInput;
+    }
 
     Sailfish::Secrets::Result beginAuthentication(
                 uint callerPid,
+                qint64 requestId) Q_DECL_OVERRIDE;
+
+    Sailfish::Secrets::Result beginUserInputInteraction(
+                uint callerPid,
                 qint64 requestId,
-                const QString &callerApplicationId,
-                const QString &collectionName,
-                const QString &secretName,
+                const Sailfish::Secrets::InteractionParameters &interactionParameters,
                 const QString &interactionServiceAddress) Q_DECL_OVERRIDE;
 
 private Q_SLOTS:
     void interactionRequestFinished(quint64 requestId);
     void interactionRequestResponse(quint64 requestId,
-                           const Sailfish::Secrets::Result &result,
                            const Sailfish::Secrets::InteractionResponse &response);
 
 private:
     QMap<quint64, Sailfish::Secrets::InteractionRequestWatcher *> m_requests;
+    QMap<quint64, InteractionResponse> m_responses;
 };
 
 } // namespace Plugins

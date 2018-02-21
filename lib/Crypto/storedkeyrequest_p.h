@@ -31,7 +31,7 @@ public:
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
     Sailfish::Crypto::Key::Identifier m_identifier;
-    StoredKeyRequest::KeyComponents m_keyComponents;
+    Key::Components m_keyComponents;
     Sailfish::Crypto::Key m_storedKey;
 
     QScopedPointer<QDBusPendingCallWatcher> m_watcher;

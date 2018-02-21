@@ -11,6 +11,10 @@
 #include "Crypto/certificate.h"
 #include "Crypto/extensionplugins.h"
 #include "Crypto/cipherrequest.h"
+#include "Crypto/interactionparameters.h"
+#include "Crypto/keyderivationparameters.h"
+#include "Crypto/keypairgenerationparameters.h"
+#include "Crypto/keypairgenerationparameters_p.h"
 
 #include "Crypto/serialisation_p.h"
 #include "Crypto/key_p.h"
@@ -61,10 +65,8 @@ Key::deserialise(const QByteArray &data, bool *ok)
     in.setVersion(QDataStream::Qt_5_6);
 
     QString name, collectionName;
-    int iorigin = 0, ialgorithm = 0, ioperations = 0, iblockModes = 0,
-        iencryptionPaddings = 0, isignaturePaddings = 0, idigests = 0;
+    int iorigin = 0, ialgorithm = 0, ioperations = 0, icomponentConstraints = 0, isize = 0;
     QByteArray publicKey, privateKey, secretKey;
-    QDateTime validityStart, validityEnd;
     QVector<QByteArray> customParameters;
     Key::FilterData filterData;
 
@@ -74,17 +76,12 @@ Key::deserialise(const QByteArray &data, bool *ok)
     in >> iorigin;
     in >> ialgorithm;
     in >> ioperations;
-    in >> iblockModes;
-    in >> iencryptionPaddings;
-    in >> isignaturePaddings;
-    in >> idigests;
+    in >> icomponentConstraints;
+    in >> isize;
 
     in >> publicKey;
     in >> privateKey;
     in >> secretKey;
-
-    in >> validityStart;
-    in >> validityEnd;
 
     in >> customParameters;
 
@@ -95,17 +92,13 @@ Key::deserialise(const QByteArray &data, bool *ok)
     Key retn;
     retn.setIdentifier(Key::Identifier(name, collectionName));
     retn.setOrigin(static_cast<Key::Origin>(iorigin));
-    retn.setAlgorithm(static_cast<Key::Algorithm>(ialgorithm));
-    retn.setOperations(static_cast<Key::Operations>(ioperations));
-    retn.setBlockModes(static_cast<Key::BlockModes>(iblockModes));
-    retn.setEncryptionPaddings(static_cast<Key::EncryptionPaddings>(iencryptionPaddings));
-    retn.setSignaturePaddings(static_cast<Key::SignaturePaddings>(isignaturePaddings));
-    retn.setDigests(static_cast<Key::Digests>(idigests));
+    retn.setAlgorithm(static_cast<CryptoManager::Algorithm>(ialgorithm));
+    retn.setOperations(static_cast<CryptoManager::Operations>(ioperations));
+    retn.setComponentConstraints(static_cast<Key::Components>(icomponentConstraints));
+    retn.setSize(isize);
     retn.setPublicKey(publicKey);
     retn.setPrivateKey(privateKey);
     retn.setSecretKey(secretKey);
-    retn.setValidityStart(validityStart);
-    retn.setValidityEnd(validityEnd);
     retn.setCustomParameters(customParameters);
     retn.setFilterData(filterData);
 
@@ -142,17 +135,12 @@ Key::serialise(const Key &key, Key::SerialisationMode serialisationMode)
     out << static_cast<int>(key.origin());
     out << static_cast<int>(key.algorithm());
     out << static_cast<int>(key.operations());
-    out << static_cast<int>(key.blockModes());
-    out << static_cast<int>(key.encryptionPaddings());
-    out << static_cast<int>(key.signaturePaddings());
-    out << static_cast<int>(key.digests());
+    out << static_cast<int>(key.componentConstraints());
+    out << key.size();
 
     out << key.publicKey();
     out << key.privateKey();
     out << key.secretKey();
-
-    out << key.validityStart();
-    out << key.validityEnd();
 
     out << key.customParameters();
 
@@ -167,15 +155,15 @@ Key::serialise(const Key &key, Key::SerialisationMode serialisationMode)
     return byteArray;
 }
 
-QDataStream& operator>>(QDataStream& in, Key::Algorithm &v)
+QDataStream& operator>>(QDataStream& in, CryptoManager::Algorithm &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Key::Algorithm>(temp);
+    v = static_cast<CryptoManager::Algorithm>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Key::Algorithm &v)
+QDataStream& operator<<(QDataStream& out, const CryptoManager::Algorithm &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
@@ -197,150 +185,90 @@ QDataStream& operator<<(QDataStream& out, const Key::Origin &v)
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, Key::BlockMode &v)
+QDataStream& operator>>(QDataStream& in, CryptoManager::BlockMode &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Key::BlockMode>(temp);
+    v = static_cast<CryptoManager::BlockMode>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Key::BlockMode &v)
+QDataStream& operator<<(QDataStream& out, const CryptoManager::BlockMode &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, Key::EncryptionPadding &v)
+QDataStream& operator>>(QDataStream& in, CryptoManager::EncryptionPadding &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Key::EncryptionPadding>(temp);
+    v = static_cast<CryptoManager::EncryptionPadding>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Key::EncryptionPadding &v)
+QDataStream& operator<<(QDataStream& out, const CryptoManager::EncryptionPadding &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, Key::SignaturePadding &v)
+QDataStream& operator>>(QDataStream& in, CryptoManager::SignaturePadding &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Key::SignaturePadding>(temp);
+    v = static_cast<CryptoManager::SignaturePadding>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Key::SignaturePadding &v)
+QDataStream& operator<<(QDataStream& out, const CryptoManager::SignaturePadding &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, Key::Digest &v)
+QDataStream& operator>>(QDataStream& in, CryptoManager::DigestFunction &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Key::Digest>(temp);
+    v = static_cast<CryptoManager::DigestFunction>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Key::Digest &v)
+QDataStream& operator<<(QDataStream& out, const CryptoManager::DigestFunction &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, Key::Operation &v)
+QDataStream& operator>>(QDataStream& in, CryptoManager::Operation &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Key::Operation>(temp);
+    v = static_cast<CryptoManager::Operation>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Key::Operation &v)
+QDataStream& operator<<(QDataStream& out, const CryptoManager::Operation &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, Key::BlockModes &v)
+QDataStream& operator>>(QDataStream& in, CryptoManager::Operations &v)
 {
     quint32 temp = 0;
     in >> temp;
-    v = static_cast<Key::BlockModes>(temp);
+    v = static_cast<CryptoManager::Operations>(temp);
     return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const Key::BlockModes &v)
-{
-    quint32 temp = static_cast<quint32>(v);
-    out << temp;
-    return out;
-}
-
-QDataStream& operator>>(QDataStream& in, Key::EncryptionPaddings &v)
-{
-    quint32 temp = 0;
-    in >> temp;
-    v = static_cast<Key::EncryptionPaddings>(temp);
-    return in;
-}
-
-QDataStream& operator<<(QDataStream& out, const Key::EncryptionPaddings &v)
-{
-    quint32 temp = static_cast<quint32>(v);
-    out << temp;
-    return out;
-}
-
-QDataStream& operator>>(QDataStream& in, Key::SignaturePaddings &v)
-{
-    quint32 temp = 0;
-    in >> temp;
-    v = static_cast<Key::SignaturePaddings>(temp);
-    return in;
-}
-
-QDataStream& operator<<(QDataStream& out, const Key::SignaturePaddings &v)
-{
-    quint32 temp = static_cast<quint32>(v);
-    out << temp;
-    return out;
-}
-
-QDataStream& operator>>(QDataStream& in, Key::Digests &v)
-{
-    quint32 temp = 0;
-    in >> temp;
-    v = static_cast<Key::Digests>(temp);
-    return in;
-}
-
-QDataStream& operator<<(QDataStream& out, const Key::Digests &v)
-{
-    quint32 temp = static_cast<quint32>(v);
-    out << temp;
-    return out;
-}
-
-QDataStream& operator>>(QDataStream& in, Key::Operations &v)
-{
-    quint32 temp = 0;
-    in >> temp;
-    v = static_cast<Key::Operations>(temp);
-    return in;
-}
-
-QDataStream& operator<<(QDataStream& out, const Key::Operations &v)
+QDataStream& operator<<(QDataStream& out, const CryptoManager::Operations &v)
 {
     quint32 temp = static_cast<quint32>(v);
     out << temp;
@@ -390,12 +318,12 @@ CryptoPluginInfo::deserialise(const QByteArray &data)
     QString name;
     bool canStoreKeys = false;
     CryptoPlugin::EncryptionType encryptionType = CryptoPlugin::NoEncryption;
-    QVector<Key::Algorithm> supportedAlgorithms;
-    QMap<Key::Algorithm, Key::BlockModes> supportedBlockModes;
-    QMap<Key::Algorithm, Key::EncryptionPaddings> supportedEncryptionPaddings;
-    QMap<Key::Algorithm, Key::SignaturePaddings> supportedSignaturePaddings;
-    QMap<Key::Algorithm, Key::Digests> supportedDigests;
-    QMap<Key::Algorithm, Key::Operations> supportedOperations;
+    QVector<CryptoManager::Algorithm> supportedAlgorithms;
+    QMap<CryptoManager::Algorithm, QVector<CryptoManager::BlockMode> > supportedBlockModes;
+    QMap<CryptoManager::Algorithm, QVector<CryptoManager::EncryptionPadding> > supportedEncryptionPaddings;
+    QMap<CryptoManager::Algorithm, QVector<CryptoManager::SignaturePadding> > supportedSignaturePaddings;
+    QMap<CryptoManager::Algorithm, QVector<CryptoManager::DigestFunction> > supportedDigests;
+    QMap<CryptoManager::Algorithm, CryptoManager::Operations> supportedOperations;
 
     in >> name;
     in >> canStoreKeys;
@@ -549,7 +477,7 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Origin &orig
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Key::Algorithm algorithm)
+QDBusArgument &operator<<(QDBusArgument &argument, const CryptoManager::Algorithm algorithm)
 {
     argument.beginStructure();
     argument << static_cast<int>(algorithm);
@@ -557,17 +485,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Key::Algorithm algorith
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Algorithm &algorithm)
+const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoManager::Algorithm &algorithm)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    algorithm = static_cast<Key::Algorithm>(iv);
+    algorithm = static_cast<CryptoManager::Algorithm>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Key::BlockMode mode)
+QDBusArgument &operator<<(QDBusArgument &argument, const CryptoManager::BlockMode mode)
 {
     argument.beginStructure();
     argument << static_cast<int>(mode);
@@ -575,17 +503,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Key::BlockMode mode)
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Key::BlockMode &mode)
+const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoManager::BlockMode &mode)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    mode = static_cast<Key::BlockMode>(iv);
+    mode = static_cast<CryptoManager::BlockMode>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Key::EncryptionPadding padding)
+QDBusArgument &operator<<(QDBusArgument &argument, const CryptoManager::EncryptionPadding padding)
 {
     argument.beginStructure();
     argument << static_cast<int>(padding);
@@ -593,17 +521,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Key::EncryptionPadding 
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Key::EncryptionPadding &padding)
+const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoManager::EncryptionPadding &padding)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    padding = static_cast<Key::EncryptionPadding>(iv);
+    padding = static_cast<CryptoManager::EncryptionPadding>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Key::SignaturePadding padding)
+QDBusArgument &operator<<(QDBusArgument &argument, const CryptoManager::SignaturePadding padding)
 {
     argument.beginStructure();
     argument << static_cast<int>(padding);
@@ -611,17 +539,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Key::SignaturePadding p
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Key::SignaturePadding &padding)
+const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoManager::SignaturePadding &padding)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    padding = static_cast<Key::SignaturePadding>(iv);
+    padding = static_cast<CryptoManager::SignaturePadding>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Key::Digest digest)
+QDBusArgument &operator<<(QDBusArgument &argument, const CryptoManager::DigestFunction digest)
 {
     argument.beginStructure();
     argument << static_cast<int>(digest);
@@ -629,17 +557,53 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Key::Digest digest)
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Digest &digest)
+const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoManager::DigestFunction &digest)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    digest = static_cast<Key::Digest>(iv);
+    digest = static_cast<CryptoManager::DigestFunction>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Key::Operation operation)
+QDBusArgument &operator<<(QDBusArgument &argument, const CryptoManager::MessageAuthenticationCode mac)
+{
+    argument.beginStructure();
+    argument << static_cast<int>(mac);
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoManager::MessageAuthenticationCode &mac)
+{
+    int iv = 0;
+    argument.beginStructure();
+    argument >> iv;
+    argument.endStructure();
+    mac = static_cast<CryptoManager::MessageAuthenticationCode>(iv);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const CryptoManager::KeyDerivationFunction kdf)
+{
+    argument.beginStructure();
+    argument << static_cast<int>(kdf);
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoManager::KeyDerivationFunction &kdf)
+{
+    int iv = 0;
+    argument.beginStructure();
+    argument >> iv;
+    argument.endStructure();
+    kdf = static_cast<CryptoManager::KeyDerivationFunction>(iv);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const CryptoManager::Operation operation)
 {
     argument.beginStructure();
     argument << static_cast<int>(operation);
@@ -647,89 +611,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Key::Operation operatio
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Operation &operation)
+const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoManager::Operation &operation)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    operation = static_cast<Key::Operation>(iv);
+    operation = static_cast<CryptoManager::Operation>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Key::BlockModes modes)
-{
-    argument.beginStructure();
-    argument << static_cast<int>(modes);
-    argument.endStructure();
-    return argument;
-}
-
-const QDBusArgument &operator>>(const QDBusArgument &argument, Key::BlockModes &modes)
-{
-    int iv = 0;
-    argument.beginStructure();
-    argument >> iv;
-    argument.endStructure();
-    modes = static_cast<Key::BlockModes>(iv);
-    return argument;
-}
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Key::EncryptionPaddings paddings)
-{
-    argument.beginStructure();
-    argument << static_cast<int>(paddings);
-    argument.endStructure();
-    return argument;
-}
-
-const QDBusArgument &operator>>(const QDBusArgument &argument, Key::EncryptionPaddings &paddings)
-{
-    int iv = 0;
-    argument.beginStructure();
-    argument >> iv;
-    argument.endStructure();
-    paddings = static_cast<Key::EncryptionPaddings>(iv);
-    return argument;
-}
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Key::SignaturePaddings paddings)
-{
-    argument.beginStructure();
-    argument << static_cast<int>(paddings);
-    argument.endStructure();
-    return argument;
-}
-
-const QDBusArgument &operator>>(const QDBusArgument &argument, Key::SignaturePaddings &paddings)
-{
-    int iv = 0;
-    argument.beginStructure();
-    argument >> iv;
-    argument.endStructure();
-    paddings = static_cast<Key::SignaturePaddings>(iv);
-    return argument;
-}
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Key::Digests digests)
-{
-    argument.beginStructure();
-    argument << static_cast<int>(digests);
-    argument.endStructure();
-    return argument;
-}
-
-const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Digests &digests)
-{
-    int iv = 0;
-    argument.beginStructure();
-    argument >> iv;
-    argument.endStructure();
-    digests = static_cast<Key::Digests>(iv);
-    return argument;
-}
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Key::Operations operations)
+QDBusArgument &operator<<(QDBusArgument &argument, const CryptoManager::Operations operations)
 {
     argument.beginStructure();
     argument << static_cast<int>(operations);
@@ -737,17 +629,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Key::Operations operati
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Operations &operations)
+const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoManager::Operations &operations)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    operations = static_cast<Key::Operations>(iv);
+    operations = static_cast<CryptoManager::Operations>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const StoredKeyRequest::KeyComponent component)
+QDBusArgument &operator<<(QDBusArgument &argument, const Key::Component component)
 {
     argument.beginStructure();
     argument << static_cast<int>(component);
@@ -755,17 +647,17 @@ QDBusArgument &operator<<(QDBusArgument &argument, const StoredKeyRequest::KeyCo
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, StoredKeyRequest::KeyComponent &component)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Component &component)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    component = static_cast<StoredKeyRequest::KeyComponent>(iv);
+    component = static_cast<Key::Component>(iv);
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const StoredKeyRequest::KeyComponents components)
+QDBusArgument &operator<<(QDBusArgument &argument, const Key::Components components)
 {
     argument.beginStructure();
     argument << static_cast<int>(components);
@@ -773,13 +665,13 @@ QDBusArgument &operator<<(QDBusArgument &argument, const StoredKeyRequest::KeyCo
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, StoredKeyRequest::KeyComponents &components)
+const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Components &components)
 {
     int iv = 0;
     argument.beginStructure();
     argument >> iv;
     argument.endStructure();
-    components = static_cast<StoredKeyRequest::KeyComponents>(iv);
+    components = static_cast<Key::Components>(iv);
     return argument;
 }
 
@@ -842,6 +734,224 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, CipherRequest::Ci
     argument >> iv;
     argument.endStructure();
     mode = static_cast<CipherRequest::CipherMode>(iv);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::InteractionParameters::InputType &type)
+{
+    int itype = static_cast<int>(type);
+    argument.beginStructure();
+    argument << itype;
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::InteractionParameters::InputType &type)
+{
+    int itype = 0;
+    argument.beginStructure();
+    argument >> itype;
+    argument.endStructure();
+    type = static_cast<InteractionParameters::InputType>(itype);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::InteractionParameters::EchoMode &mode)
+{
+    int imode = static_cast<int>(mode);
+    argument.beginStructure();
+    argument << imode;
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::InteractionParameters::EchoMode &mode)
+{
+    int imode = 0;
+    argument.beginStructure();
+    argument >> imode;
+    argument.endStructure();
+    mode = static_cast<InteractionParameters::EchoMode>(imode);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::InteractionParameters::Operation &op)
+{
+    int iop = static_cast<int>(op);
+    argument.beginStructure();
+    argument << iop;
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::InteractionParameters::Operation &op)
+{
+    int iop = 0;
+    argument.beginStructure();
+    argument >> iop;
+    argument.endStructure();
+    op = static_cast<InteractionParameters::Operation>(iop);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const InteractionParameters &request)
+{
+    argument.beginStructure();
+    argument << request.keyName()
+             << request.collectionName()
+             << request.applicationId()
+             << request.operation()
+             << request.authenticationPluginName()
+             << request.promptText()
+             << request.promptTrId()
+             << request.inputType()
+             << request.echoMode();
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionParameters &request)
+{
+    QString keyName;
+    QString collectionName;
+    QString applicationId;
+    InteractionParameters::Operation operation = InteractionParameters::UnknownOperation;
+    QString authenticationPluginName;
+    QString promptText;
+    QString promptTrId;
+    InteractionParameters::InputType inputType = InteractionParameters::UnknownInput;
+    InteractionParameters::EchoMode echoMode = InteractionParameters::PasswordEchoOnEdit;
+
+    argument.beginStructure();
+    argument >> keyName
+             >> collectionName
+             >> applicationId
+             >> operation
+             >> authenticationPluginName
+             >> promptText
+             >> promptTrId
+             >> inputType
+             >> echoMode;
+    argument.endStructure();
+
+    request.setKeyName(keyName);
+    request.setCollectionName(collectionName);
+    request.setApplicationId(applicationId);
+    request.setOperation(operation);
+    request.setAuthenticationPluginName(authenticationPluginName);
+    request.setPromptText(promptText);
+    request.setPromptTrId(promptTrId);
+    request.setInputType(inputType);
+    request.setEchoMode(echoMode);
+
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const KeyDerivationParameters &skdfParams)
+{
+    argument.beginStructure();
+    argument << skdfParams.inputData()
+             << skdfParams.salt()
+             << skdfParams.keyDerivationFunction()
+             << skdfParams.keyDerivationMac()
+             << skdfParams.keyDerivationAlgorithm()
+             << skdfParams.keyDerivationDigestFunction()
+             << skdfParams.memorySize()
+             << skdfParams.iterations()
+             << skdfParams.parallelism()
+             << skdfParams.outputKeySize()
+             << skdfParams.customParameters();
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, KeyDerivationParameters &skdfParams)
+{
+    QByteArray inputData;
+    QByteArray salt;
+    CryptoManager::KeyDerivationFunction keyDerivationFunction = CryptoManager::KdfUnknown;
+    CryptoManager::MessageAuthenticationCode keyDerivationMac = CryptoManager::MacUnknown;
+    CryptoManager::Algorithm keyDerivationAlgorithm = CryptoManager::AlgorithmUnknown;
+    CryptoManager::DigestFunction keyDerivationDigestFunction = CryptoManager::DigestUnknown;
+    qint64 memorySize = 0;
+    int iterations = 0;
+    int parallelism = 0;
+    int outputKeySize = 0;
+    QVariantMap customParameters;
+
+    argument.beginStructure();
+    argument >> inputData
+             >> salt
+             >> keyDerivationFunction
+             >> keyDerivationMac
+             >> keyDerivationAlgorithm
+             >> keyDerivationDigestFunction
+             >> memorySize
+             >> iterations
+             >> parallelism
+             >> outputKeySize
+             >> customParameters;
+    argument.endStructure();
+
+    skdfParams.setInputData(inputData);
+    skdfParams.setSalt(salt);
+    skdfParams.setKeyDerivationFunction(keyDerivationFunction);
+    skdfParams.setKeyDerivationMac(keyDerivationMac);
+    skdfParams.setKeyDerivationAlgorithm(keyDerivationAlgorithm);
+    skdfParams.setKeyDerivationDigestFunction(keyDerivationDigestFunction);
+    skdfParams.setMemorySize(memorySize);
+    skdfParams.setIterations(iterations);
+    skdfParams.setParallelism(parallelism);
+    skdfParams.setOutputKeySize(outputKeySize);
+    skdfParams.setCustomParameters(customParameters);
+
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const KeyPairGenerationParameters::KeyPairType type)
+{
+    argument.beginStructure();
+    argument << static_cast<int>(type);
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, KeyPairGenerationParameters::KeyPairType &type)
+{
+    int iv = 0;
+    argument.beginStructure();
+    argument >> iv;
+    argument.endStructure();
+    type = static_cast<KeyPairGenerationParameters::KeyPairType>(iv);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const KeyPairGenerationParameters &kpgParams)
+{
+    argument.beginStructure();
+    argument << static_cast<int>(kpgParams.keyPairType())
+             << KeyPairGenerationParametersPrivate::subclassParameters(kpgParams)
+             << kpgParams.customParameters();
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, KeyPairGenerationParameters &kpgParams)
+{
+    int ikeyPairType;
+    QVariantMap subclassParameters;
+    QVariantMap customParameters;
+
+    argument.beginStructure();
+    argument >> ikeyPairType
+             >> subclassParameters
+             >> customParameters;
+    argument.endStructure();
+
+    kpgParams.setKeyPairType(static_cast<KeyPairGenerationParameters::KeyPairType>(ikeyPairType));
+    KeyPairGenerationParametersPrivate::setSubclassParameters(kpgParams, subclassParameters);
+    kpgParams.setCustomParameters(customParameters);
+
     return argument;
 }
 

@@ -9,6 +9,7 @@
 
 #include "SecretsImpl/secrets_p.h"
 #include "Secrets/result.h"
+#include "Secrets/interactionparameters.h"
 
 #include "util_p.h"
 #include "logging_p.h"
@@ -31,28 +32,30 @@ namespace {
         return retn;
     }
 
-    void nullifyKeyFields(Sailfish::Crypto::Key *key, Sailfish::Crypto::StoredKeyRequest::KeyComponents keep) {
+    void nullifyKeyFields(Sailfish::Crypto::Key *key, Sailfish::Crypto::Key::Components keep) {
         // This method is called for keys stored in generic secrets storage plugins.
-        // Null-out fields if the client hasn't specified that they be kept.
+        // Null-out fields if the client hasn't specified that they be kept,
+        // or which the key component constraints don't allow to be read back.
         // Note that by default we treat CustomParameters as PublicKeyData.
-        if (!(keep & Sailfish::Crypto::StoredKeyRequest::MetaData)) {
+        Sailfish::Crypto::Key::Components kcc = key->componentConstraints();
+        if (!(keep & Sailfish::Crypto::Key::MetaData)
+                || !(kcc & Sailfish::Crypto::Key::MetaData)) {
             key->setIdentifier(Sailfish::Crypto::Key::Identifier());
             key->setOrigin(Sailfish::Crypto::Key::OriginUnknown);
-            key->setAlgorithm(Sailfish::Crypto::Key::AlgorithmUnknown);
-            key->setBlockModes(Sailfish::Crypto::Key::BlockModeUnknown);
-            key->setEncryptionPaddings(Sailfish::Crypto::Key::EncryptionPaddingUnknown);
-            key->setSignaturePaddings(Sailfish::Crypto::Key::SignaturePaddingUnknown);
-            key->setDigests(Sailfish::Crypto::Key::DigestUnknown);
-            key->setOperations(Sailfish::Crypto::Key::OperationUnknown);
+            key->setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmUnknown);
+            key->setOperations(Sailfish::Crypto::CryptoManager::OperationUnknown);
+            key->setComponentConstraints(Sailfish::Crypto::Key::NoData);
             key->setFilterData(Sailfish::Crypto::Key::FilterData());
         }
 
-        if (!(keep & Sailfish::Crypto::StoredKeyRequest::PublicKeyData)) {
+        if (!(keep & Sailfish::Crypto::Key::PublicKeyData)
+                || !(kcc & Sailfish::Crypto::Key::PublicKeyData)) {
             key->setCustomParameters(QVector<QByteArray>());
             key->setPublicKey(QByteArray());
         }
 
-        if (!(keep & Sailfish::Crypto::StoredKeyRequest::SecretKeyData)) {
+        if (!(keep & Sailfish::Crypto::Key::PrivateKeyData)
+                || !(kcc & Sailfish::Crypto::Key::PrivateKeyData)) {
             key->setPrivateKey(QByteArray());
             key->setSecretKey(QByteArray());
         }
@@ -77,6 +80,8 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(
             this, &Daemon::ApiImpl::RequestProcessor::secretsDeleteStoredKeyCompleted);
     connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::deleteStoredKeyMetadataCompleted,
             this, &Daemon::ApiImpl::RequestProcessor::secretsDeleteStoredKeyMetadataCompleted);
+    connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::userInputCompleted,
+            this, &Daemon::ApiImpl::RequestProcessor::secretsUserInputCompleted);
 }
 
 bool
@@ -217,6 +222,8 @@ Daemon::ApiImpl::RequestProcessor::generateKey(
         pid_t callerPid,
         quint64 requestId,
         const Key &keyTemplate,
+        const KeyPairGenerationParameters &kpgParams,
+        const KeyDerivationParameters &skdfParams,
         const QString &cryptosystemProviderName,
         Key *key)
 {
@@ -229,7 +236,7 @@ Daemon::ApiImpl::RequestProcessor::generateKey(
                       QLatin1String("No such cryptographic service provider plugin exists"));
     }
 
-    return m_cryptoPlugins[cryptosystemProviderName]->generateKey(keyTemplate, key);
+    return m_cryptoPlugins[cryptosystemProviderName]->generateKey(keyTemplate, kpgParams, skdfParams, key);
 }
 
 Result
@@ -237,6 +244,9 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey(
         pid_t callerPid,
         quint64 requestId,
         const Key &keyTemplate,
+        const KeyPairGenerationParameters &kpgParams,
+        const KeyDerivationParameters &skdfParams,
+        const InteractionParameters &uiParams,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName,
         Key *key)
@@ -264,6 +274,61 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey(
                       QLatin1String("No such cryptographic service provider plugin exists"));
     }
 
+    // check to see if we need a user interaction flow to get a passphrase/PIN.
+    if (!skdfParams.isValid() || !uiParams.isValid()) {
+        // we don't need to perform a UI request to get the input data for the KDF.
+        return generateStoredKey2(
+                    callerPid,
+                    requestId,
+                    keyTemplate,
+                    kpgParams,
+                    skdfParams,
+                    cryptosystemProviderName,
+                    storageProviderName);
+    }
+
+    // yes, we need to perform a user interaction flow to get the input key data.
+    Sailfish::Secrets::InteractionParameters ikdRequest;
+    ikdRequest.setSecretName(keyTemplate.identifier().name());
+    ikdRequest.setCollectionName(keyTemplate.identifier().collectionName());
+    ikdRequest.setOperation(Sailfish::Secrets::InteractionParameters::DeriveKey);
+    ikdRequest.setAuthenticationPluginName(uiParams.authenticationPluginName());
+    ikdRequest.setPromptText(uiParams.promptText());
+    ikdRequest.setInputType(static_cast<Sailfish::Secrets::InteractionParameters::InputType>(uiParams.inputType()));
+    ikdRequest.setEchoMode(static_cast<Sailfish::Secrets::InteractionParameters::EchoMode>(uiParams.echoMode()));
+    retn = transformSecretsResult(m_secrets->userInput(
+                                        callerPid,
+                                        requestId,
+                                        ikdRequest));
+    if (retn.code() == Result::Failed) {
+        return retn;
+    }
+
+    // asynchronous operation, will call back to generateStoredKey_withInputData().
+    m_pendingRequests.insert(requestId,
+                             Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                 callerPid,
+                                 requestId,
+                                 Daemon::ApiImpl::GenerateStoredKeyRequest,
+                                 QVariantList() << QVariant::fromValue<Key>(keyTemplate)
+                                                << QVariant::fromValue<KeyPairGenerationParameters>(kpgParams)
+                                                << QVariant::fromValue<KeyDerivationParameters>(skdfParams)
+                                                << QVariant::fromValue<QString>(cryptosystemProviderName)
+                                                << QVariant::fromValue<QString>(storageProviderName)));
+    return Result(Result::Pending);
+}
+
+Result
+Daemon::ApiImpl::RequestProcessor::generateStoredKey2(
+        pid_t callerPid,
+        quint64 requestId,
+        const Key &keyTemplate,
+        const KeyPairGenerationParameters &kpgParams,
+        const KeyDerivationParameters &skdfParams,
+        const QString &cryptosystemProviderName,
+        const QString &storageProviderName)
+{
+    Result retn(Result::Succeeded);
     if (storageProviderName == cryptosystemProviderName) {
         if (!m_cryptoPlugins[cryptosystemProviderName]->canStoreKeys()) {
             return Result(Result::StorageError,
@@ -283,13 +348,16 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey(
                                      requestId,
                                      Daemon::ApiImpl::GenerateStoredKeyRequest,
                                      QVariantList() << QVariant::fromValue<Key>(keyTemplate)
+                                                    << QVariant::fromValue<KeyPairGenerationParameters>(kpgParams)
+                                                    << QVariant::fromValue<KeyDerivationParameters>(skdfParams)
                                                     << QVariant::fromValue<QString>(cryptosystemProviderName)
                                                     << QVariant::fromValue<QString>(storageProviderName)));
         return Result(Result::Pending);
     } else {
         // generate the key
         Key fullKey(keyTemplate);
-        Result keyResult = m_cryptoPlugins[cryptosystemProviderName]->generateKey(keyTemplate, &fullKey);
+        Result keyResult = m_cryptoPlugins[cryptosystemProviderName]->generateKey(
+                    keyTemplate, kpgParams, skdfParams, &fullKey);
         if (keyResult.code() == Result::Failed) {
             return keyResult;
         }
@@ -315,6 +383,42 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey(
                                                     << QVariant::fromValue<QString>(cryptosystemProviderName)
                                                     << QVariant::fromValue<QString>(storageProviderName)));
         return Result(Result::Pending);
+    }
+}
+
+void
+Daemon::ApiImpl::RequestProcessor::generateStoredKey_withInputData(
+        pid_t callerPid,
+        quint64 requestId,
+        const Result &result,
+        const Key &keyTemplate,
+        const KeyPairGenerationParameters &kpgParams,
+        const KeyDerivationParameters &skdfParams,
+        const QString &cryptosystemProviderName,
+        const QString &storageProviderName)
+{
+    // This method is invoked after the user input has been retrieved
+    // from the user, but before the key has been generated or stored.
+    // If the user input was retrieved successfully, continue with
+    // key generation and storage.
+    Result retn(result);
+    if (result.code() == Result::Succeeded) {
+        retn = generateStoredKey2(
+                    callerPid,
+                    requestId,
+                    keyTemplate,
+                    kpgParams,
+                    skdfParams,
+                    cryptosystemProviderName,
+                    storageProviderName);
+    }
+
+    // finish the asynchronous request if it failed.
+    if (retn.code() == Result::Failed) {
+        QList<QVariant> outParams;
+        outParams << QVariant::fromValue<Result>(retn);
+        outParams << QVariant::fromValue<Key>(keyTemplate);
+        m_requestQueue->requestFinished(requestId, outParams);
     }
 }
 
@@ -369,6 +473,8 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_inCryptoPlugin(
         quint64 requestId,
         const Result &result,
         const Key &keyTemplate,
+        const KeyPairGenerationParameters &kpgParams,
+        const KeyDerivationParameters &skdfParams,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName)
 {
@@ -413,7 +519,8 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_inCryptoPlugin(
                                           << cleanupResult.storageErrorCode() << cleanupResult.errorMessage();
         m_secrets->removeKeyEntry(callerPid, requestId, keyTemplate.identifier());
     } else {
-        retn = m_cryptoPlugins[cryptosystemProviderName]->generateAndStoreKey(keyTemplate, &fullKey);
+        retn = m_cryptoPlugins[cryptosystemProviderName]->generateAndStoreKey(
+                    keyTemplate, kpgParams, skdfParams, &fullKey);
         if (retn.code() == Result::Failed) {
             // Attempt to remove the key metadata from secrets storage, to cleanup.
             // Note: the keyEntry should be cascade deleted automatically.
@@ -484,7 +591,7 @@ Daemon::ApiImpl::RequestProcessor::storedKey(
         pid_t callerPid,
         quint64 requestId,
         const Key::Identifier &identifier,
-        StoredKeyRequest::KeyComponents keyComponents,
+        Key::Components keyComponents,
         Key *key)
 {
     // TODO: access control
@@ -525,7 +632,7 @@ Daemon::ApiImpl::RequestProcessor::storedKey(
                                      requestId,
                                      Daemon::ApiImpl::StoredKeyRequest,
                                      QVariantList() << QVariant::fromValue<Key::Identifier>(identifier)
-                                                    << QVariant::fromValue<StoredKeyRequest::KeyComponents>(keyComponents)));
+                                                    << QVariant::fromValue<Key::Components>(keyComponents)));
         return retn;
     }
 
@@ -538,7 +645,7 @@ Daemon::ApiImpl::RequestProcessor::storedKey(
 void
 Daemon::ApiImpl::RequestProcessor::storedKey2(
         quint64 requestId,
-        StoredKeyRequest::KeyComponents keyComponents,
+        Key::Components keyComponents,
         const Result &result,
         const QByteArray &serialisedKey,
         const QMap<QString, QString> &filterData)
@@ -620,8 +727,8 @@ Daemon::ApiImpl::RequestProcessor::sign(
         quint64 requestId,
         const QByteArray &data,
         const Key &key,
-        Key::SignaturePadding padding,
-        Key::Digest digest,
+        CryptoManager::SignaturePadding padding,
+        CryptoManager::DigestFunction digest,
         const QString &cryptosystemProviderName,
         QByteArray *signature)
 {
@@ -633,13 +740,13 @@ Daemon::ApiImpl::RequestProcessor::sign(
                       QLatin1String("No such cryptographic service provider plugin exists"));
     }
 
-    if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & Key::Sign)) {
+    if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & CryptoManager::OperationSign)) {
         return Result(Result::UnsupportedOperation,
                       QLatin1String("The specified cryptographic service provider does not support sign operations"));
-    } else if (!(cryptoPlugin->supportedSignaturePaddings().value(key.algorithm()) & padding)) {
+    } else if (!(cryptoPlugin->supportedSignaturePaddings().value(key.algorithm()).contains(padding))) {
         return Result(Result::UnsupportedSignaturePadding,
                       QLatin1String("The specified cryptographic service provider does not support that signature padding"));
-    } else if (!(cryptoPlugin->supportedDigests().value(key.algorithm()) & digest)) {
+    } else if (!(cryptoPlugin->supportedDigests().value(key.algorithm()).contains(digest))) {
         return Result(Result::UnsupportedDigest,
                       QLatin1String("The specified cryptographic service provider does not support that digest"));
     }
@@ -686,8 +793,8 @@ Daemon::ApiImpl::RequestProcessor::sign(
                                              requestId,
                                              Daemon::ApiImpl::SignRequest,
                                              QVariantList() << QVariant::fromValue<QByteArray>(data)
-                                                            << QVariant::fromValue<Key::SignaturePadding>(padding)
-                                                            << QVariant::fromValue<Key::Digest>(digest)
+                                                            << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
+                                                            << QVariant::fromValue<CryptoManager::DigestFunction>(digest)
                                                             << QVariant::fromValue<QString>(cryptosystemProviderName)));
                 return retn;
             }
@@ -707,8 +814,8 @@ Daemon::ApiImpl::RequestProcessor::sign2(
         const Result &result,
         const QByteArray &serialisedKey,
         const QByteArray &data,
-        Key::SignaturePadding padding,
-        Key::Digest digest,
+        CryptoManager::SignaturePadding padding,
+        CryptoManager::DigestFunction digest,
         const QString &cryptoPluginName)
 {
     // finish the request.
@@ -731,8 +838,8 @@ Daemon::ApiImpl::RequestProcessor::verify(
         quint64 requestId,
         const QByteArray &data,
         const Key &key,
-        Key::SignaturePadding padding,
-        Key::Digest digest,
+        CryptoManager::SignaturePadding padding,
+        CryptoManager::DigestFunction digest,
         const QString &cryptosystemProviderName,
         bool *verified)
 {
@@ -744,13 +851,13 @@ Daemon::ApiImpl::RequestProcessor::verify(
                       QLatin1String("No such cryptographic service provider plugin exists"));
     }
 
-    if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & Key::Verify)) {
+    if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & CryptoManager::OperationVerify)) {
         return Result(Result::UnsupportedOperation,
                       QLatin1String("The specified cryptographic service provider does not support verify operations"));
-    } else if (!(cryptoPlugin->supportedSignaturePaddings().value(key.algorithm()) & padding)) {
+    } else if (!(cryptoPlugin->supportedSignaturePaddings().value(key.algorithm()).contains(padding))) {
         return Result(Result::UnsupportedSignaturePadding,
                       QLatin1String("The specified cryptographic service provider does not support that signature padding"));
-    } else if (!(cryptoPlugin->supportedDigests().value(key.algorithm()) & digest)) {
+    } else if (!(cryptoPlugin->supportedDigests().value(key.algorithm()).contains(digest))) {
         return Result(Result::UnsupportedDigest,
                       QLatin1String("The specified cryptographic service provider does not support that digest"));
     }
@@ -797,8 +904,8 @@ Daemon::ApiImpl::RequestProcessor::verify(
                                              requestId,
                                              Daemon::ApiImpl::VerifyRequest,
                                              QVariantList() << QVariant::fromValue<QByteArray>(data)
-                                                            << QVariant::fromValue<Key::SignaturePadding>(padding)
-                                                            << QVariant::fromValue<Key::Digest>(digest)
+                                                            << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
+                                                            << QVariant::fromValue<CryptoManager::DigestFunction>(digest)
                                                             << QVariant::fromValue<QString>(cryptosystemProviderName)));
                 return retn;
             }
@@ -818,8 +925,8 @@ Daemon::ApiImpl::RequestProcessor::verify2(
         const Result &result,
         const QByteArray &serialisedKey,
         const QByteArray &data,
-        Key::SignaturePadding padding,
-        Key::Digest digest,
+        CryptoManager::SignaturePadding padding,
+        CryptoManager::DigestFunction digest,
         const QString &cryptoPluginName)
 {
     // finish the request.
@@ -843,8 +950,8 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
         const QByteArray &data,
         const QByteArray &iv,
         const Key &key,
-        Key::BlockMode blockMode,
-        Key::EncryptionPadding padding,
+        CryptoManager::BlockMode blockMode,
+        CryptoManager::EncryptionPadding padding,
         const QString &cryptosystemProviderName,
         QByteArray *encrypted)
 {
@@ -856,13 +963,13 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
                       QLatin1String("No such cryptographic service provider plugin exists"));
     }
 
-    if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & Key::Encrypt)) {
+    if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & CryptoManager::OperationEncrypt)) {
         return Result(Result::UnsupportedOperation,
                       QLatin1String("The specified cryptographic service provider does not support encrypt operations"));
-    } else if (!(cryptoPlugin->supportedBlockModes().value(key.algorithm()) & blockMode)) {
+    } else if (!(cryptoPlugin->supportedBlockModes().value(key.algorithm()).contains(blockMode))) {
         return Result(Result::UnsupportedBlockMode,
                       QLatin1String("The specified cryptographic service provider does not support that block mode"));
-    } else if (!(cryptoPlugin->supportedSignaturePaddings().value(key.algorithm()) & padding)) {
+    } else if (!(cryptoPlugin->supportedEncryptionPaddings().value(key.algorithm()).contains(padding))) {
         return Result(Result::UnsupportedEncryptionPadding,
                       QLatin1String("The specified cryptographic service provider does not support that encryption padding"));
     }
@@ -910,8 +1017,8 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
                                              Daemon::ApiImpl::EncryptRequest,
                                              QVariantList() << QVariant::fromValue<QByteArray>(data)
                                                             << QVariant::fromValue<QByteArray>(iv)
-                                                            << QVariant::fromValue<Key::BlockMode>(blockMode)
-                                                            << QVariant::fromValue<Key::EncryptionPadding>(padding)
+                                                            << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
+                                                            << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding)
                                                             << QVariant::fromValue<QString>(cryptosystemProviderName)));
                 return retn;
             }
@@ -932,8 +1039,8 @@ Daemon::ApiImpl::RequestProcessor::encrypt2(
         const QByteArray &serialisedKey,
         const QByteArray &data,
         const QByteArray &iv,
-        Key::BlockMode blockMode,
-        Key::EncryptionPadding padding,
+        CryptoManager::BlockMode blockMode,
+        CryptoManager::EncryptionPadding padding,
         const QString &cryptoPluginName)
 {
     // finish the request.
@@ -963,8 +1070,8 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
         const QByteArray &data,
         const QByteArray &iv,
         const Key &key,
-        Key::BlockMode blockMode,
-        Key::EncryptionPadding padding,
+        CryptoManager::BlockMode blockMode,
+        CryptoManager::EncryptionPadding padding,
         const QString &cryptosystemProviderName,
         QByteArray *decrypted)
 {
@@ -977,13 +1084,13 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
     }
 
     // TODO: FIXME: don't check these here, if the key is a keyreference it won't contain algorithm metadata!
-    if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & Key::Decrypt)) {
+    if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & CryptoManager::OperationDecrypt)) {
         return Result(Result::UnsupportedOperation,
                       QLatin1String("The specified cryptographic service provider does not support decrypt operations"));
-    } else if (!(cryptoPlugin->supportedBlockModes().value(key.algorithm()) & blockMode)) {
+    } else if (!(cryptoPlugin->supportedBlockModes().value(key.algorithm()).contains(blockMode))) {
         return Result(Result::UnsupportedBlockMode,
                       QLatin1String("The specified cryptographic service provider does not support that block mode"));
-    } else if (!(cryptoPlugin->supportedSignaturePaddings().value(key.algorithm()) & padding)) {
+    } else if (!(cryptoPlugin->supportedEncryptionPaddings().value(key.algorithm()).contains(padding))) {
         return Result(Result::UnsupportedEncryptionPadding,
                       QLatin1String("The specified cryptographic service provider does not support that encryption padding"));
     }
@@ -1031,8 +1138,8 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
                                              Daemon::ApiImpl::DecryptRequest,
                                              QVariantList() << QVariant::fromValue<QByteArray>(data)
                                                             << QVariant::fromValue<QByteArray>(iv)
-                                                            << QVariant::fromValue<Key::BlockMode>(blockMode)
-                                                            << QVariant::fromValue<Key::EncryptionPadding>(padding)
+                                                            << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
+                                                            << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding)
                                                             << QVariant::fromValue<QString>(cryptosystemProviderName)));
                 return retn;
             }
@@ -1053,8 +1160,8 @@ Daemon::ApiImpl::RequestProcessor::decrypt2(
         const QByteArray &serialisedKey,
         const QByteArray &data,
         const QByteArray &iv,
-        Key::BlockMode blockMode,
-        Key::EncryptionPadding padding,
+        CryptoManager::BlockMode blockMode,
+        CryptoManager::EncryptionPadding padding,
         const QString &cryptoPluginName)
 {
     // finish the request.
@@ -1078,11 +1185,11 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession(
         quint64 requestId,
         const QByteArray &iv,
         const Key &key,
-        Key::Operation operation,
-        Key::BlockMode blockMode,
-        Key::EncryptionPadding encryptionPadding,
-        Key::SignaturePadding signaturePadding,
-        Key::Digest digest,
+        CryptoManager::Operation operation,
+        CryptoManager::BlockMode blockMode,
+        CryptoManager::EncryptionPadding encryptionPadding,
+        CryptoManager::SignaturePadding signaturePadding,
+        CryptoManager::DigestFunction digest,
         const QString &cryptosystemProviderName,
         quint32 *cipherSessionToken,
         QByteArray *generatedIV)
@@ -1138,11 +1245,11 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession(
                                              Daemon::ApiImpl::InitialiseCipherSessionRequest,
                                              QVariantList() << QVariant::fromValue<pid_t>(callerPid)
                                                             << QVariant::fromValue<QByteArray>(iv)
-                                                            << QVariant::fromValue<Key::Operation>(operation)
-                                                            << QVariant::fromValue<Key::BlockMode>(blockMode)
-                                                            << QVariant::fromValue<Key::EncryptionPadding>(encryptionPadding)
-                                                            << QVariant::fromValue<Key::SignaturePadding>(signaturePadding)
-                                                            << QVariant::fromValue<Key::Digest>(digest)
+                                                            << QVariant::fromValue<CryptoManager::Operation>(operation)
+                                                            << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
+                                                            << QVariant::fromValue<CryptoManager::EncryptionPadding>(encryptionPadding)
+                                                            << QVariant::fromValue<CryptoManager::SignaturePadding>(signaturePadding)
+                                                            << QVariant::fromValue<CryptoManager::DigestFunction>(digest)
                                                             << QVariant::fromValue<QString>(cryptosystemProviderName)));
                 return retn;
             }
@@ -1168,11 +1275,11 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession2(
         const QByteArray &serialisedKey,
         pid_t callerPid,
         const QByteArray &iv,
-        Key::Operation operation,
-        Key::BlockMode blockMode,
-        Key::EncryptionPadding encryptionPadding,
-        Key::SignaturePadding signaturePadding,
-        Key::Digest digest,
+        CryptoManager::Operation operation,
+        CryptoManager::BlockMode blockMode,
+        CryptoManager::EncryptionPadding encryptionPadding,
+        CryptoManager::SignaturePadding signaturePadding,
+        CryptoManager::DigestFunction digest,
         const QString &cryptoPluginName)
 {
     // finish the request.
@@ -1285,22 +1392,22 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
         switch (pr.requestType) {
             case StoredKeyRequest: {
                 (void)pr.parameters.takeFirst(); // the identifier, we don't need it.
-                StoredKeyRequest::KeyComponents keyComponents = pr.parameters.takeFirst().value<StoredKeyRequest::KeyComponents>();
+                Key::Components keyComponents = pr.parameters.takeFirst().value<Key::Components>();
                 storedKey2(requestId, keyComponents, returnResult, serialisedKey, filterData);
                 break;
             }
             case SignRequest: {
                 QByteArray data = pr.parameters.takeFirst().value<QByteArray>();
-                Key::SignaturePadding padding = pr.parameters.takeFirst().value<Key::SignaturePadding>();
-                Key::Digest digest = pr.parameters.takeFirst().value<Key::Digest>();
+                CryptoManager::SignaturePadding padding = pr.parameters.takeFirst().value<CryptoManager::SignaturePadding>();
+                CryptoManager::DigestFunction digest = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
                 sign2(requestId, returnResult, serialisedKey, data, padding, digest, cryptoPluginName);
                 break;
             }
             case VerifyRequest: {
                 QByteArray data = pr.parameters.takeFirst().value<QByteArray>();
-                Key::SignaturePadding padding = pr.parameters.takeFirst().value<Key::SignaturePadding>();
-                Key::Digest digest = pr.parameters.takeFirst().value<Key::Digest>();
+                CryptoManager::SignaturePadding padding = pr.parameters.takeFirst().value<CryptoManager::SignaturePadding>();
+                CryptoManager::DigestFunction digest = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
                 verify2(requestId, returnResult, serialisedKey, data, padding, digest, cryptoPluginName);
                 break;
@@ -1308,8 +1415,8 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
             case EncryptRequest: {
                 QByteArray data = pr.parameters.takeFirst().value<QByteArray>();
                 QByteArray iv = pr.parameters.takeFirst().value<QByteArray>();
-                Key::BlockMode blockMode = pr.parameters.takeFirst().value<Key::BlockMode>();
-                Key::EncryptionPadding padding = pr.parameters.takeFirst().value<Key::EncryptionPadding>();
+                CryptoManager::BlockMode blockMode = pr.parameters.takeFirst().value<CryptoManager::BlockMode>();
+                CryptoManager::EncryptionPadding padding = pr.parameters.takeFirst().value<CryptoManager::EncryptionPadding>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
                 encrypt2(requestId, returnResult, serialisedKey, data, iv, blockMode, padding, cryptoPluginName);
                 break;
@@ -1317,8 +1424,8 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
             case DecryptRequest: {
                 QByteArray data = pr.parameters.takeFirst().value<QByteArray>();
                 QByteArray iv = pr.parameters.takeFirst().value<QByteArray>();
-                Key::BlockMode blockMode = pr.parameters.takeFirst().value<Key::BlockMode>();
-                Key::EncryptionPadding padding = pr.parameters.takeFirst().value<Key::EncryptionPadding>();
+                CryptoManager::BlockMode blockMode = pr.parameters.takeFirst().value<CryptoManager::BlockMode>();
+                CryptoManager::EncryptionPadding padding = pr.parameters.takeFirst().value<CryptoManager::EncryptionPadding>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
                 decrypt2(requestId, returnResult, serialisedKey, data, iv, blockMode, padding, cryptoPluginName);
                 break;
@@ -1326,11 +1433,11 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
             case InitialiseCipherSessionRequest: {
                 pid_t callerPid = pr.parameters.takeFirst().value<pid_t>();
                 QByteArray iv = pr.parameters.takeFirst().value<QByteArray>();
-                Key::Operation operation = pr.parameters.takeFirst().value<Key::Operation>();
-                Key::BlockMode blockMode = pr.parameters.takeFirst().value<Key::BlockMode>();
-                Key::EncryptionPadding encryptionPadding = pr.parameters.takeFirst().value<Key::EncryptionPadding>();
-                Key::SignaturePadding signaturePadding = pr.parameters.takeFirst().value<Key::SignaturePadding>();
-                Key::Digest digest = pr.parameters.takeFirst().value<Key::Digest>();
+                CryptoManager::Operation operation = pr.parameters.takeFirst().value<CryptoManager::Operation>();
+                CryptoManager::BlockMode blockMode = pr.parameters.takeFirst().value<CryptoManager::BlockMode>();
+                CryptoManager::EncryptionPadding encryptionPadding = pr.parameters.takeFirst().value<CryptoManager::EncryptionPadding>();
+                CryptoManager::SignaturePadding signaturePadding = pr.parameters.takeFirst().value<CryptoManager::SignaturePadding>();
+                CryptoManager::DigestFunction digest = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
                 initialiseCipherSession2(requestId, returnResult, serialisedKey,
                                          callerPid, iv, operation, blockMode, encryptionPadding,
@@ -1392,9 +1499,11 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoreKeyMetadataCompleted(
         switch (pr.requestType) {
             case GenerateStoredKeyRequest: {
                 Key keyTemplate = pr.parameters.takeFirst().value<Key>();
+                KeyPairGenerationParameters kpgParams = pr.parameters.takeFirst().value<KeyPairGenerationParameters>();
+                KeyDerivationParameters skdfParams = pr.parameters.takeFirst().value<KeyDerivationParameters>();
                 QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
                 QString storagePluginName = pr.parameters.takeFirst().value<QString>();
-                generateStoredKey_inCryptoPlugin(pr.callerPid, requestId, returnResult, keyTemplate, cryptosystemProviderName, storagePluginName);
+                generateStoredKey_inCryptoPlugin(pr.callerPid, requestId, returnResult, keyTemplate, kpgParams, skdfParams, cryptosystemProviderName, storagePluginName);
                 break;
             }
             default: {
@@ -1469,5 +1578,39 @@ void Daemon::ApiImpl::RequestProcessor::secretsDeleteStoredKeyMetadataCompleted(
         }
     } else {
         qCWarning(lcSailfishCryptoDaemon) << "Secrets completed deleteStoredKeyMetadata() operation for unknown request:" << requestId;
+    }
+}
+
+// asynchronous operation (retrieve user input as KDF input data) has completed
+void Daemon::ApiImpl::RequestProcessor::secretsUserInputCompleted(
+        quint64 requestId,
+        const Sailfish::Secrets::Result &result,
+        const QByteArray &userInput)
+{
+    // look up the pending request in our list
+    if (m_pendingRequests.contains(requestId)) {
+        // transform the error code.
+        Result returnResult(transformSecretsResult(result));
+
+        // call the appropriate method to complete the request
+        Daemon::ApiImpl::RequestProcessor::PendingRequest pr = m_pendingRequests.take(requestId);
+        switch (pr.requestType) {
+            case GenerateStoredKeyRequest: {
+                Key keyTemplate = pr.parameters.takeFirst().value<Key>();
+                KeyPairGenerationParameters kpgParams = pr.parameters.takeFirst().value<KeyPairGenerationParameters>();
+                KeyDerivationParameters skdfParams = pr.parameters.takeFirst().value<KeyDerivationParameters>();
+                skdfParams.setInputData(userInput);
+                QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
+                QString storagePluginName = pr.parameters.takeFirst().value<QString>();
+                generateStoredKey_withInputData(pr.callerPid, requestId, returnResult, keyTemplate, kpgParams, skdfParams, cryptosystemProviderName, storagePluginName);
+                break;
+            }
+            default: {
+                qCWarning(lcSailfishCryptoDaemon) << "Secrets completed userInput() operation for request:" << requestId << "of invalid type:" << pr.requestType;
+                break;
+            }
+        }
+    } else {
+        qCWarning(lcSailfishCryptoDaemon) << "Secrets completed userInput() operation for unknown request:" << requestId;
     }
 }

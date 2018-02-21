@@ -15,35 +15,39 @@
 #include <QtCore/QByteArray>
 #include <QtCore/QVector>
 #include <QtCore/QMap>
+#include <QtCore/QSharedData>
 
 namespace Sailfish {
 
 namespace Crypto {
 
-class CryptoPluginInfoData
+class CryptoPluginInfoPrivate : public QSharedData
 {
 public:
-    CryptoPluginInfoData();
-    CryptoPluginInfoData(
+    CryptoPluginInfoPrivate();
+    CryptoPluginInfoPrivate(const CryptoPluginInfoPrivate &other);
+    ~CryptoPluginInfoPrivate();
+
+    CryptoPluginInfoPrivate(
             const QString &pluginName,
             bool canStoreKeys,
             Sailfish::Crypto::CryptoPlugin::EncryptionType encryptionType,
-            const QVector<Sailfish::Crypto::Key::Algorithm> &supportedAlgorithms,
-            const QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::BlockModes> &supportedBlockModes,
-            const QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::EncryptionPaddings> &supportedEncryptionPaddings,
-            const QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::SignaturePaddings> &supportedSignaturePaddings,
-            const QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Digests> &supportedDigests,
-            const QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Operations> &supportedOperations);
+            const QVector<Sailfish::Crypto::CryptoManager::Algorithm> &supportedAlgorithms,
+            const QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::BlockMode> > &supportedBlockModes,
+            const QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::EncryptionPadding> > &supportedEncryptionPaddings,
+            const QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::SignaturePadding> > &supportedSignaturePaddings,
+            const QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::DigestFunction> > &supportedDigests,
+            const QMap<Sailfish::Crypto::CryptoManager::Algorithm, Sailfish::Crypto::CryptoManager::Operations> &supportedOperations);
 
     QString m_pluginName;
     bool m_canStoreKeys;
     Sailfish::Crypto::CryptoPlugin::EncryptionType m_encryptionType;
-    QVector<Sailfish::Crypto::Key::Algorithm> m_supportedAlgorithms;
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::BlockModes> m_supportedBlockModes;
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::EncryptionPaddings> m_supportedEncryptionPaddings;
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::SignaturePaddings> m_supportedSignaturePaddings;
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Digests> m_supportedDigests;
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Operations> m_supportedOperations;
+    QVector<Sailfish::Crypto::CryptoManager::Algorithm> m_supportedAlgorithms;
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::BlockMode> > m_supportedBlockModes;
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::EncryptionPadding> > m_supportedEncryptionPaddings;
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::SignaturePadding> > m_supportedSignaturePaddings;
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::DigestFunction> > m_supportedDigests;
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, Sailfish::Crypto::CryptoManager::Operations> m_supportedOperations;
 };
 
 } // namespace Crypto

@@ -10,6 +10,7 @@
 
 #include "Secrets/secretsglobal.h"
 #include "Secrets/secret.h"
+#include "Secrets/interactionparameters.h"
 #include "Secrets/result.h"
 
 #include <QtCore/QObject>
@@ -17,6 +18,7 @@
 #include <QtCore/QMap>
 #include <QtCore/QByteArray>
 #include <QtCore/QVector>
+#include <QtCore/QSharedDataPointer>
 
 #define Sailfish_Secrets_StoragePlugin_IID "org.sailfishos.secrets.StoragePlugin/1.0"
 #define Sailfish_Secrets_EncryptionPlugin_IID "org.sailfishos.secrets.EncryptionPlugin/1.0"
@@ -66,6 +68,8 @@ public:
     EncryptionPluginInfo(const Sailfish::Secrets::EncryptionPlugin *plugin);
     ~EncryptionPluginInfo();
 
+    EncryptionPluginInfo& operator=(const EncryptionPluginInfo &other);
+
     QString name() const;
     void setName(const QString &name);
 
@@ -76,7 +80,8 @@ public:
     void setEncryptionAlgorithm(Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm algorithm);
 
 private:
-    EncryptionPluginInfoPrivate *d;
+    QSharedDataPointer<EncryptionPluginInfoPrivate> d_ptr;
+    friend class EncryptionPluginInfoPrivate;
 };
 
 class SAILFISH_SECRETS_API StoragePlugin : public QObject
@@ -129,6 +134,8 @@ public:
     StoragePluginInfo(const Sailfish::Secrets::StoragePlugin *plugin);
     ~StoragePluginInfo();
 
+    StoragePluginInfo& operator=(const StoragePluginInfo &other);
+
     QString name() const;
     void setName(const QString &name);
 
@@ -136,7 +143,8 @@ public:
     void setStorageType(Sailfish::Secrets::StoragePlugin::StorageType type);
 
 private:
-    StoragePluginInfoPrivate *d;
+    QSharedDataPointer<StoragePluginInfoPrivate> d_ptr;
+    friend class StoragePluginInfoPrivate;
 };
 
 class SAILFISH_SECRETS_API EncryptedStoragePlugin : public QObject
@@ -177,6 +185,8 @@ public:
     EncryptedStoragePluginInfo(const Sailfish::Secrets::EncryptedStoragePlugin *plugin);
     ~EncryptedStoragePluginInfo();
 
+    EncryptedStoragePluginInfo& operator=(const EncryptedStoragePluginInfo &other);
+
     QString name() const;
     void setName(const QString &name);
 
@@ -190,7 +200,8 @@ public:
     void setEncryptionAlgorithm(Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm algorithm);
 
 private:
-    EncryptedStoragePluginInfoPrivate *d;
+    QSharedDataPointer<EncryptedStoragePluginInfoPrivate> d_ptr;
+    friend class EncryptedSotragePluginInfoPrivate;
 };
 
 class SAILFISH_SECRETS_API AuthenticationPlugin : public QObject
@@ -199,42 +210,48 @@ class SAILFISH_SECRETS_API AuthenticationPlugin : public QObject
 
 public:
     enum AuthenticationType {
-        NoAuthentication,                       // no authentication, flows requiring authentication data will fail.
-        ApplicationSpecificAuthentication = 0,  // unknown type, application generates auth code based on custom UI flow.
-        SystemDefaultAuthentication,            // any of the proceeding types of authentication, depending on system setting.
-        PinCodeAuthentication,                  // user enters a pin code as the authentication method
-        PasswordAuthentication,                 // user enters a password as the authentication method
-        FingerprintAuthentication,              // user scans their fingerprint as the authentication method
-        IrisScanAuthentication,                 // user scans their iris as the authentication method
-        VoiceRecognitionAuthentication          // user performs voice recognition as the authentication method
+        NoAuthentication                  = 0,  // no authentication, flows requiring authentication data will fail.
+        ApplicationSpecificAuthentication = 1,  // unknown type, application generates auth code based on custom UI flow.
+        SystemDefaultAuthentication       = 2,  // user enters some authentication data, as required by the system, to authenticate.
+        PinCodeAuthentication             = 4,  // user enters a pin code as the authentication method
+        PasswordAuthentication            = 8,  // user enters a password as the authentication method
+        FingerprintAuthentication         = 16, // user scans their fingerprint as the authentication method
+        IrisScanAuthentication            = 32, // user scans their iris as the authentication method
+        VoiceRecognitionAuthentication    = 64  // user performs voice recognition as the authentication method
     };
     Q_ENUM(AuthenticationType)
+    Q_DECLARE_FLAGS(AuthenticationTypes, AuthenticationType)
 
     AuthenticationPlugin(QObject *parent = Q_NULLPTR);
     virtual ~AuthenticationPlugin();
 
     virtual QString name() const = 0;
-    virtual Sailfish::Secrets::AuthenticationPlugin::AuthenticationType authenticationType() const = 0;
+    virtual Sailfish::Secrets::AuthenticationPlugin::AuthenticationTypes authenticationTypes() const = 0;
+    virtual Sailfish::Secrets::InteractionParameters::InputTypes inputTypes() const = 0;
 
-    // TODO: add an operation type: read/insert/update/delete flag?
     virtual Sailfish::Secrets::Result beginAuthentication(
             uint callerPid,
+            qint64 requestId) = 0;
+
+    virtual Sailfish::Secrets::Result beginUserInputInteraction(
+            uint callerPid,
             qint64 requestId,
-            const QString &callerApplicationId,
-            const QString &collectionName,
-            const QString &secretName,
+            const Sailfish::Secrets::InteractionParameters &interactionParameters,
             const QString &interactionServiceAddress) = 0;
 
 Q_SIGNALS:
     void authenticationCompleted(
             uint callerPid,
             qint64 requestId,
-            const QString &callerApplicationId,
-            const QString &collectionName,
-            const QString &secretName,
+            const Sailfish::Secrets::Result &result);
+
+    void userInputInteractionCompleted(
+            uint callerPid,
+            qint64 requestId,
+            const Sailfish::Secrets::InteractionParameters &interactionParameters,
             const QString &interactionServiceAddress,
             const Sailfish::Secrets::Result &result,
-            const QByteArray &authenticationKey);
+            const QByteArray &userInput);
 };
 
 class AuthenticationPluginInfoPrivate;
@@ -246,14 +263,20 @@ public:
     AuthenticationPluginInfo(const Sailfish::Secrets::AuthenticationPlugin *plugin);
     ~AuthenticationPluginInfo();
 
+    AuthenticationPluginInfo& operator=(const AuthenticationPluginInfo &other);
+
     QString name() const;
     void setName(const QString &name);
 
-    Sailfish::Secrets::AuthenticationPlugin::AuthenticationType authenticationType() const;
-    void setAuthenticationType(Sailfish::Secrets::AuthenticationPlugin::AuthenticationType type);
+    Sailfish::Secrets::AuthenticationPlugin::AuthenticationTypes authenticationTypes() const;
+    void setAuthenticationTypes(Sailfish::Secrets::AuthenticationPlugin::AuthenticationTypes types);
+
+    Sailfish::Secrets::InteractionParameters::InputTypes inputTypes() const;
+    void setInputTypes(Sailfish::Secrets::InteractionParameters::InputTypes types);
 
 private:
-    AuthenticationPluginInfoPrivate *d;
+    QSharedDataPointer<AuthenticationPluginInfoPrivate> d_ptr;
+    friend class AuthenticationPluginInfoPrivate;
 };
 
 } // namespace Secrets
@@ -268,6 +291,8 @@ Q_DECLARE_METATYPE(Sailfish::Secrets::EncryptedStoragePluginInfo);
 Q_DECLARE_TYPEINFO(Sailfish::Secrets::EncryptedStoragePluginInfo, Q_MOVABLE_TYPE);
 Q_DECLARE_METATYPE(Sailfish::Secrets::AuthenticationPluginInfo);
 Q_DECLARE_TYPEINFO(Sailfish::Secrets::AuthenticationPluginInfo, Q_MOVABLE_TYPE);
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Secrets::AuthenticationPlugin::AuthenticationTypes);
 
 QT_BEGIN_NAMESPACE
 Q_DECLARE_INTERFACE(Sailfish::Secrets::StoragePlugin, Sailfish_Secrets_StoragePlugin_IID)

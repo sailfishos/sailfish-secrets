@@ -7,6 +7,8 @@
 
 #include "Crypto/key.h"
 #include "Crypto/certificate.h"
+#include "Crypto/keypairgenerationparameters.h"
+#include "Crypto/keyderivationparameters.h"
 
 #include <QtCore/QTimer>
 #include <QtCore/QByteArray>
@@ -19,8 +21,15 @@
 
 #include <fstream>
 #include <cstdlib>
+#include <limits>
 
+#include <openssl/evp.h>
 #include <openssl/rand.h>
+#include <openssl/bn.h>
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
+#include <openssl/bio.h>
+#include <openssl/x509.h>
 
 #define CIPHER_SESSION_INACTIVITY_TIMEOUT 60000 /* 1 minute, change to 10 sec for timeout test */
 #define MAX_CIPHER_SESSIONS_PER_CLIENT 5
@@ -31,11 +40,11 @@ class CipherSessionData
 public:
     QByteArray iv;
     Sailfish::Crypto::Key key;
-    Sailfish::Crypto::Key::Operation operation = Sailfish::Crypto::Key::OperationUnknown;
-    Sailfish::Crypto::Key::BlockMode blockMode = Sailfish::Crypto::Key::BlockModeUnknown;
-    Sailfish::Crypto::Key::EncryptionPadding encryptionPadding = Sailfish::Crypto::Key::EncryptionPaddingUnknown;
-    Sailfish::Crypto::Key::SignaturePadding signaturePadding = Sailfish::Crypto::Key::SignaturePaddingUnknown;
-    Sailfish::Crypto::Key::Digest digest = Sailfish::Crypto::Key::DigestUnknown;
+    Sailfish::Crypto::CryptoManager::Operation operation = Sailfish::Crypto::CryptoManager::OperationUnknown;
+    Sailfish::Crypto::CryptoManager::BlockMode blockMode = Sailfish::Crypto::CryptoManager::BlockModeUnknown;
+    Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding = Sailfish::Crypto::CryptoManager::EncryptionPaddingUnknown;
+    Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding = Sailfish::Crypto::CryptoManager::SignaturePaddingUnknown;
+    Sailfish::Crypto::CryptoManager::DigestFunction digest = Sailfish::Crypto::CryptoManager::DigestUnknown;
     quint32 cipherSessionToken = 0;
     QByteArray generatedIV;
     EVP_MD_CTX *evp_md_ctx = nullptr;
@@ -58,6 +67,27 @@ struct CipherSessionDataDeleter
         delete csd;
     }
 };
+struct LibCrypto_BN_Deleter
+{
+    static inline void cleanup(BIGNUM *pointer)
+    {
+        BN_free(pointer);
+    }
+};
+struct LibCrypto_RSA_Deleter
+{
+    static inline void cleanup(RSA *pointer)
+    {
+        RSA_free(pointer);
+    }
+};
+struct LibCrypto_BIO_Deleter
+{
+    static inline void cleanup(BIO *pointer)
+    {
+        BIO_free(pointer);
+    }
+};
 
 namespace {
     quint32 getNextCipherSessionToken(QMap<quint64, QMap<quint32, CipherSessionData*> > *sessions, quint64 clientId)
@@ -73,52 +103,68 @@ namespace {
     }
 }
 
-QVector<Sailfish::Crypto::Key::Algorithm>
+QVector<Sailfish::Crypto::CryptoManager::Algorithm>
 CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedAlgorithms() const
 {
-    QVector<Sailfish::Crypto::Key::Algorithm> retn;
-    retn.append(Sailfish::Crypto::Key::Aes256);
+    QVector<Sailfish::Crypto::CryptoManager::Algorithm> retn;
+    retn.append(Sailfish::Crypto::CryptoManager::AlgorithmAes);
     return retn;
 }
 
-QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::BlockModes>
+QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::BlockMode> >
 CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedBlockModes() const
 {
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::BlockModes> retn;
-    retn.insert(Sailfish::Crypto::Key::Aes256, Sailfish::Crypto::Key::BlockModeCBC);
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::BlockMode> > retn;
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes, QVector<Sailfish::Crypto::CryptoManager::BlockMode>() << Sailfish::Crypto::CryptoManager::BlockModeCbc);
     return retn;
 }
 
-QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::EncryptionPaddings>
+QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::EncryptionPadding> >
 CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedEncryptionPaddings() const
 {
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::EncryptionPaddings> retn;
-    retn.insert(Sailfish::Crypto::Key::Aes256, Sailfish::Crypto::Key::EncryptionPaddingNone);
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::EncryptionPadding> > retn;
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes, QVector<Sailfish::Crypto::CryptoManager::EncryptionPadding>() << Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
     return retn;
 }
 
-QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::SignaturePaddings>
+QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::SignaturePadding> >
 CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedSignaturePaddings() const
 {
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::SignaturePaddings> retn;
-    retn.insert(Sailfish::Crypto::Key::Aes256, Sailfish::Crypto::Key::SignaturePaddingNone);
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::SignaturePadding> > retn;
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes, QVector<Sailfish::Crypto::CryptoManager::SignaturePadding>() << Sailfish::Crypto::CryptoManager::SignaturePaddingNone);
     return retn;
 }
 
-QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Digests>
+QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::DigestFunction> >
 CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedDigests() const
 {
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Digests> retn;
-    retn.insert(Sailfish::Crypto::Key::Aes256, Sailfish::Crypto::Key::DigestSha256);
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::DigestFunction> > retn;
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes, QVector<Sailfish::Crypto::CryptoManager::DigestFunction>() << Sailfish::Crypto::CryptoManager::DigestSha256);
     return retn;
 }
 
-QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Operations>
+QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::MessageAuthenticationCode> >
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedMessageAuthenticationCodes() const
+{
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::MessageAuthenticationCode> > retn;
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes, QVector<Sailfish::Crypto::CryptoManager::MessageAuthenticationCode>() << Sailfish::Crypto::CryptoManager::MacHmac);
+    return retn;
+}
+
+QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::KeyDerivationFunction> >
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedKeyDerivationFunctions() const
+{
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::KeyDerivationFunction> > retn;
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes, QVector<Sailfish::Crypto::CryptoManager::KeyDerivationFunction>() << Sailfish::Crypto::CryptoManager::KdfPkcs5Pbkdf2);
+    return retn;
+}
+
+QMap<Sailfish::Crypto::CryptoManager::Algorithm, Sailfish::Crypto::CryptoManager::Operations>
 CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::supportedOperations() const
 {
     // TODO: should this be algorithm specific?  not sure?
-    QMap<Sailfish::Crypto::Key::Algorithm, Sailfish::Crypto::Key::Operations> retn;
-    retn.insert(Sailfish::Crypto::Key::Aes256, Sailfish::Crypto::Key::Encrypt | Sailfish::Crypto::Key::Decrypt);
+    QMap<Sailfish::Crypto::CryptoManager::Algorithm, Sailfish::Crypto::CryptoManager::Operations> retn;
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes, Sailfish::Crypto::CryptoManager::OperationEncrypt | Sailfish::Crypto::CryptoManager::OperationDecrypt);
     return retn;
 }
 
@@ -175,18 +221,146 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::validateCertificateChain
 Sailfish::Crypto::Result
 CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::generateKey(
         const Sailfish::Crypto::Key &keyTemplate,
+        const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
+        const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
         Sailfish::Crypto::Key *key)
 {
-    if (keyTemplate.algorithm() != Sailfish::Crypto::Key::Aes256) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: algorithms other than Aes256"));
+    // generate an asymmetrical key pair if required
+    if (kpgParams.isValid()) {
+        if (kpgParams.keyPairType() != Sailfish::Crypto::KeyPairGenerationParameters::KeyPairRsa
+                || keyTemplate.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmRsa) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                            QLatin1String("TODO: algorithms other than Rsa"));
+        }
+        Sailfish::Crypto::RsaKeyPairGenerationParameters rsakpgp(kpgParams);
+        if (rsakpgp.modulusLength() < 8 || rsakpgp.modulusLength() > 8192 || (rsakpgp.modulusLength() % 8) != 0) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                            QLatin1String("Unsupported modulus length specified"));
+        }
+        if (rsakpgp.publicExponent() > std::numeric_limits<quint32>::max()) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                            QLatin1String("Unsupported public exponent, too large"));
+        }
+        if (rsakpgp.numberPrimes() != 2) {
+            // RSA_generate_multi_prime_key doesn't exist in our version of openssl it seems.
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                            QLatin1String("Unsupported number of primes"));
+        }
+
+        quint32 publicExponent = rsakpgp.publicExponent();
+        QScopedPointer<BIGNUM, LibCrypto_BN_Deleter> pubExp(BN_new());
+        if (BN_set_word(pubExp.data(), publicExponent) != 1) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                            QLatin1String("Failed to set public exponent"));
+        }
+
+        QScopedPointer<RSA, LibCrypto_RSA_Deleter> rsa(RSA_new());
+        if (RSA_generate_key_ex(rsa.data(), rsakpgp.modulusLength(), pubExp.data(), NULL) != 1) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                            QLatin1String("Failed to initialise RSA key pair generation"));
+        }
+
+        QScopedPointer<BIO, LibCrypto_BIO_Deleter> pubbio(BIO_new(BIO_s_mem()));
+        if (PEM_write_bio_RSAPublicKey(pubbio.data(), rsa.data()) != 1) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                            QLatin1String("Failed to write public key data to memory"));
+        }
+        size_t pubkeylen = BIO_pending(pubbio.data());
+        QScopedPointer<unsigned char> pubdata(new unsigned char[pubkeylen]);
+        if (BIO_read(pubbio.data(), pubdata.data(), pubkeylen) < 1) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                            QLatin1String("Failed to read public key data from memory"));
+        }
+
+        QScopedPointer<BIO, LibCrypto_BIO_Deleter> privbio(BIO_new(BIO_s_mem()));
+        if (PEM_write_bio_RSAPrivateKey(privbio.data(), rsa.data(), NULL, NULL, 0, NULL, NULL) != 1) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                            QLatin1String("Failed to write private key data to memory"));
+        }
+        size_t privkeylen = BIO_pending(privbio.data());
+        QScopedPointer<unsigned char> privdata(new unsigned char[privkeylen]);
+        if (BIO_read(privbio.data(), privdata.data(), privkeylen) < 1) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                            QLatin1String("Failed to read private key data from memory"));
+        }
+
+        *key = keyTemplate;
+        key->setPublicKey(QByteArray(reinterpret_cast<const char *>(pubdata.data()), pubkeylen));
+        key->setPrivateKey(QByteArray(reinterpret_cast<const char *>(privdata.data()), privkeylen));
+        key->setSize(rsakpgp.modulusLength());
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
     }
 
-    const QUuid seed = QUuid::createUuid();
-    const QByteArray hashed = QCryptographicHash::hash(seed.toByteArray(), QCryptographicHash::Sha256);
-    *key = keyTemplate;
-    key->setSecretKey(hashed);
+    // otherwise generate a random symmetric key unless a key derivation function is required
+    if (!skdfParams.isValid()) {
+        if (keyTemplate.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmAes) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                            QLatin1String("TODO: algorithms other than Aes"));
+        }
+        if (keyTemplate.size() < 8 || keyTemplate.size() > 2048 || (keyTemplate.size() % 8) != 0) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                            QLatin1String("Unsupported key size specified"));
+        }
+        QByteArray randomKey;
+        Sailfish::Crypto::Result randomResult = generateRandomData(
+                    0, QStringLiteral("/dev/urandom"), keyTemplate.size() / 8, &randomKey);
+        if (randomResult.code() == Sailfish::Crypto::Result::Failed) {
+            return randomResult;
+        }
+        *key = keyTemplate;
+        key->setSecretKey(randomKey);
+        key->setSize(keyTemplate.size());
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
+    }
 
+    // use key derivation to derive a key from input data.
+    if (skdfParams.keyDerivationFunction() != Sailfish::Crypto::CryptoManager::KdfPkcs5Pbkdf2) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("Unsupported key derivation function specified"));
+    }
+
+    if (skdfParams.keyDerivationMac() != Sailfish::Crypto::CryptoManager::MacHmac) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("Unsupported key derivation message authentication code specified"));
+    }
+
+    if (skdfParams.keyDerivationDigestFunction() != Sailfish::Crypto::CryptoManager::DigestSha1) {
+        // TODO: support other digest functions with HMAC...
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("Unsupported key derivation digest function specified"));
+    }
+
+    if (skdfParams.outputKeySize() < 8 || skdfParams.outputKeySize() > 2048 || (skdfParams.outputKeySize() % 8) != 0) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("Unsupported derived key size specified"));
+    }
+
+    if (skdfParams.iterations() < 0 || skdfParams.iterations() > 32768) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("Unsupported iterations specified"));
+    }
+
+    int nbytes = skdfParams.outputKeySize() / 8;
+    QScopedPointer<char> buf(new char[nbytes]);
+    if (PKCS5_PBKDF2_HMAC_SHA1(
+            skdfParams.inputData().isEmpty()
+                    ? NULL
+                    : skdfParams.inputData().constData(),
+            skdfParams.inputData().size(),
+            skdfParams.salt().isEmpty()
+                    ? NULL
+                    : reinterpret_cast<const unsigned char*>(skdfParams.salt().constData()),
+            skdfParams.salt().size(),
+            skdfParams.iterations(),
+            nbytes,
+            reinterpret_cast<unsigned char*>(buf.data())) != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                        QLatin1String("The crypto plugin failed to derive the key data"));
+    }
+
+    *key = keyTemplate;
+    key->setSecretKey(QByteArray(buf.data(), nbytes));
+    key->setSize(skdfParams.outputKeySize());
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
 }
 
@@ -194,8 +368,8 @@ Sailfish::Crypto::Result
 CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::sign(
         const QByteArray &data,
         const Sailfish::Crypto::Key &key,
-        Sailfish::Crypto::Key::SignaturePadding padding,
-        Sailfish::Crypto::Key::Digest digest,
+        Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+        Sailfish::Crypto::CryptoManager::DigestFunction digest,
         QByteArray *signature)
 {
     // TODO: support more operations and algorithms in this plugin!
@@ -212,8 +386,8 @@ Sailfish::Crypto::Result
 CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::verify(
         const QByteArray &data,
         const Sailfish::Crypto::Key &key,
-        Sailfish::Crypto::Key::SignaturePadding padding,
-        Sailfish::Crypto::Key::Digest digest,
+        Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+        Sailfish::Crypto::CryptoManager::DigestFunction digest,
         bool *verified)
 {
     // TODO: support more operations and algorithms in this plugin!
@@ -231,8 +405,8 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::encrypt(
         const QByteArray &data,
         const QByteArray &iv,
         const Sailfish::Crypto::Key &key,
-        Sailfish::Crypto::Key::BlockMode blockMode,
-        Sailfish::Crypto::Key::EncryptionPadding padding,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
         QByteArray *encrypted)
 {
     Sailfish::Crypto::Key fullKey = getFullKey(key);
@@ -241,17 +415,17 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::encrypt(
                                         QLatin1String("Cannot encrypt with empty secret key"));
     }
 
-    if (fullKey.algorithm() != Sailfish::Crypto::Key::Aes256) {
+    if (fullKey.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmAes) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                         QLatin1String("TODO: algorithms other than Aes256"));
     }
 
-    if (blockMode != Sailfish::Crypto::Key::BlockModeCBC) {
+    if (blockMode != Sailfish::Crypto::CryptoManager::BlockModeCbc) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                         QLatin1String("TODO: block modes other than CBC"));
     }
 
-    if (padding != Sailfish::Crypto::Key::EncryptionPaddingNone) {
+    if (padding != Sailfish::Crypto::CryptoManager::EncryptionPaddingNone) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                         QLatin1String("TODO: encryption padding other than None"));
     }
@@ -284,8 +458,8 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::decrypt(
         const QByteArray &data,
         const QByteArray &iv,
         const Sailfish::Crypto::Key &key,
-        Sailfish::Crypto::Key::BlockMode blockMode,
-        Sailfish::Crypto::Key::EncryptionPadding padding,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
         QByteArray *decrypted)
 {
     Sailfish::Crypto::Key fullKey = getFullKey(key);
@@ -294,17 +468,17 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::decrypt(
                                         QLatin1String("Cannot decrypt with empty secret key"));
     }
 
-    if (fullKey.algorithm() != Sailfish::Crypto::Key::Aes256) {
+    if (fullKey.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmAes) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                         QLatin1String("TODO: algorithms other than Aes256"));
     }
 
-    if (blockMode != Sailfish::Crypto::Key::BlockModeCBC) {
+    if (blockMode != Sailfish::Crypto::CryptoManager::BlockModeCbc) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                         QLatin1String("TODO: block modes other than CBC"));
     }
 
-    if (padding != Sailfish::Crypto::Key::EncryptionPaddingNone) {
+    if (padding != Sailfish::Crypto::CryptoManager::EncryptionPaddingNone) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                         QLatin1String("TODO: encryption padding other than None"));
     }
@@ -336,11 +510,11 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::initialiseCipherSession(
         quint64 clientId,
         const QByteArray &iv,
         const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
-        Sailfish::Crypto::Key::Operation operation,
-        Sailfish::Crypto::Key::BlockMode blockMode,
-        Sailfish::Crypto::Key::EncryptionPadding encryptionPadding,
-        Sailfish::Crypto::Key::SignaturePadding signaturePadding,
-        Sailfish::Crypto::Key::Digest digest,
+        Sailfish::Crypto::CryptoManager::Operation operation,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
+        Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
+        Sailfish::Crypto::CryptoManager::DigestFunction digest,
         quint32 *cipherSessionToken,
         QByteArray *generatedIV)
 {
@@ -350,27 +524,27 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::initialiseCipherSession(
                                         QLatin1String("Cannot create a cipher session with empty secret key"));
     }
 
-    if (fullKey.algorithm() != Sailfish::Crypto::Key::Aes256) {
+    if (fullKey.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmAes) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                         QLatin1String("TODO: algorithms other than Aes256"));
     }
 
-    if (blockMode != Sailfish::Crypto::Key::BlockModeCBC) {
+    if (blockMode != Sailfish::Crypto::CryptoManager::BlockModeCbc) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                         QLatin1String("TODO: block modes other than CBC"));
     }
 
-    if (encryptionPadding != Sailfish::Crypto::Key::EncryptionPaddingNone) {
+    if (encryptionPadding != Sailfish::Crypto::CryptoManager::EncryptionPaddingNone) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                         QLatin1String("TODO: encryption padding other than None"));
     }
 
-    if (signaturePadding != Sailfish::Crypto::Key::SignaturePaddingNone) {
+    if (signaturePadding != Sailfish::Crypto::CryptoManager::SignaturePaddingNone) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                         QLatin1String("TODO: signature padding other than None"));
     }
 
-    if (digest != Sailfish::Crypto::Key::DigestSha256) {
+    if (digest != Sailfish::Crypto::CryptoManager::DigestSha256) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                         QLatin1String("TODO: digests other than Sha256"));
     }
@@ -382,8 +556,8 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::initialiseCipherSession(
     }
 
     QByteArray initIV(iv);
-    if (operation == Sailfish::Crypto::Key::Encrypt
-            && fullKey.algorithm() == Sailfish::Crypto::Key::Aes256) {
+    if (operation == Sailfish::Crypto::CryptoManager::OperationEncrypt
+            && fullKey.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
         if (iv.size() != 16) {
             // the user-supplied IV is the wrong size.
             // generate an appropriately sized IV.
@@ -399,14 +573,14 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::initialiseCipherSession(
 
     EVP_MD_CTX *evp_md_ctx = NULL;
     EVP_CIPHER_CTX *evp_cipher_ctx = NULL;
-    if (operation == Sailfish::Crypto::Key::Encrypt) {
+    if (operation == Sailfish::Crypto::CryptoManager::OperationEncrypt) {
         evp_cipher_ctx = EVP_CIPHER_CTX_new();
         if (evp_cipher_ctx == NULL) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                             QLatin1String("Unable to initialise cipher context for encryption"));
         }
-        if (fullKey.algorithm() == Sailfish::Crypto::Key::Aes256
-                && blockMode == Sailfish::Crypto::Key::BlockModeCBC) {
+        if (fullKey.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes
+                && blockMode == Sailfish::Crypto::CryptoManager::BlockModeCbc) {
             if (fullKey.secretKey().size() != 32) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
@@ -420,14 +594,14 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::initialiseCipherSession(
                                                 QLatin1String("Unable to initialise encryption cipher context in AES 256 CBC mode"));
             }
         }
-    } else if (operation == Sailfish::Crypto::Key::Decrypt) {
+    } else if (operation == Sailfish::Crypto::CryptoManager::OperationDecrypt) {
         evp_cipher_ctx = EVP_CIPHER_CTX_new();
         if (evp_cipher_ctx == NULL) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                             QLatin1String("Unable to initialise cipher context for decryption"));
         }
-        if (fullKey.algorithm() == Sailfish::Crypto::Key::Aes256
-                && blockMode == Sailfish::Crypto::Key::BlockModeCBC) {
+        if (fullKey.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes
+                && blockMode == Sailfish::Crypto::CryptoManager::BlockModeCbc) {
             if (fullKey.secretKey().size() != 32) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
@@ -498,7 +672,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::updateCipherSessionAuthe
     }
 
     CipherSessionData *csd = m_cipherSessions[clientId].value(cipherSessionToken);
-    if (csd->blockMode != Sailfish::Crypto::Key::BlockModeGCM) {
+    if (csd->blockMode != Sailfish::Crypto::CryptoManager::BlockModeGcm) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                         QLatin1String("Block mode is not GCM, cannot update authentication data"));
     } else if (csd->evp_cipher_ctx == NULL) {
@@ -508,14 +682,14 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::updateCipherSessionAuthe
 
     csd->timeout->start(); // restart the timeout due to activity.
     int len = 0;
-    if (csd->operation == Sailfish::Crypto::Key::Encrypt) {
+    if (csd->operation == Sailfish::Crypto::CryptoManager::OperationEncrypt) {
         if (EVP_EncryptUpdate(csd->evp_cipher_ctx, NULL, &len,
                               reinterpret_cast<const unsigned char *>(authenticationData.constData()),
                               authenticationData.size()) != 1) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                             QLatin1String("Failed to update encryption cipher authentication data"));
         }
-    } else if (csd->operation == Sailfish::Crypto::Key::Decrypt) {
+    } else if (csd->operation == Sailfish::Crypto::CryptoManager::OperationDecrypt) {
         if (EVP_DecryptUpdate(csd->evp_cipher_ctx, NULL, &len,
                               reinterpret_cast<const unsigned char *>(authenticationData.constData()),
                               authenticationData.size()) != 1) {
@@ -553,7 +727,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::updateCipherSession(
     int blockSizeForCipher = 16; // TODO: lookup for different algorithms, but AES is 128 bit blocks = 16 bytes
     QScopedPointer<unsigned char> generatedDataBuf(new unsigned char[data.size() + blockSizeForCipher]);
     int generatedDataSize = 0;
-    if (csd->operation == Sailfish::Crypto::Key::Encrypt) {
+    if (csd->operation == Sailfish::Crypto::CryptoManager::OperationEncrypt) {
         if (EVP_EncryptUpdate(csd->evp_cipher_ctx,
                               generatedDataBuf.data(), &generatedDataSize,
                               reinterpret_cast<const unsigned char *>(data.constData()),
@@ -561,7 +735,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::updateCipherSession(
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                             QLatin1String("Failed to update encryption cipher data"));
         }
-    } else if (csd->operation == Sailfish::Crypto::Key::Decrypt) {
+    } else if (csd->operation == Sailfish::Crypto::CryptoManager::OperationDecrypt) {
         if (EVP_DecryptUpdate(csd->evp_cipher_ctx,
                               generatedDataBuf.data(), &generatedDataSize,
                               reinterpret_cast<const unsigned char *>(data.constData()),
@@ -603,12 +777,12 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::finaliseCipherSession(
     int blockSizeForCipher = 16; // TODO: lookup for different algorithms, but AES is 128 bit blocks = 16 bytes
     QScopedPointer<unsigned char> generatedDataBuf(new unsigned char[blockSizeForCipher*2]); // final 1 or 2 blocks.
     int generatedDataSize = 0;
-    if (csd->operation == Sailfish::Crypto::Key::Encrypt) {
+    if (csd->operation == Sailfish::Crypto::CryptoManager::OperationEncrypt) {
         if (EVP_EncryptFinal_ex(csd->evp_cipher_ctx, generatedDataBuf.data(), &generatedDataSize) != 1) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                             QLatin1String("Failed to finalise encryption cipher"));
         }
-        if (csd->blockMode == Sailfish::Crypto::Key::BlockModeGCM) {
+        if (csd->blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm) {
             // in GCM mode, the finalisation above does not write extra ciphertext.
             // instead, we should retrieve the tag.
             if (generatedDataSize > 0) {
@@ -622,8 +796,8 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::finaliseCipherSession(
                                                 QLatin1String("Failed to retrieve authentication tag"));
             }
         }
-    } else if (csd->operation == Sailfish::Crypto::Key::Decrypt) {
-        if (csd->blockMode == Sailfish::Crypto::Key::BlockModeGCM) {
+    } else if (csd->operation == Sailfish::Crypto::CryptoManager::OperationDecrypt) {
+        if (csd->blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm) {
             // in GCM mode, the finalisation requires setting the provided tag data.
             if (data.size() != SAILFISH_CRYPTO_GCM_TAG_SIZE) {
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,

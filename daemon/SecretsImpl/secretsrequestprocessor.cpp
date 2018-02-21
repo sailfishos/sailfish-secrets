@@ -152,6 +152,8 @@ Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
                 m_authenticationPlugins.insert(authenticationPlugin->name(), authenticationPlugin);
                 connect(authenticationPlugin, &AuthenticationPlugin::authenticationCompleted,
                         this, &Daemon::ApiImpl::RequestProcessor::authenticationCompleted);
+                connect(authenticationPlugin, &AuthenticationPlugin::userInputInteractionCompleted,
+                        this, &Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted);
             }
         } else {
             qCWarning(lcSailfishSecretsDaemon) << "ignoring plugin:" << pluginFile << "- not a secrets plugin or Qt version mismatch";
@@ -413,7 +415,7 @@ Daemon::ApiImpl::RequestProcessor::createCustomLockCollection(
     } else if (!m_authenticationPlugins.contains(authenticationPluginName)) {
         return Result(Result::InvalidExtensionPluginError,
                       QString::fromLatin1("No such authentication plugin exists: %1").arg(authenticationPluginName));
-    } else if (m_authenticationPlugins[authenticationPluginName]->authenticationType() == AuthenticationPlugin::ApplicationSpecificAuthentication
+    } else if (m_authenticationPlugins[authenticationPluginName]->authenticationTypes() & AuthenticationPlugin::ApplicationSpecificAuthentication
                && (userInteractionMode != SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
         return Result(Result::OperationRequiresApplicationUserInteraction,
                       QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(authenticationPluginName));
@@ -463,17 +465,22 @@ Daemon::ApiImpl::RequestProcessor::createCustomLockCollection(
                       QString::fromLatin1("Collection already exists: %1").arg(collectionName));
     }
 
-    // perform the authentication required to get the authentication key which will be used
+    // perform the user input flow required to get the input key data which will be used
     // to encrypt the data in this collection.
-    Result authenticationResult = m_authenticationPlugins[authenticationPluginName]->beginAuthentication(
+    InteractionParameters ikdRequest;
+    ikdRequest.setApplicationId(callerApplicationId);
+    ikdRequest.setCollectionName(collectionName);
+    ikdRequest.setOperation(InteractionParameters::CreateCollection);
+    ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
+    ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+    ikdRequest.setPromptTrId("sailfish_secrets_create_customlock_collection_input_key_data_prompt");
+    Result interactionResult = m_authenticationPlugins[authenticationPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
-                callerApplicationId,
-                collectionName,
-                QString(),
+                ikdRequest,
                 interactionServiceAddress);
-    if (authenticationResult.code() == Result::Failed) {
-        return authenticationResult;
+    if (interactionResult.code() == Result::Failed) {
+        return interactionResult;
     }
 
     m_pendingRequests.insert(requestId,
@@ -1126,12 +1133,58 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretMetadata(
     return Result(Result::Succeeded);
 }
 
+// this method is a helper for the crypto API.
+// Get data from the user to use as input data to a key derivation function.
+Result
+Daemon::ApiImpl::RequestProcessor::userInput(
+        pid_t callerPid,
+        quint64 requestId,
+        const InteractionParameters &uiParams)
+{
+    // TODO: perform access control request to see if the application has permission to request user input.
+    const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
+    const QString callerApplicationId = applicationIsPlatformApplication
+                ? m_appPermissions->platformApplicationId()
+                : m_appPermissions->applicationId(callerPid);
+
+    QString userInputPlugin = uiParams.authenticationPluginName();
+    if (uiParams.authenticationPluginName().isEmpty()) {
+        // TODO: depending on type, choose the appropriate authentication plugin
+        userInputPlugin = SecretManager::DefaultAuthenticationPluginName;
+    }
+    if (!m_authenticationPlugins.contains(userInputPlugin)) {
+        return Result(Result::InvalidExtensionPluginError,
+                      QString::fromLatin1("Cannot get user input from invalid authentication plugin: %1")
+                      .arg(uiParams.authenticationPluginName()));
+    }
+
+    InteractionParameters ikdRequest(uiParams);
+    ikdRequest.setApplicationId(callerApplicationId);
+    Result interactionResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
+                callerPid,
+                requestId,
+                ikdRequest,
+                QString());
+    if (interactionResult.code() == Result::Failed) {
+        return interactionResult;
+    }
+
+    m_pendingRequests.insert(requestId,
+                             Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                 callerPid,
+                                 requestId,
+                                 Daemon::ApiImpl::UserInputRequest,
+                                 QVariantList() << QVariant::fromValue<InteractionParameters>(ikdRequest)));
+    return Result(Result::Pending);
+}
+
 // set a secret in a collection
 Result
 Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
         pid_t callerPid,
         quint64 requestId,
         const Secret &secret,
+        const Sailfish::Secrets::InteractionParameters &uiParams,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress)
 {
@@ -1232,6 +1285,96 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
                       QString::fromLatin1("No such encryption plugin exists: %1").arg(collectionEncryptionPluginName));
     }
 
+    // Check to see if we need to request the secret data from the user.
+    if (!uiParams.isValid()) {
+        // don't need to retrieve secret data from the user,
+        // just store it directly.
+        return setCollectionSecretGetAuthenticationKey(
+                    callerPid,
+                    requestId,
+                    secret,
+                    userInteractionMode,
+                    interactionServiceAddress,
+                    collectionUsesDeviceLockKey,
+                    collectionApplicationId,
+                    collectionStoragePluginName,
+                    collectionEncryptionPluginName,
+                    collectionAuthenticationPluginName,
+                    collectionUnlockSemantic,
+                    collectionCustomLockTimeoutMs,
+                    collectionAccessControlMode);
+    }
+
+    // otherwise, we need to perform another asynchronous request,
+    // to retrieve the secret data from the user.
+    QString userInputPlugin = uiParams.authenticationPluginName();
+    if (uiParams.authenticationPluginName().isEmpty()) {
+        // TODO: depending on type, choose the appropriate authentication plugin
+        userInputPlugin = SecretManager::DefaultAuthenticationPluginName;
+    }
+    if (!m_authenticationPlugins.contains(userInputPlugin)) {
+        return Result(Result::InvalidExtensionPluginError,
+                      QString::fromLatin1("Cannot get user input from invalid authentication plugin: %1")
+                      .arg(uiParams.authenticationPluginName()));
+    }
+
+    // perform UI request to get the data for the secret
+    InteractionParameters modifiedUiParams(uiParams);
+    modifiedUiParams.setApplicationId(callerApplicationId);
+    modifiedUiParams.setCollectionName(secret.identifier().collectionName());
+    modifiedUiParams.setSecretName(secret.identifier().name());
+    modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
+    modifiedUiParams.setPromptTrId(QString()); // clear it in case malicious apps try to confuse the user.
+    Result authenticationResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
+                callerPid,
+                requestId,
+                modifiedUiParams,
+                interactionServiceAddress); // in most cases this last parameter will be ignored by the plugin.
+    if (authenticationResult.code() == Result::Failed) {
+        return authenticationResult;
+    }
+
+    m_pendingRequests.insert(requestId,
+                             Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                 callerPid,
+                                 requestId,
+                                 Daemon::ApiImpl::SetCollectionUserInputSecretRequest,
+                                 QVariantList() << QVariant::fromValue<Secret>(secret)
+                                                << QVariant::fromValue<InteractionParameters>(modifiedUiParams)
+                                                << userInteractionMode
+                                                << interactionServiceAddress
+                                                << collectionUsesDeviceLockKey
+                                                << collectionApplicationId
+                                                << collectionStoragePluginName
+                                                << collectionEncryptionPluginName
+                                                << collectionAuthenticationPluginName
+                                                << collectionUnlockSemantic
+                                                << collectionCustomLockTimeoutMs
+                                                << collectionAccessControlMode));
+    return Result(Result::Pending);
+}
+
+Result
+Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationKey(
+        pid_t callerPid,
+        quint64 requestId,
+        const Secret &secret,
+        SecretManager::UserInteractionMode userInteractionMode,
+        const QString &interactionServiceAddress,
+        bool collectionUsesDeviceLockKey,
+        const QString &collectionApplicationId,
+        const QString &collectionStoragePluginName,
+        const QString &collectionEncryptionPluginName,
+        const QString &collectionAuthenticationPluginName,
+        int collectionUnlockSemantic,
+        int collectionCustomLockTimeoutMs,
+        SecretManager::AccessControlMode collectionAccessControlMode)
+{
+    const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
+    const QString callerApplicationId = applicationIsPlatformApplication
+                ? m_appPermissions->platformApplicationId()
+                : m_appPermissions->applicationId(callerPid);
+
     if (collectionStoragePluginName == collectionEncryptionPluginName) {
         bool locked = false;
         Result pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->isLocked(secret.identifier().collectionName(), &locked);
@@ -1266,16 +1409,23 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
                           QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
         }
 
-        // perform UI request to get the authentication key for the collection
-        Result authenticationResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginAuthentication(
+        // perform the user input flow required to get the input key data which will be used
+        // to unlock this collection.
+        InteractionParameters ikdRequest;
+        ikdRequest.setApplicationId(callerApplicationId);
+        ikdRequest.setCollectionName(secret.identifier().collectionName());
+        ikdRequest.setSecretName(secret.identifier().name());
+        ikdRequest.setOperation(InteractionParameters::StoreSecret);
+        ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
+        ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+        ikdRequest.setPromptTrId("sailfish_secrets_store_collection_secret_input_key_data_prompt");
+        Result interactionResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginUserInputInteraction(
                     callerPid,
                     requestId,
-                    callerApplicationId,
-                    secret.identifier().collectionName(),
-                    secret.identifier().name(),
+                    ikdRequest,
                     interactionServiceAddress);
-        if (authenticationResult.code() == Result::Failed) {
-            return authenticationResult;
+        if (interactionResult.code() == Result::Failed) {
+            return interactionResult;
         }
 
         m_pendingRequests.insert(requestId,
@@ -1326,16 +1476,23 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
                       QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
     }
 
-    // perform UI request to get the authentication key for the collection
-    Result authenticationResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginAuthentication(
+    // perform the user input flow required to get the input key data which will be used
+    // to unlock this collection.
+    InteractionParameters ikdRequest;
+    ikdRequest.setApplicationId(callerApplicationId);
+    ikdRequest.setCollectionName(secret.identifier().collectionName());
+    ikdRequest.setSecretName(secret.identifier().name());
+    ikdRequest.setOperation(InteractionParameters::StoreSecret);
+    ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
+    ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+    ikdRequest.setPromptTrId("sailfish_secrets_store_collection_secret_input_key_data_prompt");
+    Result interactionResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
-                callerApplicationId,
-                secret.identifier().collectionName(),
-                secret.identifier().name(),
+                ikdRequest,
                 interactionServiceAddress);
-    if (authenticationResult.code() == Result::Failed) {
-        return authenticationResult;
+    if (interactionResult.code() == Result::Failed) {
+        return interactionResult;
     }
 
     m_pendingRequests.insert(requestId,
@@ -1579,9 +1736,11 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSecret(
         const QString &storagePluginName,
         const QString &encryptionPluginName,
         const Secret &secret,
+        const Sailfish::Secrets::InteractionParameters &uiParams,
         SecretManager::DeviceLockUnlockSemantic unlockSemantic,
         SecretManager::AccessControlMode accessControlMode,
-        SecretManager::UserInteractionMode userInteractionMode)
+        SecretManager::UserInteractionMode userInteractionMode,
+        const QString &interactionServiceAddress)
 {
     // TODO: Access Control requests to see if the application is permitted to set the secret.
     Q_UNUSED(requestId); // until we implement access control queries, this method is synchronous, so requestId is unused.
@@ -1669,6 +1828,85 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSecret(
                       .arg(secret.identifier().name(), storagePluginName));
     }
 
+    // If the secret data is fully specified, we don't need to request it from the user.
+    if (!uiParams.isValid()) {
+        return writeStandaloneDeviceLockSecret(
+                    callerPid,
+                    requestId,
+                    callerApplicationId,
+                    storagePluginName,
+                    encryptionPluginName,
+                    secret,
+                    collectionName,
+                    hashedSecretName,
+                    found,
+                    unlockSemantic,
+                    accessControlMode);
+    }
+
+    // otherwise, we need to perform another asynchronous request,
+    // to retrieve the secret data from the user.
+    QString userInputPlugin = uiParams.authenticationPluginName();
+    if (uiParams.authenticationPluginName().isEmpty()) {
+        // TODO: depending on type, choose the appropriate authentication plugin
+        userInputPlugin = SecretManager::DefaultAuthenticationPluginName;
+    }
+    if (!m_authenticationPlugins.contains(userInputPlugin)) {
+        return Result(Result::InvalidExtensionPluginError,
+                      QString::fromLatin1("Cannot get user input from invalid authentication plugin: %1")
+                      .arg(uiParams.authenticationPluginName()));
+    }
+
+    // perform UI request to get the data for the secret
+    InteractionParameters modifiedUiParams(uiParams);
+    modifiedUiParams.setApplicationId(callerApplicationId);
+    modifiedUiParams.setCollectionName(secret.identifier().collectionName());
+    modifiedUiParams.setSecretName(secret.identifier().name());
+    modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
+    modifiedUiParams.setPromptTrId(QString()); // clear it in case malicious apps try to confuse the user.
+    Result authenticationResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
+                callerPid,
+                requestId,
+                modifiedUiParams,
+                interactionServiceAddress); // in most cases this last parameter will be ignored by the plugin.
+    if (authenticationResult.code() == Result::Failed) {
+        return authenticationResult;
+    }
+
+    m_pendingRequests.insert(requestId,
+                             Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                 callerPid,
+                                 requestId,
+                                 Daemon::ApiImpl::SetStandaloneDeviceLockUserInputSecretRequest,
+                                 QVariantList() << QVariant::fromValue<Secret>(secret)
+                                                << callerApplicationId
+                                                << storagePluginName
+                                                << encryptionPluginName
+                                                << collectionName
+                                                << hashedSecretName
+                                                << found
+                                                << unlockSemantic
+                                                << accessControlMode));
+    return Result(Result::Pending);
+}
+
+Result
+Daemon::ApiImpl::RequestProcessor::writeStandaloneDeviceLockSecret(
+        pid_t callerPid,
+        quint64 requestId,
+        const QString &callerApplicationId,
+        const QString &storagePluginName,
+        const QString &encryptionPluginName,
+        const Secret &secret,
+        const QString &collectionName,
+        const QString &hashedSecretName,
+        bool found,
+        SecretManager::DeviceLockUnlockSemantic unlockSemantic,
+        SecretManager::AccessControlMode accessControlMode)
+{
+    Q_UNUSED(callerPid) // may be required in future.
+    Q_UNUSED(requestId)
+
     // Write to the master database prior to the storage plugin.
     Daemon::Sqlite::DatabaseLocker locker(m_db);
 
@@ -1703,6 +1941,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSecret(
                   "?,?,?,?,?,?,?,?,?,?"
                 ");");
 
+    QString errorText;
     Daemon::Sqlite::Database::Query iq = m_db->prepare(found ? updateSecretQuery : insertSecretQuery, &errorText);
     if (!errorText.isEmpty()) {
         m_db->rollbackTransaction();
@@ -1828,6 +2067,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecret(
         const QString &encryptionPluginName,
         const QString &authenticationPluginName,
         const Secret &secret,
+        const Sailfish::Secrets::InteractionParameters &uiParams,
         SecretManager::CustomLockUnlockSemantic unlockSemantic,
         int customLockTimeoutMs,
         SecretManager::AccessControlMode accessControlMode,
@@ -1914,7 +2154,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecret(
         return Result(Result::OperationNotSupportedError,
                       QString::fromLatin1("Secret %1 already exists and is not stored via plugin %2")
                       .arg(secret.identifier().name(), storagePluginName));
-    } else if (m_authenticationPlugins[authenticationPluginName]->authenticationType() == AuthenticationPlugin::ApplicationSpecificAuthentication
+    } else if (m_authenticationPlugins[authenticationPluginName]->authenticationTypes() & AuthenticationPlugin::ApplicationSpecificAuthentication
                && (userInteractionMode != SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
         return Result(Result::OperationRequiresApplicationUserInteraction,
                       QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(authenticationPluginName));
@@ -1923,17 +2163,103 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecret(
                       QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(authenticationPluginName));
     }
 
-    // perform the authentication required to get the authentication key which will be used
-    // to encrypt the secret.
-    Result authenticationResult = m_authenticationPlugins[authenticationPluginName]->beginAuthentication(
+
+    // If the secret data is fully specified, we don't need to request it from the user.
+    if (!uiParams.isValid()) {
+        return setStandaloneCustomLockSecretGetAuthenticationKey(
+                    callerPid,
+                    requestId,
+                    callerApplicationId,
+                    storagePluginName,
+                    encryptionPluginName,
+                    authenticationPluginName,
+                    secret,
+                    unlockSemantic,
+                    customLockTimeoutMs,
+                    accessControlMode,
+                    userInteractionMode,
+                    interactionServiceAddress);
+    }
+
+    // otherwise, we need to perform another asynchronous request,
+    // to retrieve the secret data from the user.
+    QString userInputPlugin = uiParams.authenticationPluginName();
+    if (uiParams.authenticationPluginName().isEmpty()) {
+        // TODO: depending on type, choose the appropriate authentication plugin
+        userInputPlugin = SecretManager::DefaultAuthenticationPluginName;
+    }
+    if (!m_authenticationPlugins.contains(userInputPlugin)) {
+        return Result(Result::InvalidExtensionPluginError,
+                      QString::fromLatin1("Cannot get user input from invalid authentication plugin: %1")
+                      .arg(uiParams.authenticationPluginName()));
+    }
+
+    // perform UI request to get the data for the secret
+    InteractionParameters modifiedUiParams(uiParams);
+    modifiedUiParams.setApplicationId(callerApplicationId);
+    modifiedUiParams.setCollectionName(secret.identifier().collectionName());
+    modifiedUiParams.setSecretName(secret.identifier().name());
+    modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
+    modifiedUiParams.setPromptTrId(QString()); // clear it in case malicious apps try to confuse the user.
+    Result authenticationResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
                 callerPid,
                 requestId,
-                callerApplicationId,
-                QString(),
-                secret.identifier().name(),
-                interactionServiceAddress);
+                modifiedUiParams,
+                interactionServiceAddress); // in most cases this last parameter will be ignored by the plugin.
     if (authenticationResult.code() == Result::Failed) {
         return authenticationResult;
+    }
+
+    m_pendingRequests.insert(requestId,
+                             Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                 callerPid,
+                                 requestId,
+                                 Daemon::ApiImpl::SetStandaloneCustomLockUserInputSecretRequest,
+                                 QVariantList() << QVariant::fromValue<Secret>(secret)
+                                                << callerApplicationId
+                                                << storagePluginName
+                                                << encryptionPluginName
+                                                << authenticationPluginName
+                                                << unlockSemantic
+                                                << customLockTimeoutMs
+                                                << accessControlMode
+                                                << userInteractionMode
+                                                << interactionServiceAddress));
+    return Result(Result::Pending);
+}
+
+Result
+Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretGetAuthenticationKey(
+        pid_t callerPid,
+        quint64 requestId,
+        const QString &callerApplicationId,
+        const QString &storagePluginName,
+        const QString &encryptionPluginName,
+        const QString &authenticationPluginName,
+        const Secret &secret,
+        SecretManager::CustomLockUnlockSemantic unlockSemantic,
+        int customLockTimeoutMs,
+        SecretManager::AccessControlMode accessControlMode,
+        SecretManager::UserInteractionMode userInteractionMode,
+        const QString &interactionServiceAddress)
+{
+    // perform the user input flow required to get the input key data which will be used
+    // to encrypt the secret
+    InteractionParameters ikdRequest;
+    ikdRequest.setApplicationId(callerApplicationId);
+    ikdRequest.setCollectionName(QString());
+    ikdRequest.setSecretName(secret.identifier().name());
+    ikdRequest.setOperation(InteractionParameters::StoreSecret);
+    ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
+    ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+    ikdRequest.setPromptTrId("sailfish_secrets_store_standalone_secret_input_key_data_prompt");
+    Result interactionResult = m_authenticationPlugins[authenticationPluginName]->beginUserInputInteraction(
+                callerPid,
+                requestId,
+                ikdRequest,
+                interactionServiceAddress);
+    if (interactionResult.code() == Result::Failed) {
+        return interactionResult;
     }
 
     m_pendingRequests.insert(requestId,
@@ -2313,22 +2639,29 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                 if (userInteractionMode == SecretManager::PreventInteraction) {
                     return Result(Result::OperationRequiresUserInteraction,
                                   QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
-                } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == AuthenticationPlugin::ApplicationSpecificAuthentication
+                } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationTypes() & AuthenticationPlugin::ApplicationSpecificAuthentication
                             && (userInteractionMode != SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
                     return Result(Result::OperationRequiresApplicationUserInteraction,
                                   QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
                 }
 
-                // perform UI request to get the authentication key for the collection
-                Result authenticationResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginAuthentication(
+                // perform the user input flow required to get the input key data which will be used
+                // to unlock the collection.
+                InteractionParameters ikdRequest;
+                ikdRequest.setApplicationId(callerApplicationId);
+                ikdRequest.setCollectionName(identifier.collectionName());
+                ikdRequest.setSecretName(identifier.name());
+                ikdRequest.setOperation(InteractionParameters::ReadSecret);
+                ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
+                ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+                ikdRequest.setPromptTrId("sailfish_secrets_get_collection_secret_input_key_data_prompt");
+                Result interactionResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
-                            callerApplicationId,
-                            identifier.collectionName(),
-                            identifier.name(),
+                            ikdRequest,
                             interactionServiceAddress);
-                if (authenticationResult.code() == Result::Failed) {
-                    return authenticationResult;
+                if (interactionResult.code() == Result::Failed) {
+                    return interactionResult;
                 }
 
                 m_pendingRequests.insert(requestId,
@@ -2368,22 +2701,29 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                 if (userInteractionMode == SecretManager::PreventInteraction) {
                     return Result(Result::OperationRequiresUserInteraction,
                                   QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
-                } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == AuthenticationPlugin::ApplicationSpecificAuthentication
+                } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationTypes() & AuthenticationPlugin::ApplicationSpecificAuthentication
                            && (userInteractionMode != SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
                     return Result(Result::OperationRequiresApplicationUserInteraction,
                                   QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
                 }
 
-                // perform UI request to get the authentication key for the collection
-                Result authenticationResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginAuthentication(
+                // perform the user input flow required to get the input key data which will be used
+                // to unlock the collection.
+                InteractionParameters ikdRequest;
+                ikdRequest.setApplicationId(callerApplicationId);
+                ikdRequest.setCollectionName(identifier.collectionName());
+                ikdRequest.setSecretName(identifier.name());
+                ikdRequest.setOperation(InteractionParameters::ReadSecret);
+                ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
+                ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+                ikdRequest.setPromptTrId("sailfish_secrets_get_collection_secret_input_key_data_prompt");
+                Result interactionResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
-                            callerApplicationId,
-                            identifier.collectionName(),
-                            identifier.name(),
+                            ikdRequest,
                             interactionServiceAddress);
-                if (authenticationResult.code() == Result::Failed) {
-                    return authenticationResult;
+                if (interactionResult.code() == Result::Failed) {
+                    return interactionResult;
                 }
 
                 m_pendingRequests.insert(requestId,
@@ -2612,7 +2952,7 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
     } else if (secretApplicationId != callerApplicationId) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Secret %1 is owned by a different application").arg(identifier.name()));
-    } else if (m_authenticationPlugins[secretAuthenticationPluginName]->authenticationType() == AuthenticationPlugin::ApplicationSpecificAuthentication
+    } else if (m_authenticationPlugins[secretAuthenticationPluginName]->authenticationTypes() & AuthenticationPlugin::ApplicationSpecificAuthentication
                && (userInteractionMode != SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
         return Result(Result::OperationRequiresApplicationUserInteraction,
                       QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(secretAuthenticationPluginName));
@@ -2643,16 +2983,23 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
                       QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(secretAuthenticationPluginName));
     }
 
-    // perform UI request to get the authentication key for the collection
-    Result authenticationResult = m_authenticationPlugins[secretAuthenticationPluginName]->beginAuthentication(
+    // perform the user input flow required to get the input key data which will be used
+    // to decrypt the secret.
+    InteractionParameters ikdRequest;
+    ikdRequest.setApplicationId(callerApplicationId);
+    ikdRequest.setCollectionName(QString());
+    ikdRequest.setSecretName(identifier.name());
+    ikdRequest.setOperation(InteractionParameters::ReadSecret);
+    ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
+    ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+    ikdRequest.setPromptTrId("sailfish_secrets_get_standalone_secret_input_key_data_prompt");
+    Result interactionResult = m_authenticationPlugins[secretAuthenticationPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
-                callerApplicationId,
-                QString(),
-                identifier.name(),
+                ikdRequest,
                 interactionServiceAddress);
-    if (authenticationResult.code() == Result::Failed) {
-        return authenticationResult;
+    if (interactionResult.code() == Result::Failed) {
+        return interactionResult;
     }
 
     m_pendingRequests.insert(requestId,
@@ -2854,22 +3201,29 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                 if (userInteractionMode == SecretManager::PreventInteraction) {
                     return Result(Result::OperationRequiresUserInteraction,
                                   QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
-                } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == AuthenticationPlugin::ApplicationSpecificAuthentication
+                } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationTypes() & AuthenticationPlugin::ApplicationSpecificAuthentication
                             && (userInteractionMode != SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
                     return Result(Result::OperationRequiresApplicationUserInteraction,
                                   QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
                 }
 
-                // perform UI request to get the authentication key for the collection
-                Result authenticationResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginAuthentication(
+                // perform the user input flow required to get the input key data which will be used
+                // to decrypt the secret.
+                InteractionParameters ikdRequest;
+                ikdRequest.setApplicationId(callerApplicationId);
+                ikdRequest.setCollectionName(collectionName);
+                ikdRequest.setSecretName(QString());
+                ikdRequest.setOperation(InteractionParameters::UnlockCollection);
+                ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
+                ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+                ikdRequest.setPromptTrId("sailfish_secrets_unlock_collection_find_secrets_input_key_data_prompt");
+                Result interactionResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
-                            callerApplicationId,
-                            collectionName,
-                            QString(),
+                            ikdRequest,
                             interactionServiceAddress);
-                if (authenticationResult.code() == Result::Failed) {
-                    return authenticationResult;
+                if (interactionResult.code() == Result::Failed) {
+                    return interactionResult;
                 }
 
                 m_pendingRequests.insert(requestId,
@@ -2913,22 +3267,29 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                 if (userInteractionMode == SecretManager::PreventInteraction) {
                     return Result(Result::OperationRequiresUserInteraction,
                                   QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
-                } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationType() == AuthenticationPlugin::ApplicationSpecificAuthentication
+                } else if (m_authenticationPlugins[collectionAuthenticationPluginName]->authenticationTypes() & AuthenticationPlugin::ApplicationSpecificAuthentication
                            && (userInteractionMode != SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
                     return Result(Result::OperationRequiresApplicationUserInteraction,
                                   QString::fromLatin1("Authentication plugin %1 requires in-process user interaction").arg(collectionAuthenticationPluginName));
                 }
 
-                // perform UI request to get the authentication key for the collection
-                Result authenticationResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginAuthentication(
+                // perform the user input flow required to get the input key data which will be used
+                // to decrypt the secret.
+                InteractionParameters ikdRequest;
+                ikdRequest.setApplicationId(callerApplicationId);
+                ikdRequest.setCollectionName(collectionName);
+                ikdRequest.setSecretName(QString());
+                ikdRequest.setOperation(InteractionParameters::UnlockCollection);
+                ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
+                ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+                ikdRequest.setPromptTrId("sailfish_secrets_unlock_collection_find_secrets_input_key_data_prompt");
+                Result interactionResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
-                            callerApplicationId,
-                            collectionName,
-                            QString(),
+                            ikdRequest,
                             interactionServiceAddress);
-                if (authenticationResult.code() == Result::Failed) {
-                    return authenticationResult;
+                if (interactionResult.code() == Result::Failed) {
+                    return interactionResult;
                 }
 
                 m_pendingRequests.insert(requestId,
@@ -3205,16 +3566,23 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
                               QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
             }
 
-            // perform UI request to get the authentication key for the collection
-            Result authenticationResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginAuthentication(
+            // perform the user input flow required to get the input key data which will be used
+            // to unlock the secret for deletion.
+            InteractionParameters ikdRequest;
+            ikdRequest.setApplicationId(callerApplicationId);
+            ikdRequest.setCollectionName(identifier.collectionName());
+            ikdRequest.setSecretName(identifier.name());
+            ikdRequest.setOperation(InteractionParameters::DeleteSecret);
+            ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
+            ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+            ikdRequest.setPromptTrId("sailfish_secrets_delete_collection_secret_input_key_data_prompt");
+            Result interactionResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginUserInputInteraction(
                         callerPid,
                         requestId,
-                        callerApplicationId,
-                        identifier.collectionName(),
-                        identifier.name(),
+                        ikdRequest,
                         interactionServiceAddress);
-            if (authenticationResult.code() == Result::Failed) {
-                return authenticationResult;
+            if (interactionResult.code() == Result::Failed) {
+                return interactionResult;
             }
 
             m_pendingRequests.insert(requestId,
@@ -3246,16 +3614,23 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
                                   QString::fromLatin1("Authentication plugin %1 requires user interaction").arg(collectionAuthenticationPluginName));
                 }
 
-                // perform UI request to get the authentication key for the collection
-                Result authenticationResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginAuthentication(
+                // perform the user input flow required to get the input key data which will be used
+                // to unlock the secret for deletion.
+                InteractionParameters ikdRequest;
+                ikdRequest.setApplicationId(callerApplicationId);
+                ikdRequest.setCollectionName(identifier.collectionName());
+                ikdRequest.setSecretName(identifier.name());
+                ikdRequest.setOperation(InteractionParameters::DeleteSecret);
+                ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
+                ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+                ikdRequest.setPromptTrId("sailfish_secrets_delete_collection_secret_input_key_data_prompt");
+                Result interactionResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
-                            callerApplicationId,
-                            identifier.collectionName(),
-                            identifier.name(),
+                            ikdRequest,
                             interactionServiceAddress);
-                if (authenticationResult.code() == Result::Failed) {
-                    return authenticationResult;
+                if (interactionResult.code() == Result::Failed) {
+                    return interactionResult;
                 }
 
                 m_pendingRequests.insert(requestId,
@@ -3615,23 +3990,20 @@ Daemon::ApiImpl::RequestProcessor::deleteStandaloneSecret(
 }
 
 void
-Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
+Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
         uint callerPid,
         qint64 requestId,
-        const QString &callerApplicationId,
-        const QString &collectionName,
-        const QString &secretName,
+        const InteractionParameters &interactionParameters,
         const QString &interactionServiceAddress,
         const Result &result,
-        const QByteArray &authenticationKey)
+        const QByteArray &userInput)
 {
     // may be needed in the future for "multiple-step" flows.
     Q_UNUSED(callerPid);
-    Q_UNUSED(callerApplicationId);
-    Q_UNUSED(collectionName);
-    Q_UNUSED(secretName);
+    Q_UNUSED(interactionParameters)
     Q_UNUSED(interactionServiceAddress);
 
+    bool returnUserInput = false;
     Secret secret;
     QVector<Secret::Identifier> identifiers;
     Result returnResult = result;
@@ -3658,12 +4030,37 @@ Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                                     static_cast<SecretManager::AccessControlMode>(pr.parameters.takeFirst().value<int>()),
                                     static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
                                     pr.parameters.takeFirst().value<QString>(),
-                                    authenticationKey);
+                                    userInput);
+                    }
+                    break;
+                }
+                case SetCollectionUserInputSecretRequest: {
+                    if (pr.parameters.size() != 12) {
+                        returnResult = Result(Result::UnknownError,
+                                              QLatin1String("Internal error: incorrect parameter count!"));
+                    } else {
+                        Secret secret = pr.parameters.takeFirst().value<Secret>();
+                        secret.setData(userInput);
+                        /*InteractionParameters uiParams = */pr.parameters.takeFirst().value<InteractionParameters>();
+                        returnResult = setCollectionSecretGetAuthenticationKey(
+                                    pr.callerPid,
+                                    pr.requestId,
+                                    secret,
+                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<bool>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<int>(),
+                                    pr.parameters.takeFirst().value<int>(),
+                                    static_cast<SecretManager::AccessControlMode>(pr.parameters.takeFirst().value<int>()));
                     }
                     break;
                 }
                 case SetCollectionSecretRequest: {
-                    if (pr.parameters.size() != 11) {
+                    if (pr.parameters.size() != 12) {
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
@@ -3681,7 +4078,52 @@ Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                                     pr.parameters.takeFirst().value<int>(),
                                     pr.parameters.takeFirst().value<int>(),
                                     static_cast<SecretManager::AccessControlMode>(pr.parameters.takeFirst().value<int>()),
-                                    authenticationKey);
+                                    userInput);
+                    }
+                    break;
+                }
+                case SetStandaloneDeviceLockUserInputSecretRequest: {
+                    if (pr.parameters.size() != 9) {
+                        returnResult = Result(Result::UnknownError,
+                                              QLatin1String("Internal error: incorrect parameter count!"));
+                    } else {
+                        Secret secret = pr.parameters.takeFirst().value<Secret>();
+                        secret.setData(userInput);
+                        returnResult = writeStandaloneDeviceLockSecret(
+                                    pr.callerPid,
+                                    pr.requestId,
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    secret,
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<bool>(),
+                                    static_cast<SecretManager::DeviceLockUnlockSemantic>(pr.parameters.takeFirst().value<int>()),
+                                    static_cast<SecretManager::AccessControlMode>(pr.parameters.takeFirst().value<int>()));
+                    }
+                    break;
+                }
+                case SetStandaloneCustomLockUserInputSecretRequest: {
+                    if (pr.parameters.size() != 10) {
+                        returnResult = Result(Result::UnknownError,
+                                              QLatin1String("Internal error: incorrect parameter count!"));
+                    } else {
+                        Secret secret = pr.parameters.takeFirst().value<Secret>();
+                        secret.setData(userInput);
+                        returnResult = setStandaloneCustomLockSecretGetAuthenticationKey(
+                                    pr.callerPid,
+                                    pr.requestId,
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    secret,
+                                    static_cast<SecretManager::CustomLockUnlockSemantic>(pr.parameters.takeFirst().value<int>()),
+                                    pr.parameters.takeFirst().value<int>(),
+                                    static_cast<SecretManager::AccessControlMode>(pr.parameters.takeFirst().value<int>()),
+                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
+                                    pr.parameters.takeFirst().value<QString>());
                     }
                     break;
                 }
@@ -3702,7 +4144,7 @@ Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                                     static_cast<SecretManager::AccessControlMode>(pr.parameters.takeFirst().value<int>()),
                                     static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
                                     pr.parameters.takeFirst().value<QString>(),
-                                    authenticationKey);
+                                    userInput);
                     }
                     break;
                 }
@@ -3721,7 +4163,7 @@ Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                                     pr.parameters.takeFirst().value<QString>(),
                                     pr.parameters.takeFirst().value<int>(),
                                     pr.parameters.takeFirst().value<int>(),
-                                    authenticationKey,
+                                    userInput,
                                     &secret);
                     }
                     break;
@@ -3741,7 +4183,7 @@ Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                                     pr.parameters.takeFirst().value<QString>(),
                                     pr.parameters.takeFirst().value<int>(),
                                     pr.parameters.takeFirst().value<int>(),
-                                    authenticationKey,
+                                    userInput,
                                     &secret);
                     }
                     break;
@@ -3763,7 +4205,7 @@ Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                                     pr.parameters.takeFirst().value<QString>(),
                                     pr.parameters.takeFirst().value<int>(),
                                     pr.parameters.takeFirst().value<int>(),
-                                    authenticationKey,
+                                    userInput,
                                     &identifiers);
                     }
                     break;
@@ -3779,7 +4221,17 @@ Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                                     pr.parameters.takeFirst().value<Secret::Identifier>(),
                                     static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
                                     pr.parameters.takeFirst().value<QString>(),
-                                    authenticationKey);
+                                    userInput);
+                    }
+                    break;
+                }
+                case UserInputRequest: {
+                    if (pr.parameters.size() != 1) {
+                        returnResult = Result(Result::UnknownError,
+                                              QLatin1String("Internal error: incorrect parameter count!"));
+                    } else {
+                        returnUserInput = true;
+                        returnResult = result; // Succeeded.
                     }
                     break;
                 }
@@ -3795,15 +4247,32 @@ Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
         }
     }
 
-    // finish the request.
-    QList<QVariant> outParams;
-    outParams << QVariant::fromValue<Result>(returnResult);
-    if (secret.identifier().isValid()) {
-        outParams << QVariant::fromValue<Secret>(secret);
-    } else {
-        outParams << QVariant::fromValue<QVector<Secret::Identifier> >(identifiers);
+    // finish the request unless another asynchronous request is required.
+    if (returnResult.code() != Result::Pending) {
+        QList<QVariant> outParams;
+        outParams << QVariant::fromValue<Result>(returnResult);
+        if (secret.identifier().isValid()) {
+            outParams << QVariant::fromValue<Secret>(secret);
+        } else if (returnUserInput) {
+            outParams << QVariant::fromValue<QByteArray>(userInput);
+        } else {
+            outParams << QVariant::fromValue<QVector<Secret::Identifier> >(identifiers);
+        }
+        m_requestQueue->requestFinished(requestId, outParams);
     }
-    m_requestQueue->requestFinished(requestId, outParams);
+}
+
+void Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
+        uint callerPid,
+        qint64 requestId,
+        const Result &result)
+{
+    Q_UNUSED(callerPid);
+    Q_UNUSED(requestId);
+    Q_UNUSED(result);
+
+    // the user has successfully authenticated themself.
+    // in the future, use this to unlock master-locked collections.
 }
 
 void Daemon::ApiImpl::RequestProcessor::timeoutRelockCollection()

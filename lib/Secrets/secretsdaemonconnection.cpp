@@ -10,10 +10,11 @@
 #include "Secrets/serialisation_p.h"
 
 #include "Secrets/secretmanager.h"
-#include "Secrets/interactionrequest.h"
+#include "Secrets/interactionparameters.h"
 #include "Secrets/extensionplugins.h"
 #include "Secrets/result.h"
 #include "Secrets/secret.h"
+#include "Secrets/interactionparameters.h"
 
 #include <QtDBus/QDBusReply>
 #include <QtDBus/QDBusInterface>
@@ -168,7 +169,10 @@ void Sailfish::Secrets::SecretsDaemonConnection::registerDBusTypes()
     qRegisterMetaType<Sailfish::Secrets::Secret>("Sailfish::Secrets::Secret");
     qRegisterMetaType<Sailfish::Secrets::Secret::Identifier>("Sailfish::Secrets::Secret::Identifier");
     qRegisterMetaType<Sailfish::Secrets::Secret::FilterData>("Sailfish::Secrets::Secret::FilterData");
-    qRegisterMetaType<Sailfish::Secrets::InteractionRequest>("Sailfish::Secrets::InteractionRequest");
+    qRegisterMetaType<Sailfish::Secrets::InteractionParameters>("Sailfish::Secrets::InteractionParameters");
+    qRegisterMetaType<Sailfish::Secrets::InteractionParameters::InputType>("Sailfish::Secrets::InteractionParameters::InputType");
+    qRegisterMetaType<Sailfish::Secrets::InteractionParameters::EchoMode>("Sailfish::Secrets::InteractionParameters::EchoMode");
+    qRegisterMetaType<Sailfish::Secrets::InteractionParameters::Operation>("Sailfish::Secrets::InteractionParameters::Operation");
     qRegisterMetaType<Sailfish::Secrets::InteractionResponse>("Sailfish::Secrets::InteractionResponse");
 
     qDBusRegisterMetaType<Sailfish::Secrets::SecretManager::UserInteractionMode>();
@@ -189,6 +193,10 @@ void Sailfish::Secrets::SecretsDaemonConnection::registerDBusTypes()
     qDBusRegisterMetaType<Sailfish::Secrets::Secret::Identifier>();
     qDBusRegisterMetaType<QVector<Sailfish::Secrets::Secret::Identifier> >();
     qDBusRegisterMetaType<Sailfish::Secrets::Secret::FilterData>();
-    qDBusRegisterMetaType<Sailfish::Secrets::InteractionRequest>();
+    qDBusRegisterMetaType<Sailfish::Secrets::InteractionParameters>();
+    qDBusRegisterMetaType<Sailfish::Secrets::InteractionParameters::InputType>();
+    qDBusRegisterMetaType<Sailfish::Secrets::InteractionParameters::EchoMode>();
+    qDBusRegisterMetaType<Sailfish::Secrets::InteractionParameters::Operation>();
+    qDBusRegisterMetaType<Sailfish::Secrets::InteractionParameters>();
     qDBusRegisterMetaType<Sailfish::Secrets::InteractionResponse>();
 }

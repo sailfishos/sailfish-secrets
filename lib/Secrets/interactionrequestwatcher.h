@@ -8,7 +8,8 @@
 #ifndef SAILFISHSECRETS_INTERACTIONREQUESTWATCHER_H
 #define SAILFISHSECRETS_INTERACTIONREQUESTWATCHER_H
 
-#include "Secrets/interactionrequest.h"
+#include "Secrets/interactionparameters.h"
+#include "Secrets/interactionresponse.h"
 #include "Secrets/result.h"
 
 #include <QtCore/QObject>
@@ -39,30 +40,25 @@ public:
 
     void setRequestId(quint64 id);
     void setCallerPid(pid_t pid);
-    void setCallerApplicationId(const QString &applicationId);
-    void setCollectionName(const QString &name);
-    void setSecretName(const QString &name);
+    void setInteractionParameters(const Sailfish::Secrets::InteractionParameters &request);
     void setInteractionServiceAddress(const QString &address);
 
     quint64 requestId() const;
     pid_t callerPid() const;
-    QString callerApplicationId() const;
-    QString collectionName() const;
-    QString secretName() const;
+    Sailfish::Secrets::InteractionParameters interactionParameters() const;
     QString interactionServiceAddress() const;
 
     bool connectToInteractionService();
     void disconnectFromInteractionService();
 
-    bool sendInteractionRequest(const Sailfish::Secrets::InteractionRequest &request);
-    bool continueInteractionRequest(const Sailfish::Secrets::InteractionRequest &request);
+    bool sendInteractionRequest();
+    bool continueInteractionRequest(const Sailfish::Secrets::InteractionParameters &request);
     bool cancelInteractionRequest();
     bool finishInteractionRequest();
 
 Q_SIGNALS:
     void interactionRequestFinished(quint64 requestId);
     void interactionRequestResponse(quint64 requestId,
-                                    const Sailfish::Secrets::Result &result,
                                     const Sailfish::Secrets::InteractionResponse &response);
 
 private Q_SLOTS:
