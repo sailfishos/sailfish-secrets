@@ -155,6 +155,9 @@ Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
                 connect(authenticationPlugin, &AuthenticationPlugin::userInputInteractionCompleted,
                         this, &Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted);
             }
+        } else if (!loader.isLoaded()) {
+            qCWarning(lcSailfishSecretsDaemon) << "cannot load plugin:" << pluginFile << loader.errorString();
+            continue;
         } else {
             qCWarning(lcSailfishSecretsDaemon) << "ignoring plugin:" << pluginFile << "- not a secrets plugin or Qt version mismatch";
             loader.unload();

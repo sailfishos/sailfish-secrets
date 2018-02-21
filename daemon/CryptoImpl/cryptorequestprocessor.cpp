@@ -125,6 +125,9 @@ Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
                 qCDebug(lcSailfishCryptoDaemon) << "loading crypto plugin:" << pluginFile << "with name:" << cryptoPlugin->name();
                 m_cryptoPlugins.insert(cryptoPlugin->name(), cryptoPlugin);
             }
+        } else if (!loader.isLoaded()) {
+            qCWarning(lcSailfishCryptoDaemon) << "cannot load plugin:" << pluginFile << loader.errorString();
+            continue;
         } else {
             qCWarning(lcSailfishCryptoDaemon) << "ignoring plugin:" << pluginFile << "- not a crypto plugin or Qt version mismatch";
             loader.unload();
