@@ -5,8 +5,8 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#ifndef LIBSAILFISHSECRETS_INTERACTIONREQUEST_H
-#define LIBSAILFISHSECRETS_INTERACTIONREQUEST_H
+#ifndef LIBSAILFISHSECRETS_INTERACTIONPARAMETERS_H
+#define LIBSAILFISHSECRETS_INTERACTIONPARAMETERS_H
 
 #include "Secrets/secretsglobal.h"
 
@@ -149,4 +149,4 @@ inline bool operator<(const Sailfish::Secrets::InteractionParameters &/*lhs*/, c
     return false;
 }
 
-#endif // LIBSAILFISHSECRETS_INTERACTIONREQUEST_H
+#endif // LIBSAILFISHSECRETS_INTERACTIONPARAMETERS_H

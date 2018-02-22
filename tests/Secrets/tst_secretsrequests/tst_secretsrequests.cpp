@@ -13,10 +13,12 @@
 
 #include "Secrets/secretmanager.h"
 #include "Secrets/secret.h"
+#include "Secrets/interactionparameters.h"
 #include "Secrets/createcollectionrequest.h"
 #include "Secrets/deletecollectionrequest.h"
 #include "Secrets/deletesecretrequest.h"
 #include "Secrets/findsecretsrequest.h"
+#include "Secrets/interactionrequest.h"
 #include "Secrets/storedsecretrequest.h"
 #include "Secrets/storesecretrequest.h"
 
@@ -57,6 +59,8 @@ private slots:
     void encryptedStorageCollection();
 
     void storeUserSecret();
+
+    void requestUserInput();
 
 private:
     SecretManager sm;
@@ -1218,6 +1222,40 @@ void tst_secretsrequests::storeUserSecret()
         WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
         QCOMPARE(gsr.result().code(), Result::Failed);
     }
+}
+
+void tst_secretsrequests::requestUserInput()
+{
+    // construct the in-process authentication key UI.
+    QQuickView v(QUrl::fromLocalFile(QStringLiteral("%1/tst_secretsrequests.qml").arg(QCoreApplication::applicationDirPath())));
+    v.show();
+    QObject *interactionView = v.rootObject()->findChild<QObject*>("interactionview");
+    QVERIFY(interactionView);
+    QMetaObject::invokeMethod(interactionView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &sm));
+
+    // define the interaction parameters
+    InteractionParameters uiParams;
+    uiParams.setInputType(InteractionParameters::AlphaNumericInput);
+    uiParams.setEchoMode(InteractionParameters::NormalEcho);
+    uiParams.setPromptText(QLatin1String("Enter the passphrase for the unit test"));
+    uiParams.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
+
+    // request input from the user
+    InteractionRequest ir;
+    ir.setManager(&sm);
+    QSignalSpy irss(&ir, &CreateCollectionRequest::statusChanged);
+    ir.setInteractionParameters(uiParams);
+    QCOMPARE(ir.interactionParameters(), uiParams);
+    QCOMPARE(ir.status(), Request::Inactive);
+    ir.startRequest();
+    QCOMPARE(irss.count(), 1);
+    QCOMPARE(ir.status(), Request::Active);
+    QCOMPARE(ir.result().code(), Result::Pending);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ir);
+    QCOMPARE(irss.count(), 2);
+    QCOMPARE(ir.status(), Request::Finished);
+    QCOMPARE(ir.result().code(), Result::Succeeded);
+    QCOMPARE(ir.userInput(), QByteArray("example passphrase for unit test"));
 }
 
 #include "tst_secretsrequests.moc"

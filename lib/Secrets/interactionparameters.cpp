@@ -20,6 +20,7 @@ InteractionParametersPrivate::InteractionParametersPrivate(const InteractionPara
     , m_collectionName(other.m_collectionName)
     , m_applicationId(other.m_applicationId)
     , m_operation(other.m_operation)
+    , m_authenticationPluginName(other.m_authenticationPluginName)
     , m_promptText(other.m_promptText)
     , m_promptTrId(other.m_promptTrId)
     , m_inputType(other.m_inputType)
@@ -93,6 +94,7 @@ bool InteractionParameters::operator==(const InteractionParameters &other) const
             && operation() == other.operation()
             && authenticationPluginName() == other.authenticationPluginName()
             && promptText() == other.promptText()
+            && promptTrId() == other.promptTrId()
             && inputType() == other.inputType()
             && echoMode() == other.echoMode();
 }

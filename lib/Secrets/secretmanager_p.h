@@ -43,6 +43,10 @@ public:
     // register the ui service if required, and return it's address.
     Sailfish::Secrets::Result registerInteractionService(Sailfish::Secrets::SecretManager::UserInteractionMode mode, QString *address);
 
+    // retrieve user input data
+    QDBusPendingReply<Sailfish::Secrets::Result, QByteArray> userInput(
+            const Sailfish::Secrets::InteractionParameters &uiParams);
+
     // create a DeviceLock-protected collection
     QDBusPendingReply<Sailfish::Secrets::Result> createCollection(
             const QString &collectionName,

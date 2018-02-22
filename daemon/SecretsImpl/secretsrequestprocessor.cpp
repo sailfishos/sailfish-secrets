@@ -1120,6 +1120,15 @@ Daemon::ApiImpl::RequestProcessor::userInput(
 
     InteractionParameters ikdRequest(uiParams);
     ikdRequest.setApplicationId(callerApplicationId);
+    if (ikdRequest.collectionName().isEmpty() && ikdRequest.secretName().isEmpty()) {
+        // this is a request on behalf of a client application.
+        // the user needs to be warned that the data they enter cannot
+        // be considered to be "secure" in the secrets-storage sense.
+        const QString warningPromptText = QString::fromLatin1(
+                    "An application is requesting input which will be returned to the application: %1")
+                .arg(ikdRequest.promptText());
+        ikdRequest.setPromptText(warningPromptText);
+    }
     Result interactionResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
                 callerPid,
                 requestId,
