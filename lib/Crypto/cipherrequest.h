@@ -9,6 +9,7 @@
 #define LIBSAILFISHCRYPTO_CIPHERREQUEST_H
 
 #include "Crypto/cryptoglobal.h"
+#include "Crypto/cryptomanager.h"
 #include "Crypto/request.h"
 #include "Crypto/key.h"
 
@@ -21,14 +22,12 @@ namespace Sailfish {
 
 namespace Crypto {
 
-class CryptoManager;
-
 class CipherRequestPrivate;
 class SAILFISH_CRYPTO_API CipherRequest : public Sailfish::Crypto::Request
 {
     Q_OBJECT
     Q_PROPERTY(CipherMode cipherMode READ cipherMode WRITE setCipherMode NOTIFY cipherModeChanged)
-    Q_PROPERTY(CryptoManager::Operation operation READ operation WRITE setOperation NOTIFY operationChanged)
+    Q_PROPERTY(Sailfish::Crypto::CryptoManager::Operation operation READ operation WRITE setOperation NOTIFY operationChanged)
     Q_PROPERTY(QByteArray data READ data WRITE setData NOTIFY dataChanged)
     Q_PROPERTY(QByteArray initialisationVector READ initialisationVector WRITE setInitialisationVector NOTIFY initialisationVectorChanged)
     Q_PROPERTY(Sailfish::Crypto::Key key READ key WRITE setKey NOTIFY keyChanged)
@@ -56,8 +55,8 @@ public:
     CipherMode cipherMode() const;
     void setCipherMode(CipherMode mode);
 
-    CryptoManager::Operation operation() const;
-    void setOperation(CryptoManager::Operation op);
+    Sailfish::Crypto::CryptoManager::Operation operation() const;
+    void setOperation(Sailfish::Crypto::CryptoManager::Operation op);
 
     QByteArray data() const;
     void setData(const QByteArray &data);
