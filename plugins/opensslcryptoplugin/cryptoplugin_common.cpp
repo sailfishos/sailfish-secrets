@@ -193,7 +193,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::generateRandomData(
     }
 
     int nbytes = numberBytes;
-    QScopedPointer<char> buf(new char[nbytes]);
+    QScopedArrayPointer<char> buf(new char[nbytes]);
     if (useDevURandom) {
         std::ifstream rand("/dev/urandom");
         rand.read(buf.data(), nbytes);
@@ -266,7 +266,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::generateKey(
                                             QLatin1String("Failed to write public key data to memory"));
         }
         size_t pubkeylen = BIO_pending(pubbio.data());
-        QScopedPointer<unsigned char> pubdata(new unsigned char[pubkeylen]);
+        QScopedArrayPointer<unsigned char> pubdata(new unsigned char[pubkeylen]);
         if (BIO_read(pubbio.data(), pubdata.data(), pubkeylen) < 1) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
                                             QLatin1String("Failed to read public key data from memory"));
@@ -278,7 +278,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::generateKey(
                                             QLatin1String("Failed to write private key data to memory"));
         }
         size_t privkeylen = BIO_pending(privbio.data());
-        QScopedPointer<unsigned char> privdata(new unsigned char[privkeylen]);
+        QScopedArrayPointer<unsigned char> privdata(new unsigned char[privkeylen]);
         if (BIO_read(privbio.data(), privdata.data(), privkeylen) < 1) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
                                             QLatin1String("Failed to read private key data from memory"));
@@ -341,7 +341,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::generateKey(
     }
 
     int nbytes = skdfParams.outputKeySize() / 8;
-    QScopedPointer<char> buf(new char[nbytes]);
+    QScopedArrayPointer<char> buf(new char[nbytes]);
     if (PKCS5_PBKDF2_HMAC_SHA1(
             skdfParams.inputData().isEmpty()
                     ? NULL
@@ -725,7 +725,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::updateCipherSession(
 
     csd->timeout->start(); // restart the timeout due to activity.
     int blockSizeForCipher = 16; // TODO: lookup for different algorithms, but AES is 128 bit blocks = 16 bytes
-    QScopedPointer<unsigned char> generatedDataBuf(new unsigned char[data.size() + blockSizeForCipher]);
+    QScopedArrayPointer<unsigned char> generatedDataBuf(new unsigned char[data.size() + blockSizeForCipher]);
     int generatedDataSize = 0;
     if (csd->operation == Sailfish::Crypto::CryptoManager::OperationEncrypt) {
         if (EVP_EncryptUpdate(csd->evp_cipher_ctx,
@@ -775,7 +775,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::finaliseCipherSession(
     QScopedPointer<CipherSessionData,CipherSessionDataDeleter> csdd(m_cipherSessions[clientId].take(cipherSessionToken));
     m_cipherSessionTimeouts.remove(csd->timeout);
     int blockSizeForCipher = 16; // TODO: lookup for different algorithms, but AES is 128 bit blocks = 16 bytes
-    QScopedPointer<unsigned char> generatedDataBuf(new unsigned char[blockSizeForCipher*2]); // final 1 or 2 blocks.
+    QScopedArrayPointer<unsigned char> generatedDataBuf(new unsigned char[blockSizeForCipher*2]); // final 1 or 2 blocks.
     int generatedDataSize = 0;
     if (csd->operation == Sailfish::Crypto::CryptoManager::OperationEncrypt) {
         if (EVP_EncryptFinal_ex(csd->evp_cipher_ctx, generatedDataBuf.data(), &generatedDataSize) != 1) {
