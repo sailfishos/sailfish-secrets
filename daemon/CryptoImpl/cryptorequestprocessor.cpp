@@ -13,6 +13,7 @@
 
 #include "util_p.h"
 #include "logging_p.h"
+#include "plugin_p.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QPluginLoader>
@@ -109,29 +110,13 @@ Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
     QDir dir(pluginDir);
     Q_FOREACH (const QString &pluginFile, dir.entryList(QDir::Files | QDir::NoDot | QDir::NoDotDot, QDir::Name)) {
         // load the plugin and query it for its data.
-        QPluginLoader loader(pluginFile);
+        PluginHelper loader(pluginFile, m_autotestMode);
         QObject *plugin = loader.instance();
-        CryptoPlugin *cryptoPlugin = qobject_cast<CryptoPlugin*>(plugin);
-        if (cryptoPlugin) {
-            if (cryptoPlugin->name().isEmpty() || m_cryptoPlugins.contains(cryptoPlugin->name())) {
-                qCDebug(lcSailfishCryptoDaemon) << "ignoring crypto plugin:" << pluginFile << "with duplicate name:" << cryptoPlugin->name();
-                loader.unload();
-                continue;
-            } else if (cryptoPlugin->name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive) != m_autotestMode) {
-                qCDebug(lcSailfishCryptoDaemon) << "ignoring crypto plugin:" << pluginFile << "due to mode";
-                loader.unload();
-                continue;
-            } else {
-                qCDebug(lcSailfishCryptoDaemon) << "loading crypto plugin:" << pluginFile << "with name:" << cryptoPlugin->name();
-                m_cryptoPlugins.insert(cryptoPlugin->name(), cryptoPlugin);
-            }
-        } else if (!loader.isLoaded()) {
-            qCWarning(lcSailfishCryptoDaemon) << "cannot load plugin:" << pluginFile << loader.errorString();
+
+        if (loader.storeAs<CryptoPlugin>(plugin, &m_cryptoPlugins, lcSailfishCryptoDaemon)) {
             continue;
         } else {
-            qCWarning(lcSailfishCryptoDaemon) << "ignoring plugin:" << pluginFile << "- not a crypto plugin or Qt version mismatch";
-            loader.unload();
-            continue;
+            loader.reportFailure(lcSailfishCryptoDaemon);
         }
     }
 
