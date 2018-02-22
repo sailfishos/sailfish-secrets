@@ -106,12 +106,16 @@ public Q_SLOTS:
     void handleRequests();
     void handleClientConnection(const QDBusConnection &connection);
 
+private Q_SLOTS:
+    void finishEnqueueRequest(quint64 requestId);
+
 protected:
     Controller *m_controller;
     QObject *m_dbusObject;
     QString m_dbusObjectPath;
     QString m_dbusInterfaceName;
     QList<RequestData*> m_requests;
+    QMap<quint64, RequestData*> m_enqueuingRequests;
 
     QString m_pluginDir;
     bool m_autotestMode;

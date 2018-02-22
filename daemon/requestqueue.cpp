@@ -154,14 +154,19 @@ Result Daemon::ApiImpl::RequestQueue::enqueueRequest(Daemon::ApiImpl::RequestQue
     bool found = false;
     for ( ; nextFreeId != prevId; ++nextFreeId) {
         found = false;
-        QList<Daemon::ApiImpl::RequestQueue::RequestData*>::const_iterator it = m_requests.constBegin();
-        while (it != m_requests.constEnd()) {
-            if ((*it)->requestId == nextFreeId) {
-                // another current request is using this id.
-                found = true;
-                break;
+        if (m_enqueuingRequests.contains(nextFreeId)) {
+            // another enqueuing request is using this id.
+            found = true;
+        } else {
+            QList<Daemon::ApiImpl::RequestQueue::RequestData*>::const_iterator it = m_requests.constBegin();
+            while (it != m_requests.constEnd()) {
+                if ((*it)->requestId == nextFreeId) {
+                    // another current request is using this id.
+                    found = true;
+                    break;
+                }
+                it++;
             }
-            it++;
         }
         if (!found) {
             // no requests in the queue are using this id.  it is free to use.
@@ -186,9 +191,26 @@ Result Daemon::ApiImpl::RequestQueue::enqueueRequest(Daemon::ApiImpl::RequestQue
     }
 
     request->requestId = nextFreeId;
+    m_enqueuingRequests.insert(nextFreeId, request);
+    // asynchronously append the request to the queue,
+    // to avoid invalidating any iterators operating on it.
+    QMetaObject::invokeMethod(this, "finishEnqueueRequest",
+                              Qt::QueuedConnection,
+                              Q_ARG(quint64, nextFreeId));
+    return Result(Result::Succeeded);
+}
+
+void Daemon::ApiImpl::RequestQueue::finishEnqueueRequest(quint64 requestId)
+{
+    if (!m_enqueuingRequests.contains(requestId)) {
+        // Should never happen, if it does it is always due to a bug in the request queue code.
+        qCWarning(lcSailfishSecretsDaemon) << "Unable to finish enqueuing request:" << requestId;
+        return;
+    }
+
+    Daemon::ApiImpl::RequestQueue::RequestData *request = m_enqueuingRequests.take(requestId);
     m_requests.append(request);
     QMetaObject::invokeMethod(this, "handleRequests", Qt::QueuedConnection);
-    return Result(Result::Succeeded);
 }
 
 void Daemon::ApiImpl::RequestQueue::requestFinished(quint64 requestId, const QList<QVariant> &outParams)
