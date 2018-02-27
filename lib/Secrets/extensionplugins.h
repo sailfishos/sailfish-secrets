@@ -47,6 +47,8 @@ public:
     EncryptionPlugin();
     virtual ~EncryptionPlugin();
 
+    virtual bool initialise(const QVariantMap &parameters) = 0;
+
     virtual QString name() const = 0;
     virtual Sailfish::Secrets::EncryptionPlugin::EncryptionType encryptionType() const = 0;
     virtual Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm encryptionAlgorithm() const = 0;
@@ -99,6 +101,8 @@ public:
     StoragePlugin();
     virtual ~StoragePlugin();
 
+    virtual bool initialise(const QVariantMap &parameters) = 0;
+
     virtual QString name() const = 0;
     virtual Sailfish::Secrets::StoragePlugin::StorageType storageType() const = 0;
 
@@ -144,6 +148,8 @@ class SAILFISH_SECRETS_API EncryptedStoragePlugin
 public:
     EncryptedStoragePlugin();
     virtual ~EncryptedStoragePlugin();
+
+    virtual bool initialise(const QVariantMap &parameters) = 0;
 
     virtual QString name() const = 0;
     virtual Sailfish::Secrets::StoragePlugin::StorageType storageType() const = 0;
@@ -214,6 +220,8 @@ public:
 
     AuthenticationPlugin(QObject *parent = Q_NULLPTR);
     virtual ~AuthenticationPlugin();
+
+    virtual bool initialise(const QVariantMap &parameters) = 0;
 
     virtual QString name() const = 0;
     virtual Sailfish::Secrets::AuthenticationPlugin::AuthenticationTypes authenticationTypes() const = 0;

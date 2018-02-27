@@ -45,6 +45,7 @@ public:
 
     template <typename Plugin>
     Plugin* storeAs(QObject *obj, QMap<QString, Plugin*> *store,
+                    const QVariantMap &parameters,
                     const QLoggingCategory &category())
     {
         if (!obj) {
@@ -73,6 +74,12 @@ public:
             return 0;
         }
         qCDebug(category) << "loading plugin:" << fileName() << "with name:" << plugin->name();
+        qCDebug(category) << "initialising plugin:" << fileName();
+
+        if (!plugin->initialise(parameters)) {
+            qCWarning(category) << "Could not initialize the plugin:" << fileName();
+        }
+
         store->insert(plugin->name(), plugin);
         return plugin;
     }

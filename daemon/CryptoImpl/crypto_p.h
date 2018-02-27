@@ -392,6 +392,7 @@ public:
     CryptoRequestQueue(Sailfish::Secrets::Daemon::Controller *parent,
                        Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *secrets,
                        const QString &pluginDir,
+                       const QVariantMap &parameters,
                        bool autotestMode);
     ~CryptoRequestQueue();
 

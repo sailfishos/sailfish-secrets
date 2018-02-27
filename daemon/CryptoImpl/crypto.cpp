@@ -397,6 +397,7 @@ Daemon::ApiImpl::CryptoRequestQueue::CryptoRequestQueue(
         Sailfish::Secrets::Daemon::Controller *parent,
         Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *secrets,
         const QString &pluginDir,
+        const QVariantMap &parameters,
         bool autotestMode)
     : Sailfish::Secrets::Daemon::ApiImpl::RequestQueue(
           QLatin1String("/Sailfish/Crypto"),
@@ -408,7 +409,7 @@ Daemon::ApiImpl::CryptoRequestQueue::CryptoRequestQueue(
     CryptoDaemonConnection::registerDBusTypes();
 
     m_requestProcessor = new Daemon::ApiImpl::RequestProcessor(secrets, autotestMode, this);
-    if (!m_requestProcessor->loadPlugins(pluginDir)) {
+    if (!m_requestProcessor->loadPlugins(pluginDir, parameters)) {
         qCWarning(lcSailfishCryptoDaemon) << "Crypto: failed to load plugins!";
         return;
     }

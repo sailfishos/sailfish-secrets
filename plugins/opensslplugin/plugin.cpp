@@ -15,11 +15,15 @@ using namespace Sailfish::Secrets;
 Daemon::Plugins::OpenSslPlugin::OpenSslPlugin(QObject *parent)
     : QObject(parent), EncryptionPlugin()
 {
-    osslevp_init();
 }
 
 Daemon::Plugins::OpenSslPlugin::~OpenSslPlugin()
 {
+}
+
+bool
+Daemon::Plugins::OpenSslPlugin::initialise(const QVariantMap &) {
+    return osslevp_init();
 }
 
 Result

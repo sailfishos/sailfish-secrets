@@ -86,7 +86,7 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(
 }
 
 bool
-Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
+Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir, const QVariantMap &parameters)
 {
     // First, see if any of the EncryptedStorage plugins from Secrets are also
     // Crypto plugins (providing generateAndStoreKey() functionality internally).
@@ -112,7 +112,7 @@ Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
         // load the plugin and query it for its data.
         Sailfish::Secrets::Daemon::ApiImpl::PluginHelper loader(pluginFile, m_autotestMode);
         QObject *plugin = loader.instance();
-        if (!loader.storeAs<CryptoPlugin>(plugin, &m_cryptoPlugins, lcSailfishCryptoDaemon)) {
+        if (!loader.storeAs<CryptoPlugin>(plugin, &m_cryptoPlugins, parameters, lcSailfishCryptoDaemon)) {
             loader.reportFailure(lcSailfishCryptoDaemon);
         }
     }

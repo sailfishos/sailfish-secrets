@@ -88,7 +88,7 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(Daemon::Sqlite::Database *db
 }
 
 bool
-Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
+Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir, const QVariantMap &parameters)
 {
     qCDebug(lcSailfishSecretsDaemon) << "Loading plugins from directory:" << pluginDir;
     QDir dir(pluginDir);
@@ -100,19 +100,19 @@ Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
         EncryptedStoragePlugin *encryptedStoragePlugin;
         AuthenticationPlugin *authenticationPlugin;
 
-        if (loader.storeAs<StoragePlugin>(plugin, &m_storagePlugins, lcSailfishSecretsDaemon)) {
+        if (loader.storeAs<StoragePlugin>(plugin, &m_storagePlugins, parameters, lcSailfishSecretsDaemon)) {
             // nothing more to do
         } else if (loader.failureType() != Daemon::ApiImpl::PluginHelper::PluginTypeFailure) {
             loader.reportFailure(lcSailfishSecretsDaemon);
-        } else if (loader.storeAs<EncryptionPlugin>(plugin, &m_encryptionPlugins, lcSailfishSecretsDaemon)) {
+        } else if (loader.storeAs<EncryptionPlugin>(plugin, &m_encryptionPlugins, parameters, lcSailfishSecretsDaemon)) {
             // nothing more to do
         } else if (loader.failureType() != Daemon::ApiImpl::PluginHelper::PluginTypeFailure) {
             loader.reportFailure(lcSailfishSecretsDaemon);
-        } else if ((encryptedStoragePlugin = loader.storeAs<EncryptedStoragePlugin>(plugin, &m_encryptedStoragePlugins, lcSailfishSecretsDaemon))) {
+        } else if ((encryptedStoragePlugin = loader.storeAs<EncryptedStoragePlugin>(plugin, &m_encryptedStoragePlugins, parameters, lcSailfishSecretsDaemon))) {
             m_potentialCryptoStoragePlugins.insert(encryptedStoragePlugin->name(), plugin);
         } else if (loader.failureType() != Daemon::ApiImpl::PluginHelper::PluginTypeFailure) {
             loader.reportFailure(lcSailfishSecretsDaemon);
-        } else if ((authenticationPlugin = loader.storeAs<AuthenticationPlugin>(plugin, &m_authenticationPlugins, lcSailfishSecretsDaemon))) {
+        } else if ((authenticationPlugin = loader.storeAs<AuthenticationPlugin>(plugin, &m_authenticationPlugins, parameters, lcSailfishSecretsDaemon))) {
             connect(authenticationPlugin, &AuthenticationPlugin::authenticationCompleted,
                     this, &Daemon::ApiImpl::RequestProcessor::authenticationCompleted);
             connect(authenticationPlugin, &AuthenticationPlugin::userInputInteractionCompleted,
