@@ -110,12 +110,9 @@ Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
     QDir dir(pluginDir);
     Q_FOREACH (const QString &pluginFile, dir.entryList(QDir::Files | QDir::NoDot | QDir::NoDotDot, QDir::Name)) {
         // load the plugin and query it for its data.
-        PluginHelper loader(pluginFile, m_autotestMode);
+        Sailfish::Secrets::Daemon::ApiImpl::PluginHelper loader(pluginFile, m_autotestMode);
         QObject *plugin = loader.instance();
-
-        if (loader.storeAs<CryptoPlugin>(plugin, &m_cryptoPlugins, lcSailfishCryptoDaemon)) {
-            continue;
-        } else {
+        if (!loader.storeAs<CryptoPlugin>(plugin, &m_cryptoPlugins, lcSailfishCryptoDaemon)) {
             loader.reportFailure(lcSailfishCryptoDaemon);
         }
     }

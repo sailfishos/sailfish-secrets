@@ -13,51 +13,86 @@
 #include <QtCore/QMap>
 #include <QtCore/QLoggingCategory>
 
-class PluginHelper: public QPluginLoader
+#include "Secrets/extensionplugins.h"
+#include "Crypto/extensionplugins.h"
+
+namespace Sailfish {
+
+namespace Secrets {
+
+namespace Daemon {
+
+namespace ApiImpl {
+
+class PluginHelper : public QPluginLoader
 {
     Q_OBJECT
+    Q_PROPERTY(PluginHelper::FailureType failureType READ failureType NOTIFY failureTypeChanged)
 
- public:
-    PluginHelper(const QString &fileName, bool autotestMode)
-        : QPluginLoader(fileName), m_autotestMode(autotestMode) {};
-    ~PluginHelper() {};
+public:
+    PluginHelper(const QString &fileName, bool autotestMode);
+    ~PluginHelper();
+
+    enum FailureType {
+        NoFailure = 0,
+        PluginLoadFailure,
+        PluginTypeFailure,
+        DuplicateNameFailure,
+        AutotestModeFailure
+    };
+    Q_ENUM(FailureType)
+    FailureType failureType() const;
 
     template <typename Plugin>
-        Plugin* storeAs(QObject *obj, QMap<QString, Plugin*> *store,
-                        const QLoggingCategory &category())
-        {
-            Plugin *plugin = qobject_cast<Plugin*>(obj);
-            if (!plugin)
-                return 0;
-            if (plugin->name().isEmpty() || store->contains(plugin->name())) {
-                qCDebug(category) << "ignoring plugin:" << fileName() << "with duplicate name:" << plugin->name();
-                unload();
-                return 0;
-            }
-            if (plugin->name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive) != m_autotestMode) {
-                qCDebug(category) << "ignoring plugin:" << fileName() << "due to mode";
-                unload();
-                return 0;
-            }
-            qCDebug(category) << "loading plugin:" << fileName() << "with name:" << plugin->name();
-            store->insert(plugin->name(), plugin);
-            return plugin;
-        };
-
-    void reportFailure(const QLoggingCategory &category())
+    Plugin* storeAs(QObject *obj, QMap<QString, Plugin*> *store,
+                    const QLoggingCategory &category())
     {
-        if (!isLoaded()) {
-            qCWarning(category) << "cannot load plugin:" << fileName() << errorString();
-            return;
-        } else {
-            qCWarning(category) << "ignoring plugin:" << fileName() << "- not a valid plugin or Qt version mismatch";
-            unload();
-            return;
+        if (!obj) {
+            m_failureType = PluginLoadFailure;
+            emit failureTypeChanged();
+            return 0;
         }
+        Plugin *plugin = qobject_cast<Plugin*>(obj);
+        if (!plugin) {
+            m_failureType = PluginTypeFailure;
+            emit failureTypeChanged();
+            return 0;
+        }
+        if (plugin->name().isEmpty() || store->contains(plugin->name())) {
+            qCDebug(category) << "ignoring plugin:" << fileName() << "with duplicate name:" << plugin->name();
+            unload();
+            m_failureType = DuplicateNameFailure;
+            emit failureTypeChanged();
+            return 0;
+        }
+        if (plugin->name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive) != m_autotestMode) {
+            qCDebug(category) << "ignoring plugin:" << fileName() << "due to mode";
+            unload();
+            m_failureType = AutotestModeFailure;
+            emit failureTypeChanged();
+            return 0;
+        }
+        qCDebug(category) << "loading plugin:" << fileName() << "with name:" << plugin->name();
+        store->insert(plugin->name(), plugin);
+        return plugin;
     }
 
- private:
+    void reportFailure(const QLoggingCategory &category());
+
+Q_SIGNALS:
+    void failureTypeChanged();
+
+private:
+    FailureType m_failureType;
     bool m_autotestMode;
 };
+
+} // ApiImpl
+
+} // Daemon
+
+} // Secrets
+
+} // Sailfish
 
 #endif // SAILFISHSECRETS_DAEMON_PLUGIN_P_H

@@ -19,6 +19,7 @@ HEADERS += \
 
 SOURCES += \
     $$PWD/controller.cpp \
+    $$PWD/plugin_p.cpp \
     $$PWD/requestqueue.cpp \
     $$PWD/main.cpp
 

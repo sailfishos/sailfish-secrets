@@ -14,6 +14,7 @@
 #include "Secrets/result.h"
 #include "Secrets/secretmanager.h"
 #include "Secrets/secret.h"
+#include "Secrets/extensionplugins.h"
 
 #include <QtCore/QPluginLoader>
 #include <QtCore/QDataStream>
@@ -93,25 +94,29 @@ Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
     QDir dir(pluginDir);
     Q_FOREACH (const QString &pluginFile, dir.entryList(QDir::Files | QDir::NoDot | QDir::NoDotDot, QDir::Name)) {
         // load the plugin and query it for its data.
-        PluginHelper loader(pluginFile, m_autotestMode);
+        Daemon::ApiImpl::PluginHelper loader(pluginFile, m_autotestMode);
         QObject *plugin = loader.instance();
 
         EncryptedStoragePlugin *encryptedStoragePlugin;
         AuthenticationPlugin *authenticationPlugin;
 
         if (loader.storeAs<StoragePlugin>(plugin, &m_storagePlugins, lcSailfishSecretsDaemon)) {
-            continue;
+            // nothing more to do
+        } else if (loader.failureType() != Daemon::ApiImpl::PluginHelper::PluginTypeFailure) {
+            loader.reportFailure(lcSailfishSecretsDaemon);
         } else if (loader.storeAs<EncryptionPlugin>(plugin, &m_encryptionPlugins, lcSailfishSecretsDaemon)) {
-            continue;
+            // nothing more to do
+        } else if (loader.failureType() != Daemon::ApiImpl::PluginHelper::PluginTypeFailure) {
+            loader.reportFailure(lcSailfishSecretsDaemon);
         } else if ((encryptedStoragePlugin = loader.storeAs<EncryptedStoragePlugin>(plugin, &m_encryptedStoragePlugins, lcSailfishSecretsDaemon))) {
             m_potentialCryptoStoragePlugins.insert(encryptedStoragePlugin->name(), plugin);
-            continue;
+        } else if (loader.failureType() != Daemon::ApiImpl::PluginHelper::PluginTypeFailure) {
+            loader.reportFailure(lcSailfishSecretsDaemon);
         } else if ((authenticationPlugin = loader.storeAs<AuthenticationPlugin>(plugin, &m_authenticationPlugins, lcSailfishSecretsDaemon))) {
             connect(authenticationPlugin, &AuthenticationPlugin::authenticationCompleted,
                     this, &Daemon::ApiImpl::RequestProcessor::authenticationCompleted);
             connect(authenticationPlugin, &AuthenticationPlugin::userInputInteractionCompleted,
                     this, &Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted);
-            continue;
         } else {
             loader.reportFailure(lcSailfishSecretsDaemon);
         }
