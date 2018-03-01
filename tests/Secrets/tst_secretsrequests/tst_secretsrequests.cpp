@@ -14,6 +14,7 @@
 #include "Secrets/secretmanager.h"
 #include "Secrets/secret.h"
 #include "Secrets/interactionparameters.h"
+#include "Secrets/collectionnamesrequest.h"
 #include "Secrets/createcollectionrequest.h"
 #include "Secrets/deletecollectionrequest.h"
 #include "Secrets/deletesecretrequest.h"
@@ -102,6 +103,21 @@ void tst_secretsrequests::devicelockCollection()
     QCOMPARE(ccr.status(), Request::Finished);
     QCOMPARE(ccr.result().code(), Result::Succeeded);
 
+    // ensure that the name of the collection is returned from a CollectionNamesRequest
+    CollectionNamesRequest cnr;
+    cnr.setManager(&sm);
+    QSignalSpy cnrss(&cnr, &CollectionNamesRequest::statusChanged);
+    QCOMPARE(cnr.status(), Request::Inactive);
+    cnr.startRequest();
+    QCOMPARE(cnrss.count(), 1);
+    QCOMPARE(cnr.status(), Request::Active);
+    QCOMPARE(cnr.result().code(), Result::Pending);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(cnr);
+    QCOMPARE(cnrss.count(), 2);
+    QCOMPARE(cnr.status(), Request::Finished);
+    QCOMPARE(cnr.result().code(), Result::Succeeded);
+    QCOMPARE(cnr.collectionNames(), QStringList() << QLatin1String("testcollection"));
+
     // delete the collection
     DeleteCollectionRequest dcr;
     dcr.setManager(&sm);
@@ -119,6 +135,11 @@ void tst_secretsrequests::devicelockCollection()
     QCOMPARE(dcrss.count(), 2);
     QCOMPARE(dcr.status(), Request::Finished);
     QCOMPARE(dcr.result().code(), Result::Succeeded);
+
+    // ensure that it is no longer returned.
+    cnr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(cnr);
+    QVERIFY(cnr.collectionNames().isEmpty());
 }
 
 void tst_secretsrequests::devicelockCollectionSecret()

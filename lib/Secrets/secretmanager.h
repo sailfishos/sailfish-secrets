@@ -106,6 +106,7 @@ protected:
 private:
     QScopedPointer<SecretManagerPrivate> const d_ptr;
     Q_DECLARE_PRIVATE(SecretManager)
+    friend class CollectionNamesRequest;
     friend class CreateCollectionRequest;
     friend class DeleteCollectionRequest;
     friend class DeleteSecretRequest;

@@ -68,6 +68,23 @@ void Daemon::ApiImpl::SecretsDBusObject::userInput(
                                   result);
 }
 
+
+
+// retrieve the names of collections
+void Daemon::ApiImpl::SecretsDBusObject::collectionNames(
+        const QDBusMessage &message,
+        Sailfish::Secrets::Result &result,
+        QStringList &names)
+{
+    Q_UNUSED(names); // outparam, set in handlePendingRequest / handleFinishedRequest
+    QList<QVariant> inParams;
+    m_requestQueue->handleRequest(Daemon::ApiImpl::CollectionNamesRequest,
+                                  inParams,
+                                  connection(),
+                                  message,
+                                  result);
+}
+
 // create a DeviceLock-protected collection
 void Daemon::ApiImpl::SecretsDBusObject::createCollection(
         const QString &collectionName,
@@ -342,6 +359,8 @@ QString Daemon::ApiImpl::SecretsRequestQueue::requestTypeToString(int type) cons
     switch (type) {
         case InvalidRequest:                        return QLatin1String("InvalidRequest");
         case GetPluginInfoRequest:                  return QLatin1String("GetPluginInfoRequest");
+        case UserInputRequest:                      return QLatin1String("UserInputRequest");
+        case CollectionNamesRequest:                return QLatin1String("CollectionNamesRequest");
         case CreateDeviceLockCollectionRequest:     return QLatin1String("CreateDeviceLockCollectionRequest");
         case CreateCustomLockCollectionRequest:     return QLatin1String("CreateCustomLockCollectionRequest");
         case DeleteCollectionRequest:               return QLatin1String("DeleteCollectionRequest");
@@ -356,7 +375,6 @@ QString Daemon::ApiImpl::SecretsRequestQueue::requestTypeToString(int type) cons
         case DeleteStandaloneSecretRequest:         return QLatin1String("DeleteStandaloneSecretRequest");
         case SetCollectionSecretMetadataRequest:    return QLatin1String("SetCollectionSecretMetadataRequest");
         case DeleteCollectionSecretMetadataRequest: return QLatin1String("DeleteCollectionSecretMetadataRequest");
-        case UserInputRequest:                      return QLatin1String("UserInputRequest");
         default: break;
     }
     return QLatin1String("Unknown Secrets Request!");
@@ -393,6 +411,28 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
                                                                             << QVariant::fromValue<QVector<EncryptionPluginInfo> >(encryptionPlugins)
                                                                             << QVariant::fromValue<QVector<EncryptedStoragePluginInfo> >(encryptedStoragePlugins)
                                                                             << QVariant::fromValue<QVector<AuthenticationPluginInfo> >(authenticationPlugins));
+                }
+                *completed = true;
+            }
+            break;
+        }
+        case CollectionNamesRequest: {
+            qCDebug(lcSailfishSecretsDaemon) << "Handling CollectionNamesRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            QStringList names;
+            Result result = m_requestProcessor->collectionNames(
+                        request->remotePid,
+                        request->requestId,
+                        &names);
+            // send the reply to the calling peer.
+            if (result.code() == Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                if (request->isSecretsCryptoRequest) {
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << QVariant::fromValue<QStringList>(names));
+                } else {
+                    request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                            << QVariant::fromValue<QStringList>(names));
                 }
                 *completed = true;
             }
@@ -920,6 +960,29 @@ void Daemon::ApiImpl::SecretsRequestQueue::handleFinishedRequest(
                 } else {
                     request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                             << QVariant::fromValue<QByteArray>(secret));
+                }
+                *completed = true;
+            }
+            break;
+        }
+        case CollectionNamesRequest: {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of CollectionNamesRequest request"));
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishSecretsDaemon) << "CollectionNamesRequest:" << request->requestId << "finished as pending!";
+                *completed = true;
+            } else {
+                QStringList names = request->outParams.size()
+                                  ? request->outParams.takeFirst().value<QStringList>()
+                                  : QStringList();
+                if (request->isSecretsCryptoRequest) {
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << names);
+                } else {
+                    request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                            << QVariant::fromValue<QStringList>(names));
                 }
                 *completed = true;
             }

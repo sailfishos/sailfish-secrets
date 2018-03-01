@@ -69,6 +69,12 @@ public:
             QVector<Sailfish::Secrets::EncryptedStoragePluginInfo> *encryptedStoragePlugins,
             QVector<Sailfish::Secrets::AuthenticationPluginInfo> *authenticationPlugins);
 
+    // retrieve the names of collections
+    Sailfish::Secrets::Result collectionNames(
+            pid_t callerPid,
+            quint64 requestId,
+            QStringList *names);
+
     // create a DeviceLock-protected collection
     Sailfish::Secrets::Result createDeviceLockCollection(
             pid_t callerPid,
