@@ -226,20 +226,20 @@ cp -R lib/Crypto/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Crypto/
 %{_libdir}/qt5/plugins/sqldrivers/libqsqlcipher.so
 
 %post
-/sbin/ldconfig
+/sbin/ldconfig || :
 
 %postun
-/sbin/ldconfig
+/sbin/ldconfig || :
 
 %post -n libsailfishcrypto
-/sbin/ldconfig
+/sbin/ldconfig || :
 
 %postun -n libsailfishcrypto
-/sbin/ldconfig
+/sbin/ldconfig || :
 
 %post -n libsailfishsecretsplugin
-/sbin/ldconfig
+/sbin/ldconfig || :
 
 %postun -n libsailfishsecretsplugin
-/sbin/ldconfig
+/sbin/ldconfig || :
 

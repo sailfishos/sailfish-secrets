@@ -112,7 +112,7 @@ QMAKE_PKGCONFIG_INCDIR = $$develheaders.path $$develheaders_crypto.path
 QMAKE_PKGCONFIG_VERSION = $$VERSION
 QMAKE_PKGCONFIG_DESCRIPTION = Sailfish OS Crypto API
 QMAKE_PKGCONFIG_DESTDIR = pkgconfig
-QMAKE_PKGCONFIG_REQUIRES = QtDBus
+QMAKE_PKGCONFIG_REQUIRES = Qt5Core Qt5DBus
 
 INSTALLS += target pkgconfig
 INSTALLS += develheaders_crypto
