@@ -9,6 +9,7 @@
 #include "applicationpermissions_p.h"
 #include "logging_p.h"
 #include "util_p.h"
+#include "plugin_p.h"
 
 #include "Secrets/result.h"
 #include "Secrets/secretmanager.h"
@@ -92,73 +93,27 @@ Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
     QDir dir(pluginDir);
     Q_FOREACH (const QString &pluginFile, dir.entryList(QDir::Files | QDir::NoDot | QDir::NoDotDot, QDir::Name)) {
         // load the plugin and query it for its data.
-        QPluginLoader loader(pluginFile);
+        PluginHelper loader(pluginFile, m_autotestMode);
         QObject *plugin = loader.instance();
-        StoragePlugin *storagePlugin = qobject_cast<StoragePlugin*>(plugin);
-        EncryptionPlugin *encryptionPlugin = qobject_cast<EncryptionPlugin*>(plugin);
-        EncryptedStoragePlugin *encryptedStoragePlugin = qobject_cast<EncryptedStoragePlugin*>(plugin);
-        AuthenticationPlugin *authenticationPlugin = qobject_cast<AuthenticationPlugin*>(plugin);
-        if (storagePlugin) {
-            if (storagePlugin->name().isEmpty() || m_storagePlugins.contains(storagePlugin->name())) {
-                qCDebug(lcSailfishSecretsDaemon) << "ignoring storage plugin:" << pluginFile << "with duplicate name:" << storagePlugin->name();
-                loader.unload();
-                continue;
-            } else if (storagePlugin->name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive) != m_autotestMode) {
-                qCDebug(lcSailfishCryptoDaemon) << "ignoring storage plugin:" << pluginFile << "due to mode";
-                loader.unload();
-                continue;
-            } else {
-                qCDebug(lcSailfishSecretsDaemon) << "loading storage plugin:" << pluginFile << "with name:" << storagePlugin->name();
-                m_storagePlugins.insert(storagePlugin->name(), storagePlugin);
-            }
-        } else if (encryptionPlugin) {
-            if (encryptionPlugin->name().isEmpty() || m_storagePlugins.contains(encryptionPlugin->name())) {
-                qCDebug(lcSailfishSecretsDaemon) << "ignoring encryption plugin:" << pluginFile << "with duplicate name:" << encryptionPlugin->name();
-                loader.unload();
-                continue;
-            } else if (encryptionPlugin->name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive) != m_autotestMode) {
-                qCDebug(lcSailfishCryptoDaemon) << "ignoring encryption plugin:" << pluginFile << "due to mode";
-                loader.unload();
-                continue;
-            } else {
-                qCDebug(lcSailfishSecretsDaemon) << "loading encryption plugin:" << pluginFile << "with name:" << encryptionPlugin->name();
-                m_encryptionPlugins.insert(encryptionPlugin->name(), encryptionPlugin);
-            }
-        } else if (encryptedStoragePlugin) {
-            if (encryptedStoragePlugin->name().isEmpty() || m_encryptedStoragePlugins.contains(encryptedStoragePlugin->name())) {
-                qCDebug(lcSailfishSecretsDaemon) << "ignoring encrypted storage plugin:" << pluginFile << "with duplicate name:" << encryptedStoragePlugin->name();
-                loader.unload();
-                continue;
-            } else if (encryptedStoragePlugin->name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive) != m_autotestMode) {
-                qCDebug(lcSailfishCryptoDaemon) << "ignoring encrypted storage plugin:" << pluginFile << "due to mode";
-                loader.unload();
-                continue;
-            } else {
-                qCDebug(lcSailfishSecretsDaemon) << "loading encrypted storage plugin:" << pluginFile << "with name:" << encryptedStoragePlugin->name();
-                m_encryptedStoragePlugins.insert(encryptedStoragePlugin->name(), encryptedStoragePlugin);
-                m_potentialCryptoStoragePlugins.insert(encryptedStoragePlugin->name(), plugin);
-            }
-        } else if (authenticationPlugin) {
-            if (authenticationPlugin->name().isEmpty() || m_authenticationPlugins.contains(authenticationPlugin->name())) {
-                qCDebug(lcSailfishSecretsDaemon) << "ignoring authentication plugin:" << pluginFile << "with duplicate name:" << authenticationPlugin->name();
-                loader.unload();
-                continue;
-            } else if (authenticationPlugin->name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive) != m_autotestMode) {
-                qCDebug(lcSailfishCryptoDaemon) << "ignoring authentication plugin:" << pluginFile << "due to mode";
-                loader.unload();
-                continue;
-            } else {
-                qCDebug(lcSailfishSecretsDaemon) << "loading authentication plugin:" << pluginFile << "with name:" << authenticationPlugin->name();
-                m_authenticationPlugins.insert(authenticationPlugin->name(), authenticationPlugin);
-                connect(authenticationPlugin, &AuthenticationPlugin::authenticationCompleted,
-                        this, &Daemon::ApiImpl::RequestProcessor::authenticationCompleted);
-                connect(authenticationPlugin, &AuthenticationPlugin::userInputInteractionCompleted,
-                        this, &Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted);
-            }
-        } else {
-            qCWarning(lcSailfishSecretsDaemon) << "ignoring plugin:" << pluginFile << "- not a secrets plugin or Qt version mismatch";
-            loader.unload();
+
+        EncryptedStoragePlugin *encryptedStoragePlugin;
+        AuthenticationPlugin *authenticationPlugin;
+
+        if (loader.storeAs<StoragePlugin>(plugin, &m_storagePlugins, lcSailfishSecretsDaemon)) {
             continue;
+        } else if (loader.storeAs<EncryptionPlugin>(plugin, &m_encryptionPlugins, lcSailfishSecretsDaemon)) {
+            continue;
+        } else if ((encryptedStoragePlugin = loader.storeAs<EncryptedStoragePlugin>(plugin, &m_encryptedStoragePlugins, lcSailfishSecretsDaemon))) {
+            m_potentialCryptoStoragePlugins.insert(encryptedStoragePlugin->name(), plugin);
+            continue;
+        } else if ((authenticationPlugin = loader.storeAs<AuthenticationPlugin>(plugin, &m_authenticationPlugins, lcSailfishSecretsDaemon))) {
+            connect(authenticationPlugin, &AuthenticationPlugin::authenticationCompleted,
+                    this, &Daemon::ApiImpl::RequestProcessor::authenticationCompleted);
+            connect(authenticationPlugin, &AuthenticationPlugin::userInputInteractionCompleted,
+                    this, &Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted);
+            continue;
+        } else {
+            loader.reportFailure(lcSailfishSecretsDaemon);
         }
     }
 

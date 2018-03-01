@@ -14,6 +14,7 @@ HEADERS += \
     $$PWD/controller_p.h \
     $$PWD/discoveryobject_p.h \
     $$PWD/logging_p.h \
+    $$PWD/plugin_p.h \
     $$PWD/requestqueue_p.h
 
 SOURCES += \
