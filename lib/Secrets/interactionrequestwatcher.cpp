@@ -52,7 +52,7 @@ public:
 
 using namespace Sailfish::Secrets;
 
-InteractionRequestWatcher::InteractionRequestWatcher(AuthenticationPlugin *parent)
+InteractionRequestWatcher::InteractionRequestWatcher(QObject *parent)
     : QObject(parent)
     , m_data(new InteractionRequestWatcherPrivate)
 {

@@ -15,7 +15,7 @@ Q_LOGGING_CATEGORY(lcSailfishSecretsPluginSqlite, "org.sailfishos.secrets.plugin
 using namespace Sailfish::Secrets;
 
 Daemon::Plugins::SqlitePlugin::SqlitePlugin(QObject *parent)
-    : StoragePlugin(parent)
+    : QObject(parent), StoragePlugin()
 {
 }
 

@@ -13,7 +13,8 @@
 Q_PLUGIN_METADATA(IID Sailfish_Secrets_EncryptedStoragePlugin_IID)
 
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::SqlCipherPlugin(QObject *parent)
-    : Sailfish::Secrets::Daemon::Plugins::EncryptedStoragePlugin(parent)
+    : QObject(parent)
+    , Sailfish::Secrets::Daemon::Plugins::EncryptedStoragePlugin()
     , Sailfish::Secrets::Daemon::Plugins::CryptoPlugin()
     , m_databaseSubdir(QLatin1String("sqlcipherplugin"))
     , m_databaseDirPath(databaseDirPath(name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive),

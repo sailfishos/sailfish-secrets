@@ -22,7 +22,7 @@ namespace Daemon {
 
 namespace Plugins {
 
-class Q_DECL_EXPORT OpenSslPlugin : public Sailfish::Secrets::EncryptionPlugin
+class Q_DECL_EXPORT OpenSslPlugin : public QObject, public Sailfish::Secrets::EncryptionPlugin
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID Sailfish_Secrets_EncryptionPlugin_IID)

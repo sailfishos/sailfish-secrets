@@ -35,7 +35,7 @@ class InteractionRequestWatcher : public QObject
     Q_OBJECT
 
 public:
-    InteractionRequestWatcher(Sailfish::Secrets::AuthenticationPlugin *parent = Q_NULLPTR);
+    InteractionRequestWatcher(QObject *parent = Q_NULLPTR);
     ~InteractionRequestWatcher();
 
     void setRequestId(quint64 id);

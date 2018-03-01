@@ -29,7 +29,7 @@ namespace Daemon {
 
 namespace Plugins {
 
-class Q_DECL_EXPORT SqlitePlugin : public Sailfish::Secrets::StoragePlugin
+class Q_DECL_EXPORT SqlitePlugin : public QObject, public Sailfish::Secrets::StoragePlugin
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID Sailfish_Secrets_StoragePlugin_IID)

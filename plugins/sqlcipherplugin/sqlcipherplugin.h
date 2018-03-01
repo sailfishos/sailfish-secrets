@@ -40,7 +40,7 @@ namespace Plugins {
 class EncryptedStoragePlugin : public Sailfish::Secrets::EncryptedStoragePlugin
 {
 public:
-    EncryptedStoragePlugin(QObject *parent = Q_NULLPTR) : Sailfish::Secrets::EncryptedStoragePlugin(parent) {}
+    EncryptedStoragePlugin() : Sailfish::Secrets::EncryptedStoragePlugin() {}
     virtual Sailfish::Secrets::EncryptionPlugin::EncryptionType encryptedStorageEncryptionType() const = 0;
     Sailfish::Secrets::EncryptionPlugin::EncryptionType encryptionType() const Q_DECL_OVERRIDE
     { return encryptedStorageEncryptionType(); }
@@ -55,7 +55,9 @@ public:
     { return cryptoEncryptionType(); }
 };
 
-class Q_DECL_EXPORT SqlCipherPlugin : public EncryptedStoragePlugin, public CryptoPlugin
+class Q_DECL_EXPORT SqlCipherPlugin : public QObject
+                                    , public Sailfish::Secrets::Daemon::Plugins::EncryptedStoragePlugin
+                                    , public Sailfish::Secrets::Daemon::Plugins::CryptoPlugin
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID Sailfish_Secrets_EncryptedStoragePlugin_IID)

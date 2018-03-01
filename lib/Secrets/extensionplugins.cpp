@@ -326,8 +326,7 @@ void AuthenticationPluginInfo::setInputTypes(InteractionParameters::InputTypes t
     d_ptr->inputTypes = types;
 }
 
-EncryptionPlugin::EncryptionPlugin(QObject *parent)
-    : QObject(parent)
+EncryptionPlugin::EncryptionPlugin()
 {
 }
 
@@ -335,8 +334,7 @@ EncryptionPlugin::~EncryptionPlugin()
 {
 }
 
-StoragePlugin::StoragePlugin(QObject *parent)
-    : QObject(parent)
+StoragePlugin::StoragePlugin()
 {
 }
 
@@ -344,8 +342,7 @@ StoragePlugin::~StoragePlugin()
 {
 }
 
-EncryptedStoragePlugin::EncryptedStoragePlugin(QObject *parent)
-    : QObject(parent)
+EncryptedStoragePlugin::EncryptedStoragePlugin()
 {
 }
 

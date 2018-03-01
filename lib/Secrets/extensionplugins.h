@@ -29,10 +29,8 @@ namespace Sailfish {
 
 namespace Secrets {
 
-class SAILFISH_SECRETS_API EncryptionPlugin : public QObject
+class SAILFISH_SECRETS_API EncryptionPlugin
 {
-    Q_OBJECT
-
 public:
     enum EncryptionType {
         NoEncryption = 0,                   // no encryption is performed
@@ -40,15 +38,13 @@ public:
         TrustedExecutionSoftwareEncryption, // encryption is performed by trusted execution environment application
         SecurePeripheralEncryption,         // encryption is performed by a secure hardware peripheral via TEE application
     };
-    Q_ENUM(EncryptionType)
 
     enum EncryptionAlgorithm {
         NoAlgorithm = 0,
         AES_256_CBC
     };
-    Q_ENUM(EncryptionAlgorithm)
 
-    EncryptionPlugin(QObject *parent = Q_NULLPTR);
+    EncryptionPlugin();
     virtual ~EncryptionPlugin();
 
     virtual QString name() const = 0;
@@ -84,10 +80,8 @@ private:
     friend class EncryptionPluginInfoPrivate;
 };
 
-class SAILFISH_SECRETS_API StoragePlugin : public QObject
+class SAILFISH_SECRETS_API StoragePlugin
 {
-    Q_OBJECT
-
 public:
     enum StorageType {
         NoStorage = 0,
@@ -96,15 +90,13 @@ public:
         SecureFilesystemStorage,    // storage available to trusted execution environment applications only
         SecurePeripheralStorage,    // data is stored to a secure hardware peripheral via TEE application
     };
-    Q_ENUM(StorageType)
 
     enum FilterOperator {
         OperatorOr = 0,
         OperatorAnd
     };
-    Q_ENUM(FilterOperator)
 
-    StoragePlugin(QObject *parent = Q_NULLPTR);
+    StoragePlugin();
     virtual ~StoragePlugin();
 
     virtual QString name() const = 0;
@@ -147,12 +139,10 @@ private:
     friend class StoragePluginInfoPrivate;
 };
 
-class SAILFISH_SECRETS_API EncryptedStoragePlugin : public QObject
+class SAILFISH_SECRETS_API EncryptedStoragePlugin
 {
-    Q_OBJECT
-
 public:
-    EncryptedStoragePlugin(QObject *parent = Q_NULLPTR);
+    EncryptedStoragePlugin();
     virtual ~EncryptedStoragePlugin();
 
     virtual QString name() const = 0;
