@@ -839,8 +839,8 @@ void tst_secretsrequests::storeUserSecret()
         QCOMPARE(ssr.userInteractionMode(), SecretManager::ApplicationInteraction);
         ssr.setSecret(testSecret);
         QCOMPARE(ssr.secret(), testSecret);
-        ssr.setUiParameters(uiParams);
-        QCOMPARE(ssr.uiParameters(), uiParams);
+        ssr.setInteractionParameters(uiParams);
+        QCOMPARE(ssr.interactionParameters(), uiParams);
         QCOMPARE(ssr.status(), Request::Inactive);
         ssr.startRequest();
         QCOMPARE(ssrss.count(), 1);
@@ -945,8 +945,8 @@ void tst_secretsrequests::storeUserSecret()
         QCOMPARE(ssr.userInteractionMode(), SecretManager::ApplicationInteraction);
         ssr.setSecret(testSecret);
         QCOMPARE(ssr.secret(), testSecret);
-        ssr.setUiParameters(uiParams);
-        QCOMPARE(ssr.uiParameters(), uiParams);
+        ssr.setInteractionParameters(uiParams);
+        QCOMPARE(ssr.interactionParameters(), uiParams);
         QCOMPARE(ssr.status(), Request::Inactive);
         ssr.startRequest();
         QCOMPARE(ssrss.count(), 1);
@@ -1058,8 +1058,8 @@ void tst_secretsrequests::storeUserSecret()
         QCOMPARE(ssr.userInteractionMode(), SecretManager::ApplicationInteraction);
         ssr.setSecret(testSecret);
         QCOMPARE(ssr.secret(), testSecret);
-        ssr.setUiParameters(uiParams);
-        QCOMPARE(ssr.uiParameters(), uiParams);
+        ssr.setInteractionParameters(uiParams);
+        QCOMPARE(ssr.interactionParameters(), uiParams);
         QCOMPARE(ssr.status(), Request::Inactive);
         ssr.startRequest();
         QCOMPARE(ssrss.count(), 1);
@@ -1166,8 +1166,8 @@ void tst_secretsrequests::storeUserSecret()
         QCOMPARE(ssr.userInteractionMode(), SecretManager::ApplicationInteraction);
         ssr.setSecret(testSecret);
         QCOMPARE(ssr.secret(), testSecret);
-        ssr.setUiParameters(uiParams);
-        QCOMPARE(ssr.uiParameters(), uiParams);
+        ssr.setInteractionParameters(uiParams);
+        QCOMPARE(ssr.interactionParameters(), uiParams);
         QCOMPARE(ssr.status(), Request::Inactive);
         ssr.startRequest();
         QCOMPARE(ssrss.count(), 1);
