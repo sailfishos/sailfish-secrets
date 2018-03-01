@@ -50,6 +50,13 @@ class SecretsDBusObject : public QObject, protected QDBusContext
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out3\" value=\"QVector<Sailfish::Secrets::EncryptedStoragePluginInfo>\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out4\" value=\"QVector<Sailfish::Secrets::AuthenticationPluginInfo>\" />\n"
     "      </method>\n"
+    "      <method name=\"userInput\">\n"
+    "          <arg name=\"uiParams\" type=\"(sss(i)sss(i)(i))\" direction=\"in\" />\n"
+    "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
+    "          <arg name=\"data\" type=\"ay\" direction=\"out\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Secrets::InteractionParameters\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
+    "      </method>\n"
     "      <method name=\"createCollection\">\n"
     "          <arg name=\"collectionName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"storagePluginName\" type=\"s\" direction=\"in\" />\n"
@@ -181,6 +188,13 @@ public Q_SLOTS:
             QVector<Sailfish::Secrets::EncryptionPluginInfo> &encryptionPlugins,
             QVector<Sailfish::Secrets::EncryptedStoragePluginInfo> &encryptedStoragePlugins,
             QVector<Sailfish::Secrets::AuthenticationPluginInfo> &authenticationPlugins);
+
+    // retrieve user input for the client (daemon)
+    void userInput(
+            const Sailfish::Secrets::InteractionParameters &uiParams,
+            const QDBusMessage &message,
+            Sailfish::Secrets::Result &result,
+            QByteArray &data);
 
     // create a DeviceLock-protected collection
     void createCollection(

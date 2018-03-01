@@ -46,6 +46,28 @@ void Daemon::ApiImpl::SecretsDBusObject::getPluginInfo(
                                   result);
 }
 
+// retrieve user input for the client (daemon)
+void Daemon::ApiImpl::SecretsDBusObject::userInput(
+        const InteractionParameters &uiParams,
+        const QDBusMessage &message,
+        Result &result,
+        QByteArray &data)
+{
+    Q_UNUSED(data); // outparam, set in handlePendingRequest / handleFinishedRequest
+    InteractionParameters modifiedParams(uiParams);
+    modifiedParams.setOperation(InteractionParameters::RequestUserData);
+    modifiedParams.setCollectionName(QString());
+    modifiedParams.setSecretName(QString());
+    modifiedParams.setPromptTrId(QString());
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<InteractionParameters>(modifiedParams);
+    m_requestQueue->handleRequest(Daemon::ApiImpl::UserInputRequest,
+                                  inParams,
+                                  connection(),
+                                  message,
+                                  result);
+}
+
 // create a DeviceLock-protected collection
 void Daemon::ApiImpl::SecretsDBusObject::createCollection(
         const QString &collectionName,
@@ -856,8 +878,12 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
-                // This request type exists solely to implement Crypto API functionality.
-                asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList());
+                // failed, return error immediately
+                if (request->isSecretsCryptoRequest) {
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList());
+                } else {
+                    request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result));
+                }
                 *completed = true;
             }
             break;
@@ -1098,7 +1124,7 @@ void Daemon::ApiImpl::SecretsRequestQueue::handleFinishedRequest(
             break;
         }
         case UserInputRequest: {
-            Result result = request->outParams.size()
+            const Result result = request->outParams.size()
                     ? request->outParams.takeFirst().value<Result>()
                     : Result(Result::UnknownError,
                              QLatin1String("Unable to determine result of UserInputRequest request"));
@@ -1107,14 +1133,14 @@ void Daemon::ApiImpl::SecretsRequestQueue::handleFinishedRequest(
                 qCWarning(lcSailfishSecretsDaemon) << "UserInputRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
+                const QByteArray userInput = request->outParams.size()
+                        ? request->outParams.takeFirst().value<QByteArray>()
+                        : QByteArray();
                 if (request->isSecretsCryptoRequest) {
-                    QByteArray userInput = request->outParams.size()
-                            ? request->outParams.takeFirst().value<QByteArray>()
-                            : QByteArray();
                     asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << userInput);
                 } else {
-                    // shouldn't happen!
-                    qCWarning(lcSailfishSecretsDaemon) << "Error: UserInputRequest not a secrets crypto request!";
+                    request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                            << QVariant::fromValue<QByteArray>(userInput));
                 }
                 *completed = true;
             }

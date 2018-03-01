@@ -44,9 +44,11 @@ Daemon::Plugins::InAppPlugin::beginUserInputInteraction(
             const QString &interactionServiceAddress)
 {
 #ifdef SAILFISHSECRETS_TESTPLUGIN
-    if (interactionServiceAddress.isEmpty() &&
-            interactionParameters.promptText()
-                == QLatin1String("Enter the passphrase for the unit test")) {
+    if (interactionServiceAddress.isEmpty()
+            && (interactionParameters.promptText()
+                        == QLatin1String("Enter the passphrase for the unit test")
+                    || interactionParameters.promptText()
+                        == QLatin1String("An application is requesting input which will be returned to the application: Enter the passphrase for the unit test"))) {
         QMetaObject::invokeMethod(this, "userInputInteractionCompleted", Qt::QueuedConnection,
                                   Q_ARG(uint, callerPid),
                                   Q_ARG(qint64, requestId),
@@ -57,6 +59,11 @@ Daemon::Plugins::InAppPlugin::beginUserInputInteraction(
         return Result(Result::Pending);
     }
 #endif
+
+    if (interactionServiceAddress.isEmpty()) {
+        return Result(Result::InteractionServiceUnknownError,
+                      QLatin1String("Invalid interaction service address for in-app authentication"));
+    }
 
     InteractionRequestWatcher *watcher = new InteractionRequestWatcher(this);
     watcher->setRequestId(requestId);

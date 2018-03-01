@@ -36,7 +36,7 @@ public:
     QString m_encryptionPluginName;
     QString m_authenticationPluginName;
     Sailfish::Secrets::Secret m_secret;
-    Sailfish::Secrets::InteractionParameters m_uiParameters;
+    Sailfish::Secrets::InteractionParameters m_interactionParameters;
     Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic m_deviceLockUnlockSemantic;
     Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic m_customLockUnlockSemantic;
     Sailfish::Secrets::SecretManager::AccessControlMode m_accessControlMode;

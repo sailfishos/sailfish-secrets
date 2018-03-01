@@ -18,6 +18,8 @@ PUBLIC_HEADERS += \
     $$PWD/deletesecretrequest.h \
     $$PWD/extensionplugins.h \
     $$PWD/findsecretsrequest.h \
+    $$PWD/interactionparameters.h \
+    $$PWD/interactionrequest.h \
     $$PWD/request.h \
     $$PWD/result.h \
     $$PWD/secret.h \
@@ -25,9 +27,8 @@ PUBLIC_HEADERS += \
     $$PWD/secretsglobal.h \
     $$PWD/storedsecretrequest.h \
     $$PWD/storesecretrequest.h \
-    $$PWD/interactionparameters.h \
-    $$PWD/interactionresponse.h \
     $$PWD/interactionrequestwatcher.h \
+    $$PWD/interactionresponse.h \
     $$PWD/interactionview.h
 
 INTERNAL_PUBLIC_HEADERS += \
@@ -40,11 +41,12 @@ PRIVATE_HEADERS += \
     $$PWD/deletesecretrequest_p.h \
     $$PWD/findsecretsrequest_p.h \
     $$PWD/interactionparameters_p.h \
-    $$PWD/interactionresponse_p.h \
+    $$PWD/interactionrequest_p.h \
     $$PWD/secretsdaemonconnection_p_p.h \
     $$PWD/secretmanager_p.h \
     $$PWD/storedsecretrequest_p.h \
     $$PWD/storesecretrequest_p.h \
+    $$PWD/interactionresponse_p.h \
     $$PWD/interactionservice_p.h
 
 HEADERS += \
@@ -58,15 +60,16 @@ SOURCES += \
     $$PWD/deletesecretrequest.cpp \
     $$PWD/extensionplugins.cpp \
     $$PWD/findsecretsrequest.cpp \
+    $$PWD/interactionparameters.cpp \
+    $$PWD/interactionrequest.cpp \
     $$PWD/request.cpp \
     $$PWD/secretsdaemonconnection.cpp \
     $$PWD/secretmanager.cpp \
     $$PWD/serialisation.cpp \
     $$PWD/storedsecretrequest.cpp \
     $$PWD/storesecretrequest.cpp \
-    $$PWD/interactionparameters.cpp \
-    $$PWD/interactionresponse.cpp \
     $$PWD/interactionrequestwatcher.cpp \
+    $$PWD/interactionresponse.cpp \
     $$PWD/interactionservice.cpp
 
 develheaders.path = /usr/include/Sailfish/

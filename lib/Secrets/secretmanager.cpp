@@ -89,6 +89,23 @@ SecretManagerPrivate::registerInteractionService(
     return Result(Result::Succeeded);
 }
 
+QDBusPendingReply<Sailfish::Secrets::Result, QByteArray>
+SecretManagerPrivate::userInput(
+        const Sailfish::Secrets::InteractionParameters &uiParams)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result> reply
+            = m_interface->asyncCallWithArgumentList(
+                QStringLiteral("userInput"),
+                QVariantList() << QVariant::fromValue<InteractionParameters>(uiParams));
+    return reply;
+}
+
 QDBusPendingReply<Result>
 SecretManagerPrivate::createCollection(
         const QString &collectionName,
