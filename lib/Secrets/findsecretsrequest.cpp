@@ -267,7 +267,13 @@ void FindSecretsRequest::startRequest()
                                                      d->m_userInteractionMode);
         }
 
-        if (reply.isFinished()
+        if (!reply.isValid() && !reply.error().message().isEmpty()) {
+            d->m_status = Request::Finished;
+            d->m_result = Result(Result::SecretManagerNotInitialisedError,
+                                 reply.error().message());
+            emit statusChanged();
+            emit resultChanged();
+        } else if (reply.isFinished()
                 // work around a bug in QDBusAbstractInterface / QDBusConnection...
                 && reply.argumentAt<0>().code() != Sailfish::Secrets::Result::Succeeded) {
             d->m_status = Request::Finished;
