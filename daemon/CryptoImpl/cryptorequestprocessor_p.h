@@ -131,6 +131,15 @@ public:
             quint64 requestId,
             QVector<Sailfish::Crypto::Key::Identifier> *identifiers);
 
+    Sailfish::Crypto::Result calculateDigest(
+            pid_t callerPid,
+            quint64 requestId,
+            const QByteArray &data,
+            Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QString &cryptosystemProviderName,
+            QByteArray *digest);
+
     Sailfish::Crypto::Result sign(
             pid_t callerPid,
             quint64 requestId,

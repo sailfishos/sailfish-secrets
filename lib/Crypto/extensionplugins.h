@@ -100,6 +100,12 @@ public:
     virtual Sailfish::Crypto::Result storedKeyIdentifiers(
             QVector<Sailfish::Crypto::Key::Identifier> *identifiers) = 0;
 
+    virtual Sailfish::Crypto::Result calculateDigest(
+            const QByteArray &data,
+            Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            QByteArray *digest) = 0;
+
     virtual Sailfish::Crypto::Result sign(
             const QByteArray &data,
             const Sailfish::Crypto::Key &key,

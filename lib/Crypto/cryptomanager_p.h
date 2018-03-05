@@ -86,6 +86,12 @@ public:
 
     QDBusPendingReply<Sailfish::Crypto::Result, QVector<Sailfish::Crypto::Key::Identifier> > storedKeyIdentifiers();
 
+    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> calculateDigest(
+            const QByteArray &data,
+            Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            const QString &cryptosystemProviderName);
+
     QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> sign(
             const QByteArray &data,
             const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)

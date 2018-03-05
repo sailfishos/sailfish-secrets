@@ -128,6 +128,17 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"QVector<Sailfish::Crypto::Key::Identifier>\" />\n"
     "      </method>\n"
+    "      <method name=\"calculateDigest\">\n"
+    "          <arg name=\"data\" type=\"ay\" direction=\"in\" />\n"
+    "          <arg name=\"padding\" type=\"(i)\" direction=\"in\" />\n"
+    "          <arg name=\"digestFunction\" type=\"(i)\" direction=\"in\" />\n"
+    "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
+    "          <arg name=\"digest\" type=\"ay\" direction=\"out\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Crypto::CryptoManager::SignaturePadding\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::CryptoManager::Digest\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
+    "      </method>\n"
     "      <method name=\"sign\">\n"
     "          <arg name=\"data\" type=\"ay\" direction=\"in\" />\n"
     "          <arg name=\"key\" type=\"(ay)\" direction=\"in\" />\n"
@@ -300,6 +311,15 @@ public Q_SLOTS:
             Sailfish::Crypto::Result &result,
             QVector<Sailfish::Crypto::Key::Identifier> &identifiers);
 
+    void calculateDigest(
+            const QByteArray &data,
+            Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QString &cryptosystemProviderName,
+            const QDBusMessage &message,
+            Sailfish::Crypto::Result &result,
+            QByteArray &digest);
+
     void sign(
             const QByteArray &data,
             const Sailfish::Crypto::Key &key,
@@ -416,6 +436,7 @@ enum RequestType {
     StoredKeyRequest,
     DeleteStoredKeyRequest,
     StoredKeyIdentifiersRequest,
+    CalculateDigestRequest,
     SignRequest,
     VerifyRequest,
     EncryptRequest,

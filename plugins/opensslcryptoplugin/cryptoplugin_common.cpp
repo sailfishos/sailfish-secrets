@@ -365,6 +365,22 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::generateKey(
 }
 
 Sailfish::Crypto::Result
+CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::calculateDigest(
+        const QByteArray &data,
+        Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+        Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+        QByteArray *digest)
+{
+    // TODO: support more operations and algorithms in this plugin!
+    Q_UNUSED(data);
+    Q_UNUSED(padding);
+    Q_UNUSED(digestFunction);
+    Q_UNUSED(digest);
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                    QLatin1String("TODO: calculateDigest"));
+}
+
+Sailfish::Crypto::Result
 CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::sign(
         const QByteArray &data,
         const Sailfish::Crypto::Key &key,

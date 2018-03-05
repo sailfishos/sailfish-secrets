@@ -707,6 +707,29 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiers(
 }
 
 Result
+Daemon::ApiImpl::RequestProcessor::calculateDigest(
+        pid_t callerPid,
+        quint64 requestId,
+        const QByteArray &data,
+        CryptoManager::SignaturePadding padding,
+        CryptoManager::DigestFunction digestFunction,
+        const QString &cryptosystemProviderName,
+        QByteArray *digest)
+{
+    // TODO: Access Control
+    Q_UNUSED(callerPid)
+    Q_UNUSED(requestId)
+
+    CryptoPlugin* cryptoPlugin = m_cryptoPlugins.value(cryptosystemProviderName);
+    if (cryptoPlugin == Q_NULLPTR) {
+        return Result(Result::InvalidCryptographicServiceProvider,
+                      QLatin1String("No such cryptographic service provider plugin exists"));
+    }
+
+    return cryptoPlugin->calculateDigest(data, padding, digestFunction, digest);
+}
+
+Result
 Daemon::ApiImpl::RequestProcessor::sign(
         pid_t callerPid,
         quint64 requestId,

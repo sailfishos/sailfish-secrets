@@ -93,6 +93,12 @@ public:
     Sailfish::Crypto::Result storedKeyIdentifiers(
             QVector<Sailfish::Crypto::Key::Identifier> *identifiers) Q_DECL_OVERRIDE;
 
+    Sailfish::Crypto::Result calculateDigest(
+            const QByteArray &data,
+            Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            QByteArray *digest) Q_DECL_OVERRIDE;
+
     Sailfish::Crypto::Result sign(
             const QByteArray &data,
             const Sailfish::Crypto::Key &key,
