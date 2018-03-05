@@ -27,6 +27,7 @@ class VerifyRequestPrivate;
 class SAILFISH_CRYPTO_API VerifyRequest : public Sailfish::Crypto::Request
 {
     Q_OBJECT
+    Q_PROPERTY(QByteArray signature READ signature WRITE setSignature NOTIFY signatureChanged)
     Q_PROPERTY(QByteArray data READ data WRITE setData NOTIFY dataChanged)
     Q_PROPERTY(Sailfish::Crypto::Key key READ key WRITE setKey NOTIFY keyChanged)
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::SignaturePadding padding READ padding WRITE setPadding NOTIFY paddingChanged)
@@ -37,6 +38,9 @@ class SAILFISH_CRYPTO_API VerifyRequest : public Sailfish::Crypto::Request
 public:
     VerifyRequest(QObject *parent = Q_NULLPTR);
     ~VerifyRequest();
+
+    QByteArray signature() const;
+    void setSignature(const QByteArray &sig);
 
     QByteArray data() const;
     void setData(const QByteArray &data);
@@ -65,6 +69,7 @@ public:
     void waitForFinished() Q_DECL_OVERRIDE;
 
 Q_SIGNALS:
+    void signatureChanged();
     void dataChanged();
     void keyChanged();
     void paddingChanged();

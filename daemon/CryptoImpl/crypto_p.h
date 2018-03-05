@@ -142,6 +142,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "      </method>\n"
     "      <method name=\"verify\">\n"
+    "          <arg name=\"signature\" type=\"ay\" direction=\"in\" />\n"
     "          <arg name=\"data\" type=\"ay\" direction=\"in\" />\n"
     "          <arg name=\"key\" type=\"(ay)\" direction=\"in\" />\n"
     "          <arg name=\"padding\" type=\"(i)\" direction=\"in\" />\n"
@@ -149,9 +150,9 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"verified\" type=\"b\" direction=\"out\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Crypto::Key\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::CryptoManager::SignaturePadding\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Crypto::CryptoManager::Digest\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::Key\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Crypto::CryptoManager::SignaturePadding\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Crypto::CryptoManager::Digest\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "      </method>\n"
     "      <method name=\"encrypt\">\n"
@@ -310,6 +311,7 @@ public Q_SLOTS:
             QByteArray &signature);
 
     void verify(
+            const QByteArray &signature,
             const QByteArray &data,
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,

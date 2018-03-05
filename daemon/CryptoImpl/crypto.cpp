@@ -224,6 +224,7 @@ void Daemon::ApiImpl::CryptoDBusObject::sign(
 }
 
 void Daemon::ApiImpl::CryptoDBusObject::verify(
+        const QByteArray &signature,
         const QByteArray &data,
         const Key &key,
         CryptoManager::SignaturePadding padding,
@@ -235,6 +236,7 @@ void Daemon::ApiImpl::CryptoDBusObject::verify(
 {
     Q_UNUSED(verified);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
+    inParams << QVariant::fromValue<QByteArray>(signature);
     inParams << QVariant::fromValue<QByteArray>(data);
     inParams << QVariant::fromValue<Key>(key);
     inParams << QVariant::fromValue<CryptoManager::SignaturePadding>(padding);
@@ -712,6 +714,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
         case VerifyRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling VerifyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             bool verified = false;
+            QByteArray signature = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
             CryptoManager::SignaturePadding padding = request->inParams.size() ? request->inParams.takeFirst().value<CryptoManager::SignaturePadding>() : CryptoManager::SignaturePaddingUnknown;
@@ -720,6 +723,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             Result result = m_requestProcessor->verify(
                         request->remotePid,
                         request->requestId,
+                        signature,
                         data,
                         key,
                         padding,

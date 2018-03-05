@@ -94,6 +94,7 @@ public:
             const QString &cryptosystemProviderName);
 
     QDBusPendingReply<Sailfish::Crypto::Result, bool> verify(
+            const QByteArray &signature,
             const QByteArray &data,
             const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,

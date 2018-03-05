@@ -821,6 +821,7 @@ Result
 Daemon::ApiImpl::RequestProcessor::verify(
         pid_t callerPid,
         quint64 requestId,
+        const QByteArray &signature,
         const QByteArray &data,
         const Key &key,
         CryptoManager::SignaturePadding padding,
@@ -888,7 +889,8 @@ Daemon::ApiImpl::RequestProcessor::verify(
                                              callerPid,
                                              requestId,
                                              Daemon::ApiImpl::VerifyRequest,
-                                             QVariantList() << QVariant::fromValue<QByteArray>(data)
+                                             QVariantList() << QVariant::fromValue<QByteArray>(signature)
+                                                            << QVariant::fromValue<QByteArray>(data)
                                                             << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
                                                             << QVariant::fromValue<CryptoManager::DigestFunction>(digest)
                                                             << QVariant::fromValue<QString>(cryptosystemProviderName)));
@@ -901,7 +903,7 @@ Daemon::ApiImpl::RequestProcessor::verify(
         fullKey = key;
     }
 
-    return cryptoPlugin->verify(data, fullKey, padding, digest, verified);
+    return cryptoPlugin->verify(signature, data, fullKey, padding, digest, verified);
 }
 
 void
@@ -909,6 +911,7 @@ Daemon::ApiImpl::RequestProcessor::verify2(
         quint64 requestId,
         const Result &result,
         const QByteArray &serialisedKey,
+        const QByteArray &signature,
         const QByteArray &data,
         CryptoManager::SignaturePadding padding,
         CryptoManager::DigestFunction digest,
@@ -919,7 +922,7 @@ Daemon::ApiImpl::RequestProcessor::verify2(
     bool verified = false;
     if (result.code() == Result::Succeeded) {
         Key fullKey = Key::deserialise(serialisedKey);
-        Result cryptoResult = m_cryptoPlugins[cryptoPluginName]->verify(data, fullKey, padding, digest, &verified);
+        Result cryptoResult = m_cryptoPlugins[cryptoPluginName]->verify(signature, data, fullKey, padding, digest, &verified);
         outParams << QVariant::fromValue<Result>(cryptoResult);
     } else {
         outParams << QVariant::fromValue<Result>(result);
@@ -1390,11 +1393,12 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 break;
             }
             case VerifyRequest: {
+                QByteArray signature = pr.parameters.takeFirst().value<QByteArray>();
                 QByteArray data = pr.parameters.takeFirst().value<QByteArray>();
                 CryptoManager::SignaturePadding padding = pr.parameters.takeFirst().value<CryptoManager::SignaturePadding>();
                 CryptoManager::DigestFunction digest = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                verify2(requestId, returnResult, serialisedKey, data, padding, digest, cryptoPluginName);
+                verify2(requestId, returnResult, serialisedKey, signature, data, padding, digest, cryptoPluginName);
                 break;
             }
             case EncryptRequest: {

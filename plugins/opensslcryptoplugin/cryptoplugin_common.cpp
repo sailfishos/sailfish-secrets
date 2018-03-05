@@ -384,6 +384,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::sign(
 
 Sailfish::Crypto::Result
 CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::verify(
+        const QByteArray &signature,
         const QByteArray &data,
         const Sailfish::Crypto::Key &key,
         Sailfish::Crypto::CryptoManager::SignaturePadding padding,
@@ -391,6 +392,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::verify(
         bool *verified)
 {
     // TODO: support more operations and algorithms in this plugin!
+    Q_UNUSED(signature);
     Q_UNUSED(data);
     Q_UNUSED(key);
     Q_UNUSED(padding);

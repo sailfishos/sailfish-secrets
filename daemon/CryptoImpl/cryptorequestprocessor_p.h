@@ -144,6 +144,7 @@ public:
     Sailfish::Crypto::Result verify(
             pid_t callerPid,
             quint64 requestId,
+            const QByteArray &signature,
             const QByteArray &data,
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
@@ -323,6 +324,7 @@ private:
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
             const QByteArray &serialisedKey,
+            const QByteArray &signature,
             const QByteArray &data,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
             Sailfish::Crypto::CryptoManager::DigestFunction digest,

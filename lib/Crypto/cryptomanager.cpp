@@ -269,6 +269,7 @@ CryptoManagerPrivate::sign(
 
 QDBusPendingReply<Result, bool>
 CryptoManagerPrivate::verify(
+        const QByteArray &signature,
         const QByteArray &data,
         const Key &key,
         CryptoManager::SignaturePadding padding,
@@ -284,7 +285,8 @@ CryptoManagerPrivate::verify(
     QDBusPendingReply<Result, bool> reply
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("verify"),
-                QVariantList() << QVariant::fromValue<QByteArray>(data)
+                QVariantList() << QVariant::fromValue<QByteArray>(signature)
+                               << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
                                << QVariant::fromValue<CryptoManager::DigestFunction>(digest)

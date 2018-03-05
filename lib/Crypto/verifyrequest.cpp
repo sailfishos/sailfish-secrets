@@ -45,7 +45,36 @@ VerifyRequest::~VerifyRequest()
 }
 
 /*!
- * \brief Returns the signature data which the client wishes the system service to verify
+ * \brief Returns the signature which the client wishes the system service to verify
+ */
+QByteArray VerifyRequest::signature() const
+{
+    Q_D(const VerifyRequest);
+    return d->m_signature;
+}
+
+/*!
+ * \brief Sets the signature which the client wishes the system service to verify to \a sig
+ */
+void VerifyRequest::setSignature(const QByteArray &sig)
+{
+    Q_D(VerifyRequest);
+    if (d->m_status != Request::Active && d->m_signature != sig) {
+        d->m_signature = sig;
+        if (d->m_verified) {
+            d->m_verified = false;
+            emit verifiedChanged();
+        }
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit signatureChanged();
+    }
+}
+
+/*!
+ * \brief Returns the data which was signed by the remote party
  */
 QByteArray VerifyRequest::data() const
 {
@@ -54,7 +83,7 @@ QByteArray VerifyRequest::data() const
 }
 
 /*!
- * \brief Sets the signature data which the client wishes the system service to verify to \a data
+ * \brief Sets the data which was signed by the remote party to \a data
  */
 void VerifyRequest::setData(const QByteArray &data)
 {
@@ -239,7 +268,8 @@ void VerifyRequest::startRequest()
         }
 
         QDBusPendingReply<Result, bool> reply =
-                d->m_manager->d_ptr->verify(d->m_data,
+                d->m_manager->d_ptr->verify(d->m_signature,
+                                            d->m_data,
                                             d->m_key,
                                             d->m_padding,
                                             d->m_digest,

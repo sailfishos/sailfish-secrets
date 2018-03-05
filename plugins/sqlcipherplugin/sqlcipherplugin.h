@@ -152,6 +152,7 @@ public:
             QByteArray *signature) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result verify(
+            const QByteArray &signature,
             const QByteArray &data,
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
