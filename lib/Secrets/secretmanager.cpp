@@ -106,6 +106,21 @@ SecretManagerPrivate::userInput(
     return reply;
 }
 
+
+QDBusPendingReply<Result, QStringList>
+SecretManagerPrivate::collectionNames()
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result, QStringList>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result, QStringList> reply
+            = m_interface->asyncCall(QStringLiteral("collectionNames"));
+    return reply;
+}
+
 QDBusPendingReply<Result>
 SecretManagerPrivate::createCollection(
         const QString &collectionName,

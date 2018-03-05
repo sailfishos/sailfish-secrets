@@ -13,6 +13,7 @@ INCLUDEPATH += $$PWD/../
 DEPENDPATH += $$INCLUDEPATH $$PWD
 
 PUBLIC_HEADERS += \
+    $$PWD/collectionnamesrequest.h \
     $$PWD/createcollectionrequest.h \
     $$PWD/deletecollectionrequest.h \
     $$PWD/deletesecretrequest.h \
@@ -36,6 +37,7 @@ INTERNAL_PUBLIC_HEADERS += \
     $$PWD/serialisation_p.h
 
 PRIVATE_HEADERS += \
+    $$PWD/collectionnamesrequest_p.h \
     $$PWD/createcollectionrequest_p.h \
     $$PWD/deletecollectionrequest_p.h \
     $$PWD/deletesecretrequest_p.h \
@@ -55,6 +57,7 @@ HEADERS += \
     $$PRIVATE_HEADERS
 
 SOURCES += \
+    $$PWD/collectionnamesrequest.cpp \
     $$PWD/createcollectionrequest.cpp \
     $$PWD/deletecollectionrequest.cpp \
     $$PWD/deletesecretrequest.cpp \

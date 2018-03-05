@@ -37,6 +37,7 @@ public:
         InvalidStorageProvider,
         InvalidKeyIdentifier,
         DuplicateKeyIdentifier,
+        CryptoManagerNotInitialisedError,
 
         UnsupportedOperation = 20,
         UnsupportedBlockMode,

@@ -209,7 +209,15 @@ void SeedRandomDataGeneratorRequest::startRequest()
                         d->m_entropyEstimate,
                         d->m_csprngEngineName,
                         d->m_cryptoPluginName);
-        if (reply.isFinished()) {
+        if (!reply.isValid() && !reply.error().message().isEmpty()) {
+            d->m_status = Request::Finished;
+            d->m_result = Result(Result::CryptoManagerNotInitialisedError,
+                                 reply.error().message());
+            emit statusChanged();
+            emit resultChanged();
+        } else if (reply.isFinished()
+               // work around a bug in QDBusAbstractInterface / QDBusConnection...
+               && reply.argumentAt<0>().code() != Sailfish::Crypto::Result::Succeeded) {
             d->m_status = Request::Finished;
             d->m_result = reply.argumentAt<0>();
             emit statusChanged();

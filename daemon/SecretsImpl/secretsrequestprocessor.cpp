@@ -154,6 +154,50 @@ Daemon::ApiImpl::RequestProcessor::getPluginInfo(
     return Result(Result::Succeeded);
 }
 
+
+Result
+Daemon::ApiImpl::RequestProcessor::collectionNames(
+        pid_t callerPid,
+        quint64 requestId,
+        QStringList *names)
+{
+    // TODO: perform access control request to see if the application has permission to read collection names.
+    const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
+    const QString callerApplicationId = applicationIsPlatformApplication
+                ? m_appPermissions->platformApplicationId()
+                : m_appPermissions->applicationId(callerPid);
+    Q_UNUSED(requestId);
+    Q_UNUSED(callerApplicationId);
+
+    Daemon::Sqlite::DatabaseLocker locker(m_db);
+
+    const QString selectCollectionNamesQuery = QStringLiteral(
+                 "SELECT CollectionName"
+                 " FROM Collections;"
+             );
+
+    QString errorText;
+    Daemon::Sqlite::Database::Query sq = m_db->prepare(selectCollectionNamesQuery, &errorText);
+    if (!errorText.isEmpty()) {
+        return Result(Result::DatabaseQueryError,
+                      QString::fromLatin1("Unable to prepare select collection names query: %1").arg(errorText));
+    }
+
+    if (!m_db->execute(sq, &errorText)) {
+        return Result(Result::DatabaseQueryError,
+                      QString::fromLatin1("Unable to execute select collection names query: %1").arg(errorText));
+    }
+
+    while (sq.next()) {
+        const QString cname = sq.value(0).value<QString>();
+        if (!cname.isEmpty() && cname.compare(QStringLiteral("standalone"), Qt::CaseInsensitive) != 0) {
+            names->append(cname);
+        }
+    }
+
+    return Result(Result::Succeeded);
+}
+
 // create a DeviceLock-protected collection
 Result
 Daemon::ApiImpl::RequestProcessor::createDeviceLockCollection(

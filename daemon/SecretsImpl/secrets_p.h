@@ -21,6 +21,7 @@
 #include "Crypto/result.h"
 #include "Crypto/key.h"
 
+#include <QtCore/QStringList>
 #include <QtDBus/QDBusContext>
 
 namespace Sailfish {
@@ -55,6 +56,11 @@ class SecretsDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
     "          <arg name=\"data\" type=\"ay\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Secrets::InteractionParameters\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
+    "      </method>\n"
+    "      <method name=\"collectionNames\">\n"
+    "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
+    "          <arg name=\"names\" type=\"as\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
     "      </method>\n"
     "      <method name=\"createCollection\">\n"
@@ -195,6 +201,12 @@ public Q_SLOTS:
             const QDBusMessage &message,
             Sailfish::Secrets::Result &result,
             QByteArray &data);
+
+    // retrieve the names of collections
+    void collectionNames(
+            const QDBusMessage &message,
+            Sailfish::Secrets::Result &result,
+            QStringList &names);
 
     // create a DeviceLock-protected collection
     void createCollection(
@@ -364,6 +376,8 @@ private:
 enum RequestType {
     InvalidRequest = 0,
     GetPluginInfoRequest,
+    UserInputRequest,
+    CollectionNamesRequest,
     CreateDeviceLockCollectionRequest,
     CreateCustomLockCollectionRequest,
     DeleteCollectionRequest,
@@ -382,8 +396,7 @@ enum RequestType {
     SetStandaloneCustomLockUserInputSecretRequest,
     // Crypto API helper request types:
     SetCollectionSecretMetadataRequest,
-    DeleteCollectionSecretMetadataRequest,
-    UserInputRequest
+    DeleteCollectionSecretMetadataRequest
 };
 
 } // ApiImpl
