@@ -246,7 +246,7 @@ QDBusPendingReply<Result, QByteArray>
 CryptoManagerPrivate::calculateDigest(
         const QByteArray &data,
         CryptoManager::SignaturePadding padding,
-        CryptoManager::DigestFunction digest,
+        CryptoManager::DigestFunction digestFunction,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -260,7 +260,7 @@ CryptoManagerPrivate::calculateDigest(
                 QStringLiteral("calculateDigest"),
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
-                               << QVariant::fromValue<CryptoManager::DigestFunction>(digest)
+                               << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -270,7 +270,7 @@ CryptoManagerPrivate::sign(
         const QByteArray &data,
         const Key &key,
         CryptoManager::SignaturePadding padding,
-        CryptoManager::DigestFunction digest,
+        CryptoManager::DigestFunction digestFunction,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -285,7 +285,7 @@ CryptoManagerPrivate::sign(
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
-                               << QVariant::fromValue<CryptoManager::DigestFunction>(digest)
+                               << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -296,7 +296,7 @@ CryptoManagerPrivate::verify(
         const QByteArray &data,
         const Key &key,
         CryptoManager::SignaturePadding padding,
-        CryptoManager::DigestFunction digest,
+        CryptoManager::DigestFunction digestFunction,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -312,7 +312,7 @@ CryptoManagerPrivate::verify(
                                << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
-                               << QVariant::fromValue<CryptoManager::DigestFunction>(digest)
+                               << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }

@@ -18,7 +18,9 @@
 using namespace Sailfish::Crypto;
 
 VerifyRequestPrivate::VerifyRequestPrivate()
-    : m_verified(false)
+    : m_padding(CryptoManager::SignaturePaddingUnknown)
+    , m_digestFunction(CryptoManager::DigestUnknown)
+    , m_verified(false)
     , m_status(Request::Inactive)
 {
 }
@@ -166,17 +168,17 @@ void VerifyRequest::setPadding(Sailfish::Crypto::CryptoManager::SignaturePadding
 Sailfish::Crypto::CryptoManager::DigestFunction VerifyRequest::digestFunction() const
 {
     Q_D(const VerifyRequest);
-    return d->m_digest;
+    return d->m_digestFunction;
 }
 
 /*!
- * \brief Sets the digest which was used to generate the signature to \a digest
+ * \brief Sets the digest which was used to generate the signature to \a digestFn
  */
-void VerifyRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digest)
+void VerifyRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digestFn)
 {
     Q_D(VerifyRequest);
-    if (d->m_status != Request::Active && d->m_digest != digest) {
-        d->m_digest = digest;
+    if (d->m_status != Request::Active && d->m_digestFunction != digestFn) {
+        d->m_digestFunction = digestFn;
         if (d->m_verified) {
             d->m_verified = false;
             emit verifiedChanged();
@@ -272,7 +274,7 @@ void VerifyRequest::startRequest()
                                             d->m_data,
                                             d->m_key,
                                             d->m_padding,
-                                            d->m_digest,
+                                            d->m_digestFunction,
                                             d->m_cryptoPluginName);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;

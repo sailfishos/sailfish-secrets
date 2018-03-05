@@ -22,7 +22,7 @@ CipherRequestPrivate::CipherRequestPrivate()
     , m_blockMode(CryptoManager::BlockModeCbc)
     , m_encryptionPadding(CryptoManager::EncryptionPaddingNone)
     , m_signaturePadding(CryptoManager::SignaturePaddingNone)
-    , m_digest(CryptoManager::DigestSha256)
+    , m_digestFunction(CryptoManager::DigestSha256)
     , m_cipherSessionToken(0)
     , m_verified(false)
     , m_status(Request::Inactive)
@@ -398,17 +398,17 @@ void CipherRequest::setSignaturePadding(Sailfish::Crypto::CryptoManager::Signatu
 Sailfish::Crypto::CryptoManager::DigestFunction CipherRequest::digestFunction() const
 {
     Q_D(const CipherRequest);
-    return d->m_digest;
+    return d->m_digestFunction;
 }
 
 /*!
- * \brief Sets tthe digest which should be used when signing or verifying the data to \a digest
+ * \brief Sets tthe digest which should be used when signing or verifying the data to \a digestFn
  */
-void CipherRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digest)
+void CipherRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digestFn)
 {
     Q_D(CipherRequest);
-    if (d->m_status != Request::Active && d->m_digest != digest) {
-        d->m_digest = digest;
+    if (d->m_status != Request::Active && d->m_digestFunction != digestFn) {
+        d->m_digestFunction = digestFn;
         if (d->m_status == Request::Finished) {
             d->m_status = Request::Inactive;
             emit statusChanged();
@@ -533,7 +533,7 @@ void CipherRequest::startRequest()
                         d->m_blockMode,
                         d->m_encryptionPadding,
                         d->m_signaturePadding,
-                        d->m_digest,
+                        d->m_digestFunction,
                         d->m_cryptoPluginName);
             if (!reply.isValid() && !reply.error().message().isEmpty()) {
                 d->m_status = Request::Finished;

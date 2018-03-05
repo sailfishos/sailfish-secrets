@@ -39,7 +39,7 @@ public:
     Sailfish::Crypto::CryptoManager::BlockMode m_blockMode;
     Sailfish::Crypto::CryptoManager::EncryptionPadding m_encryptionPadding;
     Sailfish::Crypto::CryptoManager::SignaturePadding m_signaturePadding;
-    Sailfish::Crypto::CryptoManager::DigestFunction m_digest;
+    Sailfish::Crypto::CryptoManager::DigestFunction m_digestFunction;
     QString m_cryptoPluginName;
     quint32 m_cipherSessionToken;
     QByteArray m_generatedData;

@@ -146,7 +146,7 @@ public:
             const QByteArray &data,
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
-            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptosystemProviderName,
             QByteArray *signature);
 
@@ -157,7 +157,7 @@ public:
             const QByteArray &data,
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
-            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptosystemProviderName,
             bool *verified);
 
@@ -192,7 +192,7 @@ public:
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
             Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
-            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptosystemProviderName,
             quint32 *cipherSessionToken,
             QByteArray *generatedIV);
@@ -326,7 +326,7 @@ private:
             const QByteArray &serialisedKey,
             const QByteArray &data,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
-            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptoPluginName);
 
     void verify2(
@@ -336,7 +336,7 @@ private:
             const QByteArray &signature,
             const QByteArray &data,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
-            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptoPluginName);
 
     void encrypt2(
@@ -369,7 +369,7 @@ private:
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
             Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
-            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptoPluginName);
 
 private:

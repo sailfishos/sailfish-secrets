@@ -34,7 +34,7 @@ public:
     QByteArray m_data;
     Sailfish::Crypto::Key m_key;
     Sailfish::Crypto::CryptoManager::SignaturePadding m_padding;
-    Sailfish::Crypto::CryptoManager::DigestFunction m_digest;
+    Sailfish::Crypto::CryptoManager::DigestFunction m_digestFunction;
     QString m_cryptoPluginName;
     bool m_verified;
 

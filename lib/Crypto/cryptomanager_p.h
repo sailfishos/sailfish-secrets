@@ -89,14 +89,14 @@ public:
     QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> calculateDigest(
             const QByteArray &data,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
-            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptosystemProviderName);
 
     QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> sign(
             const QByteArray &data,
             const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
-            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptosystemProviderName);
 
     QDBusPendingReply<Sailfish::Crypto::Result, bool> verify(
@@ -104,7 +104,7 @@ public:
             const QByteArray &data,
             const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
-            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptosystemProviderName);
 
     QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> encrypt(
@@ -130,7 +130,7 @@ public:
             const Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             const Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
             const Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
-            const Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            const Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptosystemProviderName);
 
     QDBusPendingReply<Sailfish::Crypto::Result> updateCipherSessionAuthentication(

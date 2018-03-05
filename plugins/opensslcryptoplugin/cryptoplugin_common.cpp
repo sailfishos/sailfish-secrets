@@ -44,7 +44,7 @@ public:
     Sailfish::Crypto::CryptoManager::BlockMode blockMode = Sailfish::Crypto::CryptoManager::BlockModeUnknown;
     Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding = Sailfish::Crypto::CryptoManager::EncryptionPaddingUnknown;
     Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding = Sailfish::Crypto::CryptoManager::SignaturePaddingUnknown;
-    Sailfish::Crypto::CryptoManager::DigestFunction digest = Sailfish::Crypto::CryptoManager::DigestUnknown;
+    Sailfish::Crypto::CryptoManager::DigestFunction digestFunction = Sailfish::Crypto::CryptoManager::DigestUnknown;
     quint32 cipherSessionToken = 0;
     QByteArray generatedIV;
     EVP_MD_CTX *evp_md_ctx = nullptr;
@@ -385,14 +385,14 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::sign(
         const QByteArray &data,
         const Sailfish::Crypto::Key &key,
         Sailfish::Crypto::CryptoManager::SignaturePadding padding,
-        Sailfish::Crypto::CryptoManager::DigestFunction digest,
+        Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
         QByteArray *signature)
 {
     // TODO: support more operations and algorithms in this plugin!
     Q_UNUSED(data);
     Q_UNUSED(key);
     Q_UNUSED(padding);
-    Q_UNUSED(digest);
+    Q_UNUSED(digestFunction);
     Q_UNUSED(signature);
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                     QLatin1String("TODO: sign"));
@@ -404,7 +404,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::verify(
         const QByteArray &data,
         const Sailfish::Crypto::Key &key,
         Sailfish::Crypto::CryptoManager::SignaturePadding padding,
-        Sailfish::Crypto::CryptoManager::DigestFunction digest,
+        Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
         bool *verified)
 {
     // TODO: support more operations and algorithms in this plugin!
@@ -412,7 +412,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::verify(
     Q_UNUSED(data);
     Q_UNUSED(key);
     Q_UNUSED(padding);
-    Q_UNUSED(digest);
+    Q_UNUSED(digestFunction);
     Q_UNUSED(verified);
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                     QLatin1String("TODO: verify"));
@@ -532,7 +532,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::initialiseCipherSession(
         Sailfish::Crypto::CryptoManager::BlockMode blockMode,
         Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
         Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
-        Sailfish::Crypto::CryptoManager::DigestFunction digest,
+        Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
         quint32 *cipherSessionToken,
         QByteArray *generatedIV)
 {
@@ -562,7 +562,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::initialiseCipherSession(
                                         QLatin1String("TODO: signature padding other than None"));
     }
 
-    if (digest != Sailfish::Crypto::CryptoManager::DigestSha256) {
+    if (digestFunction != Sailfish::Crypto::CryptoManager::DigestSha256) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                         QLatin1String("TODO: digests other than Sha256"));
     }
@@ -645,7 +645,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::initialiseCipherSession(
     csd->blockMode = blockMode;
     csd->encryptionPadding = encryptionPadding;
     csd->signaturePadding = signaturePadding;
-    csd->digest = digest;
+    csd->digestFunction = digestFunction;
     csd->cipherSessionToken = sessionToken;
     csd->generatedIV = *generatedIV;
     csd->evp_cipher_ctx = evp_cipher_ctx;
