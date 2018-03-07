@@ -30,7 +30,7 @@ class PluginHelper : public QPluginLoader
     Q_PROPERTY(PluginHelper::FailureType failureType READ failureType NOTIFY failureTypeChanged)
 
 public:
-    PluginHelper(const QString &fileName, bool autotestMode);
+    PluginHelper(const QString &fileName, const bool autotestMode, const QVariantMap &initialisationParameters);
     ~PluginHelper();
 
     enum FailureType {
@@ -45,7 +45,6 @@ public:
 
     template <typename Plugin>
     Plugin* storeAs(QObject *obj, QMap<QString, Plugin*> *store,
-                    const QVariantMap &parameters,
                     const QLoggingCategory &category())
     {
         if (!obj) {
@@ -76,7 +75,7 @@ public:
         qCDebug(category) << "loading plugin:" << fileName() << "with name:" << plugin->name();
         qCDebug(category) << "initialising plugin:" << fileName();
 
-        if (!plugin->initialise(parameters)) {
+        if (!plugin->initialise(m_initialisationParameters)) {
             qCWarning(category) << "Could not initialize the plugin:" << fileName();
         }
 
@@ -92,6 +91,7 @@ Q_SIGNALS:
 private:
     FailureType m_failureType;
     bool m_autotestMode;
+    QVariantMap m_initialisationParameters;
 };
 
 } // ApiImpl

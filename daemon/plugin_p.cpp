@@ -9,11 +9,13 @@
 
 using namespace Sailfish::Secrets;
 
-Daemon::ApiImpl::PluginHelper::PluginHelper(
-        const QString &fileName, bool autotestMode)
+Daemon::ApiImpl::PluginHelper::PluginHelper(const QString &fileName,
+                                            const bool autotestMode,
+                                            const QVariantMap &initialisationParameters)
     : QPluginLoader(fileName)
     , m_failureType(NoFailure)
     , m_autotestMode(autotestMode)
+    , m_initialisationParameters(initialisationParameters)
 {
 }
 
