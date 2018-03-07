@@ -58,6 +58,8 @@ private slots:
 
     void encryptedStorageCollection();
 
+    void accessControl();
+
 private:
     TestSecretManager m;
 };
@@ -466,6 +468,70 @@ void tst_secrets::encryptedStorageCollection()
                 QLatin1String("testencryptedcollection"),
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
+    QVERIFY(reply.isValid());
+    QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
+}
+
+void tst_secrets::accessControl()
+{
+    // This test is meant to be run first, with tst_secretsrequests::accessControls() run second.
+    // This test must be run as non-privileged, to avoid being classified as a platform app.
+    // Artifacts from the test will have to be removed manually from the filesystem.
+    QSKIP("This test should only be run manually, as it is not stand-alone!");
+
+    // the following collection should not be readable/writable/deletable by another process
+    QDBusPendingReply<Result> reply = m.d_ptr()->createCollection(
+                QLatin1String("owneronlycollection"),
+                SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
+                SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
+                SecretManager::DeviceLockKeepUnlocked,
+                SecretManager::OwnerOnlyMode);
+    reply.waitForFinished();
+    QVERIFY(reply.isValid());
+    QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
+
+    // the following secret should not be able to be read or deleted by another process
+    Secret unreadableSecret(
+                Secret::Identifier(
+                    QLatin1String("unreadablesecret"),
+                    QLatin1String("owneronlycollection")));
+    unreadableSecret.setData("unreadablesecretvalue");
+    unreadableSecret.setType(Secret::TypeBlob);
+    unreadableSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
+    unreadableSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
+    reply = m.d_ptr()->setSecret(
+                unreadableSecret,
+                InteractionParameters(),
+                SecretManager::ApplicationInteraction);
+    reply.waitForFinished();
+    QVERIFY(reply.isValid());
+    QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
+
+    // while the following collection should be readable/writable/deletable by another process.
+    reply = m.d_ptr()->createCollection(
+                QLatin1String("noaccesscontrolcollection"),
+                SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
+                SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
+                SecretManager::DeviceLockKeepUnlocked,
+                SecretManager::NoAccessControlMode);
+    reply.waitForFinished();
+    QVERIFY(reply.isValid());
+    QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
+
+    // and the following secret should be readable and deletable by another process.
+    Secret readableSecret(
+                Secret::Identifier(
+                    QLatin1String("readablesecret"),
+                    QLatin1String("noaccesscontrolcollection")));
+    readableSecret.setData("readablesecretvalue");
+    readableSecret.setType(Secret::TypeBlob);
+    readableSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
+    readableSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
+    reply = m.d_ptr()->setSecret(
+                readableSecret,
+                InteractionParameters(),
+                SecretManager::ApplicationInteraction);
+    reply.waitForFinished();
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
 }

@@ -46,7 +46,8 @@ public:
 
     enum AccessControlMode {
         OwnerOnlyMode = 0,                  // no fine-grained access control necessary, only the creating application can access/write/delete.
-        SystemAccessControlMode             // access control via system access control, other applications can access if user gives permission.
+        SystemAccessControlMode,            // access control via system access control, other applications can access if user gives permission.
+        NoAccessControlMode                 // other applications can access; use with care (prefer CustomLockAccessRelock)
     };
     Q_ENUM(AccessControlMode)
 
