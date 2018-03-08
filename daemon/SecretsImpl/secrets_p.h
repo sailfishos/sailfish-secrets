@@ -8,7 +8,7 @@
 #ifndef SAILFISHSECRETS_APIIMPL_SECRETS_P_H
 #define SAILFISHSECRETS_APIIMPL_SECRETS_P_H
 
-#include "database_p.h"
+#include "bookkeepingdatabase_p.h"
 #include "requestqueue_p.h"
 #include "applicationpermissions_p.h"
 
@@ -325,7 +325,7 @@ public: // helpers for crypto API: secretscryptohelpers.cpp
     QMap<QString, QObject*> potentialCryptoStoragePlugins() const;
 
 private:
-    Sailfish::Secrets::Daemon::Sqlite::Database m_db;
+    Sailfish::Secrets::Daemon::ApiImpl::BookkeepingDatabase m_bkdb;
     Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *m_appPermissions;
     Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor *m_requestProcessor;
 

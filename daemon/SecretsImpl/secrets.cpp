@@ -14,8 +14,6 @@
 #include "Secrets/secretsdaemonconnection_p.h"
 #include "Secrets/serialisation_p.h"
 
-#include "SecretsImpl/secretsdatabase_p.h"
-
 using namespace Sailfish::Secrets;
 
 Daemon::ApiImpl::SecretsDBusObject::SecretsDBusObject(
@@ -326,21 +324,13 @@ Daemon::ApiImpl::SecretsRequestQueue::SecretsRequestQueue(
           autotestMode)
 {
     SecretsDaemonConnection::registerDBusTypes();
-    if (!m_db.open(QLatin1String("QSQLITE"),
-                   QLatin1String("sailfishsecretsd"),
-                   QLatin1String("secrets.db"),
-                   setupStatements,
-                   createStatements,
-                   upgradeVersions,
-                   currentSchemaVersion,
-                   QLatin1String("sailfishsecretsd"),
-                   autotestMode)) {
-        qCWarning(lcSailfishSecretsDaemon) << "Secrets: failed to open database!";
+    if (!m_bkdb.initialise(autotestMode)) {
+        qCWarning(lcSailfishSecretsDaemon) << "Secrets: failed to open bookkeeping database!";
         return;
     }
 
     m_appPermissions = new Daemon::ApiImpl::ApplicationPermissions(this);
-    m_requestProcessor = new Daemon::ApiImpl::RequestProcessor(&m_db, m_appPermissions, autotestMode, this);
+    m_requestProcessor = new Daemon::ApiImpl::RequestProcessor(&m_bkdb, m_appPermissions, autotestMode, this);
     if (!m_requestProcessor->loadPlugins(pluginDir)) {
         qCWarning(lcSailfishSecretsDaemon) << "Secrets: failed to load plugins!";
         return;

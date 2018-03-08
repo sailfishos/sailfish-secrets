@@ -32,7 +32,7 @@
 #include "SecretsImpl/secrets_p.h"
 #include "SecretsImpl/applicationpermissions_p.h"
 
-#include "database_p.h"
+#include "bookkeepingdatabase_p.h"
 #include "requestqueue_p.h"
 
 namespace Sailfish {
@@ -53,7 +53,7 @@ class RequestProcessor : public QObject
     Q_OBJECT
 
 public:
-    RequestProcessor(Sailfish::Secrets::Daemon::Sqlite::Database *db,
+    RequestProcessor(Sailfish::Secrets::Daemon::ApiImpl::BookkeepingDatabase *bkdb,
                      Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *appPermissions,
                      bool autotestMode,
                      Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *parent = Q_NULLPTR);
@@ -386,7 +386,7 @@ private:
         QVariantList parameters;
     };
 
-    Sailfish::Secrets::Daemon::Sqlite::Database *m_db;
+    Sailfish::Secrets::Daemon::ApiImpl::BookkeepingDatabase *m_bkdb;
     Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *m_requestQueue;
     Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *m_appPermissions;
 
