@@ -47,6 +47,9 @@ public:
 
     bool isValid() const { return m_isValid; }
 
+    Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *secrets() const;
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *crypto() const;
+
 public Q_SLOTS:
     void handleClientConnection(const QDBusConnection &connection);
 

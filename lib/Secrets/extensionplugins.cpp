@@ -334,12 +334,62 @@ EncryptionPlugin::~EncryptionPlugin()
 {
 }
 
+bool EncryptionPlugin::supportsLocking() const
+{
+    return false;
+}
+
+bool EncryptionPlugin::isLocked() const
+{
+    return false;
+}
+
+bool EncryptionPlugin::lock()
+{
+    return false;
+}
+
+bool EncryptionPlugin::unlock(const QByteArray &)
+{
+    return false;
+}
+
+bool EncryptionPlugin::setLockCode(const QByteArray &, const QByteArray &)
+{
+    return false;
+}
+
 StoragePlugin::StoragePlugin()
 {
 }
 
 StoragePlugin::~StoragePlugin()
 {
+}
+
+bool StoragePlugin::supportsLocking() const
+{
+    return false;
+}
+
+bool StoragePlugin::isLocked() const
+{
+    return false;
+}
+
+bool StoragePlugin::lock()
+{
+    return false;
+}
+
+bool StoragePlugin::unlock(const QByteArray &)
+{
+    return false;
+}
+
+bool StoragePlugin::setLockCode(const QByteArray &, const QByteArray &)
+{
+    return false;
 }
 
 EncryptedStoragePlugin::EncryptedStoragePlugin()
@@ -350,6 +400,31 @@ EncryptedStoragePlugin::~EncryptedStoragePlugin()
 {
 }
 
+bool EncryptedStoragePlugin::supportsLocking() const
+{
+    return false;
+}
+
+bool EncryptedStoragePlugin::isLocked() const
+{
+    return false;
+}
+
+bool EncryptedStoragePlugin::lock()
+{
+    return false;
+}
+
+bool EncryptedStoragePlugin::unlock(const QByteArray &)
+{
+    return false;
+}
+
+bool EncryptedStoragePlugin::setLockCode(const QByteArray &, const QByteArray &)
+{
+    return false;
+}
+
 AuthenticationPlugin::AuthenticationPlugin(QObject *parent)
     : QObject(parent)
 {
@@ -357,4 +432,29 @@ AuthenticationPlugin::AuthenticationPlugin(QObject *parent)
 
 AuthenticationPlugin::~AuthenticationPlugin()
 {
+}
+
+bool AuthenticationPlugin::supportsLocking() const
+{
+    return false;
+}
+
+bool AuthenticationPlugin::isLocked() const
+{
+    return false;
+}
+
+bool AuthenticationPlugin::lock()
+{
+    return false;
+}
+
+bool AuthenticationPlugin::unlock(const QByteArray &)
+{
+    return false;
+}
+
+bool AuthenticationPlugin::setLockCode(const QByteArray &, const QByteArray &)
+{
+    return false;
 }

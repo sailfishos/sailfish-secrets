@@ -52,6 +52,14 @@ Sailfish::Secrets::Daemon::Controller::Controller(const QString &secretsPluginDi
     m_secrets = new Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue(this, secretsPluginDir, autotestMode);
     m_crypto = new Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue(this, m_secrets, cryptoPluginDir, autotestMode);
 
+    // We may need to do this again once we know the real lock code.
+    // see the comment below for more details.
+    // Unless the user has not provided a master-lock code, we don't expect
+    // that we have the "correct" bookkeeping database lock key here,
+    // but that's ok - we can unlock the database at some later point in
+    // time after performing a UI flow asking the user to unlock.
+    m_secrets->initialise(QByteArray());
+
     // Determine the p2p socket address.
     const QString p2pDBusSocketAddress = p2pSocketAddress();
     if (p2pDBusSocketAddress.isEmpty()) {
@@ -90,6 +98,18 @@ Sailfish::Secrets::Daemon::Controller::Controller(const QString &secretsPluginDi
 
 Sailfish::Secrets::Daemon::Controller::~Controller()
 {
+}
+
+Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue*
+Sailfish::Secrets::Daemon::Controller::secrets() const
+{
+    return m_secrets;
+}
+
+Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue*
+Sailfish::Secrets::Daemon::Controller::crypto() const
+{
+    return m_crypto;
 }
 
 void Sailfish::Secrets::Daemon::Controller::handleClientConnection(const QDBusConnection &connection)

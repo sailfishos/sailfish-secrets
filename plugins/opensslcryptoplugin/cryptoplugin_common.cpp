@@ -324,7 +324,9 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::generateKey(
                                         QLatin1String("Unsupported key derivation message authentication code specified"));
     }
 
-    if (skdfParams.keyDerivationDigestFunction() != Sailfish::Crypto::CryptoManager::DigestSha1) {
+    if (skdfParams.keyDerivationDigestFunction() != Sailfish::Crypto::CryptoManager::DigestSha1
+            && skdfParams.keyDerivationDigestFunction() != Sailfish::Crypto::CryptoManager::DigestSha256
+            && skdfParams.keyDerivationDigestFunction() != Sailfish::Crypto::CryptoManager::DigestSha512) {
         // TODO: support other digest functions with HMAC...
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                         QLatin1String("Unsupported key derivation digest function specified"));
@@ -342,7 +344,12 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::generateKey(
 
     int nbytes = skdfParams.outputKeySize() / 8;
     QScopedArrayPointer<char> buf(new char[nbytes]);
-    if (PKCS5_PBKDF2_HMAC_SHA1(
+    const EVP_MD *md = skdfParams.keyDerivationDigestFunction() == Sailfish::Crypto::CryptoManager::DigestSha1
+                     ? EVP_sha1()
+                     : skdfParams.keyDerivationDigestFunction() == Sailfish::Crypto::CryptoManager::DigestSha256
+                     ? EVP_sha256()
+                     : EVP_sha512();
+    if (PKCS5_PBKDF2_HMAC(
             skdfParams.inputData().isEmpty()
                     ? NULL
                     : skdfParams.inputData().constData(),
@@ -352,6 +359,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::generateKey(
                     : reinterpret_cast<const unsigned char*>(skdfParams.salt().constData()),
             skdfParams.salt().size(),
             skdfParams.iterations(),
+            md,
             nbytes,
             reinterpret_cast<unsigned char*>(buf.data())) != 1) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,

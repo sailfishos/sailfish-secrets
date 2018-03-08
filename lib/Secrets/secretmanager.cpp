@@ -506,6 +506,102 @@ SecretManagerPrivate::deleteSecret(
     return reply;
 }
 
+QDBusPendingReply<Result>
+SecretManagerPrivate::modifyLockCode(
+        const QString &secretName,
+        const QString &collectionName,
+        const InteractionParameters &interactionParameters,
+        SecretManager::UserInteractionMode userInteractionMode)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QString interactionServiceAddress;
+    Result uiServiceResult = registerInteractionService(userInteractionMode, &interactionServiceAddress);
+    if (uiServiceResult.code() == Result::Failed) {
+        return QDBusPendingReply<Result>(
+                QDBusMessage().createReply(
+                        QVariantList() << QVariant::fromValue<Result>(uiServiceResult)));
+    }
+
+    QDBusPendingReply<Result> reply
+            = m_interface->asyncCallWithArgumentList(
+                QStringLiteral("modifyLockCode"),
+                QVariantList() << QVariant::fromValue<QString>(secretName)
+                               << QVariant::fromValue<QString>(collectionName)
+                               << QVariant::fromValue<InteractionParameters>(interactionParameters)
+                               << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
+                               << QVariant::fromValue<QString>(interactionServiceAddress));
+    return reply;
+}
+
+QDBusPendingReply<Result>
+SecretManagerPrivate::provideLockCode(
+        const QString &secretName,
+        const QString &collectionName,
+        const InteractionParameters &interactionParameters,
+        SecretManager::UserInteractionMode userInteractionMode)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QString interactionServiceAddress;
+    Result uiServiceResult = registerInteractionService(userInteractionMode, &interactionServiceAddress);
+    if (uiServiceResult.code() == Result::Failed) {
+        return QDBusPendingReply<Result>(
+                QDBusMessage().createReply(
+                        QVariantList() << QVariant::fromValue<Result>(uiServiceResult)));
+    }
+
+    QDBusPendingReply<Result> reply
+            = m_interface->asyncCallWithArgumentList(
+                QStringLiteral("provideLockCode"),
+                QVariantList() << QVariant::fromValue<QString>(secretName)
+                               << QVariant::fromValue<QString>(collectionName)
+                               << QVariant::fromValue<InteractionParameters>(interactionParameters)
+                               << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
+                               << QVariant::fromValue<QString>(interactionServiceAddress));
+    return reply;
+}
+
+QDBusPendingReply<Result>
+SecretManagerPrivate::forgetLockCode(
+        const QString &secretName,
+        const QString &collectionName,
+        const InteractionParameters &interactionParameters,
+        SecretManager::UserInteractionMode userInteractionMode)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QString interactionServiceAddress;
+    Result uiServiceResult = registerInteractionService(userInteractionMode, &interactionServiceAddress);
+    if (uiServiceResult.code() == Result::Failed) {
+        return QDBusPendingReply<Result>(
+                QDBusMessage().createReply(
+                        QVariantList() << QVariant::fromValue<Result>(uiServiceResult)));
+    }
+
+    QDBusPendingReply<Result> reply
+            = m_interface->asyncCallWithArgumentList(
+                QStringLiteral("forgetLockCode"),
+                QVariantList() << QVariant::fromValue<QString>(secretName)
+                               << QVariant::fromValue<QString>(collectionName)
+                               << QVariant::fromValue<InteractionParameters>(interactionParameters)
+                               << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
+                               << QVariant::fromValue<QString>(interactionServiceAddress));
+    return reply;
+}
+
 /*!
  * \internal
  */

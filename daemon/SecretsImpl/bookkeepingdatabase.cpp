@@ -88,11 +88,18 @@ static Daemon::Sqlite::UpgradeOperation upgradeVersions[] = {
 static const int currentSchemaVersion = 1;
 
 Daemon::ApiImpl::BookkeepingDatabase::BookkeepingDatabase()
+    : m_initialised(false)
 {
 }
 
 Daemon::ApiImpl::BookkeepingDatabase::~BookkeepingDatabase()
 {
+}
+
+bool
+Daemon::ApiImpl::BookkeepingDatabase::isInitialised() const
+{
+    return m_initialised;
 }
 
 bool
@@ -110,20 +117,21 @@ Daemon::ApiImpl::BookkeepingDatabase::initialise(bool autotestMode, const QByteA
         NULL
     };
 
-    return m_db.open(QLatin1String("QSQLCIPHER"),
-                     QLatin1String("sailfishsecretsd"),
-                     QLatin1String("secrets.db"),
-                     setupStatements,
-                     createStatements,
-                     upgradeVersions,
-                     currentSchemaVersion,
-                     QLatin1String("sailfishsecretsd"),
-                     autotestMode);
+    m_initialised = m_db.open(QLatin1String("QSQLCIPHER"),
+                              QLatin1String("sailfishsecretsd"),
+                              QLatin1String("secrets.db"),
+                              setupStatements,
+                              createStatements,
+                              upgradeVersions,
+                              currentSchemaVersion,
+                              QLatin1String("sailfishsecretsd"),
+                              autotestMode);
+    return m_initialised;
 }
 
 Result
 Daemon::ApiImpl::BookkeepingDatabase::isLocked(
-        bool *locked)
+        bool *locked) const
 {
     Result retn(Result::Succeeded);
 
@@ -816,6 +824,41 @@ Daemon::ApiImpl::BookkeepingDatabase::secretMetadata(
         if (accessControlMode) {
             *accessControlMode = static_cast<SecretManager::AccessControlMode>(sq.value(7).value<int>());
         }
+    }
+
+    return Result(Result::Succeeded);
+}
+
+Result
+Daemon::ApiImpl::BookkeepingDatabase::hashedSecretNames(
+        const QString &collectionName,
+        QStringList *names)
+{
+    const QString selectCollectionNamesQuery = QStringLiteral(
+                 "SELECT HashedSecretName"
+                 " FROM Secrets"
+                 " WHERE CollectionName = ?;"
+             );
+
+    QString errorText;
+    Daemon::Sqlite::Database::Query sq = m_db.prepare(selectCollectionNamesQuery, &errorText);
+    if (!errorText.isEmpty()) {
+        return Result(Result::DatabaseQueryError,
+                      QString::fromLatin1("Unable to prepare select hashed secret names query: %1").arg(errorText));
+    }
+
+    QVariantList values;
+    values << collectionName;
+    sq.bindValues(values);
+
+    if (!m_db.execute(sq, &errorText)) {
+        return Result(Result::DatabaseQueryError,
+                      QString::fromLatin1("Unable to execute select hashed secret names query: %1").arg(errorText));
+    }
+
+    while (sq.next()) {
+        const QString sname = sq.value(0).value<QString>();
+        names->append(sname);
     }
 
     return Result(Result::Succeeded);

@@ -27,17 +27,6 @@
 
 using namespace Sailfish::Secrets;
 
-// In real system, we would generate a secure key on first boot,
-// and store it via a hardware-supported secure storage mechanism.
-// If we ever update the secure key, we would need to decrypt all
-// values stored in the secrets database with the old key, encrypt
-// them with the new key, and write the updated values back to storage.
-static const QByteArray SystemEncryptionKey = QByteArray("example_encryption_key");
-// In real system, we would store the device lock key (hash) somewhere
-// securely.  We use this device lock key to lock/unlock device-lock
-// protected collections.
-static const QByteArray DeviceLockKey = QByteArray("example_device_lock_key");
-
 Daemon::ApiImpl::RequestProcessor::RequestProcessor(
         Daemon::ApiImpl::BookkeepingDatabase *bkdb,
         Daemon::ApiImpl::ApplicationPermissions *appPermissions,
@@ -45,18 +34,6 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(
         Daemon::ApiImpl::SecretsRequestQueue *parent)
     : QObject(parent), m_bkdb(bkdb), m_requestQueue(parent), m_appPermissions(appPermissions), m_autotestMode(autotestMode)
 {
-    // initialise the special "standalone" collection if needed.
-    // Note that it is a "notional" collection only,
-    // existing only to satisfy the database constraints.
-    m_bkdb->insertCollection(QLatin1String("standalone"),
-                             QLatin1String("standalone"),
-                             false,
-                             QLatin1String("standalone"),
-                             QLatin1String("standalone"),
-                             QLatin1String("standalone"),
-                             0,
-                             0,
-                             SecretManager::OwnerOnlyMode);
 }
 
 bool
@@ -217,10 +194,10 @@ Daemon::ApiImpl::RequestProcessor::createDeviceLockCollection(
 
     Result pluginResult;
     if (storagePluginName == encryptionPluginName) {
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->createCollection(collectionName, DeviceLockKey);
+        pluginResult = m_encryptedStoragePlugins[storagePluginName]->createCollection(collectionName, m_requestQueue->deviceLockKey());
     } else {
         pluginResult = m_storagePlugins[storagePluginName]->createCollection(collectionName);
-        m_collectionAuthenticationKeys.insert(collectionName, DeviceLockKey);
+        m_collectionAuthenticationKeys.insert(collectionName, m_requestQueue->deviceLockKey());
     }
 
     if (pluginResult.code() != Result::Succeeded) {
@@ -1358,16 +1335,16 @@ Daemon::ApiImpl::RequestProcessor::writeStandaloneDeviceLockSecret(
     Result pluginResult;
     if (storagePluginName == encryptionPluginName) {
         // TODO: does the following work?  We'd need to add methods to the encrypted storage plugin: re-encryptStandaloneSecrets or something...
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, secret.identifier().name(), secret.data(), secret.filterData(), DeviceLockKey);
+        pluginResult = m_encryptedStoragePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, secret.identifier().name(), secret.data(), secret.filterData(), m_requestQueue->deviceLockKey());
     } else {
         QByteArray encrypted, encryptedName;
-        pluginResult = m_encryptionPlugins[encryptionPluginName]->encryptSecret(secret.data(), DeviceLockKey, &encrypted);
+        pluginResult = m_encryptionPlugins[encryptionPluginName]->encryptSecret(secret.data(), m_requestQueue->deviceLockKey(), &encrypted);
         if (pluginResult.code() == Result::Succeeded) {
-            pluginResult = m_encryptionPlugins[encryptionPluginName]->encryptSecret(secret.identifier().name().toUtf8(), DeviceLockKey, &encryptedName);
+            pluginResult = m_encryptionPlugins[encryptionPluginName]->encryptSecret(secret.identifier().name().toUtf8(), m_requestQueue->deviceLockKey(), &encryptedName);
             if (pluginResult.code() == Result::Succeeded) {
                 pluginResult = m_storagePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, encryptedName, encrypted, secret.filterData());
                 if (pluginResult.code() == Result::Succeeded) {
-                    m_standaloneSecretAuthenticationKeys.insert(hashedSecretName, DeviceLockKey);
+                    m_standaloneSecretAuthenticationKeys.insert(hashedSecretName, m_requestQueue->deviceLockKey());
                 }
             }
         }
@@ -2692,7 +2669,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
                         identifier,
                         userInteractionMode,
                         interactionServiceAddress,
-                        DeviceLockKey);
+                        m_requestQueue->deviceLockKey());
         }
     } else {
         if (!m_collectionAuthenticationKeys.contains(identifier.collectionName())) {
@@ -2793,7 +2770,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithAuthenticationKey(
                       QLatin1String("Nonexistent collection name given"));
     }
 
-    if (collectionUsesDeviceLockKey && authenticationKey != DeviceLockKey) {
+    if (collectionUsesDeviceLockKey && authenticationKey != m_requestQueue->deviceLockKey()) {
         return Result(Result::IncorrectAuthenticationKeyError,
                       QLatin1String("Incorrect device lock key provided"));
     }
@@ -2941,7 +2918,7 @@ Daemon::ApiImpl::RequestProcessor::deleteStandaloneSecret(
             return pluginResult;
         }
         if (locked && secretUsesDeviceLockKey) {
-            pluginResult = m_encryptedStoragePlugins[secretStoragePluginName]->setEncryptionKey(collectionName, DeviceLockKey);
+            pluginResult = m_encryptedStoragePlugins[secretStoragePluginName]->setEncryptionKey(collectionName, m_requestQueue->deviceLockKey());
             if (pluginResult.code() == Result::Failed) {
                 return pluginResult;
             }
@@ -2969,6 +2946,636 @@ Daemon::ApiImpl::RequestProcessor::deleteStandaloneSecret(
     }
 
     return pluginResult;
+}
+
+Result
+Daemon::ApiImpl::RequestProcessor::modifyLockCode(
+        pid_t callerPid,
+        quint64 requestId,
+        const QString &secretName,
+        const QString &collectionName,
+        const InteractionParameters &interactionParams,
+        SecretManager::UserInteractionMode userInteractionMode,
+        const QString &interactionServiceAddress)
+{
+    if (!secretName.isEmpty() && !collectionName.isEmpty()) {
+        return Result(Result::InvalidSecretIdentifierError,
+                      QLatin1String("Cannot modify passphrase of a collection-secret"));
+    }
+
+    // TODO: perform access control request to see if the application has permission to access secure storage data.
+    const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
+    const QString callerApplicationId = applicationIsPlatformApplication
+                ? m_appPermissions->platformApplicationId()
+                : m_appPermissions->applicationId(callerPid);
+
+    if (!secretName.isEmpty()) {
+        // check that the standalone secret exists,
+        // and that its userInteractionMode matches the argument.
+        return Result(Result::OperationNotSupportedError,
+                      QLatin1String("ModifyLockCode - standalone secret - TODO!"));
+    } else if (!collectionName.isEmpty()) {
+        // check that the collection exists, and is custom lock,
+        // and that its userInteractionMode matches the argument.
+        return Result(Result::OperationNotSupportedError,
+                      QLatin1String("ModifyLockCode - collection - TODO!"));
+    } else {
+        // check that the application is system settings.
+        // if not, some malicious app is trying to rekey the
+        // master (bookkeeping) database.
+        if (!applicationIsPlatformApplication) {
+            return Result(Result::PermissionsError,
+                          QLatin1String("Only the system settings application can unlock the secrets database"));
+        }
+    }
+
+    // Perform the first request "get old passphrase".
+    // After it completes, perform the second request "get new passphrase"
+    // Once both are complete, perform re-key operation.
+    // If it was a master lock change, re-initialise crypto plugins.
+    QString userInputPlugin = interactionParams.authenticationPluginName();
+    if (interactionParams.authenticationPluginName().isEmpty()) {
+        // TODO: depending on type, choose the appropriate authentication plugin
+        userInputPlugin = SecretManager::DefaultAuthenticationPluginName;
+    }
+    if (!m_authenticationPlugins.contains(userInputPlugin)) {
+        return Result(Result::InvalidExtensionPluginError,
+                      QString::fromLatin1("Cannot get user input from invalid authentication plugin: %1")
+                      .arg(interactionParams.authenticationPluginName()));
+    }
+
+    InteractionParameters modifyLockRequest(interactionParams);
+    modifyLockRequest.setApplicationId(callerApplicationId);
+    modifyLockRequest.setOperation(InteractionParameters::ModifyLockDatabase);
+    modifyLockRequest.setPromptText(QLatin1String("Enter the old master lock code for device secrets"));
+    Result interactionResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
+                callerPid,
+                requestId,
+                modifyLockRequest,
+                interactionServiceAddress);
+    if (interactionResult.code() == Result::Failed) {
+        return interactionResult;
+    }
+
+    m_pendingRequests.insert(requestId,
+                             Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                 callerPid,
+                                 requestId,
+                                 Daemon::ApiImpl::ModifyLockCodeRequest,
+                                 QVariantList() << QVariant::fromValue<QString>(secretName)
+                                                << QVariant::fromValue<QString>(collectionName)
+                                                << QVariant::fromValue<InteractionParameters>(modifyLockRequest)
+                                                << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
+                                                << QVariant::fromValue<QString>(interactionServiceAddress)));
+    return Result(Result::Pending);
+}
+
+Result
+Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCode(
+        pid_t callerPid,
+        quint64 requestId,
+        const QString &secretName,
+        const QString &collectionName,
+        const InteractionParameters &interactionParams,
+        SecretManager::UserInteractionMode userInteractionMode,
+        const QString &interactionServiceAddress,
+        const QByteArray &oldLockCode)
+{
+    QString userInputPlugin = interactionParams.authenticationPluginName();
+    if (interactionParams.authenticationPluginName().isEmpty()) {
+        // TODO: depending on type, choose the appropriate authentication plugin
+        userInputPlugin = SecretManager::DefaultAuthenticationPluginName;
+    }
+    if (!m_authenticationPlugins.contains(userInputPlugin)) {
+        return Result(Result::InvalidExtensionPluginError,
+                      QString::fromLatin1("Cannot get user input from invalid authentication plugin: %1")
+                      .arg(interactionParams.authenticationPluginName()));
+    }
+
+    InteractionParameters modifyLockRequest(interactionParams);
+    modifyLockRequest.setPromptText(QLatin1String("Enter the new master lock code for device secrets"));
+    Result interactionResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
+                callerPid,
+                requestId,
+                modifyLockRequest,
+                interactionServiceAddress);
+    if (interactionResult.code() == Result::Failed) {
+        return interactionResult;
+    }
+
+    m_pendingRequests.insert(requestId,
+                             Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                 callerPid,
+                                 requestId,
+                                 Daemon::ApiImpl::ModifyLockCodeRequest,
+                                 QVariantList() << QVariant::fromValue<QString>(secretName)
+                                                << QVariant::fromValue<QString>(collectionName)
+                                                << QVariant::fromValue<InteractionParameters>(modifyLockRequest)
+                                                << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
+                                                << QVariant::fromValue<QString>(interactionServiceAddress)
+                                                << QVariant::fromValue<QByteArray>(oldLockCode)));
+    return Result(Result::Pending);
+}
+
+Result
+Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCodes(
+        pid_t callerPid,
+        quint64 requestId,
+        const QString &secretName,
+        const QString &collectionName,
+        const InteractionParameters &interactionParams,
+        SecretManager::UserInteractionMode userInteractionMode,
+        const QString &interactionServiceAddress,
+        const QByteArray &oldLockCode,
+        const QByteArray &newLockCode)
+{
+    // TODO: support secret/collection flows
+    Q_UNUSED(callerPid);
+    Q_UNUSED(requestId);
+    Q_UNUSED(secretName);
+    Q_UNUSED(collectionName);
+    Q_UNUSED(interactionParams);
+    Q_UNUSED(userInteractionMode);
+    Q_UNUSED(interactionServiceAddress);
+
+    if (!m_requestQueue->testLockCode(oldLockCode)) {
+        return Result(Result::SecretsDaemonLockedError,
+                      QLatin1String("The given old lock code was incorrect"));
+    }
+
+    // pull the old bookkeeping database lock key and device lock key into memory via deep copy.
+    QByteArray oldBkdbLockKey, oldDeviceLockKey;
+    {
+        QByteArray bkdbShallowCopy = m_requestQueue->bkdbLockKey();
+        oldBkdbLockKey = QByteArray(bkdbShallowCopy.constData(), bkdbShallowCopy.size());
+        QByteArray dlShallowCopy = m_requestQueue->deviceLockKey();
+        oldDeviceLockKey = QByteArray(dlShallowCopy.constData(), dlShallowCopy.size());
+    }
+
+    // if the bookkeeping database has not yet been initialised/opened
+    // then use the old lock code to initialise first.
+    if (!m_bkdb->isInitialised()) {
+        if (!m_requestQueue->initialise(oldLockCode)) {
+            return Result(Result::UnknownError,
+                          QLatin1String("Unable to initialise the database using the old lock code"));
+        }
+    }
+
+    // attempt to initialise the new key data based on the new lock code
+    if (!m_requestQueue->initialise(newLockCode)) {
+        return Result(Result::UnknownError,
+                      QLatin1String("Unable to initialise key data for re-encryption"));
+    }
+
+    // re-encrypt the bookkeeping database with the new key data.
+    Result reencryptResult = m_bkdb->reencrypt(oldBkdbLockKey, m_requestQueue->bkdbLockKey());
+    if (reencryptResult.code() != Result::Succeeded) {
+        // Failed to re-encrypt, so try to restore our state.
+        m_requestQueue->initialise(oldLockCode);
+        return reencryptResult;
+    }
+
+    // Successfully re-encrypted the bookkeeping database.
+    // Now re-encrypt all device-locked collections and secrets,
+    // and re-initialise plugins with the new lock code.
+
+    // first, re-encrypt device-locked collections
+    QStringList collectionNames;
+    Result cnamesResult = m_bkdb->collectionNames(&collectionNames);
+    if (cnamesResult.code() == Result::Succeeded) {
+        for (const QString &cname : collectionNames) {
+            bool usesDeviceLockKey = false;
+            QString storagePluginName;
+            QString encryptionPluginName;
+            int unlockSemantic;
+            Result metadataResult = m_bkdb->collectionMetadata(
+                        cname,
+                        Q_NULLPTR,
+                        Q_NULLPTR,
+                        &usesDeviceLockKey,
+                        &storagePluginName,
+                        &encryptionPluginName,
+                        Q_NULLPTR,
+                        &unlockSemantic,
+                        Q_NULLPTR,
+                        Q_NULLPTR);
+            if (metadataResult.code() != Result::Succeeded) {
+                qCWarning(lcSailfishSecretsDaemon) << "Failed to retrieve metadata for collection:" << cname
+                                                   << "for re-encryption";
+                continue;
+            }
+
+            if (!usesDeviceLockKey) {
+                continue;
+            }
+
+            if (storagePluginName == encryptionPluginName) {
+                EncryptedStoragePlugin *plugin = m_encryptedStoragePlugins.value(storagePluginName);
+                if (!plugin) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Invalid encrypted storage plugin specified in metadata for collection:" << cname;
+                    continue;
+                }
+
+                bool collectionLocked = true;
+                plugin->isLocked(cname, &collectionLocked);
+                if (collectionLocked) {
+                    Result collectionUnlockResult = plugin->setEncryptionKey(cname, m_requestQueue->deviceLockKey());
+                    if (collectionUnlockResult.code() != Result::Succeeded) {
+                        qCWarning(lcSailfishSecretsDaemon) << "Error unlocking device-locked collection:" << cname
+                                                           << collectionUnlockResult.errorMessage();
+                    }
+                    plugin->isLocked(cname, &collectionLocked);
+                    if (collectionLocked) {
+                        qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock device-locked collection:" << cname;
+                    }
+                    Result collectionReencryptResult = plugin->reencrypt(
+                                cname, oldDeviceLockKey, m_requestQueue->deviceLockKey());
+                    if (collectionReencryptResult.code() != Result::Succeeded) {
+                        qCWarning(lcSailfishSecretsDaemon) << "Failed to re-encrypt encrypted storage device-locked collection:" << cname
+                                                           << collectionReencryptResult.code()
+                                                           << collectionReencryptResult.errorMessage();
+                    }
+                }
+            } else {
+                EncryptionPlugin *eplugin = m_encryptionPlugins.value(encryptionPluginName);
+                if (!eplugin) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Invalid encryption plugin specified in metadata for collection:" << cname;
+                    continue;
+                }
+
+                StoragePlugin *splugin = m_storagePlugins.value(storagePluginName);
+                if (!splugin) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Invalid storage plugin specified in metadata for collection:" << cname;
+                    continue;
+                }
+
+                Result collectionReencryptResult = splugin->reencryptSecrets(
+                            cname, QVector<QString>(),
+                            oldDeviceLockKey, m_requestQueue->deviceLockKey(),
+                            eplugin);
+                if (collectionReencryptResult.code() != Result::Succeeded) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Failed to re-encrypt stored device-locked collection:" << cname
+                                                       << collectionReencryptResult.code()
+                                                       << collectionReencryptResult.errorMessage();
+                }
+            }
+        }
+    }
+
+    // second, re-encrypt standalone device-lock encrypted secrets.
+    QStringList hashedSecretNames;
+    Result hsnResult = m_bkdb->hashedSecretNames(QLatin1String("standalone"), &hashedSecretNames);
+    if (hsnResult.code() != Result::Succeeded) {
+        qCWarning(lcSailfishSecretsDaemon) << "Failed to retrieved standalone secret names for re-encryption!";
+    } else {
+        for (const QString &hsn : hashedSecretNames) {
+            bool usesDeviceLockKey = false;
+            QString storagePluginName;
+            QString encryptionPluginName;
+            Result secretMetadataResult = m_bkdb->secretMetadata(
+                        QLatin1String("standalone"),
+                        hsn,
+                        Q_NULLPTR,
+                        Q_NULLPTR,
+                        &usesDeviceLockKey,
+                        &storagePluginName,
+                        &encryptionPluginName,
+                        Q_NULLPTR,
+                        Q_NULLPTR,
+                        Q_NULLPTR,
+                        Q_NULLPTR);
+            if (secretMetadataResult.code() != Result::Succeeded) {
+                qCWarning(lcSailfishSecretsDaemon) << "Failed to retrieve metadata for standalone secret:" << hsn
+                                                   << "for re-encryption";
+                continue;
+            }
+            if (!usesDeviceLockKey) {
+                continue;
+            }
+            EncryptionPlugin *eplugin = m_encryptionPlugins.value(encryptionPluginName);
+            if (!eplugin) {
+                qCWarning(lcSailfishSecretsDaemon) << "Invalid encryption plugin specified in metadata for standalone secret:" << hsn;
+                continue;
+            }
+
+            StoragePlugin *splugin = m_storagePlugins.value(storagePluginName);
+            if (!splugin) {
+                qCWarning(lcSailfishSecretsDaemon) << "Invalid storage plugin specified in metadata for standalone secret:" << hsn;
+                continue;
+            }
+
+            Result secretReencryptResult = splugin->reencryptSecrets(
+                        QString(), QVector<QString>() << hsn,
+                        oldDeviceLockKey, m_requestQueue->deviceLockKey(),
+                        eplugin);
+            if (secretReencryptResult.code() != Result::Succeeded) {
+                qCWarning(lcSailfishSecretsDaemon) << "Failed to re-encrypt stored device-locked standalone secret:" << hsn
+                                                   << secretReencryptResult.code()
+                                                   << secretReencryptResult.errorMessage();
+            }
+        }
+    }
+
+    // finally, re-initialise plugins with the new device lock key.
+    for (EncryptionPlugin *eplugin : m_encryptionPlugins.values()) {
+        if (eplugin->supportsLocking()) {
+            if (eplugin->isLocked()) {
+                if (!eplugin->unlock(oldDeviceLockKey)) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock encryption plugin:" << eplugin->name();
+                }
+            }
+            if (!eplugin->setLockCode(oldDeviceLockKey, m_requestQueue->deviceLockKey())) {
+                qCWarning(lcSailfishSecretsDaemon) << "Failed to set lock code for encryption plugin:" << eplugin->name();
+            }
+        }
+    }
+    for (StoragePlugin *splugin : m_storagePlugins.values()) {
+        if (splugin->supportsLocking()) {
+            if (splugin->isLocked()) {
+                if (!splugin->unlock(oldDeviceLockKey)) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock storage plugin:" << splugin->name();
+                }
+            }
+            if (!splugin->setLockCode(oldDeviceLockKey, m_requestQueue->deviceLockKey())) {
+                qCWarning(lcSailfishSecretsDaemon) << "Failed to set lock code for storage plugin:" << splugin->name();
+            }
+        }
+    }
+    for (EncryptedStoragePlugin *esplugin : m_encryptedStoragePlugins.values()) {
+        if (esplugin->supportsLocking()) {
+            if (esplugin->isLocked()) {
+                if (!esplugin->unlock(oldDeviceLockKey)) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock encrypted storage plugin:" << esplugin->name();
+                }
+            }
+            if (!esplugin->setLockCode(oldDeviceLockKey, m_requestQueue->deviceLockKey())) {
+                qCWarning(lcSailfishSecretsDaemon) << "Failed to set lock code for encrypted storage plugin:" << esplugin->name();
+            }
+        }
+    }
+    for (AuthenticationPlugin *aplugin : m_authenticationPlugins.values()) {
+        if (aplugin->supportsLocking()) {
+            if (aplugin->isLocked()) {
+                if (!aplugin->unlock(oldDeviceLockKey)) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock authentication plugin:" << aplugin->name();
+                }
+            }
+            if (!aplugin->setLockCode(oldDeviceLockKey, m_requestQueue->deviceLockKey())) {
+                qCWarning(lcSailfishSecretsDaemon) << "Failed to set lock code for authentication plugin:" << aplugin->name();
+            }
+        }
+    }
+
+    if (!m_requestQueue->setLockCodeCryptoPlugins(oldDeviceLockKey, m_requestQueue->deviceLockKey())) {
+        qCWarning(lcSailfishSecretsDaemon) << "Failed to set the lock code for crypto plugins!";
+    }
+
+    return reencryptResult;
+}
+
+Result
+Daemon::ApiImpl::RequestProcessor::provideLockCode(
+        pid_t callerPid,
+        quint64 requestId,
+        const QString &secretName,
+        const QString &collectionName,
+        const InteractionParameters &interactionParams,
+        SecretManager::UserInteractionMode userInteractionMode,
+        const QString &interactionServiceAddress)
+{
+    // TODO: perform access control request to see if the application has permission to access secure storage data.
+    const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
+    const QString callerApplicationId = applicationIsPlatformApplication
+                ? m_appPermissions->platformApplicationId()
+                : m_appPermissions->applicationId(callerPid);
+
+    if (!secretName.isEmpty() && !collectionName.isEmpty()) {
+        return Result(Result::InvalidSecretIdentifierError,
+                      QLatin1String("Cannot provide a lock code for a collection secret"));
+    } else if (!secretName.isEmpty()) {
+        // attempt to unlock the specified standalone secret.  TODO!
+        return Result(Result::OperationNotSupportedError,
+                      QLatin1String("ProvideLockCode - standalone secret - TODO!"));
+    } else if (!collectionName.isEmpty()){
+        // attempt to unlock the specified collection.  TODO!
+        return Result(Result::OperationNotSupportedError,
+                      QLatin1String("ProvideLockCode - collection - TODO!"));
+    } else {
+        // TODO: only allow system settings application or device lock daemon!
+        if (!applicationIsPlatformApplication) {
+            return Result(Result::PermissionsError,
+                          QLatin1String("Only the system settings application can unlock the secrets database"));
+        }
+
+        bool locked = true;
+        Result lockResult = m_bkdb->isLocked(&locked);
+        if (lockResult.code() != Result::Succeeded) {
+            return lockResult;
+        }
+
+        if (!locked) {
+            return Result(Result::UnknownError,
+                          QLatin1String("The secrets database is not locked"));
+        }
+
+        if (m_requestQueue->noLockCode()) {
+            // We successfully opened the database without a lock code
+            // on startup, and the lock code hasn't been modified since
+            // then (but may have been deliberately forgotten).
+            // So, we can unlock the database with a null lock code.
+            if (!m_requestQueue->initialise(QByteArray())) {
+                return Result(Result::UnknownError,
+                              QLatin1String("Unable to initialise key data from null lock code"));
+            }
+
+            Result unlockResult = m_bkdb->unlock(m_requestQueue->bkdbLockKey());
+            // TODO: for each plugin, unlock with the key?
+            return unlockResult;
+        }
+
+        // retrieve the lock code from the user
+        QString userInputPlugin = interactionParams.authenticationPluginName();
+        if (interactionParams.authenticationPluginName().isEmpty()) {
+            // TODO: depending on type, choose the appropriate authentication plugin
+            userInputPlugin = SecretManager::DefaultAuthenticationPluginName;
+        }
+        if (!m_authenticationPlugins.contains(userInputPlugin)) {
+            return Result(Result::InvalidExtensionPluginError,
+                          QString::fromLatin1("Cannot get user input from invalid authentication plugin: %1")
+                          .arg(interactionParams.authenticationPluginName()));
+        }
+
+        InteractionParameters unlockRequest(interactionParams);
+        unlockRequest.setApplicationId(callerApplicationId);
+        unlockRequest.setOperation(InteractionParameters::UnlockDatabase);
+        Result interactionResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
+                    callerPid,
+                    requestId,
+                    unlockRequest,
+                    interactionServiceAddress);
+        if (interactionResult.code() == Result::Failed) {
+            return interactionResult;
+        }
+
+        m_pendingRequests.insert(requestId,
+                                 Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                     callerPid,
+                                     requestId,
+                                     Daemon::ApiImpl::ProvideLockCodeRequest,
+                                     QVariantList() << QVariant::fromValue<QString>(secretName)
+                                                    << QVariant::fromValue<QString>(collectionName)
+                                                    << QVariant::fromValue<InteractionParameters>(unlockRequest)
+                                                    << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
+                                                    << QVariant::fromValue<QString>(interactionServiceAddress)));
+        return Result(Result::Pending);
+    }
+}
+
+Result
+Daemon::ApiImpl::RequestProcessor::provideLockCodeWithLockCode(
+        pid_t callerPid,
+        quint64 requestId,
+        const QString &secretName,
+        const QString &collectionName,
+        const InteractionParameters &interactionParams,
+        SecretManager::UserInteractionMode userInteractionMode,
+        const QString &interactionServiceAddress,
+        const QByteArray &lockCode)
+{
+    // TODO: support the secret/collection flows.
+    Q_UNUSED(callerPid);
+    Q_UNUSED(requestId);
+    Q_UNUSED(secretName);
+    Q_UNUSED(collectionName);
+    Q_UNUSED(interactionParams);
+    Q_UNUSED(userInteractionMode);
+    Q_UNUSED(interactionServiceAddress);
+
+    if (!m_requestQueue->initialise(lockCode)) {
+        return Result(Result::UnknownError,
+                      QLatin1String("Unable to initialise key data to unlock the secrets database"));
+    }
+
+    // unlock the bookkeeping database
+    Result lockResult = m_bkdb->unlock(m_requestQueue->bkdbLockKey());
+    if (lockResult.code() != Result::Succeeded) {
+        return lockResult;
+    }
+
+    // unlock all of our plugins
+    for (EncryptionPlugin *eplugin : m_encryptionPlugins.values()) {
+        if (eplugin->supportsLocking()) {
+            if (eplugin->isLocked()) {
+                if (!eplugin->unlock(m_requestQueue->deviceLockKey())) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock encryption plugin:" << eplugin->name();
+                }
+            }
+        }
+    }
+    for (StoragePlugin *splugin : m_storagePlugins.values()) {
+        if (splugin->supportsLocking()) {
+            if (splugin->isLocked()) {
+                if (!splugin->unlock(m_requestQueue->deviceLockKey())) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock storage plugin:" << splugin->name();
+                }
+            }
+        }
+    }
+    for (EncryptedStoragePlugin *esplugin : m_encryptedStoragePlugins.values()) {
+        if (esplugin->supportsLocking()) {
+            if (esplugin->isLocked()) {
+                if (!esplugin->unlock(m_requestQueue->deviceLockKey())) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock encrypted storage plugin:" << esplugin->name();
+                }
+            }
+        }
+    }
+    for (AuthenticationPlugin *aplugin : m_authenticationPlugins.values()) {
+        if (aplugin->supportsLocking()) {
+            if (aplugin->isLocked()) {
+                if (!aplugin->unlock(m_requestQueue->deviceLockKey())) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock authentication plugin:" << aplugin->name();
+                }
+            }
+        }
+    }
+
+    if (!m_requestQueue->unlockCryptoPlugins(m_requestQueue->deviceLockKey())) {
+        qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock crypto plugins!";
+    }
+
+    return lockResult;
+}
+
+Result
+Daemon::ApiImpl::RequestProcessor::forgetLockCode(
+        pid_t callerPid,
+        quint64 requestId,
+        const QString &secretName,
+        const QString &collectionName,
+        const InteractionParameters &interactionParams,
+        SecretManager::UserInteractionMode userInteractionMode,
+        const QString &interactionServiceAddress)
+{
+    Q_UNUSED(requestId)
+    Q_UNUSED(interactionParams)
+    Q_UNUSED(userInteractionMode)
+    Q_UNUSED(interactionServiceAddress)
+
+    // TODO: perform access control request to see if the application has permission to access secure storage data.
+    const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
+    const QString callerApplicationId = applicationIsPlatformApplication
+                ? m_appPermissions->platformApplicationId()
+                : m_appPermissions->applicationId(callerPid);
+
+    if (!secretName.isEmpty() && !collectionName.isEmpty()) {
+        return Result(Result::InvalidSecretIdentifierError,
+                      QLatin1String("Cannot forget a lock code for a collection secret"));
+    } else if (!secretName.isEmpty()) {
+        // attempt to lock the specified standalone secret.  TODO!
+        return Result(Result::OperationNotSupportedError,
+                      QLatin1String("ForgetLockCode - standalone secret - TODO!"));
+    } else if (!collectionName.isEmpty()){
+        // attempt to lock the specified collection.  TODO!
+        return Result(Result::OperationNotSupportedError,
+                      QLatin1String("ForgetLockCode - collection - TODO!"));
+    } else {
+        // TODO: only allow system settings application or device lock daemon!
+        if (!applicationIsPlatformApplication) {
+            return Result(Result::PermissionsError,
+                          QLatin1String("Only the system settings application can lock the secrets database"));
+        }
+
+        if (!m_requestQueue->initialise(
+                    QByteArray("ffffffffffffffff"
+                               "ffffffffffffffff"
+                               "ffffffffffffffff"
+                               "ffffffffffffffff"))) {
+            return Result(Result::UnknownError,
+                          QLatin1String("Unable to re-initialise key data to lock the secrets database"));
+        }
+
+        // lock the bookkeeping database
+        Result lockResult = m_bkdb->lock();
+
+        // lock all of our plugins
+        for (EncryptionPlugin *eplugin : m_encryptionPlugins.values()) {
+            eplugin->lock();
+        }
+        for (StoragePlugin *splugin : m_storagePlugins.values()) {
+            splugin->lock();
+        }
+        for (EncryptedStoragePlugin *esplugin : m_encryptedStoragePlugins.values()) {
+            esplugin->lock();
+        }
+        for (AuthenticationPlugin *aplugin : m_authenticationPlugins.values()) {
+            aplugin->lock();
+        }
+
+        m_requestQueue->lockCryptoPlugins();
+
+        return lockResult;
+    }
 }
 
 void
@@ -3201,6 +3808,54 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                                     pr.callerPid,
                                     pr.requestId,
                                     pr.parameters.takeFirst().value<Secret::Identifier>(),
+                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    userInput);
+                    }
+                    break;
+                }
+                case ModifyLockCodeRequest: {
+                    if (pr.parameters.size() == 5) {
+                        // we have the old lock code.  Now we need the new lock code.
+                        returnResult = modifyLockCodeWithLockCode(
+                                    pr.callerPid,
+                                    pr.requestId,
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<InteractionParameters>(),
+                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    userInput);
+                    } else if (pr.parameters.size() == 6) {
+                        // we have both the old and new lock codes.
+                        // attempt to update the encryption key from the lock code.
+                        returnResult = modifyLockCodeWithLockCodes(
+                                    pr.callerPid,
+                                    pr.requestId,
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<InteractionParameters>(),
+                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QByteArray>(),
+                                    userInput);
+                    } else {
+                        returnResult = Result(Result::UnknownError,
+                                              QLatin1String("Internal error: incorrect parameter count!"));
+                    }
+                    break;
+                }
+                case ProvideLockCodeRequest: {
+                    if (pr.parameters.size() != 5) {
+                        returnResult = Result(Result::UnknownError,
+                                              QLatin1String("Internal error: incorrect parameter count!"));
+                    } else {
+                        returnResult = provideLockCodeWithLockCode(
+                                    pr.callerPid,
+                                    pr.requestId,
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<InteractionParameters>(),
                                     static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
                                     pr.parameters.takeFirst().value<QString>(),
                                     userInput);

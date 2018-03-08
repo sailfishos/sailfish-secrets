@@ -197,6 +197,36 @@ public:
             const Sailfish::Secrets::Secret::Identifier &identifier,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
+    // modify a lock code (re-key an encrypted collection or standalone secret)
+    Sailfish::Secrets::Result modifyLockCode(
+            pid_t callerPid,
+            quint64 requestId,
+            const QString &secretName,
+            const QString &collectionName,
+            const Sailfish::Secrets::InteractionParameters &interactionParams,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress);
+
+    // provide a lock code (unlock an encrypted collection or standalone secret)
+    Sailfish::Secrets::Result provideLockCode(
+            pid_t callerPid,
+            quint64 requestId,
+            const QString &secretName,
+            const QString &collectionName,
+            const Sailfish::Secrets::InteractionParameters &interactionParams,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress);
+
+    // forget a lock code (lock an encrypted collection or standalone secret)
+    Sailfish::Secrets::Result forgetLockCode(
+            pid_t callerPid,
+            quint64 requestId,
+            const QString &secretName,
+            const QString &collectionName,
+            const Sailfish::Secrets::InteractionParameters &interactionParams,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress);
+
 public: // helper methods for crypto API bridge (secretscryptohelpers)
     QMap<QString, QObject*> potentialCryptoStoragePlugins() const;
     QStringList storagePluginNames() const;
@@ -371,6 +401,37 @@ private:
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
             const QByteArray &authenticationKey);
+
+    Sailfish::Secrets::Result modifyLockCodeWithLockCode(
+            pid_t callerPid,
+            quint64 requestId,
+            const QString &secretName,
+            const QString &collectionName,
+            const Sailfish::Secrets::InteractionParameters &interactionParams,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            const QByteArray &oldLockCode);
+
+    Sailfish::Secrets::Result modifyLockCodeWithLockCodes(
+            pid_t callerPid,
+            quint64 requestId,
+            const QString &secretName,
+            const QString &collectionName,
+            const Sailfish::Secrets::InteractionParameters &interactionParams,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            const QByteArray &oldLockCode,
+            const QByteArray &newLockCode);
+
+    Sailfish::Secrets::Result provideLockCodeWithLockCode(
+            pid_t callerPid,
+            quint64 requestId,
+            const QString &secretName,
+            const QString &collectionName,
+            const Sailfish::Secrets::InteractionParameters &interactionParams,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            const QByteArray &lockCode);
 
 private:
     struct PendingRequest {

@@ -65,6 +65,10 @@ public:
                      Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *parent = Q_NULLPTR);
 
     bool loadPlugins(const QString &pluginDir);
+    QMap<QString, Sailfish::Crypto::CryptoPlugin*> plugins() const;
+    bool lockPlugins();
+    bool unlockPlugins(const QByteArray &unlockCode);
+    bool setLockCodePlugins(const QByteArray &oldCode, const QByteArray &newCode);
 
     Sailfish::Crypto::Result getPluginInfo(
             pid_t callerPid,

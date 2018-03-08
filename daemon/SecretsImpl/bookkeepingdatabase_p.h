@@ -35,12 +35,14 @@ public:
     BookkeepingDatabase();
     ~BookkeepingDatabase();
 
+    bool isInitialised() const;
+
     bool initialise(
             bool autotestMode,
             const QByteArray &hexKey);
 
     Sailfish::Secrets::Result isLocked(
-            bool *locked);
+            bool *locked) const;
 
     Sailfish::Secrets::Result lock();
 
@@ -140,6 +142,10 @@ public:
             int *customLockTimeoutMs,
             Sailfish::Secrets::SecretManager::AccessControlMode *accessControlMode);
 
+    Sailfish::Secrets::Result hashedSecretNames(
+            const QString &collectionName,
+            QStringList *names);
+
     // The following methods are for the crypto helper
     Sailfish::Secrets::Result collectionStoragePluginName(
             const QString &collectionName,
@@ -172,6 +178,7 @@ public:
 
 private:
     Sailfish::Secrets::Daemon::Sqlite::Database m_db;
+    bool m_initialised;
 };
 
 } // ApiImpl

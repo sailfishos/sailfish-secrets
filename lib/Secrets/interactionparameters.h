@@ -59,28 +59,37 @@ public:
     Q_ENUM(EchoMode)
 
     enum Operation {
-        UnknownOperation = 0,
+        UnknownOperation    = 0,
 
-        RequestUserData  = 1,   // usually used in conjunction with StoreSecret, i.e. store data requested from user.
+        RequestUserData     = 1 << 0,   // usually used in conjunction with StoreSecret, i.e. store data requested from user.
 
-        CreateCollection = 2,
-        UnlockCollection = 4,
-        DeleteCollection = 8,
+        UnlockDatabase      = 1 << 1,
+        LockDatabase        = 1 << 2,
+        ModifyLockDatabase  = 1 << 3,
 
-        ReadSecret       = 16,
-        StoreSecret      = 32,
-        DeleteSecret     = 64,
+        CreateCollection    = 1 << 4,
+        UnlockCollection    = 1 << 5,
+        LockCollection      = 1 << 6,
+        ModifyLockCollection= 1 << 7,
+        DeleteCollection    = 1 << 8,
 
-        Encrypt          = 128,
-        Decrypt          = 256,
-        Sign             = 512,
-        Verify           = 1024,
-        DeriveDigest     = 2048,
-        DeriveMac        = 4096,
-        DeriveKey        = 8192,
+        ReadSecret          = 1 << 9,
+        StoreSecret         = 1 << 10,
+        UnlockSecret        = 1 << 11,
+        LockSecret          = 1 << 12,
+        ModifyLockSecret    = 1 << 13,
+        DeleteSecret        = 1 << 14,
+
+        Encrypt             = 1 << 15,
+        Decrypt             = 1 << 16,
+        Sign                = 1 << 17,
+        Verify              = 1 << 18,
+        DeriveDigest        = 1 << 19,
+        DeriveMac           = 1 << 20,
+        DeriveKey           = 1 << 21,
 
         // reserved
-        LastOperation    = 65536
+        LastOperation       = 1 << 30
     };
     Q_ENUM(Operation)
     Q_DECLARE_FLAGS(Operations, Operation)

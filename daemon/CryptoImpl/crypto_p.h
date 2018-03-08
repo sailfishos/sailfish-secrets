@@ -417,6 +417,11 @@ public:
                        bool autotestMode);
     ~CryptoRequestQueue();
 
+    QMap<QString, Sailfish::Crypto::CryptoPlugin*> plugins() const;
+    bool lockPlugins();
+    bool unlockPlugins(const QByteArray &unlockCode);
+    bool setLockCodePlugins(const QByteArray &oldCode, const QByteArray &newCode);
+
     void handlePendingRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;
     void handleFinishedRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;
     QString requestTypeToString(int type) const Q_DECL_OVERRIDE;

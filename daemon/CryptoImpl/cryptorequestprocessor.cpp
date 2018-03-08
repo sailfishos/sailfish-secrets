@@ -120,6 +120,57 @@ Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
     return true;
 }
 
+QMap<QString, CryptoPlugin*>
+Daemon::ApiImpl::RequestProcessor::plugins() const
+{
+    return m_cryptoPlugins;
+}
+
+bool Daemon::ApiImpl::RequestProcessor::lockPlugins()
+{
+    bool retn = true;
+    for (CryptoPlugin *p : m_cryptoPlugins) {
+        if (p->supportsLocking()) {
+            if (!p->lock()) {
+                qCWarning(lcSailfishCryptoDaemon) << "Failed to lock crypto plugin:" << p->name();
+                retn = false;
+            }
+        }
+    }
+    return retn;
+}
+
+bool Daemon::ApiImpl::RequestProcessor::unlockPlugins(
+        const QByteArray &unlockCode)
+{
+    bool retn = true;
+    for (CryptoPlugin *p : m_cryptoPlugins) {
+        if (p->supportsLocking()) {
+            if (!p->unlock(unlockCode)) {
+                qCWarning(lcSailfishCryptoDaemon) << "Failed to unlock crypto plugin:" << p->name();
+                retn = false;
+            }
+        }
+    }
+    return retn;
+}
+
+bool Daemon::ApiImpl::RequestProcessor::setLockCodePlugins(
+        const QByteArray &oldCode,
+        const QByteArray &newCode)
+{
+    bool retn = true;
+    for (CryptoPlugin *p : m_cryptoPlugins) {
+        if (p->supportsLocking()) {
+            if (!p->setLockCode(oldCode, newCode)) {
+                qCWarning(lcSailfishCryptoDaemon) << "Failed to set lock code for crypto plugin:" << p->name();
+                retn = false;
+            }
+        }
+    }
+    return retn;
+}
+
 Result
 Daemon::ApiImpl::RequestProcessor::getPluginInfo(
         pid_t callerPid,

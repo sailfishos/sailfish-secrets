@@ -57,6 +57,30 @@ Daemon::Plugins::InAppPlugin::beginUserInputInteraction(
                                   Q_ARG(Sailfish::Secrets::Result, Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded)),
                                   Q_ARG(QByteArray, QByteArray("example passphrase for unit test")));
         return Result(Result::Pending);
+    } else if (interactionParameters.promptText()
+            == QLatin1String("Enter the old master lock code for device secrets")) {
+        static int oldLockCount = 0;
+        oldLockCount += 1;
+        QMetaObject::invokeMethod(this, "userInputInteractionCompleted", Qt::QueuedConnection,
+                                  Q_ARG(uint, callerPid),
+                                  Q_ARG(qint64, requestId),
+                                  Q_ARG(Sailfish::Secrets::InteractionParameters, interactionParameters),
+                                  Q_ARG(QString, interactionServiceAddress),
+                                  Q_ARG(Sailfish::Secrets::Result, Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded)),
+                                  Q_ARG(QByteArray, oldLockCount % 2 == 1 ? QByteArray() : QByteArray("masterlock")));
+        return Result(Result::Pending);
+    } else if (interactionParameters.promptText()
+               == QLatin1String("Enter the new master lock code for device secrets")) {
+        static int newLockCount = 0;
+        newLockCount += 1;
+        QMetaObject::invokeMethod(this, "userInputInteractionCompleted", Qt::QueuedConnection,
+                                  Q_ARG(uint, callerPid),
+                                  Q_ARG(qint64, requestId),
+                                  Q_ARG(Sailfish::Secrets::InteractionParameters, interactionParameters),
+                                  Q_ARG(QString, interactionServiceAddress),
+                                  Q_ARG(Sailfish::Secrets::Result, Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded)),
+                                  Q_ARG(QByteArray, newLockCount % 2 == 1 ? QByteArray("masterlock") : QByteArray()));
+        return Result(Result::Pending);
     }
 #endif
 
