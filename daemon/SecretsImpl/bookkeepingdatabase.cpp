@@ -9,6 +9,14 @@
 
 using namespace Sailfish::Secrets;
 
+// arg %1 must be a 64-character hex string = 32 byte key.
+static const char *setupEncryptionKey =
+        "\n PRAGMA key = \"x\'%1\'\";";
+
+// arg %1 must be a 64-character hex string = 32 byte key.
+static const char *setupReEncryptionKey =
+        "\n PRAGMA rekey = \"x\'%1\'\";";
+
 static const char *setupEnforceForeignKeys =
         "\n PRAGMA foreign_keys = ON;";
 
@@ -65,16 +73,6 @@ static const char *createKeyEntriesTable =
         "   FOREIGN KEY (CollectionName, HashedSecretName) REFERENCES Secrets(CollectionName,HashedSecretName) ON DELETE CASCADE,"
         "   CONSTRAINT collectionKeyNameUnique UNIQUE (CollectionName, KeyName));";
 
-static const char *setupStatements[] =
-{
-    setupEnforceForeignKeys,
-    setupEncoding,
-    setupTempStore,
-    setupJournal,
-    setupSynchronous,
-    NULL
-};
-
 static const char *createStatements[] =
 {
     createCollectionsTable,
@@ -98,9 +96,21 @@ Daemon::ApiImpl::BookkeepingDatabase::~BookkeepingDatabase()
 }
 
 bool
-Daemon::ApiImpl::BookkeepingDatabase::initialise(bool autotestMode)
+Daemon::ApiImpl::BookkeepingDatabase::initialise(bool autotestMode, const QByteArray &hexKey)
 {
-    return m_db.open(QLatin1String("QSQLITE"),
+    const QByteArray setupKeyStatement = QString::fromLatin1(setupEncryptionKey).arg(QLatin1String(hexKey)).toLatin1();
+    const char *setupKeyStatementData = setupKeyStatement.constData();
+    const char *setupStatements[] = {
+        setupKeyStatementData,
+        setupEnforceForeignKeys,
+        setupEncoding,
+        setupTempStore,
+        setupJournal,
+        setupSynchronous,
+        NULL
+    };
+
+    return m_db.open(QLatin1String("QSQLCIPHER"),
                      QLatin1String("sailfishsecretsd"),
                      QLatin1String("secrets.db"),
                      setupStatements,
@@ -110,6 +120,121 @@ Daemon::ApiImpl::BookkeepingDatabase::initialise(bool autotestMode)
                      QLatin1String("sailfishsecretsd"),
                      autotestMode);
 }
+
+Result
+Daemon::ApiImpl::BookkeepingDatabase::isLocked(
+        bool *locked)
+{
+    Result retn(Result::Succeeded);
+
+    const QString lockedQuery = QStringLiteral("SELECT Count(*) FROM sqlite_master;");
+    QString errorText;
+    Daemon::Sqlite::Database::Query lq = m_db.prepare(lockedQuery, &errorText);
+    if (!errorText.isEmpty()) {
+        retn = Result(Result::DatabaseQueryError,
+                      QString::fromUtf8("Unable to prepare is locked query: %1")
+                                   .arg(errorText));
+    } else if (!m_db.execute(lq, &errorText)) {
+        // unable to execute - the encryption key must be wrong (locked)
+        *locked = true;
+    } else {
+        // able to execute - the encryption key is correct (unlocked)
+        *locked = false;
+    }
+
+    return retn;
+}
+
+Result
+Daemon::ApiImpl::BookkeepingDatabase::lock()
+{
+    return unlock(QByteArray("ffffffffffffffff"
+                             "ffffffffffffffff"
+                             "ffffffffffffffff"
+                             "ffffffffffffffff"));
+}
+
+Result
+Daemon::ApiImpl::BookkeepingDatabase::unlock(
+        const QByteArray &hexKey)
+{
+    Result retn(Result::Succeeded);
+    if (hexKey.length() != 64) {
+        retn = Result(Result::IncorrectAuthenticationKeyError,
+                      QLatin1String("The bookkeeping database key is not a 256 bit key"));
+    } else {
+        const QString setupKeyStatement = QString::fromLatin1(setupEncryptionKey).arg(QLatin1String(hexKey));
+        QString errorText;
+        Daemon::Sqlite::Database::Query kq = m_db.prepare(setupKeyStatement, &errorText);
+        if (!errorText.isEmpty()) {
+            retn = Result(Result::DatabaseQueryError,
+                          QString::fromUtf8("Unable to prepare setup key query: %1").arg(errorText));
+        } else if (!m_db.beginTransaction()) {
+            retn = Result(Result::DatabaseTransactionError,
+                          QString::fromUtf8("Unable to begin setup key transaction"));
+        } else if (!m_db.execute(kq, &errorText)) {
+            m_db.rollbackTransaction();
+            retn = Result(Result::DatabaseQueryError,
+                          QString::fromUtf8("Unable to execute setup key query: %1").arg(errorText));
+        } else if (!m_db.commitTransaction()) {
+            m_db.rollbackTransaction();
+            retn = Result(Result::DatabaseTransactionError,
+                          QString::fromUtf8("Unable to commit setup key transaction"));
+        }
+    }
+
+    return retn;
+}
+
+Result
+Daemon::ApiImpl::BookkeepingDatabase::reencrypt(
+        const QByteArray &oldHexKey,
+        const QByteArray &newHexKey)
+{
+    Result retn = unlock(oldHexKey);
+    if (retn.code() != Result::Succeeded) {
+        return retn;
+    }
+
+    bool locked = false;
+    retn = isLocked(&locked);
+    if (retn.code() != Result::Succeeded) {
+        return retn;
+    }
+
+    if (locked) {
+        return Result(Result::CollectionIsLockedError,
+                      QString::fromUtf8("The old bookkeeping key was not correct"));
+    }
+
+    if (newHexKey.length() != 64) {
+        return Result(Result::IncorrectAuthenticationKeyError,
+                      QLatin1String("The new bookkeeping key is not a 256 bit key"));
+    }
+
+    const QString setupReKeyStatement = QString::fromLatin1(setupReEncryptionKey).arg(QLatin1String(newHexKey));
+    QString errorText;
+    Daemon::Sqlite::Database::Query kq = m_db.prepare(setupReKeyStatement, &errorText);
+    if (!errorText.isEmpty()) {
+        retn = Result(Result::DatabaseQueryError,
+                      QString::fromUtf8("Unable to prepare setup rekey query: %1").arg(errorText));
+    } else if (!m_db.beginTransaction()) {
+        retn = Result(Result::DatabaseTransactionError,
+                      QString::fromUtf8("Unable to begin setup rekey transaction"));
+    } else if (!m_db.execute(kq, &errorText)) {
+        m_db.rollbackTransaction();
+        retn = Result(Result::DatabaseQueryError,
+                      QString::fromUtf8("Unable to execute setup rekey query: %1").arg(errorText));
+    } else if (!m_db.commitTransaction()) {
+        m_db.rollbackTransaction();
+        retn = Result(Result::DatabaseTransactionError,
+                      QString::fromUtf8("Unable to commit setup rekey transaction"));
+    }
+
+    return retn;
+}
+
+//-------------------------------------------------------------------
 
 Result
 Daemon::ApiImpl::BookkeepingDatabase::insertCollection(

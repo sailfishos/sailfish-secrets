@@ -35,8 +35,23 @@ public:
     BookkeepingDatabase();
     ~BookkeepingDatabase();
 
-    bool initialise(bool autotestMode);
+    bool initialise(
+            bool autotestMode,
+            const QByteArray &hexKey);
 
+    Sailfish::Secrets::Result isLocked(
+            bool *locked);
+
+    Sailfish::Secrets::Result lock();
+
+    Sailfish::Secrets::Result unlock(
+            const QByteArray &hexKey);
+
+    Sailfish::Secrets::Result reencrypt(
+            const QByteArray &oldHexKey,
+            const QByteArray &newHexKey);
+
+    // the following methods are for the secrets service
     Sailfish::Secrets::Result insertCollection(
             const QString &collectionName,
             const QString &callerApplicationId,

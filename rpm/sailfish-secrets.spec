@@ -103,6 +103,7 @@ BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  qt5-plugin-sqldriver-sqlite
 Requires:   %{name} = %{version}-%{release}
 Requires:   libsailfishcrypto = %{version}-%{release}
+Requires:   qt5-plugin-sqldriver-sqlcipher
 
 %description -n sailfishsecretsdaemon
 Provides an example secrets storage and cryptographic operations system daemon service,

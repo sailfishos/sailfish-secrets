@@ -324,7 +324,11 @@ Daemon::ApiImpl::SecretsRequestQueue::SecretsRequestQueue(
           autotestMode)
 {
     SecretsDaemonConnection::registerDBusTypes();
-    if (!m_bkdb.initialise(autotestMode)) {
+    if (!m_bkdb.initialise(autotestMode,
+                           QByteArray("0000000000000000"
+                                      "0000000000000000"
+                                      "0000000000000000"
+                                      "0000000000000001"))) {
         qCWarning(lcSailfishSecretsDaemon) << "Secrets: failed to open bookkeeping database!";
         return;
     }
