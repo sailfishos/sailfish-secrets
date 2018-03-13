@@ -9,7 +9,7 @@ include($$PWD/../../../lib/libsailfishsecrets.pri)
 DEFINES += SAILFISHSECRETS_TESTPLUGIN
 
 HEADERS += \
-    $$PWD/../../../plugins/opensslplugin/evp_p.h \
+    $$PWD/../../../plugins/opensslcryptoplugin/evp_p.h \
     $$PWD/../../../plugins/opensslplugin/plugin.h
 
 SOURCES += \
