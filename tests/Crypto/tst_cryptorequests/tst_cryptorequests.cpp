@@ -86,13 +86,18 @@ public slots:
 private slots:
     void getPluginInfo();
     void randomData();
+    void generateKeyEncryptDecrypt_data();
     void generateKeyEncryptDecrypt();
     void validateCertificateChain();
     void signVerify();
+    void storedKeyRequests_data();
     void storedKeyRequests();
+    void storedDerivedKeyRequests_data();
     void storedDerivedKeyRequests();
     void storedGeneratedKeyRequests();
+    void cipherEncryptDecrypt_data();
     void cipherEncryptDecrypt();
+    void cipherBenchmark_data();
     void cipherBenchmark();
     void cipherTimeout();
 
@@ -213,11 +218,22 @@ void tst_cryptorequests::randomData()
     QVERIFY(randomInRange <= 7777);
 }
 
+void tst_cryptorequests::generateKeyEncryptDecrypt_data()
+{
+    QTest::addColumn<int>("keySize");
+
+    QTest::newRow("128") << 128;
+    QTest::newRow("192") << 192;
+    QTest::newRow("256") << 256;
+}
+
 void tst_cryptorequests::generateKeyEncryptDecrypt()
 {
+    QFETCH(int, keySize);
+
     // test generating a symmetric cipher key
     Key keyTemplate;
-    keyTemplate.setSize(256);
+    keyTemplate.setSize(keySize);
     keyTemplate.setAlgorithm(CryptoManager::AlgorithmAes);
     keyTemplate.setOrigin(Key::OriginDevice);
     keyTemplate.setOperations(CryptoManager::OperationEncrypt | CryptoManager::OperationDecrypt);
@@ -394,11 +410,22 @@ void tst_cryptorequests::signVerify()
     QSKIP("TODO - sign/verify not yet implemented!");
 }
 
+void tst_cryptorequests::storedKeyRequests_data()
+{
+    QTest::addColumn<int>("keySize");
+
+    QTest::newRow("128") << 128;
+    QTest::newRow("192") << 192;
+    QTest::newRow("256") << 256;
+}
+
 void tst_cryptorequests::storedKeyRequests()
 {
+    QFETCH(int, keySize);
+
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
     Sailfish::Crypto::Key keyTemplate;
-    keyTemplate.setSize(256);
+    keyTemplate.setSize(keySize);
     keyTemplate.setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmAes);
     keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
     keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt | Sailfish::Crypto::CryptoManager::OperationDecrypt);
@@ -667,9 +694,19 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(dcr.result().code(), Sailfish::Secrets::Result::Succeeded);
 }
 
+void tst_cryptorequests::storedDerivedKeyRequests_data()
+{
+    QTest::addColumn<int>("keySize");
+
+    QTest::newRow("128") << 128;
+    QTest::newRow("192") << 192;
+    QTest::newRow("256") << 256;
+}
 
 void tst_cryptorequests::storedDerivedKeyRequests()
 {
+    QFETCH(int, keySize);
+
     // test generating a symmetric cipher key via a key derivation function
     // and storing securely in the same plugin which produces the key.
     Sailfish::Crypto::Key keyTemplate;
@@ -687,7 +724,7 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     skdf.setIterations(16384);
     skdf.setSalt(QByteArray("0123456789abcdef"));
     //skdf.setInputData(QByteArray("example user passphrase")); // TODO: this is implemented, but not covered by the unit test if uiParams exists!
-    skdf.setOutputKeySize(256);
+    skdf.setOutputKeySize(keySize);
 
     Sailfish::Crypto::InteractionParameters uiParams;
     uiParams.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
@@ -1108,12 +1145,23 @@ void tst_cryptorequests::storedGeneratedKeyRequests()
     QCOMPARE(dcr.result().code(), Sailfish::Secrets::Result::Succeeded);
 }
 
+void tst_cryptorequests::cipherEncryptDecrypt_data()
+{
+    QTest::addColumn<int>("keySize");
+
+    QTest::newRow("128") << 128;
+    QTest::newRow("192") << 192;
+    QTest::newRow("256") << 256;
+}
+
 void tst_cryptorequests::cipherEncryptDecrypt()
 {
+    QFETCH(int, keySize);
+
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
     // then use that stored key to perform stream cipher encrypt/decrypt operations.
     Sailfish::Crypto::Key keyTemplate;
-    keyTemplate.setSize(256);
+    keyTemplate.setSize(keySize);
     keyTemplate.setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmAes);
     keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
     keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt | Sailfish::Crypto::CryptoManager::OperationDecrypt);
@@ -1334,8 +1382,20 @@ void tst_cryptorequests::cipherEncryptDecrypt()
 #define CIPHER_BENCHMARK_CHUNK_SIZE 131072
 #define BATCH_BENCHMARK_CHUNK_SIZE 32768
 #define BENCHMARK_TEST_FILE QLatin1String("/tmp/sailfish.crypto.testfile")
+
+void tst_cryptorequests::cipherBenchmark_data()
+{
+    QTest::addColumn<int>("keySize");
+
+    QTest::newRow("128") << 128;
+    QTest::newRow("192") << 192;
+    QTest::newRow("256") << 256;
+}
+
 void tst_cryptorequests::cipherBenchmark()
 {
+    QFETCH(int, keySize);
+
     if (!QFile::exists(BENCHMARK_TEST_FILE)) {
         QSKIP("First generate test data via: head -c 33554432 </dev/urandom >/tmp/sailfish.crypto.testfile");
     }
@@ -1343,7 +1403,7 @@ void tst_cryptorequests::cipherBenchmark()
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
     // then use that stored key to perform stream cipher encrypt/decrypt operations.
     Sailfish::Crypto::Key keyTemplate;
-    keyTemplate.setSize(256);
+    keyTemplate.setSize(keySize);
     keyTemplate.setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmAes);
     keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
     keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt | Sailfish::Crypto::CryptoManager::OperationDecrypt);

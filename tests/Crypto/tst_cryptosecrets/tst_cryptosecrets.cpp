@@ -57,7 +57,9 @@ public slots:
 
 private slots:
     void getPluginInfo();
+    void secretsStoredKey_data();
     void secretsStoredKey();
+    void cryptoStoredKey_data();
     void cryptoStoredKey();
 
 private:
@@ -92,11 +94,22 @@ void tst_cryptosecrets::getPluginInfo()
     QVERIFY(storagePlugins.contains(Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test")));
 }
 
+void tst_cryptosecrets::secretsStoredKey_data()
+{
+    QTest::addColumn<int>("keySize");
+
+    QTest::newRow("128") << 128;
+    QTest::newRow("192") << 192;
+    QTest::newRow("256") << 256;
+}
+
 void tst_cryptosecrets::secretsStoredKey()
 {
+    QFETCH(int, keySize);
+
     // test generating a symmetric cipher key and storing securely.
     Sailfish::Crypto::Key keyTemplate;
-    keyTemplate.setSize(256);
+    keyTemplate.setSize(keySize);
     keyTemplate.setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmAes);
     keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
     keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt | Sailfish::Crypto::CryptoManager::OperationDecrypt);
@@ -302,11 +315,22 @@ void tst_cryptosecrets::secretsStoredKey()
     QCOMPARE(secretsreply.argumentAt<0>().code(), Sailfish::Secrets::Result::Succeeded);
 }
 
+void tst_cryptosecrets::cryptoStoredKey_data()
+{
+    QTest::addColumn<int>("keySize");
+
+    QTest::newRow("128") << 128;
+    QTest::newRow("192") << 192;
+    QTest::newRow("256") << 256;
+}
+
 void tst_cryptosecrets::cryptoStoredKey()
 {
+    QFETCH(int, keySize);
+
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
     Sailfish::Crypto::Key keyTemplate;
-    keyTemplate.setSize(256);
+    keyTemplate.setSize(keySize);
     keyTemplate.setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmAes);
     keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
     keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt | Sailfish::Crypto::CryptoManager::OperationDecrypt);

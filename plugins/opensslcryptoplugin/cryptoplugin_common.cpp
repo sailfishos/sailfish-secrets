@@ -443,12 +443,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::encrypt(
 
     if (fullKey.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmAes) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: algorithms other than Aes256"));
-    }
-
-    if (blockMode != Sailfish::Crypto::CryptoManager::BlockModeCbc) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: block modes other than CBC"));
+                                        QLatin1String("TODO: algorithms other than Aes"));
     }
 
     if (padding != Sailfish::Crypto::CryptoManager::EncryptionPaddingNone) {
@@ -456,18 +451,28 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::encrypt(
                                         QLatin1String("TODO: encryption padding other than None"));
     }
 
-    // generate key hash and normalise init vector
-    QCryptographicHash keyHash(QCryptographicHash::Sha512);
-    keyHash.addData(fullKey.secretKey());
+    if (fullKey.secretKey().size() * 8 != fullKey.size()) {
+        // The secret is not of the expected length (e.g. 128-bit, 256-bit)
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                        QLatin1String("Secret key size does not match"));
+    }
+
+    // Ensure the IV has the correct size. The IV size for *most* modes is the same as the block size.
     QByteArray initVector = iv;
-    if (initVector.size() > 16) {
-        initVector.chop(initVector.size() - 16);
-    } else while (initVector.size() < 16) {
-        initVector.append('\0');
+    if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeCbc) {
+        // For AES, the block size is 128 bits (i.e. 16 bytes).
+        if (initVector.size() > 16) {
+            initVector.chop(initVector.size() - 16);
+        } else while (initVector.size() < 16) {
+            initVector.append('\0');
+        }
+    } else {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("TODO: block modes other than CBC"));
     }
 
     // encrypt plaintext
-    QByteArray ciphertext = aes_encrypt_plaintext(data, keyHash.result(), initVector);
+    QByteArray ciphertext = aes_encrypt_plaintext(blockMode, data, fullKey.secretKey(), initVector);
 
     // return result
     if (ciphertext.size()) {
@@ -496,12 +501,7 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::decrypt(
 
     if (fullKey.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmAes) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: algorithms other than Aes256"));
-    }
-
-    if (blockMode != Sailfish::Crypto::CryptoManager::BlockModeCbc) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: block modes other than CBC"));
+                                        QLatin1String("TODO: algorithms other than Aes"));
     }
 
     if (padding != Sailfish::Crypto::CryptoManager::EncryptionPaddingNone) {
@@ -509,18 +509,21 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::decrypt(
                                         QLatin1String("TODO: encryption padding other than None"));
     }
 
-    // generate key hash and normalise init vector
-    QCryptographicHash keyHash(QCryptographicHash::Sha512);
-    keyHash.addData(fullKey.secretKey());
+    // Ensure the IV has the correct size. The IV size for most modes is the same as the block size.
     QByteArray initVector = iv;
-    if (initVector.size() > 16) {
-        initVector.chop(initVector.size() - 16);
-    } else while (initVector.size() < 16) {
-        initVector.append('\0');
+    if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeCbc) {
+        // For AES, the block size is 128 bits (i.e. 16 bytes).
+        if (initVector.size() > 16) {
+            initVector.chop(initVector.size() - 16);
+        } else while (initVector.size() < 16) {
+            initVector.append('\0');
+        }
+    } else {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("TODO: block modes other than CBC"));
     }
-
     // decrypt ciphertext
-    QByteArray plaintext = aes_decrypt_ciphertext(data, keyHash.result(), initVector);
+    QByteArray plaintext = aes_decrypt_ciphertext(blockMode, data, fullKey.secretKey(), initVector);
     if (!plaintext.size() || (plaintext.size() == 1 && plaintext.at(0) == 0)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginDecryptionError,
                                          QLatin1String("Failed to decrypt the secret"));
@@ -607,12 +610,13 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::initialiseCipherSession(
         }
         if (fullKey.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes
                 && blockMode == Sailfish::Crypto::CryptoManager::BlockModeCbc) {
-            if (fullKey.secretKey().size() != 32) {
+            const EVP_CIPHER *evp_cipher = osslevp_aes_cipher(blockMode, fullKey.secretKey().size());
+            if (evp_cipher == NULL) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                                QLatin1String("Invalid key size for AES 256 operation"));
+                                                QLatin1String("Invalid key size for AES CBC operation"));
             }
-            if (EVP_EncryptInit_ex(evp_cipher_ctx, EVP_aes_256_cbc(), NULL,
+            if (EVP_EncryptInit_ex(evp_cipher_ctx, evp_cipher, NULL,
                                    reinterpret_cast<const unsigned char*>(fullKey.secretKey().constData()),
                                    reinterpret_cast<const unsigned char*>(initIV.constData())) != 1) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
@@ -628,12 +632,13 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::initialiseCipherSession(
         }
         if (fullKey.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes
                 && blockMode == Sailfish::Crypto::CryptoManager::BlockModeCbc) {
-            if (fullKey.secretKey().size() != 32) {
+            const EVP_CIPHER *evp_cipher = osslevp_aes_cipher(blockMode, fullKey.secretKey().size());
+            if (evp_cipher == NULL) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                                QLatin1String("Invalid key size for AES 256 operation"));
+                                                QLatin1String("Invalid key size for AES CBC operation"));
             }
-            if (EVP_DecryptInit_ex(evp_cipher_ctx, EVP_aes_256_cbc(), NULL,
+            if (EVP_DecryptInit_ex(evp_cipher_ctx, evp_cipher, NULL,
                                    reinterpret_cast<const unsigned char *>(fullKey.secretKey().constData()),
                                    reinterpret_cast<const unsigned char *>(initIV.constData())) != 1) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
@@ -854,13 +859,15 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::finaliseCipherSession(
 
 QByteArray
 CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::aes_encrypt_plaintext(
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
         const QByteArray &plaintext,
         const QByteArray &key,
         const QByteArray &init_vector)
 {
     QByteArray encryptedData;
     unsigned char *encrypted = NULL;
-    int size = osslevp_aes_encrypt_plaintext((const unsigned char *)init_vector.constData(),
+    int size = osslevp_aes_encrypt_plaintext(blockMode,
+                                             (const unsigned char *)init_vector.constData(),
                                              (const unsigned char *)key.constData(),
                                              key.size(),
                                              (const unsigned char *)plaintext.constData(),
@@ -877,13 +884,15 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::aes_encrypt_plaintext(
 
 QByteArray
 CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::aes_decrypt_ciphertext(
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
         const QByteArray &ciphertext,
         const QByteArray &key,
         const QByteArray &init_vector)
 {
     QByteArray decryptedData;
     unsigned char *decrypted = NULL;
-    int size = osslevp_aes_decrypt_ciphertext((const unsigned char *)init_vector.constData(),
+    int size = osslevp_aes_decrypt_ciphertext(blockMode,
+                                              (const unsigned char *)init_vector.constData(),
                                               (const unsigned char *)key.constData(),
                                               key.size(),
                                               (const unsigned char *)ciphertext.constData(),
