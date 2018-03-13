@@ -63,7 +63,7 @@ public:
                      bool autotestMode,
                      Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *parent = Q_NULLPTR);
 
-    bool loadPlugins(const QString &pluginDir);
+    bool loadPlugins(const QString &pluginDir, const QVariantMap &parameters);
 
     Sailfish::Crypto::Result getPluginInfo(
             pid_t callerPid,

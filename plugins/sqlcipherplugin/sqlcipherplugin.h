@@ -67,6 +67,8 @@ public:
     SqlCipherPlugin(QObject *parent = Q_NULLPTR);
     ~SqlCipherPlugin();
 
+    inline bool initialise(const QVariantMap &) Q_DECL_OVERRIDE { return true; };
+
     QString name() const Q_DECL_OVERRIDE {
 #ifdef SAILFISHSECRETS_TESTPLUGIN
         return QLatin1String("org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test");

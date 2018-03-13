@@ -314,7 +314,10 @@ class SecretsRequestQueue : public Sailfish::Secrets::Daemon::ApiImpl::RequestQu
     Q_OBJECT
 
 public:
-    SecretsRequestQueue(Sailfish::Secrets::Daemon::Controller *parent, const QString &pluginDir, bool autotestMode);
+    SecretsRequestQueue(Sailfish::Secrets::Daemon::Controller *parent,
+                        const QString &pluginDir,
+                        const QVariantMap &parameters,
+                        bool autotestMode);
     ~SecretsRequestQueue();
 
     void handlePendingRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;

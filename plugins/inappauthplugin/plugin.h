@@ -41,6 +41,8 @@ public:
     InAppPlugin(QObject *parent = Q_NULLPTR);
     ~InAppPlugin();
 
+    inline virtual bool initialise(const QVariantMap &) Q_DECL_OVERRIDE { return true; }
+
     QString name() const Q_DECL_OVERRIDE {
 #ifdef SAILFISHSECRETS_TESTPLUGIN
         return QLatin1String("org.sailfishos.secrets.plugin.authentication.inapp.test");

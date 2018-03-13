@@ -88,13 +88,13 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(Daemon::Sqlite::Database *db
 }
 
 bool
-Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
+Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir, const QVariantMap &parameters)
 {
     qCDebug(lcSailfishSecretsDaemon) << "Loading plugins from directory:" << pluginDir;
     QDir dir(pluginDir);
     Q_FOREACH (const QString &pluginFile, dir.entryList(QDir::Files | QDir::NoDot | QDir::NoDotDot, QDir::Name)) {
         // load the plugin and query it for its data.
-        Daemon::ApiImpl::PluginHelper loader(pluginFile, m_autotestMode);
+        Daemon::ApiImpl::PluginHelper loader(pluginFile, m_autotestMode, parameters);
         QObject *plugin = loader.instance();
 
         EncryptedStoragePlugin *encryptedStoragePlugin;

@@ -317,6 +317,7 @@ void Daemon::ApiImpl::SecretsDBusObject::deleteSecret(
 Daemon::ApiImpl::SecretsRequestQueue::SecretsRequestQueue(
         Daemon::Controller *parent,
         const QString &pluginDir,
+        const QVariantMap &parameters,
         bool autotestMode)
     : Daemon::ApiImpl::RequestQueue(
           QLatin1String("/Sailfish/Secrets"),
@@ -341,7 +342,7 @@ Daemon::ApiImpl::SecretsRequestQueue::SecretsRequestQueue(
 
     m_appPermissions = new Daemon::ApiImpl::ApplicationPermissions(this);
     m_requestProcessor = new Daemon::ApiImpl::RequestProcessor(&m_db, m_appPermissions, autotestMode, this);
-    if (!m_requestProcessor->loadPlugins(pluginDir)) {
+    if (!m_requestProcessor->loadPlugins(pluginDir, parameters)) {
         qCWarning(lcSailfishSecretsDaemon) << "Secrets: failed to load plugins!";
         return;
     }

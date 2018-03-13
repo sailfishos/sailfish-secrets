@@ -36,6 +36,8 @@ public:
     OpenSslCryptoPlugin(QObject *parent = Q_NULLPTR);
     ~OpenSslCryptoPlugin();
 
+    inline bool initialise(const QVariantMap &) Q_DECL_OVERRIDE { return true; };
+
     QString name() const Q_DECL_OVERRIDE {
 #ifdef SAILFISHCRYPTO_TESTPLUGIN
         return QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl.test");

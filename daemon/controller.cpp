@@ -47,10 +47,11 @@ Sailfish::Secrets::Daemon::Controller::Controller(const QString &secretsPluginDi
     , m_autotestMode(autotestMode)
     , m_isValid(false)
 {
+    const QVariantMap parameters; // TODO fill with the master-lock password?
     // Initialise the various API implementation objects.
     // These objects provide Peer-To-Peer DBus API.
-    m_secrets = new Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue(this, secretsPluginDir, autotestMode);
-    m_crypto = new Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue(this, m_secrets, cryptoPluginDir, autotestMode);
+    m_secrets = new Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue(this, secretsPluginDir, parameters, autotestMode);
+    m_crypto = new Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue(this, m_secrets, cryptoPluginDir, parameters, autotestMode);
 
     // Determine the p2p socket address.
     const QString p2pDBusSocketAddress = p2pSocketAddress();
