@@ -77,7 +77,7 @@ public:
     void setSignaturePadding(Sailfish::Crypto::CryptoManager::SignaturePadding padding);
 
     Sailfish::Crypto::CryptoManager::DigestFunction digestFunction() const;
-    void setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digest);
+    void setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digestFn);
 
     QString cryptoPluginName() const;
     void setCryptoPluginName(const QString &pluginName);

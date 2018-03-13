@@ -301,8 +301,8 @@ public:
         OperationVerify         = 4,
         OperationEncrypt        = 8,
         OperationDecrypt        = 16,
-        OperationDeriveDigest   = 32,
-        OperationDeriveMac      = 64,
+        OperationCalculateDigest= 32,
+        OperationCalculateMac   = 64,
         OperationDeriveKey      = 128
     };
     Q_ENUM(Operation)
@@ -317,6 +317,7 @@ public:
 private:
     QScopedPointer<CryptoManagerPrivate> const d_ptr;
     Q_DECLARE_PRIVATE(CryptoManager)
+    friend class CalculateDigestRequest;
     friend class CipherRequest;
     friend class DecryptRequest;
     friend class DeleteStoredKeyRequest;

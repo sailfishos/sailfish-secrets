@@ -199,6 +199,28 @@ void Daemon::ApiImpl::CryptoDBusObject::storedKeyIdentifiers(
                                   result);
 }
 
+void Daemon::ApiImpl::CryptoDBusObject::calculateDigest(
+        const QByteArray &data,
+        CryptoManager::SignaturePadding padding,
+        CryptoManager::DigestFunction digestFunction,
+        const QString &cryptosystemProviderName,
+        const QDBusMessage &message,
+        Result &result,
+        QByteArray &digest)
+{
+    Q_UNUSED(digest);  // outparam, set in handlePendingRequest / handleFinishedRequest
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<QByteArray>(data);
+    inParams << QVariant::fromValue<CryptoManager::SignaturePadding>(padding);
+    inParams << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction);
+    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    m_requestQueue->handleRequest(Daemon::ApiImpl::CalculateDigestRequest,
+                                  inParams,
+                                  connection(),
+                                  message,
+                                  result);
+}
+
 void Daemon::ApiImpl::CryptoDBusObject::sign(
         const QByteArray &data,
         const Key &key,
@@ -224,6 +246,7 @@ void Daemon::ApiImpl::CryptoDBusObject::sign(
 }
 
 void Daemon::ApiImpl::CryptoDBusObject::verify(
+        const QByteArray &signature,
         const QByteArray &data,
         const Key &key,
         CryptoManager::SignaturePadding padding,
@@ -235,6 +258,7 @@ void Daemon::ApiImpl::CryptoDBusObject::verify(
 {
     Q_UNUSED(verified);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
+    inParams << QVariant::fromValue<QByteArray>(signature);
     inParams << QVariant::fromValue<QByteArray>(data);
     inParams << QVariant::fromValue<Key>(key);
     inParams << QVariant::fromValue<CryptoManager::SignaturePadding>(padding);
@@ -434,6 +458,7 @@ QString Daemon::ApiImpl::CryptoRequestQueue::requestTypeToString(int type) const
         case StoredKeyRequest:                 return QLatin1String("StoredKeyRequest");
         case DeleteStoredKeyRequest:           return QLatin1String("DeleteStoredKeyRequest");
         case StoredKeyIdentifiersRequest:      return QLatin1String("StoredKeyIdentifiersRequest");
+        case CalculateDigestRequest:           return QLatin1String("CalculateDigestRequest");
         case SignRequest:                      return QLatin1String("SignRequest");
         case VerifyRequest:                    return QLatin1String("VerifyRequest");
         case EncryptRequest:                   return QLatin1String("EncryptRequest");
@@ -681,6 +706,32 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             }
             break;
         }
+        case CalculateDigestRequest: {
+            qCDebug(lcSailfishCryptoDaemon) << "Handling CalculateDigestRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            QByteArray digest;
+            QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
+            CryptoManager::SignaturePadding padding = request->inParams.size() ? request->inParams.takeFirst().value<CryptoManager::SignaturePadding>() : CryptoManager::SignaturePaddingUnknown;
+            CryptoManager::DigestFunction digestFunction = request->inParams.size() ? request->inParams.takeFirst().value<CryptoManager::DigestFunction>() : CryptoManager::DigestUnknown;
+            QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            Result result = m_requestProcessor->calculateDigest(
+                        request->remotePid,
+                        request->requestId,
+                        data,
+                        padding,
+                        digestFunction,
+                        cryptosystemProviderName,
+                        &digest);
+            // send the reply to the calling peer.
+            if (result.code() == Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<QByteArray>(digest));
+                *completed = true;
+            }
+            break;
+        }
         case SignRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling SignRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             QByteArray signature;
@@ -712,6 +763,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
         case VerifyRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling VerifyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             bool verified = false;
+            QByteArray signature = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
             CryptoManager::SignaturePadding padding = request->inParams.size() ? request->inParams.takeFirst().value<CryptoManager::SignaturePadding>() : CryptoManager::SignaturePaddingUnknown;
@@ -720,6 +772,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             Result result = m_requestProcessor->verify(
                         request->remotePid,
                         request->requestId,
+                        signature,
                         data,
                         key,
                         padding,
@@ -1079,6 +1132,25 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
                         : QVector<Key::Identifier>();
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<QVector<Key::Identifier> >(identifiers));
+                *completed = true;
+            }
+            break;
+        }
+        case CalculateDigestRequest: {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of SignRequest request"));
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishCryptoDaemon) << "CalculateDigestRequest:" << request->requestId << "finished as pending!";
+                *completed = true;
+            } else {
+                QByteArray digest = request->outParams.size()
+                        ? request->outParams.takeFirst().toByteArray()
+                        : QByteArray();
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<QByteArray>(digest));
                 *completed = true;
             }
             break;

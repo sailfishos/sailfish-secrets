@@ -5,11 +5,11 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#ifndef LIBSAILFISHCRYPTO_VERIFYREQUEST_P_H
-#define LIBSAILFISHCRYPTO_VERIFYREQUEST_P_H
+#ifndef LIBSAILFISHCRYPTO_CALCULATEDIGESTREQUEST_P_H
+#define LIBSAILFISHCRYPTO_CALCULATEDIGESTREQUEST_P_H
 
 #include "Crypto/cryptoglobal.h"
-#include "Crypto/verifyrequest.h"
+#include "Crypto/signrequest.h"
 #include "Crypto/cryptomanager.h"
 
 #include <QtCore/QPointer>
@@ -22,21 +22,19 @@ namespace Sailfish {
 
 namespace Crypto {
 
-class VerifyRequestPrivate
+class CalculateDigestRequestPrivate
 {
-    Q_DISABLE_COPY(VerifyRequestPrivate)
+    Q_DISABLE_COPY(CalculateDigestRequestPrivate)
 
 public:
-    explicit VerifyRequestPrivate();
+    explicit CalculateDigestRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
-    QByteArray m_signature;
     QByteArray m_data;
-    Sailfish::Crypto::Key m_key;
     Sailfish::Crypto::CryptoManager::SignaturePadding m_padding;
     Sailfish::Crypto::CryptoManager::DigestFunction m_digestFunction;
     QString m_cryptoPluginName;
-    bool m_verified;
+    QByteArray m_digest;
 
     QScopedPointer<QDBusPendingCallWatcher> m_watcher;
     Sailfish::Crypto::Request::Status m_status;
@@ -47,4 +45,4 @@ public:
 
 } // namespace Sailfish
 
-#endif // LIBSAILFISHCRYPTO_VERIFYREQUEST_P_H
+#endif // LIBSAILFISHCRYPTO_CALCULATEDIGESTREQUEST_P_H

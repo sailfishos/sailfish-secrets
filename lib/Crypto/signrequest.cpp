@@ -18,7 +18,9 @@
 using namespace Sailfish::Crypto;
 
 SignRequestPrivate::SignRequestPrivate()
-    : m_status(Request::Inactive)
+    : m_padding(CryptoManager::SignaturePaddingUnknown)
+    , m_digestFunction(CryptoManager::DigestUnknown)
+    , m_status(Request::Inactive)
 {
 }
 
@@ -124,17 +126,17 @@ void SignRequest::setPadding(Sailfish::Crypto::CryptoManager::SignaturePadding p
 Sailfish::Crypto::CryptoManager::DigestFunction SignRequest::digestFunction() const
 {
     Q_D(const SignRequest);
-    return d->m_digest;
+    return d->m_digestFunction;
 }
 
 /*!
- * \brief Sets the digest which should be used to generate the signature to \a digest
+ * \brief Sets the digest which should be used to generate the signature to \a digestFn
  */
-void SignRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digest)
+void SignRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digestFn)
 {
     Q_D(SignRequest);
-    if (d->m_status != Request::Active && d->m_digest != digest) {
-        d->m_digest = digest;
+    if (d->m_status != Request::Active && d->m_digestFunction != digestFn) {
+        d->m_digestFunction = digestFn;
         if (d->m_status == Request::Finished) {
             d->m_status = Request::Inactive;
             emit statusChanged();
@@ -221,7 +223,7 @@ void SignRequest::startRequest()
                 d->m_manager->d_ptr->sign(d->m_data,
                                           d->m_key,
                                           d->m_padding,
-                                          d->m_digest,
+                                          d->m_digestFunction,
                                           d->m_cryptoPluginName);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;

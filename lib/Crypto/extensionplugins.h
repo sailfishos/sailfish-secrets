@@ -100,18 +100,25 @@ public:
     virtual Sailfish::Crypto::Result storedKeyIdentifiers(
             QVector<Sailfish::Crypto::Key::Identifier> *identifiers) = 0;
 
+    virtual Sailfish::Crypto::Result calculateDigest(
+            const QByteArray &data,
+            Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            QByteArray *digest) = 0;
+
     virtual Sailfish::Crypto::Result sign(
             const QByteArray &data,
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
-            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             QByteArray *signature) = 0;
 
     virtual Sailfish::Crypto::Result verify(
+            const QByteArray &signature,
             const QByteArray &data,
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
-            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             bool *verified) = 0;
 
     virtual Sailfish::Crypto::Result encrypt(
@@ -138,7 +145,7 @@ public:
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
             Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
-            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             quint32 *cipherSessionToken,
             QByteArray *generatedIV) = 0;
 

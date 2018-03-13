@@ -707,13 +707,36 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiers(
 }
 
 Result
+Daemon::ApiImpl::RequestProcessor::calculateDigest(
+        pid_t callerPid,
+        quint64 requestId,
+        const QByteArray &data,
+        CryptoManager::SignaturePadding padding,
+        CryptoManager::DigestFunction digestFunction,
+        const QString &cryptosystemProviderName,
+        QByteArray *digest)
+{
+    // TODO: Access Control
+    Q_UNUSED(callerPid)
+    Q_UNUSED(requestId)
+
+    CryptoPlugin* cryptoPlugin = m_cryptoPlugins.value(cryptosystemProviderName);
+    if (cryptoPlugin == Q_NULLPTR) {
+        return Result(Result::InvalidCryptographicServiceProvider,
+                      QLatin1String("No such cryptographic service provider plugin exists"));
+    }
+
+    return cryptoPlugin->calculateDigest(data, padding, digestFunction, digest);
+}
+
+Result
 Daemon::ApiImpl::RequestProcessor::sign(
         pid_t callerPid,
         quint64 requestId,
         const QByteArray &data,
         const Key &key,
         CryptoManager::SignaturePadding padding,
-        CryptoManager::DigestFunction digest,
+        CryptoManager::DigestFunction digestFunction,
         const QString &cryptosystemProviderName,
         QByteArray *signature)
 {
@@ -731,7 +754,7 @@ Daemon::ApiImpl::RequestProcessor::sign(
     } else if (!(cryptoPlugin->supportedSignaturePaddings().value(key.algorithm()).contains(padding))) {
         return Result(Result::UnsupportedSignaturePadding,
                       QLatin1String("The specified cryptographic service provider does not support that signature padding"));
-    } else if (!(cryptoPlugin->supportedDigests().value(key.algorithm()).contains(digest))) {
+    } else if (!(cryptoPlugin->supportedDigests().value(key.algorithm()).contains(digestFunction))) {
         return Result(Result::UnsupportedDigest,
                       QLatin1String("The specified cryptographic service provider does not support that digest"));
     }
@@ -779,7 +802,7 @@ Daemon::ApiImpl::RequestProcessor::sign(
                                              Daemon::ApiImpl::SignRequest,
                                              QVariantList() << QVariant::fromValue<QByteArray>(data)
                                                             << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
-                                                            << QVariant::fromValue<CryptoManager::DigestFunction>(digest)
+                                                            << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction)
                                                             << QVariant::fromValue<QString>(cryptosystemProviderName)));
                 return retn;
             }
@@ -790,7 +813,7 @@ Daemon::ApiImpl::RequestProcessor::sign(
         fullKey = key;
     }
 
-    return cryptoPlugin->sign(data, fullKey, padding, digest, signature);
+    return cryptoPlugin->sign(data, fullKey, padding, digestFunction, signature);
 }
 
 void
@@ -800,7 +823,7 @@ Daemon::ApiImpl::RequestProcessor::sign2(
         const QByteArray &serialisedKey,
         const QByteArray &data,
         CryptoManager::SignaturePadding padding,
-        CryptoManager::DigestFunction digest,
+        CryptoManager::DigestFunction digestFunction,
         const QString &cryptoPluginName)
 {
     // finish the request.
@@ -808,7 +831,7 @@ Daemon::ApiImpl::RequestProcessor::sign2(
     QByteArray signature;
     if (result.code() == Result::Succeeded) {
         Key fullKey = Key::deserialise(serialisedKey);
-        Result cryptoResult = m_cryptoPlugins[cryptoPluginName]->sign(data, fullKey, padding, digest, &signature);
+        Result cryptoResult = m_cryptoPlugins[cryptoPluginName]->sign(data, fullKey, padding, digestFunction, &signature);
         outParams << QVariant::fromValue<Result>(cryptoResult);
     } else {
         outParams << QVariant::fromValue<Result>(result);
@@ -821,10 +844,11 @@ Result
 Daemon::ApiImpl::RequestProcessor::verify(
         pid_t callerPid,
         quint64 requestId,
+        const QByteArray &signature,
         const QByteArray &data,
         const Key &key,
         CryptoManager::SignaturePadding padding,
-        CryptoManager::DigestFunction digest,
+        CryptoManager::DigestFunction digestFunction,
         const QString &cryptosystemProviderName,
         bool *verified)
 {
@@ -842,7 +866,7 @@ Daemon::ApiImpl::RequestProcessor::verify(
     } else if (!(cryptoPlugin->supportedSignaturePaddings().value(key.algorithm()).contains(padding))) {
         return Result(Result::UnsupportedSignaturePadding,
                       QLatin1String("The specified cryptographic service provider does not support that signature padding"));
-    } else if (!(cryptoPlugin->supportedDigests().value(key.algorithm()).contains(digest))) {
+    } else if (!(cryptoPlugin->supportedDigests().value(key.algorithm()).contains(digestFunction))) {
         return Result(Result::UnsupportedDigest,
                       QLatin1String("The specified cryptographic service provider does not support that digest"));
     }
@@ -888,9 +912,10 @@ Daemon::ApiImpl::RequestProcessor::verify(
                                              callerPid,
                                              requestId,
                                              Daemon::ApiImpl::VerifyRequest,
-                                             QVariantList() << QVariant::fromValue<QByteArray>(data)
+                                             QVariantList() << QVariant::fromValue<QByteArray>(signature)
+                                                            << QVariant::fromValue<QByteArray>(data)
                                                             << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
-                                                            << QVariant::fromValue<CryptoManager::DigestFunction>(digest)
+                                                            << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction)
                                                             << QVariant::fromValue<QString>(cryptosystemProviderName)));
                 return retn;
             }
@@ -901,7 +926,7 @@ Daemon::ApiImpl::RequestProcessor::verify(
         fullKey = key;
     }
 
-    return cryptoPlugin->verify(data, fullKey, padding, digest, verified);
+    return cryptoPlugin->verify(signature, data, fullKey, padding, digestFunction, verified);
 }
 
 void
@@ -909,9 +934,10 @@ Daemon::ApiImpl::RequestProcessor::verify2(
         quint64 requestId,
         const Result &result,
         const QByteArray &serialisedKey,
+        const QByteArray &signature,
         const QByteArray &data,
         CryptoManager::SignaturePadding padding,
-        CryptoManager::DigestFunction digest,
+        CryptoManager::DigestFunction digestFunction,
         const QString &cryptoPluginName)
 {
     // finish the request.
@@ -919,7 +945,7 @@ Daemon::ApiImpl::RequestProcessor::verify2(
     bool verified = false;
     if (result.code() == Result::Succeeded) {
         Key fullKey = Key::deserialise(serialisedKey);
-        Result cryptoResult = m_cryptoPlugins[cryptoPluginName]->verify(data, fullKey, padding, digest, &verified);
+        Result cryptoResult = m_cryptoPlugins[cryptoPluginName]->verify(signature, data, fullKey, padding, digestFunction, &verified);
         outParams << QVariant::fromValue<Result>(cryptoResult);
     } else {
         outParams << QVariant::fromValue<Result>(result);
@@ -1174,7 +1200,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession(
         CryptoManager::BlockMode blockMode,
         CryptoManager::EncryptionPadding encryptionPadding,
         CryptoManager::SignaturePadding signaturePadding,
-        CryptoManager::DigestFunction digest,
+        CryptoManager::DigestFunction digestFunction,
         const QString &cryptosystemProviderName,
         quint32 *cipherSessionToken,
         QByteArray *generatedIV)
@@ -1234,7 +1260,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession(
                                                             << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
                                                             << QVariant::fromValue<CryptoManager::EncryptionPadding>(encryptionPadding)
                                                             << QVariant::fromValue<CryptoManager::SignaturePadding>(signaturePadding)
-                                                            << QVariant::fromValue<CryptoManager::DigestFunction>(digest)
+                                                            << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction)
                                                             << QVariant::fromValue<QString>(cryptosystemProviderName)));
                 return retn;
             }
@@ -1249,7 +1275,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession(
                 callerPid,
                 iv, fullKey, operation,
                 blockMode, encryptionPadding,
-                signaturePadding, digest,
+                signaturePadding, digestFunction,
                 cipherSessionToken, generatedIV);
 }
 
@@ -1264,7 +1290,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession2(
         CryptoManager::BlockMode blockMode,
         CryptoManager::EncryptionPadding encryptionPadding,
         CryptoManager::SignaturePadding signaturePadding,
-        CryptoManager::DigestFunction digest,
+        CryptoManager::DigestFunction digestFunction,
         const QString &cryptoPluginName)
 {
     // finish the request.
@@ -1277,7 +1303,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession2(
                     callerPid,
                     iv, fullKey, operation, blockMode,
                     encryptionPadding, signaturePadding,
-                    digest, &cipherSessionToken, &generatedIV);
+                    digestFunction, &cipherSessionToken, &generatedIV);
         outParams << QVariant::fromValue<Result>(cryptoResult);
     } else {
         outParams << QVariant::fromValue<Result>(result);
@@ -1384,17 +1410,18 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
             case SignRequest: {
                 QByteArray data = pr.parameters.takeFirst().value<QByteArray>();
                 CryptoManager::SignaturePadding padding = pr.parameters.takeFirst().value<CryptoManager::SignaturePadding>();
-                CryptoManager::DigestFunction digest = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
+                CryptoManager::DigestFunction digestFunction = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                sign2(requestId, returnResult, serialisedKey, data, padding, digest, cryptoPluginName);
+                sign2(requestId, returnResult, serialisedKey, data, padding, digestFunction, cryptoPluginName);
                 break;
             }
             case VerifyRequest: {
+                QByteArray signature = pr.parameters.takeFirst().value<QByteArray>();
                 QByteArray data = pr.parameters.takeFirst().value<QByteArray>();
                 CryptoManager::SignaturePadding padding = pr.parameters.takeFirst().value<CryptoManager::SignaturePadding>();
-                CryptoManager::DigestFunction digest = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
+                CryptoManager::DigestFunction digestFunction = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                verify2(requestId, returnResult, serialisedKey, data, padding, digest, cryptoPluginName);
+                verify2(requestId, returnResult, serialisedKey, signature, data, padding, digestFunction, cryptoPluginName);
                 break;
             }
             case EncryptRequest: {
@@ -1422,11 +1449,11 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 CryptoManager::BlockMode blockMode = pr.parameters.takeFirst().value<CryptoManager::BlockMode>();
                 CryptoManager::EncryptionPadding encryptionPadding = pr.parameters.takeFirst().value<CryptoManager::EncryptionPadding>();
                 CryptoManager::SignaturePadding signaturePadding = pr.parameters.takeFirst().value<CryptoManager::SignaturePadding>();
-                CryptoManager::DigestFunction digest = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
+                CryptoManager::DigestFunction digestFunction = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
                 initialiseCipherSession2(requestId, returnResult, serialisedKey,
                                          callerPid, iv, operation, blockMode, encryptionPadding,
-                                         signaturePadding, digest, cryptoPluginName);
+                                         signaturePadding, digestFunction, cryptoPluginName);
                 break;
             }
             default: {

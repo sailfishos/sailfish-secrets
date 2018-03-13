@@ -770,7 +770,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollection(
         collectionApplicationId = sq.value(0).value<QString>();
         collectionStoragePluginName = sq.value(1).value<QString>();
         collectionEncryptionPluginName = sq.value(2).value<QString>();
-        collectionAccessControlMode = static_cast<SecretManager::AccessControlMode>(sq.value(0).value<int>());
+        collectionAccessControlMode = static_cast<SecretManager::AccessControlMode>(sq.value(3).value<int>());
     }
 
     if (!found) {
@@ -778,7 +778,15 @@ Daemon::ApiImpl::RequestProcessor::deleteCollection(
         return Result(Result::Succeeded);
     }
 
-    if (collectionStoragePluginName == collectionEncryptionPluginName
+    if (collectionAccessControlMode == SecretManager::SystemAccessControlMode) {
+        // TODO: perform access control request, to ask for permission to delete the collection.
+        return Result(Result::OperationNotSupportedError,
+                      QLatin1String("Access control requests are not currently supported. TODO!"));
+    } else if (collectionAccessControlMode == SecretManager::OwnerOnlyMode
+               && collectionApplicationId != callerApplicationId) {
+        return Result(Result::PermissionsError,
+                      QString::fromLatin1("Collection %1 is owned by a different application").arg(collectionName));
+    } else if (collectionStoragePluginName == collectionEncryptionPluginName
             && !m_encryptedStoragePlugins.contains(collectionStoragePluginName)) {
         // TODO: this means we have "stale" data in the database; what should we do in this case?
         return Result(Result::InvalidExtensionPluginError,
@@ -924,11 +932,12 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretMetadata(
                       QLatin1String("Nonexistent collection name given"));
     }
 
-    if (collectionAccessControlMode != SecretManager::OwnerOnlyMode) {
+    if (collectionAccessControlMode == SecretManager::SystemAccessControlMode) {
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (collectionApplicationId != callerApplicationId) {
+    } else if (collectionAccessControlMode == SecretManager::OwnerOnlyMode
+               && collectionApplicationId != callerApplicationId) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Collection %1 is owned by a different application").arg(identifier.collectionName()));
     } else if (collectionStoragePluginName == collectionEncryptionPluginName
@@ -1274,11 +1283,12 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
                       QLatin1String("Nonexistent collection name given"));
     }
 
-    if (collectionAccessControlMode != SecretManager::OwnerOnlyMode) {
+    if (collectionAccessControlMode == SecretManager::SystemAccessControlMode) {
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (collectionApplicationId != callerApplicationId) {
+    } else if (collectionAccessControlMode == SecretManager::OwnerOnlyMode
+               && collectionApplicationId != callerApplicationId) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Collection %1 is owned by a different application").arg(secret.identifier().collectionName()));
     } else if (collectionStoragePluginName == collectionEncryptionPluginName
@@ -1822,11 +1832,12 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSecret(
         secretAccessControlMode = static_cast<SecretManager::AccessControlMode>(ssq.value(3).value<int>());
     }
 
-    if (found && secretAccessControlMode != SecretManager::OwnerOnlyMode) {
+    if (found && secretAccessControlMode == SecretManager::SystemAccessControlMode) {
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (found && secretApplicationId != callerApplicationId) {
+    } else if (found && secretAccessControlMode == SecretManager::OwnerOnlyMode
+               && secretApplicationId != callerApplicationId) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Secret %1 is owned by a different application").arg(secret.identifier().name()));
     } else if (found && secretUsesDeviceLockKey == 0) {
@@ -2150,11 +2161,12 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecret(
         secretAccessControlMode = static_cast<SecretManager::AccessControlMode>(ssq.value(3).value<int>());
     }
 
-    if (found && secretAccessControlMode != SecretManager::OwnerOnlyMode) {
+    if (found && secretAccessControlMode == SecretManager::SystemAccessControlMode) {
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (found && secretApplicationId != callerApplicationId) {
+    } else if (found && secretAccessControlMode == SecretManager::OwnerOnlyMode
+               && secretApplicationId != callerApplicationId) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Secret %1 is owned by a different application").arg(secret.identifier().name()));
     } else if (found && secretUsesDeviceLockKey == 1) {
@@ -2362,11 +2374,12 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretWithAuthenticati
         secretAccessControlMode = static_cast<SecretManager::AccessControlMode>(ssq.value(3).value<int>());
     }
 
-    if (found && secretAccessControlMode != SecretManager::OwnerOnlyMode) {
+    if (found && secretAccessControlMode == SecretManager::SystemAccessControlMode) {
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (found && secretApplicationId != callerApplicationId) {
+    } else if (found && secretAccessControlMode == SecretManager::OwnerOnlyMode
+               && secretApplicationId != callerApplicationId) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Secret %1 is owned by a different application").arg(secret.identifier().name()));
     } else if (found && secretUsesDeviceLockKey == 1) {
@@ -2625,11 +2638,12 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
         // TODO: stale data, plugin was removed but data still exists...?
         return Result(Result::InvalidExtensionPluginError,
                       QString::fromLatin1("No such encryption plugin exists: %1").arg(collectionEncryptionPluginName));
-    } else if (collectionAccessControlMode != SecretManager::OwnerOnlyMode) {
+    } else if (collectionAccessControlMode == SecretManager::SystemAccessControlMode) {
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (collectionApplicationId != callerApplicationId) {
+    } else if (collectionAccessControlMode == SecretManager::OwnerOnlyMode
+               && collectionApplicationId != callerApplicationId) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Collection %1 is owned by a different application").arg(identifier.collectionName()));
     } else if (!m_authenticationPlugins.contains(collectionAuthenticationPluginName)) {
@@ -2958,11 +2972,12 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
         // TODO: stale data, plugin was removed but data still exists...?
         return Result(Result::InvalidExtensionPluginError,
                       QString::fromLatin1("No such encryption plugin exists: %1").arg(secretEncryptionPluginName));
-    } else if (secretAccessControlMode != SecretManager::OwnerOnlyMode) {
+    } else if (secretAccessControlMode == SecretManager::SystemAccessControlMode) {
         // TODO: perform access control request, to ask for permission to set the secret.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (secretApplicationId != callerApplicationId) {
+    } else if (secretAccessControlMode == SecretManager::OwnerOnlyMode
+               && secretApplicationId != callerApplicationId) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Secret %1 is owned by a different application").arg(identifier.name()));
     } else if (m_authenticationPlugins[secretAuthenticationPluginName]->authenticationTypes() & AuthenticationPlugin::ApplicationSpecificAuthentication
@@ -3187,11 +3202,12 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
         // TODO: stale data, plugin was removed but data still exists...?
         return Result(Result::InvalidExtensionPluginError,
                       QString::fromLatin1("No such encryption plugin exists: %1").arg(collectionEncryptionPluginName));
-    } else if (collectionAccessControlMode != SecretManager::OwnerOnlyMode) {
+    } else if (collectionAccessControlMode == SecretManager::SystemAccessControlMode) {
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (collectionApplicationId != callerApplicationId) {
+    } else if (collectionAccessControlMode == SecretManager::OwnerOnlyMode
+               && collectionApplicationId != callerApplicationId) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Collection %1 is owned by a different application").arg(collectionName));
     } else if (!m_authenticationPlugins.contains(collectionAuthenticationPluginName)) {
@@ -3538,11 +3554,12 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
                       QLatin1String("Nonexistent collection name given"));
     }
 
-    if (collectionAccessControlMode != SecretManager::OwnerOnlyMode) {
+    if (collectionAccessControlMode == SecretManager::SystemAccessControlMode) {
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (collectionApplicationId != callerApplicationId) {
+    } else if (collectionAccessControlMode == SecretManager::OwnerOnlyMode
+               && collectionApplicationId != callerApplicationId) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Collection %1 is owned by a different application").arg(identifier.collectionName()));
     } else if (collectionStoragePluginName == collectionEncryptionPluginName
@@ -3745,11 +3762,12 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithAuthenticationKey(
                       QLatin1String("Incorrect device lock key provided"));
     }
 
-    if (collectionAccessControlMode != SecretManager::OwnerOnlyMode) {
+    if (collectionAccessControlMode == SecretManager::SystemAccessControlMode) {
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (collectionApplicationId != callerApplicationId) {
+    } else if (collectionAccessControlMode == SecretManager::OwnerOnlyMode
+               && collectionApplicationId != callerApplicationId) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Collection %1 is owned by a different application").arg(identifier.collectionName()));
     }
@@ -3915,11 +3933,12 @@ Daemon::ApiImpl::RequestProcessor::deleteStandaloneSecret(
         return Result(Result::Succeeded);
     }
 
-    if (secretAccessControlMode != SecretManager::OwnerOnlyMode) {
+    if (secretAccessControlMode == SecretManager::SystemAccessControlMode) {
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (secretApplicationId != callerApplicationId) {
+    } else if (secretAccessControlMode == SecretManager::OwnerOnlyMode
+               && secretApplicationId != callerApplicationId) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Secret %1 is owned by a different application").arg(identifier.name()));
     } else if (secretStoragePluginName == secretEncryptionPluginName && !m_encryptedStoragePlugins.contains(secretStoragePluginName)) {

@@ -13,6 +13,7 @@ INCLUDEPATH += $$PWD/../
 DEPENDPATH += $$INCLUDEPATH $$PWD
 
 PUBLIC_HEADERS += \
+    $$PWD/calculatedigestrequest.h \
     $$PWD/certificate.h \
     $$PWD/cipherrequest.h \
     $$PWD/cryptoglobal.h \
@@ -44,6 +45,7 @@ INTERNAL_PUBLIC_HEADERS += \
     $$PWD/serialisation_p.h
 
 PRIVATE_HEADERS += \
+    $$PWD/calculatedigestrequest_p.h \
     $$PWD/certificate_p.h \
     $$PWD/cipherrequest_p.h \
     $$PWD/cryptodaemonconnection_p_p.h \
@@ -73,6 +75,7 @@ HEADERS += \
     $$PRIVATE_HEADERS
 
 SOURCES += \
+    $$PWD/calculatedigestrequest.cpp \
     $$PWD/certificate.cpp \
     $$PWD/cipherrequest.cpp \
     $$PWD/cryptodaemonconnection.cpp \

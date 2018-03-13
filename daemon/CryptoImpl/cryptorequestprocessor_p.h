@@ -131,23 +131,33 @@ public:
             quint64 requestId,
             QVector<Sailfish::Crypto::Key::Identifier> *identifiers);
 
+    Sailfish::Crypto::Result calculateDigest(
+            pid_t callerPid,
+            quint64 requestId,
+            const QByteArray &data,
+            Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QString &cryptosystemProviderName,
+            QByteArray *digest);
+
     Sailfish::Crypto::Result sign(
             pid_t callerPid,
             quint64 requestId,
             const QByteArray &data,
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
-            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptosystemProviderName,
             QByteArray *signature);
 
     Sailfish::Crypto::Result verify(
             pid_t callerPid,
             quint64 requestId,
+            const QByteArray &signature,
             const QByteArray &data,
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
-            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptosystemProviderName,
             bool *verified);
 
@@ -182,7 +192,7 @@ public:
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
             Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
-            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptosystemProviderName,
             quint32 *cipherSessionToken,
             QByteArray *generatedIV);
@@ -316,16 +326,17 @@ private:
             const QByteArray &serialisedKey,
             const QByteArray &data,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
-            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptoPluginName);
 
     void verify2(
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
             const QByteArray &serialisedKey,
+            const QByteArray &signature,
             const QByteArray &data,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
-            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptoPluginName);
 
     void encrypt2(
@@ -358,7 +369,7 @@ private:
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
             Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
-            Sailfish::Crypto::CryptoManager::DigestFunction digest,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptoPluginName);
 
 private:

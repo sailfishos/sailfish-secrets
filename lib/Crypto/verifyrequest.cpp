@@ -18,7 +18,9 @@
 using namespace Sailfish::Crypto;
 
 VerifyRequestPrivate::VerifyRequestPrivate()
-    : m_verified(false)
+    : m_padding(CryptoManager::SignaturePaddingUnknown)
+    , m_digestFunction(CryptoManager::DigestUnknown)
+    , m_verified(false)
     , m_status(Request::Inactive)
 {
 }
@@ -45,7 +47,36 @@ VerifyRequest::~VerifyRequest()
 }
 
 /*!
- * \brief Returns the signature data which the client wishes the system service to verify
+ * \brief Returns the signature which the client wishes the system service to verify
+ */
+QByteArray VerifyRequest::signature() const
+{
+    Q_D(const VerifyRequest);
+    return d->m_signature;
+}
+
+/*!
+ * \brief Sets the signature which the client wishes the system service to verify to \a sig
+ */
+void VerifyRequest::setSignature(const QByteArray &sig)
+{
+    Q_D(VerifyRequest);
+    if (d->m_status != Request::Active && d->m_signature != sig) {
+        d->m_signature = sig;
+        if (d->m_verified) {
+            d->m_verified = false;
+            emit verifiedChanged();
+        }
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit signatureChanged();
+    }
+}
+
+/*!
+ * \brief Returns the data which was signed by the remote party
  */
 QByteArray VerifyRequest::data() const
 {
@@ -54,7 +85,7 @@ QByteArray VerifyRequest::data() const
 }
 
 /*!
- * \brief Sets the signature data which the client wishes the system service to verify to \a data
+ * \brief Sets the data which was signed by the remote party to \a data
  */
 void VerifyRequest::setData(const QByteArray &data)
 {
@@ -137,17 +168,17 @@ void VerifyRequest::setPadding(Sailfish::Crypto::CryptoManager::SignaturePadding
 Sailfish::Crypto::CryptoManager::DigestFunction VerifyRequest::digestFunction() const
 {
     Q_D(const VerifyRequest);
-    return d->m_digest;
+    return d->m_digestFunction;
 }
 
 /*!
- * \brief Sets the digest which was used to generate the signature to \a digest
+ * \brief Sets the digest which was used to generate the signature to \a digestFn
  */
-void VerifyRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digest)
+void VerifyRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digestFn)
 {
     Q_D(VerifyRequest);
-    if (d->m_status != Request::Active && d->m_digest != digest) {
-        d->m_digest = digest;
+    if (d->m_status != Request::Active && d->m_digestFunction != digestFn) {
+        d->m_digestFunction = digestFn;
         if (d->m_verified) {
             d->m_verified = false;
             emit verifiedChanged();
@@ -239,10 +270,11 @@ void VerifyRequest::startRequest()
         }
 
         QDBusPendingReply<Result, bool> reply =
-                d->m_manager->d_ptr->verify(d->m_data,
+                d->m_manager->d_ptr->verify(d->m_signature,
+                                            d->m_data,
                                             d->m_key,
                                             d->m_padding,
-                                            d->m_digest,
+                                            d->m_digestFunction,
                                             d->m_cryptoPluginName);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;

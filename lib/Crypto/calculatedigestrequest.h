@@ -5,8 +5,8 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#ifndef LIBSAILFISHCRYPTO_VERIFYREQUEST_H
-#define LIBSAILFISHCRYPTO_VERIFYREQUEST_H
+#ifndef LIBSAILFISHCRYPTO_CALCULATEDIGESTREQUEST_H
+#define LIBSAILFISHCRYPTO_CALCULATEDIGESTREQUEST_H
 
 #include "Crypto/cryptoglobal.h"
 #include "Crypto/request.h"
@@ -23,30 +23,22 @@ namespace Crypto {
 
 class CryptoManager;
 
-class VerifyRequestPrivate;
-class SAILFISH_CRYPTO_API VerifyRequest : public Sailfish::Crypto::Request
+class CalculateDigestRequestPrivate;
+class SAILFISH_CRYPTO_API CalculateDigestRequest : public Sailfish::Crypto::Request
 {
     Q_OBJECT
-    Q_PROPERTY(QByteArray signature READ signature WRITE setSignature NOTIFY signatureChanged)
     Q_PROPERTY(QByteArray data READ data WRITE setData NOTIFY dataChanged)
-    Q_PROPERTY(Sailfish::Crypto::Key key READ key WRITE setKey NOTIFY keyChanged)
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::SignaturePadding padding READ padding WRITE setPadding NOTIFY paddingChanged)
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::DigestFunction digestFunction READ digestFunction WRITE setDigestFunction NOTIFY digestFunctionChanged)
     Q_PROPERTY(QString cryptoPluginName READ cryptoPluginName WRITE setCryptoPluginName NOTIFY cryptoPluginNameChanged)
-    Q_PROPERTY(bool verified READ verified NOTIFY verifiedChanged)
+    Q_PROPERTY(QByteArray digest READ digest NOTIFY digestChanged)
 
 public:
-    VerifyRequest(QObject *parent = Q_NULLPTR);
-    ~VerifyRequest();
-
-    QByteArray signature() const;
-    void setSignature(const QByteArray &sig);
+    CalculateDigestRequest(QObject *parent = Q_NULLPTR);
+    ~CalculateDigestRequest();
 
     QByteArray data() const;
     void setData(const QByteArray &data);
-
-    Sailfish::Crypto::Key key() const;
-    void setKey(const Sailfish::Crypto::Key &key);
 
     Sailfish::Crypto::CryptoManager::SignaturePadding padding() const;
     void setPadding(Sailfish::Crypto::CryptoManager::SignaturePadding padding);
@@ -57,7 +49,7 @@ public:
     QString cryptoPluginName() const;
     void setCryptoPluginName(const QString &pluginName);
 
-    bool verified() const;
+    QByteArray digest() const;
 
     Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result result() const Q_DECL_OVERRIDE;
@@ -69,21 +61,19 @@ public:
     void waitForFinished() Q_DECL_OVERRIDE;
 
 Q_SIGNALS:
-    void signatureChanged();
     void dataChanged();
-    void keyChanged();
     void paddingChanged();
     void digestFunctionChanged();
     void cryptoPluginNameChanged();
-    void verifiedChanged();
+    void digestChanged();
 
 private:
-    QScopedPointer<VerifyRequestPrivate> const d_ptr;
-    Q_DECLARE_PRIVATE(VerifyRequest)
+    QScopedPointer<CalculateDigestRequestPrivate> const d_ptr;
+    Q_DECLARE_PRIVATE(CalculateDigestRequest)
 };
 
 } // namespace Crypto
 
 } // namespace Sailfish
 
-#endif // LIBSAILFISHCRYPTO_VERIFYREQUEST_H
+#endif // LIBSAILFISHCRYPTO_CALCULATEDIGESTREQUEST_H

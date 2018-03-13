@@ -243,11 +243,34 @@ CryptoManagerPrivate::storedKeyIdentifiers() // TODO: UI interaction mode param,
 }
 
 QDBusPendingReply<Result, QByteArray>
+CryptoManagerPrivate::calculateDigest(
+        const QByteArray &data,
+        CryptoManager::SignaturePadding padding,
+        CryptoManager::DigestFunction digestFunction,
+        const QString &cryptosystemProviderName)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result, QByteArray>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result, QByteArray> reply
+            = m_interface->asyncCallWithArgumentList(
+                QStringLiteral("calculateDigest"),
+                QVariantList() << QVariant::fromValue<QByteArray>(data)
+                               << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
+                               << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction)
+                               << QVariant::fromValue<QString>(cryptosystemProviderName));
+    return reply;
+}
+
+QDBusPendingReply<Result, QByteArray>
 CryptoManagerPrivate::sign(
         const QByteArray &data,
         const Key &key,
         CryptoManager::SignaturePadding padding,
-        CryptoManager::DigestFunction digest,
+        CryptoManager::DigestFunction digestFunction,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -262,17 +285,18 @@ CryptoManagerPrivate::sign(
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
-                               << QVariant::fromValue<CryptoManager::DigestFunction>(digest)
+                               << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
 
 QDBusPendingReply<Result, bool>
 CryptoManagerPrivate::verify(
+        const QByteArray &signature,
         const QByteArray &data,
         const Key &key,
         CryptoManager::SignaturePadding padding,
-        CryptoManager::DigestFunction digest,
+        CryptoManager::DigestFunction digestFunction,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -284,10 +308,11 @@ CryptoManagerPrivate::verify(
     QDBusPendingReply<Result, bool> reply
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("verify"),
-                QVariantList() << QVariant::fromValue<QByteArray>(data)
+                QVariantList() << QVariant::fromValue<QByteArray>(signature)
+                               << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
-                               << QVariant::fromValue<CryptoManager::DigestFunction>(digest)
+                               << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }

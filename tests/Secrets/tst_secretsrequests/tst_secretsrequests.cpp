@@ -63,6 +63,8 @@ private slots:
 
     void requestUserInput();
 
+    void accessControl();
+
 private:
     SecretManager sm;
 };
@@ -1277,6 +1279,117 @@ void tst_secretsrequests::requestUserInput()
     QCOMPARE(ir.status(), Request::Finished);
     QCOMPARE(ir.result().code(), Result::Succeeded);
     QCOMPARE(ir.userInput(), QByteArray("example passphrase for unit test"));
+}
+
+void tst_secretsrequests::accessControl()
+{
+    // This test is meant to be run second, with tst_secrets::accessControl() run second.
+    // This test must be run as non-privileged, to avoid being classified as a platform app.
+    // Artifacts from the test will have to be removed manually from the filesystem.
+    QSKIP("This test should only be run manually, as it is not stand-alone!");
+
+    Secret unreadableSecret(Secret::Identifier(
+                QLatin1String("unreadablesecret"),
+                QLatin1String("owneronlycollection")));
+    Secret readableSecret(Secret::Identifier(
+                QLatin1String("readablesecret"),
+                QLatin1String("noaccesscontrolcollection")));
+
+    // attempt to read a secret in an owner-only collection created by another process.
+    // this should fail.
+    StoredSecretRequest gsr;
+    gsr.setManager(&sm);
+    gsr.setIdentifier(unreadableSecret.identifier());
+    gsr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+    gsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
+    QCOMPARE(gsr.status(), Request::Finished);
+    QCOMPARE(gsr.result().code(), Result::Failed);
+    QCOMPARE(gsr.result().errorCode(), Result::PermissionsError);
+
+    // attempt to delete a secret in an owner-only collection created by another process.
+    // this should fail.
+    DeleteSecretRequest dsr;
+    dsr.setManager(&sm);
+    dsr.setIdentifier(unreadableSecret.identifier());
+    dsr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+    dsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dsr);
+    QCOMPARE(dsr.status(), Request::Finished);
+    QCOMPARE(dsr.result().code(), Result::Failed);
+    QCOMPARE(dsr.result().errorCode(), Result::PermissionsError);
+
+    // attempt to store a secret in an owner-only collection created by another process.
+    // this should fail.
+    Secret failsecret(Secret::Identifier(
+                QLatin1String("failsecret"),
+                QLatin1String("owneronlycollection")));
+    failsecret.setData("failsecretvalue");
+    failsecret.setType(Secret::TypeBlob);
+    failsecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
+    failsecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
+    StoreSecretRequest ssr;
+    ssr.setManager(&sm);
+    ssr.setSecretStorageType(StoreSecretRequest::CollectionSecret);
+    ssr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+    ssr.setSecret(failsecret);
+    ssr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ssr);
+    QCOMPARE(ssr.status(), Request::Finished);
+    QCOMPARE(ssr.result().code(), Result::Failed);
+    QCOMPARE(ssr.result().errorCode(), Result::PermissionsError);
+
+    // attempt to delete an owner-only collection created by another process.
+    // this should fail.
+    DeleteCollectionRequest dcr;
+    dcr.setManager(&sm);
+    dcr.setCollectionName(QLatin1String("owneronlycollection"));
+    dcr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+    dcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
+    QCOMPARE(dcr.status(), Request::Finished);
+    QCOMPARE(dcr.result().code(), Result::Failed);
+    QCOMPARE(dcr.result().errorCode(), Result::PermissionsError);
+
+    // attempt to read a secret in an owner-only collection created by another process.
+    // this should succeed.
+    gsr.setIdentifier(readableSecret.identifier());
+    gsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
+    QCOMPARE(gsr.status(), Request::Finished);
+    QCOMPARE(gsr.result().code(), Result::Succeeded);
+    QCOMPARE(gsr.secret().data(), QByteArray("readablesecretvalue"));
+
+    // attempt to delete a secret in an owner-only collection created by another process.
+    // this should succeed.
+    dsr.setIdentifier(readableSecret.identifier());
+    dsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dsr);
+    QCOMPARE(dsr.status(), Request::Finished);
+    QCOMPARE(dsr.result().code(), Result::Succeeded);
+
+    // attempt to store a secret in an owner-only collection created by another process.
+    // this should succeed.
+    Secret succeedsecret(Secret::Identifier(
+                QLatin1String("succeedsecret"),
+                QLatin1String("noaccesscontrolcollection")));
+    succeedsecret.setData("succeedsecretvalue");
+    succeedsecret.setType(Secret::TypeBlob);
+    succeedsecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
+    succeedsecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
+    ssr.setSecret(succeedsecret);
+    ssr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ssr);
+    QCOMPARE(ssr.status(), Request::Finished);
+    QCOMPARE(ssr.result().code(), Result::Succeeded);
+
+    // attempt to delete a no-access-control collection created by another process.
+    // this should succeed.
+    dcr.setCollectionName(QLatin1String("noaccesscontrolcollection"));
+    dcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
+    QCOMPARE(dcr.status(), Request::Finished);
+    QCOMPARE(dcr.result().code(), Result::Succeeded);
 }
 
 #include "tst_secretsrequests.moc"
