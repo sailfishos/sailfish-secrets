@@ -8,6 +8,8 @@
 #include "plugin.h"
 #include "../opensslcryptoplugin/evp_p.h"
 
+#include "Crypto/cryptomanager.h"
+
 Q_PLUGIN_METADATA(IID Sailfish_Secrets_EncryptionPlugin_IID)
 
 using namespace Sailfish::Secrets;
@@ -91,7 +93,8 @@ Daemon::Plugins::OpenSslPlugin::aes_encrypt_plaintext(
 {
     QByteArray encryptedData;
     unsigned char *encrypted = NULL;
-    int size = osslevp_aes_encrypt_plaintext((const unsigned char *)init_vector.constData(),
+    int size = osslevp_aes_encrypt_plaintext(Sailfish::Crypto::CryptoManager::BlockModeCbc,
+                                             (const unsigned char *)init_vector.constData(),
                                              (const unsigned char *)key.constData(),
                                              key.size(),
                                              (const unsigned char *)plaintext.constData(),
@@ -114,7 +117,8 @@ Daemon::Plugins::OpenSslPlugin::aes_decrypt_ciphertext(
 {
     QByteArray decryptedData;
     unsigned char *decrypted = NULL;
-    int size = osslevp_aes_decrypt_ciphertext((const unsigned char *)init_vector.constData(),
+    int size = osslevp_aes_decrypt_ciphertext(Sailfish::Crypto::CryptoManager::BlockModeCbc,
+                                              (const unsigned char *)init_vector.constData(),
                                               (const unsigned char *)key.constData(),
                                               key.size(),
                                               (const unsigned char *)ciphertext.constData(),
