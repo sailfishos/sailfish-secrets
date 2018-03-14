@@ -575,6 +575,14 @@ void Key::setFilterData(const Key::FilterData &data)
 }
 
 /*!
+ * \brief Returns the fields (keys) of filter data associated with the secret
+ */
+QStringList Key::filterDataFields() const
+{
+    return d_ptr->m_filterData.keys();
+}
+
+/*!
  * \brief Sets filter data for the given \a field to the given \a value.
  *
  * Note that the field "Type" will always have the value "CryptoKey"

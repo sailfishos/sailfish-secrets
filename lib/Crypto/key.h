@@ -40,6 +40,7 @@ class SAILFISH_CRYPTO_API Key
     Q_PROPERTY(QByteArray privateKey READ privateKey WRITE setPrivateKey)
     Q_PROPERTY(QByteArray secretKey READ secretKey WRITE setSecretKey)
     Q_PROPERTY(QVector<QByteArray> customParameters READ customParameters WRITE setCustomParameters)
+    Q_PROPERTY(QStringList filterDataFields READ filterDataFields)
 
 public:
     enum Origin {
