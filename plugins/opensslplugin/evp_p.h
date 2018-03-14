@@ -74,7 +74,6 @@ int osslevp_aes_encrypt_plaintext(const unsigned char *init_vector,
     int final_length = 0;
     int i = 0;
     unsigned char *ciphertext = NULL;
-    EVP_CIPHER_CTX encryption_context;
 
     if (plaintext_length <= 0 || plaintext == NULL
             || key_length <= 0 || key == NULL || encrypted == NULL) {
@@ -97,27 +96,27 @@ int osslevp_aes_encrypt_plaintext(const unsigned char *init_vector,
     memset(ciphertext, 0, ciphertext_length);
 
     /* Create the encryption context */
-    EVP_CIPHER_CTX_init(&encryption_context);
-    if (!EVP_EncryptInit_ex(&encryption_context, EVP_aes_256_cbc(), NULL, padded_key, init_vector)) {
+    EVP_CIPHER_CTX *encryption_context = EVP_CIPHER_CTX_new();
+    if (!EVP_EncryptInit_ex(encryption_context, EVP_aes_256_cbc(), NULL, padded_key, init_vector)) {
         ERR_print_errors_fp(stderr);
-        EVP_CIPHER_CTX_cleanup(&encryption_context);
+        EVP_CIPHER_CTX_free(encryption_context);
         free(ciphertext);
         fprintf(stderr, "%s\n", "failed to initialize encryption context");
         return -1;
     }
 
     /* Encrypt the plaintext into the encrypted output buffer */
-    if (!EVP_EncryptUpdate(&encryption_context, ciphertext, &update_length, plaintext, plaintext_length)) {
+    if (!EVP_EncryptUpdate(encryption_context, ciphertext, &update_length, plaintext, plaintext_length)) {
         ERR_print_errors_fp(stderr);
-        EVP_CIPHER_CTX_cleanup(&encryption_context);
+        EVP_CIPHER_CTX_free(encryption_context);
         free(ciphertext);
         fprintf(stderr, "%s\n", "failed to update ciphertext buffer with encrypted content");
         return -1;
     }
 
-    if (!EVP_EncryptFinal_ex(&encryption_context, ciphertext+update_length, &final_length)) {
+    if (!EVP_EncryptFinal_ex(encryption_context, ciphertext+update_length, &final_length)) {
         ERR_print_errors_fp(stderr);
-        EVP_CIPHER_CTX_cleanup(&encryption_context);
+        EVP_CIPHER_CTX_free(encryption_context);
         free(ciphertext);
         fprintf(stderr, "%s\n", "failed to encrypt final block");
         return -1;
@@ -127,7 +126,7 @@ int osslevp_aes_encrypt_plaintext(const unsigned char *init_vector,
     *encrypted = ciphertext;
 
     /* Clean up the encryption context */
-    EVP_CIPHER_CTX_cleanup(&encryption_context);
+    EVP_CIPHER_CTX_free(encryption_context);
     ciphertext_length = update_length + final_length;
     return ciphertext_length;
 }
@@ -167,7 +166,6 @@ int osslevp_aes_decrypt_ciphertext(const unsigned char *init_vector,
     int final_length = 0;
     int i = 0;
     unsigned char *plaintext = NULL;
-    EVP_CIPHER_CTX decryption_context;
 
     if (ciphertext_length <= 0 || ciphertext == NULL
             || key_length <= 0 || key == NULL || decrypted == NULL) {
@@ -193,10 +191,10 @@ int osslevp_aes_decrypt_ciphertext(const unsigned char *init_vector,
     memset(plaintext, 0, ciphertext_length + AES_BLOCK_SIZE);
 
     /* Create the decryption context */
-    EVP_CIPHER_CTX_init(&decryption_context);
-    if (!EVP_DecryptInit_ex(&decryption_context, EVP_aes_256_cbc(), NULL, padded_key, init_vector)) {
+    EVP_CIPHER_CTX *decryption_context = EVP_CIPHER_CTX_new();
+    if (!EVP_DecryptInit_ex(decryption_context, EVP_aes_256_cbc(), NULL, padded_key, init_vector)) {
         ERR_print_errors_fp(stderr);
-        EVP_CIPHER_CTX_cleanup(&decryption_context);
+        EVP_CIPHER_CTX_free(decryption_context);
         free(plaintext);
         fprintf(stderr,
                 "%s: %s\n",
@@ -206,9 +204,9 @@ int osslevp_aes_decrypt_ciphertext(const unsigned char *init_vector,
     }
 
     /* Decrypt the ciphertext into the decrypted output buffer */
-    if (!EVP_DecryptUpdate(&decryption_context, plaintext, &update_length, ciphertext, ciphertext_length)) {
+    if (!EVP_DecryptUpdate(decryption_context, plaintext, &update_length, ciphertext, ciphertext_length)) {
         ERR_print_errors_fp(stderr);
-        EVP_CIPHER_CTX_cleanup(&decryption_context);
+        EVP_CIPHER_CTX_free(decryption_context);
         free(plaintext);
         fprintf(stderr,
                 "%s: %s\n",
@@ -217,9 +215,9 @@ int osslevp_aes_decrypt_ciphertext(const unsigned char *init_vector,
         return -1;
     }
 
-    if (!EVP_DecryptFinal_ex(&decryption_context, plaintext+update_length, &final_length)) {
+    if (!EVP_DecryptFinal_ex(decryption_context, plaintext+update_length, &final_length)) {
         ERR_print_errors_fp(stderr);
-        EVP_CIPHER_CTX_cleanup(&decryption_context);
+        EVP_CIPHER_CTX_free(decryption_context);
         free(plaintext);
         fprintf(stderr,
                 "%s: %s\n",
@@ -232,7 +230,7 @@ int osslevp_aes_decrypt_ciphertext(const unsigned char *init_vector,
     *decrypted = plaintext;
 
     /* Clean up the decryption context */
-    EVP_CIPHER_CTX_cleanup(&decryption_context);
+    EVP_CIPHER_CTX_free(decryption_context);
     plaintext_length = update_length + final_length;
     return plaintext_length;
 }
