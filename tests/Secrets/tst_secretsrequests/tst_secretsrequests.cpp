@@ -20,6 +20,7 @@
 #include "Secrets/deletesecretrequest.h"
 #include "Secrets/findsecretsrequest.h"
 #include "Secrets/interactionrequest.h"
+#include "Secrets/plugininforequest.h"
 #include "Secrets/storedsecretrequest.h"
 #include "Secrets/storesecretrequest.h"
 
@@ -49,6 +50,8 @@ public slots:
     void cleanup();
 
 private slots:
+    void getPluginInfo();
+
     void devicelockCollection();
     void devicelockCollectionSecret();
     void devicelockStandaloneSecret();
@@ -75,6 +78,58 @@ void tst_secretsrequests::init()
 
 void tst_secretsrequests::cleanup()
 {
+}
+
+void tst_secretsrequests::getPluginInfo()
+{
+    PluginInfoRequest r;
+    r.setManager(&sm);
+    QSignalSpy ss(&r, &PluginInfoRequest::statusChanged);
+    QSignalSpy sps(&r, &PluginInfoRequest::storagePluginsChanged);
+    QSignalSpy eps(&r, &PluginInfoRequest::encryptionPluginsChanged);
+    QSignalSpy esps(&r, &PluginInfoRequest::encryptedStoragePluginsChanged);
+    QSignalSpy aps(&r, &PluginInfoRequest::authenticationPluginsChanged);
+    QCOMPARE(r.status(), Request::Inactive);
+    r.startRequest();
+    QCOMPARE(ss.count(), 1);
+    QCOMPARE(r.status(), Request::Active);
+    QCOMPARE(r.result().code(), Result::Pending);
+    r.waitForFinished();
+    QCOMPARE(ss.count(), 2);
+    QCOMPARE(r.status(), Request::Finished);
+    QCOMPARE(r.result().code(), Result::Succeeded);
+    QCOMPARE(sps.count(), 1);
+    QCOMPARE(eps.count(), 1);
+    QCOMPARE(esps.count(), 1);
+    QCOMPARE(aps.count(), 1);
+
+    QVERIFY(r.storagePlugins().size());
+    QStringList storagePluginNames;
+    for (auto p : r.storagePlugins()) {
+        storagePluginNames.append(p.name());
+    }
+    QVERIFY(storagePluginNames.contains(DEFAULT_TEST_STORAGE_PLUGIN));
+
+    QVERIFY(r.encryptionPlugins().size());
+    QStringList encryptionPluginNames;
+    for (auto p : r.encryptionPlugins()) {
+        encryptionPluginNames.append(p.name());
+    }
+    QVERIFY(encryptionPluginNames.contains(DEFAULT_TEST_ENCRYPTION_PLUGIN));
+
+    QVERIFY(r.encryptedStoragePlugins().size());
+    QStringList encryptedStoragePluginNames;
+    for (auto p : r.encryptedStoragePlugins()) {
+        encryptedStoragePluginNames.append(p.name());
+    }
+    QVERIFY(encryptedStoragePluginNames.contains(DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN));
+
+    QVERIFY(r.authenticationPlugins().size());
+    QStringList authenticationPluginNames;
+    for (auto p : r.authenticationPlugins()) {
+        authenticationPluginNames.append(p.name());
+    }
+    QVERIFY(authenticationPluginNames.contains(IN_APP_TEST_AUTHENTICATION_PLUGIN));
 }
 
 void tst_secretsrequests::devicelockCollection()
