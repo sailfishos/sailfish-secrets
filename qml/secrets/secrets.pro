@@ -1,7 +1,7 @@
 TEMPLATE = lib
 TARGET = sailfishsecretsplugin
 TARGET = $$qtLibraryTarget($$TARGET)
-CONFIG += plugin
+CONFIG += plugin hide_symbols
 
 include($$PWD/../../common.pri)
 include($$PWD/../../lib/libsailfishsecrets.pri)

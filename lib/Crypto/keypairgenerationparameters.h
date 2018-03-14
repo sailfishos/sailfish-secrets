@@ -66,7 +66,7 @@ protected:
     friend class DhKeyPairGenerationParameters;
 };
 
-class EcKeyPairGenerationParameters : public KeyPairGenerationParameters {
+class SAILFISH_CRYPTO_API EcKeyPairGenerationParameters : public KeyPairGenerationParameters {
     Q_GADGET
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::EllipticCurve ellipticCurve READ ellipticCurve WRITE setEllipticCurve)
 
@@ -83,7 +83,7 @@ public:
     void setEllipticCurve(Sailfish::Crypto::CryptoManager::EllipticCurve curve);
 };
 
-class RsaKeyPairGenerationParameters : public KeyPairGenerationParameters {
+class SAILFISH_CRYPTO_API RsaKeyPairGenerationParameters : public KeyPairGenerationParameters {
     Q_GADGET
     Q_PROPERTY(int modulusLength READ modulusLength WRITE setModulusLength)
     Q_PROPERTY(int numberPrimes READ numberPrimes WRITE setNumberPrimes)
@@ -108,7 +108,7 @@ public:
     void setPublicExponent(quint64 exponent);
 };
 
-class DsaKeyPairGenerationParameters : public KeyPairGenerationParameters {
+class SAILFISH_CRYPTO_API DsaKeyPairGenerationParameters : public KeyPairGenerationParameters {
     Q_GADGET
     Q_PROPERTY(int modulusLength READ modulusLength WRITE setModulusLength)
     Q_PROPERTY(int primeFactorLength READ primeFactorLength WRITE setPrimeFactorLength)
@@ -149,7 +149,7 @@ public:
     void setBase(const QByteArray &g);
 };
 
-class DhKeyPairGenerationParameters : public KeyPairGenerationParameters {
+class SAILFISH_CRYPTO_API DhKeyPairGenerationParameters : public KeyPairGenerationParameters {
     Q_GADGET
     Q_PROPERTY(int modulusLength READ modulusLength WRITE setModulusLength)
     Q_PROPERTY(int privateExponentLength READ privateExponentLength WRITE setPrivateExponentLength)

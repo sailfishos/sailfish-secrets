@@ -37,7 +37,8 @@ namespace Sailfish {
 
 namespace Crypto {
 
-class CryptoManagerPrivate
+// not actually part of the public API, but exporting symbols for unit tests.
+class SAILFISH_CRYPTO_API CryptoManagerPrivate
 {
 public:
     CryptoManagerPrivate(CryptoManager *parent = Q_NULLPTR);

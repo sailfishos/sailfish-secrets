@@ -29,7 +29,9 @@ namespace Sailfish {
 namespace Secrets {
 
 class SecretManager;
-class SecretManagerPrivate : public QObject
+
+// not actually part of the public API, but exporting symbols for unit tests.
+class SAILFISH_SECRETS_API SecretManagerPrivate : public QObject
 {
     Q_OBJECT
 
