@@ -12,13 +12,21 @@
 
 #include <QtCore/QString>
 #include <QtCore/QMetaType>
+#include <QtCore/QSharedDataPointer>
 
 namespace Sailfish {
 
 namespace Crypto {
 
+class ResultPrivate;
 class SAILFISH_CRYPTO_API Result
 {
+    Q_GADGET
+    Q_PROPERTY(QString errorMessage READ errorMessage WRITE setErrorMessage)
+    Q_PROPERTY(int storageErrorCode READ storageErrorCode WRITE setStorageErrorCode)
+    Q_PROPERTY(Sailfish::Crypto::Result::ErrorCode errorCode READ errorCode WRITE setErrorCode)
+    Q_PROPERTY(Sailfish::Crypto::Result::ResultCode code READ code WRITE setCode)
+
 public:
     enum ResultCode {
         Succeeded = 0,
@@ -112,51 +120,30 @@ public:
         OtherError = 1024,
     };
 
-    Result(Sailfish::Crypto::Result::ResultCode resultCode = Succeeded)
-        : m_errorMessage(resultCode == Sailfish::Crypto::Result::Failed ? QString::fromLatin1("Unknown error") : QString())
-        , m_storageErrorCode(0)
-        , m_errorCode(resultCode == Sailfish::Crypto::Result::Failed
-                                 ? Sailfish::Crypto::Result::UnknownError
-                                 : Sailfish::Crypto::Result::NoError)
-        , m_code(resultCode) {}
-    Result(Sailfish::Crypto::Result::ErrorCode errorCode, const QString &errorMessage)
-        : m_errorMessage(errorMessage)
-        , m_storageErrorCode(0)
-        , m_errorCode(errorCode)
-        , m_code(errorCode >= Sailfish::Crypto::Result::UnknownError
-                 ? Sailfish::Crypto::Result::Failed
-                 : Sailfish::Crypto::Result::Succeeded) {}
-    Result(const Result &other)
-        : m_errorMessage(other.m_errorMessage)
-        , m_storageErrorCode(other.m_storageErrorCode)
-        , m_errorCode(other.m_errorCode)
-        , m_code(other.m_code) {}
-    Result(Sailfish::Crypto::Result &&) = default;
+    Result(Sailfish::Crypto::Result::ResultCode resultCode = Succeeded);
+    Result(Sailfish::Crypto::Result::ErrorCode errorCode, const QString &errorMessage);
+    Result(const Result &other);
+    ~Result();
 
-    Result &operator=(const Sailfish::Crypto::Result &other) {
-        m_errorMessage = other.m_errorMessage;
-        m_storageErrorCode = other.m_storageErrorCode;
-        m_errorCode = other.m_errorCode;
-        m_code = other.m_code;
-        return *this;
-    }
+    Result &operator=(const Sailfish::Crypto::Result &other);
 
-    void setErrorMessage(const QString &m) { m_errorMessage = m; }
-    QString errorMessage() const { return m_errorMessage; }
-    void setStorageErrorCode(int c) { m_storageErrorCode = c; }
-    int storageErrorCode() const { return m_storageErrorCode; }
-    void setErrorCode(int c) { m_errorCode = static_cast<Sailfish::Crypto::Result::ErrorCode>(c); }
-    void setErrorCode(Sailfish::Crypto::Result::ErrorCode c) { m_errorCode = c; }
-    Sailfish::Crypto::Result::ErrorCode errorCode() const { return m_errorCode; }
-    void setCode(int c) { m_code = static_cast<Sailfish::Crypto::Result::ResultCode>(c); }
-    void setCode(Sailfish::Crypto::Result::ResultCode c) { m_code = c; }
-    Sailfish::Crypto::Result::ResultCode code() const { return m_code; }
+    void setErrorMessage(const QString &m);
+    QString errorMessage() const;
+
+    void setStorageErrorCode(int c);
+    int storageErrorCode() const;
+
+    Q_INVOKABLE void setErrorCode(int c);
+    void setErrorCode(Sailfish::Crypto::Result::ErrorCode c);
+    Sailfish::Crypto::Result::ErrorCode errorCode() const;
+
+    Q_INVOKABLE void setCode(int c);
+    void setCode(Sailfish::Crypto::Result::ResultCode c);
+    Sailfish::Crypto::Result::ResultCode code() const;
 
 private:
-    QString m_errorMessage;
-    int m_storageErrorCode;
-    Sailfish::Crypto::Result::ErrorCode m_errorCode;
-    Sailfish::Crypto::Result::ResultCode m_code;
+    QSharedDataPointer<ResultPrivate> d_ptr;
+    friend class ResultPrivate;
 };
 
 } // Crypto
@@ -165,5 +152,33 @@ private:
 
 Q_DECLARE_METATYPE(Sailfish::Crypto::Result);
 Q_DECLARE_TYPEINFO(Sailfish::Crypto::Result, Q_MOVABLE_TYPE);
+
+inline bool operator==(const Sailfish::Crypto::Result &lhs, const Sailfish::Crypto::Result &rhs)
+{
+    return lhs.code() == rhs.code()
+            && lhs.errorCode() == rhs.errorCode()
+            && lhs.storageErrorCode() == rhs.storageErrorCode()
+            && lhs.errorMessage() == rhs.errorMessage();
+}
+
+inline bool operator!=(const Sailfish::Crypto::Result &lhs, const Sailfish::Crypto::Result &rhs)
+{
+    return !(operator==(lhs, rhs));
+}
+
+inline bool operator<(const Sailfish::Crypto::Result &lhs, const Sailfish::Crypto::Result &rhs)
+{
+
+    if (lhs.code() != rhs.code())
+        return lhs.code() < rhs.code();
+
+    if (lhs.errorCode() != rhs.errorCode())
+        return lhs.errorCode() < rhs.errorCode();
+
+    if (lhs.storageErrorCode() != rhs.storageErrorCode())
+        return lhs.storageErrorCode() < rhs.storageErrorCode();
+
+    return lhs.errorMessage() < rhs.errorMessage();
+}
 
 #endif // LIBSAILFISHCRYPTO_RESULT_H

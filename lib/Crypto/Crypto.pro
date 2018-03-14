@@ -62,6 +62,7 @@ PRIVATE_HEADERS += \
     $$PWD/keyderivationparameters_p.h \
     $$PWD/keypairgenerationparameters_p.h \
     $$PWD/plugininforequest_p.h \
+    $$PWD/result_p.h \
     $$PWD/seedrandomdatageneratorrequest_p.h \
     $$PWD/signrequest_p.h \
     $$PWD/storedkeyidentifiersrequest_p.h \
@@ -93,6 +94,7 @@ SOURCES += \
     $$PWD/keypairgenerationparameters.cpp \
     $$PWD/plugininforequest.cpp \
     $$PWD/request.cpp \
+    $$PWD/result.cpp \
     $$PWD/seedrandomdatageneratorrequest.cpp \
     $$PWD/serialisation.cpp \
     $$PWD/signrequest.cpp \
