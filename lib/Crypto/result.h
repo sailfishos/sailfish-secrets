@@ -54,6 +54,8 @@ public:
         CryptoPluginRandomDataError,
         CryptoPluginCipherSessionError,
         CryptoPluginKeyGenerationError,
+        CryptoPluginSigningError,
+        CryptoPluginVerificationError,
 
         NetworkError = 98,
         NetworkSslError = 99,

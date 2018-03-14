@@ -88,6 +88,13 @@ struct LibCrypto_BIO_Deleter
         BIO_free(pointer);
     }
 };
+struct LibCrypto_EVP_PKEY_Deleter
+{
+    static inline void cleanup(EVP_PKEY *pointer)
+    {
+        EVP_PKEY_free(pointer);
+    }
+};
 
 namespace {
     quint32 getNextCipherSessionToken(QMap<quint64, QMap<quint32, CipherSessionData*> > *sessions, quint64 clientId)
@@ -100,6 +107,17 @@ namespace {
             }
         }
         return 0; // no cipher sessions available.
+    }
+
+    const EVP_MD *getEvpDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digestFunction) {
+        switch (digestFunction) {
+        case Sailfish::Crypto::CryptoManager::DigestSha256:
+            return EVP_sha256();
+            break;
+        default:
+            return Q_NULLPTR;
+            break;
+        }
     }
 }
 
@@ -388,14 +406,50 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::sign(
         Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
         QByteArray *signature)
 {
-    // TODO: support more operations and algorithms in this plugin!
-    Q_UNUSED(data);
-    Q_UNUSED(key);
-    Q_UNUSED(padding);
-    Q_UNUSED(digestFunction);
-    Q_UNUSED(signature);
-    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                    QLatin1String("TODO: sign"));
+    if (padding != Sailfish::Crypto::CryptoManager::SignaturePaddingNone) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("TODO: signature padding other than None"));
+    }
+
+    QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(BIO_new(BIO_s_mem()));
+    QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(EVP_PKEY_new());
+
+    // Use BIO to write private key data to bio
+    int r = BIO_write(bio.data(), key.privateKey().data(), key.privateKey().length());
+    if (r != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginSigningError,
+                                        QLatin1String("Failed to read private key data."));
+    }
+
+    // Read the private key data into an EVP_PKEY, which SHOULD handle different formats transparently.
+    // See https://www.openssl.org/docs/man1.1.0/crypto/PEM_read_bio_PrivateKey.html
+    EVP_PKEY *pkeyPtr = pkey.data();
+    PEM_read_bio_PrivateKey(bio.data(), &pkeyPtr, Q_NULLPTR, Q_NULLPTR);
+
+    // Get the EVP digest function
+    const EVP_MD *evpDigestFunc = getEvpDigestFunction(digestFunction);
+    if (!evpDigestFunc) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedDigest,
+                                        QLatin1String("Unsupported digest function chosen."));
+    }
+
+    // Create signature
+    uint8_t *signatureBytes;
+    size_t signatureLength;
+    r = osslevp_sign(evpDigestFunc, pkeyPtr, data.data(), data.length(), &signatureBytes, &signatureLength);
+    if (r != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginSigningError,
+                                        QLatin1String("Failed to sign."));
+    }
+
+    // Copy the signature into the given QByteArray
+    *signature = QByteArray((const char*) signatureBytes, (int) signatureLength);
+
+    // Free the signature allocated by openssl
+    OPENSSL_free(signature);
+
+    // Return result indicating success
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
 }
 
 Sailfish::Crypto::Result
@@ -407,15 +461,48 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::verify(
         Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
         bool *verified)
 {
-    // TODO: support more operations and algorithms in this plugin!
-    Q_UNUSED(signature);
-    Q_UNUSED(data);
-    Q_UNUSED(key);
-    Q_UNUSED(padding);
-    Q_UNUSED(digestFunction);
-    Q_UNUSED(verified);
-    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                    QLatin1String("TODO: verify"));
+    if (padding != Sailfish::Crypto::CryptoManager::SignaturePaddingNone) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("TODO: signature padding other than None"));
+    }
+
+    QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(BIO_new(BIO_s_mem()));
+    QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(EVP_PKEY_new());
+
+    *verified = false;
+
+    // Use BIO to write public key data to bio
+    int r = BIO_write(bio.data(), key.publicKey().data(), key.publicKey().length());
+    if (r != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginSigningError,
+                                        QLatin1String("Failed to read private key data."));
+    }
+
+    // Read the public key data into an EVP_PKEY
+    EVP_PKEY *pkeyPtr = pkey.data();
+    PEM_read_bio_PUBKEY(bio.data(), &pkeyPtr, Q_NULLPTR, Q_NULLPTR);
+
+    // Get the EVP digest function
+    const EVP_MD *evpDigestFunc = getEvpDigestFunction(digestFunction);
+    if (!evpDigestFunc) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedDigest,
+                                        QLatin1String("Unsupported digest function chosen."));
+    }
+
+    // Verify the signature
+    r = osslevp_verify(evpDigestFunc, pkeyPtr, data.data(), data.length(), (const uint8_t*) signature.data(), (size_t) signature.length());
+    if (r == 1) {
+        // Verified successfully.
+        *verified = true;
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
+    } else if (r == 0) {
+        // Verification performed without error, but was unsuccessful.
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Failed);
+    } else {
+        // Verification had errors.
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginVerificationError,
+                                        QLatin1String("Error occoured while verifying the given signature."));
+    }
 }
 
 Sailfish::Crypto::Result

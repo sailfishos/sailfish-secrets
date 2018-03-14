@@ -17,6 +17,8 @@
 #include <openssl/aes.h>
 #include <openssl/err.h>
 
+#define OSSLEVP_CHECK_RESULT(check, freestuff, message) if (check) { ERR_print_errors_fp(stderr); freestuff; fprintf(stderr, "%s: %s\n", __FUNCTION__, message); return -1; }
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -233,6 +235,101 @@ int osslevp_aes_decrypt_ciphertext(const unsigned char *init_vector,
     EVP_CIPHER_CTX_free(decryption_context);
     plaintext_length = update_length + final_length;
     return plaintext_length;
+}
+
+/*
+    int osslevp_sign(const EVP_MD *digestFunc,
+                     EVP_PKEY *pkey,
+                     const void *bytes,
+                     size_t bytesCount,
+                     uint8_t **signature,
+                     size_t *signatureLength)
+
+    Implements signing according to:
+    https://wiki.openssl.org/index.php/EVP_Signing_and_Verifying
+
+    Arguments:
+    * digestFunc: should be the result of an EVP function, eg. EVP_sha256()
+    * pkey: the private key used for signing
+    * bytes: data to sign
+    * bytesCount: the number of bytes in 'bytes'
+    * signature: where the generated signature will be stored, which will have to be freed using OPENSSL_free
+    * signatureLength: where the length of the generated signature will be stored
+
+    Return value:
+    * 1 when the operation was successful.
+    * less than 0 when there was an error.
+ */
+int osslevp_sign(const EVP_MD *digestFunc,
+                 EVP_PKEY *pkey,
+                 const void *bytes,
+                 size_t bytesCount,
+                 uint8_t **signature,
+                 size_t *signatureLength)
+{
+    EVP_MD_CTX *mdctx = EVP_MD_CTX_create();
+
+    int r = EVP_DigestSignInit(mdctx, NULL, digestFunc, NULL, pkey);
+    OSSLEVP_CHECK_RESULT(r != 1, EVP_MD_CTX_destroy(mdctx), "failed call to EVP_DigestSignInit.");
+
+    r = EVP_DigestSignUpdate(mdctx, bytes, bytesCount);
+    OSSLEVP_CHECK_RESULT(r != 1, EVP_MD_CTX_destroy(mdctx), "failed call to EVP_DigestSignUpdate.");
+
+    r = EVP_DigestSignFinal(mdctx, NULL, signatureLength);
+    OSSLEVP_CHECK_RESULT(r != 1, EVP_MD_CTX_destroy(mdctx), "failed first call to EVP_DigestSignFinal.");
+
+    *signature = (uint8_t *) OPENSSL_malloc(*signatureLength);
+    OSSLEVP_CHECK_RESULT(*signature, EVP_MD_CTX_destroy(mdctx), "failed to allocate memory for signature.");
+
+    r = EVP_DigestSignFinal(mdctx, *signature, signatureLength);
+    OSSLEVP_CHECK_RESULT(r != 1, EVP_MD_CTX_destroy(mdctx), "failed second call to EVP_DigestSignFinal.");
+
+    EVP_MD_CTX_destroy(mdctx);
+    return 1;
+}
+
+/*
+    int osslevp_verify(const EVP_MD *digestFunc,
+                       EVP_PKEY *pkey,
+                       const void *bytes,
+                       size_t bytesCount,
+                       const uint8_t *signature,
+                       size_t signatureLength)
+
+    Verifies a signature according to:
+    https://wiki.openssl.org/index.php/EVP_Signing_and_Verifying
+
+    Arguments:
+    * digestFunc: should be the result of an EVP function, eg. EVP_sha256()
+    * pkey: the public key used for verification (pair of the private key used for signing)
+    * bytes: data whose signature must be verified
+    * bytesCount: the number of bytes in 'bytes'
+    * signature: the signature which needs to be verified
+    * signatureLength: byte length of the signature to be verified
+
+    Return value:
+    * 1 when the operation was successful and the signature is correct.
+    * 0 when the operation was successful but the signature is NOT correct.
+    * less than 0 when there was an error and the operation was unsuccessful.
+ */
+int osslevp_verify(const EVP_MD *digestFunc,
+                   EVP_PKEY *pkey,
+                   const void *bytes,
+                   size_t bytesCount,
+                   const uint8_t *signature,
+                   size_t signatureLength)
+{
+    EVP_MD_CTX *mdctx = EVP_MD_CTX_create();
+
+    int r = EVP_DigestVerifyInit(mdctx, NULL, digestFunc, NULL, pkey);
+    OSSLEVP_CHECK_RESULT(r != 1, EVP_MD_CTX_destroy(mdctx), "failed call to EVP_DigestSignInit.");
+
+    r = EVP_DigestVerifyUpdate(mdctx, bytes, bytesCount);
+    OSSLEVP_CHECK_RESULT(r != 1, EVP_MD_CTX_destroy(mdctx), "failed call to EVP_DigestVerifyUpdate.");
+
+    r = EVP_DigestVerifyFinal(mdctx, signature, signatureLength);
+    EVP_MD_CTX_destroy(mdctx);
+    return r;
 }
 
 #ifdef __cplusplus
