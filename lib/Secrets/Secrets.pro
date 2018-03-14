@@ -46,6 +46,7 @@ PRIVATE_HEADERS += \
     $$PWD/interactionparameters_p.h \
     $$PWD/interactionrequest_p.h \
     $$PWD/plugininforequest_p.h \
+    $$PWD/result_p.h \
     $$PWD/secretsdaemonconnection_p_p.h \
     $$PWD/secretmanager_p.h \
     $$PWD/storedsecretrequest_p.h \
@@ -69,6 +70,7 @@ SOURCES += \
     $$PWD/interactionrequest.cpp \
     $$PWD/plugininforequest.cpp \
     $$PWD/request.cpp \
+    $$PWD/result.cpp \
     $$PWD/secretsdaemonconnection.cpp \
     $$PWD/secretmanager.cpp \
     $$PWD/serialisation.cpp \
