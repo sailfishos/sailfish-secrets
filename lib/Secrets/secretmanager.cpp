@@ -525,12 +525,15 @@ SecretManagerPrivate *SecretManager::pimpl() const
   type specific for their needs:
 
   \list
+  \li \l{Sailfish::Secrets::PluginInfoRequest} to request information about available secrets plugins
+  \li \l{Sailfish::Secrets::CollectionNamesRequest} to request the names of collections of secrets stored by the secrets service
   \li \l{Sailfish::Secrets::CreateCollectionRequest} to create a collection in which to store secrets
   \li \l{Sailfish::Secrets::DeleteCollectionRequest} to delete a collection of secrets
   \li \l{Sailfish::Secrets::StoreSecretRequest} to store a secret either in a collection or standalone
   \li \l{Sailfish::Secrets::StoredSecretRequest} to retrieve a secret
   \li \l{Sailfish::Secrets::FindSecretsRequest} to search a collection for secrets matching a filter
   \li \l{Sailfish::Secrets::DeleteSecretRequest} to delete a secret
+  \li \l{Sailfish::Secrets::InteractionRequest} to request the system mediate a user-interaction flow on behalf of the application
   \endlist
  */
 
