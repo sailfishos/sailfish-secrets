@@ -17,6 +17,7 @@
 #include <QtCore/QVariantMap>
 #include <QtCore/QList>
 #include <QtCore/QString>
+#include <QtCore/QSharedDataPointer>
 
 namespace Sailfish {
 
@@ -31,11 +32,12 @@ namespace Secrets {
  */
 class SecretManager;
 class InteractionService;
-class InteractionViewData;
+class InteractionViewPrivate;
 class SAILFISH_SECRETS_API InteractionView
 {
 public:
     InteractionView();
+    InteractionView(const InteractionView &other);
     virtual ~InteractionView();
 
 protected:
@@ -56,7 +58,8 @@ private:
     bool continueRequest(QObject *sender, const Sailfish::Secrets::InteractionParameters &request);
     bool cancelRequest(QObject *sender);
     bool finishRequest(QObject *sender);
-    InteractionViewData *data;
+    QSharedDataPointer<InteractionViewPrivate> d_ptr;
+    friend class InteractionViewPrivate;
 };
 
 } // namespace Secrets
