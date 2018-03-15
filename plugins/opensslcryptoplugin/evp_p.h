@@ -91,11 +91,9 @@ int osslevp_aes_encrypt_plaintext(int block_mode,
                                   int plaintext_length,
                                   unsigned char **encrypted)
 {
-    unsigned char padded_key[32] = { 0 };
     int ciphertext_length = plaintext_length + AES_BLOCK_SIZE;
     int update_length = 0;
     int final_length = 0;
-    int i = 0;
     unsigned char *ciphertext = NULL;
     EVP_CIPHER_CTX encryption_context;
 
@@ -104,15 +102,6 @@ int osslevp_aes_encrypt_plaintext(int block_mode,
         /* Invalid arguments */
         fprintf(stderr, "%s\n", "invalid arguments, aborting encryption");
         return -1;
-    }
-
-    /* Create a 32-byte padded-key from the key */
-    for (i = 0; i < 32; ++i) {
-        if (i < key_length) {
-            padded_key[i] = key[i];
-        } else {
-            padded_key[i] = '\0';
-        }
     }
 
     /* Allocate the buffer for the encrypted output */
@@ -131,7 +120,7 @@ int osslevp_aes_encrypt_plaintext(int block_mode,
         return -1;
     }
 
-    if (!EVP_EncryptInit_ex(&encryption_context, evp_cipher, NULL, padded_key, init_vector)) {
+    if (!EVP_EncryptInit_ex(&encryption_context, evp_cipher, NULL, key, init_vector)) {
         ERR_print_errors_fp(stderr);
         EVP_CIPHER_CTX_cleanup(&encryption_context);
         free(ciphertext);
@@ -197,11 +186,9 @@ int osslevp_aes_decrypt_ciphertext(int block_mode,
                                    int ciphertext_length,
                                    unsigned char **decrypted)
 {
-    unsigned char padded_key[32] = { 0 };
     int plaintext_length = 0;
     int update_length = 0;
     int final_length = 0;
-    int i = 0;
     unsigned char *plaintext = NULL;
     EVP_CIPHER_CTX decryption_context;
 
@@ -213,15 +200,6 @@ int osslevp_aes_decrypt_ciphertext(int block_mode,
                 "osslevp_aes_decrypt_ciphertext()",
                 "invalid arguments, aborting decryption");
         return -1;
-    }
-
-    /* Create a 32-byte padded-key from the key */
-    for (i = 0; i < 32; ++i) {
-        if (i < key_length) {
-            padded_key[i] = key[i];
-        } else {
-            padded_key[i] = '\0';
-        }
     }
 
     /* Allocate the buffer for the decrypted output */
@@ -240,7 +218,7 @@ int osslevp_aes_decrypt_ciphertext(int block_mode,
         return -1;
     }
 
-    if (!EVP_DecryptInit_ex(&decryption_context, cipher, NULL, padded_key, init_vector)) {
+    if (!EVP_DecryptInit_ex(&decryption_context, cipher, NULL, key, init_vector)) {
         ERR_print_errors_fp(stderr);
         EVP_CIPHER_CTX_cleanup(&decryption_context);
         free(plaintext);
