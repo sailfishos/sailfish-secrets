@@ -310,6 +310,9 @@ void tst_cryptosecrets::cryptoStoredKey()
     keyTemplate.setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmAes);
     keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
     keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt | Sailfish::Crypto::CryptoManager::OperationDecrypt);
+    keyTemplate.setComponentConstraints(Sailfish::Crypto::Key::MetaData
+                                      | Sailfish::Crypto::Key::PublicKeyData
+                                      | Sailfish::Crypto::Key::PrivateKeyData);
     keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
     keyTemplate.setCustomParameters(QVector<QByteArray>() << QByteArray("testparameter"));
 
