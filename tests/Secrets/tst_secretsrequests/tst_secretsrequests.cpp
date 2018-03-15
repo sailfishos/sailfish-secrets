@@ -812,7 +812,7 @@ void tst_secretsrequests::encryptedStorageCollection()
     QCOMPARE(gsrss.count(), 2);
     QCOMPARE(gsr.status(), Request::Finished);
     QCOMPARE(gsr.result().code(), Result::Succeeded);
-    QCOMPARE(gsr.secret(), testSecret);
+    QCOMPARE(gsr.secret().data(), testSecret.data());
 
     // delete the secret
     DeleteSecretRequest dsr;
