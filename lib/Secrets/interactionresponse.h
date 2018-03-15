@@ -20,16 +20,17 @@ namespace Sailfish {
 namespace Secrets {
 
 class InteractionResponsePrivate;
-class SAILFISH_SECRETS_API InteractionResponse {
+class SAILFISH_SECRETS_API InteractionResponse
+{
+    Q_GADGET
+    Q_PROPERTY(Sailfish::Secrets::Result result READ result WRITE setResult)
+    Q_PROPERTY(QByteArray responseData READ responseData WRITE setResponseData)
+
 public:
     InteractionResponse();
     InteractionResponse(const InteractionResponse &other);
     ~InteractionResponse();
     InteractionResponse& operator=(const InteractionResponse &other);
-    bool operator==(const InteractionResponse &other) const;
-    bool operator!=(const InteractionResponse &other) const {
-        return !operator==(other);
-    }
 
     Sailfish::Secrets::Result result() const;
     void setResult(const Sailfish::Secrets::Result &result);
@@ -41,6 +42,10 @@ private:
     QSharedDataPointer<InteractionResponsePrivate> d_ptr;
     friend class InteractionResponsePrivate;
 };
+
+bool operator==(const Sailfish::Secrets::InteractionResponse &lhs, const Sailfish::Secrets::InteractionResponse &rhs) SAILFISH_SECRETS_API;
+bool operator!=(const Sailfish::Secrets::InteractionResponse &lhs, const Sailfish::Secrets::InteractionResponse &rhs) SAILFISH_SECRETS_API;
+bool operator<(const Sailfish::Secrets::InteractionResponse &lhs, const Sailfish::Secrets::InteractionResponse &rhs) SAILFISH_SECRETS_API;
 
 } // Secrets
 

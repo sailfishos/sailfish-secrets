@@ -33,8 +33,8 @@ class TestSecretManager : public Sailfish::Secrets::SecretManager
     Q_OBJECT
 
 public:
-    TestSecretManager(Sailfish::Secrets::SecretManager::InitialisationMode mode = AsynchronousInitialisationMode, QObject *parent = Q_NULLPTR)
-        : Sailfish::Secrets::SecretManager(mode, parent) {}
+    TestSecretManager(QObject *parent = Q_NULLPTR)
+        : Sailfish::Secrets::SecretManager(parent) {}
     ~TestSecretManager() {}
     Sailfish::Secrets::SecretManagerPrivate *d_ptr() const { return Sailfish::Secrets::SecretManager::pimpl(); }
 };

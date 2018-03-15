@@ -89,9 +89,31 @@ SecretManagerPrivate::registerInteractionService(
     return Result(Result::Succeeded);
 }
 
-QDBusPendingReply<Sailfish::Secrets::Result, QByteArray>
+QDBusPendingReply<Result,
+                  QVector<StoragePluginInfo>,
+                  QVector<EncryptionPluginInfo>,
+                  QVector<EncryptedStoragePluginInfo>,
+                  QVector<AuthenticationPluginInfo> >
+SecretManagerPrivate::pluginInfo()
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result,
+                      QVector<StoragePluginInfo>,
+                      QVector<EncryptionPluginInfo>,
+                      QVector<EncryptedStoragePluginInfo>,
+                      QVector<AuthenticationPluginInfo> > reply
+            = m_interface->asyncCall(QStringLiteral("getPluginInfo"));
+    return reply;
+}
+
+QDBusPendingReply<Result, QByteArray>
 SecretManagerPrivate::userInput(
-        const Sailfish::Secrets::InteractionParameters &uiParams)
+        const InteractionParameters &uiParams)
 {
     if (!m_interface) {
         return QDBusPendingReply<Result>(
@@ -503,12 +525,15 @@ SecretManagerPrivate *SecretManager::pimpl() const
   type specific for their needs:
 
   \list
+  \li \l{Sailfish::Secrets::PluginInfoRequest} to request information about available secrets plugins
+  \li \l{Sailfish::Secrets::CollectionNamesRequest} to request the names of collections of secrets stored by the secrets service
   \li \l{Sailfish::Secrets::CreateCollectionRequest} to create a collection in which to store secrets
   \li \l{Sailfish::Secrets::DeleteCollectionRequest} to delete a collection of secrets
   \li \l{Sailfish::Secrets::StoreSecretRequest} to store a secret either in a collection or standalone
   \li \l{Sailfish::Secrets::StoredSecretRequest} to retrieve a secret
   \li \l{Sailfish::Secrets::FindSecretsRequest} to search a collection for secrets matching a filter
   \li \l{Sailfish::Secrets::DeleteSecretRequest} to delete a secret
+  \li \l{Sailfish::Secrets::InteractionRequest} to request the system mediate a user-interaction flow on behalf of the application
   \endlist
  */
 
@@ -516,59 +541,13 @@ SecretManagerPrivate *SecretManager::pimpl() const
 /*!
   \brief Constructs a new SecretManager instance with the given \a parent.
  */
-SecretManager::SecretManager(SecretManager::InitialisationMode mode, QObject *parent)
+SecretManager::SecretManager(QObject *parent)
     : QObject(parent)
     , d_ptr(new SecretManagerPrivate(this))
 {
     if (!d_ptr->m_interface) {
         qCWarning(lcSailfishSecrets) << "Unable to connect to the secrets daemon!  No functionality will be available!";
         return;
-    }
-
-    if (mode == SecretManager::MinimalInitialisationMode) {
-        // no cache initialisation required = we're already initialised.
-        d_ptr->m_initialised = true;
-        QMetaObject::invokeMethod(this, "isInitialisedChanged", Qt::QueuedConnection);
-    } else if (mode == SecretManager::SynchronousInitialisationMode) {
-        QDBusPendingReply<Result,
-                          QVector<StoragePluginInfo>,
-                          QVector<EncryptionPluginInfo>,
-                          QVector<EncryptedStoragePluginInfo>,
-                          QVector<AuthenticationPluginInfo> > reply
-                = d_ptr->m_interface->call("getPluginInfo");
-        reply.waitForFinished();
-        if (reply.isValid()) {
-            Result result = reply.argumentAt<0>();
-            if (result.code() == Result::Succeeded) {
-                QVector<StoragePluginInfo> storagePlugins = reply.argumentAt<1>();
-                QVector<EncryptionPluginInfo> encryptionPlugins = reply.argumentAt<2>();
-                QVector<EncryptedStoragePluginInfo> encryptedStoragePlugins = reply.argumentAt<3>();
-                QVector<AuthenticationPluginInfo> authenticationPlugins = reply.argumentAt<4>();
-                for (auto p : storagePlugins) {
-                    d_ptr->m_storagePluginInfo.insert(p.name(), p);
-                }
-                for (auto p : encryptionPlugins) {
-                    d_ptr->m_encryptionPluginInfo.insert(p.name(), p);
-                }
-                for (auto p : encryptedStoragePlugins) {
-                    d_ptr->m_encryptedStoragePluginInfo.insert(p.name(), p);
-                }
-                for (auto p : authenticationPlugins) {
-                    d_ptr->m_authenticationPluginInfo.insert(p.name(), p);
-                }
-                d_ptr->m_initialised = true;
-                QMetaObject::invokeMethod(this, "isInitialisedChanged", Qt::QueuedConnection);
-            } else {
-                qCWarning(lcSailfishSecrets) << "Unable to initialise plugin info due to error:"
-                                             << result.errorCode() << ":" << result.errorMessage();
-            }
-        } else {
-            qCWarning(lcSailfishSecrets) << "Unable to initialise plugin info due to DBus error:"
-                                         << reply.error().message();
-        }
-    } else {
-        // TODO : asynchronous initialisation
-        qCWarning(lcSailfishSecrets) << "Asynchronous initialisation not currently supported!";
     }
 }
 
@@ -580,12 +559,12 @@ SecretManager::~SecretManager()
 }
 
 /*!
-  \brief Returns true if the DBus connection has been established and the local cache of plugin info has been populated, otherwise false.
+  \brief Returns true if the DBus connection has been established
  */
 bool SecretManager::isInitialised() const
 {
     Q_D(const SecretManager);
-    return d->m_interface && d->m_initialised;
+    return d->m_interface;
 }
 
 /*!
@@ -603,86 +582,4 @@ void SecretManager::registerInteractionView(InteractionView *view)
     Q_D(SecretManager);
     // Note: InteractionView is not QObject-derived, so we cannot use QPointer etc.
     d->m_interactionView = view;
-}
-
-/*!
- * \brief Returns information about available storage plugins.
- *
- * Storage plugins provide storage for secrets.  Different plugins
- * may be better for different use cases (e.g., some may be backed
- * by a secure hardware peripheral, or a Trusted Execution Environment
- * application, whereas others may simply run "normal" application code
- * to store data to an SQL database on the device's filesystem).
- *
- * These storage plugins don't perform any encryption; the Secrets
- * service will use a specific encryption plugin to perform encryption
- * and decryption operations.
- */
-QMap<QString, StoragePluginInfo>
-SecretManager::storagePluginInfo()
-{
-    Q_D(const SecretManager);
-    return d->m_storagePluginInfo;
-}
-
-/*!
- * \brief Returns information about available encryption plugins.
- *
- * Encryption plugins provide crypto operations for secrets.
- * Different plugisn may be better for different use cases (e.g.,
- * some may be backed by a secure hardware peripheral, or a
- * Trusted Execution Environment application, whereas others may
- * simply run "normal" application code to perform cryptographic
- * operations).
- */
-QMap<QString, EncryptionPluginInfo>
-SecretManager::encryptionPluginInfo()
-{
-    Q_D(const SecretManager);
-    return d->m_encryptionPluginInfo;
-}
-
-/*!
- * \brief Returns information about available encrypted storage plugins.
- *
- * Encrypted storage plugins provide all-in-one encryption and
- * storage for secrets.  They generally use block-mode encryption
- * algorithms such as AES256 to encrypt or decrypt entire pages
- * of data when writing to or reading from a database, which makes
- * them ideally suited to implement device-lock protected secret
- * collection stores.
- */
-QMap<QString, EncryptedStoragePluginInfo>
-SecretManager::encryptedStoragePluginInfo()
-{
-    Q_D(const SecretManager);
-    return d->m_encryptedStoragePluginInfo;
-}
-
-/*!
- * \brief Returns information about available authentication plugins.
- *
- * Authentication plugins provide UI flows which request the user
- * to provide an authentication key (e.g. lock code, password,
- * fingerprint, iris scan or voice recognition template) which
- * can be used to generate an encryption or decryption key.
- *
- * If your application intends to store only application-specific
- * secrets, then when creating the collection or secret you
- * can specify an authentication plugin which supports
- * the \c ApplicationSpecificAuthentication authentication type,
- * and register a \l InteractionView with the manager
- * which will then be used to provide the UI interaction with the
- * user, in-process.  (Note that if you do not wish any UI interaction,
- * the InteractionView implementation can return a precalculated key directly.)
- *
- * Alternatively, other plugins provide various system-mediated
- * UI flows which ensure that the integrity of the user's authentication
- * data is maintained.
- */
-QMap<QString, AuthenticationPluginInfo>
-SecretManager::authenticationPluginInfo()
-{
-    Q_D(const SecretManager);
-    return d->m_authenticationPluginInfo;
 }

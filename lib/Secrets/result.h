@@ -12,12 +12,20 @@
 
 #include <QtCore/QString>
 #include <QtCore/QMetaType>
+#include <QtCore/QSharedDataPointer>
 
 namespace Sailfish {
 
 namespace Secrets {
 
-class SAILFISH_SECRETS_API Result {
+class ResultPrivate;
+class SAILFISH_SECRETS_API Result
+{
+    Q_GADGET
+    Q_PROPERTY(QString errorMessage READ errorMessage WRITE setErrorMessage)
+    Q_PROPERTY(Sailfish::Secrets::Result::ErrorCode errorCode READ errorCode WRITE setErrorCode)
+    Q_PROPERTY(Sailfish::Secrets::Result::ResultCode code READ code WRITE setCode)
+
 public:
     enum ResultCode {
         Succeeded = 0,
@@ -129,51 +137,32 @@ public:
         OtherError = 1024,
     };
 
-    Result(Sailfish::Secrets::Result::ResultCode resultCode = Succeeded)
-        : m_errorMessage(resultCode == Sailfish::Secrets::Result::Failed ? QString::fromLatin1("Unknown error") : QString())
-        , m_errorCode(resultCode == Sailfish::Secrets::Result::Failed
-                                 ? Sailfish::Secrets::Result::UnknownError
-                                 : Sailfish::Secrets::Result::NoError)
-        , m_code(resultCode) {}
-    Result(Sailfish::Secrets::Result::ErrorCode errorCode, const QString &errorMessage)
-        : m_errorMessage(errorMessage), m_errorCode(errorCode), m_code(errorCode >= Sailfish::Secrets::Result::UnknownError
-                                                                                 ? Sailfish::Secrets::Result::Failed
-                                                                                 : Sailfish::Secrets::Result::Succeeded) {}
-    Result(const Sailfish::Secrets::Result &other)
-        : m_errorMessage(other.m_errorMessage), m_errorCode(other.m_errorCode), m_code(other.m_code) {}
-    Result(Sailfish::Secrets::Result &&) = default;
+    Result(Sailfish::Secrets::Result::ResultCode resultCode = Succeeded);
+    Result(Sailfish::Secrets::Result::ErrorCode errorCode, const QString &errorMessage);
+    Result(const Result &other);
+    ~Result();
 
-    bool operator==(const Sailfish::Secrets::Result &other) const {
-        return m_errorMessage == other.m_errorMessage
-                && m_errorCode == other.m_errorCode
-                && m_code == other.m_code;
-    }
+    Result &operator=(const Sailfish::Secrets::Result &other);
 
-    bool operator!=(const Sailfish::Secrets::Result &other) const {
-        return !operator==(other);
-    }
+    void setErrorMessage(const QString &m);
+    QString errorMessage() const;
 
-    Result &operator=(const Sailfish::Secrets::Result &other) {
-        m_errorMessage = other.m_errorMessage;
-        m_errorCode = other.m_errorCode;
-        m_code = other.m_code;
-        return *this;
-    }
+    Q_INVOKABLE void setErrorCode(int c);
+    void setErrorCode(Sailfish::Secrets::Result::ErrorCode c);
+    Sailfish::Secrets::Result::ErrorCode errorCode() const;
 
-    void setErrorMessage(const QString &m) { m_errorMessage = m; }
-    QString errorMessage() const { return m_errorMessage; }
-    void setErrorCode(int c) { m_errorCode = static_cast<Sailfish::Secrets::Result::ErrorCode>(c); }
-    void setErrorCode(Sailfish::Secrets::Result::ErrorCode c) { m_errorCode = c; }
-    Sailfish::Secrets::Result::ErrorCode errorCode() const { return m_errorCode; }
-    void setCode(int c) { m_code = static_cast<Sailfish::Secrets::Result::ResultCode>(c); }
-    void setCode(Sailfish::Secrets::Result::ResultCode c) { m_code = c; }
-    Sailfish::Secrets::Result::ResultCode code() const { return m_code; }
+    Q_INVOKABLE void setCode(int c);
+    void setCode(Sailfish::Secrets::Result::ResultCode c);
+    Sailfish::Secrets::Result::ResultCode code() const;
 
 private:
-    QString m_errorMessage;
-    Sailfish::Secrets::Result::ErrorCode m_errorCode;
-    Sailfish::Secrets::Result::ResultCode m_code;
+    QSharedDataPointer<ResultPrivate> d_ptr;
+    friend class ResultPrivate;
 };
+
+bool operator==(const Sailfish::Secrets::Result &lhs, const Sailfish::Secrets::Result &rhs) SAILFISH_SECRETS_API;
+bool operator!=(const Sailfish::Secrets::Result &lhs, const Sailfish::Secrets::Result &rhs) SAILFISH_SECRETS_API;
+bool operator<(const Sailfish::Secrets::Result &lhs, const Sailfish::Secrets::Result &rhs) SAILFISH_SECRETS_API;
 
 } // Secrets
 

@@ -30,7 +30,7 @@ namespace Secrets {
 // RequestProcessor.
 class AuthenticationPlugin;
 class InteractionRequestWatcherPrivate;
-class InteractionRequestWatcher : public QObject
+class SAILFISH_SECRETS_API InteractionRequestWatcher : public QObject
 {
     Q_OBJECT
 

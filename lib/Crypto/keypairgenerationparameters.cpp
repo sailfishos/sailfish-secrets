@@ -111,23 +111,6 @@ KeyPairGenerationParameters::operator=(
 }
 
 /*!
- * \brief Returns true if the \a other parameters are identical to those encapsulated by this instance
- */
-bool KeyPairGenerationParameters::operator==(const KeyPairGenerationParameters &other) const
-{
-    if (keyPairType() != other.keyPairType())
-        return false;
-
-    if (customParameters() != other.customParameters())
-        return false;
-
-    if (d_ptr->m_subclassParameters != other.d_ptr->m_subclassParameters)
-        return false;
-
-    return true;
-}
-
-/*!
  * \brief Returns true if enough parameters have been provided so that the plugin can generate a key pair
  *
  * This is assumed to be true if the keyPairType() is
@@ -182,6 +165,14 @@ void KeyPairGenerationParameters::setKeyPairType(KeyPairGenerationParameters::Ke
 QVariantMap KeyPairGenerationParameters::customParameters() const
 {
     return d_ptr->m_customParameters;
+}
+
+/*!
+ * \brief Returns the algorithm-specific parameters which will be used during key generation
+ */
+QVariantMap KeyPairGenerationParameters::subclassParameters() const
+{
+    return d_ptr->m_subclassParameters;
 }
 
 /*!
@@ -256,16 +247,6 @@ EcKeyPairGenerationParameters& EcKeyPairGenerationParameters::operator=(
     return *this;
 }
 
-/*!
- * \brief Returns true if this instance has identical parameters to the \a other instance
- */
-bool EcKeyPairGenerationParameters::operator==(
-        const EcKeyPairGenerationParameters &other) const
-{
-    return ellipticCurve() == other.ellipticCurve()
-            && customParameters() == other.customParameters();
-}
-
 bool EcKeyPairGenerationParameters::isValid() const
 {
     if (keyPairType() == KeyPairGenerationParameters::KeyPairEc) {
@@ -278,10 +259,10 @@ bool EcKeyPairGenerationParameters::isValid() const
 /*!
  * \brief Returns the elliptic curve which should be used to calculate the key pair
  */
-Sailfish::Crypto::CryptoManager::EllipticCurve
+CryptoManager::EllipticCurve
 EcKeyPairGenerationParameters::ellipticCurve() const
 {
-    return static_cast<Sailfish::Crypto::CryptoManager::EllipticCurve>(
+    return static_cast<CryptoManager::EllipticCurve>(
                 d_ptr->m_subclassParameters.value(EcKeyPairGenerationParametersEllipticCurve).toInt());
 }
 
@@ -289,7 +270,7 @@ EcKeyPairGenerationParameters::ellipticCurve() const
  * \brief Sets the elliptic curve which should be used to calculate the key pair to \a curve
  */
 void EcKeyPairGenerationParameters::setEllipticCurve(
-        Sailfish::Crypto::CryptoManager::EllipticCurve curve)
+        CryptoManager::EllipticCurve curve)
 {
     d_ptr->m_subclassParameters.insert(EcKeyPairGenerationParametersEllipticCurve,
                                        static_cast<int>(curve));
@@ -353,18 +334,6 @@ RsaKeyPairGenerationParameters& RsaKeyPairGenerationParameters::operator=(const 
 {
     d_ptr = other.d_ptr;
     return *this;
-}
-
-/*!
- * \brief Returns true if this instance has identical parameters to the \a other instance
- */
-bool RsaKeyPairGenerationParameters::operator==(
-        const RsaKeyPairGenerationParameters &other) const
-{
-    return modulusLength() == other.modulusLength()
-            && numberPrimes() == other.numberPrimes()
-            && publicExponent() == other.publicExponent()
-            && customParameters() == other.customParameters();
 }
 
 bool RsaKeyPairGenerationParameters::isValid() const
@@ -504,44 +473,9 @@ DsaKeyPairGenerationParameters::operator=(const DsaKeyPairGenerationParameters &
 }
 
 /*!
- * \brief Returns true if this instance has identical parameters to the \a other instance
+ * \brief Returns true if the parameters contains either a valid modulus, prime factor, and base,
+ *        or alternatively a valid modulus length and prime factor length.
  */
-bool DsaKeyPairGenerationParameters::operator==(
-        const DsaKeyPairGenerationParameters &other) const
-{
-    if (!modulus().isEmpty() && !primeFactor().isEmpty() && !base().isEmpty()) {
-        return modulus() == other.modulus()
-                && primeFactor() == other.primeFactor()
-                && base() == other.base()
-                && customParameters() == other.customParameters();
-    }
-
-    return modulusLength() == other.modulusLength()
-            && primeFactorLength() == other.primeFactorLength()
-            && generateFamilyParameters() == other.generateFamilyParameters()
-            && customParameters() == other.customParameters();
-}
-
-bool DsaKeyPairGenerationParameters::operator==(const KeyPairGenerationParameters &other) const
-{
-    if (keyPairType() == KeyPairGenerationParameters::KeyPairDsa
-            && keyPairType() == other.keyPairType()) {
-        if (!modulus().isEmpty() && !primeFactor().isEmpty() && !base().isEmpty()) {
-            return modulus() == other.d_ptr->m_subclassParameters.value(DsaKeyPairGenerationParametersModulus).toByteArray()
-                    && primeFactor() == other.d_ptr->m_subclassParameters.value(DsaKeyPairGenerationParametersPrimeFactor).toByteArray()
-                    && base() == other.d_ptr->m_subclassParameters.value(DsaKeyPairGenerationParametersBase).toByteArray()
-                    && customParameters() == other.customParameters();
-        } else {
-            return modulusLength() == other.d_ptr->m_subclassParameters.value(DsaKeyPairGenerationParametersModulusLength).toInt()
-                    && primeFactorLength() == other.d_ptr->m_subclassParameters.value(DsaKeyPairGenerationParametersPrimeFactorLength).toInt()
-                    && generateFamilyParameters() == other.d_ptr->m_subclassParameters.value(DsaKeyPairGenerationParametersGenerateFamilyParameters).toBool()
-                    && customParameters() == other.customParameters();
-        }
-    }
-
-    return KeyPairGenerationParameters::operator==(other);
-}
-
 bool DsaKeyPairGenerationParameters::isValid() const
 {
     if (!modulus().isEmpty() && !primeFactor().isEmpty() && !base().isEmpty())
@@ -550,7 +484,7 @@ bool DsaKeyPairGenerationParameters::isValid() const
     if (modulusLength() > 0 && primeFactorLength() > 0)
         return true;
 
-    return KeyPairGenerationParameters::isValid();
+    return false;
 }
 
 /*!
@@ -755,43 +689,6 @@ DhKeyPairGenerationParameters::operator=(
     d_ptr = other.d_ptr;
     return *this;
 }
-/*!
- * \brief Returns true if this instance has identical parameters to the \a other instance
- */
-bool DhKeyPairGenerationParameters::operator==(
-        const DhKeyPairGenerationParameters &other) const
-{
-    if (!modulus().isEmpty() && !base().isEmpty()) {
-        return modulus() == other.modulus()
-                && base() == other.base()
-                && customParameters() == other.customParameters();
-    }
-
-    return modulusLength() == other.modulusLength()
-            && privateExponentLength() == other.privateExponentLength()
-            && generateFamilyParameters() == other.generateFamilyParameters()
-            && customParameters() == other.customParameters();
-}
-
-bool DhKeyPairGenerationParameters::operator==(
-        const KeyPairGenerationParameters &other) const
-{
-    if (keyPairType() == KeyPairGenerationParameters::KeyPairDh
-            && keyPairType() == other.keyPairType()) {
-        if (!modulus().isEmpty() && !base().isEmpty()) {
-            return modulus() == other.d_ptr->m_subclassParameters.value(DhKeyPairGenerationParametersModulus).toByteArray()
-                    && base() == other.d_ptr->m_subclassParameters.value(DhKeyPairGenerationParametersBase).toByteArray()
-                    && customParameters() == other.customParameters();
-        } else {
-            return modulusLength() == other.d_ptr->m_subclassParameters.value(DhKeyPairGenerationParametersModulusLength).toInt()
-                    && privateExponentLength() == other.d_ptr->m_subclassParameters.value(DhKeyPairGenerationParametersPrivateExponentLength).toInt()
-                    && generateFamilyParameters() == other.d_ptr->m_subclassParameters.value(DhKeyPairGenerationParametersGenerateFamilyParameters).toBool()
-                    && customParameters() == other.customParameters();
-        }
-    }
-
-    return KeyPairGenerationParameters::operator==(other);
-}
 
 bool DhKeyPairGenerationParameters::isValid() const
 {
@@ -801,7 +698,7 @@ bool DhKeyPairGenerationParameters::isValid() const
     if (modulusLength() > 0 && privateExponentLength() > 0)
         return true;
 
-    return KeyPairGenerationParameters::isValid();
+    return false;
 }
 
 /*!
@@ -917,4 +814,51 @@ void DhKeyPairGenerationParameters::setBase(const QByteArray &g)
 {
     d_ptr->m_subclassParameters.insert(DhKeyPairGenerationParametersBase,
                                        QVariant::fromValue<QByteArray>(g));
+}
+
+/*!
+ * \brief Returns true if the \a lhs parameters are equal to the \a rhs parameters
+ */
+bool Sailfish::Crypto::operator==(const KeyPairGenerationParameters &lhs, const KeyPairGenerationParameters &rhs)
+{
+    return lhs.keyPairType() == rhs.keyPairType()
+            && lhs.customParameters() == rhs.customParameters()
+            && lhs.subclassParameters() == rhs.subclassParameters();
+}
+
+/*!
+ * \brief Returns false if the \a lhs parameters are equal to the \a rhs parameters
+ */
+bool Sailfish::Crypto::operator!=(const KeyPairGenerationParameters &lhs, const KeyPairGenerationParameters &rhs)
+{
+    return !operator==(lhs, rhs);
+}
+
+/*!
+ * \brief Returns true if the \a lhs parameters should sort as less than the \a rhs parameters
+ */
+bool Sailfish::Crypto::operator<(const KeyPairGenerationParameters &lhs, const KeyPairGenerationParameters &rhs)
+{
+    if (lhs.keyPairType() != rhs.keyPairType())
+        return lhs.keyPairType() < rhs.keyPairType();
+
+    if (lhs.customParameters().keys() != rhs.customParameters().keys())
+        return lhs.customParameters().keys() < rhs.customParameters().keys();
+
+    for (const auto &key : lhs.customParameters().keys()) {
+        if (lhs.customParameters().value(key) != rhs.customParameters().value(key)) {
+            return lhs.customParameters().value(key) < rhs.customParameters().value(key);
+        }
+    }
+
+    if (lhs.subclassParameters().keys() != rhs.subclassParameters().keys())
+        return lhs.subclassParameters().keys() < rhs.subclassParameters().keys();
+
+    for (const auto &key : lhs.subclassParameters().keys()) {
+        if (lhs.subclassParameters().value(key) != rhs.subclassParameters().value(key)) {
+            return lhs.subclassParameters().value(key) < rhs.subclassParameters().value(key);
+        }
+    }
+
+    return false;
 }

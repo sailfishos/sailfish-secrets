@@ -85,6 +85,15 @@ Requires:   libsailfishcrypto = %{version}-%{release}
 %description -n libsailfishcrypto-tests
 %{summary}.
 
+%package -n libsailfishcryptoplugin
+Summary:    QML plugin providing types for applications using libsailfishcrypto.
+Group:      System/Libraries
+BuildRequires:  pkgconfig(Qt5Qml)
+Requires:   libsailfishcrypto = %{version}-%{release}
+
+%description -n libsailfishcryptoplugin
+%{summary}.
+
 %package -n sailfishsecretsdaemon
 Summary:    Sailfish OS secrets daemon (example).
 Group:      Applications/System
@@ -206,6 +215,11 @@ cp -R lib/Crypto/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Crypto/
 /opt/tests/Sailfish/Crypto/tst_cryptosecrets
 %{_libdir}/Sailfish/Crypto/libsailfishcrypto-testopenssl.so
 
+%files -n libsailfishcryptoplugin
+%defattr(-,root,root,-)
+%{_libdir}/qt5/qml/Sailfish/Crypto/libsailfishcryptoplugin.so
+%{_libdir}/qt5/qml/Sailfish/Crypto/qmldir
+
 %files -n sailfishsecretsdaemon
 %defattr(-,root,root,-)
 %{_bindir}/sailfishsecretsd
@@ -241,5 +255,11 @@ cp -R lib/Crypto/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Crypto/
 /sbin/ldconfig || :
 
 %postun -n libsailfishsecretsplugin
+/sbin/ldconfig || :
+
+%post -n libsailfishcryptoplugin
+/sbin/ldconfig || :
+
+%postun -n libsailfishcryptoplugin
 /sbin/ldconfig || :
 

@@ -2,7 +2,7 @@ TEMPLATE = lib
 TARGET = sailfishcrypto
 TARGET = $$qtLibraryTarget($$TARGET)
 target.path = $$[QT_INSTALL_LIBS]
-CONFIG += qt create_pc create_prl no_install_prl
+CONFIG += qt create_pc create_prl no_install_prl hide_symbols
 DEFINES += SAILFISH_CRYPTO_LIBRARY_BUILD
 QT += dbus
 QT -= gui
@@ -62,6 +62,7 @@ PRIVATE_HEADERS += \
     $$PWD/keyderivationparameters_p.h \
     $$PWD/keypairgenerationparameters_p.h \
     $$PWD/plugininforequest_p.h \
+    $$PWD/result_p.h \
     $$PWD/seedrandomdatageneratorrequest_p.h \
     $$PWD/signrequest_p.h \
     $$PWD/storedkeyidentifiersrequest_p.h \
@@ -93,6 +94,7 @@ SOURCES += \
     $$PWD/keypairgenerationparameters.cpp \
     $$PWD/plugininforequest.cpp \
     $$PWD/request.cpp \
+    $$PWD/result.cpp \
     $$PWD/seedrandomdatageneratorrequest.cpp \
     $$PWD/serialisation.cpp \
     $$PWD/signrequest.cpp \

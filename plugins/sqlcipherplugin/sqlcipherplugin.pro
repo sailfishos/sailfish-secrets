@@ -1,5 +1,5 @@
 TEMPLATE = lib
-CONFIG += plugin
+CONFIG += plugin hide_symbols
 TARGET = sailfishsecrets-sqlcipher
 TARGET = $$qtLibraryTarget($$TARGET)
 

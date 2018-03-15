@@ -16,12 +16,23 @@
 #include <QtCore/QVector>
 #include <QtCore/QHash>
 #include <QtCore/QMap>
+#include <QtCore/QSharedDataPointer>
 
 namespace Sailfish {
 
 namespace Secrets {
 
-class SAILFISH_SECRETS_API Secret {
+class SecretIdentifierPrivate;
+class SecretPrivate;
+class SAILFISH_SECRETS_API Secret
+{
+    Q_GADGET
+    Q_PROPERTY(QString name READ name WRITE setName)
+    Q_PROPERTY(QString collectionName READ collectionName WRITE setCollectionName)
+    Q_PROPERTY(QString type READ type WRITE setType)
+    Q_PROPERTY(QByteArray data READ data WRITE setData)
+    Q_PROPERTY(QStringList filterDataFields READ filterDataFields)
+
 public:
     static const QString FilterDataFieldType;
     static const QString TypeUnknown;
@@ -32,46 +43,23 @@ public:
 
     class Identifier {
     public:
-        Identifier() {} // invalid identifier
-        Identifier(const QString &name) : m_name(name) {} // standalone secret identifier
-        Identifier(const QString &name, const QString &collectionName)
-            : m_name(name), m_collectionName(collectionName) {}
-        Identifier(const Sailfish::Secrets::Secret::Identifier &other)
-            : m_name(other.m_name), m_collectionName(other.m_collectionName) {}
-        Identifier(Sailfish::Secrets::Secret::Identifier &&) = default;
+        Identifier();
+        explicit Identifier(const QString &name, const QString &collectionName = QString());
+        Identifier(const Sailfish::Secrets::Secret::Identifier &other);
+        ~Identifier();
 
-        Identifier &operator=(const Sailfish::Secrets::Secret::Identifier &other) {
-            m_name = other.m_name;
-            m_collectionName = other.m_collectionName;
-            return *this;
-        }
+        Identifier &operator=(const Sailfish::Secrets::Secret::Identifier &other);
 
-        bool operator==(const Sailfish::Secrets::Secret::Identifier &other) const {
-            return m_name == other.m_name && m_collectionName == other.m_collectionName;
-        }
+        bool isValid() const;
+        bool identifiesStandaloneSecret() const;
 
-        bool operator!=(const Sailfish::Secrets::Secret::Identifier &other) const {
-            return m_name != other.m_name || m_collectionName != other.m_collectionName;
-        }
-
-        bool operator<(const Sailfish::Secrets::Secret::Identifier &other) const {
-            if (m_collectionName < other.m_collectionName)
-                return true;
-            return m_name < other.m_name;
-        }
-
-        QString name() const { return m_name; }
-        void setName(const QString &name) { m_name = name; }
-
-        QString collectionName() const { return m_collectionName; }
-        void setCollectionName(const QString &collectionName) { m_collectionName = collectionName; }
-
-        bool isValid() const { return !m_name.isEmpty(); }
-        bool identifiesStandaloneSecret() const { return m_collectionName.isEmpty(); }
-
+        QString name() const;
+        void setName(const QString &name);
+        QString collectionName() const;
+        void setCollectionName(const QString &collectionName);
     private:
-        QString m_name;
-        QString m_collectionName;
+        QSharedDataPointer<SecretIdentifierPrivate> d_ptr;
+        friend class SecretIdentifierPrivate;
     };
 
     class FilterData : public QMap<QString,QString> {
@@ -84,57 +72,47 @@ public:
         FilterData &operator=(const Sailfish::Secrets::Secret::FilterData &) = default;
     };
 
-    Secret(const Secret &other) : m_filterData(other.m_filterData), m_identifier(other.m_identifier), m_data(other.m_data) {}
-    Secret(const Sailfish::Secrets::Secret::Identifier &identifier)
-        : m_identifier(identifier) { setType(TypeUnknown); }
-    Secret(const QByteArray &blob, const Sailfish::Secrets::Secret::FilterData &filterData = Sailfish::Secrets::Secret::FilterData())
-        : m_filterData(filterData), m_data(blob) { setType(TypeBlob); }
-    Secret() = default;
-    Secret(Sailfish::Secrets::Secret &&) = default;
+    Secret();
+    Secret(const Secret &other);
+    explicit Secret(const QString &name, const QString &collection);
+    explicit Secret(const Secret::Identifier &ident);
+    explicit Secret(const QByteArray &blob, const Sailfish::Secrets::Secret::FilterData &filterData = Sailfish::Secrets::Secret::FilterData());
+    ~Secret();
 
-    Secret &operator=(const Sailfish::Secrets::Secret &other) {
-        m_filterData = other.m_filterData;
-        m_identifier = other.m_identifier;
-        m_data = other.m_data;
-        return *this;
-    }
+    Secret &operator=(const Sailfish::Secrets::Secret &other);
 
-    bool operator==(const Sailfish::Secrets::Secret &other) const {
-        return type() == other.type() && m_data == other.m_data;
-    }
+    QString type() const;
+    void setType(const QString &type);
 
-    bool operator!=(const Sailfish::Secrets::Secret &other) const {
-        return type() != other.type() || m_data != other.m_data;
-    }
+    Sailfish::Secrets::Secret::Identifier identifier() const;
+    void setIdentifier(const Sailfish::Secrets::Secret::Identifier &identifier);
 
-    bool operator<(const Sailfish::Secrets::Secret &other) const {
-        if (type() < other.type())
-            return true;
-        if ( m_data < other.m_data)
-            return true;
-        return m_filterData.size() < other.m_filterData.size();
-    }
+    QString name() const;
+    void setName(const QString &name);
+    QString collectionName() const;
+    void setCollectionName(const QString &cname);
 
-    QString type() const { return m_filterData.value(FilterDataFieldType, TypeUnknown); }
-    void setType(const QString &type) { m_filterData.insert(FilterDataFieldType, type); }
+    QByteArray data() const;
+    void setData(const QByteArray &data);
 
-    Sailfish::Secrets::Secret::Identifier identifier() const { return m_identifier; }
-    void setIdentifier(const Sailfish::Secrets::Secret::Identifier &identifier) { m_identifier = identifier; }
-
-    QByteArray data() const { return m_data; }
-    void setData(const QByteArray &data) { m_data = data; }
-
-    Sailfish::Secrets::Secret::FilterData filterData() const { return m_filterData; }
-    void setFilterData(const Sailfish::Secrets::Secret::FilterData &filterData) { m_filterData = filterData; }
-    void setFilterData(const QString &field, const QString &value) { m_filterData.insert(field, value); }
-    QString filterData(const QString &field) const { return m_filterData.value(field); }
-    bool hasFilterData(const QString &field) const { return m_filterData.contains(field); }
+    Sailfish::Secrets::Secret::FilterData filterData() const;
+    void setFilterData(const Sailfish::Secrets::Secret::FilterData &data);
+    QStringList filterDataFields() const;
+    Q_INVOKABLE QString filterData(const QString &field) const;
+    Q_INVOKABLE void setFilterData(const QString &field, const QString &value);
+    Q_INVOKABLE bool hasFilterData(const QString &field) const;
 
 private:
-    Sailfish::Secrets::Secret::FilterData m_filterData;
-    Sailfish::Secrets::Secret::Identifier m_identifier;
-    QByteArray m_data;
+    QSharedDataPointer<SecretPrivate> d_ptr;
+    friend class SecretPrivate;
 };
+
+bool operator==(const Sailfish::Secrets::Secret::Identifier &lhs, const Sailfish::Secrets::Secret::Identifier &rhs) SAILFISH_SECRETS_API;
+bool operator!=(const Sailfish::Secrets::Secret::Identifier &lhs, const Sailfish::Secrets::Secret::Identifier &rhs) SAILFISH_SECRETS_API;
+bool operator<(const Sailfish::Secrets::Secret::Identifier &lhs, const Sailfish::Secrets::Secret::Identifier &rhs) SAILFISH_SECRETS_API;
+bool operator==(const Sailfish::Secrets::Secret &lhs, const Sailfish::Secrets::Secret &rhs) SAILFISH_SECRETS_API;
+bool operator!=(const Sailfish::Secrets::Secret &lhs, const Sailfish::Secrets::Secret &rhs) SAILFISH_SECRETS_API;
+bool operator<(const Sailfish::Secrets::Secret &lhs, const Sailfish::Secrets::Secret &rhs) SAILFISH_SECRETS_API;
 
 } // namespace Secrets
 

@@ -485,6 +485,7 @@ CryptoManagerPrivate::finaliseCipherSession(
   \li \l{DeleteStoredKeyRequest} to delete a securely-stored \l{Key}
   \li \l{EncryptRequest} to encrypt data with a given \l{Key}
   \li \l{DecryptRequest} to decrypt data with a given \l{Key}
+  \li \l{CalculateDigestRequest} to calculate a digest (non-keyed hash) of some data
   \li \l{SignRequest} to generate a signature for some data with a given \l{Key}
   \li \l{VerifyRequest} to verify if a signature was generated with a given \l{Key}
   \li \l{CipherRequest} to start a cipher session with which to encrypt, decrypt, sign or verify a stream of data

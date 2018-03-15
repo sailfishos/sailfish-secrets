@@ -1,2 +1,2 @@
 TEMPLATE = subdirs
-SUBDIRS += secrets
+SUBDIRS += Secrets Crypto

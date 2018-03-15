@@ -73,15 +73,6 @@ InteractionResponse& InteractionResponse::operator=(const InteractionResponse &o
 }
 
 /*!
- * \brief Returns true if the response data and result encapsulated in this object are identical to that of the \a other object
- */
-bool InteractionResponse::operator==(const InteractionResponse &other) const
-{
-    return result() == other.result()
-            && responseData() == other.responseData();
-}
-
-/*!
  * \brief Returns the result of the request
  */
 Result InteractionResponse::result() const
@@ -115,5 +106,32 @@ void InteractionResponse::setResponseData(const QByteArray &data)
     if (d_ptr->m_responseData != data) {
         d_ptr->m_responseData = data;
     }
+}
+
+/*!
+ * \brief Returns true if the \a lhs response is identical to the \a rhs response
+ */
+bool Sailfish::Secrets::operator==(const InteractionResponse &lhs, const InteractionResponse &rhs)
+{
+    return lhs.result() == rhs.result()
+            && lhs.responseData() == rhs.responseData();
+}
+
+/*!
+ * \brief Returns false if the \a lhs response is identical to the \a rhs response
+ */
+bool Sailfish::Secrets::operator!=(const InteractionResponse &lhs, const InteractionResponse &rhs)
+{
+    return !operator==(lhs, rhs);
+}
+
+/*!
+ * \brief Returns true if the \a lhs response should sort as less than the \a rhs response
+ */
+bool Sailfish::Secrets::operator<(const InteractionResponse &lhs, const InteractionResponse &rhs)
+{
+    if (lhs.result() != rhs.result())
+        return lhs.result() < rhs.result();
+    return lhs.responseData() < rhs.responseData();
 }
 

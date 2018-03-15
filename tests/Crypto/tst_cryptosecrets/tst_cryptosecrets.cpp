@@ -41,8 +41,8 @@ class TestSecretManager : public Sailfish::Secrets::SecretManager
     Q_OBJECT
 
 public:
-    TestSecretManager(Sailfish::Secrets::SecretManager::InitialisationMode mode = AsynchronousInitialisationMode, QObject *parent = Q_NULLPTR)
-        : Sailfish::Secrets::SecretManager(mode, parent) {}
+    TestSecretManager(QObject *parent = Q_NULLPTR)
+        : Sailfish::Secrets::SecretManager(parent) {}
     ~TestSecretManager() {}
     Sailfish::Secrets::SecretManagerPrivate *d_ptr() const { return Sailfish::Secrets::SecretManager::pimpl(); }
 };
@@ -310,6 +310,9 @@ void tst_cryptosecrets::cryptoStoredKey()
     keyTemplate.setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmAes);
     keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
     keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt | Sailfish::Crypto::CryptoManager::OperationDecrypt);
+    keyTemplate.setComponentConstraints(Sailfish::Crypto::Key::MetaData
+                                      | Sailfish::Crypto::Key::PublicKeyData
+                                      | Sailfish::Crypto::Key::PrivateKeyData);
     keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
     keyTemplate.setCustomParameters(QVector<QByteArray>() << QByteArray("testparameter"));
 

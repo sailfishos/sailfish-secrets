@@ -7,7 +7,7 @@ include($$PWD/../lib/libsailfishcrypto.pri)
 
 QT += sql dbus
 
-CONFIG += link_pkgconfig
+CONFIG += link_pkgconfig hide_symbols
 PKGCONFIG += dbus-1
 
 HEADERS += \

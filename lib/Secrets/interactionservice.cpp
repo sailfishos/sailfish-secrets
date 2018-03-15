@@ -15,6 +15,7 @@
 #include <QtCore/QDir>
 #include <QtCore/QUuid>
 #include <QtCore/QPointer>
+#include <QtCore/QSharedData>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QLoggingCategory>
 
@@ -226,10 +227,18 @@ void InteractionService::clientDisconnected()
 
 namespace Sailfish {
     namespace Secrets {
-        class InteractionViewData
+        class InteractionViewPrivate : public QSharedData
         {
         public:
-            InteractionViewData() : m_uiService(Q_NULLPTR) {}
+            InteractionViewPrivate()
+                : QSharedData()
+                , m_uiService(Q_NULLPTR)
+                , m_secretManager(Q_NULLPTR) {}
+            InteractionViewPrivate(const InteractionViewPrivate &other)
+                : QSharedData(other)
+                , m_uiService(other.m_uiService)
+                , m_secretManager(other.m_secretManager) {}
+            ~InteractionViewPrivate() {}
             QPointer<QObject> m_uiService;
             QPointer<SecretManager> m_secretManager;
         };
@@ -237,66 +246,70 @@ namespace Sailfish {
 } // namespace Sailfish
 
 InteractionView::InteractionView()
-    : data(new InteractionViewData)
+    : d_ptr(new InteractionViewPrivate)
+{
+}
+
+InteractionView::InteractionView(const InteractionView &other)
+    : d_ptr(other.d_ptr)
 {
 }
 
 InteractionView::~InteractionView()
 {
-    delete data;
 }
 
 void InteractionView::registerWithSecretManager(SecretManager *manager)
 {
-    data->m_secretManager = manager;
+    d_ptr->m_secretManager = manager;
     manager->registerInteractionView(this);
 }
 
 SecretManager *InteractionView::registeredWithSecretManager() const
 {
-    return data->m_secretManager.data();
+    return d_ptr->m_secretManager.data();
 }
 
 void InteractionView::sendResponse(
         const InteractionResponse &response)
 {
-    if (data->m_uiService) {
-        qobject_cast<InteractionService*>(data->m_uiService)->sendResponse(response);
-        data->m_uiService = Q_NULLPTR;
+    if (d_ptr->m_uiService) {
+        qobject_cast<InteractionService*>(d_ptr->m_uiService)->sendResponse(response);
+        d_ptr->m_uiService = Q_NULLPTR;
     }
 }
 
 bool InteractionView::performRequest(QObject *sender, const InteractionParameters &request)
 {
-    if (data->m_uiService) {
+    if (d_ptr->m_uiService) {
         qCDebug(lcSailfishSecretsUi) << "Refusing to perform ui request: view already active with another request";
         return false;
     }
 
-    data->m_uiService = qobject_cast<InteractionService*>(sender);
+    d_ptr->m_uiService = qobject_cast<InteractionService*>(sender);
     performRequest(request);
     return true;
 }
 
 bool InteractionView::continueRequest(QObject *sender, const InteractionParameters &request)
 {
-    if (data->m_uiService) {
+    if (d_ptr->m_uiService) {
         qCDebug(lcSailfishSecretsUi) << "Refusing to continue ui request: view already active with another request";
         return false;
     }
 
-    data->m_uiService = qobject_cast<InteractionService*>(sender);
+    d_ptr->m_uiService = qobject_cast<InteractionService*>(sender);
     continueRequest(request);
     return true;
 }
 
 bool InteractionView::cancelRequest(QObject *sender)
 {
-    if (data->m_uiService && data->m_uiService == qobject_cast<InteractionService*>(sender)) {
-        data->m_uiService = Q_NULLPTR;
+    if (d_ptr->m_uiService && d_ptr->m_uiService == qobject_cast<InteractionService*>(sender)) {
+        d_ptr->m_uiService = Q_NULLPTR;
         cancelRequest();
         return true;
-    } else if (!data->m_uiService) {
+    } else if (!d_ptr->m_uiService) {
         // already cancelled
         return true;
     }
@@ -308,10 +321,10 @@ bool InteractionView::cancelRequest(QObject *sender)
 
 bool InteractionView::finishRequest(QObject *sender)
 {
-    if (data->m_uiService && data->m_uiService == qobject_cast<InteractionService*>(sender)) {
+    if (d_ptr->m_uiService && d_ptr->m_uiService == qobject_cast<InteractionService*>(sender)) {
         qCDebug(lcSailfishSecretsUi) << "Refusing to finish active ui request: use cancel instead";
         return false;
-    } else if (data->m_uiService) {
+    } else if (d_ptr->m_uiService) {
         qCDebug(lcSailfishSecretsUi) << "Refusing to finish ui request: view already active with another request";
         return false;
     }

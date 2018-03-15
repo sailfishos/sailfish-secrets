@@ -129,24 +129,6 @@ KeyDerivationParameters::operator=(
 }
 
 /*!
- * \brief Returns true if the \a other parameters are identical to those encapsulated by this instance
- */
-bool KeyDerivationParameters::operator==(const KeyDerivationParameters &other) const
-{
-    return inputData() == other.inputData()
-            && salt() == other.salt()
-            && keyDerivationFunction() == other.keyDerivationFunction()
-            && keyDerivationMac() == other.keyDerivationMac()
-            && keyDerivationAlgorithm() == other.keyDerivationAlgorithm()
-            && keyDerivationDigestFunction() == other.keyDerivationDigestFunction()
-            && memorySize() == other.memorySize()
-            && iterations() == other.iterations()
-            && parallelism() == other.parallelism()
-            && outputKeySize() == other.outputKeySize()
-            && customParameters() == other.customParameters();
-}
-
-/*!
  * \brief Returns true if the key derivation function and output key size are valid.
  */
 bool KeyDerivationParameters::isValid() const
@@ -448,4 +430,71 @@ QVariantMap KeyDerivationParameters::customParameters() const
 void KeyDerivationParameters::setCustomParameters(const QVariantMap &params)
 {
     d_ptr->m_customParameters = params;
+}
+
+/*!
+ * \brief Returns true if the \a lhs parameters are equal to the \a rhs parameters.
+ *
+ * If the parameters are equal, a key derived from the \a lhs should be exactly
+ * equal to a key derived from the \a rhs.
+ */
+bool Sailfish::Crypto::operator==(const KeyDerivationParameters &lhs, const KeyDerivationParameters &rhs)
+{
+    return lhs.inputData() == rhs.inputData()
+            && lhs.salt() == rhs.salt()
+            && lhs.keyDerivationFunction() == rhs.keyDerivationFunction()
+            && lhs.keyDerivationMac() == rhs.keyDerivationMac()
+            && lhs.keyDerivationAlgorithm() == rhs.keyDerivationAlgorithm()
+            && lhs.keyDerivationDigestFunction() == rhs.keyDerivationDigestFunction()
+            && lhs.memorySize() == rhs.memorySize()
+            && lhs.iterations() == rhs.iterations()
+            && lhs.parallelism() == rhs.parallelism()
+            && lhs.outputKeySize() == rhs.outputKeySize()
+            && lhs.customParameters() == rhs.customParameters();
+}
+
+/*!
+ * \brief Returns false if the \a lhs parameters are equal to the \a rhs parameters.
+ */
+bool Sailfish::Crypto::operator!=(const Sailfish::Crypto::KeyDerivationParameters &lhs, const Sailfish::Crypto::KeyDerivationParameters &rhs)
+{
+    return !operator==(lhs, rhs);
+}
+
+/*!
+ * \brief Returns true if the \a lhs parameters should sort as less than the \a rhs parameters.
+ */
+bool Sailfish::Crypto::operator<(const Sailfish::Crypto::KeyDerivationParameters &lhs, const Sailfish::Crypto::KeyDerivationParameters &rhs)
+{
+    if (lhs.outputKeySize() != rhs.outputKeySize())
+        return lhs.outputKeySize() < rhs.outputKeySize();
+
+    if (lhs.keyDerivationFunction() != rhs.keyDerivationFunction())
+        return lhs.keyDerivationFunction() < rhs.keyDerivationFunction();
+
+    if (lhs.keyDerivationMac() != rhs.keyDerivationMac())
+        return lhs.keyDerivationMac() < rhs.keyDerivationMac();
+
+    if (lhs.keyDerivationAlgorithm() != rhs.keyDerivationAlgorithm())
+        return lhs.keyDerivationAlgorithm() < rhs.keyDerivationAlgorithm();
+
+    if (lhs.keyDerivationDigestFunction() != rhs.keyDerivationDigestFunction())
+        return lhs.keyDerivationDigestFunction() < rhs.keyDerivationDigestFunction();
+
+    if (lhs.memorySize() != rhs.memorySize())
+        return lhs.memorySize() < rhs.memorySize();
+
+    if (lhs.iterations() != rhs.iterations())
+        return lhs.iterations() < rhs.iterations();
+
+    if (lhs.parallelism() != rhs.parallelism())
+        return lhs.parallelism() < rhs.parallelism();
+
+    if (lhs.salt() != rhs.salt())
+        return lhs.salt() < rhs.salt();
+
+    if (lhs.inputData() != rhs.inputData())
+        return lhs.inputData() < rhs.inputData();
+
+    return lhs.customParameters().keys() < rhs.customParameters().keys();
 }

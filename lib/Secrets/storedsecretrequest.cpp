@@ -52,6 +52,10 @@ StoredSecretRequestPrivate::StoredSecretRequestPrivate()
  * plugin, but otherwise will be a system-mediated UI flow, unless the \a userInteractionMode
  * specified is \c PreventInteraction in which case the request will fail).
  *
+ * Note that only those components of the secret which were allowed for retrieval
+ * via \l{Sailfish::Secrets::Secret::setComponentConstraints()} will be able to be
+ * retrieved, even if the calling application is the owner of the secret.
+ *
  * An example of retrieving a collection-stored secret follows:
  *
  * \code

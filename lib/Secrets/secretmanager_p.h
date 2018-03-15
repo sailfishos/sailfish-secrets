@@ -29,7 +29,9 @@ namespace Sailfish {
 namespace Secrets {
 
 class SecretManager;
-class SecretManagerPrivate : public QObject
+
+// not actually part of the public API, but exporting symbols for unit tests.
+class SAILFISH_SECRETS_API SecretManagerPrivate : public QObject
 {
     Q_OBJECT
 
@@ -42,6 +44,13 @@ public:
 
     // register the ui service if required, and return it's address.
     Sailfish::Secrets::Result registerInteractionService(Sailfish::Secrets::SecretManager::UserInteractionMode mode, QString *address);
+
+    // retrieve information about plugins
+    QDBusPendingReply<Sailfish::Secrets::Result,
+                      QVector<Sailfish::Secrets::StoragePluginInfo>,
+                      QVector<Sailfish::Secrets::EncryptionPluginInfo>,
+                      QVector<Sailfish::Secrets::EncryptedStoragePluginInfo>,
+                      QVector<Sailfish::Secrets::AuthenticationPluginInfo> > pluginInfo();
 
     // retrieve user input data
     QDBusPendingReply<Sailfish::Secrets::Result, QByteArray> userInput(
@@ -133,7 +142,6 @@ private:
     InteractionView *m_interactionView;
     Sailfish::Secrets::SecretsDaemonConnection *m_secrets;
     QDBusInterface *m_interface;
-    bool m_initialised;
 
     QMap<QString, Sailfish::Secrets::StoragePluginInfo> m_storagePluginInfo;
     QMap<QString, Sailfish::Secrets::EncryptionPluginInfo> m_encryptionPluginInfo;

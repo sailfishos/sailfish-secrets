@@ -37,7 +37,7 @@ class SecretManagerPrivate;
  *  It talks to the sailfishsecretsd via P2P DBus connection, and triggers
  *  interaction within the InteractionView registered with the manager.
  */
-class InteractionService : public QObject, protected QDBusContext
+class SAILFISH_SECRETS_API InteractionService : public QObject, protected QDBusContext
 {
     Q_OBJECT
     Q_CLASSINFO("D-Bus Interface", "org.sailfishos.secrets.interaction")

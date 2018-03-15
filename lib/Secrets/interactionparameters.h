@@ -89,10 +89,6 @@ public:
     InteractionParameters(const InteractionParameters &other);
     ~InteractionParameters();
     InteractionParameters& operator=(const InteractionParameters &other);
-    bool operator==(const InteractionParameters &other) const;
-    bool operator!=(const InteractionParameters &other) const {
-        return !operator==(other);
-    }
 
     bool isValid() const;
 
@@ -131,6 +127,10 @@ private:
     friend class InteractionParametersPrivate;
 };
 
+bool operator==(const Sailfish::Secrets::InteractionParameters &lhs, const Sailfish::Secrets::InteractionParameters &rhs) SAILFISH_SECRETS_API;
+bool operator!=(const Sailfish::Secrets::InteractionParameters &lhs, const Sailfish::Secrets::InteractionParameters &rhs) SAILFISH_SECRETS_API;
+bool operator<(const Sailfish::Secrets::InteractionParameters &lhs, const Sailfish::Secrets::InteractionParameters &rhs) SAILFISH_SECRETS_API;
+
 } // Secrets
 
 } // Sailfish
@@ -142,11 +142,5 @@ Q_DECLARE_METATYPE(Sailfish::Secrets::InteractionParameters::EchoMode);
 Q_DECLARE_METATYPE(Sailfish::Secrets::InteractionParameters::Operation);
 Q_DECLARE_METATYPE(Sailfish::Secrets::InteractionParameters);
 Q_DECLARE_TYPEINFO(Sailfish::Secrets::InteractionParameters, Q_MOVABLE_TYPE);
-
-inline bool operator<(const Sailfish::Secrets::InteractionParameters &/*lhs*/, const Sailfish::Secrets::InteractionParameters &/*rhs*/)
-{
-    qWarning("'<' operator not valid for InteractionParameters\n");
-    return false;
-}
 
 #endif // LIBSAILFISHSECRETS_INTERACTIONPARAMETERS_H

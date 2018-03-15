@@ -2,7 +2,7 @@ TEMPLATE = lib
 TARGET = sailfishsecrets
 TARGET = $$qtLibraryTarget($$TARGET)
 target.path = $$[QT_INSTALL_LIBS]
-CONFIG += qt create_pc create_prl no_install_prl
+CONFIG += qt create_pc create_prl no_install_prl hide_symbols
 DEFINES += SAILFISH_SECRETS_LIBRARY_BUILD
 QT += dbus
 QT -= gui
@@ -21,6 +21,7 @@ PUBLIC_HEADERS += \
     $$PWD/findsecretsrequest.h \
     $$PWD/interactionparameters.h \
     $$PWD/interactionrequest.h \
+    $$PWD/plugininforequest.h \
     $$PWD/request.h \
     $$PWD/result.h \
     $$PWD/secret.h \
@@ -44,6 +45,9 @@ PRIVATE_HEADERS += \
     $$PWD/findsecretsrequest_p.h \
     $$PWD/interactionparameters_p.h \
     $$PWD/interactionrequest_p.h \
+    $$PWD/plugininforequest_p.h \
+    $$PWD/result_p.h \
+    $$PWD/secret_p.h \
     $$PWD/secretsdaemonconnection_p_p.h \
     $$PWD/secretmanager_p.h \
     $$PWD/storedsecretrequest_p.h \
@@ -65,7 +69,10 @@ SOURCES += \
     $$PWD/findsecretsrequest.cpp \
     $$PWD/interactionparameters.cpp \
     $$PWD/interactionrequest.cpp \
+    $$PWD/plugininforequest.cpp \
     $$PWD/request.cpp \
+    $$PWD/result.cpp \
+    $$PWD/secret.cpp \
     $$PWD/secretsdaemonconnection.cpp \
     $$PWD/secretmanager.cpp \
     $$PWD/serialisation.cpp \

@@ -80,21 +80,6 @@ InteractionParameters& InteractionParameters::operator=(const InteractionParamet
 }
 
 /*!
- * \brief Returns true if every parameter specified in this object is identical to that of the \a other object
- */
-bool InteractionParameters::operator==(const InteractionParameters &other) const
-{
-    return keyName() == other.keyName()
-            && collectionName() == other.collectionName()
-            && applicationId() == other.applicationId()
-            && operation() == other.operation()
-            && authenticationPluginName() == other.authenticationPluginName()
-            && promptText() == other.promptText()
-            && inputType() == other.inputType()
-            && echoMode() == other.echoMode();
-}
-
-/*!
  * \brief Returns true if the required user input type is well-specified
  */
 bool InteractionParameters::isValid() const
@@ -280,4 +265,54 @@ void InteractionParameters::setEchoMode(InteractionParameters::EchoMode mode)
     if (d_ptr->m_echoMode != mode) {
         d_ptr->m_echoMode = mode;
     }
+}
+
+/*!
+ * \brief Returns true if the \a lhs parameters are equal to the \a rhs parameters
+ */
+bool Sailfish::Crypto::operator==(const InteractionParameters &lhs, const InteractionParameters &rhs)
+{
+    return lhs.keyName() == rhs.keyName()
+            && lhs.collectionName() == rhs.collectionName()
+            && lhs.applicationId() == rhs.applicationId()
+            && lhs.operation() == rhs.operation()
+            && lhs.authenticationPluginName() == rhs.authenticationPluginName()
+            && lhs.promptText() == rhs.promptText()
+            && lhs.promptTrId() == rhs.promptTrId()
+            && lhs.inputType() == rhs.inputType()
+            && lhs.echoMode() == rhs.echoMode();
+}
+
+/*!
+ * \brief Returns false if the \a lhs parameters are equal to the \a rhs parameters
+ */
+bool Sailfish::Crypto::operator!=(const InteractionParameters &lhs, const InteractionParameters &rhs)
+{
+    return !operator==(lhs, rhs);
+}
+
+/*!
+ * \brief Returns true if the \a lhs parameters should sort as less than the \a rhs parameters
+ */
+bool Sailfish::Crypto::operator<(const InteractionParameters &lhs, const InteractionParameters &rhs)
+{
+    if (lhs.collectionName() != rhs.collectionName())
+        return lhs.collectionName() < rhs.collectionName();
+
+    if (lhs.keyName() != rhs.keyName())
+        return lhs.keyName() < rhs.keyName();
+
+    if (lhs.operation() != rhs.operation())
+        return lhs.operation() < rhs.operation();
+
+    if (lhs.authenticationPluginName() != rhs.authenticationPluginName())
+        return lhs.authenticationPluginName() < rhs.authenticationPluginName();
+
+    if (lhs.promptText() != rhs.promptText())
+        return lhs.promptText() < rhs.promptText();
+
+    if (lhs.inputType() != rhs.inputType())
+        return lhs.inputType() < rhs.inputType();
+
+    return lhs.echoMode() < rhs.echoMode();
 }
