@@ -24,6 +24,7 @@
 #include <QtCore/QHash>
 #include <QtCore/QSet>
 #include <QtCore/QDir>
+#include <QtCore/QCoreApplication>
 
 using namespace Sailfish::Secrets;
 
@@ -85,6 +86,25 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(Daemon::Sqlite::Database *db
             m_db->rollbackTransaction();
         }
     }
+
+    if (!loadPlugins()) {
+        qCWarning(lcSailfishSecretsDaemon) << "Secrets: failed to load plugins!";
+        return;
+    }
+}
+
+bool
+Daemon::ApiImpl::RequestProcessor::loadPlugins() {
+    QStringList paths = QCoreApplication::libraryPaths();
+    bool result = true;
+
+    Q_FOREACH(const QString &path, paths) {
+        if (!loadPlugins(path)) {
+            result = false;
+        }
+    }
+
+    return result;
 }
 
 bool
@@ -92,9 +112,23 @@ Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
 {
     qCDebug(lcSailfishSecretsDaemon) << "Loading plugins from directory:" << pluginDir;
     QDir dir(pluginDir);
-    Q_FOREACH (const QString &pluginFile, dir.entryList(QDir::Files | QDir::NoDot | QDir::NoDotDot, QDir::Name)) {
+    Q_FOREACH (const QFileInfo &file, dir.entryInfoList(QDir::Files | QDir::NoDot | QDir::NoDotDot, QDir::Name)) {
+
+        const QString base = file.baseName();
+
+#if defined(Q_OS_WIN)
+            // avoid loading undesired files from %QTDIR%\bin
+            if (base.startsWith("Qt5") || base.startsWith("Irc") || base.startsWith("Enginio")
+                    || base.startsWith("icu") || file.suffix() != "dll")
+                continue;
+#elif defined(Q_OS_UNIX)
+            // avoid trying to load the whole /usr/bin
+            if (!base.startsWith("lib"))
+                continue;
+#endif
+
         // load the plugin and query it for its data.
-        Daemon::ApiImpl::PluginHelper loader(pluginFile, m_autotestMode);
+        Daemon::ApiImpl::PluginHelper loader(file.absoluteFilePath(), m_autotestMode);
         QObject *plugin = loader.instance();
 
         EncryptedStoragePlugin *encryptedStoragePlugin;

@@ -72,7 +72,6 @@ public:
     RequestQueue(const QString &dbusObjectPath,
                  const QString &dbusInterfaceName,
                  Controller *parent,
-                 const QString &pluginDir,
                  bool autotestMode);
 
     virtual ~RequestQueue();
@@ -117,7 +116,6 @@ protected:
     QList<RequestData*> m_requests;
     QMap<quint64, RequestData*> m_enqueuingRequests;
 
-    QString m_pluginDir;
     bool m_autotestMode;
 };
 

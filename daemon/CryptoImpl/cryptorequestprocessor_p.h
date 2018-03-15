@@ -63,8 +63,6 @@ public:
                      bool autotestMode,
                      Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *parent = Q_NULLPTR);
 
-    bool loadPlugins(const QString &pluginDir);
-
     Sailfish::Crypto::Result getPluginInfo(
             pid_t callerPid,
             quint64 requestId,
@@ -378,6 +376,10 @@ private:
     QMap<QString, Sailfish::Crypto::CryptoPlugin*> m_cryptoPlugins;
     QMap<quint64, Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor::PendingRequest> m_pendingRequests;
     bool m_autotestMode;
+
+    bool loadPlugins();
+    bool loadPlugins(const QString &pluginDir);
+
 };
 
 } // namespace ApiImpl
