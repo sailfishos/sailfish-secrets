@@ -146,39 +146,15 @@ private:
     friend class ResultPrivate;
 };
 
+bool operator==(const Sailfish::Crypto::Result &lhs, const Sailfish::Crypto::Result &rhs) SAILFISH_CRYPTO_API;
+bool operator!=(const Sailfish::Crypto::Result &lhs, const Sailfish::Crypto::Result &rhs) SAILFISH_CRYPTO_API;
+bool operator<(const Sailfish::Crypto::Result &lhs, const Sailfish::Crypto::Result &rhs) SAILFISH_CRYPTO_API;
+
 } // Crypto
 
 } // Sailfish
 
 Q_DECLARE_METATYPE(Sailfish::Crypto::Result);
 Q_DECLARE_TYPEINFO(Sailfish::Crypto::Result, Q_MOVABLE_TYPE);
-
-inline bool operator==(const Sailfish::Crypto::Result &lhs, const Sailfish::Crypto::Result &rhs)
-{
-    return lhs.code() == rhs.code()
-            && lhs.errorCode() == rhs.errorCode()
-            && lhs.storageErrorCode() == rhs.storageErrorCode()
-            && lhs.errorMessage() == rhs.errorMessage();
-}
-
-inline bool operator!=(const Sailfish::Crypto::Result &lhs, const Sailfish::Crypto::Result &rhs)
-{
-    return !(operator==(lhs, rhs));
-}
-
-inline bool operator<(const Sailfish::Crypto::Result &lhs, const Sailfish::Crypto::Result &rhs)
-{
-
-    if (lhs.code() != rhs.code())
-        return lhs.code() < rhs.code();
-
-    if (lhs.errorCode() != rhs.errorCode())
-        return lhs.errorCode() < rhs.errorCode();
-
-    if (lhs.storageErrorCode() != rhs.storageErrorCode())
-        return lhs.storageErrorCode() < rhs.storageErrorCode();
-
-    return lhs.errorMessage() < rhs.errorMessage();
-}
 
 #endif // LIBSAILFISHCRYPTO_RESULT_H

@@ -42,10 +42,6 @@ public:
     ~KeyDerivationParameters();
 
     KeyDerivationParameters& operator=(const KeyDerivationParameters &other);
-    bool operator==(const KeyDerivationParameters &other) const;
-    bool operator!=(const KeyDerivationParameters &other) const {
-        return !operator==(other);
-    }
 
     bool isValid() const;
 
@@ -87,17 +83,15 @@ private:
     friend class KeyDerivationParametersPrivate;
 };
 
+bool operator==(const Sailfish::Crypto::KeyDerivationParameters &lhs, const Sailfish::Crypto::KeyDerivationParameters &rhs) SAILFISH_CRYPTO_API;
+bool operator!=(const Sailfish::Crypto::KeyDerivationParameters &lhs, const Sailfish::Crypto::KeyDerivationParameters &rhs) SAILFISH_CRYPTO_API;
+bool operator<(const Sailfish::Crypto::KeyDerivationParameters &lhs, const Sailfish::Crypto::KeyDerivationParameters &rhs) SAILFISH_CRYPTO_API;
+
 } // Crypto
 
 } // Sailfish
 
 Q_DECLARE_METATYPE(Sailfish::Crypto::KeyDerivationParameters);
 Q_DECLARE_TYPEINFO(Sailfish::Crypto::KeyDerivationParameters, Q_MOVABLE_TYPE);
-
-inline bool operator<(const Sailfish::Crypto::KeyDerivationParameters &/*lhs*/, const Sailfish::Crypto::KeyDerivationParameters &/*rhs*/)
-{
-    qWarning("'<' operator not valid for KeyDerivationParameters\n");
-    return false;
-}
 
 #endif // LIBSAILFISHCRYPTO_KEYDERIVATIONPARAMETERS_H

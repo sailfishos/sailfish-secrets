@@ -236,7 +236,7 @@ Secret::~Secret()
 /*!
  * \brief Assigns the \a other secret to this secret
  */
-Secret& Secret::operator=(const Sailfish::Secrets::Secret &other)
+Secret& Secret::operator=(const Secret &other)
 {
     d_ptr = other.d_ptr;
     return *this;
@@ -263,7 +263,7 @@ void Secret::setType(const QString &type)
 /*!
  * \brief Returns the identifier of the secret
  */
-Sailfish::Secrets::Secret::Identifier Secret::identifier() const
+Secret::Identifier Secret::identifier() const
 {
     return d_ptr->m_identifier;
 }
@@ -271,7 +271,7 @@ Sailfish::Secrets::Secret::Identifier Secret::identifier() const
 /*!
  * \brief Sets the identifier of the secret to the given \a identifier
  */
-void Secret::setIdentifier(const Sailfish::Secrets::Secret::Identifier &identifier)
+void Secret::setIdentifier(const Secret::Identifier &identifier)
 {
     d_ptr->m_identifier = identifier;
 }
@@ -331,7 +331,7 @@ void Secret::setData(const QByteArray &data)
  *
  * This filter data may be used by other clients to find the secret
  */
-Sailfish::Secrets::Secret::FilterData Secret::filterData() const
+Secret::FilterData Secret::filterData() const
 {
     return d_ptr->m_filterData;
 }
@@ -339,7 +339,7 @@ Sailfish::Secrets::Secret::FilterData Secret::filterData() const
 /*!
  * \brief Sets the filter data associated with the secret to \a filterData
  */
-void Secret::setFilterData(const Sailfish::Secrets::Secret::FilterData &filterData)
+void Secret::setFilterData(const Secret::FilterData &filterData)
 {
     d_ptr->m_filterData = filterData;
 }
@@ -374,4 +374,63 @@ void Secret::setFilterData(const QString &field, const QString &value)
 bool Secret::hasFilterData(const QString &field) const
 {
     return d_ptr->m_filterData.contains(field);
+}
+
+/*!
+ * \brief Returns true if the \a lhs identifier consists of the same name and collection name as the \a rhs identifier
+ */
+bool Sailfish::Secrets::operator==(const Secret::Identifier &lhs, const Secret::Identifier &rhs)
+{
+    return lhs.collectionName() == rhs.collectionName()
+            && lhs.name() == rhs.name();
+}
+
+/*!
+ * \brief Returns false if the \a lhs identifier consists of the same name and collection name as the \a rhs identifier
+ */
+bool Sailfish::Secrets::operator!=(const Secret::Identifier &lhs, const Secret::Identifier &rhs)
+{
+    return !operator==(lhs, rhs);
+}
+
+/*!
+ * \brief Returns true if the \a lhs identifier should sort as less than the \a rhs identifier
+ */
+bool Sailfish::Secrets::operator<(const Secret::Identifier &lhs, const Secret::Identifier &rhs)
+{
+    if (lhs.collectionName() != rhs.collectionName())
+        return lhs.collectionName() < rhs.collectionName();
+    return lhs.name() < rhs.name();
+}
+
+/*!
+ * \brief Returns true if the \a lhs secret is equal to the \a rhs secret
+ */
+bool Sailfish::Secrets::operator==(const Secret &lhs, const Secret &rhs)
+{
+    return lhs.identifier() == rhs.identifier()
+            && lhs.data() == rhs.data()
+            && lhs.filterData() == rhs.filterData();
+}
+
+/*!
+ * \brief Returns false if the \a lhs secret is equal to the \a rhs secret
+ */
+bool Sailfish::Secrets::operator!=(const Secret &lhs, const Secret &rhs)
+{
+    return !operator==(lhs, rhs);
+}
+
+/*!
+ * \brief Returns true if the \a lhs secret should sort as less than the \a rhs secret
+ */
+bool Sailfish::Secrets::operator<(const Secret &lhs, const Secret &rhs)
+{
+    if (lhs.type() != rhs.type())
+        return lhs.type() < rhs.type();
+
+    if (lhs.data() != rhs.data())
+        return lhs.data() < rhs.data();
+
+    return lhs.filterData().size() < rhs.filterData().size();
 }

@@ -107,6 +107,13 @@ private:
     friend class SecretPrivate;
 };
 
+bool operator==(const Sailfish::Secrets::Secret::Identifier &lhs, const Sailfish::Secrets::Secret::Identifier &rhs) SAILFISH_SECRETS_API;
+bool operator!=(const Sailfish::Secrets::Secret::Identifier &lhs, const Sailfish::Secrets::Secret::Identifier &rhs) SAILFISH_SECRETS_API;
+bool operator<(const Sailfish::Secrets::Secret::Identifier &lhs, const Sailfish::Secrets::Secret::Identifier &rhs) SAILFISH_SECRETS_API;
+bool operator==(const Sailfish::Secrets::Secret &lhs, const Sailfish::Secrets::Secret &rhs) SAILFISH_SECRETS_API;
+bool operator!=(const Sailfish::Secrets::Secret &lhs, const Sailfish::Secrets::Secret &rhs) SAILFISH_SECRETS_API;
+bool operator<(const Sailfish::Secrets::Secret &lhs, const Sailfish::Secrets::Secret &rhs) SAILFISH_SECRETS_API;
+
 } // namespace Secrets
 
 } // namespace Sailfish
@@ -117,50 +124,5 @@ Q_DECLARE_METATYPE(Sailfish::Secrets::Secret::Identifier);
 Q_DECLARE_TYPEINFO(Sailfish::Secrets::Secret::Identifier, Q_MOVABLE_TYPE);
 Q_DECLARE_METATYPE(Sailfish::Secrets::Secret);
 Q_DECLARE_TYPEINFO(Sailfish::Secrets::Secret, Q_MOVABLE_TYPE);
-
-inline bool operator==(const Sailfish::Secrets::Secret::Identifier &lhs,
-                       const Sailfish::Secrets::Secret::Identifier &rhs)
-{
-    return lhs.collectionName() == rhs.collectionName()
-            && lhs.name() == rhs.name();
-}
-
-inline bool operator!=(const Sailfish::Secrets::Secret::Identifier &lhs,
-                const Sailfish::Secrets::Secret::Identifier &rhs)
-{
-    return !operator==(lhs, rhs);
-}
-
-inline bool operator<(const Sailfish::Secrets::Secret::Identifier &lhs,
-               const Sailfish::Secrets::Secret::Identifier &rhs)
-{
-    if (lhs.collectionName() != rhs.collectionName())
-        return lhs.collectionName() < rhs.collectionName();
-    return lhs.name() < rhs.name();
-}
-
-inline bool operator==(const Sailfish::Secrets::Secret &lhs,
-                       const Sailfish::Secrets::Secret &rhs)
-{
-    return lhs.type() == rhs.type() && lhs.data() == rhs.data();
-}
-
-inline bool operator!=(const Sailfish::Secrets::Secret &lhs,
-                const Sailfish::Secrets::Secret &rhs)
-{
-    return !operator==(lhs, rhs);
-}
-
-inline bool operator<(const Sailfish::Secrets::Secret &lhs,
-               const Sailfish::Secrets::Secret &rhs)
-{
-    if (lhs.type() != rhs.type())
-        return lhs.type() < rhs.type();
-
-    if (lhs.data() != rhs.data())
-        return lhs.data() < rhs.data();
-
-    return lhs.filterData().size() < rhs.filterData().size();
-}
 
 #endif // LIBSAILFISHSECRETS_SECRET_H

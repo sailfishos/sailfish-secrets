@@ -165,3 +165,35 @@ Result::ResultCode Result::code() const
 {
     return d_ptr->m_code;
 }
+
+/*!
+ * \brief Returns true if the \a lhs result is equal to the \a rhs result
+ */
+bool Sailfish::Secrets::operator==(const Result &lhs, const Result &rhs)
+{
+    return lhs.code() == rhs.code()
+            && lhs.errorCode() == rhs.errorCode()
+            && lhs.errorMessage() == rhs.errorMessage();
+}
+
+/*!
+ * \brief Returns false if the \a lhs result is equal to the \a rhs result
+ */
+bool Sailfish::Secrets::operator!=(const Result &lhs, const Result &rhs)
+{
+    return !(operator==(lhs, rhs));
+}
+
+/*!
+ * \brief Returns true if the \a lhs result should sort less than \a rhs result
+ */
+bool Sailfish::Secrets::operator<(const Result &lhs, const Result &rhs)
+{
+    if (lhs.code() != rhs.code())
+        return lhs.code() < rhs.code();
+
+    if (lhs.errorCode() != rhs.errorCode())
+        return lhs.errorCode() < rhs.errorCode();
+
+    return lhs.errorMessage() < rhs.errorMessage();
+}

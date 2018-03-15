@@ -44,10 +44,6 @@ public:
     virtual ~KeyPairGenerationParameters();
 
     KeyPairGenerationParameters& operator=(const KeyPairGenerationParameters &other);
-    virtual bool operator==(const KeyPairGenerationParameters &other) const;
-    bool operator!=(const KeyPairGenerationParameters &other) const {
-        return !operator==(other);
-    }
 
     virtual bool isValid() const;
 
@@ -56,6 +52,8 @@ public:
 
     QVariantMap customParameters() const;
     void setCustomParameters(const QVariantMap &params);
+
+    QVariantMap subclassParameters() const;
 
 protected:
     QSharedDataPointer<KeyPairGenerationParametersPrivate> d_ptr;
@@ -76,7 +74,6 @@ public:
     ~EcKeyPairGenerationParameters();
 
     EcKeyPairGenerationParameters& operator=(const EcKeyPairGenerationParameters &other);
-    bool operator==(const EcKeyPairGenerationParameters &other) const;
     bool isValid() const Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::CryptoManager::EllipticCurve ellipticCurve() const;
@@ -95,7 +92,6 @@ public:
     ~RsaKeyPairGenerationParameters();
 
     RsaKeyPairGenerationParameters& operator=(const RsaKeyPairGenerationParameters &other);
-    bool operator==(const RsaKeyPairGenerationParameters &other) const;
     bool isValid() const Q_DECL_OVERRIDE;
 
     int modulusLength() const;
@@ -123,8 +119,6 @@ public:
     ~DsaKeyPairGenerationParameters();
 
     DsaKeyPairGenerationParameters& operator=(const DsaKeyPairGenerationParameters &other);
-    bool operator==(const DsaKeyPairGenerationParameters &other) const;
-    bool operator==(const KeyPairGenerationParameters &other) const Q_DECL_OVERRIDE;
     bool isValid() const Q_DECL_OVERRIDE;
 
     int modulusLength() const;
@@ -163,8 +157,6 @@ public:
     ~DhKeyPairGenerationParameters();
 
     DhKeyPairGenerationParameters& operator=(const DhKeyPairGenerationParameters &other);
-    bool operator==(const DhKeyPairGenerationParameters &other) const;
-    bool operator==(const KeyPairGenerationParameters &other) const Q_DECL_OVERRIDE;
     bool isValid() const Q_DECL_OVERRIDE;
 
     int modulusLength() const;
@@ -184,6 +176,10 @@ public:
     QByteArray base() const;
     void setBase(const QByteArray &g);
 };
+
+bool operator==(const Sailfish::Crypto::KeyPairGenerationParameters &lhs, const Sailfish::Crypto::KeyPairGenerationParameters &rhs) SAILFISH_CRYPTO_API;
+bool operator!=(const Sailfish::Crypto::KeyPairGenerationParameters &lhs, const Sailfish::Crypto::KeyPairGenerationParameters &rhs) SAILFISH_CRYPTO_API;
+bool operator<(const Sailfish::Crypto::KeyPairGenerationParameters &lhs, const Sailfish::Crypto::KeyPairGenerationParameters &rhs) SAILFISH_CRYPTO_API;
 
 } // Crypto
 
@@ -205,40 +201,5 @@ Q_DECLARE_TYPEINFO(Sailfish::Crypto::DsaKeyPairGenerationParameters, Q_MOVABLE_T
 
 Q_DECLARE_METATYPE(Sailfish::Crypto::DhKeyPairGenerationParameters);
 Q_DECLARE_TYPEINFO(Sailfish::Crypto::DhKeyPairGenerationParameters, Q_MOVABLE_TYPE);
-
-inline bool operator<(const Sailfish::Crypto::KeyPairGenerationParameters &/*lhs*/,
-                      const Sailfish::Crypto::KeyPairGenerationParameters &/*rhs*/)
-{
-    qWarning("'<' operator not valid for KeyPairGenerationParameters\n");
-    return false;
-}
-
-inline bool operator<(const Sailfish::Crypto::EcKeyPairGenerationParameters &/*lhs*/,
-                      const Sailfish::Crypto::EcKeyPairGenerationParameters &/*rhs*/)
-{
-    qWarning("'<' operator not valid for EcKeyPairGenerationParameters\n");
-    return false;
-}
-
-inline bool operator<(const Sailfish::Crypto::RsaKeyPairGenerationParameters &/*lhs*/,
-                      const Sailfish::Crypto::RsaKeyPairGenerationParameters &/*rhs*/)
-{
-    qWarning("'<' operator not valid for RsaKeyPairGenerationParameters\n");
-    return false;
-}
-
-inline bool operator<(const Sailfish::Crypto::DsaKeyPairGenerationParameters &/*lhs*/,
-                      const Sailfish::Crypto::DsaKeyPairGenerationParameters &/*rhs*/)
-{
-    qWarning("'<' operator not valid for DsaKeyPairGenerationParameters\n");
-    return false;
-}
-
-inline bool operator<(const Sailfish::Crypto::DhKeyPairGenerationParameters &/*lhs*/,
-                      const Sailfish::Crypto::DhKeyPairGenerationParameters &/*rhs*/)
-{
-    qWarning("'<' operator not valid for DhKeyPairGenerationParameters\n");
-    return false;
-}
 
 #endif // LIBSAILFISHCRYPTO_KEYPAIRGENERATIONPARAMETERS_H

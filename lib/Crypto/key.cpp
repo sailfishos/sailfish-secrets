@@ -124,27 +124,6 @@ Key::Identifier& Key::Identifier::operator=(const Key::Identifier &other)
 }
 
 /*!
- * \brief Returns true if the key name and collection name are identical to that of the \a other identifier
- */
-bool Key::Identifier::operator==(const Key::Identifier &other) const
-{
-    return d_ptr->m_name == other.d_ptr->m_name
-            && d_ptr->m_collectionName == other.d_ptr->m_collectionName;
-}
-
-/*!
- * \brief Returns true if this identifier should sort before the \a other identifier
- *
- * It is sorted first on collection name, and then on the key name.
- */
-bool operator<(const Key::Identifier &lhs, const Key::Identifier &rhs)
-{
-    return (lhs.collectionName() == rhs.collectionName())
-            ? (lhs.name() < rhs.name())
-            : (lhs.collectionName() < rhs.collectionName());
-}
-
-/*!
  * \brief Returns the key name from the identifier
  */
 QString Key::Identifier::name() const
@@ -237,43 +216,6 @@ Key& Key::operator=(const Key &other)
 {
     d_ptr = other.d_ptr;
     return *this;
-}
-
-/*!
- * \brief Returns true if the underlying data and metadata in this key are identical to those in \a other, otherwise false
- */
-bool Key::operator==(const Key &other) const
-{
-    return d_ptr->m_filterData == other.d_ptr->m_filterData
-        && d_ptr->m_customParameters == other.d_ptr->m_customParameters
-        && d_ptr->m_publicKey == other.d_ptr->m_publicKey
-        && d_ptr->m_privateKey == other.d_ptr->m_privateKey
-        && d_ptr->m_secretKey == other.d_ptr->m_secretKey
-        && d_ptr->m_identifier == other.d_ptr->m_identifier
-        && d_ptr->m_origin == other.d_ptr->m_origin
-        && d_ptr->m_algorithm == other.d_ptr->m_algorithm
-        && d_ptr->m_operations == other.d_ptr->m_operations
-        && d_ptr->m_size == other.d_ptr->m_size;
-}
-
-/*!
- * \brief Returns true if this key should sort before the \a other key
- */
-bool operator<(const Key &lhs, const Key &rhs)
-{
-    if (lhs.size() != 0 && rhs.size() != 0 && lhs.size() != rhs.size()) {
-        return lhs.size() < rhs.size();
-    } else if (lhs.identifier() != rhs.identifier()) {
-        return lhs.identifier() < rhs.identifier();
-    } else if (lhs.publicKey() != rhs.publicKey()) {
-        return lhs.publicKey() < rhs.publicKey();
-    } else if (lhs.privateKey() != rhs.privateKey()) {
-        return lhs.privateKey() < rhs.privateKey();
-    } else if (lhs.secretKey() != rhs.secretKey()) {
-        return lhs.secretKey() < rhs.secretKey();
-    } else {
-        return lhs.algorithm() < rhs.algorithm();
-    }
 }
 
 /*!
@@ -603,4 +545,76 @@ void Key::setFilterData(const QString &field, const QString &value)
 bool Key::hasFilterData(const QString &field)
 {
     return d_ptr->m_filterData.contains(field);
+}
+
+/*!
+ * \brief Returns true if the \a lhs identifier consists of the same name and collection name as the \a rhs identifier
+ */
+bool Sailfish::Crypto::operator==(const Key::Identifier &lhs, const Key::Identifier &rhs)
+{
+    return lhs.collectionName() == rhs.collectionName()
+            && lhs.name() == rhs.name();
+}
+
+/*!
+ * \brief Returns false if the \a lhs identifier consists of the same name and collection name as the \a rhs identifier
+ */
+bool Sailfish::Crypto::operator!=(const Key::Identifier &lhs, const Key::Identifier &rhs)
+{
+    return !operator==(lhs, rhs);
+}
+
+/*!
+ * \brief Returns true if the \a lhs identifier should sort as less than the \a rhs identifier
+ */
+bool Sailfish::Crypto::operator<(const Key::Identifier &lhs, const Key::Identifier &rhs)
+{
+    if (lhs.collectionName() != rhs.collectionName())
+        return lhs.collectionName() < rhs.collectionName();
+    return lhs.name() < rhs.name();
+}
+
+/*!
+ * \brief Returns true if the \a lhs key is equal to the \a rhs key
+ */
+bool Sailfish::Crypto::operator==(const Key &lhs, const Key &rhs)
+{
+    return lhs.filterData() == rhs.filterData()
+        && lhs.customParameters() == rhs.customParameters()
+        && lhs.publicKey() == rhs.publicKey()
+        && lhs.privateKey() == rhs.privateKey()
+        && lhs.secretKey() == rhs.secretKey()
+        && lhs.identifier() == rhs.identifier()
+        && lhs.origin() == rhs.origin()
+        && lhs.algorithm() == rhs.algorithm()
+        && lhs.operations() == rhs.operations()
+        && lhs.size() == rhs.size();
+}
+
+/*!
+ * \brief Returns false if the \a lhs key is equal to the \a rhs key
+ */
+bool Sailfish::Crypto::operator!=(const Key &lhs, const Key &rhs)
+{
+    return !operator==(lhs, rhs);
+}
+
+/*!
+ * \brief Returns true if the \a lhs key should sort as less than the \a rhs key
+ */
+bool Sailfish::Crypto::operator<(const Key &lhs, const Key &rhs)
+{
+    if (lhs.size() != 0 && rhs.size() != 0 && lhs.size() != rhs.size()) {
+        return lhs.size() < rhs.size();
+    } else if (lhs.identifier() != rhs.identifier()) {
+        return lhs.identifier() < rhs.identifier();
+    } else if (lhs.publicKey() != rhs.publicKey()) {
+        return lhs.publicKey() < rhs.publicKey();
+    } else if (lhs.privateKey() != rhs.privateKey()) {
+        return lhs.privateKey() < rhs.privateKey();
+    } else if (lhs.secretKey() != rhs.secretKey()) {
+        return lhs.secretKey() < rhs.secretKey();
+    } else {
+        return lhs.algorithm() < rhs.algorithm();
+    }
 }

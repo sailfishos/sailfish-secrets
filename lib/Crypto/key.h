@@ -70,10 +70,6 @@ public:
         ~Identifier();
 
         Identifier &operator=(const Sailfish::Crypto::Key::Identifier &other);
-        bool operator==(const Sailfish::Crypto::Key::Identifier &other) const;
-        bool operator!=(const Sailfish::Crypto::Key::Identifier &other) const {
-            return !operator==(other);
-        }
 
         QString name() const;
         void setName(const QString &name);
@@ -100,10 +96,6 @@ public:
     virtual ~Key();
 
     Sailfish::Crypto::Key& operator=(const Sailfish::Crypto::Key &other);
-    bool operator==(const Sailfish::Crypto::Key &other) const;
-    bool operator!=(const Sailfish::Crypto::Key &other) const {
-        return !operator==(other);
-    }
 
     Sailfish::Crypto::Key::Identifier identifier() const;
     void setIdentifier(const Sailfish::Crypto::Key::Identifier &identifier);
@@ -160,6 +152,13 @@ protected:
     friend class KeyPrivate;
 };
 
+bool operator==(const Sailfish::Crypto::Key::Identifier &lhs, const Sailfish::Crypto::Key::Identifier &rhs) SAILFISH_CRYPTO_API;
+bool operator!=(const Sailfish::Crypto::Key::Identifier &lhs, const Sailfish::Crypto::Key::Identifier &rhs) SAILFISH_CRYPTO_API;
+bool operator<(const Sailfish::Crypto::Key::Identifier &lhs, const Sailfish::Crypto::Key::Identifier &rhs) SAILFISH_CRYPTO_API;
+bool operator==(const Sailfish::Crypto::Key &lhs, const Sailfish::Crypto::Key &rhs) SAILFISH_CRYPTO_API;
+bool operator!=(const Sailfish::Crypto::Key &lhs, const Sailfish::Crypto::Key &rhs) SAILFISH_CRYPTO_API;
+bool operator<(const Sailfish::Crypto::Key &lhs, const Sailfish::Crypto::Key &rhs) SAILFISH_CRYPTO_API;
+
 } // namespace Crypto
 
 } // namespace Sailfish
@@ -175,8 +174,5 @@ Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Origin);
 Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Component);
 Q_DECLARE_METATYPE(Sailfish::Crypto::Key::Components);
 Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::Key::Components);
-
-bool operator<(const Sailfish::Crypto::Key &lhs, const Sailfish::Crypto::Key &rhs);
-bool operator<(const Sailfish::Crypto::Key::Identifier &lhs, const Sailfish::Crypto::Key::Identifier &rhs);
 
 #endif // LIBSAILFISHCRYPTO_KEY_H

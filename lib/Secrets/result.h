@@ -160,34 +160,15 @@ private:
     friend class ResultPrivate;
 };
 
+bool operator==(const Sailfish::Secrets::Result &lhs, const Sailfish::Secrets::Result &rhs) SAILFISH_SECRETS_API;
+bool operator!=(const Sailfish::Secrets::Result &lhs, const Sailfish::Secrets::Result &rhs) SAILFISH_SECRETS_API;
+bool operator<(const Sailfish::Secrets::Result &lhs, const Sailfish::Secrets::Result &rhs) SAILFISH_SECRETS_API;
+
 } // Secrets
 
 } // Sailfish
 
 Q_DECLARE_METATYPE(Sailfish::Secrets::Result);
 Q_DECLARE_TYPEINFO(Sailfish::Secrets::Result, Q_MOVABLE_TYPE);
-
-inline bool operator==(const Sailfish::Secrets::Result &lhs, const Sailfish::Secrets::Result &rhs)
-{
-    return lhs.code() == rhs.code()
-            && lhs.errorCode() == rhs.errorCode()
-            && lhs.errorMessage() == rhs.errorMessage();
-}
-
-inline bool operator!=(const Sailfish::Secrets::Result &lhs, const Sailfish::Secrets::Result &rhs)
-{
-    return !(operator==(lhs, rhs));
-}
-
-inline bool operator<(const Sailfish::Secrets::Result &lhs, const Sailfish::Secrets::Result &rhs)
-{
-    if (lhs.code() != rhs.code())
-        return lhs.code() < rhs.code();
-
-    if (lhs.errorCode() != rhs.errorCode())
-        return lhs.errorCode() < rhs.errorCode();
-
-    return lhs.errorMessage() < rhs.errorMessage();
-}
 
 #endif // LIBSAILFISHSECRETS_RESULT_H

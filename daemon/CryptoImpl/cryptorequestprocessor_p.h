@@ -8,17 +8,6 @@
 #ifndef SAILFISHCRYPTO_APIIMPL_REQUESTPROCESSOR_P_H
 #define SAILFISHCRYPTO_APIIMPL_REQUESTPROCESSOR_P_H
 
-#include <QtCore/QObject>
-#include <QtCore/QVariantList>
-#include <QtCore/QList>
-#include <QtCore/QVariant>
-#include <QtCore/QByteArray>
-#include <QtCore/QString>
-#include <QtCore/QDateTime>
-#include <QtCore/QMap>
-
-#include <sys/types.h>
-
 #include "Crypto/result.h"
 #include "Crypto/cryptomanager.h"
 #include "Crypto/key.h"
@@ -32,6 +21,18 @@
 #include "CryptoImpl/crypto_p.h"
 
 #include "requestqueue_p.h"
+
+#include <QtCore/QObject>
+#include <QtCore/QVariantList>
+#include <QtCore/QList>
+#include <QtCore/QVariant>
+#include <QtCore/QByteArray>
+#include <QtCore/QString>
+#include <QtCore/QDateTime>
+#include <QtCore/QMap>
+#include <QtCore/QVector>
+
+#include <sys/types.h>
 
 namespace Sailfish {
 
