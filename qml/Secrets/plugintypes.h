@@ -1,0 +1,68 @@
+/*
+ * Copyright (C) 2018 Jolla Ltd.
+ * Contact: Chris Adams <chris.adams@jollamobile.com>
+ * All rights reserved.
+ * BSD 3-Clause License, see LICENSE.
+ */
+
+#ifndef SAILFISHSECRETS_QML_PLUGINTYPES_H
+#define SAILFISHSECRETS_QML_PLUGINTYPES_H
+
+#include "Secrets/result.h"
+#include "Secrets/secret.h"
+#include "Secrets/interactionparameters.h"
+#include "Secrets/interactionresponse.h"
+#include "Secrets/secretmanager.h"
+
+#include "Secrets/plugininforequest.h"
+#include "Secrets/interactionrequest.h"
+#include "Secrets/collectionnamesrequest.h"
+#include "Secrets/createcollectionrequest.h"
+#include "Secrets/deletecollectionrequest.h"
+#include "Secrets/storesecretrequest.h"
+#include "Secrets/storedsecretrequest.h"
+#include "Secrets/findsecretsrequest.h"
+#include "Secrets/deletesecretrequest.h"
+
+#include <QQmlExtensionPlugin>
+#include <QQmlParserStatus>
+#include <QQmlEngine>
+
+namespace Sailfish {
+
+namespace Secrets {
+
+namespace Plugin {
+
+class SecretsPlugin : public QQmlExtensionPlugin
+{
+    Q_OBJECT
+    Q_PLUGIN_METADATA(IID "Sailfish.Secrets")
+
+public:
+    void initializeEngine(QQmlEngine *, const char *);
+    virtual void registerTypes(const char *uri);
+};
+
+class SecretManager : public Sailfish::Secrets::SecretManager
+{
+    Q_OBJECT
+
+public:
+    SecretManager(QObject *parent = Q_NULLPTR);
+    ~SecretManager();
+
+    // QML API - allow clients to construct "uncreatable" value types
+    Q_INVOKABLE Result constructResult() const;
+    Q_INVOKABLE Secret constructSecret() const;
+    Q_INVOKABLE InteractionParameters constructInteractionParameters() const;
+    Q_INVOKABLE InteractionResponse constructInteractionResponse() const;
+};
+
+}
+
+}
+
+}
+
+#endif // SAILFISHSECRETS_QML_PLUGINTYPES_H

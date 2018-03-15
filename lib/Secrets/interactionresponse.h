@@ -20,7 +20,12 @@ namespace Sailfish {
 namespace Secrets {
 
 class InteractionResponsePrivate;
-class SAILFISH_SECRETS_API InteractionResponse {
+class SAILFISH_SECRETS_API InteractionResponse
+{
+    Q_GADGET
+    Q_PROPERTY(Sailfish::Secrets::Result result READ result WRITE setResult)
+    Q_PROPERTY(QByteArray responseData READ responseData WRITE setResponseData)
+
 public:
     InteractionResponse();
     InteractionResponse(const InteractionResponse &other);
