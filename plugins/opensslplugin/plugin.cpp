@@ -30,9 +30,7 @@ Daemon::Plugins::OpenSslPlugin::encryptSecret(
         const QByteArray &key,
         QByteArray *encrypted)
 {
-    // generate initialisation vector and key hash
-    QCryptographicHash keyHash(QCryptographicHash::Sha512);
-    keyHash.addData(key);
+    // generate initialisation vector
     QCryptographicHash ivHash(QCryptographicHash::Sha256);
     ivHash.addData(key);
     QByteArray initVector = ivHash.result();
@@ -43,7 +41,7 @@ Daemon::Plugins::OpenSslPlugin::encryptSecret(
     }
 
     // encrypt plaintext
-    QByteArray ciphertext = aes_encrypt_plaintext(plaintext, keyHash.result(), initVector);
+    QByteArray ciphertext = aes_encrypt_plaintext(plaintext, key, initVector);
 
     // return result
     if (ciphertext.size()) {
@@ -61,9 +59,7 @@ Daemon::Plugins::OpenSslPlugin::decryptSecret(
         const QByteArray &key,
         QByteArray *plaintext)
 {
-    // generate initialisation vector and key hash
-    QCryptographicHash keyHash(QCryptographicHash::Sha512);
-    keyHash.addData(key);
+    // generate initialisation vector
     QCryptographicHash ivHash(QCryptographicHash::Sha256);
     ivHash.addData(key);
     QByteArray initVector = ivHash.result();
@@ -74,7 +70,7 @@ Daemon::Plugins::OpenSslPlugin::decryptSecret(
     }
 
     // decrypt ciphertext
-    QByteArray decrypted = aes_decrypt_ciphertext(encrypted, keyHash.result(), initVector);
+    QByteArray decrypted = aes_decrypt_ciphertext(encrypted, key, initVector);
     if (!decrypted.size() || (decrypted.size() == 1 && decrypted.at(0) == 0)) {
         return Result(Result::SecretsPluginDecryptionError,
                       QLatin1String("OpenSSL plugin failed to decrypt the secret"));
