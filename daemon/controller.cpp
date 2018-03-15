@@ -38,19 +38,15 @@ namespace {
     }
 }
 
-Sailfish::Secrets::Daemon::Controller::Controller(const QString &secretsPluginDir,
-                                                  const QString &cryptoPluginDir,
-                                                  bool autotestMode, QObject *parent)
+Sailfish::Secrets::Daemon::Controller::Controller(bool autotestMode, QObject *parent)
     : QObject(parent)
-    , m_secretsPluginDir(secretsPluginDir)
-    , m_cryptoPluginDir(cryptoPluginDir)
     , m_autotestMode(autotestMode)
     , m_isValid(false)
 {
     // Initialise the various API implementation objects.
     // These objects provide Peer-To-Peer DBus API.
-    m_secrets = new Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue(this, secretsPluginDir, autotestMode);
-    m_crypto = new Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue(this, m_secrets, cryptoPluginDir, autotestMode);
+    m_secrets = new Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue(this, autotestMode);
+    m_crypto = new Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue(this, m_secrets, autotestMode);
 
     // Determine the p2p socket address.
     const QString p2pDBusSocketAddress = p2pSocketAddress();

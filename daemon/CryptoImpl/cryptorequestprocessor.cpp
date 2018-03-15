@@ -18,6 +18,7 @@
 #include <QtCore/QDir>
 #include <QtCore/QPluginLoader>
 #include <QtCore/QObject>
+#include <QtCore/QCoreApplication>
 
 namespace {
     Sailfish::Crypto::Result transformSecretsResult(const Sailfish::Secrets::Result &result) {
@@ -83,6 +84,25 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(
             this, &Daemon::ApiImpl::RequestProcessor::secretsDeleteStoredKeyMetadataCompleted);
     connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::userInputCompleted,
             this, &Daemon::ApiImpl::RequestProcessor::secretsUserInputCompleted);
+
+    if (!loadPlugins()) {
+        qCWarning(lcSailfishCryptoDaemon) << "Crypto: failed to load plugins!";
+        return;
+    }
+}
+
+bool
+Daemon::ApiImpl::RequestProcessor::loadPlugins() {
+    QStringList paths = QCoreApplication::libraryPaths();
+    bool result = true;
+
+    Q_FOREACH(const QString &path, paths) {
+        if (!loadPlugins(path)) {
+            result = false;
+        }
+    }
+
+    return result;
 }
 
 bool
@@ -108,9 +128,23 @@ Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
 
     qCDebug(lcSailfishCryptoDaemon) << "Loading crypto plugins from directory:" << pluginDir;
     QDir dir(pluginDir);
-    Q_FOREACH (const QString &pluginFile, dir.entryList(QDir::Files | QDir::NoDot | QDir::NoDotDot, QDir::Name)) {
+    Q_FOREACH (const QFileInfo &file, dir.entryInfoList(QDir::Files | QDir::NoDot | QDir::NoDotDot, QDir::Name)) {
+
+        const QString base = file.baseName();
+
+#if defined(Q_OS_WIN)
+            // avoid loading undesired files from %QTDIR%\bin
+            if (base.startsWith("Qt5") || base.startsWith("Irc") || base.startsWith("Enginio")
+                    || base.startsWith("icu") || file.suffix() != "dll")
+                continue;
+#elif defined(Q_OS_UNIX)
+            // avoid trying to load the whole /usr/bin
+            if (!base.startsWith("lib"))
+                continue;
+#endif
+
         // load the plugin and query it for its data.
-        Sailfish::Secrets::Daemon::ApiImpl::PluginHelper loader(pluginFile, m_autotestMode);
+        Sailfish::Secrets::Daemon::ApiImpl::PluginHelper loader(file.absoluteFilePath(), m_autotestMode);
         QObject *plugin = loader.instance();
         if (!loader.storeAs<CryptoPlugin>(plugin, &m_cryptoPlugins, lcSailfishCryptoDaemon)) {
             loader.reportFailure(lcSailfishCryptoDaemon);

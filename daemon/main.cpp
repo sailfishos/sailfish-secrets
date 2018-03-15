@@ -20,10 +20,13 @@ Q_LOGGING_CATEGORY(lcSailfishCryptoDaemonDBus, "org.sailfishos.crypto.daemon.dbu
 
 Q_DECL_EXPORT int main(int argc, char *argv[])
 {
+    // These hard-coded paths are used on Sailfish OS;
+    // but the daemon will look in directories specified by QT_PLUGIN_PATH anyway.
     const QString secretsPluginDir = QLatin1String("/usr/lib/Sailfish/Secrets/");
     const QString cryptoPluginDir = QLatin1String("/usr/lib/Sailfish/Crypto/");
     QCoreApplication::addLibraryPath(secretsPluginDir);
     QCoreApplication::addLibraryPath(cryptoPluginDir);
+
     QCoreApplication app(argc, argv);
 
     bool autotestMode = false;
@@ -35,7 +38,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
         autotestMode = true;
     }
 
-    Sailfish::Secrets::Daemon::Controller controller(secretsPluginDir, cryptoPluginDir, autotestMode);
+    Sailfish::Secrets::Daemon::Controller controller(autotestMode);
     if (controller.isValid()) {
         return app.exec();
     }

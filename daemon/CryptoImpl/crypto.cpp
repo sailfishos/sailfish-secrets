@@ -420,22 +420,16 @@ void Daemon::ApiImpl::CryptoDBusObject::finaliseCipherSession(
 Daemon::ApiImpl::CryptoRequestQueue::CryptoRequestQueue(
         Sailfish::Secrets::Daemon::Controller *parent,
         Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *secrets,
-        const QString &pluginDir,
         bool autotestMode)
     : Sailfish::Secrets::Daemon::ApiImpl::RequestQueue(
           QLatin1String("/Sailfish/Crypto"),
           QLatin1String("org.sailfishos.crypto"),
           parent,
-          pluginDir,
           autotestMode)
 {
     CryptoDaemonConnection::registerDBusTypes();
 
     m_requestProcessor = new Daemon::ApiImpl::RequestProcessor(secrets, autotestMode, this);
-    if (!m_requestProcessor->loadPlugins(pluginDir)) {
-        qCWarning(lcSailfishCryptoDaemon) << "Crypto: failed to load plugins!";
-        return;
-    }
 
     setDBusObject(new Daemon::ApiImpl::CryptoDBusObject(this));
     qCDebug(lcSailfishCryptoDaemon) << "Crypto: initialisation succeeded, awaiting client connections.";
