@@ -6,7 +6,7 @@
  */
 
 #include "plugin.h"
-#include "evp_p.h"
+#include "../opensslcryptoplugin/evp_p.h"
 
 Q_PLUGIN_METADATA(IID Sailfish_Secrets_EncryptionPlugin_IID)
 

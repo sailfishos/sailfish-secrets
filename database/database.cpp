@@ -315,6 +315,8 @@ bool Database::open(
 
     const QString databaseFile = databaseDir.absoluteFilePath(databaseFilename);
     const bool databasePreexisting = QFile::exists(databaseFile);
+    qCDebug(lcSailfishSecretsDaemonSqlite) << "databaseFile:" << databaseFile;
+    qCDebug(lcSailfishSecretsDaemonSqlite) << "databasePreexisting:" << databasePreexisting;
 
     m_database = QSqlDatabase::addDatabase(databaseDriver, connectionName);
     m_database.setDatabaseName(databaseFile);

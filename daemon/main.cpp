@@ -35,7 +35,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
         autotestMode = true;
     }
 
-    Sailfish::Secrets::Daemon::Controller controller(secretsPluginDir, cryptoPluginDir, autotestMode);
+    Sailfish::Secrets::Daemon::Controller controller(autotestMode);
     if (controller.isValid()) {
         return app.exec();
     }

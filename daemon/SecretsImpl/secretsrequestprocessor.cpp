@@ -24,6 +24,7 @@
 #include <QtCore/QHash>
 #include <QtCore/QSet>
 #include <QtCore/QDir>
+#include <QtCore/QCoreApplication>
 
 using namespace Sailfish::Secrets;
 
@@ -37,13 +38,35 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(
 }
 
 bool
+Daemon::ApiImpl::RequestProcessor::loadPlugins()
+{
+    QStringList paths = QCoreApplication::libraryPaths();
+    bool result = true;
+
+    Q_FOREACH(const QString &path, paths) {
+        if (!loadPlugins(path)) {
+            result = false;
+        }
+    }
+
+    return result;
+}
+
+bool
 Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
 {
-    qCDebug(lcSailfishSecretsDaemon) << "Loading plugins from directory:" << pluginDir;
+    qCDebug(lcSailfishSecretsDaemon) << "Loading Secrets plugins from directory:" << pluginDir;
     QDir dir(pluginDir);
-    Q_FOREACH (const QString &pluginFile, dir.entryList(QDir::Files | QDir::NoDot | QDir::NoDotDot, QDir::Name)) {
+    Q_FOREACH (const QFileInfo &file, dir.entryInfoList(QDir::Files | QDir::NoDot | QDir::NoDotDot, QDir::Name)) {
+        const QString fileName = file.fileName();
+
+        // Don't even try to load files which don't look like libraries
+        if (!fileName.startsWith("lib") || !fileName.contains(".so")) {
+            continue;
+        }
+
         // load the plugin and query it for its data.
-        Daemon::ApiImpl::PluginHelper loader(pluginFile, m_autotestMode);
+        Daemon::ApiImpl::PluginHelper loader(file.absoluteFilePath(), m_autotestMode);
         QObject *plugin = loader.instance();
 
         EncryptedStoragePlugin *encryptedStoragePlugin;
