@@ -18,6 +18,7 @@
 #include <QtCore/QDir>
 #include <QtCore/QPluginLoader>
 #include <QtCore/QObject>
+#include <QtCore/QCoreApplication>
 
 namespace {
     Sailfish::Crypto::Result transformSecretsResult(const Sailfish::Secrets::Result &result) {
@@ -86,7 +87,7 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(
 }
 
 bool
-Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
+Daemon::ApiImpl::RequestProcessor::loadPlugins()
 {
     // First, see if any of the EncryptedStorage plugins from Secrets are also
     // Crypto plugins (providing generateAndStoreKey() functionality internally).
@@ -98,7 +99,7 @@ Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
             if (cryptoPlugin->name().isEmpty() || m_cryptoPlugins.contains(cryptoPlugin->name())) {
                 qCDebug(lcSailfishCryptoDaemon) << "ignoring crypto storage plugin:" << it.key() << "with duplicate name:" << cryptoPlugin->name();
             } else if (cryptoPlugin->name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive) != m_autotestMode) {
-                qCDebug(lcSailfishCryptoDaemon) << "ignoring crypto storage plugin:" << it.key() << "due to mode";
+                qCDebug(lcSailfishCryptoDaemon) << "ignoring crypto storage plugin:" << it.key() << "because of testing mode mismatch";
             } else {
                 qCDebug(lcSailfishCryptoDaemon) << "loading crypto storage plugin:" << it.key();
                 m_cryptoPlugins.insert(it.key(), cryptoPlugin);
@@ -106,11 +107,33 @@ Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
         }
     }
 
-    qCDebug(lcSailfishCryptoDaemon) << "Loading crypto plugins from directory:" << pluginDir;
+    QStringList paths = QCoreApplication::libraryPaths();
+    bool result = true;
+
+    Q_FOREACH(const QString &path, paths) {
+        if (!loadPlugins(path)) {
+            result = false;
+        }
+    }
+
+    return result;
+}
+
+bool
+Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
+{
+    qCDebug(lcSailfishCryptoDaemon) << "Loading Crypto plugins from directory:" << pluginDir;
     QDir dir(pluginDir);
-    Q_FOREACH (const QString &pluginFile, dir.entryList(QDir::Files | QDir::NoDot | QDir::NoDotDot, QDir::Name)) {
+    Q_FOREACH (const QFileInfo &file, dir.entryInfoList(QDir::Files | QDir::NoDot | QDir::NoDotDot, QDir::Name)) {
+        const QString fileName = file.fileName();
+
+        // Don't even try to load files which don't look like libraries
+        if (!fileName.startsWith("lib") || !fileName.contains(".so")) {
+            continue;
+        }
+
         // load the plugin and query it for its data.
-        Sailfish::Secrets::Daemon::ApiImpl::PluginHelper loader(pluginFile, m_autotestMode);
+        Sailfish::Secrets::Daemon::ApiImpl::PluginHelper loader(file.absoluteFilePath(), m_autotestMode);
         QObject *plugin = loader.instance();
         if (!loader.storeAs<CryptoPlugin>(plugin, &m_cryptoPlugins, lcSailfishCryptoDaemon)) {
             loader.reportFailure(lcSailfishCryptoDaemon);
