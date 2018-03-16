@@ -20,13 +20,11 @@ Daemon::ApiImpl::RequestQueue::RequestQueue(
         const QString &dbusObjectPath,
         const QString &dbusInterfaceName,
         Controller *parent,
-        const QString &pluginDir,
         bool autotestMode)
     : QObject(parent)
     , m_controller(parent)
     , m_dbusObjectPath(dbusObjectPath)
     , m_dbusInterfaceName(dbusInterfaceName)
-    , m_pluginDir(pluginDir)
     , m_autotestMode(autotestMode)
 {
     qCDebug(lcSailfishSecretsDaemon) << "New API implementation request queue constructed:" << m_dbusObjectPath << "," << m_dbusInterfaceName;

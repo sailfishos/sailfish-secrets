@@ -66,7 +66,7 @@ public:
             return 0;
         }
         if (plugin->name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive) != m_autotestMode) {
-            qCDebug(category) << "ignoring plugin:" << fileName() << "due to mode";
+            qCDebug(category) << "ignoring plugin:" << fileName() << "because of testing mode mismatch";
             unload();
             m_failureType = AutotestModeFailure;
             emit failureTypeChanged();

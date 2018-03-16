@@ -58,7 +58,7 @@ public:
                      bool autotestMode,
                      Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *parent = Q_NULLPTR);
 
-    bool loadPlugins(const QString &pluginDir);
+    bool loadPlugins();
 
     // retrieve information about available plugins
     Sailfish::Secrets::Result getPluginInfo(
@@ -543,6 +543,7 @@ private:
     QMap<quint64, Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::PendingRequest> m_pendingRequests;
 
     bool m_autotestMode;
+    bool loadPlugins(const QString &pluginDir);
 };
 
 } // namespace ApiImpl
