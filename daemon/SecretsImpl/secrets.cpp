@@ -398,13 +398,11 @@ void Daemon::ApiImpl::SecretsDBusObject::forgetLockCode(
 
 Daemon::ApiImpl::SecretsRequestQueue::SecretsRequestQueue(
         Daemon::Controller *parent,
-        const QString &pluginDir,
         bool autotestMode)
     : Daemon::ApiImpl::RequestQueue(
           QLatin1String("/Sailfish/Secrets"),
           QLatin1String("org.sailfishos.secrets"),
           parent,
-          pluginDir,
           autotestMode)
     , m_appPermissions(Q_NULLPTR)
     , m_requestProcessor(Q_NULLPTR)
@@ -419,7 +417,7 @@ Daemon::ApiImpl::SecretsRequestQueue::SecretsRequestQueue(
     SecretsDaemonConnection::registerDBusTypes();
     m_appPermissions = new Daemon::ApiImpl::ApplicationPermissions(this);
     m_requestProcessor = new Daemon::ApiImpl::RequestProcessor(&m_bkdb, m_appPermissions, autotestMode, this);
-    if (!m_requestProcessor->loadPlugins(pluginDir)) {
+    if (!m_requestProcessor->loadPlugins()) {
         qCWarning(lcSailfishSecretsDaemon) << "Secrets: failed to load plugins!";
         return;
     }
