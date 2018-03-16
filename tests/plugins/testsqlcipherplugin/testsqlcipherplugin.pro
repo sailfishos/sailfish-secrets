@@ -10,11 +10,15 @@ include($$PWD/../../../database/database.pri)
 
 DEFINES += SAILFISHSECRETS_TESTPLUGIN
 
+INCLUDEPATH += $$PWD/../../../plugins/opensslcryptoplugin/evp/
+DEPENDPATH += $$PWD/../../../plugins/opensslcryptoplugin/evp/
+
 HEADERS += \
-    $$PWD/../../../plugins/opensslcryptoplugin/evp_p.h \
+    $$PWD/../../../plugins/opensslcryptoplugin/evp/evp_p.h \
     $$PWD/../../../plugins/sqlcipherplugin/sqlcipherplugin.h
 
 SOURCES += \
+    $$PWD/../../../plugins/opensslcryptoplugin/evp/evp.c \
     $$PWD/../../../plugins/sqlcipherplugin/sqlcipherplugin.cpp \
     $$PWD/../../../plugins/sqlcipherplugin/encryptedstorageplugin.cpp \
     $$PWD/../../../plugins/sqlcipherplugin/cryptoplugin.cpp

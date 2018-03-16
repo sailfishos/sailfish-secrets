@@ -39,7 +39,7 @@ public:
         SerialisationError = 3,
 
         PermissionsError = 10,
-        IncorrectAuthenticationKeyError,
+        IncorrectAuthenticationCodeError,
         OperationNotSupportedError,
         OperationRequiresUserInteraction,
         OperationRequiresApplicationUserInteraction,
@@ -52,6 +52,7 @@ public:
 
         SecretsPluginEncryptionError = 30,
         SecretsPluginDecryptionError,
+        SecretsPluginKeyDerivationError,
 
         InvalidSecretError = 40,
         InvalidSecretIdentifierError,

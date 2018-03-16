@@ -42,6 +42,7 @@ public:
     Sailfish::Secrets::EncryptionPlugin::EncryptionType encryptionType() const Q_DECL_OVERRIDE { return Sailfish::Secrets::EncryptionPlugin::SoftwareEncryption; }
     Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm encryptionAlgorithm() const Q_DECL_OVERRIDE { return Sailfish::Secrets::EncryptionPlugin::AES_256_CBC; }
 
+    Sailfish::Secrets::Result deriveKeyFromCode(const QByteArray &authenticationCode, const QByteArray &salt, QByteArray *key) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result encryptSecret(const QByteArray &plaintext, const QByteArray &key, QByteArray *encrypted) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result decryptSecret(const QByteArray &encrypted, const QByteArray &key, QByteArray *plaintext) Q_DECL_OVERRIDE;
 

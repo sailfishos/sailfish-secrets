@@ -40,6 +40,7 @@ public slots:
 private slots:
     void getPluginInfo();
     void randomData();
+    void generateKeyEncryptDecrypt_data();
     void generateKeyEncryptDecrypt();
     void validateCertificateChain();
 
@@ -122,11 +123,22 @@ void tst_crypto::randomData()
     QVERIFY(seededData != randomData);
 }
 
+void tst_crypto::generateKeyEncryptDecrypt_data()
+{
+    QTest::addColumn<int>("keySize");
+
+    QTest::newRow("128") << 128;
+    QTest::newRow("192") << 192;
+    QTest::newRow("256") << 256;
+}
+
 void tst_crypto::generateKeyEncryptDecrypt()
 {
+    QFETCH(int, keySize);
+
     // test generating a symmetric cipher key
     Key keyTemplate;
-    keyTemplate.setSize(256);
+    keyTemplate.setSize(keySize);
     keyTemplate.setAlgorithm(CryptoManager::AlgorithmAes);
     keyTemplate.setOrigin(Key::OriginDevice);
     keyTemplate.setOperations(CryptoManager::OperationEncrypt | CryptoManager::OperationDecrypt);
