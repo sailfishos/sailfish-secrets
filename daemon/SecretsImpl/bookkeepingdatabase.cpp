@@ -168,7 +168,7 @@ Daemon::ApiImpl::BookkeepingDatabase::unlock(
 {
     Result retn(Result::Succeeded);
     if (hexKey.length() != 64) {
-        retn = Result(Result::IncorrectAuthenticationKeyError,
+        retn = Result(Result::IncorrectAuthenticationCodeError,
                       QLatin1String("The bookkeeping database key is not a 256 bit key"));
     } else {
         const QString setupKeyStatement = QString::fromLatin1(setupEncryptionKey).arg(QLatin1String(hexKey));
@@ -216,7 +216,7 @@ Daemon::ApiImpl::BookkeepingDatabase::reencrypt(
     }
 
     if (newHexKey.length() != 64) {
-        return Result(Result::IncorrectAuthenticationKeyError,
+        return Result(Result::IncorrectAuthenticationCodeError,
                       QLatin1String("The new bookkeeping key is not a 256 bit key"));
     }
 

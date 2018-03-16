@@ -1,25 +1,11 @@
 /*
- * Copyright (C) 2017 Jolla Ltd.
+ * Copyright (C) 2018 Jolla Ltd.
  * Contact: Chris Adams <chris.adams@jollamobile.com>
  * All rights reserved.
  * BSD 3-Clause License, see LICENSE.
  */
 
-#ifndef SAILFISHCRYPTO_PLUGIN_CRYPTO_OPENSSL_EVP_P_H
-#define SAILFISHCRYPTO_PLUGIN_CRYPTO_OPENSSL_EVP_P_H
-
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-
-#include <openssl/conf.h>
-#include <openssl/evp.h>
-#include <openssl/aes.h>
-#include <openssl/err.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "evp_p.h"
 
 /*
     int osslevp_init()
@@ -57,6 +43,40 @@ const EVP_CIPHER *osslevp_aes_cipher(int block_mode, int key_length_bytes)
 
     fprintf(stderr, "%s\n", "unsupported encryption mode");
     return NULL;
+}
+
+/*
+    int osslevp_pkcs5_pbkdf2_hmac(const char *pass,
+                                  int passlen,
+                                  const unsigned char *salt,
+                                  int saltlen,
+                                  int iter,
+                                  int digestFunction,
+                                  int keylen,
+                                  unsigned char *out)
+
+    Derive a key from input data via PKCS5_PBKDF2 key derivation
+    using HMAC with a digest function specified by the client.
+
+    Returns 1 on success, 0 on failure.
+ */
+int osslevp_pkcs5_pbkdf2_hmac(const char *pass, int passlen,
+                              const unsigned char *salt, int saltlen,
+                              int iter, int digestFunction,
+                              int keylen, unsigned char *out)
+{
+    const EVP_MD *md = 0;
+
+    // see CryptoManager::DigestFunction
+    switch (digestFunction) {
+        case 10: md = EVP_sha1(); break;
+        case 21: md = EVP_sha256(); break;
+        case 23: md = EVP_sha512(); break;
+        default: md = EVP_sha256(); break;
+    }
+
+    return PKCS5_PBKDF2_HMAC(pass, passlen, salt, saltlen,
+                             iter, md, keylen, out);
 }
 
 /*
@@ -260,9 +280,3 @@ int osslevp_aes_decrypt_ciphertext(int block_mode,
     plaintext_length = update_length + final_length;
     return plaintext_length;
 }
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif // SAILFISHCRYPTO_PLUGIN_CRYPTO_OPENSSL_EVP_P_H

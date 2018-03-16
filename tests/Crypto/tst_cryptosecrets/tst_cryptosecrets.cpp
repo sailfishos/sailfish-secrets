@@ -728,7 +728,7 @@ void tst_cryptosecrets::cryptoStoredKey()
 
     // clean up by deleting the collection.
     secretsreply = sm.d_ptr()->deleteCollection(
-                QLatin1String("tstcryptosecretsgcsked"),
+                QLatin1String("tstcryptosecretsgcsked2"),
                 Sailfish::Secrets::SecretManager::PreventInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(secretsreply);
     QVERIFY(secretsreply.isValid());

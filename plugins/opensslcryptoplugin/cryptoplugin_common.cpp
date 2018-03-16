@@ -344,24 +344,17 @@ CRYPTOPLUGINCOMMON_NAMESPACE::CRYPTOPLUGINCOMMON_CLASS::generateKey(
 
     int nbytes = skdfParams.outputKeySize() / 8;
     QScopedArrayPointer<char> buf(new char[nbytes]);
-    const EVP_MD *md = skdfParams.keyDerivationDigestFunction() == Sailfish::Crypto::CryptoManager::DigestSha1
-                     ? EVP_sha1()
-                     : skdfParams.keyDerivationDigestFunction() == Sailfish::Crypto::CryptoManager::DigestSha256
-                     ? EVP_sha256()
-                     : EVP_sha512();
-    if (PKCS5_PBKDF2_HMAC(
-            skdfParams.inputData().isEmpty()
-                    ? NULL
-                    : skdfParams.inputData().constData(),
-            skdfParams.inputData().size(),
-            skdfParams.salt().isEmpty()
-                    ? NULL
-                    : reinterpret_cast<const unsigned char*>(skdfParams.salt().constData()),
-            skdfParams.salt().size(),
-            skdfParams.iterations(),
-            md,
-            nbytes,
-            reinterpret_cast<unsigned char*>(buf.data())) != 1) {
+    if (osslevp_pkcs5_pbkdf2_hmac(
+                skdfParams.inputData().constData(),
+                skdfParams.inputData().size(),
+                skdfParams.salt().isEmpty()
+                        ? NULL
+                        : reinterpret_cast<const unsigned char*>(skdfParams.salt().constData()),
+                skdfParams.salt().size(),
+                skdfParams.iterations(),
+                static_cast<int>(skdfParams.keyDerivationDigestFunction()),
+                nbytes,
+                reinterpret_cast<unsigned char*>(buf.data())) != 1) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
                                         QLatin1String("The crypto plugin failed to derive the key data"));
     }

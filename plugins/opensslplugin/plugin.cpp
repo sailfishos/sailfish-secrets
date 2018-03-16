@@ -6,7 +6,7 @@
  */
 
 #include "plugin.h"
-#include "../opensslcryptoplugin/evp_p.h"
+#include "evp_p.h"
 
 #include "Crypto/cryptomanager.h"
 
@@ -22,6 +22,36 @@ Daemon::Plugins::OpenSslPlugin::OpenSslPlugin(QObject *parent)
 
 Daemon::Plugins::OpenSslPlugin::~OpenSslPlugin()
 {
+}
+
+Result
+Daemon::Plugins::OpenSslPlugin::deriveKeyFromCode(
+        const QByteArray &authenticationCode,
+        const QByteArray &salt,
+        QByteArray *key)
+{
+    const QByteArray inputData = authenticationCode.isEmpty()
+                         ? QByteArray(1, '\0')
+                         : authenticationCode;
+    const int nbytes = 32; // 256 bit
+    QScopedArrayPointer<char> buf(new char[nbytes]);
+    if (osslevp_pkcs5_pbkdf2_hmac(
+            inputData.constData(),
+            inputData.size(),
+            salt.isEmpty()
+                    ? NULL
+                    : reinterpret_cast<const unsigned char*>(salt.constData()),
+            salt.size(),
+            10000, // iterations
+            21, // CryptoManager::DigestSha256
+            nbytes,
+            reinterpret_cast<unsigned char*>(buf.data())) != 1) {
+        return Result(Result::SecretsPluginKeyDerivationError,
+                      QLatin1String("The OpenSSL plugin failed to derive the key data"));
+    }
+
+    *key = QByteArray(buf.data(), nbytes);
+    return Result(Result::Succeeded);
 }
 
 Result
