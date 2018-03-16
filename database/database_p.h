@@ -109,8 +109,8 @@ public:
     bool rollbackTransaction();
     bool withinTransaction() const { return m_transactionSemaphore.loadAcquire(); }
 
-    Query prepare(const char *statement, QString *errorText);
-    Query prepare(const QString &statement, QString *errorText);
+    Query prepare(const char *statement, QString *errorText) const;
+    Query prepare(const QString &statement, QString *errorText) const;
 
     static bool execute(QSqlQuery &query, QString *errorText);
     static bool executeBatch(QSqlQuery &query, QString *errorText, QSqlQuery::BatchExecutionMode mode = QSqlQuery::ValuesAsRows);
@@ -123,7 +123,7 @@ private:
     QSqlDatabase m_database;
     QMutex m_mutex;
     QString m_localeName;
-    QHash<QString, QSqlQuery> m_preparedQueries;
+    mutable QHash<QString, QSqlQuery> m_preparedQueries;
     QAtomicInt m_transactionSemaphore;
 };
 

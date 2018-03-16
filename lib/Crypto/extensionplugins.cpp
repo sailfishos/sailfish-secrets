@@ -215,3 +215,28 @@ CryptoPlugin::CryptoPlugin()
 CryptoPlugin::~CryptoPlugin()
 {
 }
+
+bool CryptoPlugin::supportsLocking() const
+{
+    return false;
+}
+
+bool CryptoPlugin::isLocked() const
+{
+    return false;
+}
+
+bool CryptoPlugin::lock()
+{
+    return false;
+}
+
+bool CryptoPlugin::unlock(const QByteArray &)
+{
+    return false;
+}
+
+bool CryptoPlugin::setLockCode(const QByteArray &, const QByteArray &)
+{
+    return false;
+}

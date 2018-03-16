@@ -58,6 +58,12 @@ public:
     virtual QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::KeyDerivationFunction> > supportedKeyDerivationFunctions() const = 0;
     virtual QMap<Sailfish::Crypto::CryptoManager::Algorithm, Sailfish::Crypto::CryptoManager::Operations> supportedOperations() const = 0;
 
+    virtual bool supportsLocking() const;
+    virtual bool isLocked() const;
+    virtual bool lock();
+    virtual bool unlock(const QByteArray &lockCode);
+    virtual bool setLockCode(const QByteArray &oldLockCode, const QByteArray &newLockCode);
+
     virtual Sailfish::Crypto::Result generateRandomData(
             quint64 callerIdent,
             const QString &csprngEngineName,

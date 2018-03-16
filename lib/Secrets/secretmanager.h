@@ -54,7 +54,8 @@ public:
 
     enum DeviceLockUnlockSemantic {
         DeviceLockKeepUnlocked = 0,         // unlock after first successful device unlock, stay unlocked.  e.g. background processes.
-        DeviceLockRelock,                   // unlock on device unlock, relock on device lock.
+        DeviceLockVerifyLock,               // unlock on device unlock, relock on device lock requiring verify (not passphrase) to unlock on subsequent access.
+        DeviceLockRelock,                   // unlock on device unlock, relock on device lock requiring passphrase to unlock on subsequent access.
     };
     Q_ENUM(DeviceLockUnlockSemantic)
 
@@ -101,6 +102,7 @@ private:
     friend class DeleteSecretRequest;
     friend class FindSecretsRequest;
     friend class InteractionRequest;
+    friend class LockCodeRequest;
     friend class PluginInfoRequest;
     friend class StoredSecretRequest;
     friend class StoreSecretRequest;

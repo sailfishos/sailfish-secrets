@@ -428,12 +428,12 @@ bool Database::rollbackTransaction()
     }
 }
 
-Database::Query Database::prepare(const char *statement, QString *errorText)
+Database::Query Database::prepare(const char *statement, QString *errorText) const
 {
     return prepare(QString::fromLatin1(statement), errorText);
 }
 
-Database::Query Database::prepare(const QString &statement, QString *errorText)
+Database::Query Database::prepare(const QString &statement, QString *errorText) const
 {
     QMutexLocker locker(accessMutex());
 

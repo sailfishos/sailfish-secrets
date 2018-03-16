@@ -20,6 +20,7 @@
 #include "Secrets/deletesecretrequest.h"
 #include "Secrets/findsecretsrequest.h"
 #include "Secrets/interactionrequest.h"
+#include "Secrets/lockcoderequest.h"
 #include "Secrets/plugininforequest.h"
 #include "Secrets/storedsecretrequest.h"
 #include "Secrets/storesecretrequest.h"
@@ -34,7 +35,7 @@ using namespace Sailfish::Secrets;
 // Cannot use waitForFinished() for some replies, as ui flows require user interaction / event handling.
 #define WAIT_FOR_FINISHED_WITHOUT_BLOCKING(request)                     \
     do {                                                                \
-        int maxWait = 10000;                                            \
+        int maxWait = 60000;                                            \
         while (request.status() != Request::Finished && maxWait > 0) {  \
             QTest::qWait(100);                                          \
             maxWait -= 100;                                             \
@@ -67,6 +68,8 @@ private slots:
     void requestUserInput();
 
     void accessControl();
+
+    void lockCode();
 
 private:
     SecretManager sm;
@@ -1441,6 +1444,228 @@ void tst_secretsrequests::accessControl()
     // attempt to delete a no-access-control collection created by another process.
     // this should succeed.
     dcr.setCollectionName(QLatin1String("noaccesscontrolcollection"));
+    dcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
+    QCOMPARE(dcr.status(), Request::Finished);
+    QCOMPARE(dcr.result().code(), Result::Succeeded);
+}
+
+void tst_secretsrequests::lockCode()
+{
+    // construct the in-process authentication key UI.
+    QQuickView v(QUrl::fromLocalFile(QStringLiteral("%1/tst_secretsrequests.qml").arg(QCoreApplication::applicationDirPath())));
+    v.show();
+    QObject *interactionView = v.rootObject()->findChild<QObject*>("interactionview");
+    QVERIFY(interactionView);
+    QMetaObject::invokeMethod(interactionView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &sm));
+
+    // create a collection in a normal storage plugin
+    CreateCollectionRequest ccr;
+    ccr.setManager(&sm);
+    QSignalSpy ccrss(&ccr, &CreateCollectionRequest::statusChanged);
+    ccr.setCollectionLockType(CreateCollectionRequest::DeviceLock);
+    QCOMPARE(ccr.collectionLockType(), CreateCollectionRequest::DeviceLock);
+    ccr.setCollectionName(QLatin1String("testcollection"));
+    QCOMPARE(ccr.collectionName(), QLatin1String("testcollection"));
+    ccr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
+    QCOMPARE(ccr.storagePluginName(), DEFAULT_TEST_STORAGE_PLUGIN);
+    ccr.setEncryptionPluginName(DEFAULT_TEST_ENCRYPTION_PLUGIN);
+    QCOMPARE(ccr.encryptionPluginName(), DEFAULT_TEST_ENCRYPTION_PLUGIN);
+    ccr.setDeviceLockUnlockSemantic(SecretManager::DeviceLockKeepUnlocked);
+    QCOMPARE(ccr.deviceLockUnlockSemantic(), SecretManager::DeviceLockKeepUnlocked);
+    ccr.setAccessControlMode(SecretManager::OwnerOnlyMode);
+    QCOMPARE(ccr.accessControlMode(), SecretManager::OwnerOnlyMode);
+    QCOMPARE(ccr.status(), Request::Inactive);
+    ccr.startRequest();
+    QCOMPARE(ccrss.count(), 1);
+    QCOMPARE(ccr.status(), Request::Active);
+    QCOMPARE(ccr.result().code(), Result::Pending);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ccr);
+    QCOMPARE(ccrss.count(), 2);
+    QCOMPARE(ccr.status(), Request::Finished);
+    QCOMPARE(ccr.result().code(), Result::Succeeded);
+
+    // store a new secret into the collection
+    Secret testSecret(Secret::Identifier(
+                        QLatin1String("testsecretname"),
+                        QLatin1String("testcollection")));
+    testSecret.setData("testsecretvalue");
+    testSecret.setType(Secret::TypeBlob);
+    testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
+    testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
+
+    StoreSecretRequest ssr;
+    ssr.setManager(&sm);
+    QSignalSpy ssrss(&ssr, &StoreSecretRequest::statusChanged);
+    ssr.setSecretStorageType(StoreSecretRequest::CollectionSecret);
+    QCOMPARE(ssr.secretStorageType(), StoreSecretRequest::CollectionSecret);
+    ssr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+    QCOMPARE(ssr.userInteractionMode(), SecretManager::ApplicationInteraction);
+    ssr.setSecret(testSecret);
+    QCOMPARE(ssr.secret(), testSecret);
+    QCOMPARE(ssr.status(), Request::Inactive);
+    ssr.startRequest();
+    QCOMPARE(ssrss.count(), 1);
+    QCOMPARE(ssr.status(), Request::Active);
+    QCOMPARE(ssr.result().code(), Result::Pending);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ssr);
+    QCOMPARE(ssrss.count(), 2);
+    QCOMPARE(ssr.status(), Request::Finished);
+    QCOMPARE(ssr.result().code(), Result::Succeeded);
+
+    // retrieve the secret, ensure it matches
+    StoredSecretRequest gsr;
+    gsr.setManager(&sm);
+    QSignalSpy gsrss(&gsr, &StoredSecretRequest::statusChanged);
+    gsr.setIdentifier(testSecret.identifier());
+    QCOMPARE(gsr.identifier(), testSecret.identifier());
+    gsr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+    QCOMPARE(gsr.userInteractionMode(), SecretManager::ApplicationInteraction);
+    QCOMPARE(gsr.status(), Request::Inactive);
+    gsr.startRequest();
+    QCOMPARE(gsrss.count(), 1);
+    QCOMPARE(gsr.status(), Request::Active);
+    QCOMPARE(gsr.result().code(), Result::Pending);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
+    QCOMPARE(gsrss.count(), 2);
+    QCOMPARE(gsr.status(), Request::Finished);
+    QCOMPARE(gsr.result().code(), Result::Succeeded);
+    QCOMPARE(gsr.secret().data(), testSecret.data());
+
+    // now create an encrypted-storage collection
+    ccr.setCollectionName(QLatin1String("estestcollection"));
+    ccr.setStoragePluginName(DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN);
+    ccr.setEncryptionPluginName(DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN);
+    ccr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ccr);
+    QCOMPARE(ccr.status(), Request::Finished);
+    QCOMPARE(ccr.result().code(), Result::Succeeded);
+
+    // and store a secret into the encrypted-storage collection
+    Secret estestSecret(Secret::Identifier(
+                        QLatin1String("estestsecretname"),
+                        QLatin1String("estestcollection")));
+    estestSecret.setData("estestsecretvalue");
+    estestSecret.setType(Secret::TypeBlob);
+    estestSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
+    estestSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
+    ssr.setSecret(estestSecret);
+    ssr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ssr);
+    QCOMPARE(ssr.status(), Request::Finished);
+    QCOMPARE(ssr.result().code(), Result::Succeeded);
+
+    // test that we can retrieve it
+    gsr.setIdentifier(estestSecret.identifier());
+    gsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
+    QCOMPARE(gsr.status(), Request::Finished);
+    QCOMPARE(gsr.result().code(), Result::Succeeded);
+    QCOMPARE(gsr.secret().data(), estestSecret.data());
+
+    // Now set the master lock code.
+    LockCodeRequest lcr;
+    lcr.setManager(&sm);
+    QSignalSpy lcrss(&lcr, &LockCodeRequest::statusChanged);
+    lcr.setLockCodeRequestType(LockCodeRequest::ModifyLockCode);
+    QCOMPARE(lcr.lockCodeRequestType(), LockCodeRequest::ModifyLockCode);
+    lcr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+    QCOMPARE(lcr.userInteractionMode(), SecretManager::ApplicationInteraction);
+    InteractionParameters uiParams;
+    uiParams.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
+    uiParams.setInputType(InteractionParameters::AlphaNumericInput);
+    uiParams.setEchoMode(InteractionParameters::PasswordEcho);
+    lcr.setInteractionParameters(uiParams);
+    lcr.setSecretName(QString());
+    lcr.setCollectionName(QString());
+    lcr.startRequest();
+    QCOMPARE(lcrss.count(), 1);
+    QCOMPARE(lcr.status(), Request::Active);
+    QCOMPARE(lcr.result().code(), Result::Pending);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcrss.count(), 2);
+    QCOMPARE(lcr.status(), Request::Finished);
+    QCOMPARE(lcr.result().code(), Result::Succeeded);
+
+    // Retrieve the secrets again, make sure we can.
+    gsr.setIdentifier(estestSecret.identifier());
+    gsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
+    QCOMPARE(gsr.status(), Request::Finished);
+    QCOMPARE(gsr.result().code(), Result::Succeeded);
+    QCOMPARE(gsr.secret().data(), estestSecret.data());
+
+    gsr.setIdentifier(testSecret.identifier());
+    gsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
+    QCOMPARE(gsr.status(), Request::Finished);
+    QCOMPARE(gsr.result().code(), Result::Succeeded);
+    QCOMPARE(gsr.secret().data(), testSecret.data());
+
+    // Set the lock code back.
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.status(), Request::Finished);
+    QCOMPARE(lcr.result().code(), Result::Succeeded);
+
+    // Retrieve the secrets again, make sure we still can.
+    gsr.setIdentifier(estestSecret.identifier());
+    gsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
+    QCOMPARE(gsr.status(), Request::Finished);
+    QCOMPARE(gsr.result().code(), Result::Succeeded);
+    QCOMPARE(gsr.secret().data(), estestSecret.data());
+
+    gsr.setIdentifier(testSecret.identifier());
+    gsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
+    QCOMPARE(gsr.status(), Request::Finished);
+    QCOMPARE(gsr.result().code(), Result::Succeeded);
+    QCOMPARE(gsr.secret().data(), testSecret.data());
+
+    // delete the secrets
+    DeleteSecretRequest dsr;
+    dsr.setManager(&sm);
+    QSignalSpy dsrss(&dsr, &DeleteSecretRequest::statusChanged);
+    dsr.setIdentifier(testSecret.identifier());
+    QCOMPARE(dsr.identifier(), testSecret.identifier());
+    dsr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+    QCOMPARE(dsr.userInteractionMode(), SecretManager::ApplicationInteraction);
+    QCOMPARE(dsr.status(), Request::Inactive);
+    dsr.startRequest();
+    QCOMPARE(dsrss.count(), 1);
+    QCOMPARE(dsr.status(), Request::Active);
+    QCOMPARE(dsr.result().code(), Result::Pending);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dsr);
+    QCOMPARE(dsrss.count(), 2);
+    QCOMPARE(dsr.status(), Request::Finished);
+    QCOMPARE(dsr.result().code(), Result::Succeeded);
+
+    dsr.setIdentifier(estestSecret.identifier());
+    dsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dsr);
+    QCOMPARE(dsr.status(), Request::Finished);
+    QCOMPARE(dsr.result().code(), Result::Succeeded);
+
+    // finally, clean up the collections
+    DeleteCollectionRequest dcr;
+    dcr.setManager(&sm);
+    QSignalSpy dcrss(&dcr, &DeleteCollectionRequest::statusChanged);
+    dcr.setCollectionName(QLatin1String("testcollection"));
+    QCOMPARE(dcr.collectionName(), QLatin1String("testcollection"));
+    dcr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+    QCOMPARE(dcr.userInteractionMode(), SecretManager::ApplicationInteraction);
+    QCOMPARE(dcr.status(), Request::Inactive);
+    dcr.startRequest();
+    QCOMPARE(dcrss.count(), 1);
+    QCOMPARE(dcr.status(), Request::Active);
+    QCOMPARE(dcr.result().code(), Result::Pending);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
+    QCOMPARE(dcrss.count(), 2);
+    QCOMPARE(dcr.status(), Request::Finished);
+    QCOMPARE(dcr.result().code(), Result::Succeeded);
+
+    dcr.setCollectionName(QLatin1String("estestcollection"));
     dcr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
     QCOMPARE(dcr.status(), Request::Finished);

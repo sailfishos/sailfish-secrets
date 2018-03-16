@@ -48,6 +48,7 @@ public:
 
         SecretsDaemonRequestPidError = 20,
         SecretsDaemonRequestQueueFullError,
+        SecretsDaemonLockedError,
 
         SecretsPluginEncryptionError = 30,
         SecretsPluginDecryptionError,

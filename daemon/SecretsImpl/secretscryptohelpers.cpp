@@ -34,37 +34,12 @@ Daemon::ApiImpl::RequestProcessor::confirmCollectionStoragePlugin(
         const QString &collectionName,
         const QString &storagePluginName) const
 {
-    Daemon::Sqlite::DatabaseLocker locker(m_db);
-
-    const QString selectCollectionPluginsQuery = QStringLiteral(
-                 "SELECT"
-                    " StoragePluginName"
-                  " FROM Collections"
-                  " WHERE CollectionName = ?;"
-             );
-
-    QString errorText;
-    Daemon::Sqlite::Database::Query sq = m_db->prepare(selectCollectionPluginsQuery, &errorText);
-    if (!errorText.isEmpty()) {
-        return Result(Result::DatabaseQueryError,
-                      QString::fromLatin1("Unable to prepare select collection plugins query: %1").arg(errorText));
-    }
-
-    QVariantList values;
-    values << QVariant::fromValue<QString>(collectionName);
-    sq.bindValues(values);
-
-    if (!m_db->execute(sq, &errorText)) {
-        return Result(Result::DatabaseQueryError,
-                      QString::fromLatin1("Unable to execute select collection plugins query: %1").arg(errorText));
-    }
-
     QString collectionStoragePluginName;
-    if (sq.next()) {
-        collectionStoragePluginName = sq.value(0).value<QString>();
-    }
-
-    if (storagePluginName != collectionStoragePluginName) {
+    Result cspnResult = m_bkdb->collectionStoragePluginName(collectionName,
+                                                            &collectionStoragePluginName);
+    if (cspnResult.code() != Result::Succeeded) {
+        return cspnResult;
+    } else if (storagePluginName != collectionStoragePluginName) {
         return Result(Result::InvalidExtensionPluginError,
                       QString::fromLatin1("The identified collection is not stored by that plugin"));
     }
@@ -78,39 +53,13 @@ Daemon::ApiImpl::RequestProcessor::confirmKeyStoragePlugin(
         const QString &collectionName,
         const QString &storagePluginName) const
 {
-    Daemon::Sqlite::DatabaseLocker locker(m_db);
-
-    const QString selectCollectionPluginsQuery = QStringLiteral(
-                 "SELECT"
-                    " StoragePluginName"
-                  " FROM Secrets"
-                  " WHERE HashedSecretName = ?"
-                  " AND CollectionName = ?;"
-             );
-
-    QString errorText;
-    Daemon::Sqlite::Database::Query sq = m_db->prepare(selectCollectionPluginsQuery, &errorText);
-    if (!errorText.isEmpty()) {
-        return Result(Result::DatabaseQueryError,
-                      QString::fromLatin1("Unable to prepare select key plugins query: %1").arg(errorText));
-    }
-
-    QVariantList values;
-    values << QVariant::fromValue<QString>(hashedKeyName);
-    values << QVariant::fromValue<QString>(collectionName);
-    sq.bindValues(values);
-
-    if (!m_db->execute(sq, &errorText)) {
-        return Result(Result::DatabaseQueryError,
-                      QString::fromLatin1("Unable to execute select key plugins query: %1").arg(errorText));
-    }
-
     QString keyStoragePluginName;
-    if (sq.next()) {
-        keyStoragePluginName = sq.value(0).value<QString>();
-    }
-
-    if (storagePluginName != keyStoragePluginName) {
+    Result kspnResult = m_bkdb->keyStoragePluginName(collectionName,
+                                                     hashedKeyName,
+                                                     &keyStoragePluginName);
+    if (kspnResult.code() != Result::Succeeded) {
+        return kspnResult;
+    } else if (storagePluginName != keyStoragePluginName) {
         return Result(Result::InvalidExtensionPluginError,
                       QString::fromLatin1("The identified key is not stored by that plugin"));
     }
@@ -187,43 +136,11 @@ Daemon::ApiImpl::SecretsRequestQueue::keyEntryIdentifiers(
         quint64 cryptoRequestId,
         QVector<Sailfish::Crypto::Key::Identifier> *identifiers)
 {
-    // NOTE: the existence of this method introduces a potential security risk,
-    // as it means that the keyName must be stored in plain-text
-    // (in order to be useful when returned to clients).
-    // But, this means that if any key is stored in secrets
-    // storage, there is a potential known-plaintext issue!
-
     // TODO: access control
     Q_UNUSED(callerPid);
     Q_UNUSED(cryptoRequestId);
 
-    QMutexLocker(m_db.accessMutex());
-
-    const QString selectKeyIdentifiersQuery = QStringLiteral(
-                "SELECT"
-                   " KeyName,"
-                   " CollectionName"
-                " FROM KeyEntries;"
-             );
-
-    QString errorText;
-    Daemon::Sqlite::Database::Query sq = m_db.prepare(selectKeyIdentifiersQuery, &errorText);
-    if (!errorText.isEmpty()) {
-        return Result(Result::DatabaseQueryError,
-                      QString::fromLatin1("Unable to prepare select key identifiers query: %1").arg(errorText));
-    }
-
-    if (!m_db.execute(sq, &errorText)) {
-        return Result(Result::DatabaseQueryError,
-                      QString::fromLatin1("Unable to execute select key identifiers query: %1").arg(errorText));
-    }
-
-    while (sq.next()) {
-        identifiers->append(Sailfish::Crypto::Key::Identifier(sq.value(0).value<QString>(),
-                                                              sq.value(1).value<QString>()));
-    }
-
-    return Result(Result::Succeeded);
+    return m_bkdb.keyIdentifiers(identifiers);
 }
 
 Result
@@ -238,40 +155,10 @@ Daemon::ApiImpl::SecretsRequestQueue::keyEntry(
     Q_UNUSED(callerPid);
     Q_UNUSED(cryptoRequestId);
 
-    QMutexLocker(m_db.accessMutex());
-
-    const QString selectKeyPluginsQuery = QStringLiteral(
-                "SELECT"
-                   " CryptoPluginName,"
-                   " StoragePluginName"
-                " FROM KeyEntries"
-                " WHERE KeyName = ?"
-                " AND CollectionName = ?;"
-             );
-
-    QString errorText;
-    Daemon::Sqlite::Database::Query sq = m_db.prepare(selectKeyPluginsQuery, &errorText);
-    if (!errorText.isEmpty()) {
-        return Result(Result::DatabaseQueryError,
-                      QString::fromLatin1("Unable to prepare select key plugins query: %1").arg(errorText));
-    }
-
-    QVariantList values;
-    values << QVariant::fromValue<QString>(identifier.name())
-           << QVariant::fromValue<QString>(identifier.collectionName());
-    sq.bindValues(values);
-
-    if (!m_db.execute(sq, &errorText)) {
-        return Result(Result::DatabaseQueryError,
-                      QString::fromLatin1("Unable to execute select key plugins query: %1").arg(errorText));
-    }
-
-    if (sq.next()) {
-        *cryptoPluginName = sq.value(0).value<QString>();
-        *storagePluginName = sq.value(1).value<QString>();
-    }
-
-    return Result(Result::Succeeded);
+    return m_bkdb.keyPluginNames(identifier.collectionName(),
+                                 identifier.name(),
+                                 cryptoPluginName,
+                                 storagePluginName);
 }
 
 Result
@@ -286,53 +173,13 @@ Daemon::ApiImpl::SecretsRequestQueue::addKeyEntry(
     Q_UNUSED(callerPid);
     Q_UNUSED(cryptoRequestId);
 
-    QMutexLocker(m_db.accessMutex());
-
-    const QString insertKeyEntryQuery = QStringLiteral(
-                "INSERT INTO KeyEntries ("
-                "   CollectionName,"
-                "   HashedSecretName,"
-                "   KeyName,"
-                "   CryptoPluginName,"
-                "   StoragePluginName )"
-                " VALUES ( ?,?,?,?,? );"
-             );
-
-    QString errorText;
-    Daemon::Sqlite::Database::Query iq = m_db.prepare(insertKeyEntryQuery, &errorText);
-    if (!errorText.isEmpty()) {
-        return Result(Result::DatabaseQueryError,
-                      QString::fromLatin1("Unable to prepare insert key entry query: %1").arg(errorText));
-    }
-
-    QVariantList values;
     const QString hashedSecretName = Daemon::Util::generateHashedSecretName(
                 identifier.collectionName(), identifier.name());
-    values << QVariant::fromValue<QString>(identifier.collectionName())
-           << QVariant::fromValue<QString>(hashedSecretName)
-           << QVariant::fromValue<QString>(identifier.name())
-           << QVariant::fromValue<QString>(cryptoPluginName)
-           << QVariant::fromValue<QString>(storagePluginName);
-    iq.bindValues(values);
-
-    if (!m_db.beginTransaction()) {
-        return Result(Result::DatabaseTransactionError,
-                      QLatin1String("Unable to begin insert key entry transaction"));
-    }
-
-    if (!m_db.execute(iq, &errorText)) {
-        m_db.rollbackTransaction();
-        return Result(Result::DatabaseQueryError,
-                      QString::fromLatin1("Unable to execute insert key entry query: %1").arg(errorText));
-    }
-
-    if (!m_db.commitTransaction()) {
-        m_db.rollbackTransaction();
-        return Result(Result::DatabaseTransactionError,
-                      QLatin1String("Unable to commit insert key entry transaction"));
-    }
-
-    return Result(Result::Succeeded);
+    return m_bkdb.addKeyEntry(identifier.collectionName(),
+                              hashedSecretName,
+                              identifier.name(),
+                              cryptoPluginName,
+                              storagePluginName);
 }
 
 Result
@@ -345,44 +192,8 @@ Daemon::ApiImpl::SecretsRequestQueue::removeKeyEntry(
     Q_UNUSED(callerPid);
     Q_UNUSED(cryptoRequestId);
 
-    QMutexLocker(m_db.accessMutex());
-
-    const QString deleteKeyEntryQuery = QStringLiteral(
-                "DELETE FROM KeyEntries"
-                " WHERE CollectionName = ?"
-                " AND KeyName = ?;"
-             );
-
-    QString errorText;
-    Daemon::Sqlite::Database::Query dq = m_db.prepare(deleteKeyEntryQuery, &errorText);
-    if (!errorText.isEmpty()) {
-        return Result(Result::DatabaseQueryError,
-                      QString::fromLatin1("Unable to prepare delete key entry query: %1").arg(errorText));
-    }
-
-    QVariantList values;
-    values << QVariant::fromValue<QString>(identifier.collectionName())
-           << QVariant::fromValue<QString>(identifier.name());
-    dq.bindValues(values);
-
-    if (!m_db.beginTransaction()) {
-        return Result(Result::DatabaseTransactionError,
-                      QLatin1String("Unable to begin delete key entry transaction"));
-    }
-
-    if (!m_db.execute(dq, &errorText)) {
-        m_db.rollbackTransaction();
-        return Result(Result::DatabaseQueryError,
-                      QString::fromLatin1("Unable to execute delete key entry query: %1").arg(errorText));
-    }
-
-    if (!m_db.commitTransaction()) {
-        m_db.rollbackTransaction();
-        return Result(Result::DatabaseTransactionError,
-                      QLatin1String("Unable to commit delete key entry transaction"));
-    }
-
-    return Result(Result::Succeeded);
+    return m_bkdb.removeKeyEntry(identifier.collectionName(),
+                                 identifier.name());
 }
 
 // The crypto plugin can store keys, thus it is an EncryptedStoragePlugin.

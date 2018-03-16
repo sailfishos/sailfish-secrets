@@ -134,6 +134,27 @@ public:
             const Sailfish::Secrets::Secret::Identifier &identifier,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
+    // modify the passphrase used to encrypt a collection or standalone secret
+    QDBusPendingReply<Sailfish::Secrets::Result> modifyLockCode(
+            const QString &secretName,
+            const QString &collectionName,
+            const Sailfish::Secrets::InteractionParameters &interactionParameters,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
+
+    // provide the passphrase to unlock a collection or standalone secret
+    QDBusPendingReply<Sailfish::Secrets::Result> provideLockCode(
+            const QString &secretName,
+            const QString &collectionName,
+            const Sailfish::Secrets::InteractionParameters &interactionParameters,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
+
+    // forget the passphrase and relock a collection or standalone secret
+    QDBusPendingReply<Sailfish::Secrets::Result> forgetLockCode(
+            const QString &secretName,
+            const QString &collectionName,
+            const Sailfish::Secrets::InteractionParameters &interactionParameters,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
+
 private:
     friend class SecretManager;
     friend class InteractionService;

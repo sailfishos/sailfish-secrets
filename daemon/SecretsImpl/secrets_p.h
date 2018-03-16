@@ -8,7 +8,7 @@
 #ifndef SAILFISHSECRETS_APIIMPL_SECRETS_P_H
 #define SAILFISHSECRETS_APIIMPL_SECRETS_P_H
 
-#include "database_p.h"
+#include "bookkeepingdatabase_p.h"
 #include "requestqueue_p.h"
 #include "applicationpermissions_p.h"
 
@@ -25,6 +25,15 @@
 #include <QtDBus/QDBusContext>
 
 namespace Sailfish {
+
+// forward declare the CryptoRequestQueue type
+namespace Crypto {
+    namespace Daemon {
+        namespace ApiImpl {
+            class CryptoRequestQueue;
+        }
+    }
+}
 
 namespace Secrets {
 
@@ -179,6 +188,42 @@ class SecretsDBusObject : public QObject, protected QDBusContext
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Secrets::SecretManager::UserInteractionMode\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
     "      </method>\n"
+    "      <method name=\"modifyLockCode\">\n"
+    "          <arg name=\"secretName\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"collectionName\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"interactionParameters\" type=\"(sss(i)sss(i)(i))\" direction=\"in\" />\n"
+    "          <arg name=\"userInteractionMode\" type=\"(i)\" direction=\"in\" />\n"
+    "          <arg name=\"interactionServiceAddress\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Secrets::InteractionParameters\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Secrets::SecretManager::AccessControlMode\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Secrets::SecretManager::UserInteractionMode\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
+    "      </method>\n"
+    "      <method name=\"provideLockCode\">\n"
+    "          <arg name=\"secretName\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"collectionName\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"interactionParameters\" type=\"(sss(i)sss(i)(i))\" direction=\"in\" />\n"
+    "          <arg name=\"userInteractionMode\" type=\"(i)\" direction=\"in\" />\n"
+    "          <arg name=\"interactionServiceAddress\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Secrets::InteractionParameters\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Secrets::SecretManager::AccessControlMode\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Secrets::SecretManager::UserInteractionMode\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
+    "      </method>\n"
+    "      <method name=\"forgetLockCode\">\n"
+    "          <arg name=\"secretName\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"collectionName\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"interactionParameters\" type=\"(sss(i)sss(i)(i))\" direction=\"in\" />\n"
+    "          <arg name=\"userInteractionMode\" type=\"(i)\" direction=\"in\" />\n"
+    "          <arg name=\"interactionServiceAddress\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Secrets::InteractionParameters\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Secrets::SecretManager::AccessControlMode\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Secrets::SecretManager::UserInteractionMode\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
+    "      </method>\n"
     "  </interface>\n"
     "")
 
@@ -304,6 +349,36 @@ public Q_SLOTS:
             const QDBusMessage &message,
             Sailfish::Secrets::Result &result);
 
+    // modify a lock code (re-key an encrypted collection or standalone secret)
+    void modifyLockCode(
+            const QString &secretName,
+            const QString &collectionName,
+            const Sailfish::Secrets::InteractionParameters &interactionParameters,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            const QDBusMessage &message,
+            Sailfish::Secrets::Result &result);
+
+    // provide a lock code (unlock an encrypted collection or standalone secret)
+    void provideLockCode(
+            const QString &secretName,
+            const QString &collectionName,
+            const Sailfish::Secrets::InteractionParameters &interactionParameters,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            const QDBusMessage &message,
+            Sailfish::Secrets::Result &result);
+
+    // forget a lock code (lock an encrypted collection or standalone secret)
+    void forgetLockCode(
+            const QString &secretName,
+            const QString &collectionName,
+            const Sailfish::Secrets::InteractionParameters &interactionParameters,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            const QDBusMessage &message,
+            Sailfish::Secrets::Result &result);
+
 private:
     Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *m_requestQueue;
 };
@@ -317,6 +392,8 @@ public:
     SecretsRequestQueue(Sailfish::Secrets::Daemon::Controller *parent, const QString &pluginDir, bool autotestMode);
     ~SecretsRequestQueue();
 
+    bool initialise(const QByteArray &lockCode);
+
     void handlePendingRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;
     void handleFinishedRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;
     QString requestTypeToString(int type) const Q_DECL_OVERRIDE;
@@ -325,9 +402,31 @@ public: // helpers for crypto API: secretscryptohelpers.cpp
     QMap<QString, QObject*> potentialCryptoStoragePlugins() const;
 
 private:
-    Sailfish::Secrets::Daemon::Sqlite::Database m_db;
+    Sailfish::Secrets::Daemon::ApiImpl::BookkeepingDatabase m_bkdb;
     Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *m_appPermissions;
     Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor *m_requestProcessor;
+    Sailfish::Secrets::Daemon::Controller *m_controller;
+    bool m_autotestMode;
+
+    // mlock() data for the bookkeeping database lock key and device lock key
+    char *m_bkdbLockKeyData;
+    char *m_deviceLockKeyData;
+    int m_bkdbLockKeyLen;
+    int m_deviceLockKeyLen;
+    bool m_noLockCode;
+    mutable QByteArray m_saltData;
+    bool initialiseKeyData(const QByteArray &lockCode);
+
+public: // For use by the secrets request processor to handle device-locked collection/secret semantics
+    bool testLockCode(const QByteArray &lockCode);
+    QByteArray saltData() const;
+    bool noLockCode() const;
+    const QByteArray bkdbLockKey() const;
+    const QByteArray deviceLockKey() const;
+
+    bool lockCryptoPlugins();
+    bool unlockCryptoPlugins(const QByteArray &lockCode);
+    bool setLockCodeCryptoPlugins(const QByteArray &oldCode, const QByteArray &newCode);
 
 public: // Crypto API helper methods.
     // these methods are provided in order to implement Crypto functionality
@@ -390,6 +489,9 @@ enum RequestType {
     FindStandaloneSecretsRequest,
     DeleteCollectionSecretRequest,
     DeleteStandaloneSecretRequest,
+    ModifyLockCodeRequest,
+    ProvideLockCodeRequest,
+    ForgetLockCodeRequest,
     // Internal user input request types:
     SetCollectionUserInputSecretRequest,
     SetStandaloneDeviceLockUserInputSecretRequest,

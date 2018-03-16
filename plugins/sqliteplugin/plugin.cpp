@@ -83,10 +83,10 @@ Daemon::Plugins::SqlitePlugin::createCollection(
 
     if (collectionName.isEmpty()) {
         return Result(Result::InvalidCollectionError,
-                                         QString::fromUtf8("Empty collection name given"));
+                      QString::fromUtf8("Empty collection name given"));
     } else if (collectionName.compare(QStringLiteral("standalone"), Qt::CaseInsensitive) == 0) {
         return Result(Result::InvalidCollectionError,
-                                         QString::fromUtf8("Reserved collection name given"));
+                      QString::fromUtf8("Reserved collection name given"));
     }
 
     const QString selectCollectionsCountQuery = QStringLiteral(
@@ -100,7 +100,7 @@ Daemon::Plugins::SqlitePlugin::createCollection(
     Daemon::Sqlite::Database::Query sq = m_db.prepare(selectCollectionsCountQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to prepare select collections query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to prepare select collections query: %1").arg(errorText));
     }
 
     QVariantList values;
@@ -109,13 +109,13 @@ Daemon::Plugins::SqlitePlugin::createCollection(
 
     if (!m_db.beginTransaction()) {
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("Sqlite plugin unable to begin transaction"));
+                      QString::fromUtf8("Sqlite plugin unable to begin transaction"));
     }
 
     if (!m_db.execute(sq, &errorText)) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to execute select collections query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to execute select collections query: %1").arg(errorText));
     }
 
     bool found = false;
@@ -126,7 +126,7 @@ Daemon::Plugins::SqlitePlugin::createCollection(
     if (found) {
         m_db.rollbackTransaction();
         return Result(Result::CollectionAlreadyExistsError,
-                                         QString::fromUtf8("Collection already exists: %1").arg(collectionName));
+                      QString::fromUtf8("Collection already exists: %1").arg(collectionName));
     }
 
     const QString insertCollectionQuery = QStringLiteral(
@@ -141,7 +141,7 @@ Daemon::Plugins::SqlitePlugin::createCollection(
     if (!errorText.isEmpty()) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to prepare insert collection query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to prepare insert collection query: %1").arg(errorText));
     }
 
     QVariantList ivalues;
@@ -151,13 +151,13 @@ Daemon::Plugins::SqlitePlugin::createCollection(
     if (!m_db.execute(iq, &errorText)) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to execute insert collection query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to execute insert collection query: %1").arg(errorText));
     }
 
     if (!m_db.commitTransaction()) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("Sqlite plugin unable to commit insert collection transaction"));
+                      QString::fromUtf8("Sqlite plugin unable to commit insert collection transaction"));
     }
 
     return Result(Result::Succeeded);
@@ -173,10 +173,10 @@ Daemon::Plugins::SqlitePlugin::removeCollection(
 
     if (collectionName.isEmpty()) {
         return Result(Result::InvalidCollectionError,
-                                         QString::fromUtf8("Empty collection name given"));
+                      QString::fromUtf8("Empty collection name given"));
     } else if (collectionName.compare(QStringLiteral("standalone"), Qt::CaseInsensitive) == 0) {
         return Result(Result::InvalidCollectionError,
-                                         QString::fromUtf8("Reserved collection name given"));
+                      QString::fromUtf8("Reserved collection name given"));
     }
 
     const QString deleteCollectionQuery = QStringLiteral(
@@ -187,7 +187,7 @@ Daemon::Plugins::SqlitePlugin::removeCollection(
     Daemon::Sqlite::Database::Query dq = m_db.prepare(deleteCollectionQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to prepare delete collection query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to prepare delete collection query: %1").arg(errorText));
     }
 
     QVariantList values;
@@ -196,19 +196,19 @@ Daemon::Plugins::SqlitePlugin::removeCollection(
 
     if (!m_db.beginTransaction()) {
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("Sqlite plugin unable to begin transaction"));
+                      QString::fromUtf8("Sqlite plugin unable to begin transaction"));
     }
 
     if (!m_db.execute(dq, &errorText)) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to execute delete collection query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to execute delete collection query: %1").arg(errorText));
     }
 
     if (!m_db.commitTransaction()) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("Sqlite plugin unable to commit delete collection transaction"));
+                      QString::fromUtf8("Sqlite plugin unable to commit delete collection transaction"));
     }
 
     return Result(Result::Succeeded);
@@ -228,10 +228,10 @@ Daemon::Plugins::SqlitePlugin::setSecret(
     // Note: don't disallow collectionName=standalone, since that's how we store standalone secrets.
     if (hashedSecretName.isEmpty()) {
         return Result(Result::InvalidSecretError,
-                                         QString::fromUtf8("Empty secret name given"));
+                      QString::fromUtf8("Empty secret name given"));
     } else if (collectionName.isEmpty()) {
         return Result(Result::InvalidCollectionError,
-                                         QString::fromUtf8("Empty collection name given"));
+                      QString::fromUtf8("Empty collection name given"));
     }
 
     const QString selectSecretsCountQuery = QStringLiteral(
@@ -246,7 +246,7 @@ Daemon::Plugins::SqlitePlugin::setSecret(
     Daemon::Sqlite::Database::Query sq = m_db.prepare(selectSecretsCountQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to prepare select secrets query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to prepare select secrets query: %1").arg(errorText));
     }
 
     QVariantList values;
@@ -256,13 +256,13 @@ Daemon::Plugins::SqlitePlugin::setSecret(
 
     if (!m_db.beginTransaction()) {
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("Sqlite plugin unable to begin transaction"));
+                      QString::fromUtf8("Sqlite plugin unable to begin transaction"));
     }
 
     if (!m_db.execute(sq, &errorText)) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to execute select secrets query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to execute select secrets query: %1").arg(errorText));
     }
 
     bool found = false;
@@ -293,7 +293,7 @@ Daemon::Plugins::SqlitePlugin::setSecret(
     if (!errorText.isEmpty()) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to prepare insert secret query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to prepare insert secret query: %1").arg(errorText));
     }
 
     QVariantList ivalues;
@@ -312,7 +312,7 @@ Daemon::Plugins::SqlitePlugin::setSecret(
     if (!m_db.execute(iq, &errorText)) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to execute insert secret query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to execute insert secret query: %1").arg(errorText));
     }
 
     const QString deleteSecretsFilterDataQuery = QStringLiteral(
@@ -325,7 +325,7 @@ Daemon::Plugins::SqlitePlugin::setSecret(
     if (!errorText.isEmpty()) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to prepare delete secrets filter data query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to prepare delete secrets filter data query: %1").arg(errorText));
     }
 
     QVariantList dvalues;
@@ -336,7 +336,7 @@ Daemon::Plugins::SqlitePlugin::setSecret(
     if (!m_db.execute(dq, &errorText)) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to execute delete secrets filter data query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to execute delete secrets filter data query: %1").arg(errorText));
     }
 
     const QString insertSecretsFilterDataQuery = QStringLiteral(
@@ -354,7 +354,7 @@ Daemon::Plugins::SqlitePlugin::setSecret(
     if (!errorText.isEmpty()) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to prepare insert secrets filter data query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to prepare insert secrets filter data query: %1").arg(errorText));
     }
 
     for (Secret::FilterData::const_iterator it = filterData.constBegin(); it != filterData.constEnd(); it++) {
@@ -367,14 +367,14 @@ Daemon::Plugins::SqlitePlugin::setSecret(
         if (!m_db.execute(ifdq, &errorText)) {
             m_db.rollbackTransaction();
             return Result(Result::DatabaseQueryError,
-                                             QString::fromUtf8("Sqlite plugin unable to execute insert secrets filter data query: %1").arg(errorText));
+                          QString::fromUtf8("Sqlite plugin unable to execute insert secrets filter data query: %1").arg(errorText));
         }
     }
 
     if (!m_db.commitTransaction()) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("Sqlite plugin unable to commit insert secret transaction"));
+                      QString::fromUtf8("Sqlite plugin unable to commit insert secret transaction"));
     }
 
     return Result(Result::Succeeded);
@@ -394,10 +394,10 @@ Daemon::Plugins::SqlitePlugin::getSecret(
     // Note: don't disallow collectionName=standalone, since that's how we store standalone secrets.
     if (hashedSecretName.isEmpty()) {
         return Result(Result::InvalidSecretError,
-                                         QString::fromUtf8("Empty secret name given"));
+                      QString::fromUtf8("Empty secret name given"));
     } else if (collectionName.isEmpty()) {
         return Result(Result::InvalidCollectionError,
-                                         QString::fromUtf8("Empty collection name given"));
+                      QString::fromUtf8("Empty collection name given"));
     }
 
     const QString selectSecretQuery = QStringLiteral(
@@ -413,7 +413,7 @@ Daemon::Plugins::SqlitePlugin::getSecret(
     Daemon::Sqlite::Database::Query sq = m_db.prepare(selectSecretQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to prepare select secret query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to prepare select secret query: %1").arg(errorText));
     }
 
     QVariantList values;
@@ -423,13 +423,13 @@ Daemon::Plugins::SqlitePlugin::getSecret(
 
     if (!m_db.beginTransaction()) {
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("Sqlite plugin unable to begin transaction"));
+                      QString::fromUtf8("Sqlite plugin unable to begin transaction"));
     }
 
     if (!m_db.execute(sq, &errorText)) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to execute select secret query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to execute select secret query: %1").arg(errorText));
     }
 
     bool found = false;
@@ -455,14 +455,14 @@ Daemon::Plugins::SqlitePlugin::getSecret(
         Daemon::Sqlite::Database::Query sfdq = m_db.prepare(selectSecretFilterDataQuery, &errorText);
         if (!errorText.isEmpty()) {
             return Result(Result::DatabaseQueryError,
-                                             QString::fromUtf8("Sqlite plugin unable to prepare select secret filter data query: %1").arg(errorText));
+                          QString::fromUtf8("Sqlite plugin unable to prepare select secret filter data query: %1").arg(errorText));
         }
         sfdq.bindValues(values);
 
         if (!m_db.execute(sfdq, &errorText)) {
             m_db.rollbackTransaction();
             return Result(Result::DatabaseQueryError,
-                                             QString::fromUtf8("Sqlite plugin unable to execute select secret filter data query: %1").arg(errorText));
+                          QString::fromUtf8("Sqlite plugin unable to execute select secret filter data query: %1").arg(errorText));
         }
 
         while (sfdq.next()) {
@@ -473,12 +473,12 @@ Daemon::Plugins::SqlitePlugin::getSecret(
     if (!m_db.commitTransaction()) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("Sqlite plugin unable to commit select secret transaction"));
+                      QString::fromUtf8("Sqlite plugin unable to commit select secret transaction"));
     }
 
     if (!found) {
         return Result(Result::InvalidSecretError,
-                                         QString::fromUtf8("No such secret stored"));
+                      QString::fromUtf8("No such secret stored"));
     }
 
     *encryptedSecretName = secretName;
@@ -500,10 +500,10 @@ Daemon::Plugins::SqlitePlugin::findSecrets(
     // Note: don't disallow collectionName=standalone, since that's how we store standalone secrets.
     if (collectionName.isEmpty()) {
         return Result(Result::InvalidCollectionError,
-                                         QString::fromUtf8("Empty collection name given"));
+                      QString::fromUtf8("Empty collection name given"));
     } else if (filter.isEmpty()) {
         return Result(Result::InvalidFilterError,
-                                         QString::fromUtf8("Empty filter given"));
+                      QString::fromUtf8("Empty filter given"));
     }
 
     // very naive implementation.
@@ -524,7 +524,7 @@ Daemon::Plugins::SqlitePlugin::findSecrets(
     Daemon::Sqlite::Database::Query sq = m_db.prepare(selectSecretsFilterDataQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to prepare select secrets filter data query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to prepare select secrets filter data query: %1").arg(errorText));
     }
 
     QVariantList values;
@@ -533,13 +533,13 @@ Daemon::Plugins::SqlitePlugin::findSecrets(
 
     if (!m_db.beginTransaction()) {
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("Sqlite plugin unable to begin find secrets transaction"));
+                      QString::fromUtf8("Sqlite plugin unable to begin find secrets transaction"));
     }
 
     if (!m_db.execute(sq, &errorText)) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to execute select secrets filter data query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to execute select secrets filter data query: %1").arg(errorText));
     }
 
     QMap<QString, Secret::FilterData > hashedSecretNameToFilterData;
@@ -595,7 +595,7 @@ Daemon::Plugins::SqlitePlugin::findSecrets(
     Daemon::Sqlite::Database::Query seq = m_db.prepare(selectEncryptedSecretName, &errorText);
     if (!errorText.isEmpty()) {
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to prepare select encrypted secret name query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to prepare select encrypted secret name query: %1").arg(errorText));
     }
 
     QVector<QByteArray> retn;
@@ -608,7 +608,7 @@ Daemon::Plugins::SqlitePlugin::findSecrets(
         if (!m_db.execute(seq, &errorText)) {
             m_db.rollbackTransaction();
             return Result(Result::DatabaseQueryError,
-                                             QString::fromUtf8("Sqlite plugin unable to execute select encrypted secret name query: %1").arg(errorText));
+                          QString::fromUtf8("Sqlite plugin unable to execute select encrypted secret name query: %1").arg(errorText));
         }
 
         if (seq.next()) {
@@ -619,7 +619,7 @@ Daemon::Plugins::SqlitePlugin::findSecrets(
     if (!m_db.commitTransaction()) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("Sqlite plugin unable to commit find secrets transaction"));
+                      QString::fromUtf8("Sqlite plugin unable to commit find secrets transaction"));
     }
 
     *encryptedSecretNames = retn;
@@ -637,10 +637,10 @@ Daemon::Plugins::SqlitePlugin::removeSecret(
     // Note: don't disallow collectionName=standalone, since that's how we delete standalone secrets.
     if (secretName.isEmpty()) {
         return Result(Result::InvalidSecretError,
-                                         QString::fromUtf8("Empty secret name given"));
+                      QString::fromUtf8("Empty secret name given"));
     } else if (collectionName.isEmpty()) {
         return Result(Result::InvalidCollectionError,
-                                         QString::fromUtf8("Empty collection name given"));
+                      QString::fromUtf8("Empty collection name given"));
     }
 
     const QString deleteSecretQuery = QStringLiteral(
@@ -652,7 +652,7 @@ Daemon::Plugins::SqlitePlugin::removeSecret(
     Daemon::Sqlite::Database::Query dq = m_db.prepare(deleteSecretQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to prepare delete secret query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to prepare delete secret query: %1").arg(errorText));
     }
 
     QVariantList values;
@@ -662,19 +662,19 @@ Daemon::Plugins::SqlitePlugin::removeSecret(
 
     if (!m_db.beginTransaction()) {
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("Sqlite plugin unable to begin transaction"));
+                      QString::fromUtf8("Sqlite plugin unable to begin transaction"));
     }
 
     if (!m_db.execute(dq, &errorText)) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to execute delete secret query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to execute delete secret query: %1").arg(errorText));
     }
 
     if (!m_db.commitTransaction()) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("Sqlite plugin unable to commit delete secret transaction"));
+                      QString::fromUtf8("Sqlite plugin unable to commit delete secret transaction"));
     }
 
     return Result(Result::Succeeded);
@@ -694,7 +694,7 @@ Daemon::Plugins::SqlitePlugin::reencryptSecrets(
     // Note: don't disallow collectionName=standalone, since that's how we store standalone secrets.
     if (collectionName.isEmpty() && secretNames.isEmpty()) {
         return Result(Result::InvalidSecretError,
-                                         QString::fromUtf8("Empty secret names given and empty collection name given"));
+                      QString::fromUtf8("Empty secret names given and empty collection name given"));
     }
 
     QString selectSecretsQuery;
@@ -707,7 +707,7 @@ Daemon::Plugins::SqlitePlugin::reencryptSecrets(
         }
         if (values.isEmpty()) {
             return Result(Result::InvalidSecretError,
-                                             QString::fromUtf8("Empty secret names given"));
+                          QString::fromUtf8("Empty secret names given"));
         }
         selectSecretsQuery = QStringLiteral(
                      "SELECT"
@@ -739,20 +739,20 @@ Daemon::Plugins::SqlitePlugin::reencryptSecrets(
     Daemon::Sqlite::Database::Query sq = m_db.prepare(selectSecretsQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to prepare select secrets query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to prepare select secrets query: %1").arg(errorText));
     }
 
     sq.bindValues(values);
 
     if (!m_db.beginTransaction()) {
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("Sqlite plugin unable to begin transaction"));
+                      QString::fromUtf8("Sqlite plugin unable to begin transaction"));
     }
 
     if (!m_db.execute(sq, &errorText)) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to execute select secrets query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to execute select secrets query: %1").arg(errorText));
     }
 
     // decrypt each value, re-encrypt it with the new key, and write it back to the database.
@@ -789,23 +789,23 @@ Daemon::Plugins::SqlitePlugin::reencryptSecrets(
     if (!errorText.isEmpty()) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to prepare update secret query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to prepare update secret query: %1").arg(errorText));
     }
 
     uq.addBindValue(vsecrets);
     uq.addBindValue(vcollectionNames);
     uq.addBindValue(vsecretNames);
 
-    if (!m_db.execute(uq, &errorText)) {
+    if (!m_db.executeBatch(uq, &errorText)) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("Sqlite plugin unable to execute update secret query: %1").arg(errorText));
+                      QString::fromUtf8("Sqlite plugin unable to execute update secret query: %1").arg(errorText));
     }
 
     if (!m_db.commitTransaction()) {
         m_db.rollbackTransaction();
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("Sqlite plugin unable to commit update secret transaction"));
+                      QString::fromUtf8("Sqlite plugin unable to commit update secret transaction"));
     }
 
     return Result(Result::Succeeded);

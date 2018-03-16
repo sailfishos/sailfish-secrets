@@ -445,6 +445,30 @@ Daemon::ApiImpl::CryptoRequestQueue::~CryptoRequestQueue()
 {
 }
 
+QMap<QString, Sailfish::Crypto::CryptoPlugin*>
+Daemon::ApiImpl::CryptoRequestQueue::plugins() const
+{
+    return m_requestProcessor->plugins();
+}
+
+bool Daemon::ApiImpl::CryptoRequestQueue::lockPlugins()
+{
+    return m_requestProcessor->lockPlugins();
+}
+
+bool Daemon::ApiImpl::CryptoRequestQueue::unlockPlugins(
+        const QByteArray &unlockCode)
+{
+    return m_requestProcessor->unlockPlugins(unlockCode);
+}
+
+bool Daemon::ApiImpl::CryptoRequestQueue::setLockCodePlugins(
+        const QByteArray &oldCode,
+        const QByteArray &newCode)
+{
+    return m_requestProcessor->setLockCodePlugins(oldCode, newCode);
+}
+
 QString Daemon::ApiImpl::CryptoRequestQueue::requestTypeToString(int type) const
 {
     switch (type) {
