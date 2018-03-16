@@ -6,6 +6,7 @@
  */
 
 #include "sqlcipherplugin.h"
+#include "evp_p.h"
 
 #include <QFile>
 #include <QCryptographicHash>
@@ -75,7 +76,7 @@ Daemon::Plugins::SqlCipherPlugin::openCollectionDatabase(
                             ? key.toHex()
                             : QCryptographicHash::hash(key, QCryptographicHash::Sha256).toHex();
     if (hexKey.length() != 64) {
-        retn = Result(Result::IncorrectAuthenticationKeyError,
+        retn = Result(Result::IncorrectAuthenticationCodeError,
                       QLatin1String("The given key is not a 256 bit key, and could not be converted to one"));
     } else {
         const QByteArray setupKeyStatement = QString::fromLatin1(setupEncryptionKey).arg(QLatin1String(hexKey)).toLatin1();
@@ -208,6 +209,36 @@ Daemon::Plugins::SqlCipherPlugin::isLocked(
 }
 
 Result
+Daemon::Plugins::SqlCipherPlugin::deriveKeyFromCode(
+        const QByteArray &authenticationCode,
+        const QByteArray &salt,
+        QByteArray *key)
+{
+    const QByteArray inputData = authenticationCode.isEmpty()
+                         ? QByteArray(1, '\0')
+                         : authenticationCode;
+    const int nbytes = 32; // 256 bit
+    QScopedArrayPointer<char> buf(new char[nbytes]);
+    if (osslevp_pkcs5_pbkdf2_hmac(
+            inputData.constData(),
+            inputData.size(),
+            salt.isEmpty()
+                    ? NULL
+                    : reinterpret_cast<const unsigned char*>(salt.constData()),
+            salt.size(),
+            10000, // iterations
+            21, // CryptoManager::DigestSha256
+            nbytes,
+            reinterpret_cast<unsigned char*>(buf.data())) != 1) {
+        return Result(Result::SecretsPluginKeyDerivationError,
+                      QLatin1String("The OpenSSL plugin failed to derive the key data"));
+    }
+
+    *key = QByteArray(buf.data(), nbytes);
+    return Result(Result::Succeeded);
+}
+
+Result
 Daemon::Plugins::SqlCipherPlugin::setEncryptionKey(
         const QString &collectionName,
         const QByteArray &key)
@@ -219,7 +250,7 @@ Daemon::Plugins::SqlCipherPlugin::setEncryptionKey(
                                 ? key.toHex()
                                 : QCryptographicHash::hash(key, QCryptographicHash::Sha256).toHex();
         if (hexKey.length() != 64) {
-            retn = Result(Result::IncorrectAuthenticationKeyError,
+            retn = Result(Result::IncorrectAuthenticationCodeError,
                           QLatin1String("The given key is not a 256 bit key, and could not be converted to one"));
         } else {
             Daemon::Sqlite::DatabaseLocker locker(db);
@@ -266,7 +297,7 @@ Daemon::Plugins::SqlCipherPlugin::reencrypt(
                                     ? newkey.toHex()
                                     : QCryptographicHash::hash(newkey, QCryptographicHash::Sha256).toHex();
             if (hexKey.length() != 64) {
-                retn = Result(Result::IncorrectAuthenticationKeyError,
+                retn = Result(Result::IncorrectAuthenticationCodeError,
                               QLatin1String("The given key is not a 256 bit key, and could not be converted to one"));
             } else {
                 Daemon::Sqlite::DatabaseLocker locker(db);
