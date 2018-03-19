@@ -134,7 +134,14 @@ QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::Crypt
 Daemon::Plugins::OpenSslCryptoPlugin::supportedBlockModes() const
 {
     QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::BlockMode> > retn;
-    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes, QVector<Sailfish::Crypto::CryptoManager::BlockMode>() << Sailfish::Crypto::CryptoManager::BlockModeCbc);
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes,
+                QVector<Sailfish::Crypto::CryptoManager::BlockMode>()
+                        << Sailfish::Crypto::CryptoManager::BlockModeEcb
+                        << Sailfish::Crypto::CryptoManager::BlockModeCbc
+                        << Sailfish::Crypto::CryptoManager::BlockModeCfb1
+                        << Sailfish::Crypto::CryptoManager::BlockModeCfb8
+                        << Sailfish::Crypto::CryptoManager::BlockModeCfb128
+                        << Sailfish::Crypto::CryptoManager::BlockModeOfb);
     return retn;
 }
 
@@ -469,22 +476,13 @@ Daemon::Plugins::OpenSslCryptoPlugin::encrypt(
                                         QLatin1String("Secret key size does not match"));
     }
 
-    // Ensure the IV has the correct size. The IV size for *most* modes is the same as the block size.
-    QByteArray initVector = iv;
-    if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeCbc) {
-        // For AES, the block size is 128 bits (i.e. 16 bytes).
-        if (initVector.size() > 16) {
-            initVector.chop(initVector.size() - 16);
-        } else while (initVector.size() < 16) {
-            initVector.append('\0');
-        }
-    } else {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: block modes other than CBC"));
+    if (!validInitializationVector(iv, blockMode, fullKey.algorithm())) {
+         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                         QLatin1String("Initialization Vector has wrong size!"));
     }
 
     // encrypt plaintext
-    QByteArray ciphertext = aes_encrypt_plaintext(blockMode, data, fullKey.secretKey(), initVector);
+    QByteArray ciphertext = aes_encrypt_plaintext(blockMode, data, fullKey.secretKey(), iv);
 
     // return result
     if (ciphertext.size()) {
@@ -521,21 +519,13 @@ Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
                                         QLatin1String("TODO: encryption padding other than None"));
     }
 
-    // Ensure the IV has the correct size. The IV size for most modes is the same as the block size.
-    QByteArray initVector = iv;
-    if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeCbc) {
-        // For AES, the block size is 128 bits (i.e. 16 bytes).
-        if (initVector.size() > 16) {
-            initVector.chop(initVector.size() - 16);
-        } else while (initVector.size() < 16) {
-            initVector.append('\0');
-        }
-    } else {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: block modes other than CBC"));
+    if (!validInitializationVector(iv, blockMode, fullKey.algorithm())) {
+         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                         QLatin1String("Initialization Vector has wrong size!"));
     }
+
     // decrypt ciphertext
-    QByteArray plaintext = aes_decrypt_ciphertext(blockMode, data, fullKey.secretKey(), initVector);
+    QByteArray plaintext = aes_decrypt_ciphertext(blockMode, data, fullKey.secretKey(), iv);
     if (!plaintext.size() || (plaintext.size() == 1 && plaintext.at(0) == 0)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginDecryptionError,
                                          QLatin1String("Failed to decrypt the secret"));
@@ -568,11 +558,6 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
     if (fullKey.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmAes) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                         QLatin1String("TODO: algorithms other than Aes256"));
-    }
-
-    if (blockMode != Sailfish::Crypto::CryptoManager::BlockModeCbc) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: block modes other than CBC"));
     }
 
     if (encryptionPadding != Sailfish::Crypto::CryptoManager::EncryptionPaddingNone) {
@@ -620,8 +605,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                             QLatin1String("Unable to initialise cipher context for encryption"));
         }
-        if (fullKey.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes
-                && blockMode == Sailfish::Crypto::CryptoManager::BlockModeCbc) {
+        if (fullKey.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
             const EVP_CIPHER *evp_cipher = osslevp_aes_cipher(blockMode, fullKey.secretKey().size());
             if (evp_cipher == NULL) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
@@ -642,8 +626,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                             QLatin1String("Unable to initialise cipher context for decryption"));
         }
-        if (fullKey.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes
-                && blockMode == Sailfish::Crypto::CryptoManager::BlockModeCbc) {
+        if (fullKey.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
             const EVP_CIPHER *evp_cipher = osslevp_aes_cipher(blockMode, fullKey.secretKey().size());
             if (evp_cipher == NULL) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
