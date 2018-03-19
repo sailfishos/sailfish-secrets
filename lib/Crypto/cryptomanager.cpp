@@ -13,6 +13,7 @@
 #include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
 #include "Crypto/interactionparameters.h"
+#include "Crypto/lockcoderequest.h"
 
 #include <QtDBus/QDBusInterface>
 #include <QtDBus/QDBusConnection>
@@ -465,6 +466,70 @@ CryptoManagerPrivate::finaliseCipherSession(
     return reply;
 }
 
+
+QDBusPendingReply<Result>
+CryptoManagerPrivate::modifyLockCode(
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
+        const InteractionParameters &interactionParameters)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result> reply
+            = m_interface->asyncCallWithArgumentList(
+                "modifyLockCode",
+                QVariantList() << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+                               << QVariant::fromValue<QString>(lockCodeTarget)
+                               << QVariant::fromValue<InteractionParameters>(interactionParameters));
+    return reply;
+}
+
+QDBusPendingReply<Result>
+CryptoManagerPrivate::provideLockCode(
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
+        const InteractionParameters &interactionParameters)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result> reply
+            = m_interface->asyncCallWithArgumentList(
+                "provideLockCode",
+                QVariantList() << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+                               << QVariant::fromValue<QString>(lockCodeTarget)
+                               << QVariant::fromValue<InteractionParameters>(interactionParameters));
+    return reply;
+}
+
+QDBusPendingReply<Result>
+CryptoManagerPrivate::forgetLockCode(
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
+        const InteractionParameters &interactionParameters)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result> reply
+            = m_interface->asyncCallWithArgumentList(
+                "forgetLockCode",
+                QVariantList() << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+                               << QVariant::fromValue<QString>(lockCodeTarget)
+                               << QVariant::fromValue<InteractionParameters>(interactionParameters));
+    return reply;
+}
+
 /*!
   \class CryptoManager
   \brief Allows clients to make requests of the system crypto service.
@@ -475,6 +540,7 @@ CryptoManagerPrivate::finaliseCipherSession(
 
   \list
   \li \l{PluginInfoRequest} to retrieve information about crypto plugins
+  \li \l{LockCodeRequest} to set the lock code for, lock, or unlock a crypto plugin
   \li \l{SeedRandomDataGeneratorRequest} to seed a crypto plugin's random number generator
   \li \l{GenerateRandomDataRequest} to generate random data
   \li \l{ValidateCertificateChainRequest} to validate certificates

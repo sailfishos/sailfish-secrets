@@ -19,6 +19,7 @@
 #include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
 #include "Crypto/interactionparameters.h"
+#include "Crypto/lockcoderequest.h"
 
 #include <QtDBus/QDBusContext>
 #include <QtDBus/QDBusPendingReply>
@@ -148,6 +149,21 @@ public:
             const QByteArray &data,
             const QString &cryptosystemProviderName,
             quint32 cipherSessionToken);
+
+    QDBusPendingReply<Sailfish::Crypto::Result> modifyLockCode(
+            Sailfish::Crypto::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
+            const Sailfish::Crypto::InteractionParameters &interactionParameters);
+
+    QDBusPendingReply<Sailfish::Crypto::Result> provideLockCode(
+            Sailfish::Crypto::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
+            const Sailfish::Crypto::InteractionParameters &interactionParameters);
+
+    QDBusPendingReply<Sailfish::Crypto::Result> forgetLockCode(
+            Sailfish::Crypto::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
+            const Sailfish::Crypto::InteractionParameters &interactionParameters);
 
 private:
     friend class CryptoManager;

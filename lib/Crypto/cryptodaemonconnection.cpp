@@ -16,6 +16,7 @@
 #include "Crypto/extensionplugins.h"
 #include "Crypto/storedkeyrequest.h"
 #include "Crypto/cipherrequest.h"
+#include "Crypto/lockcoderequest.h"
 
 #include <QtDBus/QDBusReply>
 #include <QtDBus/QDBusInterface>
@@ -181,6 +182,7 @@ void Sailfish::Crypto::CryptoDaemonConnection::registerDBusTypes()
     qRegisterMetaType<Sailfish::Crypto::KeyPairGenerationParameters::KeyPairType>("Sailfish::Crypto::KeyPairGenerationParameters::KeyPairType");
     qRegisterMetaType<Sailfish::Crypto::KeyDerivationParameters>("Sailfish::Crypto::KeyDerivationParameters");
     qRegisterMetaType<Sailfish::Crypto::InteractionParameters>("Sailfish::Crypto::InteractionParameters");
+    qRegisterMetaType<Sailfish::Crypto::LockCodeRequest::LockCodeTargetType>("Sailfish::Crypto::LockCodeRequest::LockCodeTargetType");
 
     qDBusRegisterMetaType<Sailfish::Crypto::Key::Origin>();
     qDBusRegisterMetaType<Sailfish::Crypto::CryptoManager::Algorithm>();
@@ -209,4 +211,5 @@ void Sailfish::Crypto::CryptoDaemonConnection::registerDBusTypes()
     qDBusRegisterMetaType<Sailfish::Crypto::KeyPairGenerationParameters::KeyPairType>();
     qDBusRegisterMetaType<Sailfish::Crypto::KeyDerivationParameters>();
     qDBusRegisterMetaType<Sailfish::Crypto::InteractionParameters>();
+    qDBusRegisterMetaType<Sailfish::Crypto::LockCodeRequest::LockCodeTargetType>();
 }

@@ -382,6 +382,90 @@ Daemon::ApiImpl::SecretsRequestQueue::userInput(
     return Result(Result::Pending);
 }
 
+Result
+Daemon::ApiImpl::SecretsRequestQueue::modifyCryptoPluginLockCode(
+        pid_t callerPid,
+        quint64 cryptoRequestId,
+        const QString &cryptoPluginName,
+        const Sailfish::Secrets::InteractionParameters &uiParams)
+{
+    // perform the "modify lock code" request, as a secrets-for-crypto request.
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<Sailfish::Secrets::LockCodeRequest::LockCodeTargetType>(Sailfish::Secrets::LockCodeRequest::ExtensionPlugin)
+             << QVariant::fromValue<QString>(cryptoPluginName)
+             << QVariant::fromValue<Sailfish::Secrets::InteractionParameters>(uiParams)
+             << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::SystemInteraction)
+             << QVariant::fromValue<QString>(QString());
+    Result enqueueResult(Result::Succeeded);
+    handleRequest(
+                callerPid,
+                cryptoRequestId,
+                Daemon::ApiImpl::ModifyLockCodeRequest,
+                inParams,
+                enqueueResult);
+    if (enqueueResult.code() == Result::Failed) {
+        return enqueueResult;
+    }
+    m_cryptoApiHelperRequests.insert(cryptoRequestId, Daemon::ApiImpl::SecretsRequestQueue::ModifyLockCodeCryptoApiHelperRequest);
+    return Result(Result::Pending);
+}
+
+Result
+Daemon::ApiImpl::SecretsRequestQueue::provideCryptoPluginLockCode(
+        pid_t callerPid,
+        quint64 cryptoRequestId,
+        const QString &cryptoPluginName,
+        const Sailfish::Secrets::InteractionParameters &uiParams)
+{
+    // perform the "provide lock code" request, as a secrets-for-crypto request.
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<Sailfish::Secrets::LockCodeRequest::LockCodeTargetType>(Sailfish::Secrets::LockCodeRequest::ExtensionPlugin)
+             << QVariant::fromValue<QString>(cryptoPluginName)
+             << QVariant::fromValue<Sailfish::Secrets::InteractionParameters>(uiParams)
+             << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::SystemInteraction)
+             << QVariant::fromValue<QString>(QString());
+    Result enqueueResult(Result::Succeeded);
+    handleRequest(
+                callerPid,
+                cryptoRequestId,
+                Daemon::ApiImpl::ProvideLockCodeRequest,
+                inParams,
+                enqueueResult);
+    if (enqueueResult.code() == Result::Failed) {
+        return enqueueResult;
+    }
+    m_cryptoApiHelperRequests.insert(cryptoRequestId, Daemon::ApiImpl::SecretsRequestQueue::ProvideLockCodeCryptoApiHelperRequest);
+    return Result(Result::Pending);
+}
+
+Result
+Daemon::ApiImpl::SecretsRequestQueue::forgetCryptoPluginLockCode(
+        pid_t callerPid,
+        quint64 cryptoRequestId,
+        const QString &cryptoPluginName,
+        const Sailfish::Secrets::InteractionParameters &uiParams)
+{
+    // perform the "forget lock code" request, as a secrets-for-crypto request.
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<Sailfish::Secrets::LockCodeRequest::LockCodeTargetType>(Sailfish::Secrets::LockCodeRequest::ExtensionPlugin)
+             << QVariant::fromValue<QString>(cryptoPluginName)
+             << QVariant::fromValue<Sailfish::Secrets::InteractionParameters>(uiParams)
+             << QVariant::fromValue<Sailfish::Secrets::SecretManager::UserInteractionMode>(Sailfish::Secrets::SecretManager::SystemInteraction)
+             << QVariant::fromValue<QString>(QString());
+    Result enqueueResult(Result::Succeeded);
+    handleRequest(
+                callerPid,
+                cryptoRequestId,
+                Daemon::ApiImpl::ForgetLockCodeRequest,
+                inParams,
+                enqueueResult);
+    if (enqueueResult.code() == Result::Failed) {
+        return enqueueResult;
+    }
+    m_cryptoApiHelperRequests.insert(cryptoRequestId, Daemon::ApiImpl::SecretsRequestQueue::ForgetLockCodeCryptoApiHelperRequest);
+    return Result(Result::Pending);
+}
+
 void
 Daemon::ApiImpl::SecretsRequestQueue::asynchronousCryptoRequestCompleted(
         quint64 cryptoRequestId,
@@ -419,6 +503,12 @@ Daemon::ApiImpl::SecretsRequestQueue::asynchronousCryptoRequestCompleted(
         case UserInputCryptoApiHelperRequest: {
             QByteArray input = parameters.size() ? parameters.first().value<QByteArray>() : QByteArray();
             emit userInputCompleted(cryptoRequestId, result, input);
+            break;
+        }
+        case ModifyLockCodeCryptoApiHelperRequest:   // flow on
+        case ProvideLockCodeCryptoApiHelperRequest:  // flow on
+        case ForgetLockCodeCryptoApiHelperRequest: {
+            emit cryptoPluginLockCodeRequestCompleted(cryptoRequestId, result);
             break;
         }
         default: {

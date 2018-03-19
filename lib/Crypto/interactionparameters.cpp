@@ -130,6 +130,27 @@ void InteractionParameters::setCollectionName(const QString &name)
 }
 
 /*!
+ * \brief Returns the name of the extension plugin which is associated with the user input request
+ */
+QString InteractionParameters::pluginName() const
+{
+    return d_ptr->m_pluginName;
+}
+
+/*!
+ * \brief Sets the name of the extension plugin which is associated with the user input request to \a name
+ *
+ * Note that in general, this parameter will be supplied by the secrets service,
+ * so any value set by the client application here will have no effect.
+ */
+void InteractionParameters::setPluginName(const QString &name)
+{
+    if (d_ptr->m_pluginName != name) {
+        d_ptr->m_pluginName = name;
+    }
+}
+
+/*!
  * \brief Returns the identifier of the client application making the request
  */
 QString InteractionParameters::applicationId() const
@@ -274,6 +295,7 @@ bool Sailfish::Crypto::operator==(const InteractionParameters &lhs, const Intera
 {
     return lhs.keyName() == rhs.keyName()
             && lhs.collectionName() == rhs.collectionName()
+            && lhs.pluginName() == rhs.pluginName()
             && lhs.applicationId() == rhs.applicationId()
             && lhs.operation() == rhs.operation()
             && lhs.authenticationPluginName() == rhs.authenticationPluginName()
@@ -301,6 +323,9 @@ bool Sailfish::Crypto::operator<(const InteractionParameters &lhs, const Interac
 
     if (lhs.keyName() != rhs.keyName())
         return lhs.keyName() < rhs.keyName();
+
+    if (lhs.pluginName() != rhs.pluginName())
+        return lhs.pluginName() < rhs.pluginName();
 
     if (lhs.operation() != rhs.operation())
         return lhs.operation() < rhs.operation();

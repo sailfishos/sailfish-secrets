@@ -18,6 +18,7 @@
 #include "Crypto/interactionparameters.h"
 #include "Crypto/keyderivationparameters.h"
 #include "Crypto/keypairgenerationparameters.h"
+#include "Crypto/lockcoderequest.h"
 
 #include <QtCore/QByteArray>
 #include <QtCore/QString>
@@ -238,6 +239,33 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"verified\" type=\"b\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "      </method>\n"
+    "      <method name=\"modifyLockCode\">\n"
+    "          <arg name=\"lockCodeTargetType\" type=\"(i)\" direction=\"in\" />\n"
+    "          <arg name=\"lockCodeTarget\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"interactionParameters\" type=\"(sss(i)sss(i)(i))\" direction=\"in\" />\n"
+    "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Crypto::LockCodeRequest::LockCodeTargetType\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::InteractionParameters\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
+    "      </method>\n"
+    "      <method name=\"provideLockCode\">\n"
+    "          <arg name=\"lockCodeTargetType\" type=\"(i)\" direction=\"in\" />\n"
+    "          <arg name=\"lockCodeTarget\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"interactionParameters\" type=\"(sss(i)sss(i)(i))\" direction=\"in\" />\n"
+    "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Crypto::LockCodeRequest::LockCodeTargetType\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::InteractionParameters\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
+    "      </method>\n"
+    "      <method name=\"forgetLockCode\">\n"
+    "          <arg name=\"lockCodeTargetType\" type=\"(i)\" direction=\"in\" />\n"
+    "          <arg name=\"lockCodeTarget\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"interactionParameters\" type=\"(sss(i)sss(i)(i))\" direction=\"in\" />\n"
+    "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Crypto::LockCodeRequest::LockCodeTargetType\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::InteractionParameters\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
+    "      </method>\n"
     "  </interface>\n"
     "")
 
@@ -401,6 +429,27 @@ public Q_SLOTS:
             QByteArray &generatedData,
             bool &verified);
 
+    void modifyLockCode(
+            Sailfish::Crypto::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
+            const Sailfish::Crypto::InteractionParameters &interactionParameters,
+            const QDBusMessage &message,
+            Sailfish::Crypto::Result &result);
+
+    void provideLockCode(
+            Sailfish::Crypto::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
+            const Sailfish::Crypto::InteractionParameters &interactionParameters,
+            const QDBusMessage &message,
+            Sailfish::Crypto::Result &result);
+
+    void forgetLockCode(
+            Sailfish::Crypto::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
+            const Sailfish::Crypto::InteractionParameters &interactionParameters,
+            const QDBusMessage &message,
+            Sailfish::Crypto::Result &result);
+
 private:
     Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *m_requestQueue;
 };
@@ -448,7 +497,10 @@ enum RequestType {
     InitialiseCipherSessionRequest,
     UpdateCipherSessionAuthenticationRequest,
     UpdateCipherSessionRequest,
-    FinaliseCipherSessionRequest
+    FinaliseCipherSessionRequest,
+    ModifyLockCodeRequest,
+    ProvideLockCodeRequest,
+    ForgetLockCodeRequest
 };
 
 } // ApiImpl

@@ -23,6 +23,7 @@ class SAILFISH_CRYPTO_API InteractionParameters {
     Q_GADGET
     Q_PROPERTY(QString keyName READ keyName WRITE setKeyName)
     Q_PROPERTY(QString collectionName READ collectionName WRITE setCollectionName)
+    Q_PROPERTY(QString pluginName READ pluginName WRITE setPluginName)
     Q_PROPERTY(QString applicationId READ applicationId WRITE setApplicationId)
     Q_PROPERTY(Operation operation READ operation WRITE setOperation)
     Q_PROPERTY(QString authenticationPluginName READ authenticationPluginName WRITE setAuthenticationPluginName)
@@ -59,28 +60,41 @@ public:
     Q_ENUM(EchoMode)
 
     enum Operation {
-        UnknownOperation = 0,
+        UnknownOperation    = 0,
 
-        RequestUserData  = 1,   // usually used in conjunction with StoreSecret, i.e. store data requested from user.
+        RequestUserData     = 1 << 0,   // usually used in conjunction with StoreSecret, i.e. store data requested from user.
 
-        CreateCollection = 2,
-        UnlockCollection = 4,
-        DeleteCollection = 8,
+        UnlockDatabase      = 1 << 1,
+        LockDatabase        = 1 << 2,
+        ModifyLockDatabase  = 1 << 3,
 
-        ReadSecret       = 16,
-        StoreSecret      = 32,
-        DeleteSecret     = 64,
+        UnlockPlugin        = 1 << 4,
+        LockPlugin          = 1 << 5,
+        ModifyLockPlugin    = 1 << 6,
 
-        Encrypt          = 128,
-        Decrypt          = 256,
-        Sign             = 512,
-        Verify           = 1024,
-        DeriveDigest     = 2048,
-        DeriveMac        = 4096,
-        DeriveKey        = 8192,
+        CreateCollection    = 1 << 7,
+        UnlockCollection    = 1 << 8,
+        LockCollection      = 1 << 9,
+        ModifyLockCollection= 1 << 10,
+        DeleteCollection    = 1 << 11,
+
+        ReadSecret          = 1 << 12,
+        StoreSecret         = 1 << 13,
+        UnlockSecret        = 1 << 14,
+        LockSecret          = 1 << 15,
+        ModifyLockSecret    = 1 << 16,
+        DeleteSecret        = 1 << 17,
+
+        Encrypt             = 1 << 18,
+        Decrypt             = 1 << 19,
+        Sign                = 1 << 20,
+        Verify              = 1 << 21,
+        DeriveDigest        = 1 << 22,
+        DeriveMac           = 1 << 23,
+        DeriveKey           = 1 << 24,
 
         // reserved
-        LastOperation    = 65536
+        LastOperation       = 1 << 30
     };
     Q_ENUM(Operation)
     Q_DECLARE_FLAGS(Operations, Operation)
@@ -97,6 +111,9 @@ public:
 
     QString collectionName() const;
     void setCollectionName(const QString &name);
+
+    QString pluginName() const;
+    void setPluginName(const QString &name);
 
     QString applicationId() const;
     void setApplicationId(const QString &id);

@@ -29,6 +29,7 @@ PUBLIC_HEADERS += \
     $$PWD/key.h \
     $$PWD/keyderivationparameters.h \
     $$PWD/keypairgenerationparameters.h \
+    $$PWD/lockcoderequest.h \
     $$PWD/plugininforequest.h \
     $$PWD/request.h \
     $$PWD/result.h \
@@ -61,6 +62,7 @@ PRIVATE_HEADERS += \
     $$PWD/key_p.h \
     $$PWD/keyderivationparameters_p.h \
     $$PWD/keypairgenerationparameters_p.h \
+    $$PWD/lockcoderequest_p.h \
     $$PWD/plugininforequest_p.h \
     $$PWD/result_p.h \
     $$PWD/seedrandomdatageneratorrequest_p.h \
@@ -92,6 +94,7 @@ SOURCES += \
     $$PWD/key.cpp \
     $$PWD/keyderivationparameters.cpp \
     $$PWD/keypairgenerationparameters.cpp \
+    $$PWD/lockcoderequest.cpp \
     $$PWD/plugininforequest.cpp \
     $$PWD/request.cpp \
     $$PWD/result.cpp \
