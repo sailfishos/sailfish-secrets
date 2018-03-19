@@ -93,6 +93,14 @@ struct LibCrypto_BIO_Deleter
     }
 };
 
+struct LibCrypto_EVP_PKEY_Deleter
+{
+    static inline void cleanup(EVP_PKEY *pointer)
+    {
+        EVP_PKEY_free(pointer);
+    }
+};
+
 quint32 getNextCipherSessionToken(QMap<quint64, QMap<quint32, CipherSessionData*> > *sessions, quint64 clientId)
 {
     if (!sessions->contains(clientId)) {
@@ -123,5 +131,16 @@ bool validInitializationVector(const QByteArray &initVector,
     }
 
     return false;
+}
+
+const EVP_MD *getEvpDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digestFunction) {
+    switch (digestFunction) {
+    case Sailfish::Crypto::CryptoManager::DigestSha256:
+        return EVP_sha256();
+        break;
+    default:
+        return Q_NULLPTR;
+        break;
+    }
 }
 
