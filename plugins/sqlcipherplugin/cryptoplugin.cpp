@@ -6,7 +6,7 @@
  */
 
 #include "sqlcipherplugin.h"
-#include "../opensslcryptoplugin/evp_p.h"
+#include "evp_p.h"
 
 #include "util_p.h"
 

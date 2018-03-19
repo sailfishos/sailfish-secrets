@@ -80,7 +80,7 @@ Q_SIGNALS:
 
 private Q_SLOTS:
     void sendResponse(bool confirmed);
-    void sendResponse(const QByteArray &authenticationKey);
+    void sendResponse(const QByteArray &authenticationCode);
 
 private:
     friend class ApplicationInteractionView;

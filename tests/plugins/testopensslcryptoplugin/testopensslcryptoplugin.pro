@@ -8,11 +8,15 @@ include($$PWD/../../../lib/libsailfishcrypto.pri)
 
 DEFINES += SAILFISHCRYPTO_TESTPLUGIN
 
+INCLUDEPATH += $$PWD/../../../plugins/opensslcryptoplugin/evp/
+DEPENDPATH += $$PWD/../../../plugins/opensslcryptoplugin/evp/
+
 HEADERS += \
-    $$PWD/../../../plugins/opensslcryptoplugin/evp_p.h \
+    $$PWD/../../../plugins/opensslcryptoplugin/evp/evp_p.h \
     $$PWD/../../../plugins/opensslcryptoplugin/opensslcryptoplugin.h
 
 SOURCES += \
+    $$PWD/../../../plugins/opensslcryptoplugin/evp/evp.c \
     $$PWD/../../../plugins/opensslcryptoplugin/opensslcryptoplugin.cpp
 
 OTHER_FILES += \
