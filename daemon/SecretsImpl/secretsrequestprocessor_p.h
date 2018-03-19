@@ -28,6 +28,7 @@
 #include "Secrets/secret.h"
 #include "Secrets/interactionparameters.h"
 #include "Secrets/extensionplugins.h"
+#include "Secrets/lockcoderequest.h"
 
 #include "SecretsImpl/secrets_p.h"
 #include "SecretsImpl/applicationpermissions_p.h"
@@ -197,32 +198,32 @@ public:
             const Sailfish::Secrets::Secret::Identifier &identifier,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
-    // modify a lock code (re-key an encrypted collection or standalone secret)
+    // modify a lock code (re-key a plugin, encrypted collection or standalone secret)
     Sailfish::Secrets::Result modifyLockCode(
             pid_t callerPid,
             quint64 requestId,
-            const QString &secretName,
-            const QString &collectionName,
+            Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
             const Sailfish::Secrets::InteractionParameters &interactionParams,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress);
 
-    // provide a lock code (unlock an encrypted collection or standalone secret)
+    // provide a lock code (unlock a plugin, encrypted collection or standalone secret)
     Sailfish::Secrets::Result provideLockCode(
             pid_t callerPid,
             quint64 requestId,
-            const QString &secretName,
-            const QString &collectionName,
+            Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
             const Sailfish::Secrets::InteractionParameters &interactionParams,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress);
 
-    // forget a lock code (lock an encrypted collection or standalone secret)
+    // forget a lock code (lock a plugin, encrypted collection or standalone secret)
     Sailfish::Secrets::Result forgetLockCode(
             pid_t callerPid,
             quint64 requestId,
-            const QString &secretName,
-            const QString &collectionName,
+            Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
             const Sailfish::Secrets::InteractionParameters &interactionParams,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress);
@@ -484,8 +485,8 @@ private:
     Sailfish::Secrets::Result modifyLockCodeWithLockCode(
             pid_t callerPid,
             quint64 requestId,
-            const QString &secretName,
-            const QString &collectionName,
+            Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
             const Sailfish::Secrets::InteractionParameters &interactionParams,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
@@ -494,8 +495,8 @@ private:
     Sailfish::Secrets::Result modifyLockCodeWithLockCodes(
             pid_t callerPid,
             quint64 requestId,
-            const QString &secretName,
-            const QString &collectionName,
+            Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
             const Sailfish::Secrets::InteractionParameters &interactionParams,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
@@ -505,8 +506,8 @@ private:
     Sailfish::Secrets::Result provideLockCodeWithLockCode(
             pid_t callerPid,
             quint64 requestId,
-            const QString &secretName,
-            const QString &collectionName,
+            Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
             const Sailfish::Secrets::InteractionParameters &interactionParams,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,

@@ -19,6 +19,7 @@ using namespace Sailfish::Secrets;
 
 LockCodeRequestPrivate::LockCodeRequestPrivate()
     : m_lockCodeRequestType(LockCodeRequest::ModifyLockCode)
+    , m_lockCodeTargetType(LockCodeRequest::BookkeepingDatabase)
     , m_userInteractionMode(SecretManager::SystemInteraction)
     , m_status(Request::Inactive)
 {
@@ -27,24 +28,20 @@ LockCodeRequestPrivate::LockCodeRequestPrivate()
 /*!
  * \class LockCodeRequest
  * \brief Allows a client to request that the system service either
- *        unlock, lock, or modify the lock code associated with a secret or
+ *        unlock, lock, or modify the lock code associated with the
+ *        device, an extension plugin, a standalone secret or a
  *        collection.
  *
  * \b{Note: most clients will never need to use this class, as the
  * other request types automatically trigger locking and relocking
  * flows as required.}
  *
- * The operation will be applied to the custom-locked collection or
- * standalone secret specified by the \l{collectionName()} or
- * \l{secretName()} parameter respectively.  This operation is only valid for
- * custom-locked collections or secrets, when performed by a non-privileged
- * application.  It is an error to provide both a \l{secretName()} and
- * \l{collectionName()}.
- *
- * If both the collection and secret name are empty, this will be interpreted
- * as a request to modify, provide or forget the master lock code (an
- * operation which is forbidden to all applications other than the system
- * settings application and the device lock daemon).
+ * The operation will be applied to the secrets bookkeeping database
+ * of the device, an extension plugin, a custom-locked collection or
+ * a standalone secret specified by the \l{lockCodeTargetType()} and
+ * \l{lockCodeTarget()} parameters.  This operation is only valid for
+ * custom-locked collections or secrets when performed by a non-privileged
+ * application.
  *
  * If the \l{lockCodeRequestType()} specified is \l{ModifyLockCode}
  * then the user will be prompted (via a system-mediated user interaction
@@ -75,7 +72,8 @@ LockCodeRequestPrivate::LockCodeRequestPrivate()
  * Sailfish::Secrets::LockCodeRequest lcr;
  * lcr.setManager(&sm);
  * lcr.setLockCodeRequestType(Sailfish::Secrets::LockCodeRequest::ModifyLockCode);
- * lcr.setCollectionName(QLatin1String("Some custom-locked collection"));
+ * lcr.setLockCodeTargetType(Sailfish::Secrets::LockCodeRequest::Collection);
+ * lcr.setLockCodeTarget(QLatin1String("Some custom-locked collection"));
  * lcr.setInteractionParameters(uiParams);
  * lcr.startRequest(); // status() will change to Finished when complete
  * \endcode
@@ -119,6 +117,40 @@ void LockCodeRequest::setLockCodeRequestType(LockCodeRequest::LockCodeRequestTyp
             emit statusChanged();
         }
         emit lockCodeRequestTypeChanged();
+    }
+}
+
+/*!
+ * \brief Returns the type of the target of the lock code operation
+ */
+LockCodeRequest::LockCodeTargetType LockCodeRequest::lockCodeTargetType() const
+{
+    Q_D(const LockCodeRequest);
+    return d->m_lockCodeTargetType;
+}
+
+/*!
+ * \brief Sets the type of the target of the lock code operation to \a type
+ *
+ * Only privileged applications (usually, the system settings application)
+ * can perform lock code operations on the bookkeeping database.
+ *
+ * Only the owner of a collection or standalone-secret can perform lock code
+ * operations on that collection or secret.
+ *
+ * Some plugins must be unlocked prior to use, and such plugins should
+ * document their semantics for their intended clients.
+ */
+void LockCodeRequest::setLockCodeTargetType(LockCodeRequest::LockCodeTargetType type)
+{
+    Q_D(LockCodeRequest);
+    if (d->m_status != Request::Active && d->m_lockCodeTargetType != type) {
+        d->m_lockCodeTargetType = type;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit lockCodeTargetTypeChanged();
     }
 }
 
@@ -192,52 +224,32 @@ void LockCodeRequest::setInteractionParameters(const InteractionParameters &para
 // e.g. to allow changing the type of lock code (from PIN to ALPHANUM, etc)?
 
 /*!
- * \brief Returns the name of the custom-locked standalone secret to which to apply the lock code operation
+ * \brief Returns the name of the target to which the lock code operation should be applied
  */
-QString LockCodeRequest::secretName() const
+QString LockCodeRequest::lockCodeTarget() const
 {
     Q_D(const LockCodeRequest);
-    return d->m_secretName;
+    return d->m_lockCodeTarget;
 }
 
 /*!
- * \brief Sets the name of the custom-locked standalone secret to which to apply the lock code operation to \a name
+ * \brief Sets the name of the target to which the lock code operation should be applied to \a name
+ *
+ * The \a name may identify either a custom-locked collection,
+ * a custom-locked standalone secret, an extension plugin or
+ * the bookkeeping database, depending on the value of the
+ * \l{lockCodeTargetType()}.
  */
-void LockCodeRequest::setSecretName(const QString &name)
+void LockCodeRequest::setLockCodeTarget(const QString &targetName)
 {
     Q_D(LockCodeRequest);
-    if (d->m_status != Request::Active && d->m_secretName != name) {
-        d->m_secretName = name;
+    if (d->m_status != Request::Active && d->m_lockCodeTarget != targetName) {
+        d->m_lockCodeTarget = targetName;
         if (d->m_status == Request::Finished) {
             d->m_status = Request::Inactive;
             emit statusChanged();
         }
-        emit secretNameChanged();
-    }
-}
-
-/*!
- * \brief Returns the name of the custom-locked collection to which to apply the lock code operation
- */
-QString LockCodeRequest::collectionName() const
-{
-    Q_D(const LockCodeRequest);
-    return d->m_collectionName;
-}
-
-/*!
- * \brief Sets the name of the custom-locked collection to which to apply the lock code operation to \a name
- */
-void LockCodeRequest::setCollectionName(const QString &name)
-{
-    Q_D(LockCodeRequest);
-    if (d->m_status != Request::Active && d->m_collectionName != name) {
-        d->m_collectionName = name;
-        if (d->m_status == Request::Finished) {
-            d->m_status = Request::Inactive;
-            emit statusChanged();
-        }
-        emit collectionNameChanged();
+        emit lockCodeTargetChanged();
     }
 }
 
@@ -281,20 +293,20 @@ void LockCodeRequest::startRequest()
 
         QDBusPendingReply<Result> reply;
         if (d->m_lockCodeRequestType == LockCodeRequest::ModifyLockCode) {
-            reply = d->m_manager->d_ptr->modifyLockCode(d->m_secretName,
-                                                          d->m_collectionName,
-                                                          d->m_interactionParameters,
-                                                          d->m_userInteractionMode);
+            reply = d->m_manager->d_ptr->modifyLockCode(d->m_lockCodeTargetType,
+                                                        d->m_lockCodeTarget,
+                                                        d->m_interactionParameters,
+                                                        d->m_userInteractionMode);
         } else if (d->m_lockCodeRequestType == LockCodeRequest::ProvideLockCode) {
-            reply = d->m_manager->d_ptr->provideLockCode(d->m_secretName,
-                                                           d->m_collectionName,
-                                                           d->m_interactionParameters,
-                                                           d->m_userInteractionMode);
+            reply = d->m_manager->d_ptr->provideLockCode(d->m_lockCodeTargetType,
+                                                         d->m_lockCodeTarget,
+                                                         d->m_interactionParameters,
+                                                         d->m_userInteractionMode);
         } else { // ForgetLockCode
-            reply = d->m_manager->d_ptr->forgetLockCode(d->m_secretName,
-                                                          d->m_collectionName,
-                                                          d->m_interactionParameters,
-                                                          d->m_userInteractionMode);
+            reply = d->m_manager->d_ptr->forgetLockCode(d->m_lockCodeTargetType,
+                                                        d->m_lockCodeTarget,
+                                                        d->m_interactionParameters,
+                                                        d->m_userInteractionMode);
         }
 
         if (!reply.isValid() && !reply.error().message().isEmpty()) {

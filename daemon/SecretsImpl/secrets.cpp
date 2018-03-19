@@ -325,10 +325,10 @@ void Daemon::ApiImpl::SecretsDBusObject::deleteSecret(
                                   result);
 }
 
-// modify a lock code (re-key an encrypted collection or standalone secret)
+// modify a lock code (re-key a plugin, encrypted collection or standalone secret)
 void Daemon::ApiImpl::SecretsDBusObject::modifyLockCode(
-        const QString &secretName,
-        const QString &collectionName,
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
         const InteractionParameters &interactionParameters,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress,
@@ -336,8 +336,8 @@ void Daemon::ApiImpl::SecretsDBusObject::modifyLockCode(
         Result &result)
 {
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QString>(secretName)
-             << QVariant::fromValue<QString>(collectionName)
+    inParams << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+             << QVariant::fromValue<QString>(lockCodeTarget)
              << QVariant::fromValue<InteractionParameters>(interactionParameters)
              << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
              << QVariant::fromValue<QString>(interactionServiceAddress);
@@ -348,10 +348,10 @@ void Daemon::ApiImpl::SecretsDBusObject::modifyLockCode(
                                   result);
 }
 
-// provide a lock code (unlock an encrypted collection or standalone secret)
+// provide a lock code (unlock a plugin, encrypted collection or standalone secret)
 void Daemon::ApiImpl::SecretsDBusObject::provideLockCode(
-        const QString &secretName,
-        const QString &collectionName,
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
         const InteractionParameters &interactionParameters,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress,
@@ -359,8 +359,8 @@ void Daemon::ApiImpl::SecretsDBusObject::provideLockCode(
         Result &result)
 {
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QString>(secretName)
-             << QVariant::fromValue<QString>(collectionName)
+    inParams << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+             << QVariant::fromValue<QString>(lockCodeTarget)
              << QVariant::fromValue<InteractionParameters>(interactionParameters)
              << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
              << QVariant::fromValue<QString>(interactionServiceAddress);
@@ -371,10 +371,10 @@ void Daemon::ApiImpl::SecretsDBusObject::provideLockCode(
                                   result);
 }
 
-// forget a lock code (lock an encrypted collection or standalone secret)
+// forget a lock code (lock a plugin, encrypted collection or standalone secret)
 void Daemon::ApiImpl::SecretsDBusObject::forgetLockCode(
-        const QString &secretName,
-        const QString &collectionName,
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
         const InteractionParameters &interactionParameters,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress,
@@ -382,8 +382,8 @@ void Daemon::ApiImpl::SecretsDBusObject::forgetLockCode(
         Result &result)
 {
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QString>(secretName)
-             << QVariant::fromValue<QString>(collectionName)
+    inParams << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+             << QVariant::fromValue<QString>(lockCodeTarget)
              << QVariant::fromValue<InteractionParameters>(interactionParameters)
              << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
              << QVariant::fromValue<QString>(interactionServiceAddress);
@@ -725,9 +725,9 @@ QString Daemon::ApiImpl::SecretsRequestQueue::requestTypeToString(int type) cons
         case FindStandaloneSecretsRequest:          return QLatin1String("FindStandaloneSecretsRequest");
         case DeleteCollectionSecretRequest:         return QLatin1String("DeleteCollectionSecretRequest");
         case DeleteStandaloneSecretRequest:         return QLatin1String("DeleteStandaloneSecretRequest");
-        case ModifyLockCodeRequest:               return QLatin1String("ModifyLockCodeRequest");
-        case ProvideLockCodeRequest:              return QLatin1String("ProvideLockCodeRequest");
-        case ForgetLockCodeRequest:               return QLatin1String("ForgetLockCodeRequest");
+        case ModifyLockCodeRequest:                 return QLatin1String("ModifyLockCodeRequest");
+        case ProvideLockCodeRequest:                return QLatin1String("ProvideLockCodeRequest");
+        case ForgetLockCodeRequest:                 return QLatin1String("ForgetLockCodeRequest");
         case SetCollectionSecretMetadataRequest:    return QLatin1String("SetCollectionSecretMetadataRequest");
         case DeleteCollectionSecretMetadataRequest: return QLatin1String("DeleteCollectionSecretMetadataRequest");
         default: break;
@@ -1303,10 +1303,10 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
         }
         case ModifyLockCodeRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling ModifyLockCodeRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            QString secretName = request->inParams.size()
-                    ? request->inParams.takeFirst().value<QString>()
-                    : QString();
-            QString collectionName = request->inParams.size()
+            LockCodeRequest::LockCodeTargetType lockCodeTargetType = request->inParams.size()
+                    ? request->inParams.takeFirst().value<LockCodeRequest::LockCodeTargetType>()
+                    : LockCodeRequest::BookkeepingDatabase;
+            QString lockCodeTarget = request->inParams.size()
                     ? request->inParams.takeFirst().value<QString>()
                     : QString();
             InteractionParameters interactionParameters = request->inParams.size()
@@ -1327,8 +1327,8 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
                              : m_requestProcessor->modifyLockCode(
                                       request->remotePid,
                                       request->requestId,
-                                      secretName,
-                                      collectionName,
+                                      lockCodeTargetType,
+                                      lockCodeTarget,
                                       interactionParameters,
                                       userInteractionMode,
                                       interactionServiceAddress);
@@ -1348,10 +1348,10 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
         }
         case ProvideLockCodeRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling ProvideLockCodeRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            QString secretName = request->inParams.size()
-                    ? request->inParams.takeFirst().value<QString>()
-                    : QString();
-            QString collectionName = request->inParams.size()
+            LockCodeRequest::LockCodeTargetType lockCodeTargetType = request->inParams.size()
+                    ? request->inParams.takeFirst().value<LockCodeRequest::LockCodeTargetType>()
+                    : LockCodeRequest::BookkeepingDatabase;
+            QString lockCodeTarget = request->inParams.size()
                     ? request->inParams.takeFirst().value<QString>()
                     : QString();
             InteractionParameters interactionParameters = request->inParams.size()
@@ -1372,8 +1372,8 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
                              : m_requestProcessor->provideLockCode(
                                       request->remotePid,
                                       request->requestId,
-                                      secretName,
-                                      collectionName,
+                                      lockCodeTargetType,
+                                      lockCodeTarget,
                                       interactionParameters,
                                       userInteractionMode,
                                       interactionServiceAddress);
@@ -1393,10 +1393,10 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
         }
         case ForgetLockCodeRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling ForgetLockCodeRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            QString secretName = request->inParams.size()
-                    ? request->inParams.takeFirst().value<QString>()
-                    : QString();
-            QString collectionName = request->inParams.size()
+            LockCodeRequest::LockCodeTargetType lockCodeTargetType = request->inParams.size()
+                    ? request->inParams.takeFirst().value<LockCodeRequest::LockCodeTargetType>()
+                    : LockCodeRequest::BookkeepingDatabase;
+            QString lockCodeTarget = request->inParams.size()
                     ? request->inParams.takeFirst().value<QString>()
                     : QString();
             InteractionParameters interactionParameters = request->inParams.size()
@@ -1417,8 +1417,8 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
                              : m_requestProcessor->forgetLockCode(
                                       request->remotePid,
                                       request->requestId,
-                                      secretName,
-                                      collectionName,
+                                      lockCodeTargetType,
+                                      lockCodeTarget,
                                       interactionParameters,
                                       userInteractionMode,
                                       interactionServiceAddress);

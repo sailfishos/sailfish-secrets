@@ -15,6 +15,7 @@
 #include "Secrets/extensionplugins.h"
 #include "Secrets/interactionview.h"
 #include "Secrets/interactionservice_p.h"
+#include "Secrets/lockcoderequest.h"
 
 #include <QtDBus/QDBusInterface>
 #include <QtDBus/QDBusContext>
@@ -136,22 +137,22 @@ public:
 
     // modify the passphrase used to encrypt a collection or standalone secret
     QDBusPendingReply<Sailfish::Secrets::Result> modifyLockCode(
-            const QString &secretName,
-            const QString &collectionName,
+            Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
             const Sailfish::Secrets::InteractionParameters &interactionParameters,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
     // provide the passphrase to unlock a collection or standalone secret
     QDBusPendingReply<Sailfish::Secrets::Result> provideLockCode(
-            const QString &secretName,
-            const QString &collectionName,
+            Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
             const Sailfish::Secrets::InteractionParameters &interactionParameters,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
     // forget the passphrase and relock a collection or standalone secret
     QDBusPendingReply<Sailfish::Secrets::Result> forgetLockCode(
-            const QString &secretName,
-            const QString &collectionName,
+            Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
             const Sailfish::Secrets::InteractionParameters &interactionParameters,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 

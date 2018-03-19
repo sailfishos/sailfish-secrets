@@ -415,6 +415,25 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionRespon
     return argument;
 }
 
+QDBusArgument &operator<<(QDBusArgument &argument, const LockCodeRequest::LockCodeTargetType &type)
+{
+    int itype = static_cast<int>(type);
+    argument.beginStructure();
+    argument << itype;
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, LockCodeRequest::LockCodeTargetType &type)
+{
+    int itype = 0;
+    argument.beginStructure();
+    argument >> itype;
+    argument.endStructure();
+    type = static_cast<LockCodeRequest::LockCodeTargetType>(itype);
+    return argument;
+}
+
 } // namespace Secrets
 
 } // namespace Sailfish

@@ -26,8 +26,8 @@ class SAILFISH_SECRETS_API LockCodeRequest : public Sailfish::Secrets::Request
 {
     Q_OBJECT
     Q_PROPERTY(LockCodeRequestType lockCodeRequestType READ lockCodeRequestType WRITE setLockCodeRequestType NOTIFY lockCodeRequestTypeChanged)
-    Q_PROPERTY(QString secretName READ secretName WRITE setSecretName NOTIFY secretNameChanged)
-    Q_PROPERTY(QString collectionName READ collectionName WRITE setCollectionName NOTIFY collectionNameChanged)
+    Q_PROPERTY(LockCodeTargetType lockCodeTargetType READ lockCodeTargetType WRITE setLockCodeTargetType NOTIFY lockCodeTargetTypeChanged)
+    Q_PROPERTY(QString lockCodeTarget READ lockCodeTarget WRITE setLockCodeTarget NOTIFY lockCodeTargetChanged)
     Q_PROPERTY(Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode READ userInteractionMode WRITE setUserInteractionMode NOTIFY userInteractionModeChanged)
     Q_PROPERTY(Sailfish::Secrets::InteractionParameters interactionParameters READ interactionParameters WRITE setInteractionParameters NOTIFY interactionParametersChanged)
 
@@ -39,17 +39,25 @@ public:
     };
     Q_ENUM(LockCodeRequestType)
 
+    enum LockCodeTargetType {
+        BookkeepingDatabase = 0,
+        ExtensionPlugin,
+        Collection,
+        StandaloneSecret
+    };
+    Q_ENUM(LockCodeTargetType)
+
     LockCodeRequest(QObject *parent = Q_NULLPTR);
     ~LockCodeRequest();
 
     LockCodeRequestType lockCodeRequestType() const;
     void setLockCodeRequestType(LockCodeRequestType type);
 
-    QString secretName() const;
-    void setSecretName(const QString &name);
+    LockCodeTargetType lockCodeTargetType() const;
+    void setLockCodeTargetType(LockCodeTargetType type);
 
-    QString collectionName() const;
-    void setCollectionName(const QString &name);
+    QString lockCodeTarget() const;
+    void setLockCodeTarget(const QString &targetName);
 
     Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode() const;
     void setUserInteractionMode(Sailfish::Secrets::SecretManager::UserInteractionMode mode);
@@ -68,8 +76,8 @@ public:
 
 Q_SIGNALS:
     void lockCodeRequestTypeChanged();
-    void secretNameChanged();
-    void collectionNameChanged();
+    void lockCodeTargetTypeChanged();
+    void lockCodeTargetChanged();
     void userInteractionModeChanged();
     void interactionParametersChanged();
 

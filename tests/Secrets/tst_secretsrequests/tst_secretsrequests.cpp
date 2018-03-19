@@ -1569,6 +1569,8 @@ void tst_secretsrequests::lockCode()
     QSignalSpy lcrss(&lcr, &LockCodeRequest::statusChanged);
     lcr.setLockCodeRequestType(LockCodeRequest::ModifyLockCode);
     QCOMPARE(lcr.lockCodeRequestType(), LockCodeRequest::ModifyLockCode);
+    lcr.setLockCodeTargetType(LockCodeRequest::BookkeepingDatabase);
+    QCOMPARE(lcr.lockCodeTargetType(), LockCodeRequest::BookkeepingDatabase);
     lcr.setUserInteractionMode(SecretManager::ApplicationInteraction);
     QCOMPARE(lcr.userInteractionMode(), SecretManager::ApplicationInteraction);
     InteractionParameters uiParams;
@@ -1576,8 +1578,7 @@ void tst_secretsrequests::lockCode()
     uiParams.setInputType(InteractionParameters::AlphaNumericInput);
     uiParams.setEchoMode(InteractionParameters::PasswordEcho);
     lcr.setInteractionParameters(uiParams);
-    lcr.setSecretName(QString());
-    lcr.setCollectionName(QString());
+    lcr.setLockCodeTarget(QString());
     lcr.startRequest();
     QCOMPARE(lcrss.count(), 1);
     QCOMPARE(lcr.status(), Request::Active);

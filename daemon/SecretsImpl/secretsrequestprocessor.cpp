@@ -3226,40 +3226,53 @@ Result
 Daemon::ApiImpl::RequestProcessor::modifyLockCode(
         pid_t callerPid,
         quint64 requestId,
-        const QString &secretName,
-        const QString &collectionName,
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
         const InteractionParameters &interactionParams,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress)
 {
-    if (!secretName.isEmpty() && !collectionName.isEmpty()) {
-        return Result(Result::InvalidSecretIdentifierError,
-                      QLatin1String("Cannot modify passphrase of a collection-secret"));
-    }
-
     // TODO: perform access control request to see if the application has permission to access secure storage data.
     const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
     const QString callerApplicationId = applicationIsPlatformApplication
                 ? m_appPermissions->platformApplicationId()
                 : m_appPermissions->applicationId(callerPid);
 
-    if (!secretName.isEmpty()) {
+    if (lockCodeTargetType == LockCodeRequest::StandaloneSecret) {
         // check that the standalone secret exists,
         // and that its userInteractionMode matches the argument.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("ModifyLockCode - standalone secret - TODO!"));
-    } else if (!collectionName.isEmpty()) {
+    } else if (lockCodeTargetType == LockCodeRequest::Collection) {
         // check that the collection exists, and is custom lock,
         // and that its userInteractionMode matches the argument.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("ModifyLockCode - collection - TODO!"));
-    } else {
+    } else if (lockCodeTargetType == LockCodeRequest::ExtensionPlugin) {
+        // check that the application is system settings.
+        // if not, some malicious app is trying to rekey the
+        // plugin.
+        if (!applicationIsPlatformApplication) {
+            return Result(Result::PermissionsError,
+                          QLatin1String("Only the system settings application can unlock the plugin"));
+        }
+        // TODO: support explicit plugin lock code operations.
+        return Result(Result::OperationNotSupportedError,
+                      QLatin1String("ModifyLockCode - plugin - TODO!"));
+    } else { // BookkeepingDatabase
         // check that the application is system settings.
         // if not, some malicious app is trying to rekey the
         // master (bookkeeping) database.
         if (!applicationIsPlatformApplication) {
             return Result(Result::PermissionsError,
                           QLatin1String("Only the system settings application can unlock the secrets database"));
+        }
+
+        // there is only one bookkeeping database, ensure that
+        // the client hasn't attempted to set some other target.
+        if (!lockCodeTarget.isEmpty()) {
+            return Result(Result::OperationNotSupportedError,
+                          QLatin1String("Invalid target name specified"));
         }
     }
 
@@ -3296,8 +3309,8 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCode(
                                  callerPid,
                                  requestId,
                                  Daemon::ApiImpl::ModifyLockCodeRequest,
-                                 QVariantList() << QVariant::fromValue<QString>(secretName)
-                                                << QVariant::fromValue<QString>(collectionName)
+                                 QVariantList() << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+                                                << QVariant::fromValue<QString>(lockCodeTarget)
                                                 << QVariant::fromValue<InteractionParameters>(modifyLockRequest)
                                                 << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
                                                 << QVariant::fromValue<QString>(interactionServiceAddress)));
@@ -3308,8 +3321,8 @@ Result
 Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCode(
         pid_t callerPid,
         quint64 requestId,
-        const QString &secretName,
-        const QString &collectionName,
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
         const InteractionParameters &interactionParams,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress,
@@ -3342,8 +3355,8 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCode(
                                  callerPid,
                                  requestId,
                                  Daemon::ApiImpl::ModifyLockCodeRequest,
-                                 QVariantList() << QVariant::fromValue<QString>(secretName)
-                                                << QVariant::fromValue<QString>(collectionName)
+                                 QVariantList() << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+                                                << QVariant::fromValue<QString>(lockCodeTarget)
                                                 << QVariant::fromValue<InteractionParameters>(modifyLockRequest)
                                                 << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
                                                 << QVariant::fromValue<QString>(interactionServiceAddress)
@@ -3355,19 +3368,19 @@ Result
 Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCodes(
         pid_t callerPid,
         quint64 requestId,
-        const QString &secretName,
-        const QString &collectionName,
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
         const InteractionParameters &interactionParams,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress,
         const QByteArray &oldLockCode,
         const QByteArray &newLockCode)
 {
-    // TODO: support secret/collection flows
+    // TODO: support plugin/secret/collection flows
     Q_UNUSED(callerPid);
     Q_UNUSED(requestId);
-    Q_UNUSED(secretName);
-    Q_UNUSED(collectionName);
+    Q_UNUSED(lockCodeTargetType);
+    Q_UNUSED(lockCodeTarget);
     Q_UNUSED(interactionParams);
     Q_UNUSED(userInteractionMode);
     Q_UNUSED(interactionServiceAddress);
@@ -3611,8 +3624,8 @@ Result
 Daemon::ApiImpl::RequestProcessor::provideLockCode(
         pid_t callerPid,
         quint64 requestId,
-        const QString &secretName,
-        const QString &collectionName,
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
         const InteractionParameters &interactionParams,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress)
@@ -3623,22 +3636,37 @@ Daemon::ApiImpl::RequestProcessor::provideLockCode(
                 ? m_appPermissions->platformApplicationId()
                 : m_appPermissions->applicationId(callerPid);
 
-    if (!secretName.isEmpty() && !collectionName.isEmpty()) {
-        return Result(Result::InvalidSecretIdentifierError,
-                      QLatin1String("Cannot provide a lock code for a collection secret"));
-    } else if (!secretName.isEmpty()) {
+    if (lockCodeTargetType == LockCodeRequest::StandaloneSecret) {
         // attempt to unlock the specified standalone secret.  TODO!
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("ProvideLockCode - standalone secret - TODO!"));
-    } else if (!collectionName.isEmpty()){
+    } else if (lockCodeTargetType == LockCodeRequest::Collection){
         // attempt to unlock the specified collection.  TODO!
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("ProvideLockCode - collection - TODO!"));
+    } else if (lockCodeTargetType == LockCodeRequest::ExtensionPlugin) {
+        // check that the application is system settings.
+        // if not, some malicious app is trying to rekey the
+        // plugin.
+        if (!applicationIsPlatformApplication) {
+            return Result(Result::PermissionsError,
+                          QLatin1String("Only the system settings application can unlock the plugin"));
+        }
+        // TODO: support explicit plugin lock code operations.
+        return Result(Result::OperationNotSupportedError,
+                      QLatin1String("ModifyLockCode - plugin - TODO!"));
     } else {
         // TODO: only allow system settings application or device lock daemon!
         if (!applicationIsPlatformApplication) {
             return Result(Result::PermissionsError,
                           QLatin1String("Only the system settings application can unlock the secrets database"));
+        }
+
+        // there is only one bookkeeping database, ensure that
+        // the client hasn't attempted to set some other target.
+        if (!lockCodeTarget.isEmpty()) {
+            return Result(Result::OperationNotSupportedError,
+                          QLatin1String("Invalid target name specified"));
         }
 
         bool locked = true;
@@ -3696,8 +3724,8 @@ Daemon::ApiImpl::RequestProcessor::provideLockCode(
                                      callerPid,
                                      requestId,
                                      Daemon::ApiImpl::ProvideLockCodeRequest,
-                                     QVariantList() << QVariant::fromValue<QString>(secretName)
-                                                    << QVariant::fromValue<QString>(collectionName)
+                                     QVariantList() << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+                                                    << QVariant::fromValue<QString>(lockCodeTarget)
                                                     << QVariant::fromValue<InteractionParameters>(unlockRequest)
                                                     << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
                                                     << QVariant::fromValue<QString>(interactionServiceAddress)));
@@ -3709,18 +3737,18 @@ Result
 Daemon::ApiImpl::RequestProcessor::provideLockCodeWithLockCode(
         pid_t callerPid,
         quint64 requestId,
-        const QString &secretName,
-        const QString &collectionName,
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
         const InteractionParameters &interactionParams,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress,
         const QByteArray &lockCode)
 {
-    // TODO: support the secret/collection flows.
+    // TODO: support the plugin/secret/collection flows.
     Q_UNUSED(callerPid);
     Q_UNUSED(requestId);
-    Q_UNUSED(secretName);
-    Q_UNUSED(collectionName);
+    Q_UNUSED(lockCodeTargetType);
+    Q_UNUSED(lockCodeTarget);
     Q_UNUSED(interactionParams);
     Q_UNUSED(userInteractionMode);
     Q_UNUSED(interactionServiceAddress);
@@ -3785,8 +3813,8 @@ Result
 Daemon::ApiImpl::RequestProcessor::forgetLockCode(
         pid_t callerPid,
         quint64 requestId,
-        const QString &secretName,
-        const QString &collectionName,
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
         const InteractionParameters &interactionParams,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress)
@@ -3801,23 +3829,39 @@ Daemon::ApiImpl::RequestProcessor::forgetLockCode(
     const QString callerApplicationId = applicationIsPlatformApplication
                 ? m_appPermissions->platformApplicationId()
                 : m_appPermissions->applicationId(callerPid);
+    Q_UNUSED(callerApplicationId); // TODO: access control?
 
-    if (!secretName.isEmpty() && !collectionName.isEmpty()) {
-        return Result(Result::InvalidSecretIdentifierError,
-                      QLatin1String("Cannot forget a lock code for a collection secret"));
-    } else if (!secretName.isEmpty()) {
+    if (lockCodeTargetType == LockCodeRequest::StandaloneSecret) {
         // attempt to lock the specified standalone secret.  TODO!
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("ForgetLockCode - standalone secret - TODO!"));
-    } else if (!collectionName.isEmpty()){
+    } else if (lockCodeTargetType == LockCodeRequest::Collection){
         // attempt to lock the specified collection.  TODO!
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("ForgetLockCode - collection - TODO!"));
+    } else if (lockCodeTargetType == LockCodeRequest::ExtensionPlugin) {
+        // check that the application is system settings.
+        // if not, some malicious app is trying to rekey the
+        // plugin.
+        if (!applicationIsPlatformApplication) {
+            return Result(Result::PermissionsError,
+                          QLatin1String("Only the system settings application can unlock the plugin"));
+        }
+        // TODO: support explicit plugin lock code operations.
+        return Result(Result::OperationNotSupportedError,
+                      QLatin1String("ModifyLockCode - plugin - TODO!"));
     } else {
         // TODO: only allow system settings application or device lock daemon!
         if (!applicationIsPlatformApplication) {
             return Result(Result::PermissionsError,
                           QLatin1String("Only the system settings application can lock the secrets database"));
+        }
+
+        // there is only one bookkeeping database, ensure that
+        // the client hasn't attempted to set some other target.
+        if (!lockCodeTarget.isEmpty()) {
+            return Result(Result::OperationNotSupportedError,
+                          QLatin1String("Invalid target name specified"));
         }
 
         if (!m_requestQueue->initialise(
@@ -4094,7 +4138,7 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                         returnResult = modifyLockCodeWithLockCode(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<LockCodeRequest::LockCodeTargetType>(),
                                     pr.parameters.takeFirst().value<QString>(),
                                     pr.parameters.takeFirst().value<InteractionParameters>(),
                                     static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
@@ -4106,7 +4150,7 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                         returnResult = modifyLockCodeWithLockCodes(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<LockCodeRequest::LockCodeTargetType>(),
                                     pr.parameters.takeFirst().value<QString>(),
                                     pr.parameters.takeFirst().value<InteractionParameters>(),
                                     static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
@@ -4127,7 +4171,7 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                         returnResult = provideLockCodeWithLockCode(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<LockCodeRequest::LockCodeTargetType>(),
                                     pr.parameters.takeFirst().value<QString>(),
                                     pr.parameters.takeFirst().value<InteractionParameters>(),
                                     static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),

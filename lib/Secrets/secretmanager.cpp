@@ -508,8 +508,8 @@ SecretManagerPrivate::deleteSecret(
 
 QDBusPendingReply<Result>
 SecretManagerPrivate::modifyLockCode(
-        const QString &secretName,
-        const QString &collectionName,
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
         const InteractionParameters &interactionParameters,
         SecretManager::UserInteractionMode userInteractionMode)
 {
@@ -530,8 +530,8 @@ SecretManagerPrivate::modifyLockCode(
     QDBusPendingReply<Result> reply
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("modifyLockCode"),
-                QVariantList() << QVariant::fromValue<QString>(secretName)
-                               << QVariant::fromValue<QString>(collectionName)
+                QVariantList() << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+                               << QVariant::fromValue<QString>(lockCodeTarget)
                                << QVariant::fromValue<InteractionParameters>(interactionParameters)
                                << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
                                << QVariant::fromValue<QString>(interactionServiceAddress));
@@ -540,8 +540,8 @@ SecretManagerPrivate::modifyLockCode(
 
 QDBusPendingReply<Result>
 SecretManagerPrivate::provideLockCode(
-        const QString &secretName,
-        const QString &collectionName,
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
         const InteractionParameters &interactionParameters,
         SecretManager::UserInteractionMode userInteractionMode)
 {
@@ -562,8 +562,8 @@ SecretManagerPrivate::provideLockCode(
     QDBusPendingReply<Result> reply
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("provideLockCode"),
-                QVariantList() << QVariant::fromValue<QString>(secretName)
-                               << QVariant::fromValue<QString>(collectionName)
+                QVariantList() << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+                               << QVariant::fromValue<QString>(lockCodeTarget)
                                << QVariant::fromValue<InteractionParameters>(interactionParameters)
                                << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
                                << QVariant::fromValue<QString>(interactionServiceAddress));
@@ -572,8 +572,8 @@ SecretManagerPrivate::provideLockCode(
 
 QDBusPendingReply<Result>
 SecretManagerPrivate::forgetLockCode(
-        const QString &secretName,
-        const QString &collectionName,
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
         const InteractionParameters &interactionParameters,
         SecretManager::UserInteractionMode userInteractionMode)
 {
@@ -594,8 +594,8 @@ SecretManagerPrivate::forgetLockCode(
     QDBusPendingReply<Result> reply
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("forgetLockCode"),
-                QVariantList() << QVariant::fromValue<QString>(secretName)
-                               << QVariant::fromValue<QString>(collectionName)
+                QVariantList() << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+                               << QVariant::fromValue<QString>(lockCodeTarget)
                                << QVariant::fromValue<InteractionParameters>(interactionParameters)
                                << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
                                << QVariant::fromValue<QString>(interactionServiceAddress));
