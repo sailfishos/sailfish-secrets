@@ -6,7 +6,7 @@ TARGET = $$qtLibraryTarget($$TARGET)
 include($$PWD/../../../common.pri)
 include($$PWD/../../../lib/libsailfishcrypto.pri)
 
-DEFINES += SAILFISHCRYPTO_TESTPLUGIN
+DEFINES += SAILFISHCRYPTO_TESTPLUGIN SAILFISHCRYPTO_BUILD_OPENSSLCRYPTOPLUGIN
 
 INCLUDEPATH += $$PWD/../../../plugins/opensslcryptoplugin/evp/
 DEPENDPATH += $$PWD/../../../plugins/opensslcryptoplugin/evp/
@@ -18,9 +18,6 @@ HEADERS += \
 SOURCES += \
     $$PWD/../../../plugins/opensslcryptoplugin/evp/evp.c \
     $$PWD/../../../plugins/opensslcryptoplugin/opensslcryptoplugin.cpp
-
-OTHER_FILES += \
-    $$PWD/../../../plugins/opensslcryptoplugin/cryptoplugin_common.cpp
 
 target.path=/usr/lib/Sailfish/Crypto/
 INSTALLS += target

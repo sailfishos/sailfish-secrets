@@ -15,6 +15,14 @@
 #include <QCryptographicHash>
 #include <QMap>
 
+// When building the actual plugin, export it.
+// When just compiling into another plugin, don't.
+#ifdef SAILFISHCRYPTO_BUILD_OPENSSLCRYPTOPLUGIN
+#define OPENSSLCRYPTOPLUGIN_EXPORT Q_DECL_EXPORT
+#else
+#define OPENSSLCRYPTOPLUGIN_EXPORT Q_DECL_HIDDEN
+#endif // SAILFISHCRYPTO_BUILD_OPENSSLCRYPTOPLUGIN
+
 class CipherSessionData;
 class QTimer;
 
@@ -26,10 +34,12 @@ namespace Daemon {
 
 namespace Plugins {
 
-class Q_DECL_EXPORT OpenSslCryptoPlugin : public QObject, public Sailfish::Crypto::CryptoPlugin
+class OPENSSLCRYPTOPLUGIN_EXPORT OpenSslCryptoPlugin : public QObject, public Sailfish::Crypto::CryptoPlugin
 {
     Q_OBJECT
+#ifdef SAILFISHCRYPTO_BUILD_OPENSSLCRYPTOPLUGIN
     Q_PLUGIN_METADATA(IID Sailfish_Crypto_CryptoPlugin_IID)
+#endif
     Q_INTERFACES(Sailfish::Crypto::CryptoPlugin)
 
 public:
