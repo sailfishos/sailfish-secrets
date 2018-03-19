@@ -102,6 +102,36 @@ private slots:
     void cipherTimeout();
 
 private:
+    void addCryptoTestData()
+    {
+        QTest::addColumn<CryptoManager::BlockMode>("blockMode");
+        QTest::addColumn<int>("keySize");
+
+        QTest::newRow("ECB 128-bit") << CryptoManager::BlockModeEcb << 128;
+        QTest::newRow("ECB 192-bit") << CryptoManager::BlockModeEcb << 192;
+        QTest::newRow("ECB 256-bit") << CryptoManager::BlockModeEcb << 256;
+
+        QTest::newRow("CBC 128-bit") << CryptoManager::BlockModeCbc << 128;
+        QTest::newRow("CBC 192-bit") << CryptoManager::BlockModeCbc << 192;
+        QTest::newRow("CBC 256-bit") << CryptoManager::BlockModeCbc << 256;
+
+        QTest::newRow("CFB-1 128-bit") << CryptoManager::BlockModeCfb1 << 128;
+        QTest::newRow("CFB-1 192-bit") << CryptoManager::BlockModeCfb1 << 192;
+        QTest::newRow("CFB-1 256-bit") << CryptoManager::BlockModeCfb1 << 256;
+
+        QTest::newRow("CFB-8 128-bit") << CryptoManager::BlockModeCfb8 << 128;
+        QTest::newRow("CFB-8 192-bit") << CryptoManager::BlockModeCfb8 << 192;
+        QTest::newRow("CFB-8 256-bit") << CryptoManager::BlockModeCfb8 << 256;
+
+        QTest::newRow("CFB-128 128-bit") << CryptoManager::BlockModeCfb128 << 128;
+        QTest::newRow("CFB-128 192-bit") << CryptoManager::BlockModeCfb128 << 192;
+        QTest::newRow("CFB-128 256-bit") << CryptoManager::BlockModeCfb128 << 256;
+
+        QTest::newRow("OFB 128-bit") << CryptoManager::BlockModeOfb << 128;
+        QTest::newRow("OFB 192-bit") << CryptoManager::BlockModeOfb << 192;
+        QTest::newRow("OFB 256-bit") << CryptoManager::BlockModeOfb << 256;
+    }
+
     CryptoManager cm;
     Sailfish::Secrets::SecretManager sm;
 };
@@ -220,15 +250,12 @@ void tst_cryptorequests::randomData()
 
 void tst_cryptorequests::generateKeyEncryptDecrypt_data()
 {
-    QTest::addColumn<int>("keySize");
-
-    QTest::newRow("128") << 128;
-    QTest::newRow("192") << 192;
-    QTest::newRow("256") << 256;
+    addCryptoTestData();
 }
 
 void tst_cryptorequests::generateKeyEncryptDecrypt()
 {
+    QFETCH(CryptoManager::BlockMode, blockMode);
     QFETCH(int, keySize);
 
     // test generating a symmetric cipher key
@@ -264,7 +291,7 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
 
     // test encrypting some plaintext with the generated key
     QByteArray plaintext = "Test plaintext data";
-    QByteArray initVector = "Test initialisation vector";
+    QByteArray initVector = "0123456789abcdef";
     EncryptRequest er;
     er.setManager(&cm);
     QSignalSpy erss(&er, &EncryptRequest::statusChanged);
@@ -275,8 +302,8 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QCOMPARE(er.initialisationVector(), initVector);
     er.setKey(fullKey);
     QCOMPARE(er.key(), fullKey);
-    er.setBlockMode(CryptoManager::BlockModeCbc);
-    QCOMPARE(er.blockMode(), CryptoManager::BlockModeCbc);
+    er.setBlockMode(blockMode);
+    QCOMPARE(er.blockMode(), blockMode);
     er.setPadding(CryptoManager::EncryptionPaddingNone);
     QCOMPARE(er.padding(), CryptoManager::EncryptionPaddingNone);
     er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
@@ -307,8 +334,8 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QCOMPARE(dr.initialisationVector(), initVector);
     dr.setKey(fullKey);
     QCOMPARE(dr.key(), fullKey);
-    dr.setBlockMode(CryptoManager::BlockModeCbc);
-    QCOMPARE(dr.blockMode(), CryptoManager::BlockModeCbc);
+    dr.setBlockMode(blockMode);
+    QCOMPARE(dr.blockMode(), blockMode);
     dr.setPadding(CryptoManager::EncryptionPaddingNone);
     QCOMPARE(dr.padding(), CryptoManager::EncryptionPaddingNone);
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
@@ -412,15 +439,12 @@ void tst_cryptorequests::signVerify()
 
 void tst_cryptorequests::storedKeyRequests_data()
 {
-    QTest::addColumn<int>("keySize");
-
-    QTest::newRow("128") << 128;
-    QTest::newRow("192") << 192;
-    QTest::newRow("256") << 256;
+    addCryptoTestData();
 }
 
 void tst_cryptorequests::storedKeyRequests()
 {
+    QFETCH(CryptoManager::BlockMode, blockMode);
     QFETCH(int, keySize);
 
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
@@ -480,7 +504,7 @@ void tst_cryptorequests::storedKeyRequests()
 
     // test encrypting some plaintext with the stored key.
     QByteArray plaintext = "Test plaintext data";
-    QByteArray initVector = "Test initialisation vector";
+    QByteArray initVector = "0123456789abcdef";
     EncryptRequest er;
     er.setManager(&cm);
     QSignalSpy erss(&er, &EncryptRequest::statusChanged);
@@ -491,8 +515,8 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(er.initialisationVector(), initVector);
     er.setKey(keyReference);
     QCOMPARE(er.key(), keyReference);
-    er.setBlockMode(CryptoManager::BlockModeCbc);
-    QCOMPARE(er.blockMode(), CryptoManager::BlockModeCbc);
+    er.setBlockMode(blockMode);
+    QCOMPARE(er.blockMode(), blockMode);
     er.setPadding(CryptoManager::EncryptionPaddingNone);
     QCOMPARE(er.padding(), CryptoManager::EncryptionPaddingNone);
     er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
@@ -523,8 +547,8 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(dr.initialisationVector(), initVector);
     dr.setKey(keyReference);
     QCOMPARE(dr.key(), keyReference);
-    dr.setBlockMode(CryptoManager::BlockModeCbc);
-    QCOMPARE(dr.blockMode(), CryptoManager::BlockModeCbc);
+    dr.setBlockMode(blockMode);
+    QCOMPARE(dr.blockMode(), blockMode);
     dr.setPadding(CryptoManager::EncryptionPaddingNone);
     QCOMPARE(dr.padding(), CryptoManager::EncryptionPaddingNone);
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
@@ -696,15 +720,12 @@ void tst_cryptorequests::storedKeyRequests()
 
 void tst_cryptorequests::storedDerivedKeyRequests_data()
 {
-    QTest::addColumn<int>("keySize");
-
-    QTest::newRow("128") << 128;
-    QTest::newRow("192") << 192;
-    QTest::newRow("256") << 256;
+    addCryptoTestData();
 }
 
 void tst_cryptorequests::storedDerivedKeyRequests()
 {
+    QFETCH(CryptoManager::BlockMode, blockMode);
     QFETCH(int, keySize);
 
     // test generating a symmetric cipher key via a key derivation function
@@ -783,7 +804,7 @@ void tst_cryptorequests::storedDerivedKeyRequests()
 
     // test encrypting some plaintext with the stored key.
     QByteArray plaintext = "Test plaintext data";
-    QByteArray initVector = "Test initialisation vector";
+    QByteArray initVector = "0123456789abcdef";
     EncryptRequest er;
     er.setManager(&cm);
     QSignalSpy erss(&er, &EncryptRequest::statusChanged);
@@ -794,8 +815,8 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     QCOMPARE(er.initialisationVector(), initVector);
     er.setKey(keyReference);
     QCOMPARE(er.key(), keyReference);
-    er.setBlockMode(CryptoManager::BlockModeCbc);
-    QCOMPARE(er.blockMode(), CryptoManager::BlockModeCbc);
+    er.setBlockMode(blockMode);
+    QCOMPARE(er.blockMode(), blockMode);
     er.setPadding(CryptoManager::EncryptionPaddingNone);
     QCOMPARE(er.padding(), CryptoManager::EncryptionPaddingNone);
     er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
@@ -826,8 +847,8 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     QCOMPARE(dr.initialisationVector(), initVector);
     dr.setKey(keyReference);
     QCOMPARE(dr.key(), keyReference);
-    dr.setBlockMode(CryptoManager::BlockModeCbc);
-    QCOMPARE(dr.blockMode(), CryptoManager::BlockModeCbc);
+    dr.setBlockMode(blockMode);
+    QCOMPARE(dr.blockMode(), blockMode);
     dr.setPadding(CryptoManager::EncryptionPaddingNone);
     QCOMPARE(dr.padding(), CryptoManager::EncryptionPaddingNone);
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
@@ -1147,15 +1168,12 @@ void tst_cryptorequests::storedGeneratedKeyRequests()
 
 void tst_cryptorequests::cipherEncryptDecrypt_data()
 {
-    QTest::addColumn<int>("keySize");
-
-    QTest::newRow("128") << 128;
-    QTest::newRow("192") << 192;
-    QTest::newRow("256") << 256;
+    addCryptoTestData();
 }
 
 void tst_cryptorequests::cipherEncryptDecrypt()
 {
+    QFETCH(CryptoManager::BlockMode, blockMode);
     QFETCH(int, keySize);
 
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
@@ -1232,8 +1250,8 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     QCOMPARE(er.key(), minimalKeyReference);
     er.setOperation(Sailfish::Crypto::CryptoManager::OperationEncrypt);
     QCOMPARE(er.operation(), Sailfish::Crypto::CryptoManager::OperationEncrypt);
-    er.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
-    QCOMPARE(er.blockMode(), Sailfish::Crypto::CryptoManager::BlockModeCbc);
+    er.setBlockMode(blockMode);
+    QCOMPARE(er.blockMode(), blockMode);
     er.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
     QCOMPARE(er.encryptionPadding(), Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
     er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
@@ -1307,8 +1325,8 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     QCOMPARE(dr.initialisationVector(), iv);
     dr.setOperation(Sailfish::Crypto::CryptoManager::OperationDecrypt);
     QCOMPARE(dr.operation(), Sailfish::Crypto::CryptoManager::OperationDecrypt);
-    dr.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
-    QCOMPARE(dr.blockMode(), Sailfish::Crypto::CryptoManager::BlockModeCbc);
+    dr.setBlockMode(blockMode);
+    QCOMPARE(dr.blockMode(), blockMode);
     dr.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
     QCOMPARE(dr.encryptionPadding(), Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
@@ -1385,15 +1403,12 @@ void tst_cryptorequests::cipherEncryptDecrypt()
 
 void tst_cryptorequests::cipherBenchmark_data()
 {
-    QTest::addColumn<int>("keySize");
-
-    QTest::newRow("128") << 128;
-    QTest::newRow("192") << 192;
-    QTest::newRow("256") << 256;
+    addCryptoTestData();
 }
 
 void tst_cryptorequests::cipherBenchmark()
 {
+    QFETCH(CryptoManager::BlockMode, blockMode);
     QFETCH(int, keySize);
 
     if (!QFile::exists(BENCHMARK_TEST_FILE)) {
@@ -1481,7 +1496,7 @@ void tst_cryptorequests::cipherBenchmark()
         er.setManager(&cm);
         er.setKey(minimalKeyReference);
         er.setOperation(Sailfish::Crypto::CryptoManager::OperationEncrypt);
-        er.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
+        er.setBlockMode(blockMode);
         er.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
         er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
         er.setCipherMode(CipherRequest::InitialiseCipher);
@@ -1516,7 +1531,7 @@ void tst_cryptorequests::cipherBenchmark()
         dr.setKey(minimalKeyReference);
         dr.setInitialisationVector(iv);
         dr.setOperation(Sailfish::Crypto::CryptoManager::OperationDecrypt);
-        dr.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
+        dr.setBlockMode(blockMode);
         dr.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
         dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
         dr.setCipherMode(CipherRequest::InitialiseCipher);
@@ -1578,7 +1593,7 @@ void tst_cryptorequests::cipherBenchmark()
         er.setKey(minimalKeyReference);
         er.setInitialisationVector(iv);
         er.setOperation(Sailfish::Crypto::CryptoManager::OperationEncrypt);
-        er.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
+        er.setBlockMode(blockMode);
         er.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
         er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
         er.setCipherMode(CipherRequest::InitialiseCipher);
@@ -1613,7 +1628,7 @@ void tst_cryptorequests::cipherBenchmark()
         dr.setKey(minimalKeyReference);
         dr.setInitialisationVector(iv);
         dr.setOperation(Sailfish::Crypto::CryptoManager::OperationDecrypt);
-        dr.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
+        dr.setBlockMode(blockMode);
         dr.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
         dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
         dr.setCipherMode(CipherRequest::InitialiseCipher);

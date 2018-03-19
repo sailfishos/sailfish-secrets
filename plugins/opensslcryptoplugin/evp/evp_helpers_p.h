@@ -104,3 +104,24 @@ quint32 getNextCipherSessionToken(QMap<quint64, QMap<quint32, CipherSessionData*
     }
     return 0; // no cipher sessions available.
 }
+
+bool validInitializationVector(const QByteArray &initVector,
+                               Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+                               Sailfish::Crypto::CryptoManager::Algorithm algorithm)
+{
+    if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeEcb) {
+        // IV not required for this mode
+        return true;
+    }
+
+    // Ensure the IV has the correct size. The IV size for most modes is the same as the block size.
+    switch (algorithm) {
+    case Sailfish::Crypto::CryptoManager::AlgorithmAes:
+        return initVector.size() == 16;  // AES = 128-bit block size
+    default:
+        break;
+    }
+
+    return false;
+}
+
