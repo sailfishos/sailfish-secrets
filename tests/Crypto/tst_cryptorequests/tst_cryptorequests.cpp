@@ -13,6 +13,7 @@
 #include <QElapsedTimer>
 #include <QFile>
 
+#include "Crypto/calculatedigestrequest.h"
 #include "Crypto/cipherrequest.h"
 #include "Crypto/decryptrequest.h"
 #include "Crypto/deletestoredkeyrequest.h"
@@ -90,6 +91,7 @@ private slots:
     void generateKeyEncryptDecrypt();
     void validateCertificateChain();
     void signVerify();
+    void calculateDigest();
     void storedKeyRequests_data();
     void storedKeyRequests();
     void storedDerivedKeyRequests_data();
@@ -486,6 +488,41 @@ void tst_cryptorequests::signVerify()
     QCOMPARE(vr.result().code(), Result::Succeeded);
     QCOMPARE(vrvs.count(), 1);
     QCOMPARE(vr.verified(), true);
+}
+
+void tst_cryptorequests::calculateDigest()
+{
+    QByteArray plaintext = "Test plaintext data";
+
+    CalculateDigestRequest cdr;
+    cdr.setManager(&cm);
+    QSignalSpy cdrss(&cdr, &CalculateDigestRequest::statusChanged);
+    QSignalSpy cdrds(&cdr, &CalculateDigestRequest::digestChanged);
+    QCOMPARE(cdr.status(), Request::Inactive);
+    cdr.setData(plaintext);
+    QCOMPARE(cdr.data(), plaintext);
+    cdr.setDigestFunction(CryptoManager::DigestSha256);
+    QCOMPARE(cdr.digestFunction(), CryptoManager::DigestSha256);
+    cdr.setPadding(CryptoManager::SignaturePaddingNone);
+    QCOMPARE(cdr.padding(), CryptoManager::SignaturePaddingNone);
+    cdr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+    QCOMPARE(cdr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+
+    cdr.startRequest();
+    QCOMPARE(cdrss.count(), 1);
+    QCOMPARE(cdr.status(), Request::Active);
+    QCOMPARE(cdr.result().code(), Result::Pending);
+    QCOMPARE(cdrds.count(), 0);
+
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(cdr);
+    QCOMPARE(cdrss.count(), 2);
+    QCOMPARE(cdr.status(), Request::Finished);
+
+    QCOMPARE(cdr.result().code(), Result::Succeeded);
+    QCOMPARE(cdrds.count(), 1);
+
+    QByteArray digest = cdr.digest();
+    QVERIFY2(digest.length() != 0, "Calculated digest should NOT be empty.");
 }
 
 void tst_cryptorequests::storedKeyRequests_data()
