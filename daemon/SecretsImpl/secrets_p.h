@@ -389,7 +389,7 @@ class SecretsRequestQueue : public Sailfish::Secrets::Daemon::ApiImpl::RequestQu
     Q_OBJECT
 
 public:
-    SecretsRequestQueue(Sailfish::Secrets::Daemon::Controller *parent, const QString &pluginDir, bool autotestMode);
+    SecretsRequestQueue(Sailfish::Secrets::Daemon::Controller *parent, bool autotestMode);
     ~SecretsRequestQueue();
 
     bool initialise(const QByteArray &lockCode);

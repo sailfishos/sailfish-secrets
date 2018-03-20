@@ -42,7 +42,7 @@ class Controller : public QObject
     Q_OBJECT
 
 public:
-    Controller(const QString &secretsPluginDir, const QString &cryptoPluginDir, bool autotest = false, QObject *parent = Q_NULLPTR);
+    Controller(bool autotest = false, QObject *parent = Q_NULLPTR);
     ~Controller();
 
     bool isValid() const { return m_isValid; }
@@ -59,8 +59,6 @@ private:
     Sailfish::Crypto::Daemon::DiscoveryObject *m_cryptoDiscoveryObject;
     Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *m_secrets;
     Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *m_crypto;
-    QString m_secretsPluginDir;
-    QString m_cryptoPluginDir;
     bool m_autotestMode;
     bool m_isValid;
 };

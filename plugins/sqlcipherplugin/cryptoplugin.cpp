@@ -220,6 +220,199 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::getFullKey(
     return key;
 }
 
-#define CRYPTOPLUGINCOMMON_NAMESPACE Sailfish::Secrets::Daemon::Plugins
-#define CRYPTOPLUGINCOMMON_CLASS SqlCipherPlugin
-#include "../opensslcryptoplugin/cryptoplugin_common.cpp"
+QVector<Sailfish::Crypto::CryptoManager::Algorithm>
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::supportedAlgorithms() const
+{
+    return m_opensslCryptoPlugin.supportedAlgorithms();
+}
+
+QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::BlockMode> >
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::supportedBlockModes() const
+{
+    return m_opensslCryptoPlugin.supportedBlockModes();
+}
+
+QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::EncryptionPadding> >
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::supportedEncryptionPaddings() const
+{
+    return m_opensslCryptoPlugin.supportedEncryptionPaddings();
+}
+
+QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::SignaturePadding> >
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::supportedSignaturePaddings() const
+{
+    return m_opensslCryptoPlugin.supportedSignaturePaddings();
+}
+
+QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::DigestFunction> >
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::supportedDigests() const
+{
+    return m_opensslCryptoPlugin.supportedDigests();
+}
+
+QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::MessageAuthenticationCode> >
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::supportedMessageAuthenticationCodes() const
+{
+    return m_opensslCryptoPlugin.supportedMessageAuthenticationCodes();
+}
+
+QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::KeyDerivationFunction> >
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::supportedKeyDerivationFunctions() const
+{
+    return m_opensslCryptoPlugin.supportedKeyDerivationFunctions();
+}
+
+QMap<Sailfish::Crypto::CryptoManager::Algorithm, Sailfish::Crypto::CryptoManager::Operations>
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::supportedOperations() const
+{
+    return m_opensslCryptoPlugin.supportedOperations();
+}
+
+Sailfish::Crypto::Result
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::generateRandomData(
+        quint64 callerIdent,
+        const QString &csprngEngineName,
+        quint64 numberBytes,
+        QByteArray *randomData)
+{
+    return m_opensslCryptoPlugin.generateRandomData(callerIdent, csprngEngineName, numberBytes, randomData);
+}
+
+Sailfish::Crypto::Result
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::validateCertificateChain(
+        const QVector<Sailfish::Crypto::Certificate> &chain,
+        bool *validated)
+{
+    return m_opensslCryptoPlugin.validateCertificateChain(chain, validated);
+}
+
+Sailfish::Crypto::Result
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::generateKey(
+        const Sailfish::Crypto::Key &keyTemplate,
+        const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
+        const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+        Sailfish::Crypto::Key *key)
+{
+    return m_opensslCryptoPlugin.generateKey(keyTemplate, kpgParams, skdfParams, key);
+}
+
+Sailfish::Crypto::Result
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::calculateDigest(
+        const QByteArray &data,
+        Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+        Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+        QByteArray *digest)
+{
+    return m_opensslCryptoPlugin.calculateDigest(data, padding, digestFunction, digest);
+}
+
+Sailfish::Crypto::Result
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::sign(
+        const QByteArray &data,
+        const Sailfish::Crypto::Key &key,
+        Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+        Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+        QByteArray *signature)
+{
+    return m_opensslCryptoPlugin.sign(data, key, padding, digestFunction, signature);
+}
+
+Sailfish::Crypto::Result
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::verify(
+        const QByteArray &signature,
+        const QByteArray &data,
+        const Sailfish::Crypto::Key &key,
+        Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+        Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+        bool *verified)
+{
+    return m_opensslCryptoPlugin.verify(signature, data, key, padding, digestFunction, verified);
+}
+
+Sailfish::Crypto::Result
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::encrypt(
+        const QByteArray &data,
+        const QByteArray &iv,
+        const Sailfish::Crypto::Key &key,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+        QByteArray *encrypted)
+{
+    return m_opensslCryptoPlugin.encrypt(data, iv, key, blockMode, padding, encrypted);
+}
+
+Sailfish::Crypto::Result
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::decrypt(
+        const QByteArray &data,
+        const QByteArray &iv,
+        const Sailfish::Crypto::Key &key,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+        QByteArray *decrypted)
+{
+    return m_opensslCryptoPlugin.decrypt(data, iv, key, blockMode, padding, decrypted);
+}
+
+Sailfish::Crypto::Result
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::initialiseCipherSession(
+        quint64 clientId,
+        const QByteArray &iv,
+        const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
+        Sailfish::Crypto::CryptoManager::Operation operation,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
+        Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
+        Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+        quint32 *cipherSessionToken,
+        QByteArray *generatedIV)
+{
+    return m_opensslCryptoPlugin.initialiseCipherSession(clientId,
+                                                         iv,
+                                                         key,
+                                                         operation,
+                                                         blockMode,
+                                                         encryptionPadding,
+                                                         signaturePadding,
+                                                         digestFunction,
+                                                         cipherSessionToken,
+                                                         generatedIV);
+}
+
+Sailfish::Crypto::Result
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::updateCipherSessionAuthentication(
+        quint64 clientId,
+        const QByteArray &authenticationData,
+        quint32 cipherSessionToken)
+{
+    return m_opensslCryptoPlugin.updateCipherSessionAuthentication(clientId,
+                                                                   authenticationData,
+                                                                   cipherSessionToken);
+}
+
+Sailfish::Crypto::Result
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::updateCipherSession(
+        quint64 clientId,
+        const QByteArray &data,
+        quint32 cipherSessionToken,
+        QByteArray *generatedData)
+{
+    return m_opensslCryptoPlugin.updateCipherSession(clientId,
+                                                     data,
+                                                     cipherSessionToken,
+                                                     generatedData);
+}
+
+Sailfish::Crypto::Result
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::finaliseCipherSession(
+        quint64 clientId,
+        const QByteArray &data,
+        quint32 cipherSessionToken,
+        QByteArray *generatedData,
+        bool *verified)
+{
+    return m_opensslCryptoPlugin.finaliseCipherSession(clientId,
+                                                       data,
+                                                       cipherSessionToken,
+                                                       generatedData,
+                                                       verified);
+}
