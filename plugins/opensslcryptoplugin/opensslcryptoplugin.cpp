@@ -410,9 +410,11 @@ Daemon::Plugins::OpenSslCryptoPlugin::calculateDigest(
                                         QLatin1String("Unsupported digest function chosen."));
     }
 
+    // Variables for storing the digest
+    uint8_t *digestBytes = Q_NULLPTR;
+    size_t digestLength = 0;
+
     // Create digest
-    uint8_t *digestBytes;
-    size_t digestLength;
     int r = osslevp_digest(evpDigestFunc, data.data(), data.length(), &digestBytes, &digestLength);
     if (r != 1) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginDigestError,
@@ -464,9 +466,11 @@ Daemon::Plugins::OpenSslCryptoPlugin::sign(
                                         QLatin1String("Unsupported digest function chosen."));
     }
 
+    // Variables for storing the signature
+    uint8_t *signatureBytes = Q_NULLPTR;
+    size_t signatureLength = 0;
+
     // Create signature
-    uint8_t *signatureBytes;
-    size_t signatureLength;
     r = osslevp_sign(evpDigestFunc, pkeyPtr, data.data(), data.length(), &signatureBytes, &signatureLength);
     if (r != 1) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginSigningError,
