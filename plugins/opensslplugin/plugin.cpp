@@ -64,11 +64,7 @@ Daemon::Plugins::OpenSslPlugin::encryptSecret(
     QCryptographicHash ivHash(QCryptographicHash::Sha256);
     ivHash.addData(key);
     QByteArray initVector = ivHash.result();
-    if (initVector.size() > 16) {
-        initVector.chop(initVector.size() - 16);
-    } else while (initVector.size() < 16) {
-        initVector.append('\0');
-    }
+    initVector.resize(16);
 
     // encrypt plaintext
     QByteArray ciphertext = aes_encrypt_plaintext(plaintext, key, initVector);
@@ -93,11 +89,7 @@ Daemon::Plugins::OpenSslPlugin::decryptSecret(
     QCryptographicHash ivHash(QCryptographicHash::Sha256);
     ivHash.addData(key);
     QByteArray initVector = ivHash.result();
-    if (initVector.size() > 16) {
-        initVector.chop(initVector.size() - 16);
-    } else while (initVector.size() < 16) {
-        initVector.append('\0');
-    }
+    initVector.resize(16);
 
     // decrypt ciphertext
     QByteArray decrypted = aes_decrypt_ciphertext(encrypted, key, initVector);

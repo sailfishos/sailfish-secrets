@@ -34,16 +34,60 @@ int osslevp_init()
 
 const EVP_CIPHER *osslevp_aes_cipher(int block_mode, int key_length_bytes)
 {
-    if (block_mode == 3) {  // Sailfish::Crypto::CryptoManager::BlockModeCbc == 3
-        switch (key_length_bytes * 8) {
-        case 128:
-            return EVP_aes_128_cbc();
-        case 192:
-            return EVP_aes_192_cbc();
-        case 256:
-            return EVP_aes_256_cbc();
+    const int key_length_bits = key_length_bytes * 8;
+
+    if (block_mode == 2) {  // Sailfish::Crypto::CryptoManager::BlockModeEcb
+        switch (key_length_bits) {
+        case 128: return EVP_aes_128_ecb();
+        case 192: return EVP_aes_192_ecb();
+        case 256: return EVP_aes_256_ecb();
         default:
-            fprintf(stderr, "%s: %d\n", "unsupported encryption size for CBC block mode", (key_length_bytes * 8));
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for ECB block mode", key_length_bits);
+            return NULL;
+        }
+    } else if (block_mode == 3) {  // Sailfish::Crypto::CryptoManager::BlockModeCbc
+        switch (key_length_bits) {
+        case 128: return EVP_aes_128_cbc();
+        case 192: return EVP_aes_192_cbc();
+        case 256: return EVP_aes_256_cbc();
+        default:
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for CBC block mode", key_length_bits);
+            return NULL;
+        }
+    } else if (block_mode == 5) {  // Sailfish::Crypto::CryptoManager::BlockModeCfb1
+        switch (key_length_bits) {
+        case 128: return EVP_aes_128_cfb1();
+        case 192: return EVP_aes_192_cfb1();
+        case 256: return EVP_aes_256_cfb1();
+        default:
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for CFB-1 block mode", key_length_bits);
+            return NULL;
+        }
+    } else if (block_mode == 6) {  // Sailfish::Crypto::CryptoManager::BlockModeCfb8
+        switch (key_length_bits) {
+        case 128: return EVP_aes_128_cfb8();
+        case 192: return EVP_aes_192_cfb8();
+        case 256: return EVP_aes_256_cfb8();
+        default:
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for CFB-8 block mode", key_length_bits);
+            return NULL;
+        }
+    } else if (block_mode == 7) {  // Sailfish::Crypto::CryptoManager::BlockModeCfb128
+        switch (key_length_bits) {
+        case 128: return EVP_aes_128_cfb128();
+        case 192: return EVP_aes_192_cfb128();
+        case 256: return EVP_aes_256_cfb128();
+        default:
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for CFB-128 block mode", key_length_bits);
+            return NULL;
+        }
+    } else if (block_mode == 8) {  // Sailfish::Crypto::CryptoManager::BlockModeOfb
+        switch (key_length_bits) {
+        case 128: return EVP_aes_128_ofb();
+        case 192: return EVP_aes_192_ofb();
+        case 256: return EVP_aes_256_ofb();
+        default:
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for OFB block mode", key_length_bits);
             return NULL;
         }
     }

@@ -63,6 +63,36 @@ private slots:
     void cryptoStoredKey();
 
 private:
+    void addCryptoTestData()
+    {
+        QTest::addColumn<Sailfish::Crypto::CryptoManager::BlockMode>("blockMode");
+        QTest::addColumn<int>("keySize");
+
+        QTest::newRow("ECB 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeEcb << 128;
+        QTest::newRow("ECB 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeEcb << 192;
+        QTest::newRow("ECB 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeEcb << 256;
+
+        QTest::newRow("CBC 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeCbc << 128;
+        QTest::newRow("CBC 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeCbc << 192;
+        QTest::newRow("CBC 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeCbc << 256;
+
+        QTest::newRow("CFB-1 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb1 << 128;
+        QTest::newRow("CFB-1 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb1 << 192;
+        QTest::newRow("CFB-1 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb1 << 256;
+
+        QTest::newRow("CFB-8 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb8 << 128;
+        QTest::newRow("CFB-8 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb8 << 192;
+        QTest::newRow("CFB-8 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb8 << 256;
+
+        QTest::newRow("CFB-128 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb128 << 128;
+        QTest::newRow("CFB-128 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb128 << 192;
+        QTest::newRow("CFB-128 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb128 << 256;
+
+        QTest::newRow("OFB 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeOfb << 128;
+        QTest::newRow("OFB 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeOfb << 192;
+        QTest::newRow("OFB 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeOfb << 256;
+    }
+
     Sailfish::Crypto::CryptoManagerPrivate cm;
     TestSecretManager sm;
 };
@@ -96,15 +126,12 @@ void tst_cryptosecrets::getPluginInfo()
 
 void tst_cryptosecrets::secretsStoredKey_data()
 {
-    QTest::addColumn<int>("keySize");
-
-    QTest::newRow("128") << 128;
-    QTest::newRow("192") << 192;
-    QTest::newRow("256") << 256;
+    addCryptoTestData();
 }
 
 void tst_cryptosecrets::secretsStoredKey()
 {
+    QFETCH(Sailfish::Crypto::CryptoManager::BlockMode, blockMode);
     QFETCH(int, keySize);
 
     // test generating a symmetric cipher key and storing securely.
@@ -145,12 +172,12 @@ void tst_cryptosecrets::secretsStoredKey()
 
     // test encrypting some plaintext with the stored key.
     QByteArray plaintext = "Test plaintext data";
-    QByteArray initVector = "Test initialisation vector";
+    QByteArray initVector = "0123456789abcdef";
     QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> encryptReply = cm.encrypt(
             plaintext,
             initVector,
             keyReference,
-            Sailfish::Crypto::CryptoManager::BlockModeCbc,
+            blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
@@ -165,7 +192,7 @@ void tst_cryptosecrets::secretsStoredKey()
             encrypted,
             initVector,
             keyReference,
-            Sailfish::Crypto::CryptoManager::BlockModeCbc,
+            blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
@@ -215,7 +242,7 @@ void tst_cryptosecrets::secretsStoredKey()
             encrypted,
             initVector,
             keyReference,
-            Sailfish::Crypto::CryptoManager::BlockModeCbc,
+            blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
@@ -252,7 +279,7 @@ void tst_cryptosecrets::secretsStoredKey()
             plaintext,
             initVector,
             keyReference,
-            Sailfish::Crypto::CryptoManager::BlockModeCbc,
+            blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
@@ -266,7 +293,7 @@ void tst_cryptosecrets::secretsStoredKey()
             encrypted,
             initVector,
             keyReference,
-            Sailfish::Crypto::CryptoManager::BlockModeCbc,
+            blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
@@ -287,7 +314,7 @@ void tst_cryptosecrets::secretsStoredKey()
             encrypted,
             initVector,
             keyReference,
-            Sailfish::Crypto::CryptoManager::BlockModeCbc,
+            blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
@@ -317,15 +344,12 @@ void tst_cryptosecrets::secretsStoredKey()
 
 void tst_cryptosecrets::cryptoStoredKey_data()
 {
-    QTest::addColumn<int>("keySize");
-
-    QTest::newRow("128") << 128;
-    QTest::newRow("192") << 192;
-    QTest::newRow("256") << 256;
+    addCryptoTestData();
 }
 
 void tst_cryptosecrets::cryptoStoredKey()
 {
+    QFETCH(Sailfish::Crypto::CryptoManager::BlockMode, blockMode);
     QFETCH(int, keySize);
 
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
@@ -370,12 +394,12 @@ void tst_cryptosecrets::cryptoStoredKey()
 
     // test encrypting some plaintext with the stored key.
     QByteArray plaintext = "Test plaintext data";
-    QByteArray initVector = "Test initialisation vector";
+    QByteArray initVector = "0123456789abcdef";
     QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> encryptReply = cm.encrypt(
             plaintext,
             initVector,
             keyReference,
-            Sailfish::Crypto::CryptoManager::BlockModeCbc,
+            blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
             Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
@@ -390,11 +414,12 @@ void tst_cryptosecrets::cryptoStoredKey()
             encrypted,
             initVector,
             keyReference,
-            Sailfish::Crypto::CryptoManager::BlockModeCbc,
+            blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
             Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
+    QCOMPARE(decryptReply.argumentAt<0>().errorMessage(), QString());
     QCOMPARE(decryptReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
     QByteArray decrypted = decryptReply.argumentAt<1>();
     QVERIFY(!decrypted.isEmpty());
@@ -476,7 +501,7 @@ void tst_cryptosecrets::cryptoStoredKey()
             encrypted,
             initVector,
             keyReference,
-            Sailfish::Crypto::CryptoManager::BlockModeCbc,
+            blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
             Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
@@ -513,7 +538,7 @@ void tst_cryptosecrets::cryptoStoredKey()
             plaintext,
             initVector,
             keyReference,
-            Sailfish::Crypto::CryptoManager::BlockModeCbc,
+            blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
             Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
@@ -527,7 +552,7 @@ void tst_cryptosecrets::cryptoStoredKey()
             encrypted,
             initVector,
             keyReference,
-            Sailfish::Crypto::CryptoManager::BlockModeCbc,
+            blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
             Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
@@ -548,7 +573,7 @@ void tst_cryptosecrets::cryptoStoredKey()
             encrypted,
             initVector,
             keyReference,
-            Sailfish::Crypto::CryptoManager::BlockModeCbc,
+            blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
             Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
@@ -608,7 +633,7 @@ void tst_cryptosecrets::cryptoStoredKey()
             plaintext,
             initVector,
             keyReference,
-            Sailfish::Crypto::CryptoManager::BlockModeCbc,
+            blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
@@ -623,7 +648,7 @@ void tst_cryptosecrets::cryptoStoredKey()
             encrypted,
             initVector,
             keyReference,
-            Sailfish::Crypto::CryptoManager::BlockModeCbc,
+            blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
@@ -707,7 +732,7 @@ void tst_cryptosecrets::cryptoStoredKey()
             encrypted,
             initVector,
             keyReference,
-            Sailfish::Crypto::CryptoManager::BlockModeCbc,
+            blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
             Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
