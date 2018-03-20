@@ -47,6 +47,12 @@ int osslevp_aes_decrypt_ciphertext(int block_mode,
                                    int ciphertext_length,
                                    unsigned char **decrypted);
 
+int osslevp_digest(const EVP_MD *digestFunc,
+                 const void *bytes,
+                 size_t bytesCount,
+                 uint8_t **digest,
+                 size_t *digestLength);
+
 int osslevp_sign(const EVP_MD *digestFunc,
                  EVP_PKEY *pkey,
                  const void *bytes,
