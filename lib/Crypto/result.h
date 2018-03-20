@@ -62,6 +62,7 @@ public:
         CryptoPluginRandomDataError,
         CryptoPluginCipherSessionError,
         CryptoPluginKeyGenerationError,
+        CryptoPluginDigestError,
         CryptoPluginSigningError,
         CryptoPluginVerificationError,
 

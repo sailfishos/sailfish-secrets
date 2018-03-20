@@ -28,6 +28,7 @@ public slots:
     void cleanup();
 
 private slots:
+    void testDigest();
     void testSign();
     void testVerifyCorrect();
     void testVerifyIncorrect();
@@ -38,5 +39,6 @@ private:
     QByteArray signWithEvp(const QByteArray &data);
     bool verifyWithCommandLine(const QByteArray &data, const QByteArray &signature);
     bool verifyWithEvp(const QByteArray &data, const QByteArray &signature);
-
+    QByteArray digestWithCommandLine(const QByteArray &data);
+    QByteArray digestWithEvp(const QByteArray &data);
 };

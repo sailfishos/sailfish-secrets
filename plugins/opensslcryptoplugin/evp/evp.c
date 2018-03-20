@@ -331,6 +331,93 @@ int osslevp_aes_decrypt_ciphertext(int block_mode,
 }
 
 /*
+    int osslevp_digest(const EVP_MD *digestFunc,
+                     const void *bytes,
+                     size_t bytesCount,
+                     uint8_t **digest,
+                     size_t *digestLength)
+    Implements digests according to:
+    https://wiki.openssl.org/index.php/EVP_Message_Digests
+    Arguments:
+    * digestFunc: should be the result of an EVP function, eg. EVP_sha256()
+    * bytes: data to digest
+    * bytesCount: the number of bytes in 'bytes'
+    * digest: where the generated digest will be stored, which will have to be freed using OPENSSL_free
+    * digestLength: where the length of the generated digest will be stored
+    Return value:
+    * 1 when the operation was successful.
+    * less than 0 when there was an error.
+ */
+int osslevp_digest(const EVP_MD *digestFunc,
+                 const void *bytes,
+                 size_t bytesCount,
+                 uint8_t **digest,
+                 size_t *digestLength)
+{
+    EVP_MD_CTX *mdctx = EVP_MD_CTX_create();
+    if (!mdctx) {
+        ERR_print_errors_fp(stderr);
+        fprintf(stderr,
+                "%s: %s\n",
+                __FUNCTION__,
+                "failed to allocate memory for MD context");
+        return -1;
+    }
+
+    int r = EVP_DigestInit_ex(mdctx, digestFunc, NULL);
+    if (r != 1) {
+        ERR_print_errors_fp(stderr);
+        EVP_MD_CTX_destroy(mdctx);
+        fprintf(stderr,
+                "%s: %s\n",
+                __FUNCTION__,
+                "failed to initialise Digest");
+        return -1;
+    }
+
+    r = EVP_DigestUpdate(mdctx, bytes, bytesCount);
+    if (r != 1) {
+        ERR_print_errors_fp(stderr);
+        EVP_MD_CTX_destroy(mdctx);
+        fprintf(stderr,
+                "%s: %s\n",
+                __FUNCTION__,
+                "failed to update Digest");
+        return -1;
+    }
+
+    *digestLength = EVP_MD_size(digestFunc);
+    *digest = (uint8_t *) OPENSSL_malloc(*digestLength);
+    if (!digest) {
+        EVP_MD_CTX_destroy(mdctx);
+        fprintf(stderr,
+                "%s: %s\n",
+                __FUNCTION__,
+                "failed to allocate memory for digest");
+        return -1;
+    }
+
+    unsigned int actualDigestLength = 0;
+    r = EVP_DigestFinal_ex(mdctx, *digest, &actualDigestLength);
+    if (r != 1) {
+        ERR_print_errors_fp(stderr);
+        EVP_MD_CTX_destroy(mdctx);
+        OPENSSL_free(*digest);
+        fprintf(stderr,
+                "%s: %s\n",
+                __FUNCTION__,
+                "failed to finalize DigestSign (2nd call)");
+        return -1;
+    }
+
+    // Set correct length to the output argument
+    *digestLength = actualDigestLength;
+
+    EVP_MD_CTX_destroy(mdctx);
+    return 1;
+}
+
+/*
     int osslevp_sign(const EVP_MD *digestFunc,
                      EVP_PKEY *pkey,
                      const void *bytes,

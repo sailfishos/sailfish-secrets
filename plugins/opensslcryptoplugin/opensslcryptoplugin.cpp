@@ -398,13 +398,35 @@ Daemon::Plugins::OpenSslCryptoPlugin::calculateDigest(
         Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
         QByteArray *digest)
 {
-    // TODO: support more operations and algorithms in this plugin!
-    Q_UNUSED(data);
-    Q_UNUSED(padding);
-    Q_UNUSED(digestFunction);
-    Q_UNUSED(digest);
-    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                    QLatin1String("TODO: calculateDigest"));
+    if (padding != Sailfish::Crypto::CryptoManager::SignaturePaddingNone) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("TODO: digest padding other than None"));
+    }
+
+    // Get the EVP digest function
+    const EVP_MD *evpDigestFunc = getEvpDigestFunction(digestFunction);
+    if (!evpDigestFunc) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedDigest,
+                                        QLatin1String("Unsupported digest function chosen."));
+    }
+
+    // Create digest
+    uint8_t *digestBytes;
+    size_t digestLength;
+    int r = osslevp_digest(evpDigestFunc, data.data(), data.length(), &digestBytes, &digestLength);
+    if (r != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginDigestError,
+                                        QLatin1String("Failed to digest."));
+    }
+
+    // Copy the digest into the given QByteArray
+    *digest = QByteArray((const char*) digestBytes, (int) digestLength);
+
+    // Free the digest allocated by openssl
+    OPENSSL_free(digest);
+
+    // Return result indicating success
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
 }
 
 Sailfish::Crypto::Result
