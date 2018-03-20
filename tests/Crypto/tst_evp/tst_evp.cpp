@@ -78,6 +78,27 @@ QByteArray tst_evp::generateTestData(size_t size) {
 }
 
 /*!
+ * Tests a digest case.
+ * Makes sure that our EVP usage is correct and generates correct output.
+ */
+void tst_evp::testDigest()
+{
+    // Create some test data
+    QByteArray testData = generateTestData(512);
+    QVERIFY(testData.length() > 0);
+
+    // Use both methods to sign it
+    QByteArray d1 = digestWithCommandLine(testData);
+    QByteArray d2 = digestWithEvp(testData);
+
+    // Assert that both signatures are non-zero long, and they are the same
+    QVERIFY(d1.length() > 0);
+    QVERIFY(d2.length() > 0);
+    QCOMPARE(d2.length(), d1.length());
+    QCOMPARE(d2, d1);
+}
+
+/*!
  * Tests a sign case.
  * Makes sure that our EVP usage is correct and generates correct output.
  */
@@ -276,6 +297,61 @@ bool tst_evp::verifyWithEvp(const QByteArray &data, const QByteArray &signature)
     EVP_PKEY_free(pkey);
 
     return r == 1;
+}
+
+/*!
+ * \brief Creates a digest using the OpenSSL command line
+ * \param data The data whose digest should be calculated
+ * \return Calculated digest.
+ */
+QByteArray tst_evp::digestWithCommandLine(const QByteArray &data)
+{
+    const char *testDataFileName = "testdata-digest.bin";
+    const char *testDigestFileName = "test-digest.sha256";
+
+    QFile file(testDataFileName);
+    file.open(QIODevice::WriteOnly);
+    file.write(data);
+    file.waitForBytesWritten(5000);
+    file.close();
+
+    QProcess proc;
+    proc.start("openssl",
+               QStringList({"dgst", "-sha256", "-binary", "-out", testDigestFileName, testDataFileName}),
+               QIODevice::ReadWrite);
+    proc.waitForFinished(5000);
+
+    QFile digestFile(testDigestFileName);
+    digestFile.open(QIODevice::ReadOnly);
+    QByteArray result = digestFile.readAll();
+    digestFile.close();
+
+    // Remove test data file and signature file
+    file.remove();
+    digestFile.remove();
+
+    return result;
+}
+
+/*!
+ * \brief Creates a digest using the sailfish-crypto EVP code.
+ * \param data The data whose digest should be calculated
+ * \return Calculated digest.
+ */
+QByteArray tst_evp::digestWithEvp(const QByteArray &data)
+{
+    const EVP_MD *digestFunc = EVP_sha256();
+
+    uint8_t *digest;
+    size_t digestLength;
+
+    int r = osslevp_digest(digestFunc, data.data(), data.length(), &digest, &digestLength);
+    assert(r == 1);
+
+    QByteArray result((const char*) digest, (int) digestLength);
+    OPENSSL_free(digest);
+
+    return result;
 }
 
 QTEST_MAIN(tst_evp)
