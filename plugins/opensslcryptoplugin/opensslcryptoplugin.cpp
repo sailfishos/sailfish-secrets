@@ -501,12 +501,12 @@ Daemon::Plugins::OpenSslCryptoPlugin::verify(
     // Verify the signature
     r = osslevp_verify(evpDigestFunc, pkeyPtr, data.data(), data.length(), (const uint8_t*) signature.data(), (size_t) signature.length());
     if (r == 1) {
-        // Verified successfully.
+        // Verification performed without error, signature matched.
         *verified = true;
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
     } else if (r == 0) {
-        // Verification performed without error, but was unsuccessful.
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Failed);
+        // Verification performed without error, but signature didn't match.
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
     } else {
         // Verification had errors.
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginVerificationError,
