@@ -422,9 +422,13 @@ public: // For use by the secrets request processor to handle device-locked coll
     bool testLockCode(const QByteArray &lockCode);
     QByteArray saltData() const;
     bool noLockCode() const;
+    void setNoLockCode(bool value);
     const QByteArray bkdbLockKey() const;
     const QByteArray deviceLockKey() const;
 
+    Sailfish::Secrets::Result lockCryptoPlugin(const QString &pluginName);
+    Sailfish::Secrets::Result unlockCryptoPlugin(const QString &pluginName, const QByteArray &lockCode);
+    Sailfish::Secrets::Result setLockCodeCryptoPlugin(const QString &pluginName, const QByteArray &oldCode, const QByteArray &newCode);
     bool lockCryptoPlugins();
     bool unlockCryptoPlugins(const QByteArray &lockCode);
     bool setLockCodeCryptoPlugins(const QByteArray &oldCode, const QByteArray &newCode);

@@ -81,6 +81,43 @@ Daemon::Plugins::InAppPlugin::beginUserInputInteraction(
                                   Q_ARG(Sailfish::Secrets::Result, Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded)),
                                   Q_ARG(QByteArray, newLockCount % 2 == 1 ? QByteArray("masterlock") : QByteArray()));
         return Result(Result::Pending);
+    } else if (interactionParameters.promptText()
+               == QLatin1String("Provide the master unlock code for device secrets")) {
+        QMetaObject::invokeMethod(this, "userInputInteractionCompleted", Qt::QueuedConnection,
+                                  Q_ARG(uint, callerPid),
+                                  Q_ARG(qint64, requestId),
+                                  Q_ARG(Sailfish::Secrets::InteractionParameters, interactionParameters),
+                                  Q_ARG(QString, interactionServiceAddress),
+                                  Q_ARG(Sailfish::Secrets::Result, Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded)),
+                                  Q_ARG(QByteArray, QByteArray("masterlock")));
+        return Result(Result::Pending);
+    } else if (interactionParameters.promptText().startsWith(QLatin1String("Enter the old lock code for the plugin"))) {
+        QMetaObject::invokeMethod(this, "userInputInteractionCompleted", Qt::QueuedConnection,
+                                  Q_ARG(uint, callerPid),
+                                  Q_ARG(qint64, requestId),
+                                  Q_ARG(Sailfish::Secrets::InteractionParameters, interactionParameters),
+                                  Q_ARG(QString, interactionServiceAddress),
+                                  Q_ARG(Sailfish::Secrets::Result, Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded)),
+                                  Q_ARG(QByteArray, QByteArray()));
+        return Result(Result::Pending);
+    } else if (interactionParameters.promptText().startsWith(QLatin1String("Enter the new lock code for the plugin"))) {
+        QMetaObject::invokeMethod(this, "userInputInteractionCompleted", Qt::QueuedConnection,
+                                  Q_ARG(uint, callerPid),
+                                  Q_ARG(qint64, requestId),
+                                  Q_ARG(Sailfish::Secrets::InteractionParameters, interactionParameters),
+                                  Q_ARG(QString, interactionServiceAddress),
+                                  Q_ARG(Sailfish::Secrets::Result, Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded)),
+                                  Q_ARG(QByteArray, QByteArray("pluginlock")));
+        return Result(Result::Pending);
+    } else if (interactionParameters.promptText().startsWith(QLatin1String("Provide the unlock code for the plugin"))) {
+        QMetaObject::invokeMethod(this, "userInputInteractionCompleted", Qt::QueuedConnection,
+                                  Q_ARG(uint, callerPid),
+                                  Q_ARG(qint64, requestId),
+                                  Q_ARG(Sailfish::Secrets::InteractionParameters, interactionParameters),
+                                  Q_ARG(QString, interactionServiceAddress),
+                                  Q_ARG(Sailfish::Secrets::Result, Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded)),
+                                  Q_ARG(QByteArray, QByteArray("pluginlock")));
+        return Result(Result::Pending);
     }
 #endif
 

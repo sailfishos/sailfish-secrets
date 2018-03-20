@@ -1603,7 +1603,50 @@ void tst_secretsrequests::lockCode()
     QCOMPARE(gsr.result().code(), Result::Succeeded);
     QCOMPARE(gsr.secret().data(), testSecret.data());
 
+    // Tell the service to forget the lock code.
+    lcr.setLockCodeRequestType(LockCodeRequest::ForgetLockCode);
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.status(), Request::Finished);
+    QCOMPARE(lcr.result().code(), Result::Succeeded);
+
+    // Ensure that attempting to read secrets will now fail
+    gsr.setIdentifier(estestSecret.identifier());
+    gsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
+    QCOMPARE(gsr.status(), Request::Finished);
+    QCOMPARE(gsr.result().code(), Result::Failed);
+
+    gsr.setIdentifier(testSecret.identifier());
+    gsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
+    QCOMPARE(gsr.status(), Request::Finished);
+    QCOMPARE(gsr.result().code(), Result::Failed);
+
+    // Now provide the lock code again to unlock the service.
+    lcr.setLockCodeRequestType(LockCodeRequest::ProvideLockCode);
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.status(), Request::Finished);
+    QCOMPARE(lcr.result().code(), Result::Succeeded);
+
+    // Retrieve the secrets again, make sure that it succeeds again.
+    gsr.setIdentifier(estestSecret.identifier());
+    gsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
+    QCOMPARE(gsr.status(), Request::Finished);
+    QCOMPARE(gsr.result().code(), Result::Succeeded);
+    QCOMPARE(gsr.secret().data(), estestSecret.data());
+
+    gsr.setIdentifier(testSecret.identifier());
+    gsr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
+    QCOMPARE(gsr.status(), Request::Finished);
+    QCOMPARE(gsr.result().code(), Result::Succeeded);
+    QCOMPARE(gsr.secret().data(), testSecret.data());
+
     // Set the lock code back.
+    lcr.setLockCodeRequestType(LockCodeRequest::ModifyLockCode);
     lcr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
     QCOMPARE(lcr.status(), Request::Finished);
@@ -1671,6 +1714,37 @@ void tst_secretsrequests::lockCode()
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
     QCOMPARE(dcr.status(), Request::Finished);
     QCOMPARE(dcr.result().code(), Result::Succeeded);
+
+    // now test plugin lock codes
+    uiParams.setPromptText(QLatin1String("Modify the lock code for the storage plugin"));
+    lcr.setLockCodeRequestType(LockCodeRequest::ModifyLockCode);
+    lcr.setLockCodeTargetType(LockCodeRequest::ExtensionPlugin);
+    lcr.setLockCodeTarget(DEFAULT_TEST_STORAGE_PLUGIN);
+    lcr.setInteractionParameters(uiParams);
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.status(), Request::Finished);
+    QCOMPARE(lcr.result().code(), Result::Failed);
+    QCOMPARE(lcr.result().errorMessage(), QStringLiteral("Storage plugin %1 does not support locking")
+                                                    .arg(DEFAULT_TEST_STORAGE_PLUGIN));
+
+    uiParams.setPromptText(QLatin1String("Provide the lock code for the storage plugin"));
+    lcr.setLockCodeRequestType(LockCodeRequest::ProvideLockCode);
+    lcr.setInteractionParameters(uiParams);
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.status(), Request::Finished);
+    QCOMPARE(lcr.result().code(), Result::Failed);
+    QCOMPARE(lcr.result().errorMessage(), QStringLiteral("Storage plugin %1 does not support locking")
+                                                    .arg(DEFAULT_TEST_STORAGE_PLUGIN));
+
+    lcr.setLockCodeRequestType(LockCodeRequest::ForgetLockCode);
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.status(), Request::Finished);
+    QCOMPARE(lcr.result().code(), Result::Failed);
+    QCOMPARE(lcr.result().errorMessage(), QStringLiteral("Storage plugin %1 does not support locking")
+                                                    .arg(DEFAULT_TEST_STORAGE_PLUGIN));
 }
 
 #include "tst_secretsrequests.moc"

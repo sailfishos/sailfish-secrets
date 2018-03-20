@@ -447,6 +447,8 @@ bool Daemon::ApiImpl::SecretsRequestQueue::initialise(
         } else {
             if (lockCode.isEmpty()) {
                 m_noLockCode = true; // we initialised the key data with a null lock code, which worked.
+            } else {
+                m_noLockCode = false; // we initialise the key data with non-null lock code.
             }
 
             // initialise the special "standalone" collection if needed.
@@ -668,6 +670,11 @@ bool Daemon::ApiImpl::SecretsRequestQueue::noLockCode() const
     return m_noLockCode;
 }
 
+void Daemon::ApiImpl::SecretsRequestQueue::setNoLockCode(bool value)
+{
+    m_noLockCode = value;
+}
+
 const QByteArray Daemon::ApiImpl::SecretsRequestQueue::bkdbLockKey() const
 {
     return QByteArray::fromRawData(m_bkdbLockKeyData, m_bkdbLockKeyLen);
@@ -704,6 +711,87 @@ bool Daemon::ApiImpl::SecretsRequestQueue::setLockCodeCryptoPlugins(
         return m_controller->crypto()->setLockCodePlugins(oldCode, newCode);
     }
     return false;
+}
+
+Result Daemon::ApiImpl::SecretsRequestQueue::lockCryptoPlugin(
+        const QString &pluginName)
+{
+    QMap<QString, Sailfish::Crypto::CryptoPlugin*> cryptoPlugins
+            = m_controller && m_controller->crypto()
+            ? m_controller->crypto()->plugins()
+            : QMap<QString, Sailfish::Crypto::CryptoPlugin*>();
+    Sailfish::Crypto::CryptoPlugin *cryptoPlugin = cryptoPlugins.value(pluginName);
+    if (!cryptoPlugin) {
+        return Result(Result::InvalidExtensionPluginError,
+                      QStringLiteral("No such extension plugin exists: %1").arg(pluginName));
+    }
+
+    if (!cryptoPlugin->supportsLocking()) {
+        return Result(Result::OperationNotSupportedError,
+                      QStringLiteral("Crypto plugin %1 does not support locking").arg(pluginName));
+    }
+
+    if (!cryptoPlugin->lock()) {
+        return Result(Result::UnknownError,
+                      QStringLiteral("Failed to lock crypto plugin %1").arg(pluginName));
+    }
+
+    return Result(Result::Succeeded);
+}
+
+Result Daemon::ApiImpl::SecretsRequestQueue::unlockCryptoPlugin(
+        const QString &pluginName,
+        const QByteArray &lockCode)
+{
+    QMap<QString, Sailfish::Crypto::CryptoPlugin*> cryptoPlugins
+            = m_controller && m_controller->crypto()
+            ? m_controller->crypto()->plugins()
+            : QMap<QString, Sailfish::Crypto::CryptoPlugin*>();
+    Sailfish::Crypto::CryptoPlugin *cryptoPlugin = cryptoPlugins.value(pluginName);
+    if (!cryptoPlugin) {
+        return Result(Result::InvalidExtensionPluginError,
+                      QStringLiteral("No such extension plugin exists: %1").arg(pluginName));
+    }
+
+    if (!cryptoPlugin->supportsLocking()) {
+        return Result(Result::OperationNotSupportedError,
+                      QStringLiteral("Crypto plugin %1 does not support locking").arg(pluginName));
+    }
+
+    if (cryptoPlugin->isLocked() && !cryptoPlugin->unlock(lockCode)) {
+        return Result(Result::UnknownError,
+                      QStringLiteral("Failed to unlock crypto plugin %1").arg(pluginName));
+    }
+
+    return Result(Result::Succeeded);
+}
+
+Result Daemon::ApiImpl::SecretsRequestQueue::setLockCodeCryptoPlugin(
+        const QString &pluginName,
+        const QByteArray &oldCode,
+        const QByteArray &newCode)
+{
+    QMap<QString, Sailfish::Crypto::CryptoPlugin*> cryptoPlugins
+            = m_controller && m_controller->crypto()
+            ? m_controller->crypto()->plugins()
+            : QMap<QString, Sailfish::Crypto::CryptoPlugin*>();
+    Sailfish::Crypto::CryptoPlugin *cryptoPlugin = cryptoPlugins.value(pluginName);
+    if (!cryptoPlugin) {
+        return Result(Result::InvalidExtensionPluginError,
+                      QStringLiteral("No such extension plugin exists: %1").arg(pluginName));
+    }
+
+    if (!cryptoPlugin->supportsLocking()) {
+        return Result(Result::OperationNotSupportedError,
+                      QStringLiteral("Crypto plugin %1 does not support locking").arg(pluginName));
+    }
+
+    if (!cryptoPlugin->setLockCode(oldCode, newCode)) {
+        return Result(Result::UnknownError,
+                      QStringLiteral("Failed to set the lock code for crypto plugin %1").arg(pluginName));
+    }
+
+    return Result(Result::Succeeded);
 }
 
 QString Daemon::ApiImpl::SecretsRequestQueue::requestTypeToString(int type) const
@@ -1367,7 +1455,8 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
             Result lockedResult = m_bkdb.isLocked(&locked);
             Result result = lockedResult.code() != Result::Succeeded
                     ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
+                    : locked && lockCodeTargetType != LockCodeRequest::BookkeepingDatabase
+                             ? Result(Result::SecretsDaemonLockedError,
                                       QLatin1String("The secrets database is locked"))
                              : m_requestProcessor->provideLockCode(
                                       request->remotePid,

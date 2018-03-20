@@ -355,6 +355,12 @@ bool Database::open(
     return true;
 }
 
+void Database::close()
+{
+    m_database.close();
+    m_preparedQueries.clear();
+}
+
 Database::operator QSqlDatabase &()
 {
     return m_database;
