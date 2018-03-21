@@ -56,6 +56,8 @@ public:
         EmptySecretKey = 30,
         EmptyPrivateKey,
         EmptyPublicKey,
+        EmptyData,
+        EmptySignature,
 
         CryptoPluginEncryptionError = 40,
         CryptoPluginDecryptionError,
