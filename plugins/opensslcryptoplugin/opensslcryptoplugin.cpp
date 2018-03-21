@@ -767,14 +767,14 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
             if (evp_cipher == NULL) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                                QLatin1String("Invalid key size for AES CBC operation"));
+                                                QLatin1String("Cannot create cipher for AES encryption, check key size and block mode"));
             }
             if (EVP_EncryptInit_ex(evp_cipher_ctx, evp_cipher, NULL,
                                    reinterpret_cast<const unsigned char*>(fullKey.secretKey().constData()),
                                    reinterpret_cast<const unsigned char*>(initIV.constData())) != 1) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                                QLatin1String("Unable to initialise encryption cipher context in AES 256 CBC mode"));
+                                                QLatin1String("Unable to initialise encryption cipher context in AES 256 mode"));
             }
         }
     } else if (operation == Sailfish::Crypto::CryptoManager::OperationDecrypt) {
@@ -788,14 +788,14 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
             if (evp_cipher == NULL) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                                QLatin1String("Invalid key size for AES CBC operation"));
+                                                QLatin1String("Cannot create cipher for AES deccryption, check key size and block mode"));
             }
             if (EVP_DecryptInit_ex(evp_cipher_ctx, evp_cipher, NULL,
                                    reinterpret_cast<const unsigned char *>(fullKey.secretKey().constData()),
                                    reinterpret_cast<const unsigned char *>(initIV.constData())) != 1) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                                QLatin1String("Unable to initialise decryption cipher context in AES 256 CBC mode"));
+                                                QLatin1String("Unable to initialise decryption cipher context in AES 256 mode"));
             }
         }
     } else {
