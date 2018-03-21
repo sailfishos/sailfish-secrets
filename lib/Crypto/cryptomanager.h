@@ -29,6 +29,7 @@ public:
     enum Algorithm {
         AlgorithmUnknown        = 0,
         AlgorithmCustom         = 1,
+        AlgorithmNone           = 2, // used for expressing supported digests for calculateDigest
     FirstAsymmetricAlgorithm    = 10,
         AlgorithmRsa            = 10,
         AlgorithmDsa            = 20,
@@ -55,7 +56,8 @@ public:
         AlgorithmSquare         = 350,
         AlgorithmSerpent        = 360,
         AlgorithmPanama         = 370,
-    LastAlgorithm               = 4095 // reserve
+    LastSymmetricAlgorithm      = 4095, // reserve
+    LastAlgorithm               = LastSymmetricAlgorithm // reserve
     };
     Q_ENUM(Algorithm)
 
