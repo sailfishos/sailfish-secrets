@@ -13,6 +13,7 @@
 #include <QElapsedTimer>
 #include <QFile>
 
+#include "Crypto/calculatedigestrequest.h"
 #include "Crypto/cipherrequest.h"
 #include "Crypto/decryptrequest.h"
 #include "Crypto/deletestoredkeyrequest.h"
@@ -90,6 +91,7 @@ private slots:
     void generateKeyEncryptDecrypt();
     void validateCertificateChain();
     void signVerify();
+    void calculateDigest();
     void storedKeyRequests_data();
     void storedKeyRequests();
     void storedDerivedKeyRequests_data();
@@ -386,18 +388,59 @@ void tst_cryptorequests::validateCertificateChain()
 
 void tst_cryptorequests::signVerify()
 {
-    // TODO: sign/verify not yet implemented in test plugin.
-    QByteArray plaintext = "Test plaintext data", signature;
+    // Generate RSA key for signing
+    // ----------------------------
+
+    // Create key template
+    Key keyTemplate;
+    keyTemplate.setSize(1024);
+    keyTemplate.setAlgorithm(CryptoManager::AlgorithmRsa);
+    keyTemplate.setOrigin(Key::OriginDevice);
+    keyTemplate.setOperations(CryptoManager::OperationSign);
+    keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
+
+    // Create key pair generation params, make sure it's valid
+    RsaKeyPairGenerationParameters keyPairGenParams;
+    QVERIFY2(keyPairGenParams.isValid(), "Key pair generation params are invalid.");
+
+    // Create generate key request, execute, make sure it's okay
+    GenerateKeyRequest gkr;
+    gkr.setManager(&cm);
+    gkr.setKeyPairGenerationParameters(keyPairGenParams);
+    gkr.setKeyTemplate(keyTemplate);
+    gkr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+    gkr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gkr);
+    QCOMPARE(gkr.status(), Request::Finished);
+    QCOMPARE(gkr.result().code(), Result::Succeeded);
+
+    // Grab generated key, make sure it's sane
+    Key fullKey = gkr.generatedKey();
+    QVERIFY(!fullKey.privateKey().isEmpty());
+    QVERIFY(!fullKey.publicKey().isEmpty());
+
+    // Sign a test plaintext
+    // ----------------------------
+
+    QByteArray plaintext = "Test plaintext data";
 
     SignRequest sr;
     sr.setManager(&cm);
     QSignalSpy srss(&sr, &SignRequest::statusChanged);
     QSignalSpy srvs(&sr, &SignRequest::signatureChanged);
+
+    sr.setKey(fullKey);
+    QCOMPARE(sr.key(), fullKey);
+    sr.setPadding(CryptoManager::SignaturePaddingNone);
+    QCOMPARE(sr.padding(), CryptoManager::SignaturePaddingNone);
+    sr.setDigestFunction(CryptoManager::DigestSha256);
+    QCOMPARE(sr.digestFunction(), CryptoManager::DigestSha256);
     sr.setData(plaintext);
     QCOMPARE(sr.data(), plaintext);
     sr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(sr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(sr.status(), Request::Inactive);
+
     sr.startRequest();
     QCOMPARE(srss.count(), 1);
     QCOMPARE(sr.status(), Request::Active);
@@ -406,21 +449,33 @@ void tst_cryptorequests::signVerify()
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(sr);
     QCOMPARE(srss.count(), 2);
     QCOMPARE(sr.status(), Request::Finished);
-    // NOT YET IMPLEMENTED!
-    //QCOMPARE(sr.result().code(), Result::Succeeded);
-    //QCOMPARE(srvs.count(), 1);
-    //signature = sr.signature();
+
+    QCOMPARE(sr.result().code(), Result::Succeeded);
+    QCOMPARE(srvs.count(), 1);
+    QByteArray signature = sr.signature();
+
+    // Verify the test signature
+    // ----------------------------
 
     VerifyRequest vr;
     vr.setManager(&cm);
     QSignalSpy vrss(&vr, &VerifyRequest::statusChanged);
     QSignalSpy vrvs(&vr, &VerifyRequest::verifiedChanged);
     QCOMPARE(vr.verified(), false);
+    QCOMPARE(vr.status(), Request::Inactive);
+    vr.setKey(fullKey);
+    QCOMPARE(vr.key(), fullKey);
     vr.setData(plaintext);
     QCOMPARE(vr.data(), plaintext);
+    vr.setSignature(signature);
+    QCOMPARE(vr.signature(), signature);
+    vr.setDigestFunction(CryptoManager::DigestSha256);
+    QCOMPARE(vr.digestFunction(), CryptoManager::DigestSha256);
+    vr.setPadding(CryptoManager::SignaturePaddingNone);
+    QCOMPARE(vr.padding(), CryptoManager::SignaturePaddingNone);
     vr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(vr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
-    QCOMPARE(vr.status(), Request::Inactive);
+
     vr.startRequest();
     QCOMPARE(vrss.count(), 1);
     QCOMPARE(vr.status(), Request::Active);
@@ -429,12 +484,45 @@ void tst_cryptorequests::signVerify()
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(vr);
     QCOMPARE(vrss.count(), 2);
     QCOMPARE(vr.status(), Request::Finished);
-    // NOT YET IMPLEMENTED!
-    //QCOMPARE(vr.result().code(), Result::Succeeded);
-    //QCOMPARE(vrvs.count(), 1);
-    //QCOMPARE(vr.verified(), true);
 
-    QSKIP("TODO - sign/verify not yet implemented!");
+    QCOMPARE(vr.result().code(), Result::Succeeded);
+    QCOMPARE(vrvs.count(), 1);
+    QCOMPARE(vr.verified(), true);
+}
+
+void tst_cryptorequests::calculateDigest()
+{
+    QByteArray plaintext = "Test plaintext data";
+
+    CalculateDigestRequest cdr;
+    cdr.setManager(&cm);
+    QSignalSpy cdrss(&cdr, &CalculateDigestRequest::statusChanged);
+    QSignalSpy cdrds(&cdr, &CalculateDigestRequest::digestChanged);
+    QCOMPARE(cdr.status(), Request::Inactive);
+    cdr.setData(plaintext);
+    QCOMPARE(cdr.data(), plaintext);
+    cdr.setDigestFunction(CryptoManager::DigestSha256);
+    QCOMPARE(cdr.digestFunction(), CryptoManager::DigestSha256);
+    cdr.setPadding(CryptoManager::SignaturePaddingNone);
+    QCOMPARE(cdr.padding(), CryptoManager::SignaturePaddingNone);
+    cdr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+    QCOMPARE(cdr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+
+    cdr.startRequest();
+    QCOMPARE(cdrss.count(), 1);
+    QCOMPARE(cdr.status(), Request::Active);
+    QCOMPARE(cdr.result().code(), Result::Pending);
+    QCOMPARE(cdrds.count(), 0);
+
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(cdr);
+    QCOMPARE(cdrss.count(), 2);
+    QCOMPARE(cdr.status(), Request::Finished);
+
+    QCOMPARE(cdr.result().code(), Result::Succeeded);
+    QCOMPARE(cdrds.count(), 1);
+
+    QByteArray digest = cdr.digest();
+    QVERIFY2(digest.length() != 0, "Calculated digest should NOT be empty.");
 }
 
 void tst_cryptorequests::storedKeyRequests_data()
