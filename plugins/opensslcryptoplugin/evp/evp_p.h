@@ -11,6 +11,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include <openssl/conf.h>
 #include <openssl/evp.h>
@@ -45,6 +46,26 @@ int osslevp_aes_decrypt_ciphertext(int block_mode,
                                    const unsigned char *ciphertext,
                                    int ciphertext_length,
                                    unsigned char **decrypted);
+
+int osslevp_digest(const EVP_MD *digestFunc,
+                 const void *bytes,
+                 size_t bytesCount,
+                 uint8_t **digest,
+                 size_t *digestLength);
+
+int osslevp_sign(const EVP_MD *digestFunc,
+                 EVP_PKEY *pkey,
+                 const void *bytes,
+                 size_t bytesCount,
+                 uint8_t **signature,
+                 size_t *signatureLength);
+
+int osslevp_verify(const EVP_MD *digestFunc,
+                   EVP_PKEY *pkey,
+                   const void *bytes,
+                   size_t bytesCount,
+                   const uint8_t *signature,
+                   size_t signatureLength);
 
 #ifdef __cplusplus
 }

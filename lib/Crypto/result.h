@@ -56,12 +56,17 @@ public:
         EmptySecretKey = 30,
         EmptyPrivateKey,
         EmptyPublicKey,
+        EmptyData,
+        EmptySignature,
 
         CryptoPluginEncryptionError = 40,
         CryptoPluginDecryptionError,
         CryptoPluginRandomDataError,
         CryptoPluginCipherSessionError,
         CryptoPluginKeyGenerationError,
+        CryptoPluginDigestError,
+        CryptoPluginSigningError,
+        CryptoPluginVerificationError,
 
         NetworkError = 98,
         NetworkSslError = 99,

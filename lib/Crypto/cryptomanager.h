@@ -55,7 +55,8 @@ public:
         AlgorithmSquare         = 350,
         AlgorithmSerpent        = 360,
         AlgorithmPanama         = 370,
-    LastAlgorithm               = 4095 // reserve
+    LastSymmetricAlgorithm      = 4095, // reserve
+    LastAlgorithm               = LastSymmetricAlgorithm // reserve
     };
     Q_ENUM(Algorithm)
 
