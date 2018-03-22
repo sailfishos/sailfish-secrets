@@ -90,6 +90,15 @@ const EVP_CIPHER *osslevp_aes_cipher(int block_mode, int key_length_bytes)
             fprintf(stderr, "%s: %d\n", "unsupported encryption size for OFB block mode", key_length_bits);
             return NULL;
         }
+    } else if (block_mode == 10) {  // Sailfish::Crypto::CryptoManager::BlockModeGcm
+        switch (key_length_bits) {
+        case 128: return EVP_aes_128_gcm();
+        case 192: return EVP_aes_192_gcm();
+        case 256: return EVP_aes_256_gcm();
+        default:
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for GCM block mode", key_length_bits);
+            return NULL;
+        }
     }
 
     fprintf(stderr, "%s\n", "unsupported encryption mode");

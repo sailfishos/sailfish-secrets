@@ -133,6 +133,10 @@ private:
         QTest::newRow("OFB 128-bit") << CryptoManager::BlockModeOfb << 128;
         QTest::newRow("OFB 192-bit") << CryptoManager::BlockModeOfb << 192;
         QTest::newRow("OFB 256-bit") << CryptoManager::BlockModeOfb << 256;
+
+        QTest::newRow("GCM 128-bit") << CryptoManager::BlockModeGcm << 128;
+        QTest::newRow("GCM 192-bit") << CryptoManager::BlockModeGcm << 192;
+        QTest::newRow("GCM 256-bit") << CryptoManager::BlockModeGcm << 256;
     }
 
     CryptoManager cm;
@@ -1145,6 +1149,7 @@ void tst_cryptorequests::storedGeneratedKeyRequests()
     ccr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ccr);
     QCOMPARE(ccr.status(), Sailfish::Secrets::Request::Finished);
+    QCOMPARE(ccr.result().errorMessage(), QString());
     QCOMPARE(ccr.result().code(), Sailfish::Secrets::Result::Succeeded);
 
     // request that the secret key be generated and stored into that collection.
@@ -1333,6 +1338,8 @@ void tst_cryptorequests::cipherEncryptDecrypt()
                          " which contains multiple blocks of data"
                          " which will be encrypted over several updates"
                          " via a stream cipher operation.");
+    QByteArray authtext("fedcba9876543210");
+    QByteArray gcmTag;
 
     CipherRequest er;
     er.setManager(&cm);
@@ -1361,6 +1368,7 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(er);
     QCOMPARE(erss.count(), 2);
     QCOMPARE(er.status(), Request::Finished);
+    QCOMPARE(er.result().errorMessage(), QString());
     QCOMPARE(er.result().code(), Result::Succeeded);
     QCOMPARE(ergds.count(), 0);
     QCOMPARE(erivs.count(), 1);
@@ -1368,6 +1376,22 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     QCOMPARE(iv.size(), 16);
 
     int gdsCount = 0, ssCount = 2, chunkStartPos = 0;
+
+    if (blockMode == CryptoManager::BlockModeGcm) {
+        er.setCipherMode(CipherRequest::UpdateCipherAuthentication);
+        QCOMPARE(er.cipherMode(), CipherRequest::UpdateCipherAuthentication);
+        er.setData(authtext);
+        QCOMPARE(er.data(), authtext);
+        ssCount = erss.count();
+        er.startRequest();
+        WAIT_FOR_FINISHED_WITHOUT_BLOCKING(er);
+        QCOMPARE(er.status(), Request::Finished);
+        QCOMPARE(er.result().code(), Result::Succeeded);
+        QCOMPARE(erss.count(), ssCount + 2);
+        QCOMPARE(er.status(), Request::Finished);
+        QCOMPARE(er.result().code(), Result::Succeeded);
+    }
+
     while (chunkStartPos < plaintext.size()) {
         QByteArray chunk = plaintext.mid(chunkStartPos, 16);
         if (chunk.isEmpty()) break;
@@ -1401,10 +1425,15 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     er.startRequest();
     QCOMPARE(erss.count(), ssCount + 1);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(er);
-    QCOMPARE(erss.count(), ssCount + 2);
     QCOMPARE(er.status(), Request::Finished);
+    QCOMPARE(er.result().errorMessage(), QString());
     QCOMPARE(er.result().code(), Result::Succeeded);
-    ciphertext.append(er.generatedData()); // may or may not be empty.
+    QCOMPARE(erss.count(), ssCount + 2);
+    if (blockMode == CryptoManager::BlockModeGcm) {
+        gcmTag = er.generatedData();
+    } else {
+        ciphertext.append(er.generatedData()); // may or may not be empty.
+    }
     QVERIFY(!ciphertext.isEmpty());
 
     // now perform decryption, and ensure the roundtrip matches.
@@ -1438,6 +1467,20 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     QCOMPARE(dr.result().code(), Result::Succeeded);
     QCOMPARE(drgds.count(), 0);
 
+    if (blockMode == CryptoManager::BlockModeGcm) {
+        dr.setCipherMode(CipherRequest::UpdateCipherAuthentication);
+        QCOMPARE(dr.cipherMode(), CipherRequest::UpdateCipherAuthentication);
+        dr.setData(authtext);
+        QCOMPARE(dr.data(), authtext);
+        ssCount = drss.count();
+        dr.startRequest();
+        QCOMPARE(drss.count(), ssCount + 1);
+        WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dr);
+        QCOMPARE(drss.count(), ssCount + 2);
+        QCOMPARE(dr.status(), Request::Finished);
+        QCOMPARE(dr.result().code(), Result::Succeeded);
+    }
+
     gdsCount = 0; ssCount = 2; chunkStartPos = 0;
     while (chunkStartPos < ciphertext.size()) {
         QByteArray chunk = ciphertext.mid(chunkStartPos, 16);
@@ -1457,7 +1500,8 @@ void tst_cryptorequests::cipherEncryptDecrypt()
         QCOMPARE(dr.result().code(), Result::Succeeded);
         QByteArray plaintextChunk = dr.generatedData();
         decrypted.append(plaintextChunk);
-        if (chunkStartPos >= 32) {
+        if (blockMode != CryptoManager::BlockModeGcm
+                && chunkStartPos >= 32) {
             // in CBC mode the first block will not be returned,
             // due to the cipher requiring it for the next update.
             QCOMPARE(drgds.count(), gdsCount + 1);
@@ -1468,15 +1512,19 @@ void tst_cryptorequests::cipherEncryptDecrypt()
 
     dr.setCipherMode(CipherRequest::FinaliseCipher);
     QCOMPARE(dr.cipherMode(), CipherRequest::FinaliseCipher);
-    dr.setData(QByteArray());
+    dr.setData(blockMode == CryptoManager::BlockModeGcm ? gcmTag : QByteArray());
     ssCount = drss.count();
     dr.startRequest();
     QCOMPARE(drss.count(), ssCount + 1);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dr);
     QCOMPARE(drss.count(), ssCount + 2);
     QCOMPARE(dr.status(), Request::Finished);
+    QCOMPARE(dr.result().errorMessage(), QString());
     QCOMPARE(dr.result().code(), Result::Succeeded);
     decrypted.append(dr.generatedData()); // may or may not be empty.
+    if (blockMode == CryptoManager::BlockModeGcm) {
+        QVERIFY(dr.verified());
+    }
     QCOMPARE(plaintext, decrypted); // successful round trip!
 
     // clean up by deleting the collection in which the secret is stored.
