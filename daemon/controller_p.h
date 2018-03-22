@@ -16,6 +16,8 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QString>
+#include <QtCore/QThreadPool>
+#include <QtCore/QSharedPointer>
 
 namespace Sailfish {
 
@@ -49,6 +51,7 @@ public:
 
     Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *secrets() const;
     Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *crypto() const;
+    QSharedPointer<QThreadPool> threadPoolForPlugin(const QString &pluginName) const;
 
 public Q_SLOTS:
     void handleClientConnection(const QDBusConnection &connection);

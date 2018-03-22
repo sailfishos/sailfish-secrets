@@ -7,6 +7,7 @@
 
 #include "secretsrequestprocessor_p.h"
 #include "applicationpermissions_p.h"
+#include "pluginfunctionwrappers_p.h"
 #include "logging_p.h"
 #include "util_p.h"
 #include "plugin_p.h"
@@ -25,6 +26,7 @@
 #include <QtCore/QSet>
 #include <QtCore/QDir>
 #include <QtCore/QCoreApplication>
+#include <QtConcurrent>
 
 using namespace Sailfish::Secrets;
 
@@ -175,31 +177,53 @@ Daemon::ApiImpl::RequestProcessor::createDeviceLockCollection(
         return insertResult;
     }
 
-    Result pluginResult;
+    QFutureWatcher<Result> *watcher = new QFutureWatcher<Result>(this);
+    QFuture<Result> future;
     if (storagePluginName == encryptionPluginName) {
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->createCollection(collectionName, m_requestQueue->deviceLockKey());
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    EncryptedStoragePluginWrapper::createCollection,
+                    m_encryptedStoragePlugins[storagePluginName],
+                    collectionName,
+                    m_requestQueue->deviceLockKey());
     } else {
-        pluginResult = m_storagePlugins[storagePluginName]->createCollection(collectionName);
-        m_collectionEncryptionKeys.insert(collectionName, m_requestQueue->deviceLockKey());
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    Daemon::ApiImpl::StoragePluginWrapper::createCollection,
+                    m_storagePlugins[storagePluginName],
+                    collectionName);
     }
 
-    if (pluginResult.code() != Result::Succeeded) {
-        // The plugin was unable to create the collection in its storage.  Let's delete it from our master table.
-        // It may be tempting to merely remove the commitTransaction() above, and just do a rollbackTransaction() here,
-        // but DO NOT do so, as that could lead to the case where the plugin->createCollection() call succeeds,
-        // but the master table commit fails.
-        Result cleanupResult = m_bkdb->cleanupDeleteCollection(collectionName, pluginResult);
-        if (cleanupResult.code() != Result::Succeeded) {
-            return cleanupResult;
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<Result>::finished, [=] {
+        watcher->deleteLater();
+        Result pluginResult = watcher->future().result();
+        if (pluginResult.code() != Result::Succeeded) {
+            // The plugin was unable to create the collection in its storage.  Let's delete it from our master table.
+            // It may be tempting to merely remove the commitTransaction() above, and just do a rollbackTransaction() here,
+            // but DO NOT do so, as that could lead to the case where the plugin->createCollection() call succeeds,
+            // but the master table commit fails.
+            Result cleanupResult = m_bkdb->cleanupDeleteCollection(collectionName, pluginResult);
+            if (cleanupResult.code() != Result::Succeeded) {
+                pluginResult = cleanupResult;
+            }
+        } else {
+            if (storagePluginName != encryptionPluginName) {
+                m_collectionEncryptionKeys.insert(collectionName, m_requestQueue->deviceLockKey());
+                // TODO: also set CustomLockTimeoutMs, flag for "is custom key", etc.
+            }
+
+            if (accessControlMode == SecretManager::SystemAccessControlMode) {
+                // TODO: tell AccessControl daemon to add this datum from its database.
+            }
         }
-    }
 
-    if (pluginResult.code() == Result::Succeeded &&
-            accessControlMode == SecretManager::SystemAccessControlMode) {
-        // TODO: tell AccessControl daemon to add this datum to its database.
-    }
+        QVariantList outParams;
+        outParams << QVariant::fromValue<Result>(pluginResult);
+        m_requestQueue->requestFinished(requestId, outParams);
+    });
 
-    return pluginResult;
+    return Result(Result::Pending);
 }
 
 // create a CustomLock-protected collection
@@ -358,42 +382,120 @@ Daemon::ApiImpl::RequestProcessor::createCustomLockCollectionWithAuthenticationC
         return insertResult;
     }
 
-    Result pluginResult;
+    QFutureWatcher<DerivedKeyResult> *watcher
+            = new QFutureWatcher<DerivedKeyResult>(this);
+    QFuture<DerivedKeyResult> future;
     if (storagePluginName == encryptionPluginName) {
-        QByteArray key;
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->deriveKeyFromCode(
-                    authenticationCode, m_requestQueue->saltData(), &key);
-        if (pluginResult.code() == Result::Succeeded) {
-            pluginResult = m_encryptedStoragePlugins[storagePluginName]->createCollection(collectionName, key);
-        }
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    EncryptedStoragePluginWrapper::deriveKeyFromCode,
+                    m_encryptedStoragePlugins[encryptionPluginName],
+                    authenticationCode,
+                    m_requestQueue->saltData());
     } else {
-        QByteArray key;
-        pluginResult = m_encryptionPlugins[encryptionPluginName]->deriveKeyFromCode(
-                    authenticationCode, m_requestQueue->saltData(), &key);
-        if (pluginResult.code() == Result::Succeeded) {
-            pluginResult = m_storagePlugins[storagePluginName]->createCollection(collectionName);
-            m_collectionEncryptionKeys.insert(collectionName, key);
-            // TODO: also set CustomLockTimeoutMs, flag for "is custom key", etc.
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    Daemon::ApiImpl::EncryptionPluginWrapper::deriveKeyFromCode,
+                    m_encryptionPlugins[encryptionPluginName],
+                    authenticationCode,
+                    m_requestQueue->saltData());
+    }
+
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<DerivedKeyResult>::finished, [=] {
+        watcher->deleteLater();
+        DerivedKeyResult dkr = watcher->future().result();
+        if (dkr.result.code() != Result::Succeeded) {
+            QVariantList outParams;
+            outParams << QVariant::fromValue<Result>(dkr.result);
+            m_requestQueue->requestFinished(requestId, outParams);
+        } else {
+            createCustomLockCollectionWithEncryptionKey(
+                        callerPid,
+                        requestId,
+                        collectionName,
+                        storagePluginName,
+                        encryptionPluginName,
+                        authenticationPluginName,
+                        unlockSemantic,
+                        customLockTimeoutMs,
+                        accessControlMode,
+                        userInteractionMode,
+                        interactionServiceAddress,
+                        dkr.key);
         }
+    });
+
+    return Result(Result::Pending);
+}
+
+void
+Daemon::ApiImpl::RequestProcessor::createCustomLockCollectionWithEncryptionKey(
+        pid_t callerPid,
+        quint64 requestId,
+        const QString &collectionName,
+        const QString &storagePluginName,
+        const QString &encryptionPluginName,
+        const QString &authenticationPluginName,
+        SecretManager::CustomLockUnlockSemantic unlockSemantic,
+        int customLockTimeoutMs,
+        SecretManager::AccessControlMode accessControlMode,
+        SecretManager::UserInteractionMode userInteractionMode,
+        const QString &interactionServiceAddress,
+        const QByteArray &encryptionKey)
+{
+    Q_UNUSED(callerPid);
+    Q_UNUSED(authenticationPluginName);
+    Q_UNUSED(unlockSemantic);
+    Q_UNUSED(customLockTimeoutMs); // TODO
+    Q_UNUSED(userInteractionMode);
+    Q_UNUSED(interactionServiceAddress);
+
+    QFutureWatcher<Result> *watcher = new QFutureWatcher<Result>(this);
+    QFuture<Result> future;
+    if (storagePluginName == encryptionPluginName) {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    EncryptedStoragePluginWrapper::createCollection,
+                    m_encryptedStoragePlugins[storagePluginName],
+                    collectionName,
+                    encryptionKey);
+    } else {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    Daemon::ApiImpl::StoragePluginWrapper::createCollection,
+                    m_storagePlugins[storagePluginName],
+                    collectionName);
     }
 
-    if (pluginResult.code() == Result::Failed) {
-        // The plugin was unable to create the collection in its storage.  Let's delete it from our master table.
-        // It may be tempting to merely remove the commitTransaction() above, and just do a rollbackTransaction() here,
-        // but DO NOT do so, as that could lead to the case where the plugin->createCollection() call succeeds,
-        // but the master table commit fails.
-        Result cleanupResult = m_bkdb->cleanupDeleteCollection(collectionName, pluginResult);
-        if (cleanupResult.code() != Result::Succeeded) {
-            return cleanupResult;
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<Result>::finished, [=] {
+        watcher->deleteLater();
+        Result pluginResult = watcher->future().result();
+        if (pluginResult.code() != Result::Succeeded) {
+            // The plugin was unable to create the collection in its storage.  Let's delete it from our master table.
+            // It may be tempting to merely remove the commitTransaction() above, and just do a rollbackTransaction() here,
+            // but DO NOT do so, as that could lead to the case where the plugin->createCollection() call succeeds,
+            // but the master table commit fails.
+            Result cleanupResult = m_bkdb->cleanupDeleteCollection(collectionName, pluginResult);
+            if (cleanupResult.code() != Result::Succeeded) {
+                pluginResult = cleanupResult;
+            }
+        } else {
+            if (storagePluginName != encryptionPluginName) {
+                m_collectionEncryptionKeys.insert(collectionName, encryptionKey);
+                // TODO: also set CustomLockTimeoutMs, flag for "is custom key", etc.
+            }
+
+            if (accessControlMode == SecretManager::SystemAccessControlMode) {
+                // TODO: tell AccessControl daemon to add this datum from its database.
+            }
         }
-    }
 
-    if (pluginResult.code() == Result::Succeeded
-            && accessControlMode == SecretManager::SystemAccessControlMode) {
-        // TODO: tell AccessControl daemon to add this datum from its database.
-    }
-
-    return pluginResult;
+        QVariantList outParams;
+        outParams << QVariant::fromValue<Result>(pluginResult);
+        m_requestQueue->requestFinished(requestId, outParams);
+    });
 }
 
 // delete a collection
@@ -478,12 +580,48 @@ Daemon::ApiImpl::RequestProcessor::deleteCollection(
                       QString::fromLatin1("Not the owner, cannot delete collection"));
     }
 
-    Result pluginResult = collectionStoragePluginName == collectionEncryptionPluginName
-            ? m_encryptedStoragePlugins[collectionStoragePluginName]->removeCollection(collectionName)
-            : m_storagePlugins[collectionStoragePluginName]->removeCollection(collectionName);
-    if (pluginResult.code() == Result::Failed) {
-        return pluginResult;
+    QFutureWatcher<Result> *watcher = new QFutureWatcher<Result>(this);
+    QFuture<Result> future;
+    if (collectionStoragePluginName == collectionEncryptionPluginName) {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    EncryptedStoragePluginWrapper::removeCollection,
+                    m_encryptedStoragePlugins[collectionStoragePluginName],
+                    collectionName);
+    } else {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    Daemon::ApiImpl::StoragePluginWrapper::removeCollection,
+                    m_storagePlugins[collectionStoragePluginName],
+                    collectionName);
     }
+
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<Result>::finished, [=] {
+        watcher->deleteLater();
+        Result pluginResult = watcher->future().result();
+        if (pluginResult.code() == Result::Failed) {
+            QVariantList outParams;
+            outParams << QVariant::fromValue<Result>(pluginResult);
+            m_requestQueue->requestFinished(requestId, outParams);
+        } else {
+            deleteCollectionFinalise(
+                        callerPid, requestId,
+                        collectionName, collectionAccessControlMode);
+        }
+    });
+
+    return Result(Result::Pending);
+}
+
+void
+Daemon::ApiImpl::RequestProcessor::deleteCollectionFinalise(
+        pid_t callerPid,
+        quint64 requestId,
+        const QString &collectionName,
+        SecretManager::AccessControlMode collectionAccessControlMode)
+{
+    Q_UNUSED(callerPid)
 
     // successfully removed from plugin storage, now remove the entry from the master table.
     m_collectionEncryptionKeys.remove(collectionName);
@@ -491,14 +629,20 @@ Daemon::ApiImpl::RequestProcessor::deleteCollection(
     Result deleteResult = m_bkdb->deleteCollection(collectionName);
     if (deleteResult.code() != Result::Succeeded) {
         // TODO: add a "dirty" flag for this collection somewhere in memory, so we can try again later.
-        return deleteResult; // once the dirty flag is added, don't return an error here, just continue.
+        // once the dirty flag is added, don't return an error here, just continue.
+        QVariantList outParams;
+        outParams << QVariant::fromValue<Result>(deleteResult);
+        m_requestQueue->requestFinished(requestId, outParams);
+        return;
     }
 
     if (collectionAccessControlMode == SecretManager::SystemAccessControlMode) {
         // TODO: tell AccessControl daemon to remove this datum from its database.
     }
 
-    return Result(Result::Succeeded);
+    QVariantList outParams;
+    outParams << QVariant::fromValue<Result>(Result(Result::Succeeded));
+    m_requestQueue->requestFinished(requestId, outParams);
 }
 
 // this method is a helper for the crypto API.
@@ -588,8 +732,17 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretMetadata(
                       QString::fromLatin1("The identified collection is not encrypted by that plugin"));
     }
 
-    bool locked = false;
-    Result pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->isLocked(identifier.collectionName(), &locked);
+    // TODO: make this asynchronous instead of blocking the main thread!
+    QFuture<EncryptedStoragePluginWrapper::LockedResult> future
+            = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    EncryptedStoragePluginWrapper::isLocked,
+                    m_encryptedStoragePlugins[collectionStoragePluginName],
+                    identifier.collectionName());
+    future.waitForFinished();
+    EncryptedStoragePluginWrapper::LockedResult lr = future.result();
+    Result pluginResult = lr.result;
+    bool locked = lr.locked;
     if (pluginResult.code() != Result::Succeeded) {
         return pluginResult;
     }
@@ -890,13 +1043,22 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
                 : m_appPermissions->applicationId(callerPid);
 
     if (collectionStoragePluginName == collectionEncryptionPluginName) {
-        bool locked = false;
-        Result pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->isLocked(secret.identifier().collectionName(), &locked);
+        // TODO: make this asynchronous instead of blocking the main thread!
+        QFuture<EncryptedStoragePluginWrapper::LockedResult> future
+                = QtConcurrent::run(
+                        m_requestQueue->secretsThreadPool().data(),
+                        EncryptedStoragePluginWrapper::isLocked,
+                        m_encryptedStoragePlugins[collectionStoragePluginName],
+                        secret.identifier().collectionName());
+        future.waitForFinished();
+        EncryptedStoragePluginWrapper::LockedResult lr = future.result();
+        Result pluginResult = lr.result;
+        bool locked = lr.locked;
         if (pluginResult.code() != Result::Succeeded) {
             return pluginResult;
         }
         if (!locked) {
-            return setCollectionSecretWithEncryptionKey(
+            setCollectionSecretWithEncryptionKey(
                         callerPid,
                         requestId,
                         secret,
@@ -911,6 +1073,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
                         collectionCustomLockTimeoutMs,
                         collectionAccessControlMode,
                         QByteArray());
+            return Result(Result::Pending);
         }
 
         if (collectionUsesDeviceLockKey) {
@@ -964,7 +1127,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
 
 
     if (m_collectionEncryptionKeys.contains(secret.identifier().collectionName())) {
-        return setCollectionSecretWithEncryptionKey(
+        setCollectionSecretWithEncryptionKey(
                     callerPid,
                     requestId,
                     secret,
@@ -979,6 +1142,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
                     collectionCustomLockTimeoutMs,
                     collectionAccessControlMode,
                     m_collectionEncryptionKeys.value(secret.identifier().collectionName()));
+        return Result(Result::Pending);
     }
 
     if (collectionUsesDeviceLockKey) {
@@ -1048,30 +1212,61 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithAuthenticationCode(
         const QByteArray &authenticationCode)
 {
     // generate the encryption key from the authentication code
-    if (!m_encryptionPlugins.contains(collectionEncryptionPluginName)) {
+    if (collectionStoragePluginName == collectionEncryptionPluginName) {
+        if (!m_encryptedStoragePlugins.contains(collectionStoragePluginName)) {
+            // TODO: stale data in the database?
+            return Result(Result::InvalidExtensionPluginError,
+                          QStringLiteral("Unknown collection encrypted storage plugin: %1").arg(collectionStoragePluginName));
+        }
+    } else if (!m_encryptionPlugins.contains(collectionEncryptionPluginName)) {
         // TODO: stale data in the database?
         return Result(Result::InvalidExtensionPluginError,
                       QStringLiteral("Unknown collection encryption plugin: %1").arg(collectionEncryptionPluginName));
     }
 
-    QByteArray key;
-    Result pluginResult = m_encryptionPlugins[collectionEncryptionPluginName]->deriveKeyFromCode(
-                authenticationCode,  m_requestQueue->saltData(), &key);
-    if (pluginResult.code() != Result::Succeeded) {
-        return pluginResult;
+    QFutureWatcher<DerivedKeyResult> *watcher
+            = new QFutureWatcher<DerivedKeyResult>(this);
+    QFuture<DerivedKeyResult> future;
+    if (collectionStoragePluginName == collectionEncryptionPluginName) {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    EncryptedStoragePluginWrapper::deriveKeyFromCode,
+                    m_encryptedStoragePlugins[collectionEncryptionPluginName],
+                    authenticationCode,
+                    m_requestQueue->saltData());
+    } else {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    Daemon::ApiImpl::EncryptionPluginWrapper::deriveKeyFromCode,
+                    m_encryptionPlugins[collectionEncryptionPluginName],
+                    authenticationCode,
+                    m_requestQueue->saltData());
     }
 
-    return setCollectionSecretWithEncryptionKey(
-                callerPid, requestId, secret,
-                userInteractionMode, interactionServiceAddress,
-                collectionUsesDeviceLockKey, collectionApplicationId,
-                collectionStoragePluginName, collectionEncryptionPluginName,
-                collectionAuthenticationPluginName, collectionUnlockSemantic,
-                collectionCustomLockTimeoutMs, collectionAccessControlMode,
-                key);
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<DerivedKeyResult>::finished, [=] {
+        watcher->deleteLater();
+        DerivedKeyResult dkr = watcher->future().result();
+        if (dkr.result.code() != Result::Succeeded) {
+            QVariantList outParams;
+            outParams << QVariant::fromValue<Result>(dkr.result);
+            m_requestQueue->requestFinished(requestId, outParams);
+        } else {
+            setCollectionSecretWithEncryptionKey(
+                        callerPid, requestId, secret,
+                        userInteractionMode, interactionServiceAddress,
+                        collectionUsesDeviceLockKey, collectionApplicationId,
+                        collectionStoragePluginName, collectionEncryptionPluginName,
+                        collectionAuthenticationPluginName, collectionUnlockSemantic,
+                        collectionCustomLockTimeoutMs, collectionAccessControlMode,
+                        dkr.key);
+        }
+    });
+
+    return Result(Result::Pending);
 }
 
-Result
+void
 Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithEncryptionKey(
         pid_t callerPid,
         quint64 requestId,
@@ -1100,7 +1295,10 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithEncryptionKey(
                                                       hashedSecretName,
                                                       &secretAlreadyExists);
     if (existsResult.code() != Result::Succeeded) {
-        return existsResult;
+        QVariantList outParams;
+        outParams << QVariant::fromValue<Result>(existsResult);
+        m_requestQueue->requestFinished(requestId, outParams);
+        return;
     } else if (!secretAlreadyExists) {
         // Write to the master database prior to the storage plugin.
         Result insertResult = m_bkdb->insertSecret(secret.identifier().collectionName(),
@@ -1114,58 +1312,65 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithEncryptionKey(
                                                    collectionCustomLockTimeoutMs,
                                                    collectionAccessControlMode);
         if (insertResult.code() != Result::Succeeded) {
-            return insertResult;
+            QVariantList outParams;
+            outParams << QVariant::fromValue<Result>(insertResult);
+            m_requestQueue->requestFinished(requestId, outParams);
+            return;
         }
     }
 
-    Result pluginResult;
+    QFutureWatcher<Result> *watcher = new QFutureWatcher<Result>(this);
+    QFuture<Result> future;
     if (collectionStoragePluginName == collectionEncryptionPluginName) {
-        bool locked = false;
-        pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->isLocked(secret.identifier().collectionName(), &locked);
-        if (pluginResult.code() == Result::Succeeded) {
-            if (locked) {
-                pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->setEncryptionKey(secret.identifier().collectionName(), encryptionKey);
-                if (pluginResult.code() != Result::Succeeded) {
-                    // unable to apply the new encryptionKey.
-                    m_encryptedStoragePlugins[collectionStoragePluginName]->setEncryptionKey(secret.identifier().collectionName(), QByteArray());
-                    return Result(Result::SecretsPluginDecryptionError,
-                                  QString::fromLatin1("Unable to decrypt collection %1 with the entered authentication key").arg(secret.identifier().collectionName()));
-
-                }
-                pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->isLocked(secret.identifier().collectionName(), &locked);
-                if (pluginResult.code() != Result::Succeeded) {
-                    m_encryptedStoragePlugins[collectionStoragePluginName]->setEncryptionKey(secret.identifier().collectionName(), QByteArray());
-                    return Result(Result::SecretsPluginDecryptionError,
-                                  QString::fromLatin1("Unable to check lock state of collection %1 after setting the entered authentication key").arg(secret.identifier().collectionName()));
-
-                }
-            }
-            if (locked) {
-                // still locked, even after applying the new encryptionKey?  The authenticationCode was wrong.
-                m_encryptedStoragePlugins[collectionStoragePluginName]->setEncryptionKey(secret.identifier().collectionName(), QByteArray());
-                return Result(Result::IncorrectAuthenticationCodeError,
-                              QString::fromLatin1("The authentication code entered for collection %1 was incorrect").arg(secret.identifier().collectionName()));
-            } else {
-                // successfully unlocked the encrypted storage collection.  write the secret.
-                pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->setSecret(secret.identifier().collectionName(), hashedSecretName, secret.identifier().name(), secret.data(), secret.filterData());
-            }
-        }
+        future = QtConcurrent::run(
+                m_requestQueue->secretsThreadPool().data(),
+                EncryptedStoragePluginWrapper::unlockCollectionAndStoreSecret,
+                m_encryptedStoragePlugins[collectionStoragePluginName],
+                secret,
+                hashedSecretName,
+                encryptionKey);
     } else {
         if (!m_collectionEncryptionKeys.contains(secret.identifier().collectionName())) {
             // TODO: some way to "test" the encryptionKey!
             m_collectionEncryptionKeys.insert(secret.identifier().collectionName(), encryptionKey);
         }
 
-        QByteArray encrypted, encryptedName;
-        pluginResult = m_encryptionPlugins[collectionEncryptionPluginName]->encryptSecret(secret.data(), m_collectionEncryptionKeys.value(secret.identifier().collectionName()), &encrypted);
-        if (pluginResult.code() == Result::Succeeded) {
-            pluginResult = m_encryptionPlugins[collectionEncryptionPluginName]->encryptSecret(secret.identifier().name().toUtf8(), m_collectionEncryptionKeys.value(secret.identifier().collectionName()), &encryptedName);
-            if (pluginResult.code() == Result::Succeeded) {
-                pluginResult = m_storagePlugins[collectionStoragePluginName]->setSecret(secret.identifier().collectionName(), hashedSecretName, encryptedName, encrypted, secret.filterData());
-            }
-        }
+        future = QtConcurrent::run(
+                m_requestQueue->secretsThreadPool().data(),
+                Daemon::ApiImpl::StoragePluginWrapper::encryptAndStoreSecret,
+                m_encryptionPlugins[collectionEncryptionPluginName],
+                m_storagePlugins[collectionStoragePluginName],
+                secret,
+                hashedSecretName,
+                encryptionKey);
     }
 
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<Result>::finished, [=] {
+        watcher->deleteLater();
+        Result pluginResult = watcher->future().result();
+        setCollectionSecretWithEncryptionKeyFinalise(
+                    callerPid,
+                    requestId,
+                    secret,
+                    secretAlreadyExists,
+                    hashedSecretName,
+                    pluginResult);
+    });
+}
+
+void
+Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithEncryptionKeyFinalise(
+        pid_t callerPid,
+        quint64 requestId,
+        const Secret &secret,
+        bool secretAlreadyExists,
+        const QString &hashedSecretName,
+        const Result &pluginResult)
+{
+    Q_UNUSED(callerPid);
+
+    Result returnResult(pluginResult);
     if (pluginResult.code() == Result::Failed && !secretAlreadyExists) {
         // The plugin was unable to set the secret in its storage.
         // Let's delete it from our master table if it was a new one.
@@ -1176,11 +1381,13 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithEncryptionKey(
                                                            hashedSecretName,
                                                            pluginResult);
         if (cleanupResult.code() != Result::Succeeded) {
-            return cleanupResult;
+            returnResult = cleanupResult;
         }
     }
 
-    return pluginResult;
+    QVariantList outParams;
+    outParams << QVariant::fromValue<Result>(returnResult);
+    m_requestQueue->requestFinished(requestId, outParams);
 }
 
 // set a standalone DeviceLock-protected secret
@@ -1377,37 +1584,82 @@ Daemon::ApiImpl::RequestProcessor::writeStandaloneDeviceLockSecret(
         return insertUpdateResult;
     }
 
-    Result pluginResult;
+    QFutureWatcher<Result> *watcher = new QFutureWatcher<Result>(this);
+    QFuture<Result> future;
     if (storagePluginName == encryptionPluginName) {
         // TODO: does the following work?  We'd need to add methods to the encrypted storage plugin: re-encryptStandaloneSecrets or something...
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, secret.identifier().name(), secret.data(), secret.filterData(), m_requestQueue->deviceLockKey());
+        future = QtConcurrent::run(
+                m_requestQueue->secretsThreadPool().data(),
+                EncryptedStoragePluginWrapper::setSecret,
+                m_encryptedStoragePlugins[storagePluginName],
+                collectionName,
+                hashedSecretName,
+                secret,
+                m_requestQueue->deviceLockKey());
     } else {
-        QByteArray encrypted, encryptedName;
-        pluginResult = m_encryptionPlugins[encryptionPluginName]->encryptSecret(secret.data(), m_requestQueue->deviceLockKey(), &encrypted);
-        if (pluginResult.code() == Result::Succeeded) {
-            pluginResult = m_encryptionPlugins[encryptionPluginName]->encryptSecret(secret.identifier().name().toUtf8(), m_requestQueue->deviceLockKey(), &encryptedName);
-            if (pluginResult.code() == Result::Succeeded) {
-                pluginResult = m_storagePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, encryptedName, encrypted, secret.filterData());
-                if (pluginResult.code() == Result::Succeeded) {
-                    m_standaloneSecretEncryptionKeys.insert(hashedSecretName, m_requestQueue->deviceLockKey());
-                }
+        Secret identifiedSecret(secret);
+        identifiedSecret.setCollectionName(collectionName);
+        future = QtConcurrent::run(
+                m_requestQueue->secretsThreadPool().data(),
+                Daemon::ApiImpl::StoragePluginWrapper::encryptAndStoreSecret,
+                m_encryptionPlugins[encryptionPluginName],
+                m_storagePlugins[storagePluginName],
+                identifiedSecret,
+                hashedSecretName,
+                m_requestQueue->deviceLockKey());
+    }
+
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<Result>::finished, [=] {
+        watcher->deleteLater();
+        Result pluginResult = watcher->future().result();
+        writeStandaloneDeviceLockSecretFinalise(
+                    callerPid,
+                    requestId,
+                    storagePluginName,
+                    encryptionPluginName,
+                    collectionName,
+                    hashedSecretName,
+                    found,
+                    pluginResult);
+    });
+
+    return Result(Result::Pending);
+}
+
+void
+Daemon::ApiImpl::RequestProcessor::writeStandaloneDeviceLockSecretFinalise(
+        pid_t callerPid,
+        quint64 requestId,
+        const QString &storagePluginName,
+        const QString &encryptionPluginName,
+        const QString &collectionName,
+        const QString &hashedSecretName,
+        bool found,
+        const Result &pluginResult)
+{
+    Q_UNUSED(callerPid);
+
+    Result returnResult(pluginResult);
+    if (pluginResult.code() == Result::Failed) {
+        if (!found) {
+            // The plugin was unable to set the (new) secret in its storage.
+            // Let's delete it from our master table as it was a new one.
+            // It may be tempting to merely remove the commitTransaction() above, and just do a rollbackTransaction() here,
+            // but DO NOT do so, as that could lead to the case where the plugin->setSecret() call succeeds,
+            // but the master table commit fails.
+            Result cleanupResult = m_bkdb->cleanupDeleteSecret(collectionName, hashedSecretName, pluginResult);
+            if (cleanupResult.code() != Result::Succeeded) {
+                returnResult = cleanupResult;
             }
         }
+    } else if (storagePluginName != encryptionPluginName) {
+        m_standaloneSecretEncryptionKeys.insert(hashedSecretName, m_requestQueue->deviceLockKey());
     }
 
-    if (pluginResult.code() == Result::Failed && !found) {
-        // The plugin was unable to set the secret in its storage.
-        // Let's delete it from our master table if it was a new one.
-        // It may be tempting to merely remove the commitTransaction() above, and just do a rollbackTransaction() here,
-        // but DO NOT do so, as that could lead to the case where the plugin->setSecret() call succeeds,
-        // but the master table commit fails.
-        Result cleanupResult = m_bkdb->cleanupDeleteSecret(collectionName, hashedSecretName, pluginResult);
-        if (cleanupResult.code() != Result::Succeeded) {
-            return cleanupResult;
-        }
-    }
-
-    return pluginResult;
+    QVariantList outParams;
+    outParams << QVariant::fromValue<Result>(returnResult);
+    m_requestQueue->requestFinished(requestId, outParams);
 }
 
 // set a standalone CustomLock-protected secret
@@ -1629,29 +1881,60 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretWithAuthenticati
         const QByteArray &authenticationCode)
 {
     // generate the encryption key from the authentication code
-    if (!m_encryptionPlugins.contains(encryptionPluginName)) {
+    if (storagePluginName == encryptionPluginName) {
+        if (!m_encryptedStoragePlugins.contains(storagePluginName)) {
+            // TODO: stale data in the database?
+            return Result(Result::InvalidExtensionPluginError,
+                          QStringLiteral("Unknown collection encrypted storage plugin: %1").arg(storagePluginName));
+        }
+    } else if (!m_encryptionPlugins.contains(encryptionPluginName)) {
         // TODO: stale data in the database?
         return Result(Result::InvalidExtensionPluginError,
                       QStringLiteral("Unknown collection encryption plugin: %1").arg(encryptionPluginName));
     }
 
-    QByteArray key;
-    Result pluginResult = m_encryptionPlugins[encryptionPluginName]->deriveKeyFromCode(
-                authenticationCode, m_requestQueue->saltData(), &key);
-    if (pluginResult.code() != Result::Succeeded) {
-        return pluginResult;
+    QFutureWatcher<DerivedKeyResult> *watcher
+            = new QFutureWatcher<DerivedKeyResult>(this);
+    QFuture<DerivedKeyResult> future;
+    if (storagePluginName == encryptionPluginName) {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    EncryptedStoragePluginWrapper::deriveKeyFromCode,
+                    m_encryptedStoragePlugins[encryptionPluginName],
+                    authenticationCode,
+                    m_requestQueue->saltData());
+    } else {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    Daemon::ApiImpl::EncryptionPluginWrapper::deriveKeyFromCode,
+                    m_encryptionPlugins[encryptionPluginName],
+                    authenticationCode,
+                    m_requestQueue->saltData());
     }
 
-    return setStandaloneCustomLockSecretWithEncryptionKey(
-                callerPid, requestId,
-                storagePluginName, encryptionPluginName,
-                authenticationPluginName, secret,
-                unlockSemantic, customLockTimeoutMs,
-                accessControlMode, userInteractionMode,
-                interactionServiceAddress, key);
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<DerivedKeyResult>::finished, [=] {
+        watcher->deleteLater();
+        DerivedKeyResult dkr = watcher->future().result();
+        if (dkr.result.code() != Result::Succeeded) {
+            QVariantList outParams;
+            outParams << QVariant::fromValue<Result>(dkr.result);
+            m_requestQueue->requestFinished(requestId, outParams);
+        } else {
+            setStandaloneCustomLockSecretWithEncryptionKey(
+                        callerPid, requestId,
+                        storagePluginName, encryptionPluginName,
+                        authenticationPluginName, secret,
+                        unlockSemantic, customLockTimeoutMs,
+                        accessControlMode, userInteractionMode,
+                        interactionServiceAddress, dkr.key);
+        }
+    });
+
+    return Result(Result::Pending);
 }
 
-Result
+void
 Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretWithEncryptionKey(
         pid_t callerPid,
         quint64 requestId,
@@ -1685,7 +1968,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretWithEncryptionKe
     SecretManager::AccessControlMode secretAccessControlMode = SecretManager::OwnerOnlyMode;
     const QString collectionName = QStringLiteral("standalone");
     const QString hashedSecretName = Daemon::Util::generateHashedSecretName(collectionName, secret.identifier().name());
-    Result metadataResult = m_bkdb->secretMetadata(collectionName,
+    Result returnResult = m_bkdb->secretMetadata(collectionName,
                                                    hashedSecretName,
                                                    &found,
                                                    &secretApplicationId,
@@ -1696,89 +1979,139 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretWithEncryptionKe
                                                    Q_NULLPTR,
                                                    Q_NULLPTR,
                                                    &secretAccessControlMode);
-    if (metadataResult.code() != Result::Succeeded) {
-        return metadataResult;
-    }
 
     if (found && secretAccessControlMode == SecretManager::SystemAccessControlMode) {
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
-        return Result(Result::OperationNotSupportedError,
-                      QLatin1String("Access control requests are not currently supported. TODO!"));
+        returnResult = Result(Result::OperationNotSupportedError,
+                              QLatin1String("Access control requests are not currently supported. TODO!"));
     } else if (found && secretAccessControlMode == SecretManager::OwnerOnlyMode
                && secretApplicationId != callerApplicationId) {
-        return Result(Result::PermissionsError,
-                      QString::fromLatin1("Secret %1 is owned by a different application").arg(secret.identifier().name()));
+        returnResult = Result(Result::PermissionsError,
+                              QString::fromLatin1("Secret %1 is owned by a different application").arg(secret.identifier().name()));
     } else if (found && secretUsesDeviceLockKey == 1) {
         // don't update the secret if it would involve changing from a device-lock to custom-lock protected secret.
-        return Result(Result::OperationNotSupportedError,
-                      QString::fromLatin1("Secret %1 already exists and is not a devicelock protected secret")
-                      .arg(secret.identifier().name()));
+        returnResult = Result(Result::OperationNotSupportedError,
+                              QString::fromLatin1("Secret %1 already exists and is not a devicelock protected secret")
+                              .arg(secret.identifier().name()));
     } else if (found && secretStoragePluginName.compare(storagePluginName, Qt::CaseInsensitive) != 0) {
         // don't update the secret if it would involve changing which plugin it's stored in.
-        return Result(Result::OperationNotSupportedError,
-                      QString::fromLatin1("Secret %1 already exists and is not stored via plugin %2")
-                      .arg(secret.identifier().name(), storagePluginName));
+        returnResult = Result(Result::OperationNotSupportedError,
+                              QString::fromLatin1("Secret %1 already exists and is not stored via plugin %2")
+                              .arg(secret.identifier().name(), storagePluginName));
     }
 
     // Write to the master database prior to the storage plugin.
-    Result insertUpdateResult = found
-            ? m_bkdb->updateSecret(
-                  collectionName,
-                  hashedSecretName,
-                  callerApplicationId,
-                  false,
-                  storagePluginName,
-                  encryptionPluginName,
-                  authenticationPluginName,
-                  unlockSemantic,
-                  customLockTimeoutMs,
-                  accessControlMode)
-            : m_bkdb->insertSecret(
-                  collectionName,
-                  hashedSecretName,
-                  callerApplicationId,
-                  false,
-                  storagePluginName,
-                  encryptionPluginName,
-                  authenticationPluginName,
-                  unlockSemantic,
-                  customLockTimeoutMs,
-                  accessControlMode);
-    if (insertUpdateResult.code() != Result::Succeeded) {
-        return insertUpdateResult;
+    if (returnResult.code() == Result::Succeeded) {
+        returnResult = found
+                ? m_bkdb->updateSecret(
+                      collectionName,
+                      hashedSecretName,
+                      callerApplicationId,
+                      false,
+                      storagePluginName,
+                      encryptionPluginName,
+                      authenticationPluginName,
+                      unlockSemantic,
+                      customLockTimeoutMs,
+                      accessControlMode)
+                : m_bkdb->insertSecret(
+                      collectionName,
+                      hashedSecretName,
+                      callerApplicationId,
+                      false,
+                      storagePluginName,
+                      encryptionPluginName,
+                      authenticationPluginName,
+                      unlockSemantic,
+                      customLockTimeoutMs,
+                      accessControlMode);
     }
 
-    Result pluginResult;
+    if (returnResult.code() != Result::Succeeded) {
+        QVariantList outParams;
+        outParams << QVariant::fromValue<Result>(returnResult);
+        m_requestQueue->requestFinished(requestId, outParams);
+        return;
+    }
+
+    QFutureWatcher<Result> *watcher = new QFutureWatcher<Result>(this);
+    QFuture<Result> future;
     if (storagePluginName == encryptionPluginName) {
         // TODO: does the following work?  We'd need to add methods to the encrypted storage plugin: re-encryptStandaloneSecrets or something...
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, secret.identifier().name(), secret.data(), secret.filterData(), encryptionKey);
+        future = QtConcurrent::run(
+                m_requestQueue->secretsThreadPool().data(),
+                EncryptedStoragePluginWrapper::setSecret,
+                m_encryptedStoragePlugins[storagePluginName],
+                collectionName,
+                hashedSecretName,
+                secret,
+                encryptionKey);
     } else {
-        QByteArray encrypted, encryptedName;
-        pluginResult = m_encryptionPlugins[encryptionPluginName]->encryptSecret(secret.data(), encryptionKey, &encrypted);
-        if (pluginResult.code() == Result::Succeeded) {
-            pluginResult = m_encryptionPlugins[encryptionPluginName]->encryptSecret(secret.identifier().name().toUtf8(), encryptionKey, &encryptedName);
-            if (pluginResult.code() == Result::Succeeded) {
-                pluginResult = m_storagePlugins[storagePluginName]->setSecret(collectionName, hashedSecretName, encryptedName, encrypted, secret.filterData());
-                if (pluginResult.code() == Result::Succeeded) {
-                    m_standaloneSecretEncryptionKeys.insert(hashedSecretName, encryptionKey);
-                }
+        Secret identifiedSecret(secret);
+        identifiedSecret.setCollectionName(collectionName);
+        future = QtConcurrent::run(
+                m_requestQueue->secretsThreadPool().data(),
+                Daemon::ApiImpl::StoragePluginWrapper::encryptAndStoreSecret,
+                m_encryptionPlugins[encryptionPluginName],
+                m_storagePlugins[storagePluginName],
+                identifiedSecret,
+                hashedSecretName,
+                encryptionKey);
+    }
+
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<Result>::finished, [=] {
+        watcher->deleteLater();
+        Result pluginResult = watcher->future().result();
+        setStandaloneCustomLockSecretWithEncryptionKeyFinalise(
+                    callerPid,
+                    requestId,
+                    storagePluginName,
+                    encryptionPluginName,
+                    collectionName,
+                    hashedSecretName,
+                    encryptionKey,
+                    found,
+                    pluginResult);
+    });
+}
+
+void
+Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretWithEncryptionKeyFinalise(
+        pid_t callerPid,
+        quint64 requestId,
+        const QString &storagePluginName,
+        const QString &encryptionPluginName,
+        const QString &collectionName,
+        const QString &hashedSecretName,
+        const QByteArray &encryptionKey,
+        bool found,
+        const Result &pluginResult)
+{
+    Q_UNUSED(callerPid);
+
+    Result returnResult(pluginResult);
+    if (pluginResult.code() == Result::Failed) {
+        if (!found) {
+            // The plugin was unable to set the secret in its storage.
+            // Let's delete it from our master table if it was a new one.
+            // It may be tempting to merely remove the commitTransaction() above, and just do a rollbackTransaction() here,
+            // but DO NOT do so, as that could lead to the case where the plugin->setSecret() call succeeds,
+            // but the master table commit fails.
+            Result cleanupResult = m_bkdb->cleanupDeleteSecret(collectionName, hashedSecretName, pluginResult);
+            if (cleanupResult.code() != Result::Succeeded) {
+                returnResult = cleanupResult;
             }
         }
-    }
-
-    if (pluginResult.code() == Result::Failed && !found) {
-        // The plugin was unable to set the secret in its storage.
-        // Let's delete it from our master table if it was a new one.
-        // It may be tempting to merely remove the commitTransaction() above, and just do a rollbackTransaction() here,
-        // but DO NOT do so, as that could lead to the case where the plugin->setSecret() call succeeds,
-        // but the master table commit fails.
-        Result cleanupResult = m_bkdb->cleanupDeleteSecret(collectionName, hashedSecretName, pluginResult);
-        if (cleanupResult.code() != Result::Succeeded) {
-            return cleanupResult;
+    } else {
+        if (storagePluginName != encryptionPluginName) {
+            m_standaloneSecretEncryptionKeys.insert(hashedSecretName, encryptionKey);
         }
     }
 
-    return pluginResult;
+    QVariantList outParams;
+    outParams << QVariant::fromValue<Result>(returnResult);
+    m_requestQueue->requestFinished(requestId, outParams);
 }
 
 // get a secret in a collection
@@ -1791,6 +2124,7 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
         const QString &interactionServiceAddress,
         Secret *secret)
 {
+    Q_UNUSED(secret); // asynchronous out param.
     if (identifier.name().isEmpty()) {
         return Result(Result::InvalidSecretError,
                       QLatin1String("Empty secret name given"));
@@ -1860,8 +2194,17 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
     }
 
     if (collectionStoragePluginName == collectionEncryptionPluginName) {
-        bool locked = false;
-        Result pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->isLocked(identifier.collectionName(), &locked);
+        // TODO: make this asynchronous instead of blocking the main thread!
+        QFuture<EncryptedStoragePluginWrapper::LockedResult> future
+                = QtConcurrent::run(
+                        m_requestQueue->secretsThreadPool().data(),
+                        EncryptedStoragePluginWrapper::isLocked,
+                        m_encryptedStoragePlugins[collectionStoragePluginName],
+                        identifier.collectionName());
+        future.waitForFinished();
+        EncryptedStoragePluginWrapper::LockedResult lr = future.result();
+        Result pluginResult = lr.result;
+        bool locked = lr.locked;
         if (pluginResult.code() != Result::Succeeded) {
             return pluginResult;
         }
@@ -1914,7 +2257,7 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                 return Result(Result::Pending);
             }
         } else {
-            return getCollectionSecretWithEncryptionKey(
+            getCollectionSecretWithEncryptionKey(
                         callerPid,
                         requestId,
                         identifier,
@@ -1924,8 +2267,8 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                         collectionEncryptionPluginName,
                         collectionUnlockSemantic,
                         collectionCustomLockTimeoutMs,
-                        QByteArray(), // no key required, it's unlocked already.
-                        secret);
+                        QByteArray()); // no key required, it's unlocked already
+            return Result(Result::Pending);
         }
     } else {
         if (!m_collectionEncryptionKeys.contains(identifier.collectionName())) {
@@ -1976,7 +2319,7 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                 return Result(Result::Pending);
             }
         } else {
-            return getCollectionSecretWithEncryptionKey(
+            getCollectionSecretWithEncryptionKey(
                         callerPid,
                         requestId,
                         identifier,
@@ -1986,8 +2329,8 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                         collectionEncryptionPluginName,
                         collectionUnlockSemantic,
                         collectionCustomLockTimeoutMs,
-                        m_collectionEncryptionKeys.value(identifier.collectionName()),
-                        secret);
+                        m_collectionEncryptionKeys.value(identifier.collectionName()));
+            return Result(Result::Pending);
         }
     }
 }
@@ -2003,32 +2346,62 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithAuthenticationCode(
         const QString &encryptionPluginName,
         int collectionUnlockSemantic,
         int collectionCustomLockTimeoutMs,
-        const QByteArray &authenticationCode,
-        Secret *secret)
+        const QByteArray &authenticationCode)
 {
     // generate the encryption key from the authentication code
-    if (!m_encryptionPlugins.contains(encryptionPluginName)) {
+    if (storagePluginName == encryptionPluginName) {
+        if (!m_encryptedStoragePlugins.contains(storagePluginName)) {
+            // TODO: stale data in the database?
+            return Result(Result::InvalidExtensionPluginError,
+                          QStringLiteral("Unknown collection encrypted storage plugin: %1").arg(storagePluginName));
+        }
+    } else if (!m_encryptionPlugins.contains(encryptionPluginName)) {
         // TODO: stale data in the database?
         return Result(Result::InvalidExtensionPluginError,
                       QStringLiteral("Unknown collection encryption plugin: %1").arg(encryptionPluginName));
     }
 
-    QByteArray key;
-    Result pluginResult = m_encryptionPlugins[encryptionPluginName]->deriveKeyFromCode(
-                authenticationCode, m_requestQueue->saltData(), &key);
-    if (pluginResult.code() != Result::Succeeded) {
-        return pluginResult;
+    QFutureWatcher<DerivedKeyResult> *watcher
+            = new QFutureWatcher<DerivedKeyResult>(this);
+    QFuture<DerivedKeyResult> future;
+    if (storagePluginName == encryptionPluginName) {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    EncryptedStoragePluginWrapper::deriveKeyFromCode,
+                    m_encryptedStoragePlugins[encryptionPluginName],
+                    authenticationCode,
+                    m_requestQueue->saltData());
+    } else {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    Daemon::ApiImpl::EncryptionPluginWrapper::deriveKeyFromCode,
+                    m_encryptionPlugins[encryptionPluginName],
+                    authenticationCode,
+                    m_requestQueue->saltData());
     }
 
-    return getCollectionSecretWithEncryptionKey(
-                callerPid, requestId, identifier,
-                userInteractionMode, interactionServiceAddress,
-                storagePluginName, encryptionPluginName,
-                collectionUnlockSemantic, collectionCustomLockTimeoutMs,
-                key, secret);
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<DerivedKeyResult>::finished, [=] {
+        watcher->deleteLater();
+        DerivedKeyResult dkr = watcher->future().result();
+        if (dkr.result.code() != Result::Succeeded) {
+            QVariantList outParams;
+            outParams << QVariant::fromValue<Result>(dkr.result);
+            m_requestQueue->requestFinished(requestId, outParams);
+        } else {
+            getCollectionSecretWithEncryptionKey(
+                        callerPid, requestId, identifier,
+                        userInteractionMode, interactionServiceAddress,
+                        storagePluginName, encryptionPluginName,
+                        collectionUnlockSemantic, collectionCustomLockTimeoutMs,
+                        dkr.key);
+        }
+    });
+
+    return Result(Result::Pending);
 }
 
-Result
+void
 Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithEncryptionKey(
         pid_t callerPid,
         quint64 requestId,
@@ -2039,8 +2412,7 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithEncryptionKey(
         const QString &encryptionPluginName,
         int collectionUnlockSemantic,
         int collectionCustomLockTimeoutMs,
-        const QByteArray &encryptionKey,
-        Secret *secret)
+        const QByteArray &encryptionKey)
 {
     // might be required in future for access control requests.
     Q_UNUSED(callerPid);
@@ -2061,63 +2433,42 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithEncryptionKey(
     }
 
     const QString hashedSecretName = Daemon::Util::generateHashedSecretName(identifier.collectionName(), identifier.name());
-    Result pluginResult;
+    QFutureWatcher<SecretResult> *watcher
+            = new QFutureWatcher<SecretResult>(this);
+    QFuture<SecretResult> future;
     if (storagePluginName == encryptionPluginName) {
-        bool locked = false;
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->isLocked(identifier.collectionName(), &locked);
-        if (pluginResult.code() != Result::Succeeded) {
-            return pluginResult;
-        }
-        // if it's locked, attempt to unlock it
-        if (locked) {
-            pluginResult = m_encryptedStoragePlugins[storagePluginName]->setEncryptionKey(identifier.collectionName(), encryptionKey);
-            if (pluginResult.code() != Result::Succeeded) {
-                // unable to apply the new encryptionKey.
-                m_encryptedStoragePlugins[storagePluginName]->setEncryptionKey(identifier.collectionName(), QByteArray());
-                return Result(Result::SecretsPluginDecryptionError,
-                              QString::fromLatin1("Unable to decrypt collection %1 with the entered authentication key").arg(identifier.collectionName()));
-
-            }
-            pluginResult = m_encryptedStoragePlugins[storagePluginName]->isLocked(identifier.collectionName(), &locked);
-            if (pluginResult.code() != Result::Succeeded) {
-                m_encryptedStoragePlugins[storagePluginName]->setEncryptionKey(identifier.collectionName(), QByteArray());
-                return Result(Result::SecretsPluginDecryptionError,
-                              QString::fromLatin1("Unable to check lock state of collection %1 after setting the entered authentication key").arg(identifier.collectionName()));
-
-            }
-        }
-        if (locked) {
-            // still locked, even after applying the new encryptionKey?  The authenticationCode was wrong.
-            m_encryptedStoragePlugins[storagePluginName]->setEncryptionKey(identifier.collectionName(), QByteArray());
-            return Result(Result::IncorrectAuthenticationCodeError,
-                          QString::fromLatin1("The authentication code entered for collection %1 was incorrect").arg(identifier.collectionName()));
-        }
-        // successfully unlocked the encrypted storage collection.  read the secret.
-        QString secretName;
-        QByteArray secretData;
-        Secret::FilterData secretFilterdata;
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->getSecret(identifier.collectionName(), hashedSecretName, &secretName, &secretData, &secretFilterdata);
-        secret->setData(secretData);
-        secret->setFilterData(secretFilterdata);
+        future = QtConcurrent::run(
+                m_requestQueue->secretsThreadPool().data(),
+                EncryptedStoragePluginWrapper::unlockCollectionAndReadSecret,
+                m_encryptedStoragePlugins[storagePluginName],
+                identifier,
+                hashedSecretName,
+                encryptionKey);
     } else {
         if (!m_collectionEncryptionKeys.contains(identifier.collectionName())) {
             // TODO: some way to "test" the encryptionKey!  also, if it's a custom lock, set the timeout, etc.
             m_collectionEncryptionKeys.insert(identifier.collectionName(), encryptionKey);
         }
 
-        QByteArray encrypted, encryptedName;
-        Secret::FilterData filterData;
-        pluginResult = m_storagePlugins[storagePluginName]->getSecret(identifier.collectionName(), hashedSecretName, &encryptedName, &encrypted, &filterData);
-        if (pluginResult.code() == Result::Succeeded) {
-            QByteArray decrypted;
-            pluginResult = m_encryptionPlugins[encryptionPluginName]->decryptSecret(encrypted, m_collectionEncryptionKeys.value(identifier.collectionName()), &decrypted);
-            secret->setData(decrypted);
-            secret->setIdentifier(identifier);
-            secret->setFilterData(filterData);
-        }
+        future = QtConcurrent::run(
+                m_requestQueue->secretsThreadPool().data(),
+                Daemon::ApiImpl::StoragePluginWrapper::getAndDecryptSecret,
+                m_encryptionPlugins[encryptionPluginName],
+                m_storagePlugins[storagePluginName],
+                identifier,
+                hashedSecretName,
+                m_collectionEncryptionKeys.value(identifier.collectionName()));
     }
 
-    return pluginResult;
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<SecretResult>::finished, [=] {
+        watcher->deleteLater();
+        SecretResult sr = watcher->future().result();
+        QVariantList outParams;
+        outParams << QVariant::fromValue<Result>(sr.result);
+        outParams << QVariant::fromValue<Secret>(sr.secret);
+        m_requestQueue->requestFinished(requestId, outParams);
+    });
 }
 
 // get a standalone secret
@@ -2130,6 +2481,7 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
         const QString &interactionServiceAddress,
         Secret *secret)
 {
+    Q_UNUSED(secret); // asynchronous out param.
     if (identifier.name().isEmpty()) {
         return Result(Result::InvalidSecretError,
                       QLatin1String("Empty secret name given"));
@@ -2201,7 +2553,7 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
     }
 
     if (m_standaloneSecretEncryptionKeys.contains(hashedSecretName)) {
-        return getStandaloneSecretWithEncryptionKey(
+        getStandaloneSecretWithEncryptionKey(
                     callerPid,
                     requestId,
                     identifier,
@@ -2211,8 +2563,8 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
                     secretEncryptionPluginName,
                     secretUnlockSemantic,
                     secretCustomLockTimeoutMs,
-                    m_standaloneSecretEncryptionKeys.value(hashedSecretName),
-                    secret);
+                    m_standaloneSecretEncryptionKeys.value(hashedSecretName));
+        return Result(Result::Pending);
     }
 
     if (secretUsesDeviceLockKey) {
@@ -2270,32 +2622,62 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithAuthenticationCode(
         const QString &encryptionPluginName,
         int secretUnlockSemantic,
         int secretCustomLockTimeoutMs,
-        const QByteArray &authenticationCode,
-        Secret *secret)
+        const QByteArray &authenticationCode)
 {
     // generate the encryption key from the authentication code
-    if (!m_encryptionPlugins.contains(encryptionPluginName)) {
+    if (storagePluginName == encryptionPluginName) {
+        if (!m_encryptedStoragePlugins.contains(storagePluginName)) {
+            // TODO: stale data in the database?
+            return Result(Result::InvalidExtensionPluginError,
+                          QStringLiteral("Unknown collection encrypted storage plugin: %1").arg(storagePluginName));
+        }
+    } else if (!m_encryptionPlugins.contains(encryptionPluginName)) {
         // TODO: stale data in the database?
         return Result(Result::InvalidExtensionPluginError,
                       QStringLiteral("Unknown collection encryption plugin: %1").arg(encryptionPluginName));
     }
 
-    QByteArray key;
-    Result pluginResult = m_encryptionPlugins[encryptionPluginName]->deriveKeyFromCode(
-                authenticationCode, m_requestQueue->saltData(), &key);
-    if (pluginResult.code() != Result::Succeeded) {
-        return pluginResult;
+    QFutureWatcher<DerivedKeyResult> *watcher
+            = new QFutureWatcher<DerivedKeyResult>(this);
+    QFuture<DerivedKeyResult> future;
+    if (storagePluginName == encryptionPluginName) {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    EncryptedStoragePluginWrapper::deriveKeyFromCode,
+                    m_encryptedStoragePlugins[encryptionPluginName],
+                    authenticationCode,
+                    m_requestQueue->saltData());
+    } else {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    Daemon::ApiImpl::EncryptionPluginWrapper::deriveKeyFromCode,
+                    m_encryptionPlugins[encryptionPluginName],
+                    authenticationCode,
+                    m_requestQueue->saltData());
     }
 
-    return getStandaloneSecretWithEncryptionKey(
-                callerPid, requestId, identifier,
-                userInteractionMode, interactionServiceAddress,
-                storagePluginName, encryptionPluginName,
-                secretUnlockSemantic, secretCustomLockTimeoutMs,
-                key, secret);
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<DerivedKeyResult>::finished, [=] {
+        watcher->deleteLater();
+        DerivedKeyResult dkr = watcher->future().result();
+        if (dkr.result.code() != Result::Succeeded) {
+            QVariantList outParams;
+            outParams << QVariant::fromValue<Result>(dkr.result);
+            m_requestQueue->requestFinished(requestId, outParams);
+        } else {
+            getStandaloneSecretWithEncryptionKey(
+                            callerPid, requestId, identifier,
+                            userInteractionMode, interactionServiceAddress,
+                            storagePluginName, encryptionPluginName,
+                            secretUnlockSemantic, secretCustomLockTimeoutMs,
+                            dkr.key);
+        }
+    });
+
+    return Result(Result::Pending);
 }
 
-Result
+void
 Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithEncryptionKey(
         pid_t callerPid,
         quint64 requestId,
@@ -2306,8 +2688,7 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithEncryptionKey(
         const QString &encryptionPluginName,
         int secretUnlockSemantic,
         int secretCustomLockTimeoutMs,
-        const QByteArray &encryptionKey,
-        Secret *secret)
+        const QByteArray &encryptionKey)
 {
     // may be needed for access control requests in the future.
     Q_UNUSED(callerPid);
@@ -2330,29 +2711,57 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithEncryptionKey(
     const QString collectionName = QStringLiteral("standalone");
     const QString hashedSecretName = Daemon::Util::generateHashedSecretName(collectionName, identifier.name());
 
-    Result pluginResult;
     if (storagePluginName == encryptionPluginName) {
-        QString secretName;
-        QByteArray secretData;
-        Secret::FilterData secretFilterdata;
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->accessSecret(collectionName, hashedSecretName, encryptionKey, &secretName, &secretData, &secretFilterdata);
-        secret->setIdentifier(identifier);
-        secret->setData(secretData);
-        secret->setFilterData(secretFilterdata);
+        QFutureWatcher<EncryptedStoragePluginWrapper::SecretDataResult> *watcher
+                = new QFutureWatcher<EncryptedStoragePluginWrapper::SecretDataResult>(this);
+        QFuture<EncryptedStoragePluginWrapper::SecretDataResult> future
+                = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    EncryptedStoragePluginWrapper::accessSecret,
+                    m_encryptedStoragePlugins[encryptionPluginName],
+                    collectionName,
+                    hashedSecretName,
+                    encryptionKey);
+        watcher->setFuture(future);
+        connect(watcher, &QFutureWatcher<EncryptedStoragePluginWrapper::SecretDataResult>::finished, [=] {
+            watcher->deleteLater();
+            EncryptedStoragePluginWrapper::SecretDataResult sdr = watcher->future().result();
+            Secret outputSecret(sdr.secretName, collectionName);
+            outputSecret.setData(sdr.secretData);
+            outputSecret.setFilterData(sdr.secretFilterData);
+            QVariantList outParams;
+            outParams << QVariant::fromValue<Result>(sdr.result);
+            outParams << QVariant::fromValue<Secret>(outputSecret);
+            m_requestQueue->requestFinished(requestId, outParams);
+        });
     } else {
-        QByteArray encrypted, encryptedName;
-        Secret::FilterData filterData;
-        pluginResult = m_storagePlugins[storagePluginName]->getSecret(collectionName, hashedSecretName, &encryptedName, &encrypted, &filterData);
-        if (pluginResult.code() == Result::Succeeded) {
-            QByteArray decrypted;
-            pluginResult = m_encryptionPlugins[encryptionPluginName]->decryptSecret(encrypted, encryptionKey, &decrypted);
-            secret->setIdentifier(identifier);
-            secret->setData(decrypted);
-            secret->setFilterData(filterData);
+        if (!m_standaloneSecretEncryptionKeys.contains(hashedSecretName)) {
+            m_standaloneSecretEncryptionKeys.insert(hashedSecretName, encryptionKey);
         }
-    }
 
-    return pluginResult;
+        QFutureWatcher<SecretResult> *watcher
+                = new QFutureWatcher<SecretResult>(this);
+        QFuture<SecretResult>
+        future = QtConcurrent::run(
+                m_requestQueue->secretsThreadPool().data(),
+                Daemon::ApiImpl::StoragePluginWrapper::getAndDecryptSecret,
+                m_encryptionPlugins[encryptionPluginName],
+                m_storagePlugins[storagePluginName],
+                Secret::Identifier(identifier.name(), collectionName),
+                hashedSecretName,
+                m_standaloneSecretEncryptionKeys.value(hashedSecretName));
+
+        watcher->setFuture(future);
+        connect(watcher, &QFutureWatcher<SecretResult>::finished, [=] {
+            watcher->deleteLater();
+            SecretResult sr = watcher->future().result();
+            sr.secret.setCollectionName(QString());
+            QVariantList outParams;
+            outParams << QVariant::fromValue<Result>(sr.result);
+            outParams << QVariant::fromValue<Secret>(sr.secret);
+            m_requestQueue->requestFinished(requestId, outParams);
+        });
+    }
 }
 
 // find collection secrets via filter
@@ -2367,6 +2776,7 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
         const QString &interactionServiceAddress,
         QVector<Secret::Identifier> *identifiers)
 {
+    Q_UNUSED(identifiers); // asynchronous out-param.
     if (collectionName.isEmpty()) {
         return Result(Result::InvalidCollectionError,
                       QLatin1String("Empty collection name given"));
@@ -2437,8 +2847,17 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
     }
 
     if (collectionStoragePluginName == collectionEncryptionPluginName) {
-        bool locked = false;
-        Result pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->isLocked(collectionName, &locked);
+        // TODO: make this asynchronous instead of blocking the main thread!
+        QFuture<EncryptedStoragePluginWrapper::LockedResult> future
+                = QtConcurrent::run(
+                        m_requestQueue->secretsThreadPool().data(),
+                        EncryptedStoragePluginWrapper::isLocked,
+                        m_encryptedStoragePlugins[collectionStoragePluginName],
+                        collectionName);
+        future.waitForFinished();
+        EncryptedStoragePluginWrapper::LockedResult lr = future.result();
+        Result pluginResult = lr.result;
+        bool locked = lr.locked;
         if (pluginResult.code() != Result::Succeeded) {
             return pluginResult;
         }
@@ -2493,7 +2912,7 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                 return Result(Result::Pending);
             }
         } else {
-            return findCollectionSecretsWithEncryptionKey(
+            findCollectionSecretsWithEncryptionKey(
                         callerPid,
                         requestId,
                         collectionName,
@@ -2505,8 +2924,8 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                         collectionEncryptionPluginName,
                         collectionUnlockSemantic,
                         collectionCustomLockTimeoutMs,
-                        QByteArray(), // no key required, it's unlocked already.
-                        identifiers);
+                        QByteArray()); // no key required, it's unlocked already.
+            return Result(Result::Pending);
         }
     } else {
         if (!m_collectionEncryptionKeys.contains(collectionName)) {
@@ -2559,7 +2978,7 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                 return Result(Result::Pending);
             }
         } else {
-            return findCollectionSecretsWithEncryptionKey(
+            findCollectionSecretsWithEncryptionKey(
                         callerPid,
                         requestId,
                         collectionName,
@@ -2571,8 +2990,8 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                         collectionEncryptionPluginName,
                         collectionUnlockSemantic,
                         collectionCustomLockTimeoutMs,
-                        m_collectionEncryptionKeys.value(collectionName),
-                        identifiers);
+                        m_collectionEncryptionKeys.value(collectionName));
+            return Result(Result::Pending);
         }
     }
 }
@@ -2590,33 +3009,63 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithAuthenticationCode(
         const QString &encryptionPluginName,
         int collectionUnlockSemantic,
         int collectionCustomLockTimeoutMs,
-        const QByteArray &authenticationCode,
-        QVector<Secret::Identifier> *identifiers)
+        const QByteArray &authenticationCode)
 {
     // generate the encryption key from the authentication code
-    if (!m_encryptionPlugins.contains(encryptionPluginName)) {
+    if (storagePluginName == encryptionPluginName) {
+        if (!m_encryptedStoragePlugins.contains(storagePluginName)) {
+            // TODO: stale data in the database?
+            return Result(Result::InvalidExtensionPluginError,
+                          QStringLiteral("Unknown collection encrypted storage plugin: %1").arg(storagePluginName));
+        }
+    } else if (!m_encryptionPlugins.contains(encryptionPluginName)) {
         // TODO: stale data in the database?
         return Result(Result::InvalidExtensionPluginError,
                       QStringLiteral("Unknown collection encryption plugin: %1").arg(encryptionPluginName));
     }
 
-    QByteArray key;
-    Result pluginResult = m_encryptionPlugins[encryptionPluginName]->deriveKeyFromCode(
-                authenticationCode, m_requestQueue->saltData(), &key);
-    if (pluginResult.code() != Result::Succeeded) {
-        return pluginResult;
+    QFutureWatcher<DerivedKeyResult> *watcher
+            = new QFutureWatcher<DerivedKeyResult>(this);
+    QFuture<DerivedKeyResult> future;
+    if (storagePluginName == encryptionPluginName) {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    EncryptedStoragePluginWrapper::deriveKeyFromCode,
+                    m_encryptedStoragePlugins[encryptionPluginName],
+                    authenticationCode,
+                    m_requestQueue->saltData());
+    } else {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    Daemon::ApiImpl::EncryptionPluginWrapper::deriveKeyFromCode,
+                    m_encryptionPlugins[encryptionPluginName],
+                    authenticationCode,
+                    m_requestQueue->saltData());
     }
 
-    return findCollectionSecretsWithEncryptionKey(
-                callerPid, requestId, collectionName,
-                filter, filterOperator,
-                userInteractionMode, interactionServiceAddress,
-                storagePluginName, encryptionPluginName,
-                collectionUnlockSemantic, collectionCustomLockTimeoutMs,
-                key, identifiers);
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<DerivedKeyResult>::finished, [=] {
+        watcher->deleteLater();
+        DerivedKeyResult dkr = watcher->future().result();
+        if (dkr.result.code() != Result::Succeeded) {
+            QVariantList outParams;
+            outParams << QVariant::fromValue<Result>(dkr.result);
+            m_requestQueue->requestFinished(requestId, outParams);
+        } else {
+            findCollectionSecretsWithEncryptionKey(
+                        callerPid, requestId, collectionName,
+                        filter, filterOperator,
+                        userInteractionMode, interactionServiceAddress,
+                        storagePluginName, encryptionPluginName,
+                        collectionUnlockSemantic, collectionCustomLockTimeoutMs,
+                        dkr.key);
+        }
+    });
+
+    return Result(Result::Pending);
 }
 
-Result
+void
 Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithEncryptionKey(
         pid_t callerPid,
         quint64 requestId,
@@ -2629,8 +3078,7 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithEncryptionKey(
         const QString &encryptionPluginName,
         int collectionUnlockSemantic,
         int collectionCustomLockTimeoutMs,
-        const QByteArray &encryptionKey,
-        QVector<Secret::Identifier> *identifiers)
+        const QByteArray &encryptionKey)
 {
     // might be required in future for access control requests.
     Q_UNUSED(callerPid);
@@ -2650,69 +3098,43 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithEncryptionKey(
         }
     }
 
-    Result pluginResult;
+    QFutureWatcher<IdentifiersResult> *watcher
+            = new QFutureWatcher<IdentifiersResult>(this);
+    QFuture<IdentifiersResult> future;
     if (storagePluginName == encryptionPluginName) {
-        bool locked = false;
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->isLocked(collectionName, &locked);
-        if (pluginResult.code() != Result::Succeeded) {
-            return pluginResult;
-        }
-        // if it's locked, attempt to unlock it
-        if (locked) {
-            pluginResult = m_encryptedStoragePlugins[storagePluginName]->setEncryptionKey(collectionName, encryptionKey);
-            if (pluginResult.code() != Result::Succeeded) {
-                // unable to apply the new encryptionKey.
-                m_encryptedStoragePlugins[storagePluginName]->setEncryptionKey(collectionName, QByteArray());
-                return Result(Result::SecretsPluginDecryptionError,
-                              QString::fromLatin1("Unable to decrypt collection %1 with the entered authentication key").arg(collectionName));
-
-            }
-            pluginResult = m_encryptedStoragePlugins[storagePluginName]->isLocked(collectionName, &locked);
-            if (pluginResult.code() != Result::Succeeded) {
-                m_encryptedStoragePlugins[storagePluginName]->setEncryptionKey(collectionName, QByteArray());
-                return Result(Result::SecretsPluginDecryptionError,
-                              QString::fromLatin1("Unable to check lock state of collection %1 after setting the entered authentication key").arg(collectionName));
-
-            }
-        }
-        if (locked) {
-            // still locked, even after applying the new encryptionKey?  The authenticationCode was wrong.
-            m_encryptedStoragePlugins[storagePluginName]->setEncryptionKey(collectionName, QByteArray());
-            return Result(Result::IncorrectAuthenticationCodeError,
-                          QString::fromLatin1("The authentication code entered for collection %1 was incorrect").arg(collectionName));
-        }
-        // successfully unlocked the encrypted storage collection.  perform the filtering operation.
-        pluginResult = m_encryptedStoragePlugins[storagePluginName]->findSecrets(collectionName, filter, static_cast<StoragePlugin::FilterOperator>(filterOperator), identifiers);
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    EncryptedStoragePluginWrapper::unlockAndFindSecrets,
+                    m_encryptedStoragePlugins[encryptionPluginName],
+                    collectionName,
+                    filter,
+                    static_cast<StoragePlugin::FilterOperator>(filterOperator),
+                    encryptionKey);
     } else {
         if (!m_collectionEncryptionKeys.contains(collectionName)) {
             // TODO: some way to "test" the encryptionKey!  also, if it's a custom lock, set the timeout, etc.
             m_collectionEncryptionKeys.insert(collectionName, encryptionKey);
         }
 
-        QVector<QByteArray> encryptedSecretNames;
-        pluginResult = m_storagePlugins[storagePluginName]->findSecrets(collectionName, filter, static_cast<StoragePlugin::FilterOperator>(filterOperator), &encryptedSecretNames);
-        if (pluginResult.code() == Result::Succeeded) {
-            // decrypt each of the secret names.
-            QVector<QString> decryptedSecretNames;
-            bool decryptionSucceeded = true;
-            for (const QByteArray &esn : encryptedSecretNames) {
-                QByteArray decryptedName;
-                pluginResult = m_encryptionPlugins[encryptionPluginName]->decryptSecret(esn, m_collectionEncryptionKeys.value(collectionName), &decryptedName);
-                if (pluginResult.code() != Result::Succeeded) {
-                    decryptionSucceeded = false;
-                    break;
-                }
-                decryptedSecretNames.append(QString::fromUtf8(decryptedName));
-            }
-            if (decryptionSucceeded) {
-                for (const QString &secretName : decryptedSecretNames) {
-                    identifiers->append(Secret::Identifier(secretName, collectionName));
-                }
-            }
-        }
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    Daemon::ApiImpl::StoragePluginWrapper::findAndDecryptSecretNames,
+                    m_encryptionPlugins[encryptionPluginName],
+                    m_storagePlugins[storagePluginName],
+                    collectionName,
+                    std::make_pair(filter, static_cast<StoragePlugin::FilterOperator>(filterOperator)),
+                    m_collectionEncryptionKeys.value(collectionName));
     }
 
-    return pluginResult;
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<IdentifiersResult>::finished, [=] {
+        watcher->deleteLater();
+        IdentifiersResult ir = watcher->future().result();
+        QVariantList outParams;
+        outParams << QVariant::fromValue<Result>(ir.result);
+        outParams << QVariant::fromValue<QVector<Secret::Identifier> >(ir.identifiers);
+        m_requestQueue->requestFinished(requestId, outParams);
+    });
 }
 
 // find standalone secrets via filter
@@ -2815,8 +3237,17 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
     }
 
     if (collectionStoragePluginName == collectionEncryptionPluginName) {
-        bool locked = false;
-        Result pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->isLocked(identifier.collectionName(), &locked);
+        // TODO: make this asynchronous instead of blocking the main thread!
+        QFuture<EncryptedStoragePluginWrapper::LockedResult> future
+                = QtConcurrent::run(
+                        m_requestQueue->secretsThreadPool().data(),
+                        EncryptedStoragePluginWrapper::isLocked,
+                        m_encryptedStoragePlugins[collectionStoragePluginName],
+                        identifier.collectionName());
+        future.waitForFinished();
+        EncryptedStoragePluginWrapper::LockedResult lr = future.result();
+        Result pluginResult = lr.result;
+        bool locked = lr.locked;
         if (pluginResult.code() != Result::Succeeded) {
             return pluginResult;
         }
@@ -2856,17 +3287,20 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
                                          requestId,
                                          Daemon::ApiImpl::DeleteCollectionSecretRequest,
                                          QVariantList() << QVariant::fromValue<Secret::Identifier>(identifier)
+                                                        << collectionStoragePluginName
+                                                        << collectionEncryptionPluginName
                                                         << userInteractionMode
                                                         << interactionServiceAddress));
             return Result(Result::Pending);
         } else {
-            return deleteCollectionSecretWithEncryptionKey(
+            deleteCollectionSecretWithEncryptionKey(
                         callerPid,
                         requestId,
                         identifier,
                         userInteractionMode,
                         interactionServiceAddress,
                         m_requestQueue->deviceLockKey());
+            return Result(Result::Pending);
         }
     } else {
         if (!m_collectionEncryptionKeys.contains(identifier.collectionName())) {
@@ -2904,18 +3338,21 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
                                              requestId,
                                              Daemon::ApiImpl::DeleteCollectionSecretRequest,
                                              QVariantList() << QVariant::fromValue<Secret::Identifier>(identifier)
+                                                            << collectionStoragePluginName
+                                                            << collectionEncryptionPluginName
                                                             << userInteractionMode
                                                             << interactionServiceAddress));
                 return Result(Result::Pending);
             }
         } else {
-            return deleteCollectionSecretWithEncryptionKey(
+            deleteCollectionSecretWithEncryptionKey(
                         callerPid,
                         requestId,
                         identifier,
                         userInteractionMode,
                         interactionServiceAddress,
                         m_collectionEncryptionKeys.value(identifier.collectionName()));
+            return Result(Result::Pending);
         }
     }
 }
@@ -2925,51 +3362,64 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithAuthenticationCode(
         pid_t callerPid,
         quint64 requestId,
         const Secret::Identifier &identifier,
+        const QString &collectionStoragePluginName,
+        const QString &collectionEncryptionPluginName,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress,
         const QByteArray &authenticationCode)
 {
-    // generate the encryption key from the authentication code.
-    bool found = false;
-    QString collectionEncryptionPluginName;
-    Result metadataResult = m_bkdb->collectionMetadata(
-                identifier.collectionName(),
-                &found,
-                Q_NULLPTR,
-                Q_NULLPTR,
-                Q_NULLPTR,
-                &collectionEncryptionPluginName,
-                Q_NULLPTR,
-                Q_NULLPTR,
-                Q_NULLPTR,
-                Q_NULLPTR);
-    if (metadataResult.code() != Result::Succeeded) {
-        return metadataResult;
-    } else if (!found) {
-        return Result(Result::InvalidCollectionError,
-                      QStringLiteral("Nonexistent collection name given"));
-    }
-
-    if (!m_encryptionPlugins.contains(collectionEncryptionPluginName)) {
+    // generate the encryption key from the authentication code
+    if (collectionStoragePluginName == collectionEncryptionPluginName) {
+        if (!m_encryptedStoragePlugins.contains(collectionStoragePluginName)) {
+            // TODO: stale data in the database?
+            return Result(Result::InvalidExtensionPluginError,
+                          QStringLiteral("Unknown collection encrypted storage plugin: %1").arg(collectionStoragePluginName));
+        }
+    } else if (!m_encryptionPlugins.contains(collectionEncryptionPluginName)) {
         // TODO: stale data in the database?
         return Result(Result::InvalidExtensionPluginError,
                       QStringLiteral("Unknown collection encryption plugin: %1").arg(collectionEncryptionPluginName));
     }
 
-    QByteArray key;
-    Result pluginResult = m_encryptionPlugins[collectionEncryptionPluginName]->deriveKeyFromCode(
-                authenticationCode, m_requestQueue->saltData(), &key);
-    if (pluginResult.code() != Result::Succeeded) {
-        return pluginResult;
+    QFutureWatcher<DerivedKeyResult> *watcher
+            = new QFutureWatcher<DerivedKeyResult>(this);
+    QFuture<DerivedKeyResult> future;
+    if (collectionStoragePluginName == collectionEncryptionPluginName) {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    EncryptedStoragePluginWrapper::deriveKeyFromCode,
+                    m_encryptedStoragePlugins[collectionEncryptionPluginName],
+                    authenticationCode,
+                    m_requestQueue->saltData());
+    } else {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    Daemon::ApiImpl::EncryptionPluginWrapper::deriveKeyFromCode,
+                    m_encryptionPlugins[collectionEncryptionPluginName],
+                    authenticationCode,
+                    m_requestQueue->saltData());
     }
 
-    return deleteCollectionSecretWithEncryptionKey(
-                callerPid, requestId, identifier,
-                userInteractionMode, interactionServiceAddress,
-                key);
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<DerivedKeyResult>::finished, [=] {
+        watcher->deleteLater();
+        DerivedKeyResult dkr = watcher->future().result();
+        if (dkr.result.code() != Result::Succeeded) {
+            QVariantList outParams;
+            outParams << QVariant::fromValue<Result>(dkr.result);
+            m_requestQueue->requestFinished(requestId, outParams);
+        } else {
+            deleteCollectionSecretWithEncryptionKey(
+                            callerPid, requestId, identifier,
+                            userInteractionMode, interactionServiceAddress,
+                            dkr.key);
+        }
+    });
+
+    return Result(Result::Pending);
 }
 
-Result
+void
 Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithEncryptionKey(
         pid_t callerPid,
         quint64 requestId,
@@ -2998,7 +3448,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithEncryptionKey(
     QString collectionEncryptionPluginName;
     QString collectionAuthenticationPluginName;
     SecretManager::AccessControlMode collectionAccessControlMode = SecretManager::OwnerOnlyMode;
-    Result metadataResult = m_bkdb->collectionMetadata(
+    Result returnResult = m_bkdb->collectionMetadata(
                 identifier.collectionName(),
                 &found,
                 &collectionApplicationId,
@@ -3009,87 +3459,89 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithEncryptionKey(
                 Q_NULLPTR,
                 Q_NULLPTR,
                 &collectionAccessControlMode);
-    if (metadataResult.code() != Result::Succeeded) {
-        return metadataResult;
-    } else if (!found) {
-        return Result(Result::InvalidCollectionError,
-                      QLatin1String("Nonexistent collection name given"));
+
+    if (returnResult.code() == Result::Succeeded && !found) {
+        returnResult = Result(Result::InvalidCollectionError,
+                              QLatin1String("Nonexistent collection name given"));
     }
 
-    if (collectionUsesDeviceLockKey && encryptionKey != m_requestQueue->deviceLockKey()) {
-        return Result(Result::IncorrectAuthenticationCodeError,
-                      QLatin1String("Incorrect device lock key provided"));
+    if (returnResult.code() == Result::Succeeded
+            && collectionUsesDeviceLockKey
+            && encryptionKey != m_requestQueue->deviceLockKey()) {
+        returnResult = Result(Result::IncorrectAuthenticationCodeError,
+                              QLatin1String("Incorrect device lock key provided"));
     }
 
-    if (collectionAccessControlMode == SecretManager::SystemAccessControlMode) {
+    if (returnResult.code() == Result::Succeeded
+            && collectionAccessControlMode == SecretManager::SystemAccessControlMode) {
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
-        return Result(Result::OperationNotSupportedError,
-                      QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (collectionAccessControlMode == SecretManager::OwnerOnlyMode
+        returnResult = Result(Result::OperationNotSupportedError,
+                              QLatin1String("Access control requests are not currently supported. TODO!"));
+    } else if (returnResult.code() == Result::Succeeded
+               && collectionAccessControlMode == SecretManager::OwnerOnlyMode
                && collectionApplicationId != callerApplicationId) {
-        return Result(Result::PermissionsError,
-                      QString::fromLatin1("Collection %1 is owned by a different application").arg(identifier.collectionName()));
+        returnResult = Result(Result::PermissionsError,
+                              QString::fromLatin1("Collection %1 is owned by a different application").arg(identifier.collectionName()));
+    }
+
+    if (returnResult.code() != Result::Succeeded) {
+        QVariantList outParams;
+        outParams << QVariant::fromValue<Result>(returnResult);
+        m_requestQueue->requestFinished(requestId, outParams);
+        return;
     }
 
     const QString hashedSecretName = Daemon::Util::generateHashedSecretName(identifier.collectionName(), identifier.name());
-    Result pluginResult;
+    QFutureWatcher<Result> *watcher = new QFutureWatcher<Result>(this);
+    QFuture<Result> future;
     if (collectionStoragePluginName == collectionEncryptionPluginName) {
-        bool locked = false;
-        pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->isLocked(identifier.collectionName(), &locked);
-        if (pluginResult.code() != Result::Succeeded) {
-            return pluginResult;
-        }
-        // if it's locked, attempt to unlock it
-        if (locked) {
-            pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->setEncryptionKey(identifier.collectionName(), encryptionKey);
-            if (pluginResult.code() != Result::Succeeded) {
-                // unable to apply the new encryptionKey.
-                m_encryptedStoragePlugins[collectionStoragePluginName]->setEncryptionKey(identifier.collectionName(), QByteArray());
-                return Result(Result::SecretsPluginDecryptionError,
-                              QString::fromLatin1("Unable to decrypt collection %1 with the entered authentication key").arg(identifier.collectionName()));
-
-            }
-            pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->isLocked(identifier.collectionName(), &locked);
-            if (pluginResult.code() != Result::Succeeded) {
-                m_encryptedStoragePlugins[collectionStoragePluginName]->setEncryptionKey(identifier.collectionName(), QByteArray());
-                return Result(Result::SecretsPluginDecryptionError,
-                              QString::fromLatin1("Unable to check lock state of collection %1 after setting the entered authentication key").arg(identifier.collectionName()));
-
-            }
-        }
-        if (locked) {
-            // still locked, even after applying the new encryptionKey?  The authenticationCode was wrong.
-            m_encryptedStoragePlugins[collectionStoragePluginName]->setEncryptionKey(identifier.collectionName(), QByteArray());
-            return Result(Result::IncorrectAuthenticationCodeError,
-                          QString::fromLatin1("The authentication code entered for collection %1 was incorrect").arg(identifier.collectionName()));
-        }
-        // successfully unlocked the encrypted storage collection.  remove the secret.
-        pluginResult = m_encryptedStoragePlugins[collectionStoragePluginName]->removeSecret(identifier.collectionName(), hashedSecretName);
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    EncryptedStoragePluginWrapper::unlockCollectionAndRemoveSecret,
+                    m_encryptedStoragePlugins[collectionEncryptionPluginName],
+                    identifier,
+                    hashedSecretName,
+                    encryptionKey);
     } else {
         if (!m_collectionEncryptionKeys.contains(identifier.collectionName())) {
             // TODO: some way to "test" the encryptionKey!  also, if it's a custom lock, set the timeout, etc.
             m_collectionEncryptionKeys.insert(identifier.collectionName(), encryptionKey);
         }
 
-        pluginResult = m_storagePlugins[collectionStoragePluginName]->removeSecret(identifier.collectionName(), hashedSecretName);
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    Daemon::ApiImpl::StoragePluginWrapper::removeSecret,
+                    m_storagePlugins[collectionStoragePluginName],
+                    identifier.collectionName(),
+                    hashedSecretName);
     }
 
-    // now remove from the master database.
-    if (pluginResult.code() == Result::Succeeded) {
-        Result deleteResult = m_bkdb->deleteSecret(identifier.collectionName(),
-                                                   hashedSecretName);
-        if (deleteResult.code() != Result::Succeeded) {
-            // TODO: add a "dirty" flag for this secret somewhere in memory, so we can try again later.
-            return deleteResult; // once the dirty flag has been added, don't return this error but just continue.
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<Result>::finished, [=] {
+        watcher->deleteLater();
+        Result pluginResult = watcher->future().result();
+        Result returnResult(pluginResult);
+        if (pluginResult.code() == Result::Succeeded) {
+            // now remove from the master database.
+            if (pluginResult.code() == Result::Succeeded) {
+                Result deleteResult = m_bkdb->deleteSecret(identifier.collectionName(),
+                                                           hashedSecretName);
+                if (deleteResult.code() != Result::Succeeded) {
+                    // TODO: add a "dirty" flag for this secret somewhere in memory, so we can try again later.
+                    returnResult = deleteResult; // once the dirty flag has been added, don't return this error but just continue.
+                }
+            }
+
+            if (pluginResult.code() == Result::Succeeded
+                    && collectionAccessControlMode == SecretManager::SystemAccessControlMode) {
+                // TODO: tell AccessControl daemon to remove this datum from its database.
+            }
         }
-    }
 
-    if (pluginResult.code() == Result::Succeeded
-            && collectionAccessControlMode == SecretManager::SystemAccessControlMode) {
-        // TODO: tell AccessControl daemon to remove this datum from its database.
-    }
-
-    return pluginResult;
+        QVariantList outParams;
+        outParams << QVariant::fromValue<Result>(returnResult);
+        m_requestQueue->requestFinished(requestId, outParams);
+    });
 }
 
 // delete a standalone secret
@@ -3156,42 +3608,49 @@ Daemon::ApiImpl::RequestProcessor::deleteStandaloneSecret(
                       QString::fromLatin1("No such encryption plugin exists: %1").arg(secretEncryptionPluginName));
     }
 
-    Result pluginResult;
+    QFutureWatcher<Result> *watcher = new QFutureWatcher<Result>(this);
+    QFuture<Result> future;
     if (secretStoragePluginName == secretEncryptionPluginName) {
-        bool locked = false;
-        pluginResult = m_encryptedStoragePlugins[secretStoragePluginName]->isLocked(collectionName, &locked);
-        if (pluginResult.code() == Result::Failed) {
-            return pluginResult;
-        }
-        if (locked && secretUsesDeviceLockKey) {
-            pluginResult = m_encryptedStoragePlugins[secretStoragePluginName]->setEncryptionKey(collectionName, m_requestQueue->deviceLockKey());
-            if (pluginResult.code() == Result::Failed) {
-                return pluginResult;
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    EncryptedStoragePluginWrapper::unlockAndRemoveSecret,
+                    m_encryptedStoragePlugins[secretEncryptionPluginName],
+                    collectionName,
+                    hashedSecretName,
+                    secretUsesDeviceLockKey,
+                    m_requestQueue->deviceLockKey());
+    } else {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    Daemon::ApiImpl::StoragePluginWrapper::removeSecret,
+                    m_storagePlugins[secretStoragePluginName],
+                    collectionName,
+                    hashedSecretName);
+    }
+
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<Result>::finished, [=] {
+        watcher->deleteLater();
+        Result pluginResult = watcher->future().result();
+        if (pluginResult.code() == Result::Succeeded) {
+            if (secretStoragePluginName != secretEncryptionPluginName) {
+                m_standaloneSecretEncryptionKeys.remove(hashedSecretName);
+                m_standaloneSecretLockTimers.remove(hashedSecretName);
+            }
+            // remove from master/bookkeeping database also.
+            Result deleteResult = m_bkdb->deleteSecret(collectionName, hashedSecretName);
+            if (deleteResult.code() != Result::Succeeded) {
+                // TODO: add a "dirty" flag for this secret somewhere in memory, so we can try again later.
+                pluginResult = deleteResult; // once the dirty flag has been added, don't return error here but continue.
             }
         }
-        pluginResult = m_encryptedStoragePlugins[secretStoragePluginName]->removeSecret(collectionName, hashedSecretName);
-        if (locked) {
-            // relock after delete-access.
-            m_encryptedStoragePlugins[secretStoragePluginName]->setEncryptionKey(collectionName, QByteArray());
-        }
-    } else {
-        pluginResult = m_storagePlugins[secretStoragePluginName]->removeSecret(collectionName, hashedSecretName);
-        if (pluginResult.code() == Result::Succeeded) {
-            m_standaloneSecretEncryptionKeys.remove(hashedSecretName);
-            m_standaloneSecretLockTimers.remove(hashedSecretName);
-        }
-    }
 
-    // remove from master database also.
-    if (pluginResult.code() == Result::Succeeded) {
-        Result deleteResult = m_bkdb->deleteSecret(collectionName, hashedSecretName);
-        if (deleteResult.code() != Result::Succeeded) {
-            // TODO: add a "dirty" flag for this secret somewhere in memory, so we can try again later.
-            return deleteResult; // once the dirty flag has been added, don't return error here but continue.
-        }
-    }
+        QVariantList outParams;
+        outParams << QVariant::fromValue<Result>(pluginResult);
+        m_requestQueue->requestFinished(requestId, outParams);
+    });
 
-    return pluginResult;
+    return Result(Result::Pending);
 }
 
 Result
@@ -3369,36 +3828,20 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCodes(
 
     // see if the client is attempting to set the lock code for a plugin
     if (lockCodeTargetType == LockCodeRequest::ExtensionPlugin) {
-        if (m_storagePlugins.contains(lockCodeTarget)) {
-            StoragePlugin *p = m_storagePlugins.value(lockCodeTarget);
-            if (!p->supportsLocking()) {
-                return Result(Result::OperationNotSupportedError,
-                              QStringLiteral("Storage plugin %1 does not support locking").arg(lockCodeTarget));
-            } else if (!p->setLockCode(oldLockCode, newLockCode)) {
-                return Result(Result::UnknownError,
-                              QStringLiteral("Failed to set the lock code for storage plugin %1").arg(lockCodeTarget));
-            }
-            return Result(Result::Succeeded);
-        } else if (m_encryptionPlugins.contains(lockCodeTarget)) {
-            EncryptionPlugin *p = m_encryptionPlugins.value(lockCodeTarget);
-            if (!p->supportsLocking()) {
-                return Result(Result::OperationNotSupportedError,
-                              QStringLiteral("Encryption plugin %1 does not support locking").arg(lockCodeTarget));
-            } else if (!p->setLockCode(oldLockCode, newLockCode)) {
-                return Result(Result::UnknownError,
-                              QStringLiteral("Failed to set the lock code for encryption plugin %1").arg(lockCodeTarget));
-            }
-            return Result(Result::Succeeded);
-        } else if (m_encryptedStoragePlugins.contains(lockCodeTarget)) {
-            EncryptedStoragePlugin *p = m_encryptedStoragePlugins.value(lockCodeTarget);
-            if (!p->supportsLocking()) {
-                return Result(Result::OperationNotSupportedError,
-                              QStringLiteral("Encrypted storage plugin %1 does not support locking").arg(lockCodeTarget));
-            } else if (!p->setLockCode(oldLockCode, newLockCode)) {
-                return Result(Result::UnknownError,
-                              QStringLiteral("Failed to set the lock code for encrypted storage plugin %1").arg(lockCodeTarget));
-            }
-            return Result(Result::Succeeded);
+        QFuture<FoundResult> future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    &Daemon::ApiImpl::modifyLockSpecificPlugin,
+                    m_storagePlugins,
+                    m_encryptionPlugins,
+                    m_encryptedStoragePlugins,
+                    lockCodeTarget,
+                    std::make_tuple(oldLockCode, newLockCode));
+        future.waitForFinished();
+        FoundResult fr = future.result();
+        if (fr.found) {
+            // if the lock target was a plugin from the encryption/storage/encryptedStorage
+            // maps, then return the lock result from the threaded plugin operation.
+            return fr.result;
         } else if (m_authenticationPlugins.contains(lockCodeTarget)) {
             AuthenticationPlugin *p = m_authenticationPlugins.value(lockCodeTarget);
             if (!p->supportsLocking()) {
@@ -3495,25 +3938,20 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCodes(
                     continue;
                 }
 
-                bool collectionLocked = true;
-                plugin->isLocked(cname, &collectionLocked);
-                if (collectionLocked) {
-                    Result collectionUnlockResult = plugin->setEncryptionKey(cname, m_requestQueue->deviceLockKey());
-                    if (collectionUnlockResult.code() != Result::Succeeded) {
-                        qCWarning(lcSailfishSecretsDaemon) << "Error unlocking device-locked collection:" << cname
-                                                           << collectionUnlockResult.errorMessage();
-                    }
-                    plugin->isLocked(cname, &collectionLocked);
-                    if (collectionLocked) {
-                        qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock device-locked collection:" << cname;
-                    }
-                    Result collectionReencryptResult = plugin->reencrypt(
-                                cname, oldDeviceLockKey, m_requestQueue->deviceLockKey());
-                    if (collectionReencryptResult.code() != Result::Succeeded) {
-                        qCWarning(lcSailfishSecretsDaemon) << "Failed to re-encrypt encrypted storage device-locked collection:" << cname
-                                                           << collectionReencryptResult.code()
-                                                           << collectionReencryptResult.errorMessage();
-                    }
+                QFuture<Result> future = QtConcurrent::run(
+                            m_requestQueue->secretsThreadPool().data(),
+                            &EncryptedStoragePluginWrapper::unlockCollectionAndReencrypt,
+                            plugin,
+                            cname,
+                            oldDeviceLockKey,
+                            m_requestQueue->deviceLockKey(),
+                            true); // we know this is a device locked collection
+                future.waitForFinished();
+                Result collectionReencryptResult = future.result();
+                if (collectionReencryptResult.code() != Result::Succeeded) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Failed to re-encrypt encrypted storage device-locked collection:" << cname
+                                                       << collectionReencryptResult.code()
+                                                       << collectionReencryptResult.errorMessage();
                 }
             } else {
                 EncryptionPlugin *eplugin = m_encryptionPlugins.value(encryptionPluginName);
@@ -3528,10 +3966,17 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCodes(
                     continue;
                 }
 
-                Result collectionReencryptResult = splugin->reencryptSecrets(
-                            cname, QVector<QString>(),
-                            oldDeviceLockKey, m_requestQueue->deviceLockKey(),
+                QFuture<Result> future = QtConcurrent::run(
+                            m_requestQueue->secretsThreadPool().data(),
+                            splugin,
+                            &StoragePlugin::reencryptSecrets,
+                            cname,
+                            QVector<QString>(),
+                            oldDeviceLockKey,
+                            m_requestQueue->deviceLockKey(),
                             eplugin);
+                future.waitForFinished();
+                Result collectionReencryptResult = future.result();
                 if (collectionReencryptResult.code() != Result::Succeeded) {
                     qCWarning(lcSailfishSecretsDaemon) << "Failed to re-encrypt stored device-locked collection:" << cname
                                                        << collectionReencryptResult.code()
@@ -3583,10 +4028,18 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCodes(
                 continue;
             }
 
-            Result secretReencryptResult = splugin->reencryptSecrets(
-                        QString(), QVector<QString>() << hsn,
-                        oldDeviceLockKey, m_requestQueue->deviceLockKey(),
+
+            QFuture<Result> future = QtConcurrent::run(
+                        m_requestQueue->secretsThreadPool().data(),
+                        splugin,
+                        &StoragePlugin::reencryptSecrets,
+                        QString(),
+                        QVector<QString>() << hsn,
+                        oldDeviceLockKey,
+                        m_requestQueue->deviceLockKey(),
                         eplugin);
+            future.waitForFinished();
+            Result secretReencryptResult = future.result();
             if (secretReencryptResult.code() != Result::Succeeded) {
                 qCWarning(lcSailfishSecretsDaemon) << "Failed to re-encrypt stored device-locked standalone secret:" << hsn
                                                    << secretReencryptResult.code()
@@ -3596,42 +4049,6 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCodes(
     }
 
     // finally, re-initialise plugins with the new device lock key.
-    for (EncryptionPlugin *eplugin : m_encryptionPlugins.values()) {
-        if (eplugin->supportsLocking()) {
-            if (eplugin->isLocked()) {
-                if (!eplugin->unlock(oldDeviceLockKey)) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock encryption plugin:" << eplugin->name();
-                }
-            }
-            if (!eplugin->setLockCode(oldDeviceLockKey, m_requestQueue->deviceLockKey())) {
-                qCWarning(lcSailfishSecretsDaemon) << "Failed to set lock code for encryption plugin:" << eplugin->name();
-            }
-        }
-    }
-    for (StoragePlugin *splugin : m_storagePlugins.values()) {
-        if (splugin->supportsLocking()) {
-            if (splugin->isLocked()) {
-                if (!splugin->unlock(oldDeviceLockKey)) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock storage plugin:" << splugin->name();
-                }
-            }
-            if (!splugin->setLockCode(oldDeviceLockKey, m_requestQueue->deviceLockKey())) {
-                qCWarning(lcSailfishSecretsDaemon) << "Failed to set lock code for storage plugin:" << splugin->name();
-            }
-        }
-    }
-    for (EncryptedStoragePlugin *esplugin : m_encryptedStoragePlugins.values()) {
-        if (esplugin->supportsLocking()) {
-            if (esplugin->isLocked()) {
-                if (!esplugin->unlock(oldDeviceLockKey)) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock encrypted storage plugin:" << esplugin->name();
-                }
-            }
-            if (!esplugin->setLockCode(oldDeviceLockKey, m_requestQueue->deviceLockKey())) {
-                qCWarning(lcSailfishSecretsDaemon) << "Failed to set lock code for encrypted storage plugin:" << esplugin->name();
-            }
-        }
-    }
     for (AuthenticationPlugin *aplugin : m_authenticationPlugins.values()) {
         if (aplugin->supportsLocking()) {
             if (aplugin->isLocked()) {
@@ -3644,6 +4061,16 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCodes(
             }
         }
     }
+
+    QFuture<bool> future = QtConcurrent::run(
+                m_requestQueue->secretsThreadPool().data(),
+                &Daemon::ApiImpl::modifyLockPlugins,
+                m_encryptionPlugins.values(),
+                m_storagePlugins.values(),
+                m_encryptedStoragePlugins.values(),
+                oldDeviceLockKey,
+                m_requestQueue->deviceLockKey());
+    future.waitForFinished();
 
     if (!m_requestQueue->setLockCodeCryptoPlugins(oldDeviceLockKey, m_requestQueue->deviceLockKey())) {
         qCWarning(lcSailfishSecretsDaemon) << "Failed to set the lock code for crypto plugins!";
@@ -3790,36 +4217,20 @@ Daemon::ApiImpl::RequestProcessor::provideLockCodeWithLockCode(
 
     // check if the client is attempting to unlock an extension plugin
     if (lockCodeTargetType == LockCodeRequest::ExtensionPlugin) {
-        if (m_storagePlugins.contains(lockCodeTarget)) {
-            StoragePlugin *p = m_storagePlugins.value(lockCodeTarget);
-            if (!p->supportsLocking()) {
-                return Result(Result::OperationNotSupportedError,
-                              QStringLiteral("Storage plugin %1 does not support locking").arg(lockCodeTarget));
-            } else if (!p->unlock(lockCode)) {
-                return Result(Result::UnknownError,
-                              QStringLiteral("Failed to unlock storage plugin %1").arg(lockCodeTarget));
-            }
-            return Result(Result::Succeeded);
-        } else if (m_encryptionPlugins.contains(lockCodeTarget)) {
-            EncryptionPlugin *p = m_encryptionPlugins.value(lockCodeTarget);
-            if (!p->supportsLocking()) {
-                return Result(Result::OperationNotSupportedError,
-                              QStringLiteral("Encryption plugin %1 does not support locking").arg(lockCodeTarget));
-            } else if (!p->unlock(lockCode)) {
-                return Result(Result::UnknownError,
-                              QStringLiteral("Failed to unlock encryption plugin %1").arg(lockCodeTarget));
-            }
-            return Result(Result::Succeeded);
-        } else if (m_encryptedStoragePlugins.contains(lockCodeTarget)) {
-            EncryptedStoragePlugin *p = m_encryptedStoragePlugins.value(lockCodeTarget);
-            if (!p->supportsLocking()) {
-                return Result(Result::OperationNotSupportedError,
-                              QStringLiteral("Encrypted storage plugin %1 does not support locking").arg(lockCodeTarget));
-            } else if (!p->unlock(lockCode)) {
-                return Result(Result::UnknownError,
-                              QStringLiteral("Failed to unlock encrypted storage plugin %1").arg(lockCodeTarget));
-            }
-            return Result(Result::Succeeded);
+        QFuture<FoundResult> future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    &Daemon::ApiImpl::unlockSpecificPlugin,
+                    m_storagePlugins,
+                    m_encryptionPlugins,
+                    m_encryptedStoragePlugins,
+                    lockCodeTarget,
+                    lockCode);
+        future.waitForFinished();
+        FoundResult fr = future.result();
+        if (fr.found) {
+            // if the lock target was a plugin from the encryption/storage/encryptedStorage
+            // maps, then return the lock result from the threaded plugin operation.
+            return fr.result;
         } else if (m_authenticationPlugins.contains(lockCodeTarget)) {
             AuthenticationPlugin *p = m_authenticationPlugins.value(lockCodeTarget);
             if (!p->supportsLocking()) {
@@ -3848,33 +4259,6 @@ Daemon::ApiImpl::RequestProcessor::provideLockCodeWithLockCode(
     }
 
     // unlock all of our plugins
-    for (EncryptionPlugin *eplugin : m_encryptionPlugins.values()) {
-        if (eplugin->supportsLocking()) {
-            if (eplugin->isLocked()) {
-                if (!eplugin->unlock(m_requestQueue->deviceLockKey())) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock encryption plugin:" << eplugin->name();
-                }
-            }
-        }
-    }
-    for (StoragePlugin *splugin : m_storagePlugins.values()) {
-        if (splugin->supportsLocking()) {
-            if (splugin->isLocked()) {
-                if (!splugin->unlock(m_requestQueue->deviceLockKey())) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock storage plugin:" << splugin->name();
-                }
-            }
-        }
-    }
-    for (EncryptedStoragePlugin *esplugin : m_encryptedStoragePlugins.values()) {
-        if (esplugin->supportsLocking()) {
-            if (esplugin->isLocked()) {
-                if (!esplugin->unlock(m_requestQueue->deviceLockKey())) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock encrypted storage plugin:" << esplugin->name();
-                }
-            }
-        }
-    }
     for (AuthenticationPlugin *aplugin : m_authenticationPlugins.values()) {
         if (aplugin->supportsLocking()) {
             if (aplugin->isLocked()) {
@@ -3884,6 +4268,15 @@ Daemon::ApiImpl::RequestProcessor::provideLockCodeWithLockCode(
             }
         }
     }
+
+    QFuture<bool> future = QtConcurrent::run(
+                m_requestQueue->secretsThreadPool().data(),
+                &Daemon::ApiImpl::unlockPlugins,
+                m_encryptionPlugins.values(),
+                m_storagePlugins.values(),
+                m_encryptedStoragePlugins.values(),
+                m_requestQueue->deviceLockKey());
+    future.waitForFinished();
 
     if (!m_requestQueue->unlockCryptoPlugins(m_requestQueue->deviceLockKey())) {
         qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock crypto plugins!";
@@ -3931,36 +4324,19 @@ Daemon::ApiImpl::RequestProcessor::forgetLockCode(
                           QLatin1String("Only the system settings application can unlock the plugin"));
         }
 
-        if (m_storagePlugins.contains(lockCodeTarget)) {
-            StoragePlugin *p = m_storagePlugins.value(lockCodeTarget);
-            if (!p->supportsLocking()) {
-                return Result(Result::OperationNotSupportedError,
-                              QStringLiteral("Storage plugin %1 does not support locking").arg(lockCodeTarget));
-            } else if (!p->lock()) {
-                return Result(Result::UnknownError,
-                              QStringLiteral("Failed to lock storage plugin %1").arg(lockCodeTarget));
-            }
-            return Result(Result::Succeeded);
-        } else if (m_encryptionPlugins.contains(lockCodeTarget)) {
-            EncryptionPlugin *p = m_encryptionPlugins.value(lockCodeTarget);
-            if (!p->supportsLocking()) {
-                return Result(Result::OperationNotSupportedError,
-                              QStringLiteral("Encryption plugin %1 does not support locking").arg(lockCodeTarget));
-            } else if (!p->lock()) {
-                return Result(Result::UnknownError,
-                              QStringLiteral("Failed to lock encryption plugin %1").arg(lockCodeTarget));
-            }
-            return Result(Result::Succeeded);
-        } else if (m_encryptedStoragePlugins.contains(lockCodeTarget)) {
-            EncryptedStoragePlugin *p = m_encryptedStoragePlugins.value(lockCodeTarget);
-            if (!p->supportsLocking()) {
-                return Result(Result::OperationNotSupportedError,
-                              QStringLiteral("Encrypted storage plugin %1 does not support locking").arg(lockCodeTarget));
-            } else if (!p->lock()) {
-                return Result(Result::UnknownError,
-                              QStringLiteral("Failed to lock encrypted storage plugin %1").arg(lockCodeTarget));
-            }
-            return Result(Result::Succeeded);
+        QFuture<FoundResult> future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    &Daemon::ApiImpl::lockSpecificPlugin,
+                    m_storagePlugins,
+                    m_encryptionPlugins,
+                    m_encryptedStoragePlugins,
+                    lockCodeTarget);
+        future.waitForFinished();
+        FoundResult fr = future.result();
+        if (fr.found) {
+            // if the lock target was a plugin from the encryption/storage/encryptedStorage
+            // maps, then return the lock result from the threaded plugin operation.
+            return fr.result;
         } else if (m_authenticationPlugins.contains(lockCodeTarget)) {
             AuthenticationPlugin *p = m_authenticationPlugins.value(lockCodeTarget);
             if (!p->supportsLocking()) {
@@ -4001,18 +4377,17 @@ Daemon::ApiImpl::RequestProcessor::forgetLockCode(
         Result lockResult = m_bkdb->lock();
 
         // lock all of our plugins
-        for (EncryptionPlugin *eplugin : m_encryptionPlugins.values()) {
-            eplugin->lock();
-        }
-        for (StoragePlugin *splugin : m_storagePlugins.values()) {
-            splugin->lock();
-        }
-        for (EncryptedStoragePlugin *esplugin : m_encryptedStoragePlugins.values()) {
-            esplugin->lock();
-        }
         for (AuthenticationPlugin *aplugin : m_authenticationPlugins.values()) {
             aplugin->lock();
         }
+
+        QFuture<bool> future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    &Daemon::ApiImpl::lockPlugins,
+                    m_encryptionPlugins.values(),
+                    m_storagePlugins.values(),
+                    m_encryptedStoragePlugins.values());
+        future.waitForFinished();
 
         m_requestQueue->lockCryptoPlugins();
 
@@ -4036,7 +4411,6 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
 
     bool returnUserInput = false;
     Secret secret;
-    QVector<Secret::Identifier> identifiers;
     Result returnResult = result;
     if (result.code() == Result::Succeeded) {
         // look up the pending request in our list
@@ -4194,8 +4568,7 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                                     pr.parameters.takeFirst().value<QString>(),
                                     pr.parameters.takeFirst().value<int>(),
                                     pr.parameters.takeFirst().value<int>(),
-                                    userInput,
-                                    &secret);
+                                    userInput);
                     }
                     break;
                 }
@@ -4214,8 +4587,7 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                                     pr.parameters.takeFirst().value<QString>(),
                                     pr.parameters.takeFirst().value<int>(),
                                     pr.parameters.takeFirst().value<int>(),
-                                    userInput,
-                                    &secret);
+                                    userInput);
                     }
                     break;
                 }
@@ -4236,13 +4608,12 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                                     pr.parameters.takeFirst().value<QString>(),
                                     pr.parameters.takeFirst().value<int>(),
                                     pr.parameters.takeFirst().value<int>(),
-                                    userInput,
-                                    &identifiers);
+                                    userInput);
                     }
                     break;
                 }
                 case DeleteCollectionSecretRequest: {
-                    if (pr.parameters.size() != 3) {
+                    if (pr.parameters.size() != 5) {
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
@@ -4250,6 +4621,8 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                                     pr.callerPid,
                                     pr.requestId,
                                     pr.parameters.takeFirst().value<Secret::Identifier>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QString>(),
                                     static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
                                     pr.parameters.takeFirst().value<QString>(),
                                     userInput);
@@ -4334,8 +4707,6 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
             outParams << QVariant::fromValue<Secret>(secret);
         } else if (returnUserInput) {
             outParams << QVariant::fromValue<QByteArray>(userInput);
-        } else {
-            outParams << QVariant::fromValue<QVector<Secret::Identifier> >(identifiers);
         }
         m_requestQueue->requestFinished(requestId, outParams);
     }

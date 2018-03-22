@@ -23,6 +23,8 @@
 #include "Crypto/key.h"
 
 #include <QtCore/QStringList>
+#include <QtCore/QThreadPool>
+#include <QtCore/QSharedPointer>
 #include <QtDBus/QDBusContext>
 
 namespace Sailfish {
@@ -393,6 +395,7 @@ public:
     SecretsRequestQueue(Sailfish::Secrets::Daemon::Controller *parent, bool autotestMode);
     ~SecretsRequestQueue();
 
+    QWeakPointer<QThreadPool> secretsThreadPool();
     bool initialise(const QByteArray &lockCode);
 
     void handlePendingRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;
@@ -403,6 +406,7 @@ public: // helpers for crypto API: secretscryptohelpers.cpp
     QMap<QString, QObject*> potentialCryptoStoragePlugins() const;
 
 private:
+    QSharedPointer<QThreadPool> m_secretsThreadPool;
     Sailfish::Secrets::Daemon::ApiImpl::BookkeepingDatabase m_bkdb;
     Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *m_appPermissions;
     Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor *m_requestProcessor;

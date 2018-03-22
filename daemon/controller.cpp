@@ -108,6 +108,17 @@ Sailfish::Secrets::Daemon::Controller::crypto() const
     return m_crypto;
 }
 
+QSharedPointer<QThreadPool> Sailfish::Secrets::Daemon::Controller::threadPoolForPlugin(const QString &pluginName) const
+{
+    if (m_secrets->potentialCryptoStoragePlugins().contains(pluginName)) {
+        return m_secrets->secretsThreadPool();
+    } else if (m_crypto->plugins().contains(pluginName)) {
+        return m_crypto->cryptoThreadPool();
+    } else {
+        return m_secrets->secretsThreadPool();
+    }
+}
+
 void Sailfish::Secrets::Daemon::Controller::handleClientConnection(const QDBusConnection &connection)
 {
     qCDebug(lcSailfishSecretsDaemon) << "New client p2p connection received!" << connection.name();

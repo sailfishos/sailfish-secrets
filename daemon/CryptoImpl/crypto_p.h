@@ -22,6 +22,8 @@
 
 #include <QtCore/QByteArray>
 #include <QtCore/QString>
+#include <QtCore/QThreadPool>
+#include <QtCore/QSharedPointer>
 #include <QtDBus/QDBusContext>
 
 namespace Sailfish {
@@ -521,6 +523,7 @@ public:
                        bool autotestMode);
     ~CryptoRequestQueue();
 
+    QWeakPointer<QThreadPool> cryptoThreadPool();
     QMap<QString, Sailfish::Crypto::CryptoPlugin*> plugins() const;
     bool lockPlugins();
     bool unlockPlugins(const QByteArray &unlockCode);
@@ -531,6 +534,7 @@ public:
     QString requestTypeToString(int type) const Q_DECL_OVERRIDE;
 
 private:
+    QSharedPointer<QThreadPool> m_cryptoThreadPool;
     Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor *m_requestProcessor;
 };
 

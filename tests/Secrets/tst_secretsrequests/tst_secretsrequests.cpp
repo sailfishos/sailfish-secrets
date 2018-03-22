@@ -275,7 +275,11 @@ void tst_secretsrequests::devicelockCollectionSecret()
     QCOMPARE(gsrss.count(), 2);
     QCOMPARE(gsr.status(), Request::Finished);
     QCOMPARE(gsr.result().code(), Result::Succeeded);
-    QCOMPARE(gsr.secret(), testSecret);
+    QCOMPARE(gsr.secret().data(), testSecret.data());
+    QCOMPARE(gsr.secret().type(), testSecret.type());
+    QCOMPARE(gsr.secret().filterData(), testSecret.filterData());
+    QCOMPARE(gsr.secret().name(), testSecret.name());
+    QCOMPARE(gsr.secret().collectionName(), testSecret.collectionName());
 
     // test filtering, first with AND with both matching metadata field values, expect match
     Secret::FilterData filter;
@@ -428,7 +432,11 @@ void tst_secretsrequests::devicelockStandaloneSecret()
     QCOMPARE(gsrss.count(), 2);
     QCOMPARE(gsr.status(), Request::Finished);
     QCOMPARE(gsr.result().code(), Result::Succeeded);
-    QCOMPARE(gsr.secret(), testSecret);
+    QCOMPARE(gsr.secret().data(), testSecret.data());
+    QCOMPARE(gsr.secret().type(), testSecret.type());
+    QCOMPARE(gsr.secret().filterData(), testSecret.filterData());
+    QCOMPARE(gsr.secret().name(), testSecret.name());
+    QCOMPARE(gsr.secret().collectionName(), testSecret.collectionName());
 
     // delete the secret
     DeleteSecretRequest dsr;
@@ -704,7 +712,11 @@ void tst_secretsrequests::customlockStandaloneSecret()
     QCOMPARE(gsrss.count(), 2);
     QCOMPARE(gsr.status(), Request::Finished);
     QCOMPARE(gsr.result().code(), Result::Succeeded);
-    QCOMPARE(gsr.secret(), testSecret);
+    QCOMPARE(gsr.secret().data(), testSecret.data());
+    QCOMPARE(gsr.secret().type(), testSecret.type());
+    QCOMPARE(gsr.secret().filterData(), testSecret.filterData());
+    QCOMPARE(gsr.secret().name(), testSecret.name());
+    QCOMPARE(gsr.secret().collectionName(), testSecret.collectionName());
 
     // delete the secret
     DeleteSecretRequest dsr;

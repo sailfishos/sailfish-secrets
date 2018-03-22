@@ -415,6 +415,10 @@ Daemon::ApiImpl::SecretsRequestQueue::SecretsRequestQueue(
     , m_noLockCode(false)
 {
     SecretsDaemonConnection::registerDBusTypes();
+
+    m_secretsThreadPool = QSharedPointer<QThreadPool>::create();
+    m_secretsThreadPool->setMaxThreadCount(1);
+    m_secretsThreadPool->setExpiryTimeout(-1);
     m_appPermissions = new Daemon::ApiImpl::ApplicationPermissions(this);
     m_requestProcessor = new Daemon::ApiImpl::RequestProcessor(&m_bkdb, m_appPermissions, autotestMode, this);
 
@@ -425,6 +429,11 @@ Daemon::ApiImpl::SecretsRequestQueue::SecretsRequestQueue(
 Daemon::ApiImpl::SecretsRequestQueue::~SecretsRequestQueue()
 {
     free(m_bkdbLockKeyData);
+}
+
+QWeakPointer<QThreadPool> Daemon::ApiImpl::SecretsRequestQueue::secretsThreadPool()
+{
+    return m_secretsThreadPool.toWeakRef();
 }
 
 bool Daemon::ApiImpl::SecretsRequestQueue::initialise(
@@ -1787,14 +1796,14 @@ void Daemon::ApiImpl::SecretsRequestQueue::handleFinishedRequest(
                 qCWarning(lcSailfishSecretsDaemon) << "GetCollectionSecretRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
-                QByteArray secret = request->outParams.size()
-                        ? request->outParams.takeFirst().toByteArray()
-                        : QByteArray();
+                Secret secret = request->outParams.size()
+                        ? request->outParams.takeFirst().value<Secret>()
+                        : Secret();
                 if (request->isSecretsCryptoRequest) {
-                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << QVariant::fromValue<QByteArray>(secret));
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << QVariant::fromValue<Secret>(secret));
                 } else {
                     request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                            << QVariant::fromValue<QByteArray>(secret));
+                                                                            << QVariant::fromValue<Secret>(secret));
                 }
                 *completed = true;
             }
@@ -1810,14 +1819,60 @@ void Daemon::ApiImpl::SecretsRequestQueue::handleFinishedRequest(
                 qCWarning(lcSailfishSecretsDaemon) << "GetStandaloneSecretRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
-                QByteArray secret = request->outParams.size()
-                        ? request->outParams.takeFirst().toByteArray()
-                        : QByteArray();
+                Secret secret = request->outParams.size()
+                        ? request->outParams.takeFirst().value<Secret>()
+                        : Secret();
                 if (request->isSecretsCryptoRequest) {
-                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << QVariant::fromValue<QByteArray>(secret));
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << QVariant::fromValue<Secret>(secret));
                 } else {
                     request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                            << QVariant::fromValue<QByteArray>(secret));
+                                                                            << QVariant::fromValue<Secret>(secret));
+                }
+                *completed = true;
+            }
+            break;
+        }
+        case FindCollectionSecretsRequest: {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of FindCollectionSecretsRequest request"));
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishSecretsDaemon) << "FindCollectionSecretsRequest:" << request->requestId << "finished as pending!";
+                *completed = true;
+            } else {
+                QVector<Secret::Identifier> identifiers = request->outParams.size()
+                        ? request->outParams.takeFirst().value<QVector<Secret::Identifier> >()
+                        : QVector<Secret::Identifier>();
+                if (request->isSecretsCryptoRequest) {
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << QVariant::fromValue<QVector<Secret::Identifier> >(identifiers));
+                } else {
+                    request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                            << QVariant::fromValue<QVector<Secret::Identifier> >(identifiers));
+                }
+                *completed = true;
+            }
+            break;
+        }
+        case FindStandaloneSecretsRequest: {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of FindStandaloneSecretsRequest request"));
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishSecretsDaemon) << "FindStandaloneSecretsRequest:" << request->requestId << "finished as pending!";
+                *completed = true;
+            } else {
+                QVector<Secret::Identifier> identifiers = request->outParams.size()
+                        ? request->outParams.takeFirst().value<QVector<Secret::Identifier> >()
+                        : QVector<Secret::Identifier>();
+                if (request->isSecretsCryptoRequest) {
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << QVariant::fromValue<QVector<Secret::Identifier> >(identifiers));
+                } else {
+                    request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                            << QVariant::fromValue<QVector<Secret::Identifier> >(identifiers));
                 }
                 *completed = true;
             }
