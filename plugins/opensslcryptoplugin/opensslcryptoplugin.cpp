@@ -141,7 +141,8 @@ Daemon::Plugins::OpenSslCryptoPlugin::supportedBlockModes() const
                         << Sailfish::Crypto::CryptoManager::BlockModeCfb1
                         << Sailfish::Crypto::CryptoManager::BlockModeCfb8
                         << Sailfish::Crypto::CryptoManager::BlockModeCfb128
-                        << Sailfish::Crypto::CryptoManager::BlockModeOfb);
+                        << Sailfish::Crypto::CryptoManager::BlockModeOfb
+                        << Sailfish::Crypto::CryptoManager::BlockModeCtr);
     return retn;
 }
 

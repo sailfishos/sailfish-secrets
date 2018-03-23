@@ -202,6 +202,15 @@ const EVP_CIPHER *getEvpCipher(int block_mode, int key_length_bytes)
             fprintf(stderr, "%s: %d\n", "unsupported encryption size for OFB block mode", key_length_bits);
             return NULL;
         }
+    } else if (block_mode == Sailfish::Crypto::CryptoManager::BlockModeCtr) {
+        switch (key_length_bits) {
+        case 128: return EVP_aes_128_ctr();
+        case 192: return EVP_aes_192_ctr();
+        case 256: return EVP_aes_256_ctr();
+        default:
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for OFB block mode", key_length_bits);
+            return NULL;
+        }
     } else if (block_mode == Sailfish::Crypto::CryptoManager::BlockModeGcm) {
         switch (key_length_bits) {
         case 128: return EVP_aes_128_gcm();
@@ -209,6 +218,15 @@ const EVP_CIPHER *getEvpCipher(int block_mode, int key_length_bytes)
         case 256: return EVP_aes_256_gcm();
         default:
             fprintf(stderr, "%s: %d\n", "unsupported encryption size for GCM block mode", key_length_bits);
+            return NULL;
+        }
+    } else if (block_mode == Sailfish::Crypto::CryptoManager::BlockModeXts) {
+        switch (key_length_bits) {
+        // Note: current openssl does not support XTS 192-bit.
+        case 128: return EVP_aes_128_xts();
+        case 256: return EVP_aes_256_xts();
+        default:
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for XTS block mode", key_length_bits);
             return NULL;
         }
     }
