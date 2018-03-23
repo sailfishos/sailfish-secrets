@@ -32,79 +32,6 @@ int osslevp_init()
     return initialized;
 }
 
-const EVP_CIPHER *osslevp_aes_cipher(int block_mode, int key_length_bytes)
-{
-    const int key_length_bits = key_length_bytes * 8;
-
-    if (block_mode == 2) {  // Sailfish::Crypto::CryptoManager::BlockModeEcb
-        switch (key_length_bits) {
-        case 128: return EVP_aes_128_ecb();
-        case 192: return EVP_aes_192_ecb();
-        case 256: return EVP_aes_256_ecb();
-        default:
-            fprintf(stderr, "%s: %d\n", "unsupported encryption size for ECB block mode", key_length_bits);
-            return NULL;
-        }
-    } else if (block_mode == 3) {  // Sailfish::Crypto::CryptoManager::BlockModeCbc
-        switch (key_length_bits) {
-        case 128: return EVP_aes_128_cbc();
-        case 192: return EVP_aes_192_cbc();
-        case 256: return EVP_aes_256_cbc();
-        default:
-            fprintf(stderr, "%s: %d\n", "unsupported encryption size for CBC block mode", key_length_bits);
-            return NULL;
-        }
-    } else if (block_mode == 5) {  // Sailfish::Crypto::CryptoManager::BlockModeCfb1
-        switch (key_length_bits) {
-        case 128: return EVP_aes_128_cfb1();
-        case 192: return EVP_aes_192_cfb1();
-        case 256: return EVP_aes_256_cfb1();
-        default:
-            fprintf(stderr, "%s: %d\n", "unsupported encryption size for CFB-1 block mode", key_length_bits);
-            return NULL;
-        }
-    } else if (block_mode == 6) {  // Sailfish::Crypto::CryptoManager::BlockModeCfb8
-        switch (key_length_bits) {
-        case 128: return EVP_aes_128_cfb8();
-        case 192: return EVP_aes_192_cfb8();
-        case 256: return EVP_aes_256_cfb8();
-        default:
-            fprintf(stderr, "%s: %d\n", "unsupported encryption size for CFB-8 block mode", key_length_bits);
-            return NULL;
-        }
-    } else if (block_mode == 7) {  // Sailfish::Crypto::CryptoManager::BlockModeCfb128
-        switch (key_length_bits) {
-        case 128: return EVP_aes_128_cfb128();
-        case 192: return EVP_aes_192_cfb128();
-        case 256: return EVP_aes_256_cfb128();
-        default:
-            fprintf(stderr, "%s: %d\n", "unsupported encryption size for CFB-128 block mode", key_length_bits);
-            return NULL;
-        }
-    } else if (block_mode == 8) {  // Sailfish::Crypto::CryptoManager::BlockModeOfb
-        switch (key_length_bits) {
-        case 128: return EVP_aes_128_ofb();
-        case 192: return EVP_aes_192_ofb();
-        case 256: return EVP_aes_256_ofb();
-        default:
-            fprintf(stderr, "%s: %d\n", "unsupported encryption size for OFB block mode", key_length_bits);
-            return NULL;
-        }
-    } else if (block_mode == 10) {  // Sailfish::Crypto::CryptoManager::BlockModeGcm
-        switch (key_length_bits) {
-        case 128: return EVP_aes_128_gcm();
-        case 192: return EVP_aes_192_gcm();
-        case 256: return EVP_aes_256_gcm();
-        default:
-            fprintf(stderr, "%s: %d\n", "unsupported encryption size for GCM block mode", key_length_bits);
-            return NULL;
-        }
-    }
-
-    fprintf(stderr, "%s\n", "unsupported encryption mode");
-    return NULL;
-}
-
 /*
     int osslevp_pkcs5_pbkdf2_hmac(const char *pass,
                                   int passlen,
@@ -140,7 +67,7 @@ int osslevp_pkcs5_pbkdf2_hmac(const char *pass, int passlen,
 }
 
 /*
-    int osslevp_aes_encrypt_plaintext(int block_mode,
+    int osslevp_aes_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
                                       const unsigned char *init_vector,
                                       const unsigned char *key,
                                       int key_length,
@@ -149,21 +76,17 @@ int osslevp_pkcs5_pbkdf2_hmac(const char *pass, int passlen,
                                       unsigned char **encrypted)
 
     Encrypts the \a plaintext of the specified \a plaintext_length with the
-    given symmetric encryption \a key, using the specified encryption
-    \a block_mode. The result is stored in \a encrypted.
-    The caller owns the content of the \a encrypted buffer and must free().
+    given symmetric encryption \a key, using the specified cipher. The result
+    is stored in \a encrypted. The caller owns the content of the
+    \a encrypted buffer and must free().
 
     The given \a init_vector must be a 16 byte buffer containing the
     initialisation vector for the AES encryption context.
 
-    Only the first 32 bytes of \a key will be used.  If \a key_length is less
-    than 32, a 32 byte key will be created from the first \a key_length bytes
-    of \a key padded out to 32 bytes with null bytes.
-
     Returns the length of the \a encrypted output on success, or -1 if the
     arguments are invalid or encryption otherwise fails.
 */
-int osslevp_aes_encrypt_plaintext(int block_mode,
+int osslevp_aes_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
                                   const unsigned char *init_vector,
                                   const unsigned char *key,
                                   int key_length,
@@ -176,7 +99,7 @@ int osslevp_aes_encrypt_plaintext(int block_mode,
     int final_length = 0;
     unsigned char *ciphertext = NULL;
 
-    if (plaintext_length <= 0 || plaintext == NULL
+    if (evp_cipher == NULL || plaintext_length <= 0 || plaintext == NULL
             || key_length <= 0 || key == NULL || encrypted == NULL) {
         /* Invalid arguments */
         fprintf(stderr, "%s\n", "invalid arguments, aborting encryption");
@@ -189,15 +112,6 @@ int osslevp_aes_encrypt_plaintext(int block_mode,
 
     /* Create the encryption context */
     EVP_CIPHER_CTX *encryption_context = EVP_CIPHER_CTX_new();
-
-    const EVP_CIPHER *evp_cipher = osslevp_aes_cipher(block_mode, key_length);
-    if (evp_cipher == NULL) {
-        ERR_print_errors_fp(stderr);
-        EVP_CIPHER_CTX_free(encryption_context);
-        free(ciphertext);
-        fprintf(stderr, "%s\n", "failed to create cipher");
-        return -1;
-    }
 
     if (!EVP_EncryptInit_ex(encryption_context, evp_cipher, NULL, key, init_vector)) {
         ERR_print_errors_fp(stderr);
@@ -234,7 +148,7 @@ int osslevp_aes_encrypt_plaintext(int block_mode,
 }
 
 /*
-    int osslevp_aes_decrypt_ciphertext(int block_mode,
+    int osslevp_aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
                                        const unsigned char *init_vector,
                                        const unsigned char *key,
                                        int key_length,
@@ -243,21 +157,17 @@ int osslevp_aes_encrypt_plaintext(int block_mode,
                                        unsigned char **decrypted)
 
     Decrypts the \a ciphertext of the specified \a ciphertext_length with the
-    given symmetric decryption \a key, using the specified encryption
-    \a block_mode. The result is stored in \a encrypted.
-    The caller owns the content of the \a decrypted buffer and must free().
+    given symmetric decryption \a key, using the specified \a evp_cipher. The
+    result is stored in \a encrypted. The caller owns the content of the
+    \a decrypted buffer and must free().
 
     The given \a init_vector must be a 16 byte buffer containing the
     initialisation vector for the AES decryption context.
 
-    Only the first 32 bytes of \a key will be used.  If \a key_length is less
-    than 32, a 32 byte key will be created from the first \a key_length bytes
-    of \a key padded out to 32 bytes with null bytes.
-
     Returns the length of the \a decrypted output on success, or -1 if the
     arguments are invalid or decryption otherwise fails.
 */
-int osslevp_aes_decrypt_ciphertext(int block_mode,
+int osslevp_aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
                                    const unsigned char *init_vector,
                                    const unsigned char *key,
                                    int key_length,
@@ -270,7 +180,7 @@ int osslevp_aes_decrypt_ciphertext(int block_mode,
     int final_length = 0;
     unsigned char *plaintext = NULL;
 
-    if (ciphertext_length <= 0 || ciphertext == NULL
+    if (evp_cipher == NULL || ciphertext_length <= 0 || ciphertext == NULL
             || key_length <= 0 || key == NULL || decrypted == NULL) {
         /* Invalid arguments */
         fprintf(stderr,
@@ -287,16 +197,7 @@ int osslevp_aes_decrypt_ciphertext(int block_mode,
     /* Create the decryption context */
     EVP_CIPHER_CTX *decryption_context = EVP_CIPHER_CTX_new();
 
-    const EVP_CIPHER *cipher = osslevp_aes_cipher(block_mode, key_length);
-    if (cipher == NULL) {
-        ERR_print_errors_fp(stderr);
-        EVP_CIPHER_CTX_free(decryption_context);
-        free(plaintext);
-        fprintf(stderr, "%s\n", "failed to create cipher");
-        return -1;
-    }
-
-    if (!EVP_DecryptInit_ex(decryption_context, cipher, NULL, key, init_vector)) {
+    if (!EVP_DecryptInit_ex(decryption_context, evp_cipher, NULL, key, init_vector)) {
         ERR_print_errors_fp(stderr);
         EVP_CIPHER_CTX_free(decryption_context);
         free(plaintext);

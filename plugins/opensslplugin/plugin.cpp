@@ -7,6 +7,7 @@
 
 #include "plugin.h"
 #include "evp_p.h"
+#include "evp_helpers_p.h"
 
 #include "Crypto/cryptomanager.h"
 
@@ -111,7 +112,7 @@ Daemon::Plugins::OpenSslPlugin::aes_encrypt_plaintext(
 {
     QByteArray encryptedData;
     unsigned char *encrypted = NULL;
-    int size = osslevp_aes_encrypt_plaintext(Sailfish::Crypto::CryptoManager::BlockModeCbc,
+    int size = osslevp_aes_encrypt_plaintext(getEvpCipher(Sailfish::Crypto::CryptoManager::BlockModeCbc, key.size()),
                                              (const unsigned char *)init_vector.constData(),
                                              (const unsigned char *)key.constData(),
                                              key.size(),
@@ -135,7 +136,7 @@ Daemon::Plugins::OpenSslPlugin::aes_decrypt_ciphertext(
 {
     QByteArray decryptedData;
     unsigned char *decrypted = NULL;
-    int size = osslevp_aes_decrypt_ciphertext(Sailfish::Crypto::CryptoManager::BlockModeCbc,
+    int size = osslevp_aes_decrypt_ciphertext(getEvpCipher(Sailfish::Crypto::CryptoManager::BlockModeCbc, key.size()),
                                               (const unsigned char *)init_vector.constData(),
                                               (const unsigned char *)key.constData(),
                                               key.size(),
