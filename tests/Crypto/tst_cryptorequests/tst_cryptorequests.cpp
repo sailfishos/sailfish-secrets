@@ -134,9 +134,9 @@ private:
         QTest::newRow("OFB 192-bit") << CryptoManager::BlockModeOfb << 192;
         QTest::newRow("OFB 256-bit") << CryptoManager::BlockModeOfb << 256;
 
-        QTest::newRow("GCM 128-bit") << CryptoManager::BlockModeGcm << 128;
-        QTest::newRow("GCM 192-bit") << CryptoManager::BlockModeGcm << 192;
-        QTest::newRow("GCM 256-bit") << CryptoManager::BlockModeGcm << 256;
+        QTest::newRow("CTR 128-bit") << CryptoManager::BlockModeCtr << 128;
+        QTest::newRow("CTR 192-bit") << CryptoManager::BlockModeCtr << 192;
+        QTest::newRow("CTR 256-bit") << CryptoManager::BlockModeCtr << 256;
     }
 
     CryptoManager cm;
@@ -1267,6 +1267,12 @@ void tst_cryptorequests::storedGeneratedKeyRequests()
 void tst_cryptorequests::cipherEncryptDecrypt_data()
 {
     addCryptoTestData();
+
+    // Encrypt/DecryptRequest do not support GCM yet, so GCM is only added for
+    // CipherRequests at the moment.
+    QTest::newRow("GCM 128-bit") << CryptoManager::BlockModeGcm << 128;
+    QTest::newRow("GCM 192-bit") << CryptoManager::BlockModeGcm << 192;
+    QTest::newRow("GCM 256-bit") << CryptoManager::BlockModeGcm << 256;
 }
 
 void tst_cryptorequests::cipherEncryptDecrypt()

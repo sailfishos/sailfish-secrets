@@ -141,7 +141,8 @@ Daemon::Plugins::OpenSslCryptoPlugin::supportedBlockModes() const
                         << Sailfish::Crypto::CryptoManager::BlockModeCfb1
                         << Sailfish::Crypto::CryptoManager::BlockModeCfb8
                         << Sailfish::Crypto::CryptoManager::BlockModeCfb128
-                        << Sailfish::Crypto::CryptoManager::BlockModeOfb);
+                        << Sailfish::Crypto::CryptoManager::BlockModeOfb
+                        << Sailfish::Crypto::CryptoManager::BlockModeCtr);
     return retn;
 }
 
@@ -763,7 +764,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
                                             QLatin1String("Unable to initialise cipher context for encryption"));
         }
         if (fullKey.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
-            const EVP_CIPHER *evp_cipher = osslevp_aes_cipher(blockMode, fullKey.secretKey().size());
+            const EVP_CIPHER *evp_cipher = getEvpCipher(blockMode, fullKey.secretKey().size());
             if (evp_cipher == NULL) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
@@ -784,7 +785,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
                                             QLatin1String("Unable to initialise cipher context for decryption"));
         }
         if (fullKey.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
-            const EVP_CIPHER *evp_cipher = osslevp_aes_cipher(blockMode, fullKey.secretKey().size());
+            const EVP_CIPHER *evp_cipher = getEvpCipher(blockMode, fullKey.secretKey().size());
             if (evp_cipher == NULL) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
@@ -1018,7 +1019,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::aes_encrypt_plaintext(
 {
     QByteArray encryptedData;
     unsigned char *encrypted = NULL;
-    int size = osslevp_aes_encrypt_plaintext(blockMode,
+    int size = osslevp_aes_encrypt_plaintext(getEvpCipher(blockMode, key.size()),
                                              (const unsigned char *)init_vector.constData(),
                                              (const unsigned char *)key.constData(),
                                              key.size(),
@@ -1043,7 +1044,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::aes_decrypt_ciphertext(
 {
     QByteArray decryptedData;
     unsigned char *decrypted = NULL;
-    int size = osslevp_aes_decrypt_ciphertext(blockMode,
+    int size = osslevp_aes_decrypt_ciphertext(getEvpCipher(blockMode, key.size()),
                                               (const unsigned char *)init_vector.constData(),
                                               (const unsigned char *)key.constData(),
                                               key.size(),

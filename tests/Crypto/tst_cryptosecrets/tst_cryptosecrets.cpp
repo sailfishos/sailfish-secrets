@@ -91,6 +91,10 @@ private:
         QTest::newRow("OFB 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeOfb << 128;
         QTest::newRow("OFB 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeOfb << 192;
         QTest::newRow("OFB 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeOfb << 256;
+
+        QTest::newRow("CTR 128-bit") << Sailfish::Crypto::CryptoManager::CryptoManager::BlockModeCtr << 128;
+        QTest::newRow("CTR 192-bit") << Sailfish::Crypto::CryptoManager::CryptoManager::BlockModeCtr << 192;
+        QTest::newRow("CTR 256-bit") << Sailfish::Crypto::CryptoManager::CryptoManager::BlockModeCtr << 256;
     }
 
     Sailfish::Crypto::CryptoManagerPrivate cm;

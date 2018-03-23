@@ -24,14 +24,12 @@ extern "C" {
 
 int osslevp_init();
 
-const EVP_CIPHER *osslevp_aes_cipher(int block_mode, int key_length_bytes);
-
 int osslevp_pkcs5_pbkdf2_hmac(const char *pass, int passlen,
                               const unsigned char *salt, int saltlen,
                               int iter, int digestFunction,
                               int keylen, unsigned char *out);
 
-int osslevp_aes_encrypt_plaintext(int block_mode,
+int osslevp_aes_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
                                   const unsigned char *init_vector,
                                   const unsigned char *key,
                                   int key_length,
@@ -39,7 +37,7 @@ int osslevp_aes_encrypt_plaintext(int block_mode,
                                   int plaintext_length,
                                   unsigned char **encrypted);
 
-int osslevp_aes_decrypt_ciphertext(int block_mode,
+int osslevp_aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
                                    const unsigned char *init_vector,
                                    const unsigned char *key,
                                    int key_length,

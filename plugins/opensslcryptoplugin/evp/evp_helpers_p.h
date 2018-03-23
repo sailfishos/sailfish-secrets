@@ -144,3 +144,93 @@ const EVP_MD *getEvpDigestFunction(Sailfish::Crypto::CryptoManager::DigestFuncti
     }
 }
 
+const EVP_CIPHER *getEvpCipher(int block_mode, int key_length_bytes)
+{
+    const int key_length_bits = key_length_bytes * 8;
+
+    if (block_mode == Sailfish::Crypto::CryptoManager::BlockModeEcb) {
+        switch (key_length_bits) {
+        case 128: return EVP_aes_128_ecb();
+        case 192: return EVP_aes_192_ecb();
+        case 256: return EVP_aes_256_ecb();
+        default:
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for ECB block mode", key_length_bits);
+            return NULL;
+        }
+    } else if (block_mode == Sailfish::Crypto::CryptoManager::BlockModeCbc) {
+        switch (key_length_bits) {
+        case 128: return EVP_aes_128_cbc();
+        case 192: return EVP_aes_192_cbc();
+        case 256: return EVP_aes_256_cbc();
+        default:
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for CBC block mode", key_length_bits);
+            return NULL;
+        }
+    } else if (block_mode == Sailfish::Crypto::CryptoManager::BlockModeCfb1) {
+        switch (key_length_bits) {
+        case 128: return EVP_aes_128_cfb1();
+        case 192: return EVP_aes_192_cfb1();
+        case 256: return EVP_aes_256_cfb1();
+        default:
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for CFB-1 block mode", key_length_bits);
+            return NULL;
+        }
+    } else if (block_mode == Sailfish::Crypto::CryptoManager::BlockModeCfb8) {
+        switch (key_length_bits) {
+        case 128: return EVP_aes_128_cfb8();
+        case 192: return EVP_aes_192_cfb8();
+        case 256: return EVP_aes_256_cfb8();
+        default:
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for CFB-8 block mode", key_length_bits);
+            return NULL;
+        }
+    } else if (block_mode == Sailfish::Crypto::CryptoManager::BlockModeCfb128) {
+        switch (key_length_bits) {
+        case 128: return EVP_aes_128_cfb128();
+        case 192: return EVP_aes_192_cfb128();
+        case 256: return EVP_aes_256_cfb128();
+        default:
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for CFB-128 block mode", key_length_bits);
+            return NULL;
+        }
+    } else if (block_mode == Sailfish::Crypto::CryptoManager::BlockModeOfb) {
+        switch (key_length_bits) {
+        case 128: return EVP_aes_128_ofb();
+        case 192: return EVP_aes_192_ofb();
+        case 256: return EVP_aes_256_ofb();
+        default:
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for OFB block mode", key_length_bits);
+            return NULL;
+        }
+    } else if (block_mode == Sailfish::Crypto::CryptoManager::BlockModeCtr) {
+        switch (key_length_bits) {
+        case 128: return EVP_aes_128_ctr();
+        case 192: return EVP_aes_192_ctr();
+        case 256: return EVP_aes_256_ctr();
+        default:
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for OFB block mode", key_length_bits);
+            return NULL;
+        }
+    } else if (block_mode == Sailfish::Crypto::CryptoManager::BlockModeGcm) {
+        switch (key_length_bits) {
+        case 128: return EVP_aes_128_gcm();
+        case 192: return EVP_aes_192_gcm();
+        case 256: return EVP_aes_256_gcm();
+        default:
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for GCM block mode", key_length_bits);
+            return NULL;
+        }
+    } else if (block_mode == Sailfish::Crypto::CryptoManager::BlockModeXts) {
+        switch (key_length_bits) {
+        // Note: current openssl does not support XTS 192-bit.
+        case 128: return EVP_aes_128_xts();
+        case 256: return EVP_aes_256_xts();
+        default:
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for XTS block mode", key_length_bits);
+            return NULL;
+        }
+    }
+
+    fprintf(stderr, "%s\n", "unsupported encryption mode");
+    return NULL;
+}

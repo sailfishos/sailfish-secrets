@@ -73,6 +73,10 @@ private:
         QTest::newRow("OFB 128-bit") << CryptoManager::BlockModeOfb << 128;
         QTest::newRow("OFB 192-bit") << CryptoManager::BlockModeOfb << 192;
         QTest::newRow("OFB 256-bit") << CryptoManager::BlockModeOfb << 256;
+
+        QTest::newRow("CTR 128-bit") << CryptoManager::BlockModeCtr << 128;
+        QTest::newRow("CTR 192-bit") << CryptoManager::BlockModeCtr << 192;
+        QTest::newRow("CTR 256-bit") << CryptoManager::BlockModeCtr << 256;
     }
 
     CryptoManagerPrivate cm;
