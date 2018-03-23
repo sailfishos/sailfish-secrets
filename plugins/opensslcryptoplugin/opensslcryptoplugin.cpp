@@ -162,6 +162,9 @@ Daemon::Plugins::OpenSslCryptoPlugin::supportedSignaturePaddings() const
     retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmRsa,
                 QVector<Sailfish::Crypto::CryptoManager::SignaturePadding>() << Sailfish::Crypto::CryptoManager::SignaturePaddingNone);
 
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmEc,
+                QVector<Sailfish::Crypto::CryptoManager::SignaturePadding>() << Sailfish::Crypto::CryptoManager::SignaturePaddingNone);
+
     return retn;
 }
 
@@ -171,6 +174,9 @@ Daemon::Plugins::OpenSslCryptoPlugin::supportedDigests() const
     QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::DigestFunction> > retn;
 
     retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmRsa,
+                QVector<Sailfish::Crypto::CryptoManager::DigestFunction>() << Sailfish::Crypto::CryptoManager::DigestSha256);
+
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmEc,
                 QVector<Sailfish::Crypto::CryptoManager::DigestFunction>() << Sailfish::Crypto::CryptoManager::DigestSha256);
 
     return retn;
@@ -203,6 +209,10 @@ Daemon::Plugins::OpenSslCryptoPlugin::supportedOperations() const
                 Sailfish::Crypto::CryptoManager::OperationDecrypt);
 
     retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmRsa,
+                Sailfish::Crypto::CryptoManager::OperationSign |
+                Sailfish::Crypto::CryptoManager::OperationVerify);
+
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmEc,
                 Sailfish::Crypto::CryptoManager::OperationSign |
                 Sailfish::Crypto::CryptoManager::OperationVerify);
 

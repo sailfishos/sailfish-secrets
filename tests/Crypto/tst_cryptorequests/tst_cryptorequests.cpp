@@ -93,6 +93,7 @@ private slots:
     void generateKeyEncryptDecrypt();
     void validateCertificateChain();
     void signVerify();
+    void signVerify_data();
     void calculateDigest();
     void storedKeyRequests_data();
     void storedKeyRequests();
@@ -394,23 +395,47 @@ void tst_cryptorequests::validateCertificateChain()
     QSKIP("TODO - certificate validation not yet implemented!");
 }
 
+void tst_cryptorequests::signVerify_data()
+{
+    QTest::addColumn<CryptoManager::Algorithm>("algorithm");
+
+    QTest::newRow("RSA") << CryptoManager::AlgorithmRsa;
+    QTest::newRow("EC") << CryptoManager::AlgorithmEc;
+}
+
+static inline KeyPairGenerationParameters getKeyPairGenerationParameters(CryptoManager::Algorithm algorithm)
+{
+    switch (algorithm)
+    {
+    case CryptoManager::AlgorithmRsa:
+        return RsaKeyPairGenerationParameters();
+    case CryptoManager::AlgorithmEc:
+        return EcKeyPairGenerationParameters();
+    default:
+        KeyPairGenerationParameters unknown;
+        unknown.setKeyPairType(KeyPairGenerationParameters::KeyPairUnknown);
+        return unknown;
+    }
+}
+
 void tst_cryptorequests::signVerify()
 {
-    // Generate RSA key for signing
+    QFETCH(CryptoManager::Algorithm, algorithm);
+
+    KeyPairGenerationParameters keyPairGenParams = getKeyPairGenerationParameters(algorithm);
+
+    // Generate key for signing
     // ----------------------------
 
     // Create key template
     Key keyTemplate;
-    keyTemplate.setSize(1024);
-    keyTemplate.setAlgorithm(CryptoManager::AlgorithmRsa);
+    keyTemplate.setAlgorithm(algorithm);
     keyTemplate.setOrigin(Key::OriginDevice);
     keyTemplate.setOperations(CryptoManager::OperationSign);
     keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
 
-    // Create key pair generation params, make sure it's valid
-    RsaKeyPairGenerationParameters keyPairGenParams;
-    keyPairGenParams.setModulusLength(1024);
-    keyPairGenParams.setKeyPairType(KeyPairGenerationParameters::KeyPairRsa);
+    // Key pair generation params, make sure it's valid
+    QVERIFY2(keyPairGenParams.keyPairType() != KeyPairGenerationParameters::KeyPairUnknown, "Key pair type SHOULD NOT be unknown.");
     QVERIFY2(keyPairGenParams.isValid(), "Key pair generation params are invalid.");
 
     // Create generate key request, execute, make sure it's okay
