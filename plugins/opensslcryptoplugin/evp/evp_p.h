@@ -65,6 +65,12 @@ int osslevp_verify(const EVP_MD *digestFunc,
                    const uint8_t *signature,
                    size_t signatureLength);
 
+int osslevp_generate_ec_key(int curveNid,
+                            uint8_t **publicKeyBytes,
+                            size_t *publicKeySize,
+                            uint8_t **privateKeyBytes,
+                            size_t *privateKeySize);
+
 #ifdef __cplusplus
 }
 #endif

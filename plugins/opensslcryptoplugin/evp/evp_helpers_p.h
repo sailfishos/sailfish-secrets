@@ -234,3 +234,128 @@ const EVP_CIPHER *getEvpCipher(int block_mode, int key_length_bytes)
     fprintf(stderr, "%s\n", "unsupported encryption mode");
     return NULL;
 }
+
+int getEllipticCurveNid(Sailfish::Crypto::CryptoManager::EllipticCurve curve) {
+    // TODO: add more curves
+    switch (curve) {
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2pnb163v1:
+        return NID_X9_62_c2pnb163v1;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2pnb163v2:
+        return NID_X9_62_c2pnb163v2;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2pnb163v3:
+        return NID_X9_62_c2pnb163v3;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2pnb176v1:
+        return NID_X9_62_c2pnb176v1;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2pnb208w1:
+        return NID_X9_62_c2pnb208w1;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2pnb272w1:
+        return NID_X9_62_c2pnb272w1;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2pnb304w1:
+        return NID_X9_62_c2pnb304w1;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2pnb368w1:
+        return NID_X9_62_c2pnb368w1;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2tnb191v1:
+        return NID_X9_62_c2tnb191v1;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2tnb191v2:
+        return NID_X9_62_c2tnb191v2;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2tnb191v3:
+        return NID_X9_62_c2tnb191v3;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2tnb239v1:
+        return NID_X9_62_c2tnb239v1;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2tnb239v2:
+        return NID_X9_62_c2tnb239v2;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2tnb239v3:
+        return NID_X9_62_c2tnb239v3;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2tnb359v1:
+        return NID_X9_62_c2tnb359v1;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2tnb431r1:
+        return NID_X9_62_c2tnb431r1;
+    case Sailfish::Crypto::CryptoManager::CurveSecp160k1:
+        return NID_secp160k1;
+    case Sailfish::Crypto::CryptoManager::CurveSecp160r1:
+        return NID_secp160r1;
+    case Sailfish::Crypto::CryptoManager::CurveSecp160r2:
+        return NID_secp160r2;
+    case Sailfish::Crypto::CryptoManager::CurveSecp192k1:
+        return NID_secp192k1;
+    case Sailfish::Crypto::CryptoManager::CurveSecp192r1:
+        return 0;
+    case Sailfish::Crypto::CryptoManager::CurveSecp224k1:
+        return NID_secp224k1;
+    case Sailfish::Crypto::CryptoManager::CurveSecp224r1:
+        return NID_secp224r1;
+    case Sailfish::Crypto::CryptoManager::CurveSecp256k1:
+        return NID_secp256k1;
+    case Sailfish::Crypto::CryptoManager::CurveSecp256r1:
+        return 0;
+    case Sailfish::Crypto::CryptoManager::CurveSecp384r1:
+        return NID_secp384r1;
+    case Sailfish::Crypto::CryptoManager::CurveSecp521r1:
+        return NID_secp521r1;
+    default:
+        return 0;
+    }
+}
+
+int getEllipticCurveKeySize(Sailfish::Crypto::CryptoManager::EllipticCurve curve) {
+    // TODO: add more curves
+    switch (curve) {
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2pnb163v1:
+        return 163;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2pnb163v2:
+        return 163;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2pnb163v3:
+        return 163;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2pnb176v1:
+        return 176;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2pnb208w1:
+        return 208;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2pnb272w1:
+        return 272;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2pnb304w1:
+        return 304;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2pnb368w1:
+        return 368;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2tnb191v1:
+        return 191;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2tnb191v2:
+        return 191;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2tnb191v3:
+        return 191;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2tnb239v1:
+        return 239;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2tnb239v2:
+        return 239;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2tnb239v3:
+        return 359;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2tnb359v1:
+        return 359;
+    case Sailfish::Crypto::CryptoManager::CurveAX962c2tnb431r1:
+        return 431;
+    case Sailfish::Crypto::CryptoManager::CurveSecp160k1:
+        return 160;
+    case Sailfish::Crypto::CryptoManager::CurveSecp160r1:
+        return 160;
+    case Sailfish::Crypto::CryptoManager::CurveSecp160r2:
+        return 160;
+    case Sailfish::Crypto::CryptoManager::CurveSecp192k1:
+        return 192;
+    case Sailfish::Crypto::CryptoManager::CurveSecp192r1:
+        return 192;
+    case Sailfish::Crypto::CryptoManager::CurveSecp224k1:
+        return 224;
+    case Sailfish::Crypto::CryptoManager::CurveSecp224r1:
+        return 224;
+    case Sailfish::Crypto::CryptoManager::CurveSecp256k1:
+        return 256;
+    case Sailfish::Crypto::CryptoManager::CurveSecp256r1:
+        return 256;
+    case Sailfish::Crypto::CryptoManager::CurveSecp384r1:
+        return 384;
+    case Sailfish::Crypto::CryptoManager::CurveSecp521r1:
+        return 521;
+    default:
+        return 0;
+    }
+}
+

@@ -260,6 +260,142 @@ Daemon::Plugins::OpenSslCryptoPlugin::validateCertificateChain(
 }
 
 Sailfish::Crypto::Result
+Daemon::Plugins::OpenSslCryptoPlugin::generateRsaKey(
+        const Sailfish::Crypto::Key &keyTemplate,
+        const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
+        const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+        Sailfish::Crypto::Key *key)
+{
+    Q_UNUSED(skdfParams);
+
+    if (kpgParams.keyPairType() != Sailfish::Crypto::KeyPairGenerationParameters::KeyPairRsa
+            || keyTemplate.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmRsa) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("This method can only generate RSA keys."));
+    }
+    Sailfish::Crypto::RsaKeyPairGenerationParameters rsakpgp(kpgParams);
+    if (rsakpgp.modulusLength() < 8 || rsakpgp.modulusLength() > 8192 || (rsakpgp.modulusLength() % 8) != 0) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("Unsupported modulus length specified"));
+    }
+    if (rsakpgp.publicExponent() > std::numeric_limits<quint32>::max()) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("Unsupported public exponent, too large"));
+    }
+    if (rsakpgp.numberPrimes() != 2) {
+        // RSA_generate_multi_prime_key doesn't exist in our version of openssl it seems.
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("Unsupported number of primes"));
+    }
+
+    quint32 publicExponent = rsakpgp.publicExponent();
+    QScopedPointer<BIGNUM, LibCrypto_BN_Deleter> pubExp(BN_new());
+    if (BN_set_word(pubExp.data(), publicExponent) != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                        QLatin1String("Failed to set public exponent"));
+    }
+
+    QScopedPointer<RSA, LibCrypto_RSA_Deleter> rsa(RSA_new());
+    if (RSA_generate_key_ex(rsa.data(), rsakpgp.modulusLength(), pubExp.data(), NULL) != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                        QLatin1String("Failed to initialise RSA key pair generation"));
+    }
+
+    QScopedPointer<BIO, LibCrypto_BIO_Deleter> pubbio(BIO_new(BIO_s_mem()));
+    if (PEM_write_bio_RSA_PUBKEY(pubbio.data(), rsa.data()) != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                        QLatin1String("Failed to write public key data to memory"));
+    }
+    size_t pubkeylen = BIO_pending(pubbio.data());
+    QScopedArrayPointer<unsigned char> pubdata(new unsigned char[pubkeylen]);
+    if (BIO_read(pubbio.data(), pubdata.data(), pubkeylen) < 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                        QLatin1String("Failed to read public key data from memory"));
+    }
+
+    QScopedPointer<BIO, LibCrypto_BIO_Deleter> privbio(BIO_new(BIO_s_mem()));
+    if (PEM_write_bio_RSAPrivateKey(privbio.data(), rsa.data(), NULL, NULL, 0, NULL, NULL) != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                        QLatin1String("Failed to write private key data to memory"));
+    }
+    size_t privkeylen = BIO_pending(privbio.data());
+    QScopedArrayPointer<unsigned char> privdata(new unsigned char[privkeylen]);
+    if (BIO_read(privbio.data(), privdata.data(), privkeylen) < 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                        QLatin1String("Failed to read private key data from memory"));
+    }
+
+    *key = keyTemplate;
+    key->setPublicKey(QByteArray(reinterpret_cast<const char *>(pubdata.data()), pubkeylen));
+    key->setPrivateKey(QByteArray(reinterpret_cast<const char *>(privdata.data()), privkeylen));
+    key->setSize(rsakpgp.modulusLength());
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
+}
+
+Sailfish::Crypto::Result
+Daemon::Plugins::OpenSslCryptoPlugin::generateEcKey(
+        const Sailfish::Crypto::Key &keyTemplate,
+        const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
+        const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+        Sailfish::Crypto::Key *key)
+{
+    Q_UNUSED(skdfParams);
+
+    if (kpgParams.keyPairType() != Sailfish::Crypto::KeyPairGenerationParameters::KeyPairEc
+            || keyTemplate.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmEc) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("This method can only generate EC keys."));
+    }
+
+    EcKeyPairGenerationParameters ecParams(kpgParams);
+
+    int curveNid = getEllipticCurveNid(ecParams.ellipticCurve());
+    if (curveNid == 0) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("The given elliptic curve is not supported."));
+    }
+
+    int curveKeySize = getEllipticCurveKeySize(ecParams.ellipticCurve());
+    if (curveKeySize == 0) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("The given elliptic curve is not supported."));
+    }
+
+    uint8_t *privateKeyBuffer = Q_NULLPTR;
+    size_t privateKeySize = 0;
+    uint8_t *publicKeyBuffer = Q_NULLPTR;
+    size_t publicKeySize = 0;
+    int r = osslevp_generate_ec_key(curveNid,
+                                    &publicKeyBuffer,
+                                    &publicKeySize,
+                                    &privateKeyBuffer,
+                                    &privateKeySize);
+
+    // Check result from EVP
+    if (r == -2) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("The given elliptic curve is not supported by OpenSSL."));
+    }
+    if (r != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                        QLatin1String("Error happened while generating the EC key."));
+    }
+
+    // Set resulting key
+    *key = keyTemplate;
+    key->setAlgorithm(CryptoManager::AlgorithmEc);
+    key->setPrivateKey(QByteArray(reinterpret_cast<const char*>(privateKeyBuffer), privateKeySize));
+    key->setPublicKey(QByteArray(reinterpret_cast<const char*>(publicKeyBuffer), publicKeySize));
+    key->setSize(curveKeySize);
+
+    // Free the remaining OpenSSL data
+    OPENSSL_free(privateKeyBuffer);
+    OPENSSL_free(publicKeyBuffer);
+
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
+}
+
+Sailfish::Crypto::Result
 Daemon::Plugins::OpenSslCryptoPlugin::generateKey(
         const Sailfish::Crypto::Key &keyTemplate,
         const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
@@ -268,68 +404,21 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateKey(
 {
     // generate an asymmetrical key pair if required
     if (kpgParams.isValid()) {
-        if (kpgParams.keyPairType() != Sailfish::Crypto::KeyPairGenerationParameters::KeyPairRsa
-                || keyTemplate.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmRsa) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                            QLatin1String("TODO: algorithms other than Rsa"));
+        switch (kpgParams.keyPairType()) {
+            case Sailfish::Crypto::KeyPairGenerationParameters::KeyPairRsa:
+                return generateRsaKey(keyTemplate,
+                                      kpgParams,
+                                      skdfParams,
+                                      key);
+            case Sailfish::Crypto::KeyPairGenerationParameters::KeyPairEc:
+                return generateEcKey(keyTemplate,
+                                     kpgParams,
+                                     skdfParams,
+                                     key);
+            default:
+                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                                QLatin1String("Can't generate specified key type, it's not supported yet."));
         }
-        Sailfish::Crypto::RsaKeyPairGenerationParameters rsakpgp(kpgParams);
-        if (rsakpgp.modulusLength() < 8 || rsakpgp.modulusLength() > 8192 || (rsakpgp.modulusLength() % 8) != 0) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                            QLatin1String("Unsupported modulus length specified"));
-        }
-        if (rsakpgp.publicExponent() > std::numeric_limits<quint32>::max()) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                            QLatin1String("Unsupported public exponent, too large"));
-        }
-        if (rsakpgp.numberPrimes() != 2) {
-            // RSA_generate_multi_prime_key doesn't exist in our version of openssl it seems.
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                            QLatin1String("Unsupported number of primes"));
-        }
-
-        quint32 publicExponent = rsakpgp.publicExponent();
-        QScopedPointer<BIGNUM, LibCrypto_BN_Deleter> pubExp(BN_new());
-        if (BN_set_word(pubExp.data(), publicExponent) != 1) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
-                                            QLatin1String("Failed to set public exponent"));
-        }
-
-        QScopedPointer<RSA, LibCrypto_RSA_Deleter> rsa(RSA_new());
-        if (RSA_generate_key_ex(rsa.data(), rsakpgp.modulusLength(), pubExp.data(), NULL) != 1) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
-                                            QLatin1String("Failed to initialise RSA key pair generation"));
-        }
-
-        QScopedPointer<BIO, LibCrypto_BIO_Deleter> pubbio(BIO_new(BIO_s_mem()));
-        if (PEM_write_bio_RSA_PUBKEY(pubbio.data(), rsa.data()) != 1) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
-                                            QLatin1String("Failed to write public key data to memory"));
-        }
-        size_t pubkeylen = BIO_pending(pubbio.data());
-        QScopedArrayPointer<unsigned char> pubdata(new unsigned char[pubkeylen]);
-        if (BIO_read(pubbio.data(), pubdata.data(), pubkeylen) < 1) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
-                                            QLatin1String("Failed to read public key data from memory"));
-        }
-
-        QScopedPointer<BIO, LibCrypto_BIO_Deleter> privbio(BIO_new(BIO_s_mem()));
-        if (PEM_write_bio_RSAPrivateKey(privbio.data(), rsa.data(), NULL, NULL, 0, NULL, NULL) != 1) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
-                                            QLatin1String("Failed to write private key data to memory"));
-        }
-        size_t privkeylen = BIO_pending(privbio.data());
-        QScopedArrayPointer<unsigned char> privdata(new unsigned char[privkeylen]);
-        if (BIO_read(privbio.data(), privdata.data(), privkeylen) < 1) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
-                                            QLatin1String("Failed to read private key data from memory"));
-        }
-
-        *key = keyTemplate;
-        key->setPublicKey(QByteArray(reinterpret_cast<const char *>(pubdata.data()), pubkeylen));
-        key->setPrivateKey(QByteArray(reinterpret_cast<const char *>(privdata.data()), privkeylen));
-        key->setSize(rsakpgp.modulusLength());
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
     }
 
     // otherwise generate a random symmetric key unless a key derivation function is required

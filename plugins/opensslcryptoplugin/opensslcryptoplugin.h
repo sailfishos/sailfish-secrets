@@ -174,6 +174,18 @@ private:
     QByteArray aes_encrypt_plaintext(Sailfish::Crypto::CryptoManager::BlockMode blockMode, const QByteArray &plaintext, const QByteArray &key, const QByteArray &init_vector);
     QByteArray aes_decrypt_ciphertext(Sailfish::Crypto::CryptoManager::BlockMode blockMode, const QByteArray &ciphertext, const QByteArray &key, const QByteArray &init_vector);
 
+    Sailfish::Crypto::Result generateRsaKey(
+            const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
+            const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+            Sailfish::Crypto::Key *key);
+
+    Sailfish::Crypto::Result generateEcKey(
+            const Sailfish::Crypto::Key &keyTemplate,
+            const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
+            const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+            Sailfish::Crypto::Key *key);
+
     Sailfish::Crypto::Key getFullKey(const Sailfish::Crypto::Key &key);
     QMap<quint64, QMap<quint32, CipherSessionData*> > m_cipherSessions; // clientId to token to data
     struct CipherSessionLookup {

@@ -6,6 +6,8 @@
  */
 
 #include "evp_p.h"
+#include <openssl/ec.h>
+#include <openssl/pem.h>
 
 #define OSSLEVP_PRINT_ERR(message) \
     fprintf(stderr, "%s#%d, %s: %s\n", __FILE__, __LINE__, __FUNCTION__, message);
@@ -406,6 +408,118 @@ int osslevp_verify(const EVP_MD *digestFunc,
 
     err_free_mdctx:
     EVP_MD_CTX_destroy(mdctx);
+    err_dontfree:
+    return r;
+}
+
+/*
+    int osslevp_generate_ec_key(int curveNid,
+                                uint8_t **publicKeyBytes,
+                                size_t *publicKeySize,
+                                uint8_t **privateKeyBytes,
+                                size_t *privateKeySize)
+
+    Generates an EC key according to:
+    https://wiki.openssl.org/index.php/EVP_Key_and_Parameter_Generation
+
+    Arguments:
+    * curveNid: the NID of the curve to use
+    * publicKeyBytes: this is where the generated public key will be allocated, needs to be freed with OPENSSL_free
+    * keyByteCount: this is where the byte count of the generated public key will be written
+    * privateKeyBytes: this is where the generated private key will be allocated, needs to be freed with OPENSSL_free
+    * privateKeySize: this is where the byte count of the generated private key will be written
+
+    Return value:
+    * 1 when successful
+    * less than 0 when there was an error and the operation was unsuccessful:
+      -1 indicates general error
+      -2 indicates unsupported curve
+ */
+int osslevp_generate_ec_key(int curveNid,
+                            uint8_t **publicKeyBytes,
+                            size_t *publicKeySize,
+                            uint8_t **privateKeyBytes,
+                            size_t *privateKeySize)
+{
+    int r = -1;
+    EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL);
+    OSSLEVP_HANDLE_ERR(pctx == NULL, r = -1, "failed to allocate memory for key parameter generation context", err_dontfree);
+
+    r = EVP_PKEY_paramgen_init(pctx);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialise parameter generation", err_free_pctx);
+
+    r = EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pctx, curveNid);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -2, "failed to set EC curve NID", err_free_pctx);
+
+    EVP_PKEY *params = NULL;
+    r = EVP_PKEY_paramgen(pctx, &params);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to generate key parameters", err_free_pctx);
+
+    EVP_PKEY_CTX *kctx = EVP_PKEY_CTX_new(params, NULL);
+    OSSLEVP_HANDLE_ERR(kctx == NULL, r = -1, "failed to allocate memory for key generation context", err_free_params);
+
+    r = EVP_PKEY_keygen_init(kctx);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialise key generation", err_free_kctx);
+
+    EVP_PKEY *key = NULL;
+    r = EVP_PKEY_keygen(kctx, &key);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to generate key", err_free_kctx);
+
+    BIO *bioPrivateKey = BIO_new(BIO_s_mem());
+    OSSLEVP_HANDLE_ERR(bioPrivateKey == NULL, r = -1, "failed to allocate memory for private key BIO", err_free_key);
+
+    r = PEM_write_bio_PrivateKey(bioPrivateKey, key, NULL, NULL, 0, NULL, NULL);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to write private key to BIO in PEM format", err_free_bioPrivateKey);
+    size_t privKeyLength = BIO_get_mem_data(bioPrivateKey, NULL);
+
+    BIO *bioPublicKey = BIO_new(BIO_s_mem());
+    OSSLEVP_HANDLE_ERR(bioPublicKey == NULL, r = -1, "failed to allocate memory for public key BIO", err_free_bioPrivateKey);
+
+    r = PEM_write_bio_PUBKEY(bioPublicKey, key);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to write public key to BIO in PEM format", err_free_bioPublicKey);
+    size_t pubKeyLength = BIO_get_mem_data(bioPublicKey, NULL);
+
+    uint8_t *privKeyBuffer = (uint8_t *) OPENSSL_malloc(privKeyLength);
+    OSSLEVP_HANDLE_ERR(privKeyBuffer == NULL, r = -1, "failed to allocate memory for private key buffer", err_free_bioPublicKey);
+
+    uint8_t *pubKeyBuffer = (uint8_t *) OPENSSL_malloc(pubKeyLength);
+    OSSLEVP_HANDLE_ERR(pubKeyBuffer == NULL, r = -1, "failed to allocate memory for public key buffer", err_free_privKeyBuffer);
+
+    r = BIO_read(bioPrivateKey, privKeyBuffer, privKeyLength);
+    OSSLEVP_HANDLE_ERR(r != (int) privKeyLength, r = -1, "failed to copy private key into buffer", err_free_pubKeyBuffer);
+
+    r = BIO_read(bioPublicKey, pubKeyBuffer, pubKeyLength);
+    OSSLEVP_HANDLE_ERR(r != (int) pubKeyLength, r = -1, "failed to copy public key into buffer", err_free_pubKeyBuffer);
+
+    // Set output parameters and return value, then goto the appropriate label
+    *publicKeyBytes = pubKeyBuffer;
+    *publicKeySize = pubKeyLength;
+    *privateKeyBytes = privKeyBuffer;
+    *privateKeySize = privKeyLength;
+    r = 1;
+    goto success;
+
+    // These should only be called when an error occours.
+    // Otherwise should be freed by the caller with OPENSSL_free.
+    err_free_pubKeyBuffer:
+    OPENSSL_free(pubKeyBuffer);
+    err_free_privKeyBuffer:
+    OPENSSL_free(privKeyBuffer);
+
+    // These should be freed during normal operation, too.
+    success:
+    err_free_bioPublicKey:
+    BIO_free(bioPublicKey);
+    err_free_bioPrivateKey:
+    BIO_free(bioPrivateKey);
+    err_free_key:
+    EVP_PKEY_free(key);
+    err_free_kctx:
+    EVP_PKEY_CTX_free(kctx);
+    err_free_params:
+    EVP_PKEY_free(params);
+    err_free_pctx:
+    EVP_PKEY_CTX_free(pctx);
     err_dontfree:
     return r;
 }

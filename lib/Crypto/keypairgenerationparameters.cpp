@@ -219,6 +219,7 @@ EcKeyPairGenerationParameters::EcKeyPairGenerationParameters()
     : KeyPairGenerationParameters()
 {
     setKeyPairType(KeyPairGenerationParameters::KeyPairEc);
+    setEllipticCurve(CryptoManager::CurveSecp384r1);
 }
 
 /*!
