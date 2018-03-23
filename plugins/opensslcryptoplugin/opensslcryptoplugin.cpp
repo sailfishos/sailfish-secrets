@@ -174,10 +174,11 @@ Daemon::Plugins::OpenSslCryptoPlugin::supportedDigests() const
     QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::DigestFunction> > retn;
 
     retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmRsa,
-                QVector<Sailfish::Crypto::CryptoManager::DigestFunction>() << Sailfish::Crypto::CryptoManager::DigestSha256);
+                { CryptoManager::DigestSha256, CryptoManager::DigestSha512, CryptoManager::DigestMd5 });
 
+    // NOTE: openssl says "invalid digest" when trying MD5 with EC
     retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmEc,
-                QVector<Sailfish::Crypto::CryptoManager::DigestFunction>() << Sailfish::Crypto::CryptoManager::DigestSha256);
+                { CryptoManager::DigestSha256, CryptoManager::DigestSha512 });
 
     return retn;
 }

@@ -137,10 +137,12 @@ const EVP_MD *getEvpDigestFunction(Sailfish::Crypto::CryptoManager::DigestFuncti
     switch (digestFunction) {
     case Sailfish::Crypto::CryptoManager::DigestSha256:
         return EVP_sha256();
-        break;
+    case Sailfish::Crypto::CryptoManager::DigestSha512:
+        return EVP_sha512();
+    case Sailfish::Crypto::CryptoManager::DigestMd5:
+        return EVP_md5();
     default:
         return Q_NULLPTR;
-        break;
     }
 }
 
