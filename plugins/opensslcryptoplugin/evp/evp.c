@@ -7,6 +7,17 @@
 
 #include "evp_p.h"
 
+#define OSSLEVP_PRINT_ERR(message) \
+    fprintf(stderr, "%s#%d, %s: %s\n", __FILE__, __LINE__, __FUNCTION__, message);
+
+#define OSSLEVP_HANDLE_ERR(condition, result, message, labelname) \
+    if (condition) {                 \
+        ERR_print_errors_fp(stderr); \
+        OSSLEVP_PRINT_ERR(message);  \
+        result;                      \
+        goto labelname;              \
+    }
+
 /*
     int osslevp_init()
 
@@ -267,67 +278,31 @@ int osslevp_digest(const EVP_MD *digestFunc,
                    uint8_t **digest,
                    size_t *digestLength)
 {
+    int r = -1;
     EVP_MD_CTX *mdctx = EVP_MD_CTX_create();
-    if (!mdctx) {
-        ERR_print_errors_fp(stderr);
-        fprintf(stderr,
-                "%s: %s\n",
-                __FUNCTION__,
-                "failed to allocate memory for MD context");
-        return -1;
-    }
+    OSSLEVP_HANDLE_ERR(mdctx == NULL, r = -1, "failed to allocate memory for MD context", err_dontfree);
 
-    int r = EVP_DigestInit_ex(mdctx, digestFunc, NULL);
-    if (r != 1) {
-        ERR_print_errors_fp(stderr);
-        EVP_MD_CTX_destroy(mdctx);
-        fprintf(stderr,
-                "%s: %s\n",
-                __FUNCTION__,
-                "failed to initialise Digest");
-        return -1;
-    }
+    r = EVP_DigestInit_ex(mdctx, digestFunc, NULL);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialise Digest", err_free_mdctx);
 
     r = EVP_DigestUpdate(mdctx, bytes, bytesCount);
-    if (r != 1) {
-        ERR_print_errors_fp(stderr);
-        EVP_MD_CTX_destroy(mdctx);
-        fprintf(stderr,
-                "%s: %s\n",
-                __FUNCTION__,
-                "failed to update Digest");
-        return -1;
-    }
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to update Digest", err_free_mdctx);
 
     *digestLength = EVP_MD_size(digestFunc);
     *digest = (uint8_t *) OPENSSL_malloc(*digestLength);
-    if (!digest) {
-        EVP_MD_CTX_destroy(mdctx);
-        fprintf(stderr,
-                "%s: %s\n",
-                __FUNCTION__,
-                "failed to allocate memory for digest");
-        return -1;
-    }
+    OSSLEVP_HANDLE_ERR(*digest == NULL, r = -1, "failed to allocate memory for digest", err_free_mdctx);
 
     unsigned int actualDigestLength = 0;
     r = EVP_DigestFinal_ex(mdctx, *digest, &actualDigestLength);
-    if (r != 1) {
-        ERR_print_errors_fp(stderr);
-        EVP_MD_CTX_destroy(mdctx);
-        OPENSSL_free(*digest);
-        fprintf(stderr,
-                "%s: %s\n",
-                __FUNCTION__,
-                "failed to finalize DigestSign (2nd call)");
-        return -1;
-    }
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1; OPENSSL_free(*digest), "failed to finalize Digest", err_free_mdctx);
 
     // Set correct length to the output argument
     *digestLength = actualDigestLength;
 
+    err_free_mdctx:
     EVP_MD_CTX_destroy(mdctx);
-    return 1;
+    err_dontfree:
+    return r;
 }
 
 /*
@@ -360,73 +335,29 @@ int osslevp_sign(const EVP_MD *digestFunc,
                  uint8_t **signature,
                  size_t *signatureLength)
 {
+    int r = -1;
     EVP_MD_CTX *mdctx = EVP_MD_CTX_create();
-    if (!mdctx) {
-        ERR_print_errors_fp(stderr);
-        fprintf(stderr,
-                "%s: %s\n",
-                __FUNCTION__,
-                "failed to allocate memory for MD context");
-        return -1;
-    }
+    OSSLEVP_HANDLE_ERR(mdctx == NULL, r = -1, "failed to allocate memory for MD context", err_dontfree);
 
-    int r = EVP_DigestSignInit(mdctx, NULL, digestFunc, NULL, pkey);
-    if (r != 1) {
-        ERR_print_errors_fp(stderr);
-        EVP_MD_CTX_destroy(mdctx);
-        fprintf(stderr,
-                "%s: %s\n",
-                __FUNCTION__,
-                "failed to initialise DigestSign");
-        return -1;
-    }
+    r = EVP_DigestSignInit(mdctx, NULL, digestFunc, NULL, pkey);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialise DigestSign", err_free_mdctx);
 
     r = EVP_DigestSignUpdate(mdctx, bytes, bytesCount);
-    if (r != 1) {
-        ERR_print_errors_fp(stderr);
-        EVP_MD_CTX_destroy(mdctx);
-        fprintf(stderr,
-                "%s: %s\n",
-                __FUNCTION__,
-                "failed to update DigestSign");
-        return -1;
-    }
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to update DigestSign", err_free_mdctx);
 
     r = EVP_DigestSignFinal(mdctx, NULL, signatureLength);
-    if (r != 1) {
-        ERR_print_errors_fp(stderr);
-        EVP_MD_CTX_destroy(mdctx);
-        fprintf(stderr,
-                "%s: %s\n",
-                __FUNCTION__,
-                "failed to finalize DigestSign (1st call)");
-        return -1;
-    }
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to finalise DigestSign (1st call)", err_free_mdctx);
 
     *signature = (uint8_t *) OPENSSL_malloc(*signatureLength);
-    if (!signature) {
-        EVP_MD_CTX_destroy(mdctx);
-        fprintf(stderr,
-                "%s: %s\n",
-                __FUNCTION__,
-                "failed to allocate memory for signature");
-        return -1;
-    }
+    OSSLEVP_HANDLE_ERR(*signature == NULL, r = -1, "failed to allocate memory for signature", err_free_mdctx);
 
     r = EVP_DigestSignFinal(mdctx, *signature, signatureLength);
-    if (r != 1) {
-        ERR_print_errors_fp(stderr);
-        EVP_MD_CTX_destroy(mdctx);
-        OPENSSL_free(*signature);
-        fprintf(stderr,
-                "%s: %s\n",
-                __FUNCTION__,
-                "failed to finalize DigestSign (2nd call)");
-        return -1;
-    }
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1; OPENSSL_free(*signature), "failed to finalise DigestSign (2nd call)", err_free_mdctx);
 
+    err_free_mdctx:
     EVP_MD_CTX_destroy(mdctx);
-    return 1;
+    err_dontfree:
+    return r;
 }
 
 /*
@@ -460,49 +391,21 @@ int osslevp_verify(const EVP_MD *digestFunc,
                    const uint8_t *signature,
                    size_t signatureLength)
 {
+    int r = -1;
     EVP_MD_CTX *mdctx = EVP_MD_CTX_create();
-    if (!mdctx) {
-        ERR_print_errors_fp(stderr);
-        fprintf(stderr,
-                "%s: %s\n",
-                __FUNCTION__,
-                "failed to allocate memory for MD context");
-        return -1;
-    }
+    OSSLEVP_HANDLE_ERR(mdctx == NULL, r = -1, "failed to allocate memory for MD context", err_dontfree);
 
-    int r = EVP_DigestVerifyInit(mdctx, NULL, digestFunc, NULL, pkey);
-    if (r != 1) {
-        ERR_print_errors_fp(stderr);
-        EVP_MD_CTX_destroy(mdctx);
-        fprintf(stderr,
-                "%s: %s\n",
-                __FUNCTION__,
-                "failed to initialise DigestVerify");
-        return -1;
-    }
+    r = EVP_DigestVerifyInit(mdctx, NULL, digestFunc, NULL, pkey);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialise DigestVerify", err_free_mdctx);
 
     r = EVP_DigestVerifyUpdate(mdctx, bytes, bytesCount);
-    if (r != 1) {
-        ERR_print_errors_fp(stderr);
-        EVP_MD_CTX_destroy(mdctx);
-        fprintf(stderr,
-                "%s: %s\n",
-                __FUNCTION__,
-                "failed to update DigestVerify");
-        return -1;
-    }
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to update DigestVerify", err_free_mdctx);
 
     r = EVP_DigestVerifyFinal(mdctx, signature, signatureLength);
-    if (r < 0) {
-        ERR_print_errors_fp(stderr);
-        EVP_MD_CTX_destroy(mdctx);
-        fprintf(stderr,
-                "%s: %s\n",
-                __FUNCTION__,
-                "failed to finalize DigestVerify");
-        return r;
-    }
+    OSSLEVP_HANDLE_ERR(r < 0,, "failed to finalize DigestVerify", err_free_mdctx);
 
+    err_free_mdctx:
     EVP_MD_CTX_destroy(mdctx);
+    err_dontfree:
     return r;
 }
