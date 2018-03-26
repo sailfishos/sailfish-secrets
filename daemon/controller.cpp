@@ -108,7 +108,7 @@ Sailfish::Secrets::Daemon::Controller::crypto() const
     return m_crypto;
 }
 
-QSharedPointer<QThreadPool> Sailfish::Secrets::Daemon::Controller::threadPoolForPlugin(const QString &pluginName) const
+QWeakPointer<QThreadPool> Sailfish::Secrets::Daemon::Controller::threadPoolForPlugin(const QString &pluginName) const
 {
     if (m_secrets->potentialCryptoStoragePlugins().contains(pluginName)) {
         return m_secrets->secretsThreadPool();

@@ -523,6 +523,7 @@ public:
                        bool autotestMode);
     ~CryptoRequestQueue();
 
+    Sailfish::Secrets::Daemon::Controller *controller();
     QWeakPointer<QThreadPool> cryptoThreadPool();
     QMap<QString, Sailfish::Crypto::CryptoPlugin*> plugins() const;
     bool lockPlugins();
@@ -536,6 +537,7 @@ public:
 private:
     QSharedPointer<QThreadPool> m_cryptoThreadPool;
     Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor *m_requestProcessor;
+    Sailfish::Secrets::Daemon::Controller *m_controller;
 };
 
 enum RequestType {
