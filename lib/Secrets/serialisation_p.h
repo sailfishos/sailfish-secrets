@@ -21,6 +21,7 @@
 #include "Secrets/secretmanager.h"
 #include "Secrets/interactionparameters.h"
 #include "Secrets/interactionresponse.h"
+#include "Secrets/lockcoderequest.h"
 
 #include <QtDBus/QDBusArgument>
 #include <QtDBus/QDBusMetaType>
@@ -68,6 +69,9 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Inte
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionParameters &request) SAILFISH_SECRETS_API;
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionResponse &response) SAILFISH_SECRETS_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionResponse &response) SAILFISH_SECRETS_API;
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::LockCodeRequest::LockCodeTargetType &type) SAILFISH_SECRETS_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::LockCodeRequest::LockCodeTargetType &type) SAILFISH_SECRETS_API;
 
 } // namespace Secrets
 

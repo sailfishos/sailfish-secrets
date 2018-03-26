@@ -25,6 +25,7 @@ public:
 
     QString m_keyName;
     QString m_collectionName;
+    QString m_pluginName;
     QString m_applicationId;
     Sailfish::Crypto::InteractionParameters::Operation m_operation = Sailfish::Crypto::InteractionParameters::UnknownOperation;
     QString m_authenticationPluginName;

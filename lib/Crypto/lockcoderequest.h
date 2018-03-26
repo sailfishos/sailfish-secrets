@@ -5,13 +5,13 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#ifndef LIBSAILFISHSECRETS_LOCKCODEREQUEST_H
-#define LIBSAILFISHSECRETS_LOCKCODEREQUEST_H
+#ifndef LIBSAILFISHCRYPTO_LOCKCODEREQUEST_H
+#define LIBSAILFISHCRYPTO_LOCKCODEREQUEST_H
 
-#include "Secrets/secretsglobal.h"
-#include "Secrets/request.h"
-#include "Secrets/secret.h"
-#include "Secrets/secretmanager.h"
+#include "Crypto/cryptoglobal.h"
+#include "Crypto/request.h"
+#include "Crypto/cryptomanager.h"
+#include "Crypto/interactionparameters.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QScopedPointer>
@@ -19,17 +19,16 @@
 
 namespace Sailfish {
 
-namespace Secrets {
+namespace Crypto {
 
 class LockCodeRequestPrivate;
-class SAILFISH_SECRETS_API LockCodeRequest : public Sailfish::Secrets::Request
+class SAILFISH_CRYPTO_API LockCodeRequest : public Sailfish::Crypto::Request
 {
     Q_OBJECT
     Q_PROPERTY(LockCodeRequestType lockCodeRequestType READ lockCodeRequestType WRITE setLockCodeRequestType NOTIFY lockCodeRequestTypeChanged)
     Q_PROPERTY(LockCodeTargetType lockCodeTargetType READ lockCodeTargetType WRITE setLockCodeTargetType NOTIFY lockCodeTargetTypeChanged)
     Q_PROPERTY(QString lockCodeTarget READ lockCodeTarget WRITE setLockCodeTarget NOTIFY lockCodeTargetChanged)
-    Q_PROPERTY(Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode READ userInteractionMode WRITE setUserInteractionMode NOTIFY userInteractionModeChanged)
-    Q_PROPERTY(Sailfish::Secrets::InteractionParameters interactionParameters READ interactionParameters WRITE setInteractionParameters NOTIFY interactionParametersChanged)
+    Q_PROPERTY(Sailfish::Crypto::InteractionParameters interactionParameters READ interactionParameters WRITE setInteractionParameters NOTIFY interactionParametersChanged)
 
 public:
     enum LockCodeRequestType {
@@ -40,10 +39,7 @@ public:
     Q_ENUM(LockCodeRequestType)
 
     enum LockCodeTargetType {
-        BookkeepingDatabase = 0,
-        ExtensionPlugin,
-        Collection,
-        StandaloneSecret
+        ExtensionPlugin = 1,
     };
     Q_ENUM(LockCodeTargetType)
 
@@ -59,17 +55,14 @@ public:
     QString lockCodeTarget() const;
     void setLockCodeTarget(const QString &targetName);
 
-    Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode() const;
-    void setUserInteractionMode(Sailfish::Secrets::SecretManager::UserInteractionMode mode);
-
     InteractionParameters interactionParameters() const;
     void setInteractionParameters(const InteractionParameters &params);
 
-    Sailfish::Secrets::Request::Status status() const Q_DECL_OVERRIDE;
-    Sailfish::Secrets::Result result() const Q_DECL_OVERRIDE;
+    Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
+    Sailfish::Crypto::Result result() const Q_DECL_OVERRIDE;
 
-    Sailfish::Secrets::SecretManager *manager() const Q_DECL_OVERRIDE;
-    void setManager(Sailfish::Secrets::SecretManager *manager) Q_DECL_OVERRIDE;
+    Sailfish::Crypto::CryptoManager *manager() const Q_DECL_OVERRIDE;
+    void setManager(Sailfish::Crypto::CryptoManager *manager) Q_DECL_OVERRIDE;
 
     void startRequest() Q_DECL_OVERRIDE;
     void waitForFinished() Q_DECL_OVERRIDE;
@@ -78,7 +71,6 @@ Q_SIGNALS:
     void lockCodeRequestTypeChanged();
     void lockCodeTargetTypeChanged();
     void lockCodeTargetChanged();
-    void userInteractionModeChanged();
     void interactionParametersChanged();
 
 private:
@@ -86,8 +78,8 @@ private:
     Q_DECLARE_PRIVATE(LockCodeRequest)
 };
 
-} // namespace Secrets
+} // namespace Crypto
 
 } // namespace Sailfish
 
-#endif // LIBSAILFISHSECRETS_LOCKCODEREQUEST_H
+#endif // LIBSAILFISHCRYPTO_LOCKCODEREQUEST_H

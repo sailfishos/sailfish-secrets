@@ -5,22 +5,21 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#include "Secrets/lockcoderequest.h"
-#include "Secrets/lockcoderequest_p.h"
+#include "Crypto/lockcoderequest.h"
+#include "Crypto/lockcoderequest_p.h"
 
-#include "Secrets/secretmanager.h"
-#include "Secrets/secretmanager_p.h"
-#include "Secrets/serialisation_p.h"
+#include "Crypto/cryptomanager.h"
+#include "Crypto/cryptomanager_p.h"
+#include "Crypto/serialisation_p.h"
 
 #include <QtDBus/QDBusPendingReply>
 #include <QtDBus/QDBusPendingCallWatcher>
 
-using namespace Sailfish::Secrets;
+using namespace Sailfish::Crypto;
 
 LockCodeRequestPrivate::LockCodeRequestPrivate()
     : m_lockCodeRequestType(LockCodeRequest::ModifyLockCode)
-    , m_lockCodeTargetType(LockCodeRequest::BookkeepingDatabase)
-    , m_userInteractionMode(SecretManager::SystemInteraction)
+    , m_lockCodeTargetType(LockCodeRequest::ExtensionPlugin)
     , m_status(Request::Inactive)
 {
 }
@@ -28,52 +27,46 @@ LockCodeRequestPrivate::LockCodeRequestPrivate()
 /*!
  * \class LockCodeRequest
  * \brief Allows a client to request that the system service either
- *        unlock, lock, or modify the lock code associated with the
- *        device, an extension plugin, a standalone secret or a
- *        collection.
+ *        unlock, lock, or modify the lock code associated with a plugin.
  *
  * \b{Note: most clients will never need to use this class, as the
  * other request types automatically trigger locking and relocking
  * flows as required.}
  *
- * The operation will be applied to the secrets bookkeeping database
- * of the device, an extension plugin, a custom-locked collection or
- * a standalone secret specified by the \l{lockCodeTargetType()} and
- * \l{lockCodeTarget()} parameters.  This operation is only valid for
- * custom-locked collections or secrets when performed by a non-privileged
- * application.
+ * The operation will be applied to the plugin specified by the
+ * \l{lockCodeTarget()}.  Only some plugins support these operations,
+ * and in some cases only privileged applications (such as the system
+ * settings application) may be permitted to perform these operations.
  *
  * If the \l{lockCodeRequestType()} specified is \l{ModifyLockCode}
  * then the user will be prompted (via a system-mediated user interaction
  * flow) for the current lock code, and if that matches the existing
- * lock code, they will then be prompted for the new lock code.  The
- * datum will then be re-encrypted with a key derived from the new lock code.
+ * lock code, they will then be prompted for the new lock code.
  *
  * If the \l{lockCodeRequestType()} specified is \l{ProvideLockCode}
  * then the user will be prompted (via a system-mediated user interaction
- * flow) for the current lock code, which will be used to unlock the datum.
+ * flow) for the current lock code, which will be used to unlock the plugin.
  *
  * If the \l{lockCodeRequestType()} specified is \l{ForgetLockCode}
  * then if the datum is currently unlocked, the user will be prompted (via a
  * system-mediated user interaction flow) for the current lock code, and if
- * it matches the actual lock code, the datum will be locked.
+ * it matches the actual lock code, the plugin will be locked.
  *
- * An example of modifying the lock code used for a custom-locked collection
- * follows:
+ * An example of modifying the lock code used for a particular plugin follows:
  *
  * \code
  * // Require an alpha-numeric lock code to be provided
- * Sailfish::Secrets::InteractionParameters uiParams;
- * uiParams.setInputType(Sailfish::Secrets::InteractionParameters::AlphaNumericInput);
- * uiParams.setEchoMode(Sailfish::Secrets::InteractionParameters::PasswordEcho);
+ * Sailfish::Crypto::InteractionParameters uiParams;
+ * uiParams.setInputType(Sailfish::Crypto::InteractionParameters::AlphaNumericInput);
+ * uiParams.setEchoMode(Sailfish::Crypto::InteractionParameters::PasswordEcho);
  *
  * // Request that the collection be re-keyed.
- * Sailfish::Secrets::SecretManager sm;
- * Sailfish::Secrets::LockCodeRequest lcr;
- * lcr.setManager(&sm);
- * lcr.setLockCodeRequestType(Sailfish::Secrets::LockCodeRequest::ModifyLockCode);
- * lcr.setLockCodeTargetType(Sailfish::Secrets::LockCodeRequest::Collection);
- * lcr.setLockCodeTarget(QLatin1String("Some custom-locked collection"));
+ * Sailfish::Crypto::CryptoManager cm;
+ * Sailfish::Crypto::LockCodeRequest lcr;
+ * lcr.setManager(&cm);
+ * lcr.setLockCodeRequestType(Sailfish::Crypto::LockCodeRequest::ModifyLockCode);
+ * lcr.setLockCodeTargetType(Sailfish::Crypto::LockCodeRequest::ExtensionPlugin);
+ * lcr.setLockCodeTarget(QLatin1String("some.crypto.extension.plugin.name"));
  * lcr.setInteractionParameters(uiParams);
  * lcr.startRequest(); // status() will change to Finished when complete
  * \endcode
@@ -132,12 +125,6 @@ LockCodeRequest::LockCodeTargetType LockCodeRequest::lockCodeTargetType() const
 /*!
  * \brief Sets the type of the target of the lock code operation to \a type
  *
- * Only privileged applications (usually, the system settings application)
- * can perform lock code operations on the bookkeeping database.
- *
- * Only the owner of a collection or standalone-secret can perform lock code
- * operations on that collection or secret.
- *
  * Some plugins must be unlocked prior to use, and such plugins should
  * document their semantics for their intended clients.
  */
@@ -151,43 +138,6 @@ void LockCodeRequest::setLockCodeTargetType(LockCodeRequest::LockCodeTargetType 
             emit statusChanged();
         }
         emit lockCodeTargetTypeChanged();
-    }
-}
-
-/*!
- * \brief Returns the user interaction mode required when retrieving lock codes from the user
- */
-SecretManager::UserInteractionMode LockCodeRequest::userInteractionMode() const
-{
-    Q_D(const LockCodeRequest);
-    return d->m_userInteractionMode;
-}
-
-/*!
- * \brief Sets the user interaction mode required when retrieving lock codes from the user to \a mode
- *
- * This should only (and must be) be set to
- * \l{SecretManager::ApplicationInteraction} if the collection or standalone
- * secret is owned by the caller application and its original user interaction
- * mode was already set to \c{ApplicationInteraction}, otherwise an error will
- * be returned.
- *
- * Note that if \l{interactionParameters()} are provided then the \a mode
- * will be ignored, which may result in an error being returned to the client
- * (that is, if the collection or standalone secret is owned by the caller
- * application and its original user interaction mode was set to
- * \c{ApplicationInteraction}).
- */
-void LockCodeRequest::setUserInteractionMode(SecretManager::UserInteractionMode mode)
-{
-    Q_D(LockCodeRequest);
-    if (d->m_status != Request::Active && d->m_userInteractionMode != mode) {
-        d->m_userInteractionMode = mode;
-        if (d->m_status == Request::Finished) {
-            d->m_status = Request::Inactive;
-            emit statusChanged();
-        }
-        emit userInteractionModeChanged();
     }
 }
 
@@ -234,11 +184,6 @@ QString LockCodeRequest::lockCodeTarget() const
 
 /*!
  * \brief Sets the name of the target to which the lock code operation should be applied to \a name
- *
- * The \a name may identify either a custom-locked collection,
- * a custom-locked standalone secret, an extension plugin or
- * the bookkeeping database, depending on the value of the
- * \l{lockCodeTargetType()}.
  */
 void LockCodeRequest::setLockCodeTarget(const QString &targetName)
 {
@@ -265,13 +210,13 @@ Result LockCodeRequest::result() const
     return d->m_result;
 }
 
-SecretManager *LockCodeRequest::manager() const
+CryptoManager *LockCodeRequest::manager() const
 {
     Q_D(const LockCodeRequest);
     return d->m_manager.data();
 }
 
-void LockCodeRequest::setManager(SecretManager *manager)
+void LockCodeRequest::setManager(CryptoManager *manager)
 {
     Q_D(LockCodeRequest);
     if (d->m_manager.data() != manager) {
@@ -295,29 +240,26 @@ void LockCodeRequest::startRequest()
         if (d->m_lockCodeRequestType == LockCodeRequest::ModifyLockCode) {
             reply = d->m_manager->d_ptr->modifyLockCode(d->m_lockCodeTargetType,
                                                         d->m_lockCodeTarget,
-                                                        d->m_interactionParameters,
-                                                        d->m_userInteractionMode);
+                                                        d->m_interactionParameters);
         } else if (d->m_lockCodeRequestType == LockCodeRequest::ProvideLockCode) {
             reply = d->m_manager->d_ptr->provideLockCode(d->m_lockCodeTargetType,
                                                          d->m_lockCodeTarget,
-                                                         d->m_interactionParameters,
-                                                         d->m_userInteractionMode);
+                                                         d->m_interactionParameters);
         } else { // ForgetLockCode
             reply = d->m_manager->d_ptr->forgetLockCode(d->m_lockCodeTargetType,
                                                         d->m_lockCodeTarget,
-                                                        d->m_interactionParameters,
-                                                        d->m_userInteractionMode);
+                                                        d->m_interactionParameters);
         }
 
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;
-            d->m_result = Result(Result::SecretManagerNotInitialisedError,
+            d->m_result = Result(Result::CryptoManagerNotInitialisedError,
                                  reply.error().message());
             emit statusChanged();
             emit resultChanged();
         } else if (reply.isFinished()
                 // work around a bug in QDBusAbstractInterface / QDBusConnection...
-                && reply.argumentAt<0>().code() != Sailfish::Secrets::Result::Succeeded) {
+                && reply.argumentAt<0>().code() != Sailfish::Crypto::Result::Succeeded) {
             d->m_status = Request::Finished;
             d->m_result = reply.argumentAt<0>();
             emit statusChanged();

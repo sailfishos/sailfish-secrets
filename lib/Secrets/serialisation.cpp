@@ -345,6 +345,7 @@ QDBusArgument &operator<<(QDBusArgument &argument, const InteractionParameters &
     argument.beginStructure();
     argument << request.secretName()
              << request.collectionName()
+             << request.pluginName()
              << request.applicationId()
              << request.operation()
              << request.authenticationPluginName()
@@ -360,6 +361,7 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionParame
 {
     QString secretName;
     QString collectionName;
+    QString pluginName;
     QString applicationId;
     InteractionParameters::Operation operation = InteractionParameters::UnknownOperation;
     QString authenticationPluginName;
@@ -371,6 +373,7 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionParame
     argument.beginStructure();
     argument >> secretName
              >> collectionName
+             >> pluginName
              >> applicationId
              >> operation
              >> authenticationPluginName
@@ -382,6 +385,7 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionParame
 
     request.setSecretName(secretName);
     request.setCollectionName(collectionName);
+    request.setPluginName(pluginName);
     request.setApplicationId(applicationId);
     request.setOperation(operation);
     request.setAuthenticationPluginName(authenticationPluginName);
@@ -412,6 +416,25 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionRespon
     argument.endStructure();
     response.setResult(result);
     response.setResponseData(responseData);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const LockCodeRequest::LockCodeTargetType &type)
+{
+    int itype = static_cast<int>(type);
+    argument.beginStructure();
+    argument << itype;
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, LockCodeRequest::LockCodeTargetType &type)
+{
+    int itype = 0;
+    argument.beginStructure();
+    argument >> itype;
+    argument.endStructure();
+    type = static_cast<LockCodeRequest::LockCodeTargetType>(itype);
     return argument;
 }
 

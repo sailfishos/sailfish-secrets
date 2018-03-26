@@ -22,6 +22,7 @@
 #include "Crypto/generatekeyrequest.h"
 #include "Crypto/generaterandomdatarequest.h"
 #include "Crypto/generatestoredkeyrequest.h"
+#include "Crypto/lockcoderequest.h"
 #include "Crypto/plugininforequest.h"
 #include "Crypto/seedrandomdatageneratorrequest.h"
 #include "Crypto/signrequest.h"
@@ -103,6 +104,7 @@ private slots:
     void cipherBenchmark_data();
     void cipherBenchmark();
     void cipherTimeout();
+    void lockCode();
 
 private:
     void addCryptoTestData()
@@ -1958,6 +1960,50 @@ void tst_cryptorequests::cipherTimeout()
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
     QCOMPARE(dcr.status(), Sailfish::Secrets::Request::Finished);
     QCOMPARE(dcr.result().code(), Sailfish::Secrets::Result::Succeeded);
+}
+
+void tst_cryptorequests::lockCode()
+{
+    Sailfish::Crypto::InteractionParameters uiParams;
+    uiParams.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
+    uiParams.setInputType(Sailfish::Crypto::InteractionParameters::AlphaNumericInput);
+    uiParams.setEchoMode(Sailfish::Crypto::InteractionParameters::NormalEcho);
+    uiParams.setPromptText(QLatin1String("Modify the lock code for the crypto plugin"));
+
+    Sailfish::Crypto::LockCodeRequest lcr;
+    lcr.setManager(&cm);
+    lcr.setLockCodeRequestType(Sailfish::Crypto::LockCodeRequest::ModifyLockCode);
+    QCOMPARE(lcr.lockCodeRequestType(), Sailfish::Crypto::LockCodeRequest::ModifyLockCode);
+    lcr.setLockCodeTargetType(Sailfish::Crypto::LockCodeRequest::ExtensionPlugin);
+    QCOMPARE(lcr.lockCodeTargetType(), Sailfish::Crypto::LockCodeRequest::ExtensionPlugin);
+    lcr.setLockCodeTarget(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+    QCOMPARE(lcr.lockCodeTarget(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+    lcr.setInteractionParameters(uiParams);
+    QCOMPARE(lcr.interactionParameters(), uiParams);
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.status(), Sailfish::Crypto::Request::Finished);
+    QCOMPARE(lcr.result().code(), Sailfish::Crypto::Result::Failed);
+    QCOMPARE(lcr.result().errorMessage(), QStringLiteral("Crypto plugin %1 does not support locking")
+                                                    .arg(DEFAULT_TEST_CRYPTO_PLUGIN_NAME));
+
+    uiParams.setPromptText(QLatin1String("Provide the lock code for the crypto plugin"));
+    lcr.setLockCodeRequestType(Sailfish::Crypto::LockCodeRequest::ProvideLockCode);
+    lcr.setInteractionParameters(uiParams);
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.status(), Sailfish::Crypto::Request::Finished);
+    QCOMPARE(lcr.result().code(), Sailfish::Crypto::Result::Failed);
+    QCOMPARE(lcr.result().errorMessage(), QStringLiteral("Crypto plugin %1 does not support locking")
+                                                    .arg(DEFAULT_TEST_CRYPTO_PLUGIN_NAME));
+
+    lcr.setLockCodeRequestType(Sailfish::Crypto::LockCodeRequest::ForgetLockCode);
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.status(), Sailfish::Crypto::Request::Finished);
+    QCOMPARE(lcr.result().code(), Sailfish::Crypto::Result::Failed);
+    QCOMPARE(lcr.result().errorMessage(), QStringLiteral("Crypto plugin %1 does not support locking")
+                                                    .arg(DEFAULT_TEST_CRYPTO_PLUGIN_NAME));
 }
 
 #include "tst_cryptorequests.moc"

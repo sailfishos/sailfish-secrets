@@ -23,6 +23,7 @@ class SAILFISH_SECRETS_API InteractionParameters {
     Q_GADGET
     Q_PROPERTY(QString secretName READ secretName WRITE setSecretName)
     Q_PROPERTY(QString collectionName READ collectionName WRITE setCollectionName)
+    Q_PROPERTY(QString pluginName READ pluginName WRITE setPluginName)
     Q_PROPERTY(QString applicationId READ applicationId WRITE setApplicationId)
     Q_PROPERTY(Operation operation READ operation WRITE setOperation)
     Q_PROPERTY(QString authenticationPluginName READ authenticationPluginName WRITE setAuthenticationPluginName)
@@ -67,26 +68,30 @@ public:
         LockDatabase        = 1 << 2,
         ModifyLockDatabase  = 1 << 3,
 
-        CreateCollection    = 1 << 4,
-        UnlockCollection    = 1 << 5,
-        LockCollection      = 1 << 6,
-        ModifyLockCollection= 1 << 7,
-        DeleteCollection    = 1 << 8,
+        UnlockPlugin        = 1 << 4,
+        LockPlugin          = 1 << 5,
+        ModifyLockPlugin    = 1 << 6,
 
-        ReadSecret          = 1 << 9,
-        StoreSecret         = 1 << 10,
-        UnlockSecret        = 1 << 11,
-        LockSecret          = 1 << 12,
-        ModifyLockSecret    = 1 << 13,
-        DeleteSecret        = 1 << 14,
+        CreateCollection    = 1 << 7,
+        UnlockCollection    = 1 << 8,
+        LockCollection      = 1 << 9,
+        ModifyLockCollection= 1 << 10,
+        DeleteCollection    = 1 << 11,
 
-        Encrypt             = 1 << 15,
-        Decrypt             = 1 << 16,
-        Sign                = 1 << 17,
-        Verify              = 1 << 18,
-        DeriveDigest        = 1 << 19,
-        DeriveMac           = 1 << 20,
-        DeriveKey           = 1 << 21,
+        ReadSecret          = 1 << 12,
+        StoreSecret         = 1 << 13,
+        UnlockSecret        = 1 << 14,
+        LockSecret          = 1 << 15,
+        ModifyLockSecret    = 1 << 16,
+        DeleteSecret        = 1 << 17,
+
+        Encrypt             = 1 << 18,
+        Decrypt             = 1 << 19,
+        Sign                = 1 << 20,
+        Verify              = 1 << 21,
+        DeriveDigest        = 1 << 22,
+        DeriveMac           = 1 << 23,
+        DeriveKey           = 1 << 24,
 
         // reserved
         LastOperation       = 1 << 30
@@ -106,6 +111,9 @@ public:
 
     QString collectionName() const;
     void setCollectionName(const QString &name);
+
+    QString pluginName() const;
+    void setPluginName(const QString &name);
 
     QString applicationId() const;
     void setApplicationId(const QString &id);

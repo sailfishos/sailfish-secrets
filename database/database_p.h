@@ -96,6 +96,7 @@ public:
               int currentSchemaVersion,
               const QString &connectionName,
               bool autoTest);
+    void close();
 
     operator QSqlDatabase &();
     operator QSqlDatabase const &() const;

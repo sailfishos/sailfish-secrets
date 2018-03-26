@@ -24,6 +24,7 @@
 #include "Crypto/interactionparameters.h"
 #include "Crypto/keyderivationparameters.h"
 #include "Crypto/keypairgenerationparameters.h"
+#include "Crypto/lockcoderequest.h"
 
 #include <QtDBus/QDBusArgument>
 #include <QtDBus/QDBusMetaType>
@@ -97,6 +98,9 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto:
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams) SAILFISH_CRYPTO_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::KeyPairGenerationParameters &kpgParams) SAILFISH_CRYPTO_API;
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::LockCodeRequest::LockCodeTargetType &type) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::LockCodeRequest::LockCodeTargetType &type) SAILFISH_CRYPTO_API;
 
 } // Crypto
 

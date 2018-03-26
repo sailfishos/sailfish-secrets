@@ -30,11 +30,11 @@ public:
     explicit LockCodeRequestPrivate();
 
     QPointer<Sailfish::Secrets::SecretManager> m_manager;
-    LockCodeRequest::LockCodeRequestType m_lockCodeRequestType;
+    Sailfish::Secrets::LockCodeRequest::LockCodeRequestType m_lockCodeRequestType;
+    Sailfish::Secrets::LockCodeRequest::LockCodeTargetType m_lockCodeTargetType;
     Sailfish::Secrets::SecretManager::UserInteractionMode m_userInteractionMode;
     Sailfish::Secrets::InteractionParameters m_interactionParameters;
-    QString m_secretName;
-    QString m_collectionName;
+    QString m_lockCodeTarget;
 
     QScopedPointer<QDBusPendingCallWatcher> m_watcher;
     Sailfish::Secrets::Request::Status m_status;

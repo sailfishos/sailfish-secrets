@@ -179,6 +179,7 @@ public:
 private:
     Sailfish::Secrets::Daemon::Sqlite::Database m_db;
     bool m_initialised;
+    bool m_autotestMode;
 };
 
 } // ApiImpl

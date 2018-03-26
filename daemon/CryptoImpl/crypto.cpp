@@ -415,6 +415,60 @@ void Daemon::ApiImpl::CryptoDBusObject::finaliseCipherSession(
                                   result);
 }
 
+void Daemon::ApiImpl::CryptoDBusObject::modifyLockCode(
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
+        const InteractionParameters &interactionParameters,
+        const QDBusMessage &message,
+        Result &result)
+{
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+             << QVariant::fromValue<QString>(lockCodeTarget)
+             << QVariant::fromValue<InteractionParameters>(interactionParameters);
+    m_requestQueue->handleRequest(Daemon::ApiImpl::ModifyLockCodeRequest,
+                                  inParams,
+                                  connection(),
+                                  message,
+                                  result);
+}
+
+void Daemon::ApiImpl::CryptoDBusObject::provideLockCode(
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
+        const InteractionParameters &interactionParameters,
+        const QDBusMessage &message,
+        Result &result)
+{
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+             << QVariant::fromValue<QString>(lockCodeTarget)
+             << QVariant::fromValue<InteractionParameters>(interactionParameters);
+    m_requestQueue->handleRequest(Daemon::ApiImpl::ProvideLockCodeRequest,
+                                  inParams,
+                                  connection(),
+                                  message,
+                                  result);
+}
+
+void Daemon::ApiImpl::CryptoDBusObject::forgetLockCode(
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
+        const InteractionParameters &interactionParameters,
+        const QDBusMessage &message,
+        Result &result)
+{
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+             << QVariant::fromValue<QString>(lockCodeTarget)
+             << QVariant::fromValue<InteractionParameters>(interactionParameters);
+    m_requestQueue->handleRequest(Daemon::ApiImpl::ForgetLockCodeRequest,
+                                  inParams,
+                                  connection(),
+                                  message,
+                                  result);
+}
+
 //-----------------------------------
 
 Daemon::ApiImpl::CryptoRequestQueue::CryptoRequestQueue(
@@ -489,6 +543,9 @@ QString Daemon::ApiImpl::CryptoRequestQueue::requestTypeToString(int type) const
         case UpdateCipherSessionAuthenticationRequest: return QLatin1String("UpdateCipherSessionAuthenticationRequest");
         case UpdateCipherSessionRequest:       return QLatin1String("UpdateCipherSessionRequest");
         case FinaliseCipherSessionRequest:     return QLatin1String("FinaliseCipherSessionRequest");
+        case ModifyLockCodeRequest:            return QLatin1String("ModifyLockCodeRequest");
+        case ProvideLockCodeRequest:           return QLatin1String("ProvideLockCodeRequest");
+        case ForgetLockCodeRequest:            return QLatin1String("ForgetLockCodeRequest");
         default: break;
     }
     return QLatin1String("Unknown Crypto Request!");
@@ -981,6 +1038,87 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             }
             break;
         }
+        case ModifyLockCodeRequest: {
+            qCDebug(lcSailfishCryptoDaemon) << "Handling ModifyLockCodeRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            LockCodeRequest::LockCodeTargetType lockCodeTargetType = request->inParams.size()
+                    ? request->inParams.takeFirst().value<LockCodeRequest::LockCodeTargetType>()
+                    : LockCodeRequest::ExtensionPlugin;
+            QString lockCodeTarget = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
+            InteractionParameters interactionParameters = request->inParams.size()
+                    ? request->inParams.takeFirst().value<InteractionParameters>()
+                    : InteractionParameters();
+            Result result = m_requestProcessor->modifyLockCode(
+                        request->remotePid,
+                        request->requestId,
+                        lockCodeTargetType,
+                        lockCodeTarget,
+                        interactionParameters);
+            // send the reply to the calling peer.
+            if (result.code() == Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result));
+                *completed = true;
+            }
+            break;
+        }
+        case ProvideLockCodeRequest: {
+            qCDebug(lcSailfishCryptoDaemon) << "Handling ProvideLockCodeRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            LockCodeRequest::LockCodeTargetType lockCodeTargetType = request->inParams.size()
+                    ? request->inParams.takeFirst().value<LockCodeRequest::LockCodeTargetType>()
+                    : LockCodeRequest::ExtensionPlugin;
+            QString lockCodeTarget = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
+            InteractionParameters interactionParameters = request->inParams.size()
+                    ? request->inParams.takeFirst().value<InteractionParameters>()
+                    : InteractionParameters();
+            Result result = m_requestProcessor->provideLockCode(
+                        request->remotePid,
+                        request->requestId,
+                        lockCodeTargetType,
+                        lockCodeTarget,
+                        interactionParameters);
+            // send the reply to the calling peer.
+            if (result.code() == Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result));
+                *completed = true;
+            }
+            break;
+        }
+        case ForgetLockCodeRequest: {
+            qCDebug(lcSailfishCryptoDaemon) << "Handling ForgetLockCodeRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            LockCodeRequest::LockCodeTargetType lockCodeTargetType = request->inParams.size()
+                    ? request->inParams.takeFirst().value<LockCodeRequest::LockCodeTargetType>()
+                    : LockCodeRequest::ExtensionPlugin;
+            QString lockCodeTarget = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
+            InteractionParameters interactionParameters = request->inParams.size()
+                    ? request->inParams.takeFirst().value<InteractionParameters>()
+                    : InteractionParameters();
+            Result result = m_requestProcessor->forgetLockCode(
+                        request->remotePid,
+                        request->requestId,
+                        lockCodeTargetType,
+                        lockCodeTarget,
+                        interactionParameters);
+            // send the reply to the calling peer.
+            if (result.code() == Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result));
+                *completed = true;
+            }
+            break;
+        }
         default: {
             qCWarning(lcSailfishCryptoDaemon) << "Cannot handle request:" << request->requestId
                                               << "with invalid type:" << requestTypeToString(request->type);
@@ -1249,6 +1387,51 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
                         : QByteArray();
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<QByteArray>(decrypted));
+                *completed = true;
+            }
+            break;
+        }
+        case ModifyLockCodeRequest: {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of ModifyLockCodeRequest request"));
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishCryptoDaemon) << "ModifyLockCodeRequest:" << request->requestId << "finished as pending!";
+                *completed = true;
+            } else {
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result));
+                *completed = true;
+            }
+            break;
+        }
+        case ProvideLockCodeRequest: {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of ProvideLockCodeRequest request"));
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishCryptoDaemon) << "ProvideLockCodeRequest:" << request->requestId << "finished as pending!";
+                *completed = true;
+            } else {
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result));
+                *completed = true;
+            }
+            break;
+        }
+        case ForgetLockCodeRequest: {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of ForgetLockCodeRequest request"));
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishCryptoDaemon) << "ForgetLockCodeRequest:" << request->requestId << "finished as pending!";
+                *completed = true;
+            } else {
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result));
                 *completed = true;
             }
             break;
