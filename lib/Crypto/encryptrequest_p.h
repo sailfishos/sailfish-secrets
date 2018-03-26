@@ -37,6 +37,8 @@ public:
     Sailfish::Crypto::CryptoManager::EncryptionPadding m_padding;
     QString m_cryptoPluginName;
     QByteArray m_ciphertext;
+    QByteArray m_authenticationData;
+    QByteArray m_tag;
 
     QScopedPointer<QDBusPendingCallWatcher> m_watcher;
     Sailfish::Crypto::Request::Status m_status;

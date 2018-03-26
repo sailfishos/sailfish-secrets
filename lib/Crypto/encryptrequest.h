@@ -32,8 +32,10 @@ class SAILFISH_CRYPTO_API EncryptRequest : public Sailfish::Crypto::Request
     Q_PROPERTY(Sailfish::Crypto::Key key READ key WRITE setKey NOTIFY keyChanged)
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::BlockMode blockMode READ blockMode WRITE setBlockMode NOTIFY blockModeChanged)
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::EncryptionPadding padding READ padding WRITE setPadding NOTIFY paddingChanged)
+    Q_PROPERTY(QByteArray authenticationData READ authenticationData WRITE setAuthenticationData NOTIFY authenticationDataChanged)
     Q_PROPERTY(QString cryptoPluginName READ cryptoPluginName WRITE setCryptoPluginName NOTIFY cryptoPluginNameChanged)
     Q_PROPERTY(QByteArray ciphertext READ ciphertext NOTIFY ciphertextChanged)
+    Q_PROPERTY(QByteArray tag READ tag NOTIFY tagChanged)
 
 public:
     EncryptRequest(QObject *parent = Q_NULLPTR);
@@ -54,10 +56,15 @@ public:
     Sailfish::Crypto::CryptoManager::EncryptionPadding padding() const;
     void setPadding(Sailfish::Crypto::CryptoManager::EncryptionPadding padding);
 
+    QByteArray authenticationData() const;
+    void setAuthenticationData(const QByteArray &data);
+
     QString cryptoPluginName() const;
     void setCryptoPluginName(const QString &pluginName);
 
     QByteArray ciphertext() const;
+
+    QByteArray tag() const;
 
     Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result result() const Q_DECL_OVERRIDE;
@@ -74,8 +81,10 @@ Q_SIGNALS:
     void keyChanged();
     void blockModeChanged();
     void paddingChanged();
+    void authenticationDataChanged();
     void cryptoPluginNameChanged();
     void ciphertextChanged();
+    void tagChanged();
 
 private:
     QScopedPointer<EncryptRequestPrivate> const d_ptr;

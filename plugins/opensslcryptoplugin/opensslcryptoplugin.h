@@ -140,6 +140,16 @@ public:
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             QByteArray *decrypted) Q_DECL_OVERRIDE;
 
+    Sailfish::Crypto::Result authenticatedEncrypt(
+            const QByteArray &data,
+            const QByteArray &iv,
+            const Sailfish::Crypto::Key &key,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+            const QByteArray &authenticationData,
+            QByteArray *encrypted,
+            QByteArray *tag) Q_DECL_OVERRIDE;
+
     Sailfish::Crypto::Result initialiseCipherSession(
             quint64 clientId,
             const QByteArray &iv,
@@ -171,8 +181,21 @@ public:
             bool *verified) Q_DECL_OVERRIDE;
 
 private:
+    Sailfish::Crypto::Result execEncrypt(
+            bool authenticate,
+            const QByteArray &data,
+            const QByteArray &iv,
+            const Sailfish::Crypto::Key &key,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+            const QByteArray &authenticationData,
+            QByteArray *encrypted,
+            QByteArray *tag);
+
     QByteArray aes_encrypt_plaintext(Sailfish::Crypto::CryptoManager::BlockMode blockMode, const QByteArray &plaintext, const QByteArray &key, const QByteArray &init_vector);
     QByteArray aes_decrypt_ciphertext(Sailfish::Crypto::CryptoManager::BlockMode blockMode, const QByteArray &ciphertext, const QByteArray &key, const QByteArray &init_vector);
+
+    QPair<QByteArray, QByteArray> aes_auth_encrypt_plaintext(Sailfish::Crypto::CryptoManager::BlockMode blockMode, const QByteArray &plaintext, const QByteArray &key, const QByteArray &init_vector, const QByteArray &auth);
 
     Sailfish::Crypto::Key getFullKey(const Sailfish::Crypto::Key &key);
     QMap<quint64, QMap<quint32, CipherSessionData*> > m_cipherSessions; // clientId to token to data

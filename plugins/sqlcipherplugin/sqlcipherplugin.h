@@ -183,6 +183,16 @@ public:
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             QByteArray *decrypted) Q_DECL_OVERRIDE;
 
+    Sailfish::Crypto::Result authenticatedEncrypt(
+            const QByteArray &data,
+            const QByteArray &iv,
+            const Sailfish::Crypto::Key &key,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+            const QByteArray &authenticationData,
+            QByteArray *encrypted,
+            QByteArray *tag) Q_DECL_OVERRIDE;
+
     Sailfish::Crypto::Result initialiseCipherSession(
             quint64 clientId,
             const QByteArray &iv,

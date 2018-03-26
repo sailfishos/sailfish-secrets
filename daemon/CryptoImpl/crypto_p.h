@@ -391,6 +391,19 @@ public Q_SLOTS:
             Sailfish::Crypto::Result &result,
             QByteArray &decrypted);
 
+    void authenticatedEncrypt(
+            const QByteArray &data,
+            const QByteArray &iv,
+            const Sailfish::Crypto::Key &key,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+            const QByteArray &authenticationData,
+            const QString &cryptosystemProviderName,
+            const QDBusMessage &message,
+            Sailfish::Crypto::Result &result,
+            QByteArray &encrypted,
+            QByteArray &tag);
+
     void initialiseCipherSession(
             const QByteArray &initialisationVector,
             const Sailfish::Crypto::Key &key,
@@ -493,6 +506,7 @@ enum RequestType {
     SignRequest,
     VerifyRequest,
     EncryptRequest,
+    AuthenticatedEncryptRequest,
     DecryptRequest,
     InitialiseCipherSessionRequest,
     UpdateCipherSessionAuthenticationRequest,

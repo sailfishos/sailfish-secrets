@@ -125,6 +125,15 @@ public:
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QString &cryptosystemProviderName);
 
+    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray, QByteArray> authenticatedEncrypt(
+            const QByteArray &data,
+            const QByteArray &iv,
+            const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+            const QByteArray &authenticationData,
+            const QString &cryptosystemProviderName);
+
     QDBusPendingReply<Sailfish::Crypto::Result, quint32, QByteArray> initialiseCipherSession(
             const QByteArray &initialisationVector,
             const Sailfish::Crypto::Key &key, // or keyreference

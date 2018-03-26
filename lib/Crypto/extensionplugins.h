@@ -143,6 +143,16 @@ public:
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             QByteArray *decrypted) = 0;
 
+    virtual Sailfish::Crypto::Result authenticatedEncrypt(
+            const QByteArray &data,
+            const QByteArray &iv,
+            const Sailfish::Crypto::Key &key,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+            const QByteArray &authenticationData,
+            QByteArray *encrypted,
+            QByteArray *tag) = 0;
+
     virtual Sailfish::Crypto::Result initialiseCipherSession(
             quint64 clientId,
             const QByteArray &iv,

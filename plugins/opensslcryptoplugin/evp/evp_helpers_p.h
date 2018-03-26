@@ -34,6 +34,7 @@
 #define CIPHER_SESSION_INACTIVITY_TIMEOUT 60000 /* 1 minute, change to 10 sec for timeout test */
 #define MAX_CIPHER_SESSIONS_PER_CLIENT 5
 #define SAILFISH_CRYPTO_GCM_TAG_SIZE 16
+#define SAILFISH_CRYPTO_GCM_IV_SIZE 12
 
 class CipherSessionData
 {
@@ -113,24 +114,28 @@ quint32 getNextCipherSessionToken(QMap<quint64, QMap<quint32, CipherSessionData*
     return 0; // no cipher sessions available.
 }
 
-bool validInitializationVector(const QByteArray &initVector,
-                               Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-                               Sailfish::Crypto::CryptoManager::Algorithm algorithm)
+int initializationVectorSize(Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+                             Sailfish::Crypto::CryptoManager::Algorithm algorithm)
 {
     if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeEcb) {
         // IV not required for this mode
-        return true;
+        return 0;
     }
 
     // Ensure the IV has the correct size. The IV size for most modes is the same as the block size.
     switch (algorithm) {
     case Sailfish::Crypto::CryptoManager::AlgorithmAes:
-        return initVector.size() == 16;  // AES = 128-bit block size
+        if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm) {
+            return SAILFISH_CRYPTO_GCM_IV_SIZE;
+        } else {
+            return 16;  // AES = 128-bit block size
+        }
     default:
         break;
     }
 
-    return false;
+    // Unrecognized configuration
+    return -1;
 }
 
 const EVP_MD *getEvpDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digestFunction) {

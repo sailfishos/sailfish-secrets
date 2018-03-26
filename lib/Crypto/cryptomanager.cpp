@@ -372,6 +372,35 @@ CryptoManagerPrivate::decrypt(
     return reply;
 }
 
+QDBusPendingReply<Result, QByteArray, QByteArray>
+CryptoManagerPrivate::authenticatedEncrypt(
+        const QByteArray &data,
+        const QByteArray &iv,
+        const Key &key, // or keyreference, i.e. Key(keyName)
+        CryptoManager::BlockMode blockMode,
+        CryptoManager::EncryptionPadding padding,
+        const QByteArray &authenticationData,
+        const QString &cryptosystemProviderName)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result, QByteArray, QByteArray> reply
+            = m_interface->asyncCallWithArgumentList(
+                QStringLiteral("authenticatedEncrypt"),
+                QVariantList() << QVariant::fromValue<QByteArray>(data)
+                               << QVariant::fromValue<QByteArray>(iv)
+                               << QVariant::fromValue<Key>(key)
+                               << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
+                               << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding)
+                               << QVariant::fromValue<QByteArray>(authenticationData)
+                               << QVariant::fromValue<QString>(cryptosystemProviderName));
+    return reply;
+}
+
 QDBusPendingReply<Sailfish::Crypto::Result, quint32, QByteArray>
 CryptoManagerPrivate::initialiseCipherSession(
         const QByteArray &initialisationVector,

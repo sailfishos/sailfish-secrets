@@ -354,6 +354,20 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::decrypt(
 }
 
 Sailfish::Crypto::Result
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::authenticatedEncrypt(
+        const QByteArray &data,
+        const QByteArray &iv,
+        const Sailfish::Crypto::Key &key,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+        const QByteArray &authenticationData,
+        QByteArray *encrypted,
+        QByteArray *tag)
+{
+    return m_opensslCryptoPlugin.authenticatedEncrypt(data, iv, key, blockMode, padding, authenticationData, encrypted, tag);
+}
+
+Sailfish::Crypto::Result
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::initialiseCipherSession(
         quint64 clientId,
         const QByteArray &iv,
