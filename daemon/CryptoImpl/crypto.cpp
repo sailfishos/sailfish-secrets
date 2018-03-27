@@ -323,6 +323,36 @@ void Daemon::ApiImpl::CryptoDBusObject::decrypt(
                                   result);
 }
 
+void Daemon::ApiImpl::CryptoDBusObject::authenticatedDecrypt(
+        const QByteArray &data,
+        const QByteArray &iv,
+        const Key &key,
+        CryptoManager::BlockMode blockMode,
+        CryptoManager::EncryptionPadding padding,
+        const QByteArray &authenticationData,
+        const QByteArray &tag,
+        const QString &cryptosystemProviderName,
+        const QDBusMessage &message,
+        Result &result,
+        QByteArray &decrypted)
+{
+    Q_UNUSED(decrypted);  // outparam, set in handlePendingRequest / handleFinishedRequest
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<QByteArray>(data);
+    inParams << QVariant::fromValue<QByteArray>(iv);
+    inParams << QVariant::fromValue<Key>(key);
+    inParams << QVariant::fromValue<CryptoManager::BlockMode>(blockMode);
+    inParams << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding);
+    inParams << QVariant::fromValue<QByteArray>(authenticationData);
+    inParams << QVariant::fromValue<QByteArray>(tag);
+    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    m_requestQueue->handleRequest(Daemon::ApiImpl::AuthenticatedDecryptRequest,
+                                  inParams,
+                                  connection(),
+                                  message,
+                                  result);
+}
+
 void Daemon::ApiImpl::CryptoDBusObject::authenticatedEncrypt(
         const QByteArray &data,
         const QByteArray &iv,
@@ -572,6 +602,7 @@ QString Daemon::ApiImpl::CryptoRequestQueue::requestTypeToString(int type) const
         case EncryptRequest:                   return QLatin1String("EncryptRequest");
         case DecryptRequest:                   return QLatin1String("DecryptRequest");
         case AuthenticatedEncryptRequest:      return QLatin1String("AuthenticatedEncryptRequest");
+        case AuthenticatedDecryptRequest:      return QLatin1String("AuthenticatedDecryptRequest");
         case InitialiseCipherSessionRequest:   return QLatin1String("InitialiseCipherSessionRequest");
         case UpdateCipherSessionAuthenticationRequest: return QLatin1String("UpdateCipherSessionAuthenticationRequest");
         case UpdateCipherSessionRequest:       return QLatin1String("UpdateCipherSessionRequest");
@@ -984,6 +1015,40 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
                         key,
                         blockMode,
                         padding,
+                        cryptosystemProviderName,
+                        &decrypted);
+            // send the reply to the calling peer.
+            if (result.code() == Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<QByteArray>(decrypted));
+                *completed = true;
+            }
+            break;
+        }
+        case AuthenticatedDecryptRequest: {
+            qCDebug(lcSailfishCryptoDaemon) << "Handling AuthenticatedDecryptRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            QByteArray decrypted;
+            QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
+            QByteArray iv = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
+            Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
+            CryptoManager::BlockMode blockMode = request->inParams.size() ? request->inParams.takeFirst().value<CryptoManager::BlockMode>() : CryptoManager::BlockModeUnknown;
+            CryptoManager::EncryptionPadding padding = request->inParams.size() ? request->inParams.takeFirst().value<CryptoManager::EncryptionPadding>() : CryptoManager::EncryptionPaddingUnknown;
+            QByteArray authenticationData = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
+            QByteArray tag = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
+            QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            Result result = m_requestProcessor->authenticatedDecrypt(
+                        request->remotePid,
+                        request->requestId,
+                        data,
+                        iv,
+                        key,
+                        blockMode,
+                        padding,
+                        authenticationData,
+                        tag,
                         cryptosystemProviderName,
                         &decrypted);
             // send the reply to the calling peer.
@@ -1463,14 +1528,16 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
             }
             break;
         }
+        case AuthenticatedDecryptRequest:
+            // fall through, result/parameters are the same as for non-authenticated
         case DecryptRequest: {
             Result result = request->outParams.size()
                     ? request->outParams.takeFirst().value<Result>()
                     : Result(Result::UnknownError,
-                             QLatin1String("Unable to determine result of DecryptRequest request"));
+                             QLatin1String("Unable to determine result of DecryptRequest/AuthenticatedDecryptRequest request"));
             if (result.code() == Result::Pending) {
                 // shouldn't happen!
-                qCWarning(lcSailfishCryptoDaemon) << "DecryptRequest:" << request->requestId << "finished as pending!";
+                qCWarning(lcSailfishCryptoDaemon) << "DecryptRequest/AuthenticatedDecryptRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
                 QByteArray decrypted = request->outParams.size()

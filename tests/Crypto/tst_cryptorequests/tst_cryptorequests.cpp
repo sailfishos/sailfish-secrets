@@ -140,6 +140,7 @@ private:
         QTest::newRow("CTR 192-bit") << CryptoManager::BlockModeCtr << 192;
         QTest::newRow("CTR 256-bit") << CryptoManager::BlockModeCtr << 256;
 
+        // Authenticated block modes
         QTest::newRow("GCM 128-bit") << CryptoManager::BlockModeGcm << 128;
         QTest::newRow("GCM 192-bit") << CryptoManager::BlockModeGcm << 192;
         QTest::newRow("GCM 256-bit") << CryptoManager::BlockModeGcm << 256;
@@ -352,10 +353,6 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     tag = er.tag();
     QCOMPARE(tag.isEmpty(), blockMode != CryptoManager::BlockModeGcm);
 
-    if (blockMode == CryptoManager::BlockModeGcm) {
-        QSKIP("to do.");
-    }
-
     // test decrypting the ciphertext, and ensure that the roundtrip works.
     DecryptRequest dr;
     dr.setManager(&cm);
@@ -371,9 +368,16 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QCOMPARE(dr.blockMode(), blockMode);
     dr.setPadding(CryptoManager::EncryptionPaddingNone);
     QCOMPARE(dr.padding(), CryptoManager::EncryptionPaddingNone);
+    if (blockMode == CryptoManager::BlockModeGcm) {
+        dr.setAuthenticationData(authData);
+        QCOMPARE(dr.authenticationData(), authData);
+        dr.setTag(tag);
+        QCOMPARE(dr.tag(), tag);
+    }
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.status(), Request::Inactive);
+
     dr.startRequest();
     QCOMPARE(drss.count(), 1);
     QCOMPARE(dr.status(), Request::Active);
@@ -678,10 +682,6 @@ void tst_cryptorequests::storedKeyRequests()
     tag = er.tag();
     QCOMPARE(tag.isEmpty(), blockMode != CryptoManager::BlockModeGcm);
 
-    if (blockMode == CryptoManager::BlockModeGcm) {
-        QSKIP("to do.");
-    }
-
     // test decrypting the ciphertext, and ensure that the roundtrip works.
     DecryptRequest dr;
     dr.setManager(&cm);
@@ -697,9 +697,16 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(dr.blockMode(), blockMode);
     dr.setPadding(CryptoManager::EncryptionPaddingNone);
     QCOMPARE(dr.padding(), CryptoManager::EncryptionPaddingNone);
+    if (blockMode == CryptoManager::BlockModeGcm) {
+        dr.setAuthenticationData(authData);
+        QCOMPARE(dr.authenticationData(), authData);
+        dr.setTag(tag);
+        QCOMPARE(dr.tag(), tag);
+    }
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.status(), Request::Inactive);
+
     dr.startRequest();
     QCOMPARE(drss.count(), 1);
     QCOMPARE(dr.status(), Request::Active);
@@ -810,13 +817,26 @@ void tst_cryptorequests::storedKeyRequests()
 
     er.setKey(keyReference);
     er.setData(plaintext);
+    if (blockMode == CryptoManager::BlockModeGcm) {
+        er.setAuthenticationData(authData);
+        QCOMPARE(er.authenticationData(), authData);
+    }
     er.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(er);
     QCOMPARE(er.result().code(), Sailfish::Crypto::Result::Succeeded);
     ciphertext = er.ciphertext();
+    if (blockMode == CryptoManager::BlockModeGcm) {
+        tag = er.tag();
+    }
 
     dr.setKey(keyReference);
     dr.setData(ciphertext);
+    if (blockMode == CryptoManager::BlockModeGcm) {
+        dr.setAuthenticationData(authData);
+        QCOMPARE(dr.authenticationData(), authData);
+        dr.setTag(tag);
+        QCOMPARE(dr.tag(), tag);
+    }
     dr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dr);
     QCOMPARE(dr.result().code(), Sailfish::Crypto::Result::Succeeded);
@@ -996,10 +1016,6 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     tag = er.tag();
     QCOMPARE(tag.isEmpty(), blockMode != CryptoManager::BlockModeGcm);
 
-    if (blockMode == CryptoManager::BlockModeGcm) {
-        QSKIP("to do.");
-    }
-
     // test decrypting the ciphertext, and ensure that the roundtrip works.
     DecryptRequest dr;
     dr.setManager(&cm);
@@ -1015,9 +1031,16 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     QCOMPARE(dr.blockMode(), blockMode);
     dr.setPadding(CryptoManager::EncryptionPaddingNone);
     QCOMPARE(dr.padding(), CryptoManager::EncryptionPaddingNone);
+    if (blockMode == CryptoManager::BlockModeGcm) {
+        dr.setAuthenticationData(authData);
+        QCOMPARE(dr.authenticationData(), authData);
+        dr.setTag(tag);
+        QCOMPARE(dr.tag(), tag);
+    }
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.status(), Request::Inactive);
+
     dr.startRequest();
     QCOMPARE(drss.count(), 1);
     QCOMPARE(dr.status(), Request::Active);

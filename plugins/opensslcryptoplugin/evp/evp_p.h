@@ -57,6 +57,18 @@ int osslevp_aes_auth_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
                                        unsigned char **tag,
                                        int tag_length);
 
+int osslevp_aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
+                                        const unsigned char *init_vector,
+                                        const unsigned char *key,
+                                        int key_length,
+                                        const unsigned char *auth,
+                                        int auth_length,
+                                        unsigned char *tag,
+                                        int tag_length,
+                                        const unsigned char *ciphertext,
+                                        int ciphertext_length,
+                                        unsigned char **decrypted);
+
 int osslevp_digest(const EVP_MD *digestFunc,
                  const void *bytes,
                  size_t bytesCount,

@@ -32,6 +32,8 @@ class SAILFISH_CRYPTO_API DecryptRequest : public Sailfish::Crypto::Request
     Q_PROPERTY(Sailfish::Crypto::Key key READ key WRITE setKey NOTIFY keyChanged)
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::BlockMode blockMode READ blockMode WRITE setBlockMode NOTIFY blockModeChanged)
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::EncryptionPadding padding READ padding WRITE setPadding NOTIFY paddingChanged)
+    Q_PROPERTY(QByteArray authenticationData READ authenticationData WRITE setAuthenticationData NOTIFY authenticationDataChanged)
+    Q_PROPERTY(QByteArray tag READ tag WRITE setTag NOTIFY tagChanged)
     Q_PROPERTY(QString cryptoPluginName READ cryptoPluginName WRITE setCryptoPluginName NOTIFY cryptoPluginNameChanged)
     Q_PROPERTY(QByteArray plaintext READ plaintext NOTIFY plaintextChanged)
 
@@ -54,6 +56,12 @@ public:
     Sailfish::Crypto::CryptoManager::EncryptionPadding padding() const;
     void setPadding(Sailfish::Crypto::CryptoManager::EncryptionPadding padding);
 
+    QByteArray authenticationData() const;
+    void setAuthenticationData(const QByteArray &data);
+
+    QByteArray tag() const;
+    void setTag(const QByteArray &tag);
+
     QString cryptoPluginName() const;
     void setCryptoPluginName(const QString &pluginName);
 
@@ -74,6 +82,8 @@ Q_SIGNALS:
     void keyChanged();
     void blockModeChanged();
     void paddingChanged();
+    void authenticationDataChanged();
+    void tagChanged();
     void cryptoPluginNameChanged();
     void plaintextChanged();
 

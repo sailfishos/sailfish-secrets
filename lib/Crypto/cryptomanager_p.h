@@ -134,6 +134,16 @@ public:
             const QByteArray &authenticationData,
             const QString &cryptosystemProviderName);
 
+    QDBusPendingReply<Result, QByteArray> authenticatedDecrypt(
+            const QByteArray &data,
+            const QByteArray &iv,
+            const Key &key, // or keyreference, i.e. Key(keyName)
+            CryptoManager::BlockMode blockMode,
+            CryptoManager::EncryptionPadding padding,
+            const QByteArray &authenticationData,
+            const QByteArray &tag,
+            const QString &cryptosystemProviderName);
+
     QDBusPendingReply<Sailfish::Crypto::Result, quint32, QByteArray> initialiseCipherSession(
             const QByteArray &initialisationVector,
             const Sailfish::Crypto::Key &key, // or keyreference

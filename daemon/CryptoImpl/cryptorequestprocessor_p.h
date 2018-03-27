@@ -202,6 +202,19 @@ public:
             QByteArray *encrypted,
             QByteArray *tag);
 
+    Sailfish::Crypto::Result authenticatedDecrypt(
+            pid_t callerPid,
+            quint64 requestId,
+            const QByteArray &data,
+            const QByteArray &iv,
+            const Sailfish::Crypto::Key &key,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+            const QByteArray &authenticationData,
+            const QByteArray &tag,
+            const QString &cryptosystemProviderName,
+            QByteArray *decrypted);
+
     Sailfish::Crypto::Result initialiseCipherSession(
             pid_t callerPid,
             quint64 requestId,
@@ -397,6 +410,20 @@ private:
             QByteArray *encrypted,
             QByteArray *tag);
 
+    Sailfish::Crypto::Result execDecrypt(
+            pid_t callerPid,
+            quint64 requestId,
+            bool authenticate,
+            const QByteArray &data,
+            const QByteArray &iv,
+            const Sailfish::Crypto::Key &key,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+            const QByteArray &authenticationData,
+            const QByteArray &tag,
+            const QString &cryptosystemProviderName,
+            QByteArray *decrypted);
+
     void encrypt2(
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
@@ -426,6 +453,18 @@ private:
             const QByteArray &iv,
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+            const QString &cryptoPluginName);
+
+    void authenticatedDecrypt2(
+            quint64 requestId,
+            const Sailfish::Crypto::Result &result,
+            const QByteArray &serialisedKey,
+            const QByteArray &data,
+            const QByteArray &iv,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+            const QByteArray &authenticationData,
+            const QByteArray &tag,
             const QString &cryptoPluginName);
 
     void initialiseCipherSession2(

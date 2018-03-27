@@ -712,6 +712,21 @@ Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
         Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
         QByteArray *decrypted)
 {
+    return execDecrypt(false, data, iv, key, blockMode, padding, QByteArray(), QByteArray(), decrypted);
+}
+
+Sailfish::Crypto::Result
+Daemon::Plugins::OpenSslCryptoPlugin::execDecrypt(
+        bool authenticate,
+        const QByteArray &data,
+        const QByteArray &iv,
+        const Sailfish::Crypto::Key &key,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+        const QByteArray &authenticationData,
+        const QByteArray &tag,
+        QByteArray *decrypted)
+{
     Sailfish::Crypto::Key fullKey = getFullKey(key);
     if (fullKey.secretKey().isEmpty()) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptySecretKey,
@@ -728,13 +743,44 @@ Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
                                         QLatin1String("TODO: encryption padding other than None"));
     }
 
-    if (!validInitializationVector(iv, blockMode, fullKey.algorithm())) {
-         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                         QLatin1String("Initialization Vector has wrong size!"));
+    if (authenticate) {
+        if (fullKey.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmAes) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                            QLatin1String("Authenticated decryption not supported for algorithms other than AES"));
+        }
+        if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm) {
+            if (tag.size() != SAILFISH_CRYPTO_GCM_TAG_SIZE) {
+                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidAuthenticationTag,
+                                                QStringLiteral("Authenticated decryption failed, authentication tag length should be %1 but was %2")
+                                                        .arg(SAILFISH_CRYPTO_GCM_TAG_SIZE)
+                                                        .arg(tag.size()));
+            }
+        } else {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedBlockMode,
+                                            QLatin1String("Authenticated decryption not supported for block modes other than GCM"));
+        }
+        if (authenticationData.isEmpty()) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptyAuthenticationData,
+                                            QLatin1String("Authenticated decryption failed, no authentication data provided"));
+        }
+        if (tag.isEmpty()) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidAuthenticationTag,
+                                            QLatin1String("Authenticated decryption failed, no authentication tag provided"));
+        }
+    }
+
+    const int expectedIvSize = initializationVectorSize(blockMode, fullKey.algorithm());
+    if (expectedIvSize > 0 && iv.size() != expectedIvSize) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidInitializationVector,
+                                        QStringLiteral("Initialization Vector length should be %1 but was %2")
+                                                .arg(expectedIvSize)
+                                                .arg(iv.size()));
     }
 
     // decrypt ciphertext
-    QByteArray plaintext = aes_decrypt_ciphertext(blockMode, data, fullKey.secretKey(), iv);
+    QByteArray plaintext = authenticate
+            ? aes_auth_decrypt_ciphertext(blockMode, data, fullKey.secretKey(), iv, authenticationData, tag)
+            : aes_decrypt_ciphertext(blockMode, data, fullKey.secretKey(), iv);
     if (!plaintext.size() || (plaintext.size() == 1 && plaintext.at(0) == 0)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginDecryptionError,
                                          QLatin1String("Failed to decrypt the secret"));
@@ -757,6 +803,19 @@ Daemon::Plugins::OpenSslCryptoPlugin::authenticatedEncrypt(
         QByteArray *tag)
 {
     return execEncrypt(true, data, iv, key, blockMode, padding, authenticationData, encrypted, tag);
+}
+
+Sailfish::Crypto::Result Daemon::Plugins::OpenSslCryptoPlugin::authenticatedDecrypt(
+        const QByteArray &data,
+        const QByteArray &iv,
+        const Sailfish::Crypto::Key &key,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+        const QByteArray &authenticationData,
+        const QByteArray &tag,
+        QByteArray *decrypted)
+{
+    return execDecrypt(true, data, iv, key, blockMode, padding, authenticationData, tag, decrypted);
 }
 
 Sailfish::Crypto::Result
@@ -1117,7 +1176,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::aes_decrypt_ciphertext(
                                               ciphertext.size(),
                                               &decrypted);
     if (size <= 0) {
-        return decryptedData;
+        return QByteArray();
     }
 
     decryptedData = QByteArray((const char *)decrypted, size);
@@ -1160,3 +1219,37 @@ Daemon::Plugins::OpenSslCryptoPlugin::aes_auth_encrypt_plaintext(
 
     return qMakePair(encryptedData, tagData);
 }
+
+QByteArray
+Daemon::Plugins::OpenSslCryptoPlugin::aes_auth_decrypt_ciphertext(
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        const QByteArray &ciphertext,
+        const QByteArray &key,
+        const QByteArray &init_vector,
+        const QByteArray &auth,
+        const QByteArray &tag)
+{
+    QByteArray decryptedData;
+    unsigned char *decrypted = NULL;
+    unsigned char *tagData = (unsigned char *)tag.data();
+
+    int size = osslevp_aes_auth_decrypt_ciphertext(getEvpCipher(blockMode, key.size()),
+                                                   (const unsigned char *)init_vector.constData(),
+                                                   (const unsigned char *)key.constData(),
+                                                   key.size(),
+                                                   (const unsigned char *)auth.constData(),
+                                                   auth.size(),
+                                                   tagData,
+                                                   tag.size(),
+                                                   (const unsigned char *)ciphertext.constData(),
+                                                   ciphertext.size(),
+                                                   &decrypted);
+    if (size <= 0) {
+        return QByteArray();
+    }
+
+    decryptedData = QByteArray((const char *)decrypted, size);
+    free(decrypted);
+    return decryptedData;
+}
+
