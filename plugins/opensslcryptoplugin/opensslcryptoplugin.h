@@ -186,6 +186,22 @@ private:
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             Sailfish::Crypto::Key *key);
 
+    Sailfish::Crypto::Result encryptAes(
+            const QByteArray &data,
+            const QByteArray &iv,
+            const Sailfish::Crypto::Key &key,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+            QByteArray *encrypted);
+
+    Sailfish::Crypto::Result decryptAes(
+            const QByteArray &data,
+            const QByteArray &iv,
+            const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+            QByteArray *decrypted);
+
     Sailfish::Crypto::Key getFullKey(const Sailfish::Crypto::Key &key);
     QMap<quint64, QMap<quint32, CipherSessionData*> > m_cipherSessions; // clientId to token to data
     struct CipherSessionLookup {

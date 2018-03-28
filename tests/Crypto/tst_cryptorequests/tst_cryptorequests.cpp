@@ -114,36 +114,37 @@ private slots:
 private:
     void addCryptoTestData()
     {
+        QTest::addColumn<CryptoManager::Algorithm>("algorithm");
         QTest::addColumn<CryptoManager::BlockMode>("blockMode");
         QTest::addColumn<int>("keySize");
 
-        QTest::newRow("ECB 128-bit") << CryptoManager::BlockModeEcb << 128;
-        QTest::newRow("ECB 192-bit") << CryptoManager::BlockModeEcb << 192;
-        QTest::newRow("ECB 256-bit") << CryptoManager::BlockModeEcb << 256;
+        QTest::newRow("AES ECB 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeEcb << 128;
+        QTest::newRow("AES ECB 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeEcb << 192;
+        QTest::newRow("AES ECB 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeEcb << 256;
 
-        QTest::newRow("CBC 128-bit") << CryptoManager::BlockModeCbc << 128;
-        QTest::newRow("CBC 192-bit") << CryptoManager::BlockModeCbc << 192;
-        QTest::newRow("CBC 256-bit") << CryptoManager::BlockModeCbc << 256;
+        QTest::newRow("AES CBC 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCbc << 128;
+        QTest::newRow("AES CBC 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCbc << 192;
+        QTest::newRow("AES CBC 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCbc << 256;
 
-        QTest::newRow("CFB-1 128-bit") << CryptoManager::BlockModeCfb1 << 128;
-        QTest::newRow("CFB-1 192-bit") << CryptoManager::BlockModeCfb1 << 192;
-        QTest::newRow("CFB-1 256-bit") << CryptoManager::BlockModeCfb1 << 256;
+        QTest::newRow("AES CFB-1 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCfb1 << 128;
+        QTest::newRow("AES CFB-1 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCfb1 << 192;
+        QTest::newRow("AES CFB-1 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCfb1 << 256;
 
-        QTest::newRow("CFB-8 128-bit") << CryptoManager::BlockModeCfb8 << 128;
-        QTest::newRow("CFB-8 192-bit") << CryptoManager::BlockModeCfb8 << 192;
-        QTest::newRow("CFB-8 256-bit") << CryptoManager::BlockModeCfb8 << 256;
+        QTest::newRow("AES CFB-8 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCfb8 << 128;
+        QTest::newRow("AES CFB-8 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCfb8 << 192;
+        QTest::newRow("AES CFB-8 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCfb8 << 256;
 
-        QTest::newRow("CFB-128 128-bit") << CryptoManager::BlockModeCfb128 << 128;
-        QTest::newRow("CFB-128 192-bit") << CryptoManager::BlockModeCfb128 << 192;
-        QTest::newRow("CFB-128 256-bit") << CryptoManager::BlockModeCfb128 << 256;
+        QTest::newRow("AES CFB-128 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCfb128 << 128;
+        QTest::newRow("AES CFB-128 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCfb128 << 192;
+        QTest::newRow("AES CFB-128 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCfb128 << 256;
 
-        QTest::newRow("OFB 128-bit") << CryptoManager::BlockModeOfb << 128;
-        QTest::newRow("OFB 192-bit") << CryptoManager::BlockModeOfb << 192;
-        QTest::newRow("OFB 256-bit") << CryptoManager::BlockModeOfb << 256;
+        QTest::newRow("AES OFB 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeOfb << 128;
+        QTest::newRow("AES OFB 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeOfb << 192;
+        QTest::newRow("AES OFB 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeOfb << 256;
 
-        QTest::newRow("CTR 128-bit") << CryptoManager::BlockModeCtr << 128;
-        QTest::newRow("CTR 192-bit") << CryptoManager::BlockModeCtr << 192;
-        QTest::newRow("CTR 256-bit") << CryptoManager::BlockModeCtr << 256;
+        QTest::newRow("AES CTR 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCtr << 128;
+        QTest::newRow("AES CTR 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCtr << 192;
+        QTest::newRow("AES CTR 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCtr << 256;
     }
 
     CryptoManager cm;
@@ -269,8 +270,13 @@ void tst_cryptorequests::generateKeyEncryptDecrypt_data()
 
 void tst_cryptorequests::generateKeyEncryptDecrypt()
 {
+    QFETCH(CryptoManager::Algorithm, algorithm);
     QFETCH(CryptoManager::BlockMode, blockMode);
     QFETCH(int, keySize);
+
+    if (algorithm != CryptoManager::AlgorithmAes) {
+        QSKIP("Only AES is supported by the current test.");
+    }
 
     // test generating a symmetric cipher key
     Key keyTemplate;
@@ -590,8 +596,13 @@ void tst_cryptorequests::storedKeyRequests_data()
 
 void tst_cryptorequests::storedKeyRequests()
 {
+    QFETCH(CryptoManager::Algorithm, algorithm);
     QFETCH(CryptoManager::BlockMode, blockMode);
     QFETCH(int, keySize);
+
+    if (algorithm != CryptoManager::AlgorithmAes) {
+        QSKIP("Only AES is supported by the current test.");
+    }
 
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
     Sailfish::Crypto::Key keyTemplate;
@@ -871,8 +882,13 @@ void tst_cryptorequests::storedDerivedKeyRequests_data()
 
 void tst_cryptorequests::storedDerivedKeyRequests()
 {
+    QFETCH(CryptoManager::Algorithm, algorithm);
     QFETCH(CryptoManager::BlockMode, blockMode);
     QFETCH(int, keySize);
+
+    if (algorithm != CryptoManager::AlgorithmAes) {
+        QSKIP("Only AES is supported by the current test.");
+    }
 
     // test generating a symmetric cipher key via a key derivation function
     // and storing securely in the same plugin which produces the key.
@@ -1326,8 +1342,13 @@ void tst_cryptorequests::cipherEncryptDecrypt_data()
 
 void tst_cryptorequests::cipherEncryptDecrypt()
 {
+    QFETCH(CryptoManager::Algorithm, algorithm);
     QFETCH(CryptoManager::BlockMode, blockMode);
     QFETCH(int, keySize);
+
+    if (algorithm != CryptoManager::AlgorithmAes) {
+        QSKIP("Only AES is supported by the current test.");
+    }
 
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
     // then use that stored key to perform stream cipher encrypt/decrypt operations.
@@ -1604,8 +1625,13 @@ void tst_cryptorequests::cipherBenchmark_data()
 
 void tst_cryptorequests::cipherBenchmark()
 {
+    QFETCH(CryptoManager::Algorithm, algorithm);
     QFETCH(CryptoManager::BlockMode, blockMode);
     QFETCH(int, keySize);
+
+    if (algorithm != CryptoManager::AlgorithmAes) {
+        QSKIP("Only AES is supported by the current test.");
+    }
 
     if (!QFile::exists(BENCHMARK_TEST_FILE)) {
         QSKIP("First generate test data via: head -c 33554432 </dev/urandom >/tmp/sailfish.crypto.testfile");

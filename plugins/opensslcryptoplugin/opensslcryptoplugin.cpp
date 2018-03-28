@@ -713,6 +713,24 @@ Daemon::Plugins::OpenSslCryptoPlugin::encrypt(
         QByteArray *encrypted)
 {
     Sailfish::Crypto::Key fullKey = getFullKey(key);
+
+    if (fullKey.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
+        return this->encryptAes(data, iv, fullKey, blockMode, padding, encrypted);
+    }
+
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                    QLatin1String("Unsupported encryption algorithm specified."));
+}
+
+Sailfish::Crypto::Result
+Daemon::Plugins::OpenSslCryptoPlugin::encryptAes(
+        const QByteArray &data,
+        const QByteArray &iv,
+        const Sailfish::Crypto::Key &fullKey,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+        QByteArray *encrypted)
+{
     if (fullKey.secretKey().isEmpty()) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptySecretKey,
                                         QLatin1String("Cannot encrypt with empty secret key"));
@@ -720,7 +738,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::encrypt(
 
     if (fullKey.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmAes) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: algorithms other than Aes"));
+                                        QLatin1String("OpenSslCryptoPlugin::encryptAes should only be used with AES"));
     }
 
     if (padding != Sailfish::Crypto::CryptoManager::EncryptionPaddingNone) {
@@ -762,6 +780,24 @@ Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
         QByteArray *decrypted)
 {
     Sailfish::Crypto::Key fullKey = getFullKey(key);
+
+    if (fullKey.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
+        return this->decryptAes(data, iv, fullKey, blockMode, padding, decrypted);
+    }
+
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                    QLatin1String("Unsupported decryption algorithm specified."));
+}
+
+Sailfish::Crypto::Result
+Daemon::Plugins::OpenSslCryptoPlugin::decryptAes(
+        const QByteArray &data,
+        const QByteArray &iv,
+        const Sailfish::Crypto::Key &fullKey,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+        QByteArray *decrypted)
+{
     if (fullKey.secretKey().isEmpty()) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptySecretKey,
                                         QLatin1String("Cannot decrypt with empty secret key"));
@@ -769,7 +805,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
 
     if (fullKey.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmAes) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: algorithms other than Aes"));
+                                        QLatin1String("OpenSslCryptoPlugin::decryptAes should only be used with AES"));
     }
 
     if (padding != Sailfish::Crypto::CryptoManager::EncryptionPaddingNone) {
