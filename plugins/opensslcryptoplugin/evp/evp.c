@@ -254,6 +254,129 @@ int osslevp_aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
 }
 
 /*
+    int osslevp_pkey_encrypt_plaintext(EVP_PKEY *pkey,
+                                       const unsigned char *plaintext,
+                                       size_t plaintext_length,
+                                       uint8_t **encrypted,
+                                       size_t *encrypted_length);
+
+    Implements encryption with an asymmetric key.
+    See: https://www.openssl.org/docs/manmaster/man3/EVP_PKEY_encrypt.html
+
+    Arguments:
+    * pkey: key used for encryption
+    * plaintext: the data to encrypt
+    * plaintext_length: number of bytes in 'plaintext'
+    * encrypted: output argument, where memory will be allocated for the
+    *            encrypted data, needs to be freed with OPENSSL_free
+    * encrypted_length: output argument, where the number of encrypted
+    *                   bytes will be put.
+
+    Return value:
+    * 1 when the operation was successful
+    * less than 0 when there was an error
+ */
+int osslevp_pkey_encrypt_plaintext(EVP_PKEY *pkey,
+                                   const uint8_t *plaintext,
+                                   size_t plaintext_length,
+                                   uint8_t **encrypted,
+                                   size_t *encrypted_length)
+{
+    int r = -1;
+
+    EVP_PKEY_CTX *pkctx = EVP_PKEY_CTX_new(pkey, NULL);
+    OSSLEVP_HANDLE_ERR(pkctx == NULL, r = -1, "failed to create EVP_PKEY_CTX", err_dontfree);
+
+    r = EVP_PKEY_encrypt_init(pkctx);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialize EVP_PKEY_CTX for encryption", err_free_pkctx);
+
+    // TODO: padding support
+    //r = EVP_PKEY_CTX_set_rsa_padding(pkctx, RSA_NO_PADDING);
+    //OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to set RSA padding", err_free_pkctx);
+
+    r = EVP_PKEY_encrypt(pkctx, NULL, encrypted_length, plaintext, plaintext_length);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to calculate PKEY encrypted size", err_free_pkctx);
+
+    *encrypted = OPENSSL_malloc(*encrypted_length);
+    OSSLEVP_HANDLE_ERR(*encrypted == NULL, r = -1, "failed to allocate memory for encrypted data", err_free_pkctx);
+
+    r = EVP_PKEY_encrypt(pkctx, *encrypted, encrypted_length, plaintext, plaintext_length);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to encrypt with PKEY", err_free_encrypted);
+
+    r = 1;
+    goto success;
+
+    err_free_encrypted:
+    OPENSSL_free(*encrypted);
+    success:
+    err_free_pkctx:
+    EVP_PKEY_CTX_free(pkctx);
+    err_dontfree:
+    return r;
+}
+
+/*
+    int osslevp_pkey_decrypt_ciphertext(EVP_PKEY *pkey,
+                                        const unsigned char *ciphertext,
+                                        size_t ciphertext_length,
+                                        uint8_t **decrypted,
+                                        size_t *decrypted_length);
+
+    Decrypts the given ciphertext using the supplied key.
+
+    Arguments:
+    * pkey: key used for decryption
+    * ciphertext: the data to decrypt
+    * ciphertext_length: number of bytes in 'ciphertext'
+    * decrypted: output argument, where memory will be allocated for the
+    *            decrypted data, needs to be freed with OPENSSL_free
+    * decrypted_length: output argument, where the number of decrypted
+    *                   bytes will be put.
+
+    Return value:
+    * 1 when the operation was successful
+    * less than 0 when there was an error
+*/
+int osslevp_pkey_decrypt_ciphertext(EVP_PKEY *pkey,
+                                    const unsigned char *ciphertext,
+                                    size_t ciphertext_length,
+                                    uint8_t **decrypted,
+                                    size_t *decrypted_length)
+{
+    int r = -1;
+
+    EVP_PKEY_CTX *pkctx = EVP_PKEY_CTX_new(pkey, NULL);
+    OSSLEVP_HANDLE_ERR(pkctx == NULL, r = -1, "failed to create EVP_PKEY_CTX", err_dontfree);
+
+    r = EVP_PKEY_decrypt_init(pkctx);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialize EVP_PKEY_CTX for decryption", err_free_pkctx);
+
+    // TODO: padding support
+    //r = EVP_PKEY_CTX_set_rsa_padding(pkctx, RSA_NO_PADDING);
+    //OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to set RSA padding", err_free_pkctx);
+
+    r = EVP_PKEY_decrypt(pkctx, NULL, decrypted_length, ciphertext, ciphertext_length);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to calculate PKEY encrypted size", err_free_pkctx);
+
+    *decrypted = (uint8_t*) OPENSSL_malloc(*decrypted_length);
+    OSSLEVP_HANDLE_ERR(*decrypted == NULL, r = -1, "failed to allocate memory for encrypted data", err_free_pkctx);
+
+    r = EVP_PKEY_decrypt(pkctx, *decrypted, decrypted_length, ciphertext, ciphertext_length);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to encrypt with PKEY", err_free_decrypted);
+
+    r = 1;
+    goto success;
+
+    err_free_decrypted:
+    OPENSSL_free(*decrypted);
+    success:
+    err_free_pkctx:
+    EVP_PKEY_CTX_free(pkctx);
+    err_dontfree:
+    return r;
+}
+
+/*
     int osslevp_digest(const EVP_MD *digestFunc,
                        const void *bytes,
                        size_t bytesCount,

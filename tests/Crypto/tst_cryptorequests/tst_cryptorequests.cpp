@@ -54,7 +54,7 @@ using namespace Sailfish::Crypto;
 // Cannot use waitForFinished() for some replies, as ui flows require user interaction / event handling.
 #define WAIT_FOR_FINISHED_WITHOUT_BLOCKING(request)                         \
     do {                                                                    \
-        int maxWait = 10000;                                                \
+        int maxWait = 1000000;                                                \
         while (request.status() != (int)Request::Finished && maxWait > 0) { \
             QTest::qWait(100);                                              \
             maxWait -= 100;                                                 \
@@ -62,7 +62,7 @@ using namespace Sailfish::Crypto;
     } while (0)
 #define SHORT_WAIT_FOR_FINISHED_WITHOUT_BLOCKING(request)                   \
     do {                                                                    \
-        int maxWait = 10000;                                                \
+        int maxWait = 1000000;                                                \
         while (request.status() != (int)Request::Finished && maxWait > 0) { \
             QTest::qWait(1);                                                \
             maxWait -= 1;                                                   \
@@ -70,7 +70,7 @@ using namespace Sailfish::Crypto;
     } while (0)
 #define LONG_WAIT_FOR_FINISHED_WITHOUT_BLOCKING(request)                    \
     do {                                                                    \
-        int maxWait = 30000;                                                \
+        int maxWait = 3000000;                                                \
         while (request.status() != (int)Request::Finished && maxWait > 0) { \
             QTest::qWait(100);                                              \
             maxWait -= 100;                                                 \
@@ -145,11 +145,28 @@ private:
         QTest::newRow("AES CTR 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCtr << 128;
         QTest::newRow("AES CTR 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCtr << 192;
         QTest::newRow("AES CTR 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCtr << 256;
+
+        QTest::newRow("RSA") << CryptoManager::AlgorithmRsa << CryptoManager::BlockModeUnknown << 512;
     }
 
     CryptoManager cm;
     Sailfish::Secrets::SecretManager sm;
 };
+
+static inline KeyPairGenerationParameters getKeyPairGenerationParameters(CryptoManager::Algorithm algorithm)
+{
+    switch (algorithm)
+    {
+    case CryptoManager::AlgorithmRsa:
+        return RsaKeyPairGenerationParameters();
+    case CryptoManager::AlgorithmEc:
+        return EcKeyPairGenerationParameters();
+    default:
+        KeyPairGenerationParameters unknown;
+        unknown.setKeyPairType(KeyPairGenerationParameters::KeyPairUnknown);
+        return unknown;
+    }
+}
 
 void tst_cryptorequests::init()
 {
@@ -274,14 +291,12 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QFETCH(CryptoManager::BlockMode, blockMode);
     QFETCH(int, keySize);
 
-    if (algorithm != CryptoManager::AlgorithmAes) {
-        QSKIP("Only AES is supported by the current test.");
-    }
+    bool isSymmetric = algorithm < CryptoManager::FirstAsymmetricAlgorithm || algorithm > CryptoManager::LastAsymmetricAlgorithm;
 
-    // test generating a symmetric cipher key
+    // Create key template
     Key keyTemplate;
     keyTemplate.setSize(keySize);
-    keyTemplate.setAlgorithm(CryptoManager::AlgorithmAes);
+    keyTemplate.setAlgorithm(algorithm);
     keyTemplate.setOrigin(Key::OriginDevice);
     keyTemplate.setOperations(CryptoManager::OperationEncrypt | CryptoManager::OperationDecrypt);
     keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
@@ -292,6 +307,12 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QSignalSpy gkrks(&gkr, &GenerateKeyRequest::generatedKeyChanged);
     gkr.setKeyTemplate(keyTemplate);
     QCOMPARE(gkr.keyTemplate(), keyTemplate);
+
+    if (!isSymmetric) {
+        auto keyPairParams = getKeyPairGenerationParameters(algorithm);
+        gkr.setKeyPairGenerationParameters(keyPairParams);
+    }
+
     gkr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(gkr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(gkr.status(), Request::Inactive);
@@ -306,12 +327,20 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QCOMPARE(gkr.result().code(), Result::Succeeded);
     QCOMPARE(gkrks.count(), 1);
     Key fullKey = gkr.generatedKey();
-    QVERIFY(!fullKey.secretKey().isEmpty());
+    if (isSymmetric) {
+        QVERIFY(!fullKey.secretKey().isEmpty());
+    } else {
+        QVERIFY(!fullKey.privateKey().isEmpty());
+        QVERIFY(!fullKey.publicKey().isEmpty());
+    }
     QCOMPARE(fullKey.filterData(), keyTemplate.filterData());
 
     // test encrypting some plaintext with the generated key
     QByteArray plaintext = "Test plaintext data";
     QByteArray initVector = "0123456789abcdef";
+    if (!isSymmetric) {
+        initVector.clear();
+    }
     EncryptRequest er;
     er.setManager(&cm);
     QSignalSpy erss(&er, &EncryptRequest::statusChanged);
@@ -415,21 +444,6 @@ void tst_cryptorequests::signVerify_data()
     QTest::newRow("RSA + MD5") << CryptoManager::AlgorithmRsa << CryptoManager::DigestMd5;
     QTest::newRow("EC + SHA256") << CryptoManager::AlgorithmEc << CryptoManager::DigestSha256;
     QTest::newRow("EC + SHA512") << CryptoManager::AlgorithmEc << CryptoManager::DigestSha512;
-}
-
-static inline KeyPairGenerationParameters getKeyPairGenerationParameters(CryptoManager::Algorithm algorithm)
-{
-    switch (algorithm)
-    {
-    case CryptoManager::AlgorithmRsa:
-        return RsaKeyPairGenerationParameters();
-    case CryptoManager::AlgorithmEc:
-        return EcKeyPairGenerationParameters();
-    default:
-        KeyPairGenerationParameters unknown;
-        unknown.setKeyPairType(KeyPairGenerationParameters::KeyPairUnknown);
-        return unknown;
-    }
 }
 
 void tst_cryptorequests::signVerify()
@@ -1335,9 +1349,9 @@ void tst_cryptorequests::cipherEncryptDecrypt_data()
 
     // Encrypt/DecryptRequest do not support GCM yet, so GCM is only added for
     // CipherRequests at the moment.
-    QTest::newRow("GCM 128-bit") << CryptoManager::BlockModeGcm << 128;
-    QTest::newRow("GCM 192-bit") << CryptoManager::BlockModeGcm << 192;
-    QTest::newRow("GCM 256-bit") << CryptoManager::BlockModeGcm << 256;
+    QTest::newRow("GCM 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeGcm << 128;
+    QTest::newRow("GCM 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeGcm << 192;
+    QTest::newRow("GCM 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeGcm << 256;
 }
 
 void tst_cryptorequests::cipherEncryptDecrypt()
