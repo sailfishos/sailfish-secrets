@@ -40,19 +40,20 @@ using namespace Sailfish::Crypto;
 Daemon::Plugins::OpenSslCryptoPlugin::OpenSslCryptoPlugin(QObject *parent)
     : QObject(parent), CryptoPlugin()
 {
+    // initialise EVP
+    OpenSslEvp::init();
+
     // seed the RNG
     char seed[1024] = {0};
     std::ifstream rand("/dev/urandom");
     rand.read(seed, 1024);
     rand.close();
     RAND_add(seed, 1024, 1.0);
-
-    // initialise EVP
-    osslevp_init();
 }
 
 Daemon::Plugins::OpenSslCryptoPlugin::~OpenSslCryptoPlugin()
 {
+    OpenSslEvp::cleanup();
 }
 
 Result
@@ -446,7 +447,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateEcKey(
     size_t privateKeySize = 0;
     uint8_t *publicKeyBuffer = Q_NULLPTR;
     size_t publicKeySize = 0;
-    int r = osslevp_generate_ec_key(curveNid,
+    int r = OpenSslEvp::generate_ec_key(curveNid,
                                     &publicKeyBuffer,
                                     &publicKeySize,
                                     &privateKeyBuffer,
@@ -555,7 +556,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateKey(
 
     int nbytes = skdfParams.outputKeySize() / 8;
     QScopedArrayPointer<char> buf(new char[nbytes]);
-    if (osslevp_pkcs5_pbkdf2_hmac(
+    if (OpenSslEvp::pkcs5_pbkdf2_hmac(
                 skdfParams.inputData().constData(),
                 skdfParams.inputData().size(),
                 skdfParams.salt().isEmpty()
@@ -735,7 +736,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::calculateDigest(
     size_t digestLength = 0;
 
     // Create digest
-    int r = osslevp_digest(evpDigestFunc, data.data(), data.length(), &digestBytes, &digestLength);
+    int r = OpenSslEvp::digest(evpDigestFunc, data.data(), data.length(), &digestBytes, &digestLength);
     if (r != 1) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginDigestError,
                                         QLatin1String("Failed to digest."));
@@ -813,7 +814,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::sign(
     size_t signatureLength = 0;
 
     // Create signature
-    r = osslevp_sign(evpDigestFunc, pkeyPtr, data.data(), data.length(), &signatureBytes, &signatureLength);
+    r = OpenSslEvp::sign(evpDigestFunc, pkeyPtr, data.data(), data.length(), &signatureBytes, &signatureLength);
     if (r != 1) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginSigningError,
                                         QLatin1String("Failed to sign."));
@@ -887,7 +888,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::verify(
     QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(pkeyPtr);
 
     // Verify the signature
-    r = osslevp_verify(evpDigestFunc, pkeyPtr, data.data(), data.length(), (const uint8_t*) signature.data(), (size_t) signature.length());
+    r = OpenSslEvp::verify(evpDigestFunc, pkeyPtr, data.data(), data.length(), (const uint8_t*) signature.data(), (size_t) signature.length());
     if (r == 1) {
         // Verification performed without error, signature matched.
         *verified = true;
@@ -989,7 +990,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::encryptAsymmetric(
     uint8_t *encryptedBytes = Q_NULLPTR;
     size_t encryptedBytesLength = 0;
 
-    r = osslevp_pkey_encrypt_plaintext(pkeyPtr,
+    r = OpenSslEvp::pkey_encrypt_plaintext(pkeyPtr,
                                        opensslPadding,
                                        reinterpret_cast<const uint8_t*>(data.data()),
                                        data.length(),
@@ -1177,7 +1178,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::decryptAsymmetric(
     uint8_t *decryptedBytes = Q_NULLPTR;
     size_t decryptedBytesLength = 0;
 
-    r = osslevp_pkey_decrypt_ciphertext(pkeyPtr,
+    r = OpenSslEvp::pkey_decrypt_ciphertext(pkeyPtr,
                                         opensslPadding,
                                         reinterpret_cast<const uint8_t*>(data.data()),
                                         data.length(),
@@ -1396,7 +1397,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
     csd->cipherSessionToken = sessionToken;
     csd->evp_cipher_ctx = evp_cipher_ctx;
     csd->evp_md_ctx = evp_md_ctx;
-    QTimer *timeout = new QTimer(this);
+    QTimer *timeout = new QTimer;
     timeout->setSingleShot(true);
     timeout->setInterval(CIPHER_SESSION_INACTIVITY_TIMEOUT);
     QObject::connect(timeout, &QTimer::timeout,
@@ -1599,7 +1600,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::aes_encrypt_plaintext(
 {
     QByteArray encryptedData;
     unsigned char *encrypted = NULL;
-    int size = osslevp_aes_encrypt_plaintext(getEvpCipher(blockMode, key.size()),
+    int size = OpenSslEvp::aes_encrypt_plaintext(getEvpCipher(blockMode, key.size()),
                                              (const unsigned char *)init_vector.constData(),
                                              (const unsigned char *)key.constData(),
                                              key.size(),
@@ -1624,7 +1625,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::aes_decrypt_ciphertext(
 {
     QByteArray decryptedData;
     unsigned char *decrypted = NULL;
-    int size = osslevp_aes_decrypt_ciphertext(getEvpCipher(blockMode, key.size()),
+    int size = OpenSslEvp::aes_decrypt_ciphertext(getEvpCipher(blockMode, key.size()),
                                               (const unsigned char *)init_vector.constData(),
                                               (const unsigned char *)key.constData(),
                                               key.size(),
@@ -1653,7 +1654,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::aes_auth_encrypt_plaintext(
     unsigned char *encrypted = NULL;
     unsigned char *authenticationTag = NULL;
 
-    int encryptedSize = osslevp_aes_auth_encrypt_plaintext(getEvpCipher(blockMode, key.size()),
+    int encryptedSize = OpenSslEvp::aes_auth_encrypt_plaintext(getEvpCipher(blockMode, key.size()),
                                                            (const unsigned char *)init_vector.constData(),
                                                            (const unsigned char *)key.constData(),
                                                            key.size(),
@@ -1690,7 +1691,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::aes_auth_decrypt_ciphertext(
     unsigned char *decrypted = NULL;
     unsigned char *authenticationTagData = (unsigned char *)authenticationTag.data();
 
-    int size = osslevp_aes_auth_decrypt_ciphertext(getEvpCipher(blockMode, key.size()),
+    int size = OpenSslEvp::aes_auth_decrypt_ciphertext(getEvpCipher(blockMode, key.size()),
                                                    (const unsigned char *)init_vector.constData(),
                                                    (const unsigned char *)key.constData(),
                                                    key.size(),

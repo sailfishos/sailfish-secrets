@@ -234,7 +234,6 @@ public:
 
 private:
     static QString databaseDirPath(bool isTestPlugin, const QString &databaseSubdir);
-    void init_aes_encryption();
     Sailfish::Secrets::Result openCollectionDatabase(const QString &collectionName, const QByteArray &key, bool createIfNotExists);
     QMap<QString, Sailfish::Secrets::Daemon::Sqlite::Database *> m_collectionDatabases;
 

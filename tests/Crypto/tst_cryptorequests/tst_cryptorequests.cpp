@@ -116,6 +116,7 @@ private slots:
     void cipherBenchmark();
     void cipherTimeout();
     void lockCode();
+    void pluginThreading();
     void importKey_data();
     void importKey();
     void importKeyAndStore_data();
@@ -2282,6 +2283,80 @@ void tst_cryptorequests::lockCode()
     QCOMPARE(lcr.result().code(), Sailfish::Crypto::Result::Failed);
     QCOMPARE(lcr.result().errorMessage(), QStringLiteral("Crypto plugin %1 does not support locking")
                                                     .arg(DEFAULT_TEST_CRYPTO_PLUGIN_NAME));
+}
+
+void tst_cryptorequests::pluginThreading()
+{
+    // This test is meant to be run manually and
+    // concurrently with tst_secretsrequests::pluginThreading().
+    // It performs a series of simple crypto requests which
+    // will use the OpenSSL crypto plugin to encrypt and decrypt
+    // data in the Crypto Plugins Thread.
+    // The tst_secretsrequests::pluginThreading() will concurrently
+    // be using the OpenSSL secrets encryption plugin to encrypt
+    // and decrypt data in the Crypto Plugins Thread.
+    // If the appropriate locking and multithreading has not been
+    // implemented, we expect the daemon to crash, or to produce
+    // incorrect data.
+
+    Key keyTemplate;
+    keyTemplate.setSize(256);
+    keyTemplate.setAlgorithm(CryptoManager::AlgorithmAes);
+    keyTemplate.setOrigin(Key::OriginDevice);
+    keyTemplate.setOperations(CryptoManager::OperationEncrypt | CryptoManager::OperationDecrypt);
+    keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
+
+    GenerateKeyRequest gkr;
+    gkr.setManager(&cm);
+    gkr.setKeyTemplate(keyTemplate);
+    gkr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+    gkr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gkr);
+    QCOMPARE(gkr.status(), Request::Finished);
+    QCOMPARE(gkr.result().code(), Result::Succeeded);
+    Key fullKey = gkr.generatedKey();
+    QVERIFY(!fullKey.secretKey().isEmpty());
+    QCOMPARE(fullKey.filterData(), keyTemplate.filterData());
+
+    QElapsedTimer et;
+    et.start();
+    while (et.elapsed() < 15000) {
+        // test encrypting some plaintext with the generated key
+        QByteArray plaintext = "Test plaintext data";
+        QByteArray initVector = "0123456789abcdef";
+        EncryptRequest er;
+        er.setManager(&cm);
+        er.setData(plaintext);
+        er.setInitialisationVector(initVector);
+        er.setKey(fullKey);
+        er.setBlockMode(CryptoManager::BlockModeCbc);
+        er.setPadding(CryptoManager::EncryptionPaddingNone);
+        er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+        er.startRequest();
+        WAIT_FOR_FINISHED_WITHOUT_BLOCKING(er);
+        QCOMPARE(er.status(), Request::Finished);
+        QCOMPARE(er.result().code(), Result::Succeeded);
+        QByteArray ciphertext = er.ciphertext();
+        QVERIFY(!ciphertext.isEmpty());
+        QVERIFY(ciphertext != plaintext);
+
+        // test decrypting the ciphertext, and ensure that the roundtrip works.
+        DecryptRequest dr;
+        dr.setManager(&cm);
+        dr.setData(ciphertext);
+        dr.setInitialisationVector(initVector);
+        dr.setKey(fullKey);
+        dr.setBlockMode(CryptoManager::BlockModeCbc);
+        dr.setPadding(CryptoManager::EncryptionPaddingNone);
+        dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+        dr.startRequest();
+        WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dr);
+        QCOMPARE(dr.status(), Request::Finished);
+        QCOMPARE(dr.result().code(), Result::Succeeded);
+        QByteArray decrypted = dr.plaintext();
+        QVERIFY(!decrypted.isEmpty());
+        QCOMPARE(plaintext, decrypted);
+    }
 }
 
 static const auto test_key_rsa_1024_in = QByteArrayLiteral(

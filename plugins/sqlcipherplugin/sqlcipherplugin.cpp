@@ -21,7 +21,6 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::SqlCipherPlugin(QObject *pa
                                         m_databaseSubdir))
     , m_opensslCryptoPlugin(this)
 {
-    init_aes_encryption();
 }
 
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::~SqlCipherPlugin()

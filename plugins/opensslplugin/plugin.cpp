@@ -18,11 +18,12 @@ using namespace Sailfish::Secrets;
 Daemon::Plugins::OpenSslPlugin::OpenSslPlugin(QObject *parent)
     : QObject(parent), EncryptionPlugin()
 {
-    osslevp_init();
+    OpenSslEvp::init();
 }
 
 Daemon::Plugins::OpenSslPlugin::~OpenSslPlugin()
 {
+    OpenSslEvp::cleanup();
 }
 
 Result
@@ -36,7 +37,7 @@ Daemon::Plugins::OpenSslPlugin::deriveKeyFromCode(
                          : authenticationCode;
     const int nbytes = 32; // 256 bit
     QScopedArrayPointer<char> buf(new char[nbytes]);
-    if (osslevp_pkcs5_pbkdf2_hmac(
+    if (OpenSslEvp::pkcs5_pbkdf2_hmac(
             inputData.constData(),
             inputData.size(),
             salt.isEmpty()
@@ -112,7 +113,7 @@ Daemon::Plugins::OpenSslPlugin::aes_encrypt_plaintext(
 {
     QByteArray encryptedData;
     unsigned char *encrypted = NULL;
-    int size = osslevp_aes_encrypt_plaintext(getEvpCipher(Sailfish::Crypto::CryptoManager::BlockModeCbc, key.size()),
+    int size = OpenSslEvp::aes_encrypt_plaintext(getEvpCipher(Sailfish::Crypto::CryptoManager::BlockModeCbc, key.size()),
                                              (const unsigned char *)init_vector.constData(),
                                              (const unsigned char *)key.constData(),
                                              key.size(),
@@ -136,7 +137,7 @@ Daemon::Plugins::OpenSslPlugin::aes_decrypt_ciphertext(
 {
     QByteArray decryptedData;
     unsigned char *decrypted = NULL;
-    int size = osslevp_aes_decrypt_ciphertext(getEvpCipher(Sailfish::Crypto::CryptoManager::BlockModeCbc, key.size()),
+    int size = OpenSslEvp::aes_decrypt_ciphertext(getEvpCipher(Sailfish::Crypto::CryptoManager::BlockModeCbc, key.size()),
                                               (const unsigned char *)init_vector.constData(),
                                               (const unsigned char *)key.constData(),
                                               key.size(),

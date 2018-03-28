@@ -19,7 +19,7 @@ HEADERS += \
     $$PWD/sqlcipherplugin.h
 
 SOURCES += \
-    $$PWD/../opensslcryptoplugin/evp/evp.c \
+    $$PWD/../opensslcryptoplugin/evp/evp.cpp \
     $$PWD/../opensslcryptoplugin/opensslcryptoplugin.cpp \
     $$PWD/sqlcipherplugin.cpp \
     $$PWD/encryptedstorageplugin.cpp \

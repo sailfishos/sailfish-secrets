@@ -56,19 +56,6 @@ namespace {
     }
 }
 
-void Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::init_aes_encryption()
-{
-    // seed the RNG
-    char seed[1024] = {0};
-    std::ifstream rand("/dev/urandom");
-    rand.read(seed, 1024);
-    rand.close();
-    RAND_add(seed, 1024, 1.0);
-
-    // initialise EVP
-    osslevp_init();
-}
-
 Sailfish::Crypto::Result
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::seedRandomDataGenerator(
         quint64 callerIdent,

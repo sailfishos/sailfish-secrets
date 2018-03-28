@@ -227,7 +227,7 @@ Daemon::Plugins::SqlCipherPlugin::deriveKeyFromCode(
                          : authenticationCode;
     const int nbytes = 32; // 256 bit
     QScopedArrayPointer<char> buf(new char[nbytes]);
-    if (osslevp_pkcs5_pbkdf2_hmac(
+    if (OpenSslEvp::pkcs5_pbkdf2_hmac(
             inputData.constData(),
             inputData.size(),
             salt.isEmpty()

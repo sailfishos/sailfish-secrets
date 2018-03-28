@@ -264,7 +264,7 @@ QByteArray tst_evp::signWithEvp(const QByteArray &data) {
     uint8_t *signature;
     size_t signatureLength;
 
-    r = osslevp_sign(digestFunc, pkey, data.data(), data.length(), &signature, &signatureLength);
+    r = OpenSslEvp::sign(digestFunc, pkey, data.data(), data.length(), &signature, &signatureLength);
     assert(r == 1);
     BIO_free(bio);
     EVP_PKEY_free(pkey);
@@ -291,7 +291,7 @@ bool tst_evp::verifyWithEvp(const QByteArray &data, const QByteArray &signature)
     assert(r == publicKey.length());
     PEM_read_bio_PUBKEY(bio, &pkey, nullptr, nullptr);
 
-    r = osslevp_verify(digestFunc, pkey, data.data(), data.length(), reinterpret_cast<const uint8_t*>(signature.data()), signature.length());
+    r = OpenSslEvp::verify(digestFunc, pkey, data.data(), data.length(), reinterpret_cast<const uint8_t*>(signature.data()), signature.length());
     assert(r >= 0);
     BIO_free(bio);
     EVP_PKEY_free(pkey);
@@ -345,7 +345,7 @@ QByteArray tst_evp::digestWithEvp(const QByteArray &data)
     uint8_t *digest;
     size_t digestLength;
 
-    int r = osslevp_digest(digestFunc, data.data(), data.length(), &digest, &digestLength);
+    int r = OpenSslEvp::digest(digestFunc, data.data(), data.length(), &digest, &digestLength);
     assert(r == 1);
 
     QByteArray result((const char*) digest, (int) digestLength);

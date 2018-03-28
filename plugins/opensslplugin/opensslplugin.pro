@@ -14,7 +14,7 @@ HEADERS += \
     $$PWD/../opensslcryptoplugin/evp/evp_p.h \
     $$PWD/plugin.h
 SOURCES += \
-    $$PWD/../opensslcryptoplugin/evp/evp.c \
+    $$PWD/../opensslcryptoplugin/evp/evp.cpp \
     $$PWD/plugin.cpp
 
 target.path=/usr/lib/Sailfish/Secrets/

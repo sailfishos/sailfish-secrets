@@ -7,6 +7,7 @@
 
 #include <QtTest>
 #include <QObject>
+#include <QElapsedTimer>
 #include <QDBusReply>
 #include <QQuickView>
 #include <QQuickItem>
@@ -70,6 +71,8 @@ private slots:
     void accessControl();
 
     void lockCode();
+
+    void pluginThreading();
 
 private:
     SecretManager sm;
@@ -1757,6 +1760,91 @@ void tst_secretsrequests::lockCode()
     QCOMPARE(lcr.result().code(), Result::Failed);
     QCOMPARE(lcr.result().errorMessage(), QStringLiteral("Storage plugin %1 does not support locking")
                                                     .arg(DEFAULT_TEST_STORAGE_PLUGIN));
+}
+
+void tst_secretsrequests::pluginThreading()
+{
+    // This test is meant to be run manually and
+    // concurrently with tst_cryptorequests::pluginThreading().
+    // It performs a series of simple secrets requests which
+    // will use the OpenSSL secrets encryption plugin to encrypt
+    // and decrypt data in the Secrets Plugins Thread.
+    // The tst_cryptorequests::pluginThreading() will concurrently
+    // be using the OpenSSL crypto plugin to encrypt and decrypt
+    // data in the Crypto Plugins Thread.
+    // If the appropriate locking and multithreading has not been
+    // implemented, we expect the daemon to crash, or to produce
+    // incorrect data.
+
+    CreateCollectionRequest ccr;
+    ccr.setManager(&sm);
+    ccr.setCollectionLockType(CreateCollectionRequest::DeviceLock);
+    ccr.setCollectionName(QLatin1String("testthreadscollection"));
+    ccr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
+    ccr.setEncryptionPluginName(DEFAULT_TEST_ENCRYPTION_PLUGIN);
+    ccr.setDeviceLockUnlockSemantic(SecretManager::DeviceLockKeepUnlocked);
+    ccr.setAccessControlMode(SecretManager::OwnerOnlyMode);
+    ccr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ccr);
+    QCOMPARE(ccr.status(), Request::Finished);
+    QCOMPARE(ccr.result().code(), Result::Succeeded);
+
+    QElapsedTimer et;
+    et.start();
+    while (et.elapsed() < 15000) {
+        Secret testSecret(Secret::Identifier(
+                            QLatin1String("testsecretname"),
+                            QLatin1String("testthreadscollection")));
+        testSecret.setData("testsecretvalue");
+        testSecret.setType(Secret::TypeBlob);
+        testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
+        testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
+
+        // store a new secret into the collection
+        StoreSecretRequest ssr;
+        ssr.setManager(&sm);
+        ssr.setSecretStorageType(StoreSecretRequest::CollectionSecret);
+        ssr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+        ssr.setSecret(testSecret);
+        ssr.startRequest();
+        WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ssr);
+        QCOMPARE(ssr.status(), Request::Finished);
+        QCOMPARE(ssr.result().code(), Result::Succeeded);
+
+        // retrieve the secret, ensure it matches
+        StoredSecretRequest gsr;
+        gsr.setManager(&sm);
+        gsr.setIdentifier(testSecret.identifier());
+        gsr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+        gsr.startRequest();
+        WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
+        QCOMPARE(gsr.status(), Request::Finished);
+        QCOMPARE(gsr.result().code(), Result::Succeeded);
+        QCOMPARE(gsr.secret().data(), testSecret.data());
+        QCOMPARE(gsr.secret().type(), testSecret.type());
+        QCOMPARE(gsr.secret().filterData(), testSecret.filterData());
+        QCOMPARE(gsr.secret().name(), testSecret.name());
+        QCOMPARE(gsr.secret().collectionName(), testSecret.collectionName());
+
+        // delete the secret
+        DeleteSecretRequest dsr;
+        dsr.setManager(&sm);
+        dsr.setIdentifier(testSecret.identifier());
+        dsr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+        dsr.startRequest();
+        WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dsr);
+        QCOMPARE(dsr.status(), Request::Finished);
+        QCOMPARE(dsr.result().code(), Result::Succeeded);
+    }
+
+    DeleteCollectionRequest dcr;
+    dcr.setManager(&sm);
+    dcr.setCollectionName(QLatin1String("testthreadscollection"));
+    dcr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+    dcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
+    QCOMPARE(dcr.status(), Request::Finished);
+    QCOMPARE(dcr.result().code(), Result::Succeeded);
 }
 
 #include "tst_secretsrequests.moc"
