@@ -237,6 +237,19 @@ const EVP_CIPHER *getEvpCipher(int block_mode, int key_length_bytes)
     return NULL;
 }
 
+int getOpenSslRsaPadding(Sailfish::Crypto::CryptoManager::EncryptionPadding padding) {
+    switch (padding) {
+    case Sailfish::Crypto::CryptoManager::EncryptionPaddingNone:
+        return RSA_NO_PADDING;
+    case Sailfish::Crypto::CryptoManager::EncryptionPaddingRsaPkcs1:
+        return RSA_PKCS1_PADDING;
+    case Sailfish::Crypto::CryptoManager::EncryptionPaddingRsaOaep:
+        return RSA_PKCS1_OAEP_PADDING;
+    default:
+        return 0;
+    }
+}
+
 int getEllipticCurveNid(Sailfish::Crypto::CryptoManager::EllipticCurve curve) {
     // TODO: add more curves
     switch (curve) {

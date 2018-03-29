@@ -165,7 +165,12 @@ Daemon::Plugins::OpenSslCryptoPlugin::supportedEncryptionPaddings() const
     QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::EncryptionPadding> > retn;
 
     retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes, { Sailfish::Crypto::CryptoManager::EncryptionPaddingNone });
-    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmRsa, { Sailfish::Crypto::CryptoManager::EncryptionPaddingNone });
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmRsa,
+                {
+                    Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
+                    Sailfish::Crypto::CryptoManager::EncryptionPaddingRsaPkcs1,
+                    Sailfish::Crypto::CryptoManager::EncryptionPaddingRsaOaep,
+                });
     retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmEc, { Sailfish::Crypto::CryptoManager::EncryptionPaddingNone });
 
     return retn;
@@ -763,11 +768,6 @@ Daemon::Plugins::OpenSslCryptoPlugin::encryptAsymmetric(
                                         QLatin1String("Cannot encrypt if there is no public key to encrypt with."));
     }
 
-    if (padding != Sailfish::Crypto::CryptoManager::EncryptionPaddingNone) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: encryption padding other than None"));
-    }
-
     if (iv.size()) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                         QLatin1String("TODO: initialization vectors are not yet supported with asymmetric encryption"));
@@ -782,6 +782,12 @@ Daemon::Plugins::OpenSslCryptoPlugin::encryptAsymmetric(
     if (blockMode != Sailfish::Crypto::CryptoManager::BlockModeUnknown) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                         QLatin1String("TODO: encryption padding other than Unknown"));
+    }
+
+    int opensslPadding = getOpenSslRsaPadding(padding);
+    if (opensslPadding == 0 || (fullKey.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmRsa && padding != Sailfish::Crypto::CryptoManager::EncryptionPaddingNone)) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("The given padding type is not supported for the given algorithm."));
     }
 
     QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(BIO_new(BIO_s_mem()));
@@ -807,6 +813,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::encryptAsymmetric(
     size_t encryptedBytesLength = 0;
 
     r = osslevp_pkey_encrypt_plaintext(pkeyPtr,
+                                       opensslPadding,
                                        reinterpret_cast<const uint8_t*>(data.data()),
                                        data.length(),
                                        &encryptedBytes,
@@ -910,11 +917,6 @@ Daemon::Plugins::OpenSslCryptoPlugin::decryptAsymmetric(
                                         QLatin1String("Cannot decrypt if there is no private key to decrypt with."));
     }
 
-    if (padding != Sailfish::Crypto::CryptoManager::EncryptionPaddingNone) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: encryption padding other than None"));
-    }
-
     if (iv.size()) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                         QLatin1String("TODO: initialization vectors are not yet supported with asymmetric encryption"));
@@ -929,6 +931,12 @@ Daemon::Plugins::OpenSslCryptoPlugin::decryptAsymmetric(
     if (blockMode != Sailfish::Crypto::CryptoManager::BlockModeUnknown) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                         QLatin1String("TODO: encryption padding other than Unknown"));
+    }
+
+    int opensslPadding = getOpenSslRsaPadding(padding);
+    if (opensslPadding == 0 || (fullKey.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmRsa && padding != Sailfish::Crypto::CryptoManager::EncryptionPaddingNone)) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("The given padding type is not supported for the given algorithm."));
     }
 
     QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(BIO_new(BIO_s_mem()));
@@ -954,6 +962,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::decryptAsymmetric(
     size_t decryptedBytesLength = 0;
 
     r = osslevp_pkey_decrypt_ciphertext(pkeyPtr,
+                                        opensslPadding,
                                         reinterpret_cast<const uint8_t*>(data.data()),
                                         data.length(),
                                         &decryptedBytes,

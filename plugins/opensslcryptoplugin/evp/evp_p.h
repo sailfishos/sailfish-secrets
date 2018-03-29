@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include <openssl/conf.h>
 #include <openssl/evp.h>
@@ -46,12 +47,14 @@ int osslevp_aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
                                    unsigned char **decrypted);
 
 int osslevp_pkey_encrypt_plaintext(EVP_PKEY *pkey,
+                                   int padding,
                                    const unsigned char *plaintext,
                                    size_t plaintext_length,
                                    uint8_t **encrypted,
                                    size_t *encrypted_length);
 
 int osslevp_pkey_decrypt_ciphertext(EVP_PKEY *pkey,
+                                    int padding,
                                     const unsigned char *ciphertext,
                                     size_t ciphertext_length,
                                     uint8_t **decrypted,
@@ -82,6 +85,8 @@ int osslevp_generate_ec_key(int curveNid,
                             size_t *publicKeySize,
                             uint8_t **privateKeyBytes,
                             size_t *privateKeySize);
+
+bool osslevp_key_is_rsa(EVP_PKEY *pkey);
 
 #ifdef __cplusplus
 }

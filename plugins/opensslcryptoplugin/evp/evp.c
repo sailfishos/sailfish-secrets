@@ -255,6 +255,7 @@ int osslevp_aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
 
 /*
     int osslevp_pkey_encrypt_plaintext(EVP_PKEY *pkey,
+                                       int padding,
                                        const unsigned char *plaintext,
                                        size_t plaintext_length,
                                        uint8_t **encrypted,
@@ -265,6 +266,7 @@ int osslevp_aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
 
     Arguments:
     * pkey: key used for encryption
+    * padding: padding scheme used
     * plaintext: the data to encrypt
     * plaintext_length: number of bytes in 'plaintext'
     * encrypted: output argument, where memory will be allocated for the
@@ -277,6 +279,7 @@ int osslevp_aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
     * less than 0 when there was an error
  */
 int osslevp_pkey_encrypt_plaintext(EVP_PKEY *pkey,
+                                   int padding,
                                    const uint8_t *plaintext,
                                    size_t plaintext_length,
                                    uint8_t **encrypted,
@@ -290,9 +293,10 @@ int osslevp_pkey_encrypt_plaintext(EVP_PKEY *pkey,
     r = EVP_PKEY_encrypt_init(pkctx);
     OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialize EVP_PKEY_CTX for encryption", err_free_pkctx);
 
-    // TODO: padding support
-    //r = EVP_PKEY_CTX_set_rsa_padding(pkctx, RSA_NO_PADDING);
-    //OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to set RSA padding", err_free_pkctx);
+    if (osslevp_key_is_rsa(pkey)) {
+        r = EVP_PKEY_CTX_set_rsa_padding(pkctx, padding);
+        OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to set RSA padding", err_free_pkctx);
+    }
 
     r = EVP_PKEY_encrypt(pkctx, NULL, encrypted_length, plaintext, plaintext_length);
     OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to calculate PKEY encrypted size", err_free_pkctx);
@@ -317,6 +321,7 @@ int osslevp_pkey_encrypt_plaintext(EVP_PKEY *pkey,
 
 /*
     int osslevp_pkey_decrypt_ciphertext(EVP_PKEY *pkey,
+                                        int padding,
                                         const unsigned char *ciphertext,
                                         size_t ciphertext_length,
                                         uint8_t **decrypted,
@@ -326,6 +331,7 @@ int osslevp_pkey_encrypt_plaintext(EVP_PKEY *pkey,
 
     Arguments:
     * pkey: key used for decryption
+    * padding: padding scheme used
     * ciphertext: the data to decrypt
     * ciphertext_length: number of bytes in 'ciphertext'
     * decrypted: output argument, where memory will be allocated for the
@@ -338,6 +344,7 @@ int osslevp_pkey_encrypt_plaintext(EVP_PKEY *pkey,
     * less than 0 when there was an error
 */
 int osslevp_pkey_decrypt_ciphertext(EVP_PKEY *pkey,
+                                    int padding,
                                     const unsigned char *ciphertext,
                                     size_t ciphertext_length,
                                     uint8_t **decrypted,
@@ -351,9 +358,10 @@ int osslevp_pkey_decrypt_ciphertext(EVP_PKEY *pkey,
     r = EVP_PKEY_decrypt_init(pkctx);
     OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialize EVP_PKEY_CTX for decryption", err_free_pkctx);
 
-    // TODO: padding support
-    //r = EVP_PKEY_CTX_set_rsa_padding(pkctx, RSA_NO_PADDING);
-    //OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to set RSA padding", err_free_pkctx);
+    if (osslevp_key_is_rsa(pkey)) {
+        r = EVP_PKEY_CTX_set_rsa_padding(pkctx, padding);
+        OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to set RSA padding", err_free_pkctx);
+    }
 
     r = EVP_PKEY_decrypt(pkctx, NULL, decrypted_length, ciphertext, ciphertext_length);
     OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to calculate PKEY encrypted size", err_free_pkctx);
@@ -645,4 +653,22 @@ int osslevp_generate_ec_key(int curveNid,
     EVP_PKEY_CTX_free(pctx);
     err_dontfree:
     return r;
+}
+
+/*
+    bool osslevp_key_is_rsa(EVP_PKEY *pkey)
+
+    Tells if a given key is an RSA key or not.
+
+    Arguments:
+    * pkey: The key to examine
+
+    Return value:
+    * true if the given key is an RSA key
+    * false otherwise
+*/
+bool osslevp_key_is_rsa(EVP_PKEY *pkey)
+{
+    RSA *rsa = EVP_PKEY_get0_RSA(pkey);
+    return rsa != NULL;
 }
