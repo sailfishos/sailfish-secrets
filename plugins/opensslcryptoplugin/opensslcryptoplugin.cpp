@@ -134,15 +134,28 @@ QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::Crypt
 Daemon::Plugins::OpenSslCryptoPlugin::supportedBlockModes() const
 {
     QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::BlockMode> > retn;
+
     retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes,
-                QVector<Sailfish::Crypto::CryptoManager::BlockMode>()
-                        << Sailfish::Crypto::CryptoManager::BlockModeEcb
-                        << Sailfish::Crypto::CryptoManager::BlockModeCbc
-                        << Sailfish::Crypto::CryptoManager::BlockModeCfb1
-                        << Sailfish::Crypto::CryptoManager::BlockModeCfb8
-                        << Sailfish::Crypto::CryptoManager::BlockModeCfb128
-                        << Sailfish::Crypto::CryptoManager::BlockModeOfb
-                        << Sailfish::Crypto::CryptoManager::BlockModeCtr);
+                {
+                    Sailfish::Crypto::CryptoManager::BlockModeEcb,
+                    Sailfish::Crypto::CryptoManager::BlockModeCbc,
+                    Sailfish::Crypto::CryptoManager::BlockModeCfb1,
+                    Sailfish::Crypto::CryptoManager::BlockModeCfb8,
+                    Sailfish::Crypto::CryptoManager::BlockModeCfb128,
+                    Sailfish::Crypto::CryptoManager::BlockModeOfb,
+                    Sailfish::Crypto::CryptoManager::BlockModeCtr,
+                });
+
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmRsa,
+                {
+                    Sailfish::Crypto::CryptoManager::BlockModeUnknown,
+                });
+
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmEc,
+                {
+                    Sailfish::Crypto::CryptoManager::BlockModeUnknown,
+                });
+
     return retn;
 }
 
@@ -150,7 +163,16 @@ QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::Crypt
 Daemon::Plugins::OpenSslCryptoPlugin::supportedEncryptionPaddings() const
 {
     QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::EncryptionPadding> > retn;
-    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes, QVector<Sailfish::Crypto::CryptoManager::EncryptionPadding>() << Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
+
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes, { Sailfish::Crypto::CryptoManager::EncryptionPaddingNone });
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmRsa,
+                {
+                    Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
+                    Sailfish::Crypto::CryptoManager::EncryptionPaddingRsaPkcs1,
+                    Sailfish::Crypto::CryptoManager::EncryptionPaddingRsaOaep,
+                });
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmEc, { Sailfish::Crypto::CryptoManager::EncryptionPaddingNone });
+
     return retn;
 }
 
@@ -162,6 +184,9 @@ Daemon::Plugins::OpenSslCryptoPlugin::supportedSignaturePaddings() const
     retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmRsa,
                 QVector<Sailfish::Crypto::CryptoManager::SignaturePadding>() << Sailfish::Crypto::CryptoManager::SignaturePaddingNone);
 
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmEc,
+                QVector<Sailfish::Crypto::CryptoManager::SignaturePadding>() << Sailfish::Crypto::CryptoManager::SignaturePaddingNone);
+
     return retn;
 }
 
@@ -171,7 +196,11 @@ Daemon::Plugins::OpenSslCryptoPlugin::supportedDigests() const
     QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::DigestFunction> > retn;
 
     retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmRsa,
-                QVector<Sailfish::Crypto::CryptoManager::DigestFunction>() << Sailfish::Crypto::CryptoManager::DigestSha256);
+                { CryptoManager::DigestSha256, CryptoManager::DigestSha512, CryptoManager::DigestMd5 });
+
+    // NOTE: openssl says "invalid digest" when trying MD5 with EC
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmEc,
+                { CryptoManager::DigestSha256, CryptoManager::DigestSha512 });
 
     return retn;
 }
@@ -203,6 +232,12 @@ Daemon::Plugins::OpenSslCryptoPlugin::supportedOperations() const
                 Sailfish::Crypto::CryptoManager::OperationDecrypt);
 
     retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmRsa,
+                Sailfish::Crypto::CryptoManager::OperationEncrypt |
+                Sailfish::Crypto::CryptoManager::OperationDecrypt |
+                Sailfish::Crypto::CryptoManager::OperationSign |
+                Sailfish::Crypto::CryptoManager::OperationVerify);
+
+    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmEc,
                 Sailfish::Crypto::CryptoManager::OperationSign |
                 Sailfish::Crypto::CryptoManager::OperationVerify);
 
@@ -260,6 +295,142 @@ Daemon::Plugins::OpenSslCryptoPlugin::validateCertificateChain(
 }
 
 Sailfish::Crypto::Result
+Daemon::Plugins::OpenSslCryptoPlugin::generateRsaKey(
+        const Sailfish::Crypto::Key &keyTemplate,
+        const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
+        const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+        Sailfish::Crypto::Key *key)
+{
+    Q_UNUSED(skdfParams);
+
+    if (kpgParams.keyPairType() != Sailfish::Crypto::KeyPairGenerationParameters::KeyPairRsa
+            || keyTemplate.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmRsa) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("This method can only generate RSA keys."));
+    }
+    Sailfish::Crypto::RsaKeyPairGenerationParameters rsakpgp(kpgParams);
+    if (rsakpgp.modulusLength() < 8 || rsakpgp.modulusLength() > 8192 || (rsakpgp.modulusLength() % 8) != 0) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("Unsupported modulus length specified"));
+    }
+    if (rsakpgp.publicExponent() > std::numeric_limits<quint32>::max()) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("Unsupported public exponent, too large"));
+    }
+    if (rsakpgp.numberPrimes() != 2) {
+        // RSA_generate_multi_prime_key doesn't exist in our version of openssl it seems.
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("Unsupported number of primes"));
+    }
+
+    quint32 publicExponent = rsakpgp.publicExponent();
+    QScopedPointer<BIGNUM, LibCrypto_BN_Deleter> pubExp(BN_new());
+    if (BN_set_word(pubExp.data(), publicExponent) != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                        QLatin1String("Failed to set public exponent"));
+    }
+
+    QScopedPointer<RSA, LibCrypto_RSA_Deleter> rsa(RSA_new());
+    if (RSA_generate_key_ex(rsa.data(), rsakpgp.modulusLength(), pubExp.data(), NULL) != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                        QLatin1String("Failed to initialise RSA key pair generation"));
+    }
+
+    QScopedPointer<BIO, LibCrypto_BIO_Deleter> pubbio(BIO_new(BIO_s_mem()));
+    if (PEM_write_bio_RSA_PUBKEY(pubbio.data(), rsa.data()) != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                        QLatin1String("Failed to write public key data to memory"));
+    }
+    size_t pubkeylen = BIO_pending(pubbio.data());
+    QScopedArrayPointer<unsigned char> pubdata(new unsigned char[pubkeylen]);
+    if (BIO_read(pubbio.data(), pubdata.data(), pubkeylen) < 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                        QLatin1String("Failed to read public key data from memory"));
+    }
+
+    QScopedPointer<BIO, LibCrypto_BIO_Deleter> privbio(BIO_new(BIO_s_mem()));
+    if (PEM_write_bio_RSAPrivateKey(privbio.data(), rsa.data(), NULL, NULL, 0, NULL, NULL) != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                        QLatin1String("Failed to write private key data to memory"));
+    }
+    size_t privkeylen = BIO_pending(privbio.data());
+    QScopedArrayPointer<unsigned char> privdata(new unsigned char[privkeylen]);
+    if (BIO_read(privbio.data(), privdata.data(), privkeylen) < 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                        QLatin1String("Failed to read private key data from memory"));
+    }
+
+    *key = keyTemplate;
+    key->setPublicKey(QByteArray(reinterpret_cast<const char *>(pubdata.data()), pubkeylen));
+    key->setPrivateKey(QByteArray(reinterpret_cast<const char *>(privdata.data()), privkeylen));
+    key->setSize(rsakpgp.modulusLength());
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
+}
+
+Sailfish::Crypto::Result
+Daemon::Plugins::OpenSslCryptoPlugin::generateEcKey(
+        const Sailfish::Crypto::Key &keyTemplate,
+        const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
+        const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+        Sailfish::Crypto::Key *key)
+{
+    Q_UNUSED(skdfParams);
+
+    if (kpgParams.keyPairType() != Sailfish::Crypto::KeyPairGenerationParameters::KeyPairEc
+            || keyTemplate.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmEc) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("This method can only generate EC keys."));
+    }
+
+    EcKeyPairGenerationParameters ecParams(kpgParams);
+
+    int curveNid = getEllipticCurveNid(ecParams.ellipticCurve());
+    if (curveNid == 0) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("The given elliptic curve is not supported."));
+    }
+
+    int curveKeySize = getEllipticCurveKeySize(ecParams.ellipticCurve());
+    if (curveKeySize == 0) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("The given elliptic curve is not supported."));
+    }
+
+    uint8_t *privateKeyBuffer = Q_NULLPTR;
+    size_t privateKeySize = 0;
+    uint8_t *publicKeyBuffer = Q_NULLPTR;
+    size_t publicKeySize = 0;
+    int r = osslevp_generate_ec_key(curveNid,
+                                    &publicKeyBuffer,
+                                    &publicKeySize,
+                                    &privateKeyBuffer,
+                                    &privateKeySize);
+
+    // Check result from EVP
+    if (r == -2) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("The given elliptic curve is not supported by OpenSSL."));
+    }
+    if (r != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
+                                        QLatin1String("Error happened while generating the EC key."));
+    }
+
+    // Set resulting key
+    *key = keyTemplate;
+    key->setAlgorithm(CryptoManager::AlgorithmEc);
+    key->setPrivateKey(QByteArray(reinterpret_cast<const char*>(privateKeyBuffer), privateKeySize));
+    key->setPublicKey(QByteArray(reinterpret_cast<const char*>(publicKeyBuffer), publicKeySize));
+    key->setSize(curveKeySize);
+
+    // Free the remaining OpenSSL data
+    OPENSSL_free(privateKeyBuffer);
+    OPENSSL_free(publicKeyBuffer);
+
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
+}
+
+Sailfish::Crypto::Result
 Daemon::Plugins::OpenSslCryptoPlugin::generateKey(
         const Sailfish::Crypto::Key &keyTemplate,
         const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
@@ -268,68 +439,21 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateKey(
 {
     // generate an asymmetrical key pair if required
     if (kpgParams.isValid()) {
-        if (kpgParams.keyPairType() != Sailfish::Crypto::KeyPairGenerationParameters::KeyPairRsa
-                || keyTemplate.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmRsa) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                            QLatin1String("TODO: algorithms other than Rsa"));
+        switch (kpgParams.keyPairType()) {
+            case Sailfish::Crypto::KeyPairGenerationParameters::KeyPairRsa:
+                return generateRsaKey(keyTemplate,
+                                      kpgParams,
+                                      skdfParams,
+                                      key);
+            case Sailfish::Crypto::KeyPairGenerationParameters::KeyPairEc:
+                return generateEcKey(keyTemplate,
+                                     kpgParams,
+                                     skdfParams,
+                                     key);
+            default:
+                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                                QLatin1String("Can't generate specified key type, it's not supported yet."));
         }
-        Sailfish::Crypto::RsaKeyPairGenerationParameters rsakpgp(kpgParams);
-        if (rsakpgp.modulusLength() < 8 || rsakpgp.modulusLength() > 8192 || (rsakpgp.modulusLength() % 8) != 0) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                            QLatin1String("Unsupported modulus length specified"));
-        }
-        if (rsakpgp.publicExponent() > std::numeric_limits<quint32>::max()) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                            QLatin1String("Unsupported public exponent, too large"));
-        }
-        if (rsakpgp.numberPrimes() != 2) {
-            // RSA_generate_multi_prime_key doesn't exist in our version of openssl it seems.
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                            QLatin1String("Unsupported number of primes"));
-        }
-
-        quint32 publicExponent = rsakpgp.publicExponent();
-        QScopedPointer<BIGNUM, LibCrypto_BN_Deleter> pubExp(BN_new());
-        if (BN_set_word(pubExp.data(), publicExponent) != 1) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
-                                            QLatin1String("Failed to set public exponent"));
-        }
-
-        QScopedPointer<RSA, LibCrypto_RSA_Deleter> rsa(RSA_new());
-        if (RSA_generate_key_ex(rsa.data(), rsakpgp.modulusLength(), pubExp.data(), NULL) != 1) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
-                                            QLatin1String("Failed to initialise RSA key pair generation"));
-        }
-
-        QScopedPointer<BIO, LibCrypto_BIO_Deleter> pubbio(BIO_new(BIO_s_mem()));
-        if (PEM_write_bio_RSA_PUBKEY(pubbio.data(), rsa.data()) != 1) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
-                                            QLatin1String("Failed to write public key data to memory"));
-        }
-        size_t pubkeylen = BIO_pending(pubbio.data());
-        QScopedArrayPointer<unsigned char> pubdata(new unsigned char[pubkeylen]);
-        if (BIO_read(pubbio.data(), pubdata.data(), pubkeylen) < 1) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
-                                            QLatin1String("Failed to read public key data from memory"));
-        }
-
-        QScopedPointer<BIO, LibCrypto_BIO_Deleter> privbio(BIO_new(BIO_s_mem()));
-        if (PEM_write_bio_RSAPrivateKey(privbio.data(), rsa.data(), NULL, NULL, 0, NULL, NULL) != 1) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
-                                            QLatin1String("Failed to write private key data to memory"));
-        }
-        size_t privkeylen = BIO_pending(privbio.data());
-        QScopedArrayPointer<unsigned char> privdata(new unsigned char[privkeylen]);
-        if (BIO_read(privbio.data(), privdata.data(), privkeylen) < 1) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
-                                            QLatin1String("Failed to read private key data from memory"));
-        }
-
-        *key = keyTemplate;
-        key->setPublicKey(QByteArray(reinterpret_cast<const char *>(pubdata.data()), pubkeylen));
-        key->setPrivateKey(QByteArray(reinterpret_cast<const char *>(privdata.data()), privkeylen));
-        key->setSize(rsakpgp.modulusLength());
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
     }
 
     // otherwise generate a random symmetric key unless a key derivation function is required
@@ -612,7 +736,112 @@ Daemon::Plugins::OpenSslCryptoPlugin::encrypt(
         Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
         QByteArray *encrypted)
 {
+    if (encrypted == Q_NULLPTR) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginEncryptionError,
+                                        QLatin1String("The 'encrypted' argument SHOULD NOT be nullptr."));
+    }
+
     Sailfish::Crypto::Key fullKey = getFullKey(key);
+
+    if (fullKey.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
+        return this->encryptAes(data, iv, fullKey, blockMode, padding, encrypted);
+    } else if (fullKey.algorithm() >= Sailfish::Crypto::CryptoManager::FirstAsymmetricAlgorithm
+               && fullKey.algorithm() <= Sailfish::Crypto::CryptoManager::LastAsymmetricAlgorithm) {
+        return this->encryptAsymmetric(data, iv, fullKey, blockMode, padding, encrypted);
+    }
+
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                    QLatin1String("Unsupported encryption algorithm specified."));
+}
+
+Sailfish::Crypto::Result
+Daemon::Plugins::OpenSslCryptoPlugin::encryptAsymmetric(
+        const QByteArray &data,
+        const QByteArray &iv,
+        const Sailfish::Crypto::Key &fullKey,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+        QByteArray *encrypted)
+{
+    if (fullKey.publicKey().isEmpty()) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptyPublicKey,
+                                        QLatin1String("Cannot encrypt if there is no public key to encrypt with."));
+    }
+
+    if (iv.size()) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("TODO: initialization vectors are not yet supported with asymmetric encryption"));
+    }
+
+    if (fullKey.algorithm() < Sailfish::Crypto::CryptoManager::FirstAsymmetricAlgorithm
+           || fullKey.algorithm() > Sailfish::Crypto::CryptoManager::LastAsymmetricAlgorithm) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("OpenSslCryptoPlugin::encryptAssymmetric only supports asymmetric algorithms"));
+    }
+
+    if (blockMode != Sailfish::Crypto::CryptoManager::BlockModeUnknown) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("TODO: encryption padding other than Unknown"));
+    }
+
+    int opensslPadding = getOpenSslRsaPadding(padding);
+    if (opensslPadding == 0 || (fullKey.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmRsa && padding != Sailfish::Crypto::CryptoManager::EncryptionPaddingNone)) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("The given padding type is not supported for the given algorithm."));
+    }
+
+    QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(BIO_new(BIO_s_mem()));
+
+    // Use BIO to write public key data
+    int r = BIO_write(bio.data(), fullKey.publicKey().data(), fullKey.publicKey().length());
+    if (r == 0 || r != fullKey.publicKey().length()) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginEncryptionError,
+                                        QLatin1String("Failed to read public key data."));
+    }
+
+    // Read the public key data into an EVP_PKEY, which SHOULD handle different formats transparently.
+    EVP_PKEY *pkeyPtr = Q_NULLPTR;
+    PEM_read_bio_PUBKEY(bio.data(), &pkeyPtr, Q_NULLPTR, Q_NULLPTR);
+    if (pkeyPtr == Q_NULLPTR) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginEncryptionError,
+                                        QLatin1String("Failed to read public key from PEM format."));
+    }
+
+    QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(pkeyPtr);
+
+    uint8_t *encryptedBytes = Q_NULLPTR;
+    size_t encryptedBytesLength = 0;
+
+    r = osslevp_pkey_encrypt_plaintext(pkeyPtr,
+                                       opensslPadding,
+                                       reinterpret_cast<const uint8_t*>(data.data()),
+                                       data.length(),
+                                       &encryptedBytes,
+                                       &encryptedBytesLength);
+
+    if (r != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginEncryptionError,
+                                        QLatin1String("Failed to encrypt."));
+    }
+
+    *encrypted = QByteArray(reinterpret_cast<char*>(encryptedBytes),
+                            static_cast<int>(encryptedBytesLength));
+
+    OPENSSL_free(encryptedBytes);
+
+    // Return result indicating success
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
+}
+
+Sailfish::Crypto::Result
+Daemon::Plugins::OpenSslCryptoPlugin::encryptAes(
+        const QByteArray &data,
+        const QByteArray &iv,
+        const Sailfish::Crypto::Key &fullKey,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+        QByteArray *encrypted)
+{
     if (fullKey.secretKey().isEmpty()) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptySecretKey,
                                         QLatin1String("Cannot encrypt with empty secret key"));
@@ -620,7 +849,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::encrypt(
 
     if (fullKey.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmAes) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: algorithms other than Aes"));
+                                        QLatin1String("OpenSslCryptoPlugin::encryptAes should only be used with AES"));
     }
 
     if (padding != Sailfish::Crypto::CryptoManager::EncryptionPaddingNone) {
@@ -662,6 +891,106 @@ Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
         QByteArray *decrypted)
 {
     Sailfish::Crypto::Key fullKey = getFullKey(key);
+
+    if (fullKey.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
+        return this->decryptAes(data, iv, fullKey, blockMode, padding, decrypted);
+    } else if (fullKey.algorithm() >= Sailfish::Crypto::CryptoManager::FirstAsymmetricAlgorithm
+               && fullKey.algorithm() <= Sailfish::Crypto::CryptoManager::LastAsymmetricAlgorithm) {
+        return this->decryptAsymmetric(data, iv, fullKey, blockMode, padding, decrypted);
+    }
+
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                    QLatin1String("Unsupported decryption algorithm specified."));
+}
+
+Sailfish::Crypto::Result
+Daemon::Plugins::OpenSslCryptoPlugin::decryptAsymmetric(
+        const QByteArray &data,
+        const QByteArray &iv,
+        const Sailfish::Crypto::Key &fullKey,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+        QByteArray *decrypted)
+{
+    if (fullKey.privateKey().isEmpty()) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptyPrivateKey,
+                                        QLatin1String("Cannot decrypt if there is no private key to decrypt with."));
+    }
+
+    if (iv.size()) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("TODO: initialization vectors are not yet supported with asymmetric encryption"));
+    }
+
+    if (fullKey.algorithm() < Sailfish::Crypto::CryptoManager::FirstAsymmetricAlgorithm
+           || fullKey.algorithm() > Sailfish::Crypto::CryptoManager::LastAsymmetricAlgorithm) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("OpenSslCryptoPlugin::decryptAssymmetric only supports asymmetric algorithms"));
+    }
+
+    if (blockMode != Sailfish::Crypto::CryptoManager::BlockModeUnknown) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("TODO: encryption padding other than Unknown"));
+    }
+
+    int opensslPadding = getOpenSslRsaPadding(padding);
+    if (opensslPadding == 0 || (fullKey.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmRsa && padding != Sailfish::Crypto::CryptoManager::EncryptionPaddingNone)) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("The given padding type is not supported for the given algorithm."));
+    }
+
+    QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(BIO_new(BIO_s_mem()));
+
+    // Use BIO to write private key data
+    int r = BIO_write(bio.data(), fullKey.privateKey().data(), fullKey.privateKey().length());
+    if (r == 0 || r != fullKey.privateKey().length()) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginDecryptionError,
+                                        QLatin1String("Failed to read private key data."));
+    }
+
+    // Read the private key data into an EVP_PKEY, which SHOULD handle different formats transparently.
+    EVP_PKEY *pkeyPtr = Q_NULLPTR;
+    PEM_read_bio_PrivateKey(bio.data(), &pkeyPtr, Q_NULLPTR, Q_NULLPTR);
+    if (pkeyPtr == Q_NULLPTR) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginDecryptionError,
+                                        QLatin1String("Failed to read private key from PEM format."));
+    }
+
+    QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(pkeyPtr);
+
+    uint8_t *decryptedBytes = Q_NULLPTR;
+    size_t decryptedBytesLength = 0;
+
+    r = osslevp_pkey_decrypt_ciphertext(pkeyPtr,
+                                        opensslPadding,
+                                        reinterpret_cast<const uint8_t*>(data.data()),
+                                        data.length(),
+                                        &decryptedBytes,
+                                        &decryptedBytesLength);
+
+    if (r != 1) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginEncryptionError,
+                                        QLatin1String("Failed to encrypt."));
+    }
+
+    *decrypted = QByteArray(reinterpret_cast<char*>(decryptedBytes),
+                            static_cast<int>(decryptedBytesLength));
+
+    OPENSSL_free(decryptedBytes);
+
+    // Return result indicating success
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
+}
+
+Sailfish::Crypto::Result
+Daemon::Plugins::OpenSslCryptoPlugin::decryptAes(
+        const QByteArray &data,
+        const QByteArray &iv,
+        const Sailfish::Crypto::Key &fullKey,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+        QByteArray *decrypted)
+{
     if (fullKey.secretKey().isEmpty()) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptySecretKey,
                                         QLatin1String("Cannot decrypt with empty secret key"));
@@ -669,7 +998,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
 
     if (fullKey.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmAes) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: algorithms other than Aes"));
+                                        QLatin1String("OpenSslCryptoPlugin::decryptAes should only be used with AES"));
     }
 
     if (padding != Sailfish::Crypto::CryptoManager::EncryptionPaddingNone) {

@@ -46,12 +46,15 @@
 #include "Secrets/findsecretsrequest.h"
 #include "Secrets/storedsecretrequest.h"
 
+// Needed for the calculateDigest tests
+Q_DECLARE_METATYPE(QCryptographicHash::Algorithm);
+
 using namespace Sailfish::Crypto;
 
 // Cannot use waitForFinished() for some replies, as ui flows require user interaction / event handling.
 #define WAIT_FOR_FINISHED_WITHOUT_BLOCKING(request)                         \
     do {                                                                    \
-        int maxWait = 10000;                                                \
+        int maxWait = 1000000;                                                \
         while (request.status() != (int)Request::Finished && maxWait > 0) { \
             QTest::qWait(100);                                              \
             maxWait -= 100;                                                 \
@@ -59,7 +62,7 @@ using namespace Sailfish::Crypto;
     } while (0)
 #define SHORT_WAIT_FOR_FINISHED_WITHOUT_BLOCKING(request)                   \
     do {                                                                    \
-        int maxWait = 10000;                                                \
+        int maxWait = 1000000;                                                \
         while (request.status() != (int)Request::Finished && maxWait > 0) { \
             QTest::qWait(1);                                                \
             maxWait -= 1;                                                   \
@@ -67,7 +70,7 @@ using namespace Sailfish::Crypto;
     } while (0)
 #define LONG_WAIT_FOR_FINISHED_WITHOUT_BLOCKING(request)                    \
     do {                                                                    \
-        int maxWait = 30000;                                                \
+        int maxWait = 3000000;                                                \
         while (request.status() != (int)Request::Finished && maxWait > 0) { \
             QTest::qWait(100);                                              \
             maxWait -= 100;                                                 \
@@ -93,7 +96,9 @@ private slots:
     void generateKeyEncryptDecrypt();
     void validateCertificateChain();
     void signVerify();
+    void signVerify_data();
     void calculateDigest();
+    void calculateDigest_data();
     void storedKeyRequests_data();
     void storedKeyRequests();
     void storedDerivedKeyRequests_data();
@@ -109,41 +114,79 @@ private slots:
 private:
     void addCryptoTestData()
     {
+        QTest::addColumn<CryptoManager::Algorithm>("algorithm");
         QTest::addColumn<CryptoManager::BlockMode>("blockMode");
+        QTest::addColumn<CryptoManager::EncryptionPadding>("padding");
         QTest::addColumn<int>("keySize");
 
-        QTest::newRow("ECB 128-bit") << CryptoManager::BlockModeEcb << 128;
-        QTest::newRow("ECB 192-bit") << CryptoManager::BlockModeEcb << 192;
-        QTest::newRow("ECB 256-bit") << CryptoManager::BlockModeEcb << 256;
+        QTest::newRow("AES ECB 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeEcb << CryptoManager::EncryptionPaddingNone << 128;
+        QTest::newRow("AES ECB 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeEcb << CryptoManager::EncryptionPaddingNone << 192;
+        QTest::newRow("AES ECB 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeEcb << CryptoManager::EncryptionPaddingNone << 256;
 
-        QTest::newRow("CBC 128-bit") << CryptoManager::BlockModeCbc << 128;
-        QTest::newRow("CBC 192-bit") << CryptoManager::BlockModeCbc << 192;
-        QTest::newRow("CBC 256-bit") << CryptoManager::BlockModeCbc << 256;
+        QTest::newRow("AES CBC 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCbc << CryptoManager::EncryptionPaddingNone << 128;
+        QTest::newRow("AES CBC 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCbc << CryptoManager::EncryptionPaddingNone << 192;
+        QTest::newRow("AES CBC 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCbc << CryptoManager::EncryptionPaddingNone << 256;
 
-        QTest::newRow("CFB-1 128-bit") << CryptoManager::BlockModeCfb1 << 128;
-        QTest::newRow("CFB-1 192-bit") << CryptoManager::BlockModeCfb1 << 192;
-        QTest::newRow("CFB-1 256-bit") << CryptoManager::BlockModeCfb1 << 256;
+        QTest::newRow("AES CFB-1 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCfb1 << CryptoManager::EncryptionPaddingNone << 128;
+        QTest::newRow("AES CFB-1 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCfb1 << CryptoManager::EncryptionPaddingNone << 192;
+        QTest::newRow("AES CFB-1 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCfb1 << CryptoManager::EncryptionPaddingNone << 256;
 
-        QTest::newRow("CFB-8 128-bit") << CryptoManager::BlockModeCfb8 << 128;
-        QTest::newRow("CFB-8 192-bit") << CryptoManager::BlockModeCfb8 << 192;
-        QTest::newRow("CFB-8 256-bit") << CryptoManager::BlockModeCfb8 << 256;
+        QTest::newRow("AES CFB-8 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCfb8 << CryptoManager::EncryptionPaddingNone << 128;
+        QTest::newRow("AES CFB-8 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCfb8 << CryptoManager::EncryptionPaddingNone << 192;
+        QTest::newRow("AES CFB-8 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCfb8 << CryptoManager::EncryptionPaddingNone << 256;
 
-        QTest::newRow("CFB-128 128-bit") << CryptoManager::BlockModeCfb128 << 128;
-        QTest::newRow("CFB-128 192-bit") << CryptoManager::BlockModeCfb128 << 192;
-        QTest::newRow("CFB-128 256-bit") << CryptoManager::BlockModeCfb128 << 256;
+        QTest::newRow("AES CFB-128 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCfb128 << CryptoManager::EncryptionPaddingNone << 128;
+        QTest::newRow("AES CFB-128 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCfb128 << CryptoManager::EncryptionPaddingNone << 192;
+        QTest::newRow("AES CFB-128 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCfb128 << CryptoManager::EncryptionPaddingNone << 256;
 
-        QTest::newRow("OFB 128-bit") << CryptoManager::BlockModeOfb << 128;
-        QTest::newRow("OFB 192-bit") << CryptoManager::BlockModeOfb << 192;
-        QTest::newRow("OFB 256-bit") << CryptoManager::BlockModeOfb << 256;
+        QTest::newRow("AES OFB 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeOfb << CryptoManager::EncryptionPaddingNone << 128;
+        QTest::newRow("AES OFB 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeOfb << CryptoManager::EncryptionPaddingNone << 192;
+        QTest::newRow("AES OFB 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeOfb << CryptoManager::EncryptionPaddingNone << 256;
 
-        QTest::newRow("CTR 128-bit") << CryptoManager::BlockModeCtr << 128;
-        QTest::newRow("CTR 192-bit") << CryptoManager::BlockModeCtr << 192;
-        QTest::newRow("CTR 256-bit") << CryptoManager::BlockModeCtr << 256;
+        QTest::newRow("AES CTR 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCtr << CryptoManager::EncryptionPaddingNone << 128;
+        QTest::newRow("AES CTR 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCtr << CryptoManager::EncryptionPaddingNone << 192;
+        QTest::newRow("AES CTR 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCtr << CryptoManager::EncryptionPaddingNone << 256;
+
+        QTest::newRow("RSA 512-bit (no padding)") << CryptoManager::AlgorithmRsa << CryptoManager::BlockModeUnknown << CryptoManager::EncryptionPaddingNone << 512;
+        QTest::newRow("RSA 512-bit (PKCS1 padding") << CryptoManager::AlgorithmRsa << CryptoManager::BlockModeUnknown << CryptoManager::EncryptionPaddingRsaPkcs1 << 512;
+        QTest::newRow("RSA 512-bit (OAEP padding)") << CryptoManager::AlgorithmRsa << CryptoManager::BlockModeUnknown << CryptoManager::EncryptionPaddingRsaOaep << 512;
+
+        QTest::newRow("RSA 1024-bit (no padding)") << CryptoManager::AlgorithmRsa << CryptoManager::BlockModeUnknown << CryptoManager::EncryptionPaddingNone << 1024;
+        QTest::newRow("RSA 1024-bit (PKCS1 padding") << CryptoManager::AlgorithmRsa << CryptoManager::BlockModeUnknown << CryptoManager::EncryptionPaddingRsaPkcs1 << 1024;
+        QTest::newRow("RSA 1024-bit (OAEP padding)") << CryptoManager::AlgorithmRsa << CryptoManager::BlockModeUnknown << CryptoManager::EncryptionPaddingRsaOaep << 1024;
     }
 
     CryptoManager cm;
     Sailfish::Secrets::SecretManager sm;
 };
+
+static inline QByteArray createRandomTestData(int size) {
+    QFile file("/dev/urandom");
+    file.open(QIODevice::ReadOnly);
+    QByteArray result = file.read(size);
+    file.close();
+    return result;
+}
+
+static inline KeyPairGenerationParameters getKeyPairGenerationParameters(CryptoManager::Algorithm algorithm, int keySize)
+{
+    switch (algorithm)
+    {
+    case CryptoManager::AlgorithmRsa: {
+        RsaKeyPairGenerationParameters rsa;
+        rsa.setModulusLength(keySize);
+        return rsa;
+    }
+    case CryptoManager::AlgorithmEc: {
+        return EcKeyPairGenerationParameters();
+    }
+    default: {
+        KeyPairGenerationParameters unknown;
+        unknown.setKeyPairType(KeyPairGenerationParameters::KeyPairUnknown);
+        return unknown;
+    }
+    }
+}
 
 void tst_cryptorequests::init()
 {
@@ -264,13 +307,17 @@ void tst_cryptorequests::generateKeyEncryptDecrypt_data()
 
 void tst_cryptorequests::generateKeyEncryptDecrypt()
 {
+    QFETCH(CryptoManager::Algorithm, algorithm);
     QFETCH(CryptoManager::BlockMode, blockMode);
+    QFETCH(CryptoManager::EncryptionPadding, padding);
     QFETCH(int, keySize);
 
-    // test generating a symmetric cipher key
+    bool isSymmetric = algorithm < CryptoManager::FirstAsymmetricAlgorithm || algorithm > CryptoManager::LastAsymmetricAlgorithm;
+
+    // Create key template
     Key keyTemplate;
     keyTemplate.setSize(keySize);
-    keyTemplate.setAlgorithm(CryptoManager::AlgorithmAes);
+    keyTemplate.setAlgorithm(algorithm);
     keyTemplate.setOrigin(Key::OriginDevice);
     keyTemplate.setOperations(CryptoManager::OperationEncrypt | CryptoManager::OperationDecrypt);
     keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
@@ -281,6 +328,12 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QSignalSpy gkrks(&gkr, &GenerateKeyRequest::generatedKeyChanged);
     gkr.setKeyTemplate(keyTemplate);
     QCOMPARE(gkr.keyTemplate(), keyTemplate);
+
+    if (!isSymmetric) {
+        auto keyPairParams = getKeyPairGenerationParameters(algorithm, keySize);
+        gkr.setKeyPairGenerationParameters(keyPairParams);
+    }
+
     gkr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(gkr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(gkr.status(), Request::Inactive);
@@ -295,12 +348,31 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QCOMPARE(gkr.result().code(), Result::Succeeded);
     QCOMPARE(gkrks.count(), 1);
     Key fullKey = gkr.generatedKey();
-    QVERIFY(!fullKey.secretKey().isEmpty());
+    if (isSymmetric) {
+        QVERIFY(!fullKey.secretKey().isEmpty());
+    } else {
+        QVERIFY(!fullKey.privateKey().isEmpty());
+        QVERIFY(!fullKey.publicKey().isEmpty());
+    }
     QCOMPARE(fullKey.filterData(), keyTemplate.filterData());
+    QCOMPARE(fullKey.size(), keySize);
 
     // test encrypting some plaintext with the generated key
-    QByteArray plaintext = "Test plaintext data";
+    QByteArray plaintext = createRandomTestData(42);
     QByteArray initVector = "0123456789abcdef";
+    if (!isSymmetric) {
+        initVector.clear();
+    }
+    if (algorithm == CryptoManager::AlgorithmRsa && padding == CryptoManager::EncryptionPaddingNone) {
+        // Otherwise OpenSSL will complain about too small / too large data size.
+        // See https://stackoverflow.com/questions/17746263/rsa-encryption-using-public-key-data-size-based-on-key
+        plaintext = createRandomTestData(keySize / 8 - 1);
+        plaintext.prepend('\0');
+    }
+    if (algorithm == CryptoManager::AlgorithmRsa && padding == CryptoManager::EncryptionPaddingRsaOaep) {
+        // Otherwise OpenSSL will complain about too small / too large data size.
+        plaintext = createRandomTestData(keySize / 32);
+    }
     EncryptRequest er;
     er.setManager(&cm);
     QSignalSpy erss(&er, &EncryptRequest::statusChanged);
@@ -313,8 +385,8 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QCOMPARE(er.key(), fullKey);
     er.setBlockMode(blockMode);
     QCOMPARE(er.blockMode(), blockMode);
-    er.setPadding(CryptoManager::EncryptionPaddingNone);
-    QCOMPARE(er.padding(), CryptoManager::EncryptionPaddingNone);
+    er.setPadding(padding);
+    QCOMPARE(er.padding(), padding);
     er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(er.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(er.status(), Request::Inactive);
@@ -345,8 +417,8 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QCOMPARE(dr.key(), fullKey);
     dr.setBlockMode(blockMode);
     QCOMPARE(dr.blockMode(), blockMode);
-    dr.setPadding(CryptoManager::EncryptionPaddingNone);
-    QCOMPARE(dr.padding(), CryptoManager::EncryptionPaddingNone);
+    dr.setPadding(padding);
+    QCOMPARE(dr.padding(), padding);
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.status(), Request::Inactive);
@@ -394,23 +466,37 @@ void tst_cryptorequests::validateCertificateChain()
     QSKIP("TODO - certificate validation not yet implemented!");
 }
 
+void tst_cryptorequests::signVerify_data()
+{
+    QTest::addColumn<CryptoManager::Algorithm>("algorithm");
+    QTest::addColumn<CryptoManager::DigestFunction>("digestFunction");
+
+    QTest::newRow("RSA + SHA256") << CryptoManager::AlgorithmRsa << CryptoManager::DigestSha256;
+    QTest::newRow("RSA + SHA512") << CryptoManager::AlgorithmRsa << CryptoManager::DigestSha512;
+    QTest::newRow("RSA + MD5") << CryptoManager::AlgorithmRsa << CryptoManager::DigestMd5;
+    QTest::newRow("EC + SHA256") << CryptoManager::AlgorithmEc << CryptoManager::DigestSha256;
+    QTest::newRow("EC + SHA512") << CryptoManager::AlgorithmEc << CryptoManager::DigestSha512;
+}
+
 void tst_cryptorequests::signVerify()
 {
-    // Generate RSA key for signing
+    QFETCH(CryptoManager::Algorithm, algorithm);
+    QFETCH(CryptoManager::DigestFunction, digestFunction);
+
+    KeyPairGenerationParameters keyPairGenParams = getKeyPairGenerationParameters(algorithm, 2048);
+
+    // Generate key for signing
     // ----------------------------
 
     // Create key template
     Key keyTemplate;
-    keyTemplate.setSize(1024);
-    keyTemplate.setAlgorithm(CryptoManager::AlgorithmRsa);
+    keyTemplate.setAlgorithm(algorithm);
     keyTemplate.setOrigin(Key::OriginDevice);
     keyTemplate.setOperations(CryptoManager::OperationSign);
     keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
 
-    // Create key pair generation params, make sure it's valid
-    RsaKeyPairGenerationParameters keyPairGenParams;
-    keyPairGenParams.setModulusLength(1024);
-    keyPairGenParams.setKeyPairType(KeyPairGenerationParameters::KeyPairRsa);
+    // Key pair generation params, make sure it's valid
+    QVERIFY2(keyPairGenParams.keyPairType() != KeyPairGenerationParameters::KeyPairUnknown, "Key pair type SHOULD NOT be unknown.");
     QVERIFY2(keyPairGenParams.isValid(), "Key pair generation params are invalid.");
 
     // Create generate key request, execute, make sure it's okay
@@ -443,8 +529,8 @@ void tst_cryptorequests::signVerify()
     QCOMPARE(sr.key(), fullKey);
     sr.setPadding(CryptoManager::SignaturePaddingNone);
     QCOMPARE(sr.padding(), CryptoManager::SignaturePaddingNone);
-    sr.setDigestFunction(CryptoManager::DigestSha256);
-    QCOMPARE(sr.digestFunction(), CryptoManager::DigestSha256);
+    sr.setDigestFunction(digestFunction);
+    QCOMPARE(sr.digestFunction(), digestFunction);
     sr.setData(plaintext);
     QCOMPARE(sr.data(), plaintext);
     sr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
@@ -479,8 +565,8 @@ void tst_cryptorequests::signVerify()
     QCOMPARE(vr.data(), plaintext);
     vr.setSignature(signature);
     QCOMPARE(vr.signature(), signature);
-    vr.setDigestFunction(CryptoManager::DigestSha256);
-    QCOMPARE(vr.digestFunction(), CryptoManager::DigestSha256);
+    vr.setDigestFunction(digestFunction);
+    QCOMPARE(vr.digestFunction(), digestFunction);
     vr.setPadding(CryptoManager::SignaturePaddingNone);
     QCOMPARE(vr.padding(), CryptoManager::SignaturePaddingNone);
     vr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
@@ -500,8 +586,21 @@ void tst_cryptorequests::signVerify()
     QCOMPARE(vr.verified(), true);
 }
 
+void tst_cryptorequests::calculateDigest_data()
+{
+    QTest::addColumn<CryptoManager::DigestFunction>("digestFunction");
+    QTest::addColumn<QCryptographicHash::Algorithm>("cryptographicHashAlgorithm");
+
+    QTest::newRow("SHA256") << CryptoManager::DigestSha256 << QCryptographicHash::Sha256;
+    QTest::newRow("SHA512") << CryptoManager::DigestSha512 << QCryptographicHash::Sha512;
+    QTest::newRow("MD5") << CryptoManager::DigestMd5 << QCryptographicHash::Md5;
+}
+
 void tst_cryptorequests::calculateDigest()
 {
+    QFETCH(CryptoManager::DigestFunction, digestFunction);
+    QFETCH(QCryptographicHash::Algorithm, cryptographicHashAlgorithm);
+
     QByteArray plaintext = "Test plaintext data";
 
     CalculateDigestRequest cdr;
@@ -511,8 +610,8 @@ void tst_cryptorequests::calculateDigest()
     QCOMPARE(cdr.status(), Request::Inactive);
     cdr.setData(plaintext);
     QCOMPARE(cdr.data(), plaintext);
-    cdr.setDigestFunction(CryptoManager::DigestSha256);
-    QCOMPARE(cdr.digestFunction(), CryptoManager::DigestSha256);
+    cdr.setDigestFunction(digestFunction);
+    QCOMPARE(cdr.digestFunction(), digestFunction);
     cdr.setPadding(CryptoManager::SignaturePaddingNone);
     QCOMPARE(cdr.padding(), CryptoManager::SignaturePaddingNone);
     cdr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
@@ -533,7 +632,7 @@ void tst_cryptorequests::calculateDigest()
 
     QByteArray digest = cdr.digest();
     QVERIFY2(digest.length() != 0, "Calculated digest should NOT be empty.");
-    QCOMPARE(digest, QCryptographicHash::hash(plaintext, QCryptographicHash::Sha256));
+    QCOMPARE(digest, QCryptographicHash::hash(plaintext, cryptographicHashAlgorithm));
 }
 
 void tst_cryptorequests::storedKeyRequests_data()
@@ -543,8 +642,14 @@ void tst_cryptorequests::storedKeyRequests_data()
 
 void tst_cryptorequests::storedKeyRequests()
 {
+    QFETCH(CryptoManager::Algorithm, algorithm);
     QFETCH(CryptoManager::BlockMode, blockMode);
+    QFETCH(CryptoManager::EncryptionPadding, padding);
     QFETCH(int, keySize);
+
+    if (algorithm != CryptoManager::AlgorithmAes) {
+        QSKIP("Only AES is supported by the current test.");
+    }
 
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
     Sailfish::Crypto::Key keyTemplate;
@@ -616,8 +721,8 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(er.key(), keyReference);
     er.setBlockMode(blockMode);
     QCOMPARE(er.blockMode(), blockMode);
-    er.setPadding(CryptoManager::EncryptionPaddingNone);
-    QCOMPARE(er.padding(), CryptoManager::EncryptionPaddingNone);
+    er.setPadding(padding);
+    QCOMPARE(er.padding(), padding);
     er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(er.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(er.status(), Request::Inactive);
@@ -648,8 +753,8 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(dr.key(), keyReference);
     dr.setBlockMode(blockMode);
     QCOMPARE(dr.blockMode(), blockMode);
-    dr.setPadding(CryptoManager::EncryptionPaddingNone);
-    QCOMPARE(dr.padding(), CryptoManager::EncryptionPaddingNone);
+    dr.setPadding(padding);
+    QCOMPARE(dr.padding(), padding);
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.status(), Request::Inactive);
@@ -824,8 +929,14 @@ void tst_cryptorequests::storedDerivedKeyRequests_data()
 
 void tst_cryptorequests::storedDerivedKeyRequests()
 {
+    QFETCH(CryptoManager::Algorithm, algorithm);
     QFETCH(CryptoManager::BlockMode, blockMode);
+    QFETCH(CryptoManager::EncryptionPadding, padding);
     QFETCH(int, keySize);
+
+    if (algorithm != CryptoManager::AlgorithmAes) {
+        QSKIP("Only AES is supported by the current test.");
+    }
 
     // test generating a symmetric cipher key via a key derivation function
     // and storing securely in the same plugin which produces the key.
@@ -916,8 +1027,8 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     QCOMPARE(er.key(), keyReference);
     er.setBlockMode(blockMode);
     QCOMPARE(er.blockMode(), blockMode);
-    er.setPadding(CryptoManager::EncryptionPaddingNone);
-    QCOMPARE(er.padding(), CryptoManager::EncryptionPaddingNone);
+    er.setPadding(padding);
+    QCOMPARE(er.padding(), padding);
     er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(er.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(er.status(), Request::Inactive);
@@ -948,8 +1059,8 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     QCOMPARE(dr.key(), keyReference);
     dr.setBlockMode(blockMode);
     QCOMPARE(dr.blockMode(), blockMode);
-    dr.setPadding(CryptoManager::EncryptionPaddingNone);
-    QCOMPARE(dr.padding(), CryptoManager::EncryptionPaddingNone);
+    dr.setPadding(padding);
+    QCOMPARE(dr.padding(), padding);
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.status(), Request::Inactive);
@@ -1272,15 +1383,21 @@ void tst_cryptorequests::cipherEncryptDecrypt_data()
 
     // Encrypt/DecryptRequest do not support GCM yet, so GCM is only added for
     // CipherRequests at the moment.
-    QTest::newRow("GCM 128-bit") << CryptoManager::BlockModeGcm << 128;
-    QTest::newRow("GCM 192-bit") << CryptoManager::BlockModeGcm << 192;
-    QTest::newRow("GCM 256-bit") << CryptoManager::BlockModeGcm << 256;
+    QTest::newRow("GCM 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeGcm << CryptoManager::EncryptionPaddingNone << 128;
+    QTest::newRow("GCM 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeGcm << CryptoManager::EncryptionPaddingNone << 192;
+    QTest::newRow("GCM 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeGcm << CryptoManager::EncryptionPaddingNone << 256;
 }
 
 void tst_cryptorequests::cipherEncryptDecrypt()
 {
+    QFETCH(CryptoManager::Algorithm, algorithm);
     QFETCH(CryptoManager::BlockMode, blockMode);
+    QFETCH(CryptoManager::EncryptionPadding, padding);
     QFETCH(int, keySize);
+
+    if (algorithm != CryptoManager::AlgorithmAes) {
+        QSKIP("Only AES is supported by the current test.");
+    }
 
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
     // then use that stored key to perform stream cipher encrypt/decrypt operations.
@@ -1360,8 +1477,8 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     QCOMPARE(er.operation(), Sailfish::Crypto::CryptoManager::OperationEncrypt);
     er.setBlockMode(blockMode);
     QCOMPARE(er.blockMode(), blockMode);
-    er.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
-    QCOMPARE(er.encryptionPadding(), Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
+    er.setEncryptionPadding(padding);
+    QCOMPARE(er.encryptionPadding(), padding);
     er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(er.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     er.setCipherMode(CipherRequest::InitialiseCipher);
@@ -1457,8 +1574,8 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     QCOMPARE(dr.operation(), Sailfish::Crypto::CryptoManager::OperationDecrypt);
     dr.setBlockMode(blockMode);
     QCOMPARE(dr.blockMode(), blockMode);
-    dr.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
-    QCOMPARE(dr.encryptionPadding(), Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
+    dr.setEncryptionPadding(padding);
+    QCOMPARE(dr.encryptionPadding(), padding);
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(dr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     dr.setCipherMode(CipherRequest::InitialiseCipher);
@@ -1557,8 +1674,14 @@ void tst_cryptorequests::cipherBenchmark_data()
 
 void tst_cryptorequests::cipherBenchmark()
 {
+    QFETCH(CryptoManager::Algorithm, algorithm);
     QFETCH(CryptoManager::BlockMode, blockMode);
+    QFETCH(CryptoManager::EncryptionPadding, padding);
     QFETCH(int, keySize);
+
+    if (algorithm != CryptoManager::AlgorithmAes) {
+        QSKIP("Only AES is supported by the current test.");
+    }
 
     if (!QFile::exists(BENCHMARK_TEST_FILE)) {
         QSKIP("First generate test data via: head -c 33554432 </dev/urandom >/tmp/sailfish.crypto.testfile");
@@ -1646,7 +1769,7 @@ void tst_cryptorequests::cipherBenchmark()
         er.setKey(minimalKeyReference);
         er.setOperation(Sailfish::Crypto::CryptoManager::OperationEncrypt);
         er.setBlockMode(blockMode);
-        er.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
+        er.setEncryptionPadding(padding);
         er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
         er.setCipherMode(CipherRequest::InitialiseCipher);
         er.startRequest();
@@ -1681,7 +1804,7 @@ void tst_cryptorequests::cipherBenchmark()
         dr.setInitialisationVector(iv);
         dr.setOperation(Sailfish::Crypto::CryptoManager::OperationDecrypt);
         dr.setBlockMode(blockMode);
-        dr.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
+        dr.setEncryptionPadding(padding);
         dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
         dr.setCipherMode(CipherRequest::InitialiseCipher);
         dr.startRequest();
@@ -1743,7 +1866,7 @@ void tst_cryptorequests::cipherBenchmark()
         er.setInitialisationVector(iv);
         er.setOperation(Sailfish::Crypto::CryptoManager::OperationEncrypt);
         er.setBlockMode(blockMode);
-        er.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
+        er.setEncryptionPadding(padding);
         er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
         er.setCipherMode(CipherRequest::InitialiseCipher);
         er.startRequest();
@@ -1778,7 +1901,7 @@ void tst_cryptorequests::cipherBenchmark()
         dr.setInitialisationVector(iv);
         dr.setOperation(Sailfish::Crypto::CryptoManager::OperationDecrypt);
         dr.setBlockMode(blockMode);
-        dr.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
+        dr.setEncryptionPadding(padding);
         dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
         dr.setCipherMode(CipherRequest::InitialiseCipher);
         dr.startRequest();
