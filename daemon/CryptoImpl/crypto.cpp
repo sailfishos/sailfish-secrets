@@ -484,10 +484,6 @@ Daemon::ApiImpl::CryptoRequestQueue::CryptoRequestQueue(
     CryptoDaemonConnection::registerDBusTypes();
 
     m_requestProcessor = new Daemon::ApiImpl::RequestProcessor(secrets, autotestMode, this);
-    if (!m_requestProcessor->loadPlugins()) {
-        qCWarning(lcSailfishCryptoDaemon) << "Crypto: failed to load plugins!";
-        return;
-    }
 
     setDBusObject(new Daemon::ApiImpl::CryptoDBusObject(this));
     qCDebug(lcSailfishCryptoDaemon) << "Crypto: initialisation succeeded, awaiting client connections.";
