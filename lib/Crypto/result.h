@@ -60,7 +60,6 @@ public:
         EmptyPublicKey,
         EmptyData,
         EmptySignature,
-        EmptyAuthenticationData,
 
         CryptoPluginEncryptionError = 40,
         CryptoPluginDecryptionError,

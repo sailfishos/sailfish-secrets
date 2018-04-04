@@ -611,19 +611,6 @@ Daemon::Plugins::OpenSslCryptoPlugin::encrypt(
         const Sailfish::Crypto::Key &key,
         Sailfish::Crypto::CryptoManager::BlockMode blockMode,
         Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-        QByteArray *encrypted)
-{
-    return execEncrypt(false, data, iv, key, blockMode, padding, QByteArray(), encrypted, nullptr);
-}
-
-Sailfish::Crypto::Result
-Daemon::Plugins::OpenSslCryptoPlugin::execEncrypt(
-        bool authenticate,
-        const QByteArray &data,
-        const QByteArray &iv,
-        const Sailfish::Crypto::Key &key,
-        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
         const QByteArray &authenticationData,
         QByteArray *encrypted,
         QByteArray *tag)
@@ -650,7 +637,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::execEncrypt(
                                         QLatin1String("Secret key size does not match"));
     }
 
-    if (authenticate) {
+    if (!authenticationData.isEmpty()) {
         if (fullKey.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmAes) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                             QLatin1String("Authenticated encryption not supported for algorithms other than AES"));
@@ -658,10 +645,6 @@ Daemon::Plugins::OpenSslCryptoPlugin::execEncrypt(
         if (blockMode != Sailfish::Crypto::CryptoManager::BlockModeGcm) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedBlockMode,
                                             QLatin1String("Authenticated encryption not supported for block modes other than GCM"));
-        }
-        if (authenticationData.isEmpty()) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptyAuthenticationData,
-                                            QLatin1String("Authenticated encryption failed, no authentication data provided"));
         }
         if (!tag) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidAuthenticationTag,
@@ -678,7 +661,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::execEncrypt(
     }
 
     // encrypt plaintext
-    if (authenticate) {
+    if (!authenticationData.isEmpty()) {
         QPair<QByteArray, QByteArray> resultData = aes_auth_encrypt_plaintext(blockMode, data, fullKey.secretKey(), iv, authenticationData);
         const QByteArray &ciphertext = resultData.first;
         const QByteArray &tagData = resultData.second;
@@ -710,19 +693,6 @@ Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
         const Sailfish::Crypto::Key &key,
         Sailfish::Crypto::CryptoManager::BlockMode blockMode,
         Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-        QByteArray *decrypted)
-{
-    return execDecrypt(false, data, iv, key, blockMode, padding, QByteArray(), QByteArray(), decrypted);
-}
-
-Sailfish::Crypto::Result
-Daemon::Plugins::OpenSslCryptoPlugin::execDecrypt(
-        bool authenticate,
-        const QByteArray &data,
-        const QByteArray &iv,
-        const Sailfish::Crypto::Key &key,
-        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
         const QByteArray &authenticationData,
         const QByteArray &tag,
         QByteArray *decrypted)
@@ -743,7 +713,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::execDecrypt(
                                         QLatin1String("TODO: encryption padding other than None"));
     }
 
-    if (authenticate) {
+    if (!authenticationData.isEmpty()) {
         if (fullKey.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmAes) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
                                             QLatin1String("Authenticated decryption not supported for algorithms other than AES"));
@@ -758,10 +728,6 @@ Daemon::Plugins::OpenSslCryptoPlugin::execDecrypt(
         } else {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedBlockMode,
                                             QLatin1String("Authenticated decryption not supported for block modes other than GCM"));
-        }
-        if (authenticationData.isEmpty()) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptyAuthenticationData,
-                                            QLatin1String("Authenticated decryption failed, no authentication data provided"));
         }
         if (tag.isEmpty()) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidAuthenticationTag,
@@ -778,7 +744,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::execDecrypt(
     }
 
     // decrypt ciphertext
-    QByteArray plaintext = authenticate
+    QByteArray plaintext = !authenticationData.isEmpty()
             ? aes_auth_decrypt_ciphertext(blockMode, data, fullKey.secretKey(), iv, authenticationData, tag)
             : aes_decrypt_ciphertext(blockMode, data, fullKey.secretKey(), iv);
     if (!plaintext.size() || (plaintext.size() == 1 && plaintext.at(0) == 0)) {
@@ -789,33 +755,6 @@ Daemon::Plugins::OpenSslCryptoPlugin::execDecrypt(
     // return result
     *decrypted = plaintext;
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
-}
-
-Sailfish::Crypto::Result
-Daemon::Plugins::OpenSslCryptoPlugin::authenticatedEncrypt(
-        const QByteArray &data,
-        const QByteArray &iv,
-        const Sailfish::Crypto::Key &key,
-        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-        const QByteArray &authenticationData,
-        QByteArray *encrypted,
-        QByteArray *tag)
-{
-    return execEncrypt(true, data, iv, key, blockMode, padding, authenticationData, encrypted, tag);
-}
-
-Sailfish::Crypto::Result Daemon::Plugins::OpenSslCryptoPlugin::authenticatedDecrypt(
-        const QByteArray &data,
-        const QByteArray &iv,
-        const Sailfish::Crypto::Key &key,
-        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-        const QByteArray &authenticationData,
-        const QByteArray &tag,
-        QByteArray *decrypted)
-{
-    return execDecrypt(true, data, iv, key, blockMode, padding, authenticationData, tag, decrypted);
 }
 
 Sailfish::Crypto::Result

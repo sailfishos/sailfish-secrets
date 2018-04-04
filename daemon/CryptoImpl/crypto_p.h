@@ -173,9 +173,11 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"key\" type=\"(ay)\" direction=\"in\" />\n"
     "          <arg name=\"blockMode\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"padding\" type=\"(i)\" direction=\"in\" />\n"
+    "          <arg name=\"authenticationData\" type=\"ay\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"encrypted\" type=\"ay\" direction=\"out\" />\n"
+    "          <arg name=\"tag\" type=\"ay\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::Key\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Crypto::CryptoManager::BlockMode\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Crypto::CryptoManager::EncryptionPadding\" />\n"
@@ -187,6 +189,8 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"key\" type=\"(ay)\" direction=\"in\" />\n"
     "          <arg name=\"blockMode\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"padding\" type=\"(i)\" direction=\"in\" />\n"
+    "          <arg name=\"authenticationData\" type=\"ay\" direction=\"in\" />\n"
+    "          <arg name=\"tag\" type=\"ay\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"decrypted\" type=\"ay\" direction=\"out\" />\n"
@@ -375,28 +379,6 @@ public Q_SLOTS:
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-            const QString &cryptosystemProviderName,
-            const QDBusMessage &message,
-            Sailfish::Crypto::Result &result,
-            QByteArray &encrypted);
-
-    void decrypt(
-            const QByteArray &data,
-            const QByteArray &iv,
-            const Sailfish::Crypto::Key &key,
-            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-            const QString &cryptosystemProviderName,
-            const QDBusMessage &message,
-            Sailfish::Crypto::Result &result,
-            QByteArray &decrypted);
-
-    void authenticatedEncrypt(
-            const QByteArray &data,
-            const QByteArray &iv,
-            const Sailfish::Crypto::Key &key,
-            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
@@ -404,7 +386,7 @@ public Q_SLOTS:
             QByteArray &encrypted,
             QByteArray &tag);
 
-    void authenticatedDecrypt(
+    void decrypt(
             const QByteArray &data,
             const QByteArray &iv,
             const Sailfish::Crypto::Key &key,
@@ -519,9 +501,7 @@ enum RequestType {
     SignRequest,
     VerifyRequest,
     EncryptRequest,
-    AuthenticatedEncryptRequest,
     DecryptRequest,
-    AuthenticatedDecryptRequest,
     InitialiseCipherSessionRequest,
     UpdateCipherSessionAuthenticationRequest,
     UpdateCipherSessionRequest,

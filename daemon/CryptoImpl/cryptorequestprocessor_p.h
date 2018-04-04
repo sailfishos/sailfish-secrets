@@ -175,34 +175,12 @@ public:
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-            const QString &cryptosystemProviderName,
-            QByteArray *encrypted);
-
-    Sailfish::Crypto::Result decrypt(
-            pid_t callerPid,
-            quint64 requestId,
-            const QByteArray &data,
-            const QByteArray &iv,
-            const Sailfish::Crypto::Key &key,
-            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-            const QString &cryptosystemProviderName,
-            QByteArray *decrypted);
-
-    Sailfish::Crypto::Result authenticatedEncrypt(
-            pid_t callerPid,
-            quint64 requestId,
-            const QByteArray &data,
-            const QByteArray &iv,
-            const Sailfish::Crypto::Key &key,
-            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
             const QString &cryptosystemProviderName,
             QByteArray *encrypted,
             QByteArray *tag);
 
-    Sailfish::Crypto::Result authenticatedDecrypt(
+    Sailfish::Crypto::Result decrypt(
             pid_t callerPid,
             quint64 requestId,
             const QByteArray &data,
@@ -396,45 +374,7 @@ private:
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptoPluginName);
 
-    Sailfish::Crypto::Result execEncrypt(
-            pid_t callerPid,
-            quint64 requestId,
-            bool authenticate,
-            const QByteArray &data,
-            const QByteArray &iv,
-            const Sailfish::Crypto::Key &key,
-            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-            const QByteArray &authenticationData,
-            const QString &cryptosystemProviderName,
-            QByteArray *encrypted,
-            QByteArray *tag);
-
-    Sailfish::Crypto::Result execDecrypt(
-            pid_t callerPid,
-            quint64 requestId,
-            bool authenticate,
-            const QByteArray &data,
-            const QByteArray &iv,
-            const Sailfish::Crypto::Key &key,
-            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-            const QByteArray &authenticationData,
-            const QByteArray &tag,
-            const QString &cryptosystemProviderName,
-            QByteArray *decrypted);
-
     void encrypt2(
-            quint64 requestId,
-            const Sailfish::Crypto::Result &result,
-            const QByteArray &serialisedKey,
-            const QByteArray &data,
-            const QByteArray &iv,
-            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-            const QString &cryptoPluginName);
-
-    void authenticatedEncrypt2(
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
             const QByteArray &serialisedKey,
@@ -446,16 +386,6 @@ private:
             const QString &cryptoPluginName);
 
     void decrypt2(
-            quint64 requestId,
-            const Sailfish::Crypto::Result &result,
-            const QByteArray &serialisedKey,
-            const QByteArray &data,
-            const QByteArray &iv,
-            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-            const QString &cryptoPluginName);
-
-    void authenticatedDecrypt2(
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
             const QByteArray &serialisedKey,

@@ -298,87 +298,47 @@ void EncryptRequest::startRequest()
             emit resultChanged();
         }
 
-        if (!d->m_authenticationData.isEmpty()) {
-            QDBusPendingReply<Result, QByteArray, QByteArray> reply =
-                    d->m_manager->d_ptr->authenticatedEncrypt(d->m_data,
-                                                              d->m_initialisationVector,
-                                                              d->m_key,
-                                                              d->m_blockMode,
-                                                              d->m_padding,
-                                                              d->m_authenticationData,
-                                                              d->m_cryptoPluginName);
-            if (!reply.isValid() && !reply.error().message().isEmpty()) {
-                d->m_status = Request::Finished;
-                d->m_result = Result(Result::CryptoManagerNotInitialisedError,
-                                     reply.error().message());
-                emit statusChanged();
-                emit resultChanged();
-            } else if (reply.isFinished()
-                    // work around a bug in QDBusAbstractInterface / QDBusConnection...
-                    && reply.argumentAt<0>().code() != Sailfish::Crypto::Result::Succeeded) {
-                d->m_status = Request::Finished;
-                d->m_result = reply.argumentAt<0>();
-                d->m_ciphertext = reply.argumentAt<1>();
-                d->m_tag = reply.argumentAt<2>();
-                emit statusChanged();
-                emit resultChanged();
-                emit ciphertextChanged();
-                emit tagChanged();
-            } else {
-                d->m_watcher.reset(new QDBusPendingCallWatcher(reply));
-                connect(d->m_watcher.data(), &QDBusPendingCallWatcher::finished,
-                        [this] {
-                    QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.take();
-                    QDBusPendingReply<Result, QByteArray, QByteArray> reply = *watcher;
-                    this->d_ptr->m_status = Request::Finished;
-                    this->d_ptr->m_result = reply.argumentAt<0>();
-                    this->d_ptr->m_ciphertext = reply.argumentAt<1>();
-                    this->d_ptr->m_tag = reply.argumentAt<2>();
-                    watcher->deleteLater();
-                    emit this->statusChanged();
-                    emit this->resultChanged();
-                    emit this->ciphertextChanged();
-                    emit this->tagChanged();
-                });
-            }
+        QDBusPendingReply<Result, QByteArray, QByteArray> reply =
+                d->m_manager->d_ptr->encrypt(d->m_data,
+                                             d->m_initialisationVector,
+                                             d->m_key,
+                                             d->m_blockMode,
+                                             d->m_padding,
+                                             d->m_authenticationData,
+                                             d->m_cryptoPluginName);
+        if (!reply.isValid() && !reply.error().message().isEmpty()) {
+            d->m_status = Request::Finished;
+            d->m_result = Result(Result::CryptoManagerNotInitialisedError,
+                                 reply.error().message());
+            emit statusChanged();
+            emit resultChanged();
+        } else if (reply.isFinished()
+                // work around a bug in QDBusAbstractInterface / QDBusConnection...
+                && reply.argumentAt<0>().code() != Sailfish::Crypto::Result::Succeeded) {
+            d->m_status = Request::Finished;
+            d->m_result = reply.argumentAt<0>();
+            d->m_ciphertext = reply.argumentAt<1>();
+            d->m_tag = reply.argumentAt<2>();
+            emit statusChanged();
+            emit resultChanged();
+            emit ciphertextChanged();
+            emit tagChanged();
         } else {
-            QDBusPendingReply<Result, QByteArray> reply =
-                    d->m_manager->d_ptr->encrypt(d->m_data,
-                                                 d->m_initialisationVector,
-                                                 d->m_key,
-                                                 d->m_blockMode,
-                                                 d->m_padding,
-                                                 d->m_cryptoPluginName);
-            if (!reply.isValid() && !reply.error().message().isEmpty()) {
-                d->m_status = Request::Finished;
-                d->m_result = Result(Result::CryptoManagerNotInitialisedError,
-                                     reply.error().message());
-                emit statusChanged();
-                emit resultChanged();
-            } else if (reply.isFinished()
-                    // work around a bug in QDBusAbstractInterface / QDBusConnection...
-                    && reply.argumentAt<0>().code() != Sailfish::Crypto::Result::Succeeded) {
-                d->m_status = Request::Finished;
-                d->m_result = reply.argumentAt<0>();
-                d->m_ciphertext = reply.argumentAt<1>();
-                emit statusChanged();
-                emit resultChanged();
-                emit ciphertextChanged();
-            } else {
-                d->m_watcher.reset(new QDBusPendingCallWatcher(reply));
-                connect(d->m_watcher.data(), &QDBusPendingCallWatcher::finished,
-                        [this] {
-                    QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.take();
-                    QDBusPendingReply<Result, QByteArray> reply = *watcher;
-                    this->d_ptr->m_status = Request::Finished;
-                    this->d_ptr->m_result = reply.argumentAt<0>();
-                    this->d_ptr->m_ciphertext = reply.argumentAt<1>();
-                    watcher->deleteLater();
-                    emit this->statusChanged();
-                    emit this->resultChanged();
-                    emit this->ciphertextChanged();
-                });
-            }
+            d->m_watcher.reset(new QDBusPendingCallWatcher(reply));
+            connect(d->m_watcher.data(), &QDBusPendingCallWatcher::finished,
+                    [this] {
+                QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.take();
+                QDBusPendingReply<Result, QByteArray, QByteArray> reply = *watcher;
+                this->d_ptr->m_status = Request::Finished;
+                this->d_ptr->m_result = reply.argumentAt<0>();
+                this->d_ptr->m_ciphertext = reply.argumentAt<1>();
+                this->d_ptr->m_tag = reply.argumentAt<2>();
+                watcher->deleteLater();
+                emit this->statusChanged();
+                emit this->resultChanged();
+                emit this->ciphertextChanged();
+                emit this->tagChanged();
+            });
         }
     }
 }

@@ -130,27 +130,11 @@ public:
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-            QByteArray *encrypted) Q_DECL_OVERRIDE;
-
-    Sailfish::Crypto::Result decrypt(
-            const QByteArray &data,
-            const QByteArray &iv,
-            const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
-            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-            QByteArray *decrypted) Q_DECL_OVERRIDE;
-
-    Sailfish::Crypto::Result authenticatedEncrypt(
-            const QByteArray &data,
-            const QByteArray &iv,
-            const Sailfish::Crypto::Key &key,
-            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
             QByteArray *encrypted,
             QByteArray *tag) Q_DECL_OVERRIDE;
 
-    Sailfish::Crypto::Result authenticatedDecrypt(
+    Sailfish::Crypto::Result decrypt(
             const QByteArray &data,
             const QByteArray &iv,
             const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
@@ -191,28 +175,6 @@ public:
             bool *verified) Q_DECL_OVERRIDE;
 
 private:
-    Sailfish::Crypto::Result execEncrypt(
-            bool authenticate,
-            const QByteArray &data,
-            const QByteArray &iv,
-            const Sailfish::Crypto::Key &key,
-            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-            const QByteArray &authenticationData,
-            QByteArray *encrypted,
-            QByteArray *tag);
-
-    Sailfish::Crypto::Result execDecrypt(
-            bool authenticate,
-            const QByteArray &data,
-            const QByteArray &iv,
-            const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
-            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-            const QByteArray &authenticationData,
-            const QByteArray &tag,
-            QByteArray *decrypted);
-
     QByteArray aes_encrypt_plaintext(Sailfish::Crypto::CryptoManager::BlockMode blockMode, const QByteArray &plaintext, const QByteArray &key, const QByteArray &init_vector);
     QByteArray aes_decrypt_ciphertext(Sailfish::Crypto::CryptoManager::BlockMode blockMode, const QByteArray &ciphertext, const QByteArray &key, const QByteArray &init_vector);
 

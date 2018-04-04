@@ -109,23 +109,7 @@ public:
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptosystemProviderName);
 
-    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> encrypt(
-            const QByteArray &data,
-            const QByteArray &iv,
-            const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
-            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-            const QString &cryptosystemProviderName);
-
-    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> decrypt(
-            const QByteArray &data,
-            const QByteArray &iv,
-            const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
-            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-            const QString &cryptosystemProviderName);
-
-    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray, QByteArray> authenticatedEncrypt(
+    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray, QByteArray> encrypt(
             const QByteArray &data,
             const QByteArray &iv,
             const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
@@ -134,7 +118,7 @@ public:
             const QByteArray &authenticationData,
             const QString &cryptosystemProviderName);
 
-    QDBusPendingReply<Result, QByteArray> authenticatedDecrypt(
+    QDBusPendingReply<Result, QByteArray> decrypt(
             const QByteArray &data,
             const QByteArray &iv,
             const Key &key, // or keyreference, i.e. Key(keyName)

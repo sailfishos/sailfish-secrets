@@ -336,9 +336,11 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::encrypt(
         const Sailfish::Crypto::Key &key,
         Sailfish::Crypto::CryptoManager::BlockMode blockMode,
         Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-        QByteArray *encrypted)
+        const QByteArray &authenticationData,
+        QByteArray *encrypted,
+        QByteArray *tag)
 {
-    return m_opensslCryptoPlugin.encrypt(data, iv, key, blockMode, padding, encrypted);
+    return m_opensslCryptoPlugin.encrypt(data, iv, key, blockMode, padding, authenticationData, encrypted, tag);
 }
 
 Sailfish::Crypto::Result
@@ -348,37 +350,11 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::decrypt(
         const Sailfish::Crypto::Key &key,
         Sailfish::Crypto::CryptoManager::BlockMode blockMode,
         Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-        QByteArray *decrypted)
-{
-    return m_opensslCryptoPlugin.decrypt(data, iv, key, blockMode, padding, decrypted);
-}
-
-Sailfish::Crypto::Result
-Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::authenticatedEncrypt(
-        const QByteArray &data,
-        const QByteArray &iv,
-        const Sailfish::Crypto::Key &key,
-        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-        const QByteArray &authenticationData,
-        QByteArray *encrypted,
-        QByteArray *tag)
-{
-    return m_opensslCryptoPlugin.authenticatedEncrypt(data, iv, key, blockMode, padding, authenticationData, encrypted, tag);
-}
-
-Sailfish::Crypto::Result
-Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::authenticatedDecrypt(
-        const QByteArray &data,
-        const QByteArray &iv,
-        const Sailfish::Crypto::Key &key,
-        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
         const QByteArray &authenticationData,
         const QByteArray &tag,
         QByteArray *decrypted)
 {
-    return m_opensslCryptoPlugin.authenticatedDecrypt(data, iv, key, blockMode, padding, authenticationData, tag, decrypted);
+    return m_opensslCryptoPlugin.decrypt(data, iv, key, blockMode, padding, authenticationData, tag, decrypted);
 }
 
 Sailfish::Crypto::Result

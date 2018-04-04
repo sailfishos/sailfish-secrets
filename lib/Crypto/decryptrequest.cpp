@@ -312,22 +312,15 @@ void DecryptRequest::startRequest()
             emit resultChanged();
         }
 
-        QDBusPendingReply<Result, QByteArray> reply = !d->m_authenticationData.isEmpty()
-                ? d->m_manager->d_ptr->authenticatedDecrypt(d->m_data,
-                                                            d->m_initialisationVector,
-                                                            d->m_key,
-                                                            d->m_blockMode,
-                                                            d->m_padding,
-                                                            d->m_authenticationData,
-                                                            d->m_tag,
-                                                            d->m_cryptoPluginName)
-                : d->m_manager->d_ptr->decrypt(d->m_data,
-                                               d->m_initialisationVector,
-                                               d->m_key,
-                                               d->m_blockMode,
-                                               d->m_padding,
-                                               d->m_cryptoPluginName);
-
+        QDBusPendingReply<Result, QByteArray> reply = d->m_manager->d_ptr->decrypt(
+                    d->m_data,
+                    d->m_initialisationVector,
+                    d->m_key,
+                    d->m_blockMode,
+                    d->m_padding,
+                    d->m_authenticationData,
+                    d->m_tag,
+                    d->m_cryptoPluginName);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;
             d->m_result = Result(Result::CryptoManagerNotInitialisedError,

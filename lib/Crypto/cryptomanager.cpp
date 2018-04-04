@@ -318,62 +318,8 @@ CryptoManagerPrivate::verify(
     return reply;
 }
 
-QDBusPendingReply<Result, QByteArray>
-CryptoManagerPrivate::encrypt(
-        const QByteArray &data,
-        const QByteArray &iv,
-        const Key &key, // or keyreference, i.e. Key(keyName)
-        CryptoManager::BlockMode blockMode,
-        CryptoManager::EncryptionPadding padding,
-        const QString &cryptosystemProviderName)
-{
-    if (!m_interface) {
-        return QDBusPendingReply<Result>(
-                    QDBusMessage::createError(QDBusError::Other,
-                                              QStringLiteral("Not connected to daemon")));
-    }
-
-    QDBusPendingReply<Result, QByteArray> reply
-            = m_interface->asyncCallWithArgumentList(
-                QStringLiteral("encrypt"),
-                QVariantList() << QVariant::fromValue<QByteArray>(data)
-                               << QVariant::fromValue<QByteArray>(iv)
-                               << QVariant::fromValue<Key>(key)
-                               << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
-                               << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding)
-                               << QVariant::fromValue<QString>(cryptosystemProviderName));
-    return reply;
-}
-
-QDBusPendingReply<Result, QByteArray>
-CryptoManagerPrivate::decrypt(
-        const QByteArray &data,
-        const QByteArray &iv,
-        const Key &key, // or keyreference, i.e. Key(keyName)
-        CryptoManager::BlockMode blockMode,
-        CryptoManager::EncryptionPadding padding,
-        const QString &cryptosystemProviderName)
-{
-    if (!m_interface) {
-        return QDBusPendingReply<Result>(
-                    QDBusMessage::createError(QDBusError::Other,
-                                              QStringLiteral("Not connected to daemon")));
-    }
-
-    QDBusPendingReply<Result, QByteArray> reply
-            = m_interface->asyncCallWithArgumentList(
-                QStringLiteral("decrypt"),
-                QVariantList() << QVariant::fromValue<QByteArray>(data)
-                               << QVariant::fromValue<QByteArray>(iv)
-                               << QVariant::fromValue<Key>(key)
-                               << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
-                               << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding)
-                               << QVariant::fromValue<QString>(cryptosystemProviderName));
-    return reply;
-}
-
 QDBusPendingReply<Result, QByteArray, QByteArray>
-CryptoManagerPrivate::authenticatedEncrypt(
+CryptoManagerPrivate::encrypt(
         const QByteArray &data,
         const QByteArray &iv,
         const Key &key, // or keyreference, i.e. Key(keyName)
@@ -390,7 +336,7 @@ CryptoManagerPrivate::authenticatedEncrypt(
 
     QDBusPendingReply<Result, QByteArray, QByteArray> reply
             = m_interface->asyncCallWithArgumentList(
-                QStringLiteral("authenticatedEncrypt"),
+                QStringLiteral("encrypt"),
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<QByteArray>(iv)
                                << QVariant::fromValue<Key>(key)
@@ -402,7 +348,7 @@ CryptoManagerPrivate::authenticatedEncrypt(
 }
 
 QDBusPendingReply<Result, QByteArray>
-CryptoManagerPrivate::authenticatedDecrypt(
+CryptoManagerPrivate::decrypt(
         const QByteArray &data,
         const QByteArray &iv,
         const Key &key, // or keyreference, i.e. Key(keyName)
@@ -420,7 +366,7 @@ CryptoManagerPrivate::authenticatedDecrypt(
 
     QDBusPendingReply<Result, QByteArray> reply
             = m_interface->asyncCallWithArgumentList(
-                QStringLiteral("authenticatedDecrypt"),
+                QStringLiteral("decrypt"),
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<QByteArray>(iv)
                                << QVariant::fromValue<Key>(key)
