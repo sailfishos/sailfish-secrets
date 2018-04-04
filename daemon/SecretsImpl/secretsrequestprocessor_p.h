@@ -15,6 +15,7 @@
 #include <QtCore/QString>
 #include <QtCore/QHash>
 #include <QtCore/QMap>
+#include <QtCore/QSet>
 #include <QtCore/QPair>
 #include <QtCore/QDateTime>
 #include <QtCore/QMultiMap>
@@ -248,6 +249,11 @@ public: // helper methods for crypto API bridge (secretscryptohelpers)
             pid_t callerPid,
             quint64 requestId,
             const Sailfish::Secrets::InteractionParameters &uiParams);
+
+    void preventInterleavedRequests(const QString &collectionName);
+    void allowInterleavedRequests(const QString &collectionName);
+    bool interleavedRequestsAllowed(const QString &collectionName) const;
+    Sailfish::Secrets::Result interleavedRequestError() const;
 
 private Q_SLOTS:
     void authenticationCompleted(
@@ -585,6 +591,7 @@ private:
     QMap<QString, QTimer*> m_standaloneSecretLockTimers;
     QMap<QString, QByteArray> m_standaloneSecretEncryptionKeys;
     QMap<quint64, Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::PendingRequest> m_pendingRequests;
+    QSet<QString> m_preventInterleavedRequestsCollections;
 
     bool m_autotestMode;
 };

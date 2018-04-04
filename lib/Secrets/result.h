@@ -65,6 +65,7 @@ public:
         SecretAlreadyExistsError,
 
         CollectionIsLockedError = 60,
+        CollectionIsBusyError,
 
         DatabaseQueryError = 70,
         DatabaseTransactionError,

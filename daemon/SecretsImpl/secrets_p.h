@@ -442,6 +442,8 @@ public: // Crypto API helper methods.
     // while using just one single database (for atomicity etc).
     void asynchronousCryptoRequestCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QVariantList &parameters);
     // the first methods are synchronous:
+    bool interleavedRequestsAllowed(const QString &collectionName) const;
+    Sailfish::Secrets::Result interleavedRequestError() const;
     Sailfish::Secrets::Result confirmCollectionStoragePlugin(pid_t callerPid, quint64 cryptoRequestId, const QString &collectionName, const QString &storagePluginName) const;
     Sailfish::Secrets::Result confirmKeyStoragePlugin(pid_t callerPid, quint64 cryptoRequestId, const QString &hashedKeyName, const QString &collectionName, const QString &storagePluginName) const;
     Sailfish::Secrets::Result storagePluginNames(pid_t callerPid, quint64 cryptoRequestId, QStringList *names) const;

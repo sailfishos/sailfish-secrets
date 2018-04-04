@@ -48,6 +48,8 @@
 #include "Secrets/createcollectionrequest.h"
 #include "Secrets/deletecollectionrequest.h"
 #include "Secrets/findsecretsrequest.h"
+#include "Secrets/storesecretrequest.h"
+#include "Secrets/deletesecretrequest.h"
 #include "Secrets/storedsecretrequest.h"
 
 // Needed for the calculateDigest tests
@@ -83,6 +85,8 @@ using namespace Sailfish::Crypto;
 
 #define DEFAULT_TEST_CRYPTO_PLUGIN_NAME CryptoManager::DefaultCryptoPluginName + QLatin1String(".test")
 #define DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test")
+#define DEFAULT_TEST_STORAGE_PLUGIN Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test")
+#define DEFAULT_TEST_ENCRYPTION_PLUGIN Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName + QLatin1String(".test")
 #define IN_APP_TEST_AUTHENTICATION_PLUGIN Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName + QLatin1String(".test")
 
 class tst_cryptorequests : public QObject
@@ -117,6 +121,7 @@ private slots:
     void cipherTimeout();
     void lockCode();
     void pluginThreading();
+    void requestInterleaving();
     void importKey_data();
     void importKey();
     void importKeyAndStore_data();
@@ -2356,6 +2361,212 @@ void tst_cryptorequests::pluginThreading()
         QByteArray decrypted = dr.plaintext();
         QVERIFY(!decrypted.isEmpty());
         QCOMPARE(plaintext, decrypted);
+    }
+}
+
+void tst_cryptorequests::requestInterleaving()
+{
+    // Repeatedly create and delete a collection, while performing
+    // a long-running encryption operation on the Secrets Plugin Thread.
+    // If the bookkeeping database is modified by the delete request
+    // prior to the create request being completely finished, then
+    // the requests have been interleaved incorrectly.
+
+    QByteArray initVector = "0123456789abcdef";
+    QByteArray plaintext = createRandomTestData(10 * 1024 * 1024);
+
+    Key keyTemplate;
+    keyTemplate.setSize(256);
+    keyTemplate.setAlgorithm(CryptoManager::AlgorithmAes);
+    keyTemplate.setOrigin(Key::OriginDevice);
+    keyTemplate.setOperations(CryptoManager::OperationEncrypt | CryptoManager::OperationDecrypt);
+    keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
+
+    GenerateKeyRequest gkr;
+    gkr.setManager(&cm);
+    gkr.setKeyTemplate(keyTemplate);
+    gkr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+    gkr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gkr);
+    QCOMPARE(gkr.status(), Request::Finished);
+    QCOMPARE(gkr.result().code(), Result::Succeeded);
+    Key fullKey = gkr.generatedKey();
+    QVERIFY(!fullKey.secretKey().isEmpty());
+    QCOMPARE(fullKey.filterData(), keyTemplate.filterData());
+
+    EncryptRequest er;
+    er.setManager(&cm);
+    er.setData(plaintext);
+    er.setInitialisationVector(initVector);
+    er.setKey(fullKey);
+    er.setBlockMode(CryptoManager::BlockModeCbc);
+    er.setPadding(CryptoManager::EncryptionPaddingNone);
+    er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+
+    Sailfish::Secrets::Secret testSecret(Sailfish::Secrets::Secret::Identifier("testsecretname"));
+    testSecret.setData("testsecretvalue");
+    testSecret.setType(Sailfish::Secrets::Secret::TypeBlob);
+    testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
+    testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
+
+    Sailfish::Secrets::StoreSecretRequest ssr;
+    ssr.setManager(&sm);
+    ssr.setSecretStorageType(Sailfish::Secrets::StoreSecretRequest::StandaloneDeviceLockSecret);
+    ssr.setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked);
+    ssr.setAccessControlMode(Sailfish::Secrets::SecretManager::OwnerOnlyMode);
+    ssr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
+    ssr.setEncryptionPluginName(DEFAULT_TEST_ENCRYPTION_PLUGIN);
+    ssr.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
+    ssr.setUserInteractionMode(Sailfish::Secrets::SecretManager::ApplicationInteraction);
+    ssr.setSecret(testSecret);
+    ssr.startRequest();
+
+    Sailfish::Secrets::DeleteSecretRequest dsr;
+    dsr.setManager(&sm);
+    dsr.setIdentifier(testSecret.identifier());
+    dsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::ApplicationInteraction);
+    dsr.startRequest();
+
+    Sailfish::Secrets::CreateCollectionRequest ccr;
+    ccr.setManager(&sm);
+    ccr.setCollectionLockType(Sailfish::Secrets::CreateCollectionRequest::DeviceLock);
+    ccr.setCollectionName(QLatin1String("testinterleavingcollection"));
+    ccr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+    ccr.setEncryptionPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+    ccr.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
+    ccr.setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked);
+    ccr.setAccessControlMode(Sailfish::Secrets::SecretManager::OwnerOnlyMode);
+    ccr.startRequest();
+
+    keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(
+                                  QLatin1String("storedkey"),
+                                  QLatin1String("testinterleavingcollection")));
+    GenerateStoredKeyRequest gskr;
+    gskr.setManager(&cm);
+    gskr.setKeyTemplate(keyTemplate);
+    gskr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+    gskr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+    gskr.startRequest();
+
+    Sailfish::Secrets::DeleteCollectionRequest dcr;
+    dcr.setManager(&sm);
+    dcr.setCollectionName(QLatin1String("testinterleavingcollection"));
+    dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::ApplicationInteraction);
+    dcr.startRequest();
+
+    // if step == 0, we create and delete the collection
+    // if step == 1, we create the collection
+    // if step == 2, we generate the stored key only, so it will succeed.
+    // if step == 3, we delete the collection.
+    int generateStoredKeyStep = 0;
+    bool gskrMustSucceed = false;
+
+    QElapsedTimer et;
+    et.start();
+    while (et.elapsed() < 30000) {
+        if (!er.status() == Request::Finished) {
+            er.startRequest();
+        }
+
+        bool dcrWasFinished = dcr.status() == Sailfish::Secrets::Request::Finished;
+        bool ccrWasFinished = ccr.status() == Sailfish::Secrets::Request::Finished;
+        if (ccr.status() == Sailfish::Secrets::Request::Finished) {
+            QCOMPARE(ccr.result().errorMessage(), QString());
+            QCOMPARE(ccr.result().code(), Sailfish::Secrets::Result::Succeeded);
+            if (dcr.status() == Sailfish::Secrets::Request::Finished) {
+                // if the previous step was 3 (i.e. current step is 0)
+                // or the previous step was 0 (i.e. current step is 1)
+                // then we need to restart the request.
+                if (generateStoredKeyStep == 3
+                        || generateStoredKeyStep == 0) {
+                    ccr.startRequest();
+                }
+            }
+        }
+
+        if (gskr.status() == Request::Finished && ccrWasFinished && dcrWasFinished) {
+            generateStoredKeyStep++;
+            if (generateStoredKeyStep == 4) {
+                generateStoredKeyStep = 0;
+            }
+            if (generateStoredKeyStep == 3) {
+                bool ensureSucceeded = true;
+                if (!gskrMustSucceed) {
+                    // the previous step was "2", which should have succeeded,
+                    // but might have failed due to interleaving with the create
+                    // collection request.  If it failed, decrement our step counter
+                    // and restart the request; next time it must pass as there will
+                    // be no possible conflicts.
+                    if (gskr.result().errorMessage() == QStringLiteral("The identified collection is not stored by that plugin")
+                            || gskr.result().errorMessage() == QStringLiteral("That collection is being modified and cannot currently be used")) {
+                        ensureSucceeded = false;
+                        gskrMustSucceed = true;
+                        generateStoredKeyStep--;
+                    }
+                }
+
+                if (ensureSucceeded) {
+                    QCOMPARE(gskr.result().errorMessage(), QString());
+                    QCOMPARE(gskr.result().code(), Result::Succeeded);
+                    gskrMustSucceed = false;
+                }
+
+                if (generateStoredKeyStep != 3) {
+                    // if the previous step was 2, and we succeeded,
+                    // then the key will already exist at this point.
+                    // restarting it now would result in a failure (duplicate key).
+                    gskr.startRequest();
+                }
+            } else if (gskr.result().errorMessage() == QStringLiteral("The identified collection is not stored by that plugin")) {
+                // Note that if this request was started (on the main thread)
+                // while the delete collection request was ongoing (on the
+                // secrets plugin thread), it might fail specifically at the
+                // point where the secrets request processor attempts to
+                // determine if the target collection is stored by the plugin,
+                // since that check is performed via an asynchronous request.
+                // This is OK, since no data will have been written to the
+                // bookkeeping database (by setCollectionSecretMetadata())
+                // at that point.
+                gskr.startRequest();
+            } else if (gskr.result().errorMessage() == QStringLiteral("That collection is being modified and cannot currently be used")) {
+                // Note that if this request was started (on the main thread)
+                // while the delete collection request was ongoing (on the
+                // secrets plugin thread), it should fail with this error.
+                // This is OK, since no data will have been written to the
+                // bookkeeping database (by setCollectionSecretMetadata())
+                // at that point, as we prevent that via the interleaving-lock.
+                gskr.startRequest();
+            } else {
+                // other errors are potentially erroneous request interleaves.
+                QCOMPARE(gskr.result().errorMessage(), QString());
+            }
+        }
+
+        if (dcr.status() == Sailfish::Secrets::Request::Finished) {
+            QCOMPARE(dcr.result().errorMessage(), QString());
+            QCOMPARE(dcr.result().code(), Sailfish::Secrets::Result::Succeeded);
+            // if this step is 0 or 3, we need to restart the request.
+            if (generateStoredKeyStep == 0
+                    || generateStoredKeyStep == 3) {
+                dcr.startRequest();
+            }
+        }
+
+        if (ssr.status() == Sailfish::Secrets::Request::Finished) {
+            QCOMPARE(ssr.result().errorMessage(), QString());
+            QCOMPARE(ssr.result().code(), Sailfish::Secrets::Result::Succeeded);
+            if (dsr.status() == Sailfish::Secrets::Request::Finished) {
+                ssr.startRequest();
+            }
+        }
+
+        if (dsr.status() == Sailfish::Secrets::Request::Finished) {
+            QCOMPARE(dsr.result().errorMessage(), QString());
+            QCOMPARE(dsr.result().code(), Sailfish::Secrets::Result::Succeeded);
+            dsr.startRequest();
+        }
+
+        QTest::qWait(2); // allow asynchronous processing / DBus responses.
     }
 }
 

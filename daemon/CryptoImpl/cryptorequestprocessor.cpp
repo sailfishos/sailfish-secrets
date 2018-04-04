@@ -401,6 +401,8 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey(
     Result retn = validateKeyIdentifier(callerPid, requestId, keyTemplate);
     if (retn.code() == Result::Failed) {
         return retn;
+    } else if (!m_secrets->interleavedRequestsAllowed(keyTemplate.identifier().collectionName())) {
+        return transformSecretsResult(m_secrets->interleavedRequestError());
     }
 
     if (!m_cryptoPlugins.contains(cryptosystemProviderName)) {

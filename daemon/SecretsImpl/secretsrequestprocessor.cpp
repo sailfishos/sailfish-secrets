@@ -161,6 +161,14 @@ Daemon::ApiImpl::RequestProcessor::createDeviceLockCollection(
                       QString::fromLatin1("Collection already exists: %1").arg(collectionName));
     }
 
+    // Check to see if the collection is being deleted or otherwise modified.
+    // If so, we cannot operate on it and must return a (possibly temporary) error.
+    if (!interleavedRequestsAllowed(collectionName)) {
+        return interleavedRequestError();
+    } else {
+        preventInterleavedRequests(collectionName);
+    }
+
     Result insertResult = m_bkdb->insertCollection(
                 collectionName,
                 callerApplicationId,
@@ -218,6 +226,7 @@ Daemon::ApiImpl::RequestProcessor::createDeviceLockCollection(
             }
         }
 
+        allowInterleavedRequests(collectionName);
         QVariantList outParams;
         outParams << QVariant::fromValue<Result>(pluginResult);
         m_requestQueue->requestFinished(requestId, outParams);
@@ -368,6 +377,14 @@ Daemon::ApiImpl::RequestProcessor::createCustomLockCollectionWithAuthenticationC
                       QString::fromLatin1("Collection already exists: %1").arg(collectionName));
     }
 
+    // Check to see if the collection is being deleted or otherwise modified.
+    // If so, we cannot operate on it and must return a (possibly temporary) error.
+    if (!interleavedRequestsAllowed(collectionName)) {
+        return interleavedRequestError();
+    } else {
+        preventInterleavedRequests(collectionName);
+    }
+
     Result insertResult = m_bkdb->insertCollection(
                 collectionName,
                 callerApplicationId,
@@ -406,6 +423,7 @@ Daemon::ApiImpl::RequestProcessor::createCustomLockCollectionWithAuthenticationC
         watcher->deleteLater();
         DerivedKeyResult dkr = watcher->future().result();
         if (dkr.result.code() != Result::Succeeded) {
+            allowInterleavedRequests(collectionName);
             QVariantList outParams;
             outParams << QVariant::fromValue<Result>(dkr.result);
             m_requestQueue->requestFinished(requestId, outParams);
@@ -492,6 +510,7 @@ Daemon::ApiImpl::RequestProcessor::createCustomLockCollectionWithEncryptionKey(
             }
         }
 
+        allowInterleavedRequests(collectionName);
         QVariantList outParams;
         outParams << QVariant::fromValue<Result>(pluginResult);
         m_requestQueue->requestFinished(requestId, outParams);
@@ -580,6 +599,10 @@ Daemon::ApiImpl::RequestProcessor::deleteCollection(
                       QString::fromLatin1("Not the owner, cannot delete collection"));
     }
 
+    // mark this collection as "busy" and prevent interleaving other
+    // requests (e.g. GenerateStoredKeyRequest) which operate on this collection.
+    preventInterleavedRequests(collectionName);
+
     QFutureWatcher<Result> *watcher = new QFutureWatcher<Result>(this);
     QFuture<Result> future;
     if (collectionStoragePluginName == collectionEncryptionPluginName) {
@@ -599,6 +622,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollection(
     watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<Result>::finished, [=] {
         watcher->deleteLater();
+        allowInterleavedRequests(collectionName);
         Result pluginResult = watcher->future().result();
         if (pluginResult.code() == Result::Failed) {
             QVariantList outParams;
@@ -672,6 +696,12 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretMetadata(
     const QString callerApplicationId = applicationIsPlatformApplication
                 ? m_appPermissions->platformApplicationId()
                 : m_appPermissions->applicationId(callerPid);
+
+    // Check to see if the collection is being deleted or otherwise modified.
+    // If so, we cannot operate on it and must return a (possibly temporary) error.
+    if (!interleavedRequestsAllowed(identifier.collectionName())) {
+        return interleavedRequestError();
+    }
 
     bool found = false;
     QString collectionApplicationId;

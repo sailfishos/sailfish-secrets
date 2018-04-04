@@ -29,11 +29,40 @@ using namespace Sailfish::Secrets;
 // The methods in this file exist to help fulfil Sailfish Crypto API requests,
 // while allowing the use of a single (secrets) database for atomicity reasons.
 
+void Daemon::ApiImpl::RequestProcessor::preventInterleavedRequests(
+        const QString &collectionName)
+{
+    m_preventInterleavedRequestsCollections.insert(collectionName);
+}
+
+void Daemon::ApiImpl::RequestProcessor::allowInterleavedRequests(
+        const QString &collectionName)
+{
+    m_preventInterleavedRequestsCollections.remove(collectionName);
+}
+
+bool Daemon::ApiImpl::RequestProcessor::interleavedRequestsAllowed(
+        const QString &collectionName) const
+{
+    return !m_preventInterleavedRequestsCollections.contains(collectionName);
+}
+
+Result
+Daemon::ApiImpl::RequestProcessor::interleavedRequestError() const
+{
+    return Result(Result::CollectionIsBusyError,
+                  QStringLiteral("That collection is being modified and cannot currently be used"));
+}
+
 Result
 Daemon::ApiImpl::RequestProcessor::confirmCollectionStoragePlugin(
         const QString &collectionName,
         const QString &storagePluginName) const
 {
+    if (!interleavedRequestsAllowed(collectionName)) {
+        return interleavedRequestError();
+    }
+
     QString collectionStoragePluginName;
     Result cspnResult = m_bkdb->collectionStoragePluginName(collectionName,
                                                             &collectionStoragePluginName);
@@ -83,6 +112,18 @@ QStringList
 Daemon::ApiImpl::RequestProcessor::storagePluginNames() const
 {
     return m_storagePlugins.keys();
+}
+
+bool Daemon::ApiImpl::SecretsRequestQueue::interleavedRequestsAllowed(
+        const QString &collectionName) const
+{
+    return m_requestProcessor->interleavedRequestsAllowed(collectionName);
+}
+
+Result
+Daemon::ApiImpl::SecretsRequestQueue::interleavedRequestError() const
+{
+    return m_requestProcessor->interleavedRequestError();
 }
 
 Result
