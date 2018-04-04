@@ -11,6 +11,9 @@
 
 #include "controller_p.h"
 #include "logging_p.h"
+#include "plugin_p.h"
+#include "Crypto/extensionplugins.h"
+#include "Secrets/extensionplugins.h"
 
 Q_LOGGING_CATEGORY(lcSailfishSecretsDaemon, "org.sailfishos.secrets.daemon", QtWarningMsg)
 Q_LOGGING_CATEGORY(lcSailfishSecretsDaemonDBus, "org.sailfishos.secrets.daemon.dbus", QtWarningMsg)
@@ -34,6 +37,12 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
              args[1] == QLatin1String("--test"))) {
         autotestMode = true;
     }
+
+    Sailfish::Secrets::Daemon::ApiImpl::PluginManager::instance()->loadPlugins<Sailfish::Secrets::AuthenticationPlugin,
+                                                                               Sailfish::Secrets::EncryptedStoragePlugin,
+                                                                               Sailfish::Secrets::StoragePlugin,
+                                                                               Sailfish::Secrets::EncryptionPlugin,
+                                                                               Sailfish::Crypto::CryptoPlugin>();
 
     Sailfish::Secrets::Daemon::Controller controller(autotestMode);
     if (controller.isValid()) {

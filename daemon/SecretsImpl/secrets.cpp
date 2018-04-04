@@ -417,10 +417,6 @@ Daemon::ApiImpl::SecretsRequestQueue::SecretsRequestQueue(
     SecretsDaemonConnection::registerDBusTypes();
     m_appPermissions = new Daemon::ApiImpl::ApplicationPermissions(this);
     m_requestProcessor = new Daemon::ApiImpl::RequestProcessor(&m_bkdb, m_appPermissions, autotestMode, this);
-    if (!m_requestProcessor->loadPlugins()) {
-        qCWarning(lcSailfishSecretsDaemon) << "Secrets: failed to load plugins!";
-        return;
-    }
 
     setDBusObject(new Daemon::ApiImpl::SecretsDBusObject(this));
     qCDebug(lcSailfishSecretsDaemon) << "Secrets: initialisation succeeded, awaiting client connections.";
