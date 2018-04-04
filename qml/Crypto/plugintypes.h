@@ -51,14 +51,24 @@ public:
 class CryptoManager : public Sailfish::Crypto::CryptoManager
 {
     Q_OBJECT
+    Q_PROPERTY(QString defaultCryptoPluginName READ defaultCryptoPluginName CONSTANT)
+    Q_PROPERTY(QString defaultCryptoStoragePluginName READ defaultCryptoStoragePluginName CONSTANT)
 
 public:
     CryptoManager(QObject *parent = Q_NULLPTR);
-    ~CryptoManager();
+    virtual ~CryptoManager() Q_DECL_OVERRIDE;
+
+    // QML API - make static members accessible
+    QString defaultCryptoPluginName() const { return DefaultCryptoPluginName; }
+    QString defaultCryptoStoragePluginName() const { return DefaultCryptoStoragePluginName; }
 
     // QML API - allow clients to construct "uncreatable" value types
     Q_INVOKABLE Result constructResult() const;
     Q_INVOKABLE Key constructKey() const;
+    Q_INVOKABLE QVariant constructRsaKeygenParams() const;
+    Q_INVOKABLE QVariant constructEcKeygenParams() const;
+    Q_INVOKABLE QVariant constructDsaKeygenParams() const;
+    Q_INVOKABLE QVariant constructDhKeygenParams() const;
 };
 
 } // Plugin

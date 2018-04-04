@@ -313,7 +313,7 @@ public:
     Q_FLAG(Operations)
 
     CryptoManager(QObject *parent = Q_NULLPTR);
-    ~CryptoManager();
+    virtual ~CryptoManager();
 
     bool isInitialised() const;
 
