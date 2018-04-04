@@ -259,6 +259,28 @@ Daemon::ApiImpl::RequestProcessor::seedRandomDataGenerator(
 }
 
 Result
+Daemon::ApiImpl::RequestProcessor::generateInitializationVector(
+        pid_t callerPid,
+        quint64 requestId,
+        CryptoManager::Algorithm algorithm,
+        CryptoManager::BlockMode blockMode,
+        int keySize,
+        const QString &cryptosystemProviderName,
+        QByteArray *generatedIV)
+{
+    // TODO: access control!
+    Q_UNUSED(callerPid);
+    Q_UNUSED(requestId);
+
+    if (!m_cryptoPlugins.contains(cryptosystemProviderName)) {
+        return Result(Result::InvalidCryptographicServiceProvider,
+                      QLatin1String("No such cryptographic service provider plugin exists"));
+    }
+
+    return m_cryptoPlugins[cryptosystemProviderName]->generateInitializationVector(algorithm, blockMode, keySize, generatedIV);
+}
+
+Result
 Daemon::ApiImpl::RequestProcessor::validateCertificateChain(
         pid_t callerPid,
         quint64 requestId,
@@ -1296,8 +1318,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession(
         CryptoManager::SignaturePadding signaturePadding,
         CryptoManager::DigestFunction digestFunction,
         const QString &cryptosystemProviderName,
-        quint32 *cipherSessionToken,
-        QByteArray *generatedIV)
+        quint32 *cipherSessionToken)
 {
     // TODO: Access Control
 
@@ -1370,7 +1391,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession(
                 iv, fullKey, operation,
                 blockMode, encryptionPadding,
                 signaturePadding, digestFunction,
-                cipherSessionToken, generatedIV);
+                cipherSessionToken);
 }
 
 void
@@ -1390,20 +1411,18 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession2(
     // finish the request.
     QList<QVariant> outParams;
     quint32 cipherSessionToken = 0;
-    QByteArray generatedIV;
     if (result.code() == Result::Succeeded) {
         Key fullKey = Key::deserialise(serialisedKey);
         Result cryptoResult = m_cryptoPlugins[cryptoPluginName]->initialiseCipherSession(
                     callerPid,
                     iv, fullKey, operation, blockMode,
                     encryptionPadding, signaturePadding,
-                    digestFunction, &cipherSessionToken, &generatedIV);
+                    digestFunction, &cipherSessionToken);
         outParams << QVariant::fromValue<Result>(cryptoResult);
     } else {
         outParams << QVariant::fromValue<Result>(result);
     }
     outParams << QVariant::fromValue<quint32>(cipherSessionToken);
-    outParams << QVariant::fromValue<QByteArray>(generatedIV);
     m_requestQueue->requestFinished(requestId, outParams);
 }
 

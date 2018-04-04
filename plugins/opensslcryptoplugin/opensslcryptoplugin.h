@@ -79,6 +79,12 @@ public:
             const QByteArray &seedData,
             double entropyEstimate) Q_DECL_OVERRIDE;
 
+    virtual Sailfish::Crypto::Result generateInitializationVector(
+            Sailfish::Crypto::CryptoManager::Algorithm algorithm,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            int keySize,
+            QByteArray *generatedIV) Q_DECL_OVERRIDE;
+
     Sailfish::Crypto::Result validateCertificateChain(
             const QVector<Sailfish::Crypto::Certificate> &chain,
             bool *validated) Q_DECL_OVERRIDE;
@@ -153,8 +159,7 @@ public:
             Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
             Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
-            quint32 *cipherSessionToken,
-            QByteArray *generatedIV) Q_DECL_OVERRIDE;
+            quint32 *cipherSessionToken) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result updateCipherSessionAuthentication(
             quint64 clientId,

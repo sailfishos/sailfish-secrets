@@ -47,7 +47,6 @@ public:
     Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding = Sailfish::Crypto::CryptoManager::SignaturePaddingUnknown;
     Sailfish::Crypto::CryptoManager::DigestFunction digestFunction = Sailfish::Crypto::CryptoManager::DigestUnknown;
     quint32 cipherSessionToken = 0;
-    QByteArray generatedIV;
     EVP_MD_CTX *evp_md_ctx = nullptr;
     EVP_CIPHER_CTX *evp_cipher_ctx = nullptr;
     QTimer *timeout;
@@ -114,11 +113,15 @@ quint32 getNextCipherSessionToken(QMap<quint64, QMap<quint32, CipherSessionData*
     return 0; // no cipher sessions available.
 }
 
-int initializationVectorSize(Sailfish::Crypto::CryptoManager::BlockMode blockMode,
-                             Sailfish::Crypto::CryptoManager::Algorithm algorithm)
+int initializationVectorSize(Sailfish::Crypto::CryptoManager::Algorithm algorithm,
+                             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+                             int keySize)
 {
-    if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeEcb) {
-        // IV not required for this mode
+    Q_UNUSED(keySize)   // not yet used in calculations
+
+    if (algorithm == Sailfish::Crypto::CryptoManager::AlgorithmRsa
+            || blockMode == Sailfish::Crypto::CryptoManager::BlockModeEcb) {
+        // IV not required for these configurations
         return 0;
     }
 

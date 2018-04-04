@@ -87,6 +87,29 @@ void Daemon::ApiImpl::CryptoDBusObject::seedRandomDataGenerator(
                                   result);
 }
 
+void Daemon::ApiImpl::CryptoDBusObject::generateInitializationVector(
+        Sailfish::Crypto::CryptoManager::Algorithm algorithm,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        int keySize,
+        const QString &cryptosystemProviderName,
+        const QDBusMessage &message,
+        Sailfish::Crypto::Result &result,
+        QByteArray &generatedIV)
+{
+    Q_UNUSED(generatedIV);  // outparam
+
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<Sailfish::Crypto::CryptoManager::Algorithm>(algorithm);
+    inParams << QVariant::fromValue<Sailfish::Crypto::CryptoManager::BlockMode>(blockMode);
+    inParams << QVariant::fromValue<int>(keySize);
+    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    m_requestQueue->handleRequest(Daemon::ApiImpl::GenerateInitializationVectorRequest,
+                                  inParams,
+                                  connection(),
+                                  message,
+                                  result);
+}
+
 void Daemon::ApiImpl::CryptoDBusObject::validateCertificateChain(
         const QVector<Certificate> &chain,
         const QString &cryptosystemProviderName,
@@ -348,11 +371,9 @@ void Daemon::ApiImpl::CryptoDBusObject::initialiseCipherSession(
         const QString &cryptosystemProviderName,
         const QDBusMessage &message,
         Sailfish::Crypto::Result &result,
-        quint32 &cipherSessionToken,
-        QByteArray &generatedInitialisationVector)
+        quint32 &cipherSessionToken)
 {
     Q_UNUSED(cipherSessionToken);  // outparam, set in handlePendingRequest / handleFinishedRequest
-    Q_UNUSED(generatedInitialisationVector); // outparam
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(initialisationVector);
     inParams << QVariant::fromValue<Key>(key);
@@ -542,6 +563,7 @@ QString Daemon::ApiImpl::CryptoRequestQueue::requestTypeToString(int type) const
         case GetPluginInfoRequest:             return QLatin1String("GetPluginInfoRequest");
         case GenerateRandomDataRequest:        return QLatin1String("GenerateRandomDataRequest");
         case SeedRandomDataGeneratorRequest:   return QLatin1String("SeedRandomDataGeneratorRequest");
+        case GenerateInitializationVectorRequest: return QLatin1String("GenerateInitializationVectorRequest");
         case ValidateCertificateChainRequest:  return QLatin1String("ValidateCertificateChainRequest");
         case GenerateKeyRequest:               return QLatin1String("GenerateKeyRequest");
         case GenerateStoredKeyRequest:         return QLatin1String("GenerateStoredKeyRequest");
@@ -634,6 +656,33 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
                 *completed = false;
             } else {
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result));
+                *completed = true;
+            }
+            break;
+        }
+        case GenerateInitializationVectorRequest:
+        {
+            qCDebug(lcSailfishCryptoDaemon) << "Handling GenerateInitializationVectorRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            QByteArray generatedIV;
+            CryptoManager::Algorithm algorithm = request->inParams.size() ? request->inParams.takeFirst().value<CryptoManager::Algorithm>() : CryptoManager::AlgorithmUnknown;
+            CryptoManager::BlockMode blockMode = request->inParams.size() ? request->inParams.takeFirst().value<CryptoManager::BlockMode>() : CryptoManager::BlockModeUnknown;
+            int keySize = request->inParams.size() ? request->inParams.takeFirst().value<int>() : -1;
+            QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            Result result = m_requestProcessor->generateInitializationVector(
+                        request->remotePid,
+                        request->requestId,
+                        algorithm,
+                        blockMode,
+                        keySize,
+                        cryptosystemProviderName,
+                        &generatedIV);
+            // send the reply to the calling peer.
+            if (result.code() == Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<QByteArray>(generatedIV));
                 *completed = true;
             }
             break;
@@ -957,7 +1006,6 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
         }
         case InitialiseCipherSessionRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling InitialiseCipherSessionRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            QByteArray generatedIV;
             quint32 cipherSessionToken = 0;
             QByteArray iv = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
@@ -978,16 +1026,14 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
                         signaturePadding,
                         digest,
                         cryptosystemProviderName,
-                        &cipherSessionToken,
-                        &generatedIV);
+                        &cipherSessionToken);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                        << QVariant::fromValue<quint32>(cipherSessionToken)
-                                                                        << QVariant::fromValue<QByteArray>(generatedIV));
+                                                                        << QVariant::fromValue<quint32>(cipherSessionToken));
                 *completed = true;
             }
             break;
@@ -1210,6 +1256,24 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
                 *completed = true;
             } else {
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result));
+                *completed = true;
+            }
+            break;
+        }
+        case GenerateInitializationVectorRequest:
+        {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of GenerateInitializationVectorRequest request"));
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishCryptoDaemon) << "GenerateInitializationVectorRequest:" << request->requestId << "finished as pending!";
+                *completed = true;
+            } else {
+                QByteArray generatedIV = request->outParams.size() ? request->outParams.takeFirst().value<QByteArray>() : QByteArray();
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<QByteArray>(generatedIV));
                 *completed = true;
             }
             break;

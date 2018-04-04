@@ -189,7 +189,7 @@ void tst_crypto::generateKeyEncryptDecrypt()
 
     // test encrypting some plaintext with the generated key
     QByteArray plaintext = "Test plaintext data";
-    QByteArray initVector = "0123456789abcdef";
+    QByteArray initVector = (blockMode == CryptoManager::BlockModeEcb) ? "" : "0123456789abcdef";
     QDBusPendingReply<Result, QByteArray, QByteArray> encryptReply = cm.encrypt(
             plaintext,
             initVector,

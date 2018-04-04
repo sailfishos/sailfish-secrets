@@ -63,6 +63,24 @@ private slots:
     void cryptoStoredKey();
 
 private:
+    QByteArray generateInitializationVector(Sailfish::Crypto::CryptoManager::Algorithm algorithm,
+                                            Sailfish::Crypto::CryptoManager::BlockMode blockMode)
+    {
+        if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeEcb) {
+            return QByteArray();
+        }
+
+        QByteArray data = QString::number(QDateTime::currentDateTime().currentMSecsSinceEpoch()).toLatin1();
+        data.resize(16);
+
+        if (algorithm == Sailfish::Crypto::CryptoManager::AlgorithmAes
+                && blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm) {
+            data.resize(12);
+        }
+
+        return data;
+    }
+
     void addCryptoTestData()
     {
         QTest::addColumn<Sailfish::Crypto::CryptoManager::BlockMode>("blockMode");
@@ -176,7 +194,7 @@ void tst_cryptosecrets::secretsStoredKey()
 
     // test encrypting some plaintext with the stored key.
     QByteArray plaintext = "Test plaintext data";
-    QByteArray initVector = "0123456789abcdef";
+    QByteArray initVector = generateInitializationVector(keyTemplate.algorithm(), blockMode);
     QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> encryptReply = cm.encrypt(
             plaintext,
             initVector,
@@ -408,7 +426,7 @@ void tst_cryptosecrets::cryptoStoredKey()
 
     // test encrypting some plaintext with the stored key.
     QByteArray plaintext = "Test plaintext data";
-    QByteArray initVector = "0123456789abcdef";
+    QByteArray initVector = generateInitializationVector(keyTemplate.algorithm(), blockMode);
     QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> encryptReply = cm.encrypt(
             plaintext,
             initVector,

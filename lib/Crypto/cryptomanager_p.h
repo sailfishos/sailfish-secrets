@@ -61,6 +61,12 @@ public:
     // TODO: add a method (and corresponding Request type) to generateRandomNumber
     // perhaps with range limits, precision parameters, etc.
 
+    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> generateInitializationVector(
+            Sailfish::Crypto::CryptoManager::Algorithm algorithm,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            int keySize,
+            const QString &cryptosystemProviderName);
+
     QDBusPendingReply<Sailfish::Crypto::Result, bool> validateCertificateChain(
             const QVector<Sailfish::Crypto::Certificate> &chain,
             const QString &cryptosystemProviderName);
@@ -128,7 +134,7 @@ public:
             const QByteArray &tag,
             const QString &cryptosystemProviderName);
 
-    QDBusPendingReply<Sailfish::Crypto::Result, quint32, QByteArray> initialiseCipherSession(
+    QDBusPendingReply<Result, quint32> initialiseCipherSession(
             const QByteArray &initialisationVector,
             const Sailfish::Crypto::Key &key, // or keyreference
             const Sailfish::Crypto::CryptoManager::Operation operation,

@@ -211,7 +211,6 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"cipherSessionToken\" type=\"u\" direction=\"out\" />\n"
-    "          <arg name=\"generatedInitialisationVector\" type=\"ay\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Crypto::Key\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::CryptoManager::Operation\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::CryptoManager::BlockMode\" />\n"
@@ -299,6 +298,15 @@ public Q_SLOTS:
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result);
+
+    void generateInitializationVector(
+            Sailfish::Crypto::CryptoManager::Algorithm algorithm,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            int keySize,
+            const QString &cryptosystemProviderName,
+            const QDBusMessage &message,
+            Sailfish::Crypto::Result &result,
+            QByteArray &generatedIV);
 
     void validateCertificateChain(
             const QVector<Sailfish::Crypto::Certificate> &chain,
@@ -411,8 +419,7 @@ public Q_SLOTS:
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
-            quint32 &cipherSessionToken,
-            QByteArray &generatedInitialisationVector);
+            quint32 &cipherSessionToken);
 
     void updateCipherSessionAuthentication(
             const QByteArray &authenticationData,
@@ -492,6 +499,7 @@ enum RequestType {
     GetPluginInfoRequest,
     GenerateRandomDataRequest,
     SeedRandomDataGeneratorRequest,
+    GenerateInitializationVectorRequest,
     ValidateCertificateChainRequest,
     GenerateKeyRequest,
     GenerateStoredKeyRequest,

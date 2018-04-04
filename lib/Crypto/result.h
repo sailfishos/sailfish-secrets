@@ -70,6 +70,7 @@ public:
         CryptoPluginSigningError,
         CryptoPluginVerificationError,
         CryptoPluginAuthenticationTagError,
+        CryptoPluginInvalidCipherSessionToken,
 
         NetworkError = 98,
         NetworkSslError = 99,

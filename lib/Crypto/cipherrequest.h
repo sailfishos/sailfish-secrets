@@ -37,7 +37,6 @@ class SAILFISH_CRYPTO_API CipherRequest : public Sailfish::Crypto::Request
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::DigestFunction digestFunction READ digestFunction WRITE setDigestFunction NOTIFY digestFunctionChanged)
     Q_PROPERTY(QString cryptoPluginName READ cryptoPluginName WRITE setCryptoPluginName NOTIFY cryptoPluginNameChanged)
     Q_PROPERTY(QByteArray generatedData READ generatedData NOTIFY generatedDataChanged)
-    Q_PROPERTY(QByteArray generatedInitialisationVector READ generatedInitialisationVector NOTIFY generatedInitialisationVectorChanged)
     Q_PROPERTY(bool verified READ verified NOTIFY verifiedChanged)
 
 public:
@@ -83,7 +82,6 @@ public:
     void setCryptoPluginName(const QString &pluginName);
 
     QByteArray generatedData() const;
-    QByteArray generatedInitialisationVector() const;
     bool verified() const;
 
     Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
@@ -107,7 +105,6 @@ Q_SIGNALS:
     void digestFunctionChanged();
     void cryptoPluginNameChanged();
     void generatedDataChanged();
-    void generatedInitialisationVectorChanged();
     void verifiedChanged();
 
 private:

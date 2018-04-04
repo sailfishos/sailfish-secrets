@@ -261,6 +261,36 @@ Daemon::Plugins::OpenSslCryptoPlugin::validateCertificateChain(
 }
 
 Sailfish::Crypto::Result
+Daemon::Plugins::OpenSslCryptoPlugin::generateInitializationVector(
+        Sailfish::Crypto::CryptoManager::Algorithm algorithm,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        int keySize,
+        QByteArray *generatedIV)
+{
+    int ivSize = initializationVectorSize(algorithm, blockMode, keySize);
+    if (ivSize < 0) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("Unable to generate initialisation vector for this configuration"));
+    }
+    if (ivSize == 0) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
+    }
+
+    unsigned char *ivBuf = (unsigned char *)malloc(ivSize);
+    memset(ivBuf, 0, ivSize);
+
+    if (RAND_bytes(ivBuf, ivSize) <= 0) {
+        free(ivBuf);
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                        QLatin1String("Unable to generate initialisation vector"));
+    }
+
+    *generatedIV = QByteArray(reinterpret_cast<char*>(ivBuf), ivSize);
+    free(ivBuf);
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
+}
+
+Sailfish::Crypto::Result
 Daemon::Plugins::OpenSslCryptoPlugin::generateKey(
         const Sailfish::Crypto::Key &keyTemplate,
         const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
@@ -652,8 +682,8 @@ Daemon::Plugins::OpenSslCryptoPlugin::encrypt(
         }
     }
 
-    const int expectedIvSize = initializationVectorSize(blockMode, fullKey.algorithm());
-    if (expectedIvSize > 0 && iv.size() != expectedIvSize) {
+    const int expectedIvSize = initializationVectorSize(fullKey.algorithm(), blockMode, fullKey.size());
+    if (iv.size() != expectedIvSize) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidInitializationVector,
                                         QStringLiteral("Initialization Vector length should be %1 but was %2")
                                                 .arg(expectedIvSize)
@@ -736,8 +766,8 @@ Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
         }
     }
 
-    const int expectedIvSize = initializationVectorSize(blockMode, fullKey.algorithm());
-    if (expectedIvSize > 0 && iv.size() != expectedIvSize) {
+    const int expectedIvSize = initializationVectorSize(fullKey.algorithm(), blockMode, fullKey.size());
+    if (iv.size() != expectedIvSize) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidInitializationVector,
                                         QStringLiteral("Initialization Vector length should be %1 but was %2")
                                                 .arg(expectedIvSize)
@@ -775,8 +805,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
         Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
         Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
         Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
-        quint32 *cipherSessionToken,
-        QByteArray *generatedIV)
+        quint32 *cipherSessionToken)
 {
     Sailfish::Crypto::Key fullKey = getFullKey(key);
     if (fullKey.secretKey().isEmpty()) {
@@ -810,20 +839,12 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
                                         QLatin1String("Too many concurrent cipher sessions initiated by client"));
     }
 
-    QByteArray initIV(iv);
-    if (operation == Sailfish::Crypto::CryptoManager::OperationEncrypt
-            && fullKey.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
-        if (iv.size() != 16) {
-            // the user-supplied IV is the wrong size.
-            // generate an appropriately sized IV.
-            unsigned char ivBuf[16] = { 0 };
-            if (RAND_bytes(ivBuf, 16) != 1) {
-                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                                QLatin1String("Unable to generate initialisation vector"));
-            }
-            *generatedIV = QByteArray(reinterpret_cast<char*>(ivBuf), 16);
-            initIV = *generatedIV;
-        }
+    const int expectedIvSize = initializationVectorSize(key.algorithm(), blockMode, fullKey.size());
+    if (operation == Sailfish::Crypto::CryptoManager::OperationEncrypt && iv.size() != expectedIvSize) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidInitializationVector,
+                                        QStringLiteral("Initialization Vector length should be %1 but was %2")
+                                                .arg(expectedIvSize)
+                                                .arg(iv.size()));
     }
 
     EVP_MD_CTX *evp_md_ctx = NULL;
@@ -843,7 +864,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
             }
             if (EVP_EncryptInit_ex(evp_cipher_ctx, evp_cipher, NULL,
                                    reinterpret_cast<const unsigned char*>(fullKey.secretKey().constData()),
-                                   reinterpret_cast<const unsigned char*>(initIV.constData())) != 1) {
+                                   reinterpret_cast<const unsigned char*>(iv.constData())) != 1) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                                 QLatin1String("Unable to initialise encryption cipher context in AES 256 mode"));
@@ -864,7 +885,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
             }
             if (EVP_DecryptInit_ex(evp_cipher_ctx, evp_cipher, NULL,
                                    reinterpret_cast<const unsigned char *>(fullKey.secretKey().constData()),
-                                   reinterpret_cast<const unsigned char *>(initIV.constData())) != 1) {
+                                   reinterpret_cast<const unsigned char *>(iv.constData())) != 1) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                                 QLatin1String("Unable to initialise decryption cipher context in AES 256 mode"));
@@ -876,7 +897,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
     }
 
     CipherSessionData *csd = new CipherSessionData;
-    csd->iv = initIV;
+    csd->iv = iv;
     csd->key = fullKey;
     csd->operation = operation;
     csd->blockMode = blockMode;
@@ -884,7 +905,6 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
     csd->signaturePadding = signaturePadding;
     csd->digestFunction = digestFunction;
     csd->cipherSessionToken = sessionToken;
-    csd->generatedIV = *generatedIV;
     csd->evp_cipher_ctx = evp_cipher_ctx;
     csd->evp_md_ctx = evp_md_ctx;
     QTimer *timeout = new QTimer(this);

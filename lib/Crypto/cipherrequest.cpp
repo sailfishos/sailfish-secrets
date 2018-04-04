@@ -85,9 +85,9 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * cr.setKey(key); // a valid AES 256 key or key reference
  * cr.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
  * cr.setOperation(Sailfish::Crypto::CryptoManager::OperationEncrypt);
+ * cr.setInitialisationVector(initializationVector);    // See GenerateInitializationVectorRequest
  * cr.startRequest();
  * cr.waitForFinished();
- * QByteArray iv = cr.generatedInitialisationVector();
  *
  * // Update the cipher session with data to encrypt.
  * while (morePlaintextBlocks()) {
@@ -119,7 +119,7 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * cr.setKey(key); // a valid AES 256 key or key reference
  * cr.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
  * cr.setOperation(Sailfish::Crypto::CryptoManager::OperationDecrypt);
- * cr.setInitialisationVector(iv); // IV used during encryption.
+ * cr.setInitialisationVector(initializationVector); // IV used during encryption.
  * cr.startRequest();
  * cr.waitForFinished();
  *
@@ -165,11 +165,6 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * cr.waitForFinished();
  * bool trustworthy = cr.verified();
  * \endcode
- *
- * Note that if the \a mode is CipherRequest::InitialiseCipher then
- * when the request is finished the generatedInitialisationVector()
- * should contain the initialisation vector data, if the operation()
- * was CryptoManager::OperationEncrypt.
  *
  * If \a mode is either CipherRequest::UpdateCipher or
  * CipherRequest::FinaliseCipher then when the request is finished
@@ -272,12 +267,6 @@ QByteArray CipherRequest::initialisationVector() const
  * however it should be generated using a cryptographically secure
  * random number generator (see \l{GenerateRandomDataRequest}) and must
  * be the appropriate size according to the cipher.
- *
- * If the initialisation vector is empty, the system crypto service will
- * generate a valid, random initialisation vector as part of the
- * cipher initialisation, and that generated initialisation vector
- * will be returned to the client via generatedInitialisationVector(),
- * if the operation is CryptoManager::OperationEncrypt.
  */
 void CipherRequest::setInitialisationVector(const QByteArray &iv)
 {
@@ -454,19 +443,6 @@ QByteArray CipherRequest::generatedData() const
 }
 
 /*!
- * \brief Returns the generated initialisation vector.
- *
- * Note: this value is only valid if the status of the request is Request::Finished,
- * and will only be generated for specific encryption operations
- * if the client has not provided an initialisation vector.
- */
-QByteArray CipherRequest::generatedInitialisationVector() const
-{
-    Q_D(const CipherRequest);
-    return d->m_generatedInitialisationVector;
-}
-
-/*!
  * \brief Returns the true if the verify operation succeeded
  *
  * Note: this value is only valid if the status of the request is Request::Finished
@@ -525,7 +501,7 @@ void CipherRequest::startRequest()
             }
             d->m_watcherQueue.clear();
             d->m_cipherSessionToken = 0;
-            QDBusPendingReply<Result, quint32, QByteArray> reply =
+            QDBusPendingReply<Result, quint32> reply =
                     d->m_manager->d_ptr->initialiseCipherSession(
                         d->m_initialisationVector,
                         d->m_key,
@@ -547,23 +523,15 @@ void CipherRequest::startRequest()
                 d->m_status = Request::Finished;
                 d->m_result = reply.argumentAt<0>();
                 d->m_cipherSessionToken = reply.argumentAt<1>();
-                bool needsIvEmit = false;
-                if (d->m_operation == CryptoManager::OperationEncrypt && d->m_generatedInitialisationVector != reply.argumentAt<2>()) {
-                    needsIvEmit = true;
-                    d->m_generatedInitialisationVector = reply.argumentAt<2>();
-                }
                 emit statusChanged();
                 emit resultChanged();
-                if (needsIvEmit) {
-                    emit generatedInitialisationVectorChanged();
-                }
             } else {
                 QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(reply);
                 d->m_watcherQueue.enqueue(watcher);
                 connect(watcher, &QDBusPendingCallWatcher::finished,
                         [this] {
                     QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcherQueue.dequeue();
-                    QDBusPendingReply<Result, quint32, QByteArray> reply = *watcher;
+                    QDBusPendingReply<Result, quint32> reply = *watcher;
                     bool needsStEmit = false;
                     if (this->d_ptr->m_watcherQueue.isEmpty() && this->d_ptr->m_status != Request::Finished) {
                         needsStEmit = true;
@@ -571,19 +539,15 @@ void CipherRequest::startRequest()
                     }
                     this->d_ptr->m_result = reply.argumentAt<0>();
                     this->d_ptr->m_cipherSessionToken = reply.argumentAt<1>();
-                    bool needsIvEmit = false;
-                    if (this->d_ptr->m_operation == CryptoManager::OperationEncrypt && this->d_ptr->m_generatedInitialisationVector != reply.argumentAt<2>()) {
-                        needsIvEmit = true;
-                        this->d_ptr->m_generatedInitialisationVector = reply.argumentAt<2>();
+                    if (this->d_ptr->m_cipherSessionToken == 0) {
+                        this->d_ptr->m_result = Result(Result::CryptoPluginInvalidCipherSessionToken,
+                                                       QStringLiteral("Plugin returned invalid cipher session token"));
                     }
                     watcher->deleteLater();
                     if (needsStEmit) {
                         emit this->statusChanged();
                     }
                     emit this->resultChanged();
-                    if (needsIvEmit) {
-                        emit this->generatedInitialisationVectorChanged();
-                    }
                 });
             }
         } else if (d->m_cipherMode == CipherRequest::UpdateCipherAuthentication) {
