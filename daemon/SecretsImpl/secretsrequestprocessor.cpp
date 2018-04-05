@@ -36,6 +36,12 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(
     : QObject(parent), m_bkdb(bkdb), m_requestQueue(parent), m_appPermissions(appPermissions), m_autotestMode(autotestMode)
 {
     m_authenticationPlugins = Daemon::ApiImpl::PluginManager::instance()->getPlugins<AuthenticationPlugin>();
+    for (AuthenticationPlugin *authenticationPlugin : m_authenticationPlugins) {
+        connect(authenticationPlugin, &AuthenticationPlugin::authenticationCompleted,
+                this, &Daemon::ApiImpl::RequestProcessor::authenticationCompleted);
+        connect(authenticationPlugin, &AuthenticationPlugin::userInputInteractionCompleted,
+                this, &Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted);
+    }
     qCDebug(lcSailfishSecretsDaemon) << "Using the following authentication plugins:" << m_authenticationPlugins.keys();
 
     m_encryptionPlugins = Daemon::ApiImpl::PluginManager::instance()->getPlugins<EncryptionPlugin>();
