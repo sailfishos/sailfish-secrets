@@ -1170,7 +1170,8 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
         const QByteArray &authenticationData,
         const QByteArray &tag,
         const QString &cryptosystemProviderName,
-        QByteArray *decrypted)
+        QByteArray *decrypted,
+        bool *verified)
 {
     // TODO: Access Control
 
@@ -1251,7 +1252,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
         fullKey = key;
     }
 
-    return cryptoPlugin->decrypt(data, iv, fullKey, blockMode, padding, authenticationData, tag, decrypted);
+    return cryptoPlugin->decrypt(data, iv, fullKey, blockMode, padding, authenticationData, tag, decrypted, verified);
 }
 
 void
@@ -1270,14 +1271,16 @@ Daemon::ApiImpl::RequestProcessor::decrypt2(
     // finish the request.
     QList<QVariant> outParams;
     QByteArray decrypted;
+    bool verified = false;
     if (result.code() == Result::Succeeded) {
         Key fullKey = Key::deserialise(serialisedKey);
-        Result cryptoResult = m_cryptoPlugins[cryptoPluginName]->decrypt(data, iv, fullKey, blockMode, padding, authenticationData, tag, &decrypted);
+        Result cryptoResult = m_cryptoPlugins[cryptoPluginName]->decrypt(data, iv, fullKey, blockMode, padding, authenticationData, tag, &decrypted, &verified);
         outParams << QVariant::fromValue<Result>(cryptoResult);
     } else {
         outParams << QVariant::fromValue<Result>(result);
     }
     outParams << QVariant::fromValue<QByteArray>(decrypted);
+    outParams << QVariant::fromValue<bool>(verified);
     m_requestQueue->requestFinished(requestId, outParams);
 }
 

@@ -392,6 +392,7 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QByteArray decrypted = dr.plaintext();
     QVERIFY(!decrypted.isEmpty());
     QCOMPARE(plaintext, decrypted);
+    QCOMPARE(dr.verified(), !dr.authenticationData().isEmpty());
 }
 
 void tst_cryptorequests::validateCertificateChain()
@@ -720,6 +721,7 @@ void tst_cryptorequests::storedKeyRequests()
     QByteArray decrypted = dr.plaintext();
     QVERIFY(!decrypted.isEmpty());
     QCOMPARE(plaintext, decrypted);
+    QCOMPARE(dr.verified(), !dr.authenticationData().isEmpty());
 
     // ensure that we can get a reference to that Key via the Secrets API
     Sailfish::Secrets::Secret::FilterData filter;
@@ -1054,6 +1056,7 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     QByteArray decrypted = dr.plaintext();
     QVERIFY(!decrypted.isEmpty());
     QCOMPARE(plaintext, decrypted);
+    QCOMPARE(dr.verified(), !dr.authenticationData().isEmpty());
 
     // ensure that we can get a reference to that Key via the Secrets API
     Sailfish::Secrets::Secret::FilterData filter;
@@ -1612,10 +1615,8 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     QCOMPARE(dr.result().errorMessage(), QString());
     QCOMPARE(dr.result().code(), Result::Succeeded);
     decrypted.append(dr.generatedData()); // may or may not be empty.
-    if (blockMode == CryptoManager::BlockModeGcm) {
-        QVERIFY(dr.verified());
-    }
     QCOMPARE(plaintext, decrypted); // successful round trip!
+    QCOMPARE(dr.verified(), blockMode == CryptoManager::BlockModeGcm);
 
     // clean up by deleting the collection in which the secret is stored.
     Sailfish::Secrets::DeleteCollectionRequest dcr;

@@ -346,7 +346,8 @@ int osslevp_aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
                                         int tag_length,
                                         const unsigned char *ciphertext,
                                         int ciphertext_length,
-                                        unsigned char **decrypted)
+                                        unsigned char **decrypted,
+                                        int *verified)
 {
     int plaintext_length = 0;
     int update_length = 0;
@@ -355,7 +356,7 @@ int osslevp_aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
 
     if (evp_cipher == NULL || ciphertext_length <= 0 || ciphertext == NULL
             || auth == NULL || auth_length <= 0 || tag == NULL || tag_length <= 0
-            || key_length <= 0 || key == NULL || decrypted == NULL) {
+            || key_length <= 0 || key == NULL || decrypted == NULL || verified == NULL) {
         /* Invalid arguments */
         fprintf(stderr,
                 "%s: %s\n",
@@ -419,16 +420,7 @@ int osslevp_aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
         return -1;
     }
 
-    if (!EVP_DecryptFinal_ex(decryption_context, plaintext+update_length, &final_length)) {
-        ERR_print_errors_fp(stderr);
-        EVP_CIPHER_CTX_free(decryption_context);
-        free(plaintext);
-        fprintf(stderr,
-                "%s: %s\n",
-                "osslevp_aes_decrypt_ciphertext()",
-                "failed to decrypt final block: key failure");
-        return -1;
-    }
+    *verified = EVP_DecryptFinal_ex(decryption_context, plaintext+update_length, &final_length);
 
     /* Update the out parameter */
     *decrypted = plaintext;

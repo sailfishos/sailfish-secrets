@@ -39,6 +39,7 @@ public:
     QByteArray m_tag;
     QString m_cryptoPluginName;
     QByteArray m_plaintext;
+    bool m_verified;
 
     QScopedPointer<QDBusPendingCallWatcher> m_watcher;
     Sailfish::Crypto::Request::Status m_status;

@@ -193,7 +193,7 @@ void tst_cryptosecrets::secretsStoredKey()
     QVERIFY(encrypted != plaintext);
 
     // test decrypting the ciphertext, and ensure that the roundtrip works.
-    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> decryptReply = cm.decrypt(
+    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray, bool> decryptReply = cm.decrypt(
             encrypted,
             initVector,
             keyReference,

@@ -191,7 +191,8 @@ public:
             const QByteArray &authenticationData,
             const QByteArray &tag,
             const QString &cryptosystemProviderName,
-            QByteArray *decrypted);
+            QByteArray *decrypted,
+            bool *verified);
 
     Sailfish::Crypto::Result initialiseCipherSession(
             pid_t callerPid,

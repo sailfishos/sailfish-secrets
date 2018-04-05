@@ -118,7 +118,7 @@ public:
             const QByteArray &authenticationData,
             const QString &cryptosystemProviderName);
 
-    QDBusPendingReply<Result, QByteArray> decrypt(
+    QDBusPendingReply<Result, QByteArray, bool> decrypt(
             const QByteArray &data,
             const QByteArray &iv,
             const Key &key, // or keyreference, i.e. Key(keyName)

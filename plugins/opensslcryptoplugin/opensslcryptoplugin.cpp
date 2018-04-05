@@ -695,7 +695,8 @@ Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
         Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
         const QByteArray &authenticationData,
         const QByteArray &tag,
-        QByteArray *decrypted)
+        QByteArray *decrypted,
+        bool *verified)
 {
     Sailfish::Crypto::Key fullKey = getFullKey(key);
     if (fullKey.secretKey().isEmpty()) {
@@ -744,9 +745,15 @@ Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
     }
 
     // decrypt ciphertext
-    QByteArray plaintext = !authenticationData.isEmpty()
-            ? aes_auth_decrypt_ciphertext(blockMode, data, fullKey.secretKey(), iv, authenticationData, tag)
-            : aes_decrypt_ciphertext(blockMode, data, fullKey.secretKey(), iv);
+    QByteArray plaintext;
+    bool verifiedResult = false;
+    if (!authenticationData.isEmpty()) {
+        QPair<QByteArray, bool> authDecryptResult = aes_auth_decrypt_ciphertext(blockMode, data, fullKey.secretKey(), iv, authenticationData, tag);
+        plaintext = authDecryptResult.first;
+        verifiedResult = authDecryptResult.second;
+    } else {
+        plaintext = aes_decrypt_ciphertext(blockMode, data, fullKey.secretKey(), iv);
+    }
     if (!plaintext.size() || (plaintext.size() == 1 && plaintext.at(0) == 0)) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginDecryptionError,
                                          QLatin1String("Failed to decrypt the secret"));
@@ -754,6 +761,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
 
     // return result
     *decrypted = plaintext;
+    *verified = verifiedResult;
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
 }
 
@@ -1159,7 +1167,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::aes_auth_encrypt_plaintext(
     return qMakePair(encryptedData, tagData);
 }
 
-QByteArray
+QPair<QByteArray, bool>
 Daemon::Plugins::OpenSslCryptoPlugin::aes_auth_decrypt_ciphertext(
         Sailfish::Crypto::CryptoManager::BlockMode blockMode,
         const QByteArray &ciphertext,
@@ -1169,6 +1177,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::aes_auth_decrypt_ciphertext(
         const QByteArray &tag)
 {
     QByteArray decryptedData;
+    int verifyResult = -1;
     unsigned char *decrypted = NULL;
     unsigned char *tagData = (unsigned char *)tag.data();
 
@@ -1182,13 +1191,14 @@ Daemon::Plugins::OpenSslCryptoPlugin::aes_auth_decrypt_ciphertext(
                                                    tag.size(),
                                                    (const unsigned char *)ciphertext.constData(),
                                                    ciphertext.size(),
-                                                   &decrypted);
+                                                   &decrypted,
+                                                   &verifyResult);
     if (size <= 0) {
-        return QByteArray();
+        return qMakePair(QByteArray(), false);
     }
 
     decryptedData = QByteArray((const char *)decrypted, size);
     free(decrypted);
-    return decryptedData;
+    return qMakePair(decryptedData, (verifyResult > 0));
 }
 

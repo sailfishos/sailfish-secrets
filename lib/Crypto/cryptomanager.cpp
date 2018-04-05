@@ -347,8 +347,7 @@ CryptoManagerPrivate::encrypt(
     return reply;
 }
 
-QDBusPendingReply<Result, QByteArray>
-CryptoManagerPrivate::decrypt(
+QDBusPendingReply<Result, QByteArray, bool> CryptoManagerPrivate::decrypt(
         const QByteArray &data,
         const QByteArray &iv,
         const Key &key, // or keyreference, i.e. Key(keyName)

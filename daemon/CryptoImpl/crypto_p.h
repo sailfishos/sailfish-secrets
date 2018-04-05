@@ -194,6 +194,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"decrypted\" type=\"ay\" direction=\"out\" />\n"
+    "          <arg name=\"verified\" type=\"b\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::Key\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Crypto::CryptoManager::BlockMode\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Crypto::CryptoManager::EncryptionPadding\" />\n"
@@ -386,8 +387,7 @@ public Q_SLOTS:
             QByteArray &encrypted,
             QByteArray &tag);
 
-    void decrypt(
-            const QByteArray &data,
+    void decrypt(const QByteArray &data,
             const QByteArray &iv,
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
@@ -397,7 +397,8 @@ public Q_SLOTS:
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
-            QByteArray &decrypted);
+            QByteArray &decrypted,
+            bool &verified);
 
     void initialiseCipherSession(
             const QByteArray &initialisationVector,

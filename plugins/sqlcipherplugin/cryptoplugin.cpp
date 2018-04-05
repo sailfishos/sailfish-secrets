@@ -352,9 +352,10 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::decrypt(
         Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
         const QByteArray &authenticationData,
         const QByteArray &tag,
-        QByteArray *decrypted)
+        QByteArray *decrypted,
+        bool *verified)
 {
-    return m_opensslCryptoPlugin.decrypt(data, iv, key, blockMode, padding, authenticationData, tag, decrypted);
+    return m_opensslCryptoPlugin.decrypt(data, iv, key, blockMode, padding, authenticationData, tag, decrypted, verified);
 }
 
 Sailfish::Crypto::Result

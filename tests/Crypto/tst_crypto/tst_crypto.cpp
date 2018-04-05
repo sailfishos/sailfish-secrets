@@ -221,8 +221,10 @@ void tst_crypto::generateKeyEncryptDecrypt()
     QCOMPARE(encryptReply.argumentAt<0>().errorMessage(), QString());
     QCOMPARE(decryptReply.argumentAt<0>().code(), Result::Succeeded);
     QByteArray decrypted = decryptReply.argumentAt<1>();
+    bool verified = decryptReply.argumentAt<2>();
     QVERIFY(!decrypted.isEmpty());
     QCOMPARE(decrypted, plaintext);
+    QVERIFY(!verified); // no authentication used in this test
 }
 
 void tst_crypto::validateCertificateChain()

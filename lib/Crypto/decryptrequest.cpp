@@ -18,7 +18,8 @@
 using namespace Sailfish::Crypto;
 
 DecryptRequestPrivate::DecryptRequestPrivate()
-    : m_status(Request::Inactive)
+    : m_verified(false),
+      m_status(Request::Inactive)
 {
 }
 
@@ -268,6 +269,17 @@ QByteArray DecryptRequest::plaintext() const
     return d->m_plaintext;
 }
 
+/*!
+ * \brief Returns the verification result of the decryption operation.
+ *
+ * Note: this value is only valid if the status of the request is Request::Finished.
+ */
+bool DecryptRequest::verified() const
+{
+    Q_D(const DecryptRequest);
+    return d->m_verified;
+}
+
 Request::Status DecryptRequest::status() const
 {
     Q_D(const DecryptRequest);
@@ -312,7 +324,7 @@ void DecryptRequest::startRequest()
             emit resultChanged();
         }
 
-        QDBusPendingReply<Result, QByteArray> reply = d->m_manager->d_ptr->decrypt(
+        QDBusPendingReply<Result, QByteArray, bool> reply = d->m_manager->d_ptr->decrypt(
                     d->m_data,
                     d->m_initialisationVector,
                     d->m_key,
@@ -333,22 +345,26 @@ void DecryptRequest::startRequest()
             d->m_status = Request::Finished;
             d->m_result = reply.argumentAt<0>();
             d->m_plaintext = reply.argumentAt<1>();
+            d->m_verified = reply.argumentAt<2>();
             emit statusChanged();
             emit resultChanged();
             emit plaintextChanged();
+            emit verifiedChanged();
         } else {
             d->m_watcher.reset(new QDBusPendingCallWatcher(reply));
             connect(d->m_watcher.data(), &QDBusPendingCallWatcher::finished,
                     [this] {
                 QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.take();
-                QDBusPendingReply<Result, QByteArray> reply = *watcher;
+                QDBusPendingReply<Result, QByteArray, bool> reply = *watcher;
                 this->d_ptr->m_status = Request::Finished;
                 this->d_ptr->m_result = reply.argumentAt<0>();
                 this->d_ptr->m_plaintext = reply.argumentAt<1>();
+                this->d_ptr->m_verified = reply.argumentAt<2>();
                 watcher->deleteLater();
                 emit this->statusChanged();
                 emit this->resultChanged();
                 emit this->plaintextChanged();
+                emit this->verifiedChanged();
             });
         }
     }

@@ -145,7 +145,8 @@ public:
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
             const QByteArray &tag,
-            QByteArray *decrypted) = 0;
+            QByteArray *decrypted,
+            bool *verified) = 0;
 
     virtual Sailfish::Crypto::Result initialiseCipherSession(
             quint64 clientId,

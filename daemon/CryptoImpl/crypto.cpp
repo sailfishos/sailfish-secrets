@@ -314,9 +314,13 @@ void Daemon::ApiImpl::CryptoDBusObject::decrypt(
         const QString &cryptosystemProviderName,
         const QDBusMessage &message,
         Result &result,
-        QByteArray &decrypted)
+        QByteArray &decrypted,
+        bool &verified)
 {
-    Q_UNUSED(decrypted);  // outparam, set in handlePendingRequest / handleFinishedRequest
+    // outparam, set in handlePendingRequest / handleFinishedRequest
+    Q_UNUSED(decrypted);
+    Q_UNUSED(verified);
+
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
     inParams << QVariant::fromValue<QByteArray>(iv);
@@ -917,6 +921,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
         case DecryptRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling DecryptRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             QByteArray decrypted;
+            bool verified = false;
             QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             QByteArray iv = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
@@ -936,14 +941,16 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
                         authenticationData,
                         tag,
                         cryptosystemProviderName,
-                        &decrypted);
+                        &decrypted,
+                        &verified);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                        << QVariant::fromValue<QByteArray>(decrypted));
+                                                                        << QVariant::fromValue<QByteArray>(decrypted)
+                                                                        << QVariant::fromValue<bool>(verified));
                 *completed = true;
             }
             break;
@@ -1408,8 +1415,12 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
                 QByteArray decrypted = request->outParams.size()
                         ? request->outParams.takeFirst().toByteArray()
                         : QByteArray();
+                bool verified = request->outParams.size()
+                        ? request->outParams.takeFirst().toBool()
+                        : false;
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                        << QVariant::fromValue<QByteArray>(decrypted));
+                                                                        << QVariant::fromValue<QByteArray>(decrypted)
+                                                                        << QVariant::fromValue<bool>(verified));
                 *completed = true;
             }
             break;
