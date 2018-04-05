@@ -35,7 +35,7 @@ class SAILFISH_CRYPTO_API EncryptRequest : public Sailfish::Crypto::Request
     Q_PROPERTY(QByteArray authenticationData READ authenticationData WRITE setAuthenticationData NOTIFY authenticationDataChanged)
     Q_PROPERTY(QString cryptoPluginName READ cryptoPluginName WRITE setCryptoPluginName NOTIFY cryptoPluginNameChanged)
     Q_PROPERTY(QByteArray ciphertext READ ciphertext NOTIFY ciphertextChanged)
-    Q_PROPERTY(QByteArray tag READ tag NOTIFY tagChanged)
+    Q_PROPERTY(QByteArray authenticationTag READ authenticationTag NOTIFY authenticationTagChanged)
 
 public:
     EncryptRequest(QObject *parent = Q_NULLPTR);
@@ -64,7 +64,7 @@ public:
 
     QByteArray ciphertext() const;
 
-    QByteArray tag() const;
+    QByteArray authenticationTag() const;
 
     Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result result() const Q_DECL_OVERRIDE;
@@ -84,7 +84,7 @@ Q_SIGNALS:
     void authenticationDataChanged();
     void cryptoPluginNameChanged();
     void ciphertextChanged();
-    void tagChanged();
+    void authenticationTagChanged();
 
 private:
     QScopedPointer<EncryptRequestPrivate> const d_ptr;

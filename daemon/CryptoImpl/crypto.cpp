@@ -305,11 +305,11 @@ void Daemon::ApiImpl::CryptoDBusObject::encrypt(
         const QDBusMessage &message,
         Result &result,
         QByteArray &encrypted,
-        QByteArray &tag)
+        QByteArray &authenticationTag)
 {
     // outparams, set in handlePendingRequest / handleFinishedRequest
     Q_UNUSED(encrypted);
-    Q_UNUSED(tag);
+    Q_UNUSED(authenticationTag);
 
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
@@ -333,7 +333,7 @@ void Daemon::ApiImpl::CryptoDBusObject::decrypt(
         CryptoManager::BlockMode blockMode,
         CryptoManager::EncryptionPadding padding,
         const QByteArray &authenticationData,
-        const QByteArray &tag,
+        const QByteArray &authenticationTag,
         const QString &cryptosystemProviderName,
         const QDBusMessage &message,
         Result &result,
@@ -351,7 +351,7 @@ void Daemon::ApiImpl::CryptoDBusObject::decrypt(
     inParams << QVariant::fromValue<CryptoManager::BlockMode>(blockMode);
     inParams << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding);
     inParams << QVariant::fromValue<QByteArray>(authenticationData);
-    inParams << QVariant::fromValue<QByteArray>(tag);
+    inParams << QVariant::fromValue<QByteArray>(authenticationTag);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
     m_requestQueue->handleRequest(Daemon::ApiImpl::DecryptRequest,
                                   inParams,
@@ -931,7 +931,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
         case EncryptRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling EncryptRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             QByteArray encrypted;
-            QByteArray tag;
+            QByteArray authenticationTag;
             QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             QByteArray iv = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
@@ -950,7 +950,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
                           authenticationData,
                           cryptosystemProviderName,
                           &encrypted,
-                          &tag);
+                          &authenticationTag);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
@@ -958,7 +958,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             } else {
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<QByteArray>(encrypted)
-                                                                        << QVariant::fromValue<QByteArray>(tag));
+                                                                        << QVariant::fromValue<QByteArray>(authenticationTag));
                 *completed = true;
             }
             break;
@@ -973,7 +973,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             CryptoManager::BlockMode blockMode = request->inParams.size() ? request->inParams.takeFirst().value<CryptoManager::BlockMode>() : CryptoManager::BlockModeUnknown;
             CryptoManager::EncryptionPadding padding = request->inParams.size() ? request->inParams.takeFirst().value<CryptoManager::EncryptionPadding>() : CryptoManager::EncryptionPaddingUnknown;
             QByteArray authenticationData = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
-            QByteArray tag = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
+            QByteArray authenticationTag = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             Result result = m_requestProcessor->decrypt(
                         request->remotePid,
@@ -984,7 +984,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
                         blockMode,
                         padding,
                         authenticationData,
-                        tag,
+                        authenticationTag,
                         cryptosystemProviderName,
                         &decrypted,
                         &verified);
@@ -1452,12 +1452,12 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
                 QByteArray encrypted = request->outParams.size()
                         ? request->outParams.takeFirst().toByteArray()
                         : QByteArray();
-                QByteArray tag = request->outParams.size()
+                QByteArray authenticationTag = request->outParams.size()
                         ? request->outParams.takeFirst().toByteArray()
                         : QByteArray();
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<QByteArray>(encrypted)
-                                                                        << QVariant::fromValue<QByteArray>(tag));
+                                                                        << QVariant::fromValue<QByteArray>(authenticationTag));
                 *completed = true;
             }
             break;

@@ -36,7 +36,7 @@ public:
     Sailfish::Crypto::CryptoManager::BlockMode m_blockMode;
     Sailfish::Crypto::CryptoManager::EncryptionPadding m_padding;
     QByteArray m_authenticationData;
-    QByteArray m_tag;
+    QByteArray m_authenticationTag;
     QString m_cryptoPluginName;
     QByteArray m_plaintext;
     bool m_verified;

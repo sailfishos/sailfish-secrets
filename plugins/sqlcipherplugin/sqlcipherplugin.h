@@ -181,7 +181,7 @@ public:
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
             QByteArray *encrypted,
-            QByteArray *tag) Q_DECL_OVERRIDE;
+            QByteArray *authenticationTag) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result decrypt(const QByteArray &data,
             const QByteArray &iv,
@@ -189,7 +189,7 @@ public:
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
-            const QByteArray &tag,
+            const QByteArray &authenticationTag,
             QByteArray *decrypted,
             bool *verified);
 

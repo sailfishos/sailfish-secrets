@@ -435,7 +435,7 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QByteArray plaintext = createRandomTestData(42);
     QByteArray initVector = generateInitializationVector(keyTemplate.algorithm(), blockMode);
     QByteArray authData("fedcba9876543210");
-    QByteArray tag;
+    QByteArray authenticationTag;
 
     if (algorithm == CryptoManager::AlgorithmRsa && padding == CryptoManager::EncryptionPaddingNone) {
         // Otherwise OpenSSL will complain about too small / too large data size.
@@ -485,8 +485,8 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QByteArray ciphertext = er.ciphertext();
     QVERIFY(!ciphertext.isEmpty());
     QVERIFY(ciphertext != plaintext);
-    tag = er.tag();
-    QCOMPARE(tag.isEmpty(), blockMode != CryptoManager::BlockModeGcm);
+    authenticationTag = er.authenticationTag();
+    QCOMPARE(authenticationTag.isEmpty(), blockMode != CryptoManager::BlockModeGcm);
 
     // test decrypting the ciphertext, and ensure that the roundtrip works.
     DecryptRequest dr;
@@ -506,8 +506,8 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     if (blockMode == CryptoManager::BlockModeGcm) {
         dr.setAuthenticationData(authData);
         QCOMPARE(dr.authenticationData(), authData);
-        dr.setTag(tag);
-        QCOMPARE(dr.tag(), tag);
+        dr.setAuthenticationTag(authenticationTag);
+        QCOMPARE(dr.authenticationTag(), authenticationTag);
     }
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
@@ -805,7 +805,7 @@ void tst_cryptorequests::storedKeyRequests()
     QByteArray plaintext = "Test plaintext data";
     QByteArray initVector = generateInitializationVector(keyTemplate.algorithm(), blockMode);
     QByteArray authData("fedcba9876543210");
-    QByteArray tag;
+    QByteArray authenticationTag;
 
     EncryptRequest er;
     er.setManager(&cm);
@@ -844,8 +844,8 @@ void tst_cryptorequests::storedKeyRequests()
     QByteArray ciphertext = er.ciphertext();
     QVERIFY(!ciphertext.isEmpty());
     QVERIFY(ciphertext != plaintext);
-    tag = er.tag();
-    QCOMPARE(tag.isEmpty(), blockMode != CryptoManager::BlockModeGcm);
+    authenticationTag = er.authenticationTag();
+    QCOMPARE(authenticationTag.isEmpty(), blockMode != CryptoManager::BlockModeGcm);
 
     // test decrypting the ciphertext, and ensure that the roundtrip works.
     DecryptRequest dr;
@@ -865,8 +865,8 @@ void tst_cryptorequests::storedKeyRequests()
     if (blockMode == CryptoManager::BlockModeGcm) {
         dr.setAuthenticationData(authData);
         QCOMPARE(dr.authenticationData(), authData);
-        dr.setTag(tag);
-        QCOMPARE(dr.tag(), tag);
+        dr.setAuthenticationTag(authenticationTag);
+        QCOMPARE(dr.authenticationTag(), authenticationTag);
     }
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
@@ -992,7 +992,7 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(er.result().code(), Sailfish::Crypto::Result::Succeeded);
     ciphertext = er.ciphertext();
     if (blockMode == CryptoManager::BlockModeGcm) {
-        tag = er.tag();
+        authenticationTag = er.authenticationTag();
     }
 
     dr.setKey(keyReference);
@@ -1000,8 +1000,8 @@ void tst_cryptorequests::storedKeyRequests()
     if (blockMode == CryptoManager::BlockModeGcm) {
         dr.setAuthenticationData(authData);
         QCOMPARE(dr.authenticationData(), authData);
-        dr.setTag(tag);
-        QCOMPARE(dr.tag(), tag);
+        dr.setAuthenticationTag(authenticationTag);
+        QCOMPARE(dr.authenticationTag(), authenticationTag);
     }
     dr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dr);
@@ -1145,7 +1145,7 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     QByteArray plaintext = "Test plaintext data";
     QByteArray initVector = generateInitializationVector(keyTemplate.algorithm(), blockMode);
     QByteArray authData("fedcba9876543210");
-    QByteArray tag;
+    QByteArray authenticationTag;
 
     EncryptRequest er;
     er.setManager(&cm);
@@ -1182,8 +1182,8 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     QByteArray ciphertext = er.ciphertext();
     QVERIFY(!ciphertext.isEmpty());
     QVERIFY(ciphertext != plaintext);
-    tag = er.tag();
-    QCOMPARE(tag.isEmpty(), blockMode != CryptoManager::BlockModeGcm);
+    authenticationTag = er.authenticationTag();
+    QCOMPARE(authenticationTag.isEmpty(), blockMode != CryptoManager::BlockModeGcm);
 
     // test decrypting the ciphertext, and ensure that the roundtrip works.
     DecryptRequest dr;
@@ -1203,8 +1203,8 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     if (blockMode == CryptoManager::BlockModeGcm) {
         dr.setAuthenticationData(authData);
         QCOMPARE(dr.authenticationData(), authData);
-        dr.setTag(tag);
-        QCOMPARE(dr.tag(), tag);
+        dr.setAuthenticationTag(authenticationTag);
+        QCOMPARE(dr.authenticationTag(), authenticationTag);
     }
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
     QCOMPARE(dr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
@@ -1605,7 +1605,7 @@ void tst_cryptorequests::cipherEncryptDecrypt()
                          " which will be encrypted over several updates"
                          " via a stream cipher operation.");
     QByteArray authData("fedcba9876543210");
-    QByteArray tag;
+    QByteArray authenticationTag;
 
     CipherRequest er;
     er.setManager(&cm);
@@ -1693,7 +1693,7 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     QCOMPARE(er.result().code(), Result::Succeeded);
     QCOMPARE(erss.count(), ssCount + 2);
     if (blockMode == CryptoManager::BlockModeGcm) {
-        tag = er.generatedData();
+        authenticationTag = er.generatedData();
     } else {
         ciphertext.append(er.generatedData()); // may or may not be empty.
     }
@@ -1775,7 +1775,7 @@ void tst_cryptorequests::cipherEncryptDecrypt()
 
     dr.setCipherMode(CipherRequest::FinaliseCipher);
     QCOMPARE(dr.cipherMode(), CipherRequest::FinaliseCipher);
-    dr.setData(blockMode == CryptoManager::BlockModeGcm ? tag : QByteArray());
+    dr.setData(blockMode == CryptoManager::BlockModeGcm ? authenticationTag : QByteArray());
     ssCount = drss.count();
     dr.startRequest();
     QCOMPARE(drss.count(), ssCount + 1);

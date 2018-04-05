@@ -377,7 +377,7 @@ QDBusPendingReply<Result, QByteArray, bool> CryptoManagerPrivate::decrypt(
         CryptoManager::BlockMode blockMode,
         CryptoManager::EncryptionPadding padding,
         const QByteArray &authenticationData,
-        const QByteArray &tag,
+        const QByteArray &authenticationTag,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -395,7 +395,7 @@ QDBusPendingReply<Result, QByteArray, bool> CryptoManagerPrivate::decrypt(
                                << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
                                << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding)
                                << QVariant::fromValue<QByteArray>(authenticationData)
-                               << QVariant::fromValue<QByteArray>(tag)
+                               << QVariant::fromValue<QByteArray>(authenticationTag)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }

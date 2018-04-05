@@ -207,29 +207,29 @@ void DecryptRequest::setAuthenticationData(const QByteArray &data)
 }
 
 /*!
- * \brief Returns the tag for the decrypt operation
+ * \brief Returns the authentication tag for the decrypt operation
  */
-QByteArray DecryptRequest::tag() const
+QByteArray DecryptRequest::authenticationTag() const
 {
     Q_D(const DecryptRequest);
-    return d->m_tag;
+    return d->m_authenticationTag;
 }
 
 /*!
- * \brief Sets the tag for the decrypt operation
+ * \brief Sets the authentication tag for the decrypt operation
  *
  * This is only required if performing an authenticated decryption.
  */
-void DecryptRequest::setTag(const QByteArray &tag)
+void DecryptRequest::setAuthenticationTag(const QByteArray &authenticationTag)
 {
     Q_D(DecryptRequest);
-    if (d->m_status != Request::Active && d->m_tag != tag) {
-        d->m_tag = tag;
+    if (d->m_status != Request::Active && d->m_authenticationTag != authenticationTag) {
+        d->m_authenticationTag = authenticationTag;
         if (d->m_status == Request::Finished) {
             d->m_status = Request::Inactive;
             emit statusChanged();
         }
-        emit tagChanged();
+        emit authenticationTagChanged();
     }
 }
 
@@ -311,7 +311,7 @@ void DecryptRequest::setManager(CryptoManager *manager)
  * \brief Starts a decryption operation.
  *
  * If \l authenticationData has been set, the decryption operation will be
- * authenticated using the \l authenticationData and \l tag values.
+ * authenticated using the \l authenticationData and \l authenticationTag values.
  */
 void DecryptRequest::startRequest()
 {
@@ -331,7 +331,7 @@ void DecryptRequest::startRequest()
                     d->m_blockMode,
                     d->m_padding,
                     d->m_authenticationData,
-                    d->m_tag,
+                    d->m_authenticationTag,
                     d->m_cryptoPluginName);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;

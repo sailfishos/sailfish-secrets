@@ -141,7 +141,7 @@ public:
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
             QByteArray *encrypted,
-            QByteArray *tag) = 0;
+            QByteArray *authenticationTag) = 0;
 
     virtual Sailfish::Crypto::Result decrypt(
             const QByteArray &data,
@@ -150,7 +150,7 @@ public:
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
-            const QByteArray &tag,
+            const QByteArray &authenticationTag,
             QByteArray *decrypted,
             bool *verified) = 0;
 

@@ -177,7 +177,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"encrypted\" type=\"ay\" direction=\"out\" />\n"
-    "          <arg name=\"tag\" type=\"ay\" direction=\"out\" />\n"
+    "          <arg name=\"authenticationTag\" type=\"ay\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::Key\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Crypto::CryptoManager::BlockMode\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Crypto::CryptoManager::EncryptionPadding\" />\n"
@@ -190,7 +190,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"blockMode\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"padding\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"authenticationData\" type=\"ay\" direction=\"in\" />\n"
-    "          <arg name=\"tag\" type=\"ay\" direction=\"in\" />\n"
+    "          <arg name=\"authenticationTag\" type=\"ay\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"decrypted\" type=\"ay\" direction=\"out\" />\n"
@@ -393,7 +393,7 @@ public Q_SLOTS:
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
             QByteArray &encrypted,
-            QByteArray &tag);
+            QByteArray &authenticationTag);
 
     void decrypt(const QByteArray &data,
             const QByteArray &iv,
@@ -401,7 +401,7 @@ public Q_SLOTS:
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
-            const QByteArray &tag,
+            const QByteArray &authenticationTag,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,

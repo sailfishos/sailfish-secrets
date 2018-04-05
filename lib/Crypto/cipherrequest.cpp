@@ -142,7 +142,7 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * \endcode
  *
  * Note that authenticated encryption and decryption is slightly
- * different, as encryption finalisation produces a tag, which must
+ * different, as encryption finalisation produces an authentication tag, which must
  * be provided during decryption finalisation for verification.
  * For example, after encrypting data using BlockModeGcm:
  *
@@ -154,7 +154,7 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * QByteArray gcmTag = cr.generatedData();
  * \endcode
  *
- * and when decrypting, the tag should be provided for finalisation
+ * and when decrypting, the authentication tag should be provided for finalisation
  * and the verified flag should be checked carefully:
  *
  * \code

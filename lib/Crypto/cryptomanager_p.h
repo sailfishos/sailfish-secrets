@@ -131,7 +131,7 @@ public:
             CryptoManager::BlockMode blockMode,
             CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
-            const QByteArray &tag,
+            const QByteArray &authenticationTag,
             const QString &cryptosystemProviderName);
 
     QDBusPendingReply<Result, quint32> initialiseCipherSession(

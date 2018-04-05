@@ -186,7 +186,7 @@ public:
             const QByteArray &authenticationData,
             const QString &cryptosystemProviderName,
             QByteArray *encrypted,
-            QByteArray *tag);
+            QByteArray *authenticationTag);
 
     Sailfish::Crypto::Result decrypt(
             pid_t callerPid,
@@ -197,7 +197,7 @@ public:
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
-            const QByteArray &tag,
+            const QByteArray &authenticationTag,
             const QString &cryptosystemProviderName,
             QByteArray *decrypted,
             bool *verified);
@@ -402,7 +402,7 @@ private:
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
-            const QByteArray &tag,
+            const QByteArray &authenticationTag,
             const QString &cryptoPluginName);
 
     void initialiseCipherSession2(
