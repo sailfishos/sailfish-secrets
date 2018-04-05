@@ -1,7 +1,8 @@
 TEMPLATE = lib
-CONFIG += plugin
+CONFIG += plugin link_pkgconfig
 TARGET = sailfishcrypto-testopenssl
 TARGET = $$qtLibraryTarget($$TARGET)
+PKGCONFIG += libcrypto
 
 include($$PWD/../../../common.pri)
 include($$PWD/../../../lib/libsailfishcrypto.pri)
