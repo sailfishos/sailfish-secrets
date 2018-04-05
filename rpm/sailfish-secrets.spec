@@ -1,6 +1,9 @@
+%global secretsdaemon sailfishsecretsdaemon
+%global secretsdaemonservice sailfish-secretsd.service
+
 Name:       libsailfishsecrets
 Summary:    Sailfish OS secrets storage system functionality client library
-Version:    0.0.3
+Version:    0.0.4
 Release:    1
 Group:      System/Libraries
 License:    Proprietary
@@ -94,22 +97,28 @@ Requires:   libsailfishcrypto = %{version}-%{release}
 %description -n libsailfishcryptoplugin
 %{summary}.
 
-%package -n sailfishsecretsdaemon
+%package -n %{secretsdaemon}
 Summary:    Sailfish OS secrets daemon (example).
 Group:      Applications/System
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(dbus-1)
+BuildRequires:  pkgconfig(libsystemd)
+BuildRequires:  pkgconfig(libshadowutils)
 BuildRequires:  qt5-plugin-sqldriver-sqlite
-Requires:   %{name} = %{version}-%{release}
-Requires:   libsailfishcrypto = %{version}-%{release}
-Requires:   qt5-plugin-sqldriver-sqlcipher
+Requires:         %{name} = %{version}-%{release}
+Requires:         systemd
+Requires(preun):  systemd
+Requires(postun): systemd
+Requires(post):   systemd
+Requires:         libsailfishcrypto = %{version}-%{release}
+Requires:         qt5-plugin-sqldriver-sqlcipher
 
-%description -n sailfishsecretsdaemon
+%description -n %{secretsdaemon}
 Provides an example secrets storage and cryptographic operations system daemon service,
 which exposes functionality provided by libsailfishsecrets and libsailfishcrypto to clients via DBus.
 
-%package -n sailfishsecretsdaemonplugins
+%package -n %{secretsdaemon}plugins
 Summary:    Sailfish OS secrets daemon (example) plugins.
 Group:      Applications/System
 BuildRequires:  pkgconfig(Qt5Core)
@@ -118,9 +127,9 @@ BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(libcrypto)
 BuildRequires:  qt5-plugin-sqldriver-sqlite
 Requires:   qt5-plugin-sqldriver-sqlcipher
-Requires:   sailfishsecretsdaemon = %{version}-%{release}
+Requires:   %{secretsdaemon} = %{version}-%{release}
 
-%description -n sailfishsecretsdaemonplugins
+%description -n %{secretsdaemon}plugins
 Provides a set of example secrets daemon plugins.
 
 %package -n sailfishcryptodaemonplugins
@@ -131,7 +140,7 @@ BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(libcrypto)
 BuildRequires:  qt5-plugin-sqldriver-sqlite
-Requires:   sailfishsecretsdaemon = %{version}-%{release}
+Requires:   %{secretsdaemon} = %{version}-%{release}
 Requires:   libsailfishcrypto = %{version}-%{release}
 
 %description -n sailfishcryptodaemonplugins
@@ -161,8 +170,13 @@ rm -rf %{buildroot}
 
 mkdir -p %{buildroot}/%{_docdir}/Sailfish/Secrets/
 mkdir -p %{buildroot}/%{_docdir}/Sailfish/Crypto/
+mkdir -p %{buildroot}/%{_unitdir}/multi-user.target.wants/
+
 cp -R lib/Secrets/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Secrets/
 cp -R lib/Crypto/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Crypto/
+install -m 0644 daemon/%{secretsdaemonservice} %{buildroot}%{_unitdir}
+
+ln -s ../%{secretsdaemonservice} %{buildroot}/%{_unitdir}/multi-user.target.wants/%{secretsdaemonservice}
 
 %files
 %defattr(-,root,root,-)
@@ -222,11 +236,13 @@ cp -R lib/Crypto/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Crypto/
 %{_libdir}/qt5/qml/Sailfish/Crypto/libsailfishcryptoplugin.so
 %{_libdir}/qt5/qml/Sailfish/Crypto/qmldir
 
-%files -n sailfishsecretsdaemon
+%files -n %{secretsdaemon}
 %defattr(-,root,root,-)
 %{_bindir}/sailfishsecretsd
+%{_unitdir}/%{secretsdaemonservice}
+%{_unitdir}/multi-user.target.wants/%{secretsdaemonservice}
 
-%files -n sailfishsecretsdaemonplugins
+%files -n %{secretsdaemon}plugins
 %defattr(-,root,root,-)
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-inappauth.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-openssl.so
@@ -265,3 +281,14 @@ cp -R lib/Crypto/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Crypto/
 %postun -n libsailfishcryptoplugin
 /sbin/ldconfig || :
 
+%post -n %{secretsdaemon}
+systemctl daemon-reload || :
+systemctl reload-or-try-restart %{secretsdaemonservice} || :
+
+%preun -n %{secretsdaemon}
+if [ "$1" -eq 0 ]; then
+    systemctl stop %{secretsdaemonservice} || :
+fi
+
+%postun -n %{secretsdaemon}
+systemctl daemon-reload || :
