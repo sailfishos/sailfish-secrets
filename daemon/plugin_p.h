@@ -24,68 +24,108 @@ namespace Daemon {
 
 namespace ApiImpl {
 
-class PluginHelper : public QPluginLoader
-{
-    Q_OBJECT
-    Q_PROPERTY(PluginHelper::FailureType failureType READ failureType NOTIFY failureTypeChanged)
+namespace PluginHelpers {
 
-public:
-    PluginHelper(const QString &fileName, bool autotestMode);
-    ~PluginHelper();
+struct PluginInfo {
+    bool canUse;
+    QString name;
 
-    enum FailureType {
-        NoFailure = 0,
-        PluginLoadFailure,
-        PluginTypeFailure,
-        DuplicateNameFailure,
-        AutotestModeFailure
-    };
-    Q_ENUM(FailureType)
-    FailureType failureType() const;
+    PluginInfo(bool c, QString n) : canUse(c), name(n) { }
+};
 
-    template <typename Plugin>
-    Plugin* storeAs(QObject *obj, QMap<QString, Plugin*> *store,
-                    const QLoggingCategory &category())
-    {
-        if (!obj) {
-            m_failureType = PluginLoadFailure;
-            emit failureTypeChanged();
-            return 0;
-        }
-        Plugin *plugin = qobject_cast<Plugin*>(obj);
-        if (!plugin) {
-            m_failureType = PluginTypeFailure;
-            emit failureTypeChanged();
-            return 0;
-        }
-        if (plugin->name().isEmpty() || store->contains(plugin->name())) {
-            qCDebug(category) << "ignoring plugin:" << fileName() << "with duplicate name:" << plugin->name();
-            unload();
-            m_failureType = DuplicateNameFailure;
-            emit failureTypeChanged();
-            return 0;
-        }
-        if (plugin->name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive) != m_autotestMode) {
-            qCDebug(category) << "ignoring plugin:" << fileName() << "because of testing mode mismatch";
-            unload();
-            m_failureType = AutotestModeFailure;
-            emit failureTypeChanged();
-            return 0;
-        }
-        qCDebug(category) << "loading plugin:" << fileName() << "with name:" << plugin->name();
-        store->insert(plugin->name(), plugin);
-        return plugin;
+template <typename TPlugin>
+inline PluginInfo matchAnyPlugin(QObject *obj) {
+    TPlugin *pluginInstance = qobject_cast<TPlugin*>(obj);
+    if (pluginInstance != Q_NULLPTR) {
+        auto name = pluginInstance->name();
+        return PluginInfo(true, name);
     }
 
-    void reportFailure(const QLoggingCategory &category());
+    return PluginInfo(false, "");
+}
 
-Q_SIGNALS:
-    void failureTypeChanged();
+template <typename TPlugin, typename ... TOtherPlugins>
+inline typename std::enable_if<sizeof...(TOtherPlugins), PluginInfo>::type matchAnyPlugin(QObject *obj) {
+    auto match = matchAnyPlugin<TPlugin>(obj);
+    if (match.canUse) {
+        return match;
+    }
 
+    return matchAnyPlugin<TOtherPlugins...>(obj);
+}
+
+template <typename TPlugin>
+inline PluginInfo matchAllPlugins(QObject *obj) {
+    return matchAnyPlugin<TPlugin>(obj);
+}
+
+template <typename TPlugin, typename ... TOtherPlugins>
+inline typename std::enable_if<sizeof...(TOtherPlugins), PluginInfo>::type matchAllPlugins(QObject *obj) {
+    auto match = matchAnyPlugin<TPlugin>(obj);
+    if (!match.canUse) {
+        return match;
+    }
+
+    return matchAllPlugins<TOtherPlugins...>(obj);
+}
+
+
+
+} // namespace PluginHelpers
+
+class PluginManager
+{
 private:
-    FailureType m_failureType;
+    QMap<QString, QObject*> m_plugins;
     bool m_autotestMode;
-};
+
+    explicit PluginManager();
+    QVector<QPluginLoader *> loadPluginFiles();
+    void addPlugin(QPluginLoader *loader, const PluginHelpers::PluginInfo &info, QObject *obj);
+
+public:
+    static PluginManager *instance();
+
+    template<typename ... TPlugins>
+    void loadPlugins() {
+        auto loaders = loadPluginFiles();
+        for (auto *loader : loaders) {
+            auto *obj = loader->instance();
+            auto info = PluginHelpers::matchAnyPlugin<TPlugins...>(obj);
+
+            addPlugin(loader, info, obj);
+        }
+    }
+
+    template<typename TPlugin>
+    QMap<QString, TPlugin*> getPlugins() const {
+        QMap<QString, TPlugin*> result;
+
+        for (auto it = m_plugins.begin(); it != m_plugins.end(); ++it) {
+            TPlugin *plugin = qobject_cast<TPlugin*>(it.value());
+            if (plugin) {
+                result.insert(it.key(), plugin);
+            }
+        }
+
+        return result;
+    }
+
+    template<typename ... TPlugins>
+    QMap<QString, QObject*> getMultiPlugins() const {
+        QMap<QString, QObject*> result;
+
+        for (auto it = m_plugins.begin(); it != m_plugins.end(); ++it) {
+            auto info = PluginHelpers::matchAllPlugins<TPlugins...>(it.value());
+            if (info.canUse) {
+                result.insert(it.key(), it.value());
+            }
+        }
+
+        return result;
+    }
+
+}; // class PluginManager
 
 } // ApiImpl
 

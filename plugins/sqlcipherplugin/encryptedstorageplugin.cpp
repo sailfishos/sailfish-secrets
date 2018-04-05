@@ -96,6 +96,9 @@ Daemon::Plugins::SqlCipherPlugin::openCollectionDatabase(
         if (!exists && !createIfNotExists) {
             retn = Result(Result::DatabaseError,
                           QLatin1String("The collection database doesn't exist"));
+        } else if (m_collectionDatabases.contains(collectionName)) {
+            retn = Result(Result::DatabaseError,
+                          QLatin1String("The collection database is already opened prior to creation"));
         } else {
             Daemon::Sqlite::Database *db = new Daemon::Sqlite::Database;
             if (!db->open(QLatin1String("QSQLCIPHER"),
@@ -163,7 +166,12 @@ Daemon::Plugins::SqlCipherPlugin::removeCollection(
         const QString &collectionName)
 {
     Result retn(Result::Succeeded);
-    delete m_collectionDatabases.take(collectionName);
+    Daemon::Sqlite::Database *db = m_collectionDatabases.take(collectionName);
+    if (db) {
+        db->close();
+        delete db;
+        QSqlDatabase::removeDatabase(collectionName);
+    }
     const QString collectionPath = m_databaseDirPath + collectionName + QLatin1String(".db");
     if (QFile::exists(collectionPath)) {
         if (!QFile::remove(collectionPath)) {

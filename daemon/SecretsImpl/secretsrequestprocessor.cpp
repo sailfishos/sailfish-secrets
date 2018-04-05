@@ -35,66 +35,20 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(
         Daemon::ApiImpl::SecretsRequestQueue *parent)
     : QObject(parent), m_bkdb(bkdb), m_requestQueue(parent), m_appPermissions(appPermissions), m_autotestMode(autotestMode)
 {
-}
+    m_authenticationPlugins = Daemon::ApiImpl::PluginManager::instance()->getPlugins<AuthenticationPlugin>();
+    qCDebug(lcSailfishSecretsDaemon) << "Using the following authentication plugins:" << m_authenticationPlugins.keys();
 
-bool
-Daemon::ApiImpl::RequestProcessor::loadPlugins()
-{
-    QStringList paths = QCoreApplication::libraryPaths();
-    bool result = true;
+    m_encryptionPlugins = Daemon::ApiImpl::PluginManager::instance()->getPlugins<EncryptionPlugin>();
+    qCDebug(lcSailfishSecretsDaemon) << "Using the following encryption plugins:" << m_encryptionPlugins.keys();
 
-    Q_FOREACH(const QString &path, paths) {
-        if (!loadPlugins(path)) {
-            result = false;
-        }
-    }
+    m_encryptedStoragePlugins = Daemon::ApiImpl::PluginManager::instance()->getPlugins<EncryptedStoragePlugin>();
+    qCDebug(lcSailfishSecretsDaemon) << "Using the following encrypted storage plugins:" << m_encryptedStoragePlugins.keys();
 
-    return result;
-}
+    m_storagePlugins = Daemon::ApiImpl::PluginManager::instance()->getPlugins<StoragePlugin>();
+    qCDebug(lcSailfishSecretsDaemon) << "Using the following storage plugins:" << m_storagePlugins.keys();
 
-bool
-Daemon::ApiImpl::RequestProcessor::loadPlugins(const QString &pluginDir)
-{
-    qCDebug(lcSailfishSecretsDaemon) << "Loading Secrets plugins from directory:" << pluginDir;
-    QDir dir(pluginDir);
-    Q_FOREACH (const QFileInfo &file, dir.entryInfoList(QDir::Files | QDir::NoDot | QDir::NoDotDot, QDir::Name)) {
-        const QString fileName = file.fileName();
-
-        // Don't even try to load files which don't look like libraries
-        if (!fileName.startsWith("lib") || !fileName.contains(".so")) {
-            continue;
-        }
-
-        // load the plugin and query it for its data.
-        Daemon::ApiImpl::PluginHelper loader(file.absoluteFilePath(), m_autotestMode);
-        QObject *plugin = loader.instance();
-
-        EncryptedStoragePlugin *encryptedStoragePlugin;
-        AuthenticationPlugin *authenticationPlugin;
-
-        if (loader.storeAs<StoragePlugin>(plugin, &m_storagePlugins, lcSailfishSecretsDaemon)) {
-            // nothing more to do
-        } else if (loader.failureType() != Daemon::ApiImpl::PluginHelper::PluginTypeFailure) {
-            loader.reportFailure(lcSailfishSecretsDaemon);
-        } else if (loader.storeAs<EncryptionPlugin>(plugin, &m_encryptionPlugins, lcSailfishSecretsDaemon)) {
-            // nothing more to do
-        } else if (loader.failureType() != Daemon::ApiImpl::PluginHelper::PluginTypeFailure) {
-            loader.reportFailure(lcSailfishSecretsDaemon);
-        } else if ((encryptedStoragePlugin = loader.storeAs<EncryptedStoragePlugin>(plugin, &m_encryptedStoragePlugins, lcSailfishSecretsDaemon))) {
-            m_potentialCryptoStoragePlugins.insert(encryptedStoragePlugin->name(), plugin);
-        } else if (loader.failureType() != Daemon::ApiImpl::PluginHelper::PluginTypeFailure) {
-            loader.reportFailure(lcSailfishSecretsDaemon);
-        } else if ((authenticationPlugin = loader.storeAs<AuthenticationPlugin>(plugin, &m_authenticationPlugins, lcSailfishSecretsDaemon))) {
-            connect(authenticationPlugin, &AuthenticationPlugin::authenticationCompleted,
-                    this, &Daemon::ApiImpl::RequestProcessor::authenticationCompleted);
-            connect(authenticationPlugin, &AuthenticationPlugin::userInputInteractionCompleted,
-                    this, &Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted);
-        } else {
-            loader.reportFailure(lcSailfishSecretsDaemon);
-        }
-    }
-
-    return true;
+    m_potentialCryptoStoragePlugins = Daemon::ApiImpl::PluginManager::instance()->getMultiPlugins<Sailfish::Crypto::CryptoPlugin, EncryptedStoragePlugin>();
+    qCDebug(lcSailfishSecretsDaemon) << "Using the following crypto storage plugins:" << m_potentialCryptoStoragePlugins.keys();
 }
 
 // retrieve information about available plugins
