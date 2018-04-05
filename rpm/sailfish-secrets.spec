@@ -1,6 +1,6 @@
 Name:       libsailfishsecrets
 Summary:    Sailfish OS secrets storage system functionality client library
-Version:    0.0.1
+Version:    0.0.3
 Release:    1
 Group:      System/Libraries
 License:    Proprietary
