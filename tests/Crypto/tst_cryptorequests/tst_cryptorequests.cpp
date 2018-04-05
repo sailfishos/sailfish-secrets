@@ -119,7 +119,8 @@ private:
     QByteArray generateInitializationVector(Sailfish::Crypto::CryptoManager::Algorithm algorithm,
                                             Sailfish::Crypto::CryptoManager::BlockMode blockMode)
     {
-        if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeEcb) {
+        if (algorithm != Sailfish::Crypto::CryptoManager::AlgorithmAes
+                || blockMode == Sailfish::Crypto::CryptoManager::BlockModeEcb) {
             return QByteArray();
         }
 
@@ -1104,6 +1105,7 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     ccr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ccr);
     QCOMPARE(ccr.status(), Sailfish::Secrets::Request::Finished);
+    QCOMPARE(ccr.result().errorMessage(), QString());
     QCOMPARE(ccr.result().code(), Sailfish::Secrets::Result::Succeeded);
 
     // request that the secret key be generated and stored into that collection.

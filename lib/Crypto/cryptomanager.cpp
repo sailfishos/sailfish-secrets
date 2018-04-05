@@ -352,7 +352,7 @@ CryptoManagerPrivate::encrypt(
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
-        return QDBusPendingReply<Result>(
+        return QDBusPendingReply<Result, QByteArray, QByteArray>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
@@ -381,12 +381,12 @@ QDBusPendingReply<Result, QByteArray, bool> CryptoManagerPrivate::decrypt(
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
-        return QDBusPendingReply<Result>(
+        return QDBusPendingReply<Result, QByteArray, bool>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Result, QByteArray> reply
+    QDBusPendingReply<Result, QByteArray, bool> reply
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("decrypt"),
                 QVariantList() << QVariant::fromValue<QByteArray>(data)

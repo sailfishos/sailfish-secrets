@@ -539,7 +539,8 @@ void CipherRequest::startRequest()
                     }
                     this->d_ptr->m_result = reply.argumentAt<0>();
                     this->d_ptr->m_cipherSessionToken = reply.argumentAt<1>();
-                    if (this->d_ptr->m_cipherSessionToken == 0) {
+                    if (this->d_ptr->m_result.code() == Result::Succeeded
+                            && this->d_ptr->m_cipherSessionToken == 0) {
                         this->d_ptr->m_result = Result(Result::CryptoPluginInvalidCipherSessionToken,
                                                        QStringLiteral("Plugin returned invalid cipher session token"));
                     }

@@ -119,14 +119,15 @@ int initializationVectorSize(Sailfish::Crypto::CryptoManager::Algorithm algorith
 {
     Q_UNUSED(keySize)   // not yet used in calculations
 
-    if (algorithm == Sailfish::Crypto::CryptoManager::AlgorithmRsa
-            || blockMode == Sailfish::Crypto::CryptoManager::BlockModeEcb) {
+    if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeEcb) {
         // IV not required for these configurations
         return 0;
     }
 
-    // Ensure the IV has the correct size. The IV size for most modes is the same as the block size.
     switch (algorithm) {
+    case Sailfish::Crypto::CryptoManager::AlgorithmRsa:
+        // IV not yet supported for RSA
+        return 0;
     case Sailfish::Crypto::CryptoManager::AlgorithmAes:
         if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm) {
             return SAILFISH_CRYPTO_GCM_IV_SIZE;
@@ -137,7 +138,7 @@ int initializationVectorSize(Sailfish::Crypto::CryptoManager::Algorithm algorith
         break;
     }
 
-    // Unrecognized configuration
+    // Unrecognized configuration, IV should be ignored
     return -1;
 }
 

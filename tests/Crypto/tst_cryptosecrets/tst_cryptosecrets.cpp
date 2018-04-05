@@ -66,7 +66,8 @@ private:
     QByteArray generateInitializationVector(Sailfish::Crypto::CryptoManager::Algorithm algorithm,
                                             Sailfish::Crypto::CryptoManager::BlockMode blockMode)
     {
-        if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeEcb) {
+        if (algorithm != Sailfish::Crypto::CryptoManager::AlgorithmAes
+                || blockMode == Sailfish::Crypto::CryptoManager::BlockModeEcb) {
             return QByteArray();
         }
 
@@ -427,7 +428,7 @@ void tst_cryptosecrets::cryptoStoredKey()
     // test encrypting some plaintext with the stored key.
     QByteArray plaintext = "Test plaintext data";
     QByteArray initVector = generateInitializationVector(keyTemplate.algorithm(), blockMode);
-    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> encryptReply = cm.encrypt(
+    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray, QByteArray> encryptReply = cm.encrypt(
             plaintext,
             initVector,
             keyReference,

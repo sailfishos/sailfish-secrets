@@ -294,6 +294,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::validateCertificateChain(
                                     QLatin1String("TODO: validateCertificateChain"));
 }
 
+Sailfish::Crypto::Result
 Daemon::Plugins::OpenSslCryptoPlugin::generateInitializationVector(
         Sailfish::Crypto::CryptoManager::Algorithm algorithm,
         Sailfish::Crypto::CryptoManager::BlockMode blockMode,
@@ -323,6 +324,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateInitializationVector(
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
 }
 
+Sailfish::Crypto::Result
 Daemon::Plugins::OpenSslCryptoPlugin::generateRsaKey(
         const Sailfish::Crypto::Key &keyTemplate,
         const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
@@ -774,7 +776,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::encrypt(
     Sailfish::Crypto::Key fullKey = getFullKey(key);
 
     if (fullKey.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
-        return this->encryptAes(data, iv, fullKey, blockMode, padding, encrypted);
+        return this->encryptAes(data, iv, fullKey, blockMode, padding, authenticationData, encrypted, tag);
     } else if (fullKey.algorithm() >= Sailfish::Crypto::CryptoManager::FirstAsymmetricAlgorithm
                && fullKey.algorithm() <= Sailfish::Crypto::CryptoManager::LastAsymmetricAlgorithm) {
         return this->encryptAsymmetric(data, iv, fullKey, blockMode, padding, encrypted);
@@ -870,7 +872,9 @@ Daemon::Plugins::OpenSslCryptoPlugin::encryptAes(
         const Sailfish::Crypto::Key &fullKey,
         Sailfish::Crypto::CryptoManager::BlockMode blockMode,
         Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-        QByteArray *encrypted)
+        const QByteArray &authenticationData,
+        QByteArray *encrypted,
+        QByteArray *tag)
 {
     if (fullKey.secretKey().isEmpty()) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptySecretKey,
@@ -909,7 +913,10 @@ Daemon::Plugins::OpenSslCryptoPlugin::encryptAes(
     }
 
     const int expectedIvSize = initializationVectorSize(fullKey.algorithm(), blockMode, fullKey.size());
-    if (iv.size() != expectedIvSize) {
+    if (!iv.isEmpty() && expectedIvSize < 0) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidInitializationVector,
+                                        QStringLiteral("Initialization Vector should not be provided for this algorithm/mode/key configuration"));
+    } else if (iv.size() != expectedIvSize) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidInitializationVector,
                                         QStringLiteral("Initialization Vector length should be %1 but was %2")
                                                 .arg(expectedIvSize)
@@ -957,7 +964,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
     Sailfish::Crypto::Key fullKey = getFullKey(key);
 
     if (fullKey.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
-        return this->decryptAes(data, iv, fullKey, blockMode, padding, decrypted);
+        return this->decryptAes(data, iv, fullKey, blockMode, padding, authenticationData, tag, decrypted, verified);
     } else if (fullKey.algorithm() >= Sailfish::Crypto::CryptoManager::FirstAsymmetricAlgorithm
                && fullKey.algorithm() <= Sailfish::Crypto::CryptoManager::LastAsymmetricAlgorithm) {
         return this->decryptAsymmetric(data, iv, fullKey, blockMode, padding, decrypted);
@@ -1053,7 +1060,10 @@ Daemon::Plugins::OpenSslCryptoPlugin::decryptAes(
         const Sailfish::Crypto::Key &fullKey,
         Sailfish::Crypto::CryptoManager::BlockMode blockMode,
         Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-        QByteArray *decrypted)
+        const QByteArray &authenticationData,
+        const QByteArray &tag,
+        QByteArray *decrypted,
+        bool *verified)
 {
     if (fullKey.secretKey().isEmpty()) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptySecretKey,
@@ -1093,7 +1103,10 @@ Daemon::Plugins::OpenSslCryptoPlugin::decryptAes(
     }
 
     const int expectedIvSize = initializationVectorSize(fullKey.algorithm(), blockMode, fullKey.size());
-    if (iv.size() != expectedIvSize) {
+    if (!iv.isEmpty() && expectedIvSize < 0) {
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidInitializationVector,
+                                        QStringLiteral("Initialization Vector should not be provided for this algorithm/mode/key configuration"));
+    } else if (iv.size() != expectedIvSize) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidInitializationVector,
                                         QStringLiteral("Initialization Vector length should be %1 but was %2")
                                                 .arg(expectedIvSize)
@@ -1165,12 +1178,17 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
                                         QLatin1String("Too many concurrent cipher sessions initiated by client"));
     }
 
-    const int expectedIvSize = initializationVectorSize(key.algorithm(), blockMode, fullKey.size());
-    if (operation == Sailfish::Crypto::CryptoManager::OperationEncrypt && iv.size() != expectedIvSize) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidInitializationVector,
-                                        QStringLiteral("Initialization Vector length should be %1 but was %2")
-                                                .arg(expectedIvSize)
-                                                .arg(iv.size()));
+    if (operation == Sailfish::Crypto::CryptoManager::OperationEncrypt) {
+        const int expectedIvSize = initializationVectorSize(fullKey.algorithm(), blockMode, fullKey.size());
+        if (!iv.isEmpty() && expectedIvSize < 0) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidInitializationVector,
+                                            QStringLiteral("Initialization Vector should not be provided for this algorithm/mode/key configuration"));
+        } else if (iv.size() != expectedIvSize) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidInitializationVector,
+                                            QStringLiteral("Initialization Vector length should be %1 but was %2")
+                                                    .arg(expectedIvSize)
+                                                    .arg(iv.size()));
+        }
     }
 
     EVP_MD_CTX *evp_md_ctx = NULL;
