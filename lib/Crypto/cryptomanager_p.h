@@ -14,7 +14,7 @@
 #include "Crypto/result.h"
 #include "Crypto/key.h"
 #include "Crypto/certificate.h"
-#include "Crypto/extensionplugins.h"
+#include "Crypto/plugininfo.h"
 #include "Crypto/storedkeyrequest.h"
 #include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
@@ -45,7 +45,9 @@ public:
     CryptoManagerPrivate(CryptoManager *parent = Q_NULLPTR);
     ~CryptoManagerPrivate();
 
-    QDBusPendingReply<Sailfish::Crypto::Result, QVector<Sailfish::Crypto::CryptoPluginInfo>, QStringList> getPluginInfo();
+    QDBusPendingReply<Sailfish::Crypto::Result,
+                      QVector<Sailfish::Crypto::PluginInfo>,
+                      QVector<Sailfish::Crypto::PluginInfo> > getPluginInfo();
 
     QDBusPendingReply<Sailfish::Crypto::Result> seedRandomDataGenerator(
             const QByteArray &seedData,

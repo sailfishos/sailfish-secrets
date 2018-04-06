@@ -13,6 +13,7 @@
 #include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
 #include "Crypto/interactionparameters.h"
+#include "Crypto/plugininfo.h"
 #include "Crypto/lockcoderequest.h"
 
 #include <QtDBus/QDBusInterface>
@@ -63,18 +64,21 @@ CryptoManagerPrivate::~CryptoManagerPrivate()
 
 /*!
  * \internal
- * \brief Returns information about crypto plugins as well as the names of storage plugins
+ * \brief Returns the names of available crypto plugins as well as the names of available (Secrets) storage plugins
+ *
+ * Any plugin which is both a crypto plugin and a storage plugin must be
+ * able to implement stored-key functionality (e.g. GenerateStoredKeyRequest).
  */
-QDBusPendingReply<Result, QVector<CryptoPluginInfo>, QStringList>
+QDBusPendingReply<Result, QVector<PluginInfo>, QVector<PluginInfo> >
 CryptoManagerPrivate::getPluginInfo()
 {
     if (!m_interface) {
-        return QDBusPendingReply<Result, QVector<CryptoPluginInfo>, QStringList>(
+        return QDBusPendingReply<Result, QVector<PluginInfo>, QVector<PluginInfo> >(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Result, QVector<CryptoPluginInfo>, QStringList> reply
+    QDBusPendingReply<Result, QVector<PluginInfo>, QVector<PluginInfo> > reply
             = m_interface->asyncCall("getPluginInfo");
 
     return reply;
@@ -611,7 +615,7 @@ CryptoManagerPrivate::forgetLockCode(
   type specific for their needs:
 
   \list
-  \li \l{PluginInfoRequest} to retrieve information about crypto plugins
+  \li \l{PluginInfoRequest} to retrieve information about available crypto plugins
   \li \l{LockCodeRequest} to set the lock code for, lock, or unlock a crypto plugin
   \li \l{SeedRandomDataGeneratorRequest} to seed a crypto plugin's random number generator
   \li \l{GenerateRandomDataRequest} to generate random data

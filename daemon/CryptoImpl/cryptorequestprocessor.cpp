@@ -10,6 +10,9 @@
 #include "SecretsImpl/secrets_p.h"
 #include "Secrets/result.h"
 #include "Secrets/interactionparameters.h"
+#include "Secrets/plugininfo.h"
+
+#include "Crypto/plugininfo.h"
 
 #include "util_p.h"
 #include "logging_p.h"
@@ -103,66 +106,80 @@ Daemon::ApiImpl::RequestProcessor::plugins() const
     return m_cryptoPlugins;
 }
 
-bool Daemon::ApiImpl::RequestProcessor::lockPlugins()
+bool Daemon::ApiImpl::RequestProcessor::lockPlugin(
+        const QString &pluginName)
 {
-    bool retn = true;
-    for (CryptoPlugin *p : m_cryptoPlugins) {
-        if (p->supportsLocking()) {
-            if (!p->lock()) {
-                qCWarning(lcSailfishCryptoDaemon) << "Failed to lock crypto plugin:" << p->name();
-                retn = false;
-            }
-        }
+    if (m_cryptoPlugins.contains(pluginName)) {
+        return false;
     }
-    return retn;
+
+    QFuture<bool> future
+            = QtConcurrent::run(
+                    m_requestQueue->controller()->threadPoolForPlugin(pluginName).data(),
+                    CryptoPluginWrapper::lock,
+                    m_cryptoPlugins[pluginName]);
+    future.waitForFinished();
+    return future.result();
 }
 
-bool Daemon::ApiImpl::RequestProcessor::unlockPlugins(
-        const QByteArray &unlockCode)
+bool Daemon::ApiImpl::RequestProcessor::unlockPlugin(
+        const QString &pluginName,
+        const QByteArray &lockCode)
 {
-    bool retn = true;
-    for (CryptoPlugin *p : m_cryptoPlugins) {
-        if (p->supportsLocking()) {
-            if (!p->unlock(unlockCode)) {
-                qCWarning(lcSailfishCryptoDaemon) << "Failed to unlock crypto plugin:" << p->name();
-                retn = false;
-            }
-        }
+    if (m_cryptoPlugins.contains(pluginName)) {
+        return false;
     }
-    return retn;
+
+    QFuture<bool> future
+            = QtConcurrent::run(
+                    m_requestQueue->controller()->threadPoolForPlugin(pluginName).data(),
+                    CryptoPluginWrapper::unlock,
+                    m_cryptoPlugins[pluginName],
+                    lockCode);
+    future.waitForFinished();
+    return future.result();
 }
 
-bool Daemon::ApiImpl::RequestProcessor::setLockCodePlugins(
+bool Daemon::ApiImpl::RequestProcessor::setLockCodePlugin(
+        const QString &pluginName,
         const QByteArray &oldCode,
         const QByteArray &newCode)
 {
-    bool retn = true;
-    for (CryptoPlugin *p : m_cryptoPlugins) {
-        if (p->supportsLocking()) {
-            if (!p->setLockCode(oldCode, newCode)) {
-                qCWarning(lcSailfishCryptoDaemon) << "Failed to set lock code for crypto plugin:" << p->name();
-                retn = false;
-            }
-        }
+    if (m_cryptoPlugins.contains(pluginName)) {
+        return false;
     }
-    return retn;
+
+    QFuture<bool> future
+            = QtConcurrent::run(
+                    m_requestQueue->controller()->threadPoolForPlugin(pluginName).data(),
+                    CryptoPluginWrapper::setLockCode,
+                    m_cryptoPlugins[pluginName],
+                    oldCode,
+                    newCode);
+    future.waitForFinished();
+    return future.result();
 }
 
 Result
 Daemon::ApiImpl::RequestProcessor::getPluginInfo(
         pid_t callerPid,
         quint64 requestId,
-        QVector<CryptoPluginInfo> *cryptoPlugins,
-        QStringList *storagePlugins)
+        QVector<PluginInfo> *cryptoPlugins,
+        QVector<PluginInfo> *storagePlugins)
 {
-    Result retn(transformSecretsResult(m_secrets->storagePluginNames(callerPid, requestId, storagePlugins)));
+    QVector<Sailfish::Secrets::PluginInfo> storagePluginInfos;
+    Result retn(transformSecretsResult(m_secrets->storagePluginInfo(callerPid, requestId, &storagePluginInfos)));
     if (retn.code() == Result::Failed) {
         return retn;
     }
 
+    for (const Sailfish::Secrets::PluginInfo &plugin : storagePluginInfos) {
+        storagePlugins->append(PluginInfo(plugin.name(), plugin.version()));
+    }
+
     QMap<QString, CryptoPlugin*>::const_iterator it = m_cryptoPlugins.constBegin();
     for (; it != m_cryptoPlugins.constEnd(); it++) {
-        cryptoPlugins->append(CryptoPluginInfo(it.value()));
+        cryptoPlugins->append(PluginInfo(it.value()->name(), it.value()->version()));
     }
 
     return retn;
@@ -1303,7 +1320,7 @@ Daemon::ApiImpl::RequestProcessor::calculateDigest(
                 CryptoPluginWrapper::calculateDigest,
                 cryptoPlugin,
                 data,
-                std::make_tuple(padding, digestFunction));
+                SignatureOptions(padding, digestFunction));
 
     watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DataResult>::finished, [=] {
@@ -1336,17 +1353,6 @@ Daemon::ApiImpl::RequestProcessor::sign(
     if (cryptoPlugin == Q_NULLPTR) {
         return Result(Result::InvalidCryptographicServiceProvider,
                       QLatin1String("No such cryptographic service provider plugin exists"));
-    }
-
-    if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & CryptoManager::OperationSign)) {
-        return Result(Result::UnsupportedOperation,
-                      QLatin1String("The specified cryptographic service provider does not support sign operations"));
-    } else if (!(cryptoPlugin->supportedSignaturePaddings().value(key.algorithm()).contains(padding))) {
-        return Result(Result::UnsupportedSignaturePadding,
-                      QLatin1String("The specified cryptographic service provider does not support that signature padding"));
-    } else if (!(cryptoPlugin->supportedDigests().value(key.algorithm()).contains(digestFunction))) {
-        return Result(Result::UnsupportedDigest,
-                      QLatin1String("The specified cryptographic service provider does not support that digest"));
     }
 
     Key fullKey;
@@ -1410,7 +1416,7 @@ Daemon::ApiImpl::RequestProcessor::sign(
                 cryptoPlugin,
                 data,
                 fullKey,
-                std::make_tuple(padding, digestFunction));
+                SignatureOptions(padding, digestFunction));
 
     watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DataResult>::finished, [=] {
@@ -1451,7 +1457,7 @@ Daemon::ApiImpl::RequestProcessor::sign2(
                 m_cryptoPlugins[cryptoPluginName],
                 data,
                 Key::deserialise(serialisedKey),
-                std::make_tuple(padding, digestFunction));
+                SignatureOptions(padding, digestFunction));
 
     watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DataResult>::finished, [=] {
@@ -1483,17 +1489,6 @@ Daemon::ApiImpl::RequestProcessor::verify(
     if (cryptoPlugin == Q_NULLPTR) {
         return Result(Result::InvalidCryptographicServiceProvider,
                       QLatin1String("No such cryptographic service provider plugin exists"));
-    }
-
-    if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & CryptoManager::OperationVerify)) {
-        return Result(Result::UnsupportedOperation,
-                      QLatin1String("The specified cryptographic service provider does not support verify operations"));
-    } else if (!(cryptoPlugin->supportedSignaturePaddings().value(key.algorithm()).contains(padding))) {
-        return Result(Result::UnsupportedSignaturePadding,
-                      QLatin1String("The specified cryptographic service provider does not support that signature padding"));
-    } else if (!(cryptoPlugin->supportedDigests().value(key.algorithm()).contains(digestFunction))) {
-        return Result(Result::UnsupportedDigest,
-                      QLatin1String("The specified cryptographic service provider does not support that digest"));
     }
 
     Key fullKey;
@@ -1559,7 +1554,7 @@ Daemon::ApiImpl::RequestProcessor::verify(
                 signature,
                 data,
                 fullKey,
-                std::make_tuple(padding, digestFunction));
+                SignatureOptions(padding, digestFunction));
 
     watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<ValidatedResult>::finished, [=] {
@@ -1601,7 +1596,7 @@ Daemon::ApiImpl::RequestProcessor::verify2(
                 signature,
                 data,
                 Key::deserialise(serialisedKey),
-                std::make_tuple(padding, digestFunction));
+                SignatureOptions(padding, digestFunction));
 
     watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<ValidatedResult>::finished, [=] {
@@ -1636,17 +1631,6 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
     if (cryptoPlugin == Q_NULLPTR) {
         return Result(Result::InvalidCryptographicServiceProvider,
                       QLatin1String("No such cryptographic service provider plugin exists"));
-    }
-
-    if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & CryptoManager::OperationEncrypt)) {
-        return Result(Result::UnsupportedOperation,
-                      QLatin1String("The specified cryptographic service provider does not support encrypt operations"));
-    } else if (!(cryptoPlugin->supportedBlockModes().value(key.algorithm()).contains(blockMode))) {
-        return Result(Result::UnsupportedBlockMode,
-                      QLatin1String("The specified cryptographic service provider does not support that block mode"));
-    } else if (!(cryptoPlugin->supportedEncryptionPaddings().value(key.algorithm()).contains(padding))) {
-        return Result(Result::UnsupportedEncryptionPadding,
-                      QLatin1String("The specified cryptographic service provider does not support that encryption padding"));
     }
 
     Key fullKey;
@@ -1712,9 +1696,9 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginWrapper::encrypt,
                 cryptoPlugin,
-                std::make_tuple(data, iv),
+                DataAndIV(data, iv),
                 fullKey,
-                std::make_tuple(blockMode, padding),
+                EncryptionOptions(blockMode, padding),
                 authenticationData);
 
     watcher->setFuture(future);
@@ -1769,9 +1753,9 @@ Daemon::ApiImpl::RequestProcessor::encrypt2(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptoPluginName).data(),
                 CryptoPluginWrapper::encrypt,
                 m_cryptoPlugins[cryptoPluginName],
-                std::make_tuple(data, iv),
+                DataAndIV(data, iv),
                 fullKey,
-                std::make_tuple(blockMode, padding),
+                EncryptionOptions(blockMode, padding),
                 authenticationData);
 
     watcher->setFuture(future);
@@ -1809,18 +1793,6 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
     if (cryptoPlugin == Q_NULLPTR) {
         return Result(Result::InvalidCryptographicServiceProvider,
                       QLatin1String("No such cryptographic service provider plugin exists"));
-    }
-
-    // TODO: FIXME: don't check these here, if the key is a keyreference it won't contain algorithm metadata!
-    if (!(cryptoPlugin->supportedOperations().value(key.algorithm()) & CryptoManager::OperationDecrypt)) {
-        return Result(Result::UnsupportedOperation,
-                      QLatin1String("The specified cryptographic service provider does not support decrypt operations"));
-    } else if (!(cryptoPlugin->supportedBlockModes().value(key.algorithm()).contains(blockMode))) {
-        return Result(Result::UnsupportedBlockMode,
-                      QLatin1String("The specified cryptographic service provider does not support that block mode"));
-    } else if (!(cryptoPlugin->supportedEncryptionPaddings().value(key.algorithm()).contains(padding))) {
-        return Result(Result::UnsupportedEncryptionPadding,
-                      QLatin1String("The specified cryptographic service provider does not support that encryption padding"));
     }
 
     Key fullKey;
@@ -1887,10 +1859,10 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginWrapper::decrypt,
                 cryptoPlugin,
-                std::make_tuple(data, iv),
+                DataAndIV(data, iv),
                 fullKey,
-                std::make_tuple(blockMode, padding),
-                std::make_tuple(authenticationData, authenticationTag));
+                EncryptionOptions(blockMode, padding),
+                AuthDataAndTag(authenticationData, authenticationTag));
 
     watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<VerifiedDataResult>::finished, [=] {
@@ -1932,10 +1904,10 @@ Daemon::ApiImpl::RequestProcessor::decrypt2(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptoPluginName).data(),
                 CryptoPluginWrapper::decrypt,
                 m_cryptoPlugins[cryptoPluginName],
-                std::make_tuple(data, iv),
+                DataAndIV(data, iv),
                 Key::deserialise(serialisedKey),
-                std::make_tuple(blockMode, padding),
-                std::make_tuple(authenticationData, authenticationTag));
+                EncryptionOptions(blockMode, padding),
+                AuthDataAndTag(authenticationData, authenticationTag));
 
     watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<VerifiedDataResult>::finished, [=] {
@@ -2038,7 +2010,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession(
                 callerPid,
                 iv,
                 fullKey,
-                std::make_tuple(
+                CipherSessionOptions(
                     operation,
                     blockMode,
                     encryptionPadding,
@@ -2088,7 +2060,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession2(
                 callerPid,
                 iv,
                 Key::deserialise(serialisedKey),
-                std::make_tuple(
+                CipherSessionOptions(
                     operation,
                     blockMode,
                     encryptionPadding,

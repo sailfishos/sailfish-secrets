@@ -10,7 +10,7 @@
 #include <QtCore/QPluginLoader>
 #include <QtCore/QVarLengthArray>
 
-#include "Secrets/extensionplugins.h"
+#include "SecretsPluginApi/extensionplugins.h"
 
 #include <unistd.h>
 
@@ -61,7 +61,6 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
                 qInfo() << "Permission rejected";
             } else {
                 qWarning() << "Authentication error" << result.errorMessage();
-
             }
         } else {
             qWarning() << "Plugin loading error:" << plugin.errorString();

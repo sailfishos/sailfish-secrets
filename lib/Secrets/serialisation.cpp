@@ -9,6 +9,7 @@
 #include "Secrets/secretmanager.h"
 #include "Secrets/secret.h"
 #include "Secrets/result.h"
+#include "Secrets/plugininfo.h"
 #include "Secrets/interactionparameters.h"
 #include "Secrets/interactionresponse.h"
 
@@ -187,99 +188,23 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, SecretManager::Fi
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const StoragePluginInfo &info)
+QDBusArgument &operator<<(QDBusArgument &argument, const PluginInfo &info)
 {
-    int type = static_cast<int>(info.storageType());
     argument.beginStructure();
-    argument << info.name() << type;
+    argument << info.name() << info.name();
     argument.endStructure();
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, StoragePluginInfo &info)
+const QDBusArgument &operator>>(const QDBusArgument &argument, PluginInfo &info)
 {
     QString name;
-    int itype = 0;
+    int version = 0;
     argument.beginStructure();
-    argument >> name >> itype;
+    argument >> name >> version;
     argument.endStructure();
     info.setName(name);
-    info.setStorageType(static_cast<StoragePlugin::StorageType>(itype));
-    return argument;
-}
-
-QDBusArgument &operator<<(QDBusArgument &argument, const EncryptionPluginInfo &info)
-{
-    int type = static_cast<int>(info.encryptionType());
-    int algo = static_cast<int>(info.encryptionAlgorithm());
-    argument.beginStructure();
-    argument << info.name() << type << algo;
-    argument.endStructure();
-    return argument;
-}
-
-const QDBusArgument &operator>>(const QDBusArgument &argument, EncryptionPluginInfo &info)
-{
-    QString name;
-    int itype = 0;
-    int ialgo = 0;
-    argument.beginStructure();
-    argument >> name >> itype >> ialgo;
-    argument.endStructure();
-    info.setName(name);
-    info.setEncryptionType(static_cast<EncryptionPlugin::EncryptionType>(itype));
-    info.setEncryptionAlgorithm(static_cast<EncryptionPlugin::EncryptionAlgorithm>(ialgo));
-    return argument;
-}
-
-QDBusArgument &operator<<(QDBusArgument &argument, const EncryptedStoragePluginInfo &info)
-{
-    int stype = static_cast<int>(info.storageType());
-    int type = static_cast<int>(info.encryptionType());
-    int algo = static_cast<int>(info.encryptionAlgorithm());
-    argument.beginStructure();
-    argument << info.name() << stype << type << algo;
-    argument.endStructure();
-    return argument;
-}
-
-const QDBusArgument &operator>>(const QDBusArgument &argument, EncryptedStoragePluginInfo &info)
-{
-    QString name;
-    int istype = 0;
-    int itype = 0;
-    int ialgo = 0;
-    argument.beginStructure();
-    argument >> name >> istype >> itype >> ialgo;
-    argument.endStructure();
-    info.setName(name);
-    info.setStorageType(static_cast<StoragePlugin::StorageType>(istype));
-    info.setEncryptionType(static_cast<EncryptionPlugin::EncryptionType>(itype));
-    info.setEncryptionAlgorithm(static_cast<EncryptionPlugin::EncryptionAlgorithm>(ialgo));
-    return argument;
-}
-
-QDBusArgument &operator<<(QDBusArgument &argument, const AuthenticationPluginInfo &info)
-{
-    int atypes = static_cast<int>(info.authenticationTypes());
-    int itypes = static_cast<int>(info.inputTypes());
-    argument.beginStructure();
-    argument << info.name() << atypes << itypes;
-    argument.endStructure();
-    return argument;
-}
-
-const QDBusArgument &operator>>(const QDBusArgument &argument, AuthenticationPluginInfo &info)
-{
-    QString name;
-    int atypes = 0;
-    int itypes = 0;
-    argument.beginStructure();
-    argument >> name >> atypes >> itypes;
-    argument.endStructure();
-    info.setName(name);
-    info.setAuthenticationTypes(static_cast<AuthenticationPlugin::AuthenticationType>(atypes));
-    info.setInputTypes(static_cast<InteractionParameters::InputTypes>(itypes));
+    info.setVersion(version);
     return argument;
 }
 

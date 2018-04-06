@@ -12,8 +12,10 @@
 #include "requestqueue_p.h"
 #include "applicationpermissions_p.h"
 
+#include "CryptoPluginApi/extensionplugins.h"
+
 #include "Crypto/key.h"
-#include "Crypto/extensionplugins.h"
+#include "Crypto/plugininfo.h"
 #include "Crypto/storedkeyrequest.h"
 #include "Crypto/interactionparameters.h"
 #include "Crypto/keyderivationparameters.h"
@@ -51,10 +53,11 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "  <interface name=\"org.sailfishos.crypto\">\n"
     "      <method name=\"getPluginInfo\">\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
-    "          <arg name=\"cryptoPlugins\" type=\"a(ay))\" direction=\"out\" />\n"
-    "          <arg name=\"storagePlugins\" type=\"as\" direction=\"out\" />\n"
+    "          <arg name=\"cryptoPlugins\" type=\"a(si)\" direction=\"out\" />\n"
+    "          <arg name=\"storagePlugins\" type=\"a(si)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"QVector<Sailfish::Crypto::CryptoPluginInfo>\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"QVector<Sailfish::Crypto::PluginInfo>\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out2\" value=\"QVector<Sailfish::Crypto::PluginInfo>\" />\n"
     "      </method>\n"
     "      <method name=\"generateRandomData\">\n"
     "          <arg name=\"numberBytes\" type=\"t\" direction=\"in\" />\n"
@@ -305,8 +308,8 @@ public Q_SLOTS:
     void getPluginInfo(
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
-            QVector<Sailfish::Crypto::CryptoPluginInfo> &cryptoPlugins,
-            QStringList &storagePlugins);
+            QVector<Sailfish::Crypto::PluginInfo> &cryptoPlugins,
+            QVector<Sailfish::Crypto::PluginInfo> &storagePlugins);
 
     void generateRandomData(
             quint64 numberBytes,
@@ -526,9 +529,10 @@ public:
     Sailfish::Secrets::Daemon::Controller *controller();
     QWeakPointer<QThreadPool> cryptoThreadPool();
     QMap<QString, Sailfish::Crypto::CryptoPlugin*> plugins() const;
-    bool lockPlugins();
-    bool unlockPlugins(const QByteArray &unlockCode);
-    bool setLockCodePlugins(const QByteArray &oldCode, const QByteArray &newCode);
+
+    bool lockPlugin(const QString &pluginName);
+    bool unlockPlugin(const QString &pluginName, const QByteArray &lockCode);
+    bool setLockCodePlugin(const QString &pluginName, const QByteArray &oldCode, const QByteArray &newCode);
 
     void handlePendingRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;
     void handleFinishedRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;

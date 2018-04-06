@@ -23,12 +23,13 @@
 
 #include <sys/types.h>
 
+#include "SecretsPluginApi/extensionplugins.h"
+
 #include "Secrets/result.h"
 #include "Secrets/interactionparameters.h"
 #include "Secrets/secretmanager.h"
 #include "Secrets/secret.h"
 #include "Secrets/interactionparameters.h"
-#include "Secrets/extensionplugins.h"
 #include "Secrets/lockcoderequest.h"
 
 #include "SecretsImpl/secrets_p.h"
@@ -64,10 +65,10 @@ public:
     Sailfish::Secrets::Result getPluginInfo(
             pid_t callerPid,
             quint64 requestId,
-            QVector<Sailfish::Secrets::StoragePluginInfo> *storagePlugins,
-            QVector<Sailfish::Secrets::EncryptionPluginInfo> *encryptionPlugins,
-            QVector<Sailfish::Secrets::EncryptedStoragePluginInfo> *encryptedStoragePlugins,
-            QVector<Sailfish::Secrets::AuthenticationPluginInfo> *authenticationPlugins);
+            QVector<Sailfish::Secrets::PluginInfo> *storagePlugins,
+            QVector<Sailfish::Secrets::PluginInfo> *encryptionPlugins,
+            QVector<Sailfish::Secrets::PluginInfo> *encryptedStoragePlugins,
+            QVector<Sailfish::Secrets::PluginInfo> *authenticationPlugins);
 
     // retrieve the names of collections
     Sailfish::Secrets::Result collectionNames(
@@ -229,7 +230,7 @@ public:
 
 public: // helper methods for crypto API bridge (secretscryptohelpers)
     QMap<QString, QObject*> potentialCryptoStoragePlugins() const;
-    QStringList storagePluginNames() const;
+    QVector<Sailfish::Secrets::PluginInfo> storagePluginInfo() const;
     Sailfish::Secrets::Result confirmKeyStoragePlugin(
             const QString &hashedKeyName,
             const QString &collectionName,

@@ -8,16 +8,18 @@
 #ifndef SAILFISHCRYPTO_APIIMPL_REQUESTPROCESSOR_P_H
 #define SAILFISHCRYPTO_APIIMPL_REQUESTPROCESSOR_P_H
 
+#include "CryptoPluginApi/extensionplugins.h"
+
 #include "Crypto/result.h"
 #include "Crypto/cryptomanager.h"
 #include "Crypto/key.h"
 #include "Crypto/certificate.h"
-#include "Crypto/extensionplugins.h"
 #include "Crypto/storedkeyrequest.h"
 #include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
 #include "Crypto/interactionparameters.h"
 #include "Crypto/lockcoderequest.h"
+#include "Crypto/plugininfo.h"
 
 #include "CryptoImpl/crypto_p.h"
 
@@ -66,15 +68,15 @@ public:
                      Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *parent = Q_NULLPTR);
 
     QMap<QString, Sailfish::Crypto::CryptoPlugin*> plugins() const;
-    bool lockPlugins();
-    bool unlockPlugins(const QByteArray &unlockCode);
-    bool setLockCodePlugins(const QByteArray &oldCode, const QByteArray &newCode);
+    bool lockPlugin(const QString &pluginName);
+    bool unlockPlugin(const QString &pluginName, const QByteArray &lockCode);
+    bool setLockCodePlugin(const QString &pluginName, const QByteArray &oldCode, const QByteArray &newCode);
 
     Sailfish::Crypto::Result getPluginInfo(
             pid_t callerPid,
             quint64 requestId,
-            QVector<Sailfish::Crypto::CryptoPluginInfo> *cryptoPlugins,
-            QStringList *storagePlugins);
+            QVector<Sailfish::Crypto::PluginInfo> *cryptoPlugins,
+            QVector<Sailfish::Crypto::PluginInfo> *storagePlugins);
 
     Sailfish::Crypto::Result generateRandomData(
             pid_t callerPid,

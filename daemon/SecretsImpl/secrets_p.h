@@ -14,7 +14,7 @@
 
 #include "Secrets/secret.h"
 #include "Secrets/interactionparameters.h"
-#include "Secrets/extensionplugins.h"
+#include "Secrets/plugininfo.h"
 #include "Secrets/secretmanager.h"
 #include "Secrets/result.h"
 #include "Secrets/lockcoderequest.h"
@@ -53,15 +53,15 @@ class SecretsDBusObject : public QObject, protected QDBusContext
     "  <interface name=\"org.sailfishos.secrets\">\n"
     "      <method name=\"getPluginInfo\">\n"
     "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
-    "          <arg name=\"storagePlugins\" type=\"(si)\" direction=\"out\" />\n"
-    "          <arg name=\"encryptionPlugins\" type=\"(sii)\" direction=\"out\" />\n"
-    "          <arg name=\"encryptedStoragePlugins\" type=\"(siii)\" direction=\"out\" />\n"
-    "          <arg name=\"authenticationPlugins\" type=\"(sii)\" direction=\"out\" />\n"
+    "          <arg name=\"storagePlugins\" type=\"a(si)\" direction=\"out\" />\n"
+    "          <arg name=\"encryptionPlugins\" type=\"a(si)\" direction=\"out\" />\n"
+    "          <arg name=\"encryptedStoragePlugins\" type=\"a(si)\" direction=\"out\" />\n"
+    "          <arg name=\"authenticationPlugins\" type=\"a(si)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"QVector<Sailfish::Secrets::StoragePluginInfo>\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out2\" value=\"QVector<Sailfish::Secrets::EncryptionPluginInfo>\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out3\" value=\"QVector<Sailfish::Secrets::EncryptedStoragePluginInfo>\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out4\" value=\"QVector<Sailfish::Secrets::AuthenticationPluginInfo>\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"QVector<Sailfish::Secrets::PluginInfo>\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out2\" value=\"QVector<Sailfish::Secrets::PluginInfo>\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out3\" value=\"QVector<Sailfish::Secrets::PluginInfo>\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out4\" value=\"QVector<Sailfish::Secrets::PluginInfo>\" />\n"
     "      </method>\n"
     "      <method name=\"userInput\">\n"
     "          <arg name=\"uiParams\" type=\"(sss(i)sss(i)(i))\" direction=\"in\" />\n"
@@ -238,10 +238,10 @@ public Q_SLOTS:
     void getPluginInfo(
             const QDBusMessage &message,
             Sailfish::Secrets::Result &result,
-            QVector<Sailfish::Secrets::StoragePluginInfo> &storagePlugins,
-            QVector<Sailfish::Secrets::EncryptionPluginInfo> &encryptionPlugins,
-            QVector<Sailfish::Secrets::EncryptedStoragePluginInfo> &encryptedStoragePlugins,
-            QVector<Sailfish::Secrets::AuthenticationPluginInfo> &authenticationPlugins);
+            QVector<Sailfish::Secrets::PluginInfo> &storagePlugins,
+            QVector<Sailfish::Secrets::PluginInfo> &encryptionPlugins,
+            QVector<Sailfish::Secrets::PluginInfo> &encryptedStoragePlugins,
+            QVector<Sailfish::Secrets::PluginInfo> &authenticationPlugins);
 
     // retrieve user input for the client (daemon)
     void userInput(
@@ -433,9 +433,6 @@ public: // For use by the secrets request processor to handle device-locked coll
     Sailfish::Secrets::Result lockCryptoPlugin(const QString &pluginName);
     Sailfish::Secrets::Result unlockCryptoPlugin(const QString &pluginName, const QByteArray &lockCode);
     Sailfish::Secrets::Result setLockCodeCryptoPlugin(const QString &pluginName, const QByteArray &oldCode, const QByteArray &newCode);
-    bool lockCryptoPlugins();
-    bool unlockCryptoPlugins(const QByteArray &lockCode);
-    bool setLockCodeCryptoPlugins(const QByteArray &oldCode, const QByteArray &newCode);
 
 public: // Crypto API helper methods.
     // these methods are provided in order to implement Crypto functionality
@@ -446,7 +443,7 @@ public: // Crypto API helper methods.
     Sailfish::Secrets::Result interleavedRequestError() const;
     Sailfish::Secrets::Result confirmCollectionStoragePlugin(pid_t callerPid, quint64 cryptoRequestId, const QString &collectionName, const QString &storagePluginName) const;
     Sailfish::Secrets::Result confirmKeyStoragePlugin(pid_t callerPid, quint64 cryptoRequestId, const QString &hashedKeyName, const QString &collectionName, const QString &storagePluginName) const;
-    Sailfish::Secrets::Result storagePluginNames(pid_t callerPid, quint64 cryptoRequestId, QStringList *names) const;
+    Sailfish::Secrets::Result storagePluginInfo(pid_t callerPid, quint64 cryptoRequestId, QVector<Sailfish::Secrets::PluginInfo> *info) const;
     Sailfish::Secrets::Result keyEntryIdentifiers(pid_t callerPid, quint64 cryptoRequestId, QVector<Sailfish::Crypto::Key::Identifier> *identifiers);
     Sailfish::Secrets::Result keyEntry(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, QString *cryptoPluginName, QString *storagePluginName);
     Sailfish::Secrets::Result addKeyEntry(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, const QString &cryptoPluginName, const QString &storagePluginName);

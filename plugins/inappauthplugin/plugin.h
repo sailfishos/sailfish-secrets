@@ -8,7 +8,8 @@
 #ifndef SAILFISHSECRETS_PLUGIN_AUTHENTICATION_INAPP_H
 #define SAILFISHSECRETS_PLUGIN_AUTHENTICATION_INAPP_H
 
-#include "Secrets/extensionplugins.h"
+#include "SecretsPluginApi/extensionplugins.h"
+
 #include "Secrets/result.h"
 #include "Secrets/interactionparameters.h"
 #include "Secrets/interactionrequestwatcher.h"
@@ -48,6 +49,10 @@ public:
         return QLatin1String("org.sailfishos.secrets.plugin.authentication.inapp");
 #endif
     }
+    int version() const Q_DECL_OVERRIDE {
+        return 1;
+    }
+
     Sailfish::Secrets::AuthenticationPlugin::AuthenticationTypes authenticationTypes() const Q_DECL_OVERRIDE { return Sailfish::Secrets::AuthenticationPlugin::ApplicationSpecificAuthentication; }
     Sailfish::Secrets::InteractionParameters::InputTypes inputTypes() const Q_DECL_OVERRIDE {
         return Sailfish::Secrets::InteractionParameters::ConfirmationInput

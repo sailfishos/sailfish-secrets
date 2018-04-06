@@ -11,7 +11,7 @@
 #include "Secrets/secretsglobal.h"
 #include "Secrets/secretmanager.h"
 #include "Secrets/secret.h"
-#include "Secrets/extensionplugins.h"
+#include "Secrets/plugininfo.h"
 
 #include <QtCore/QPointer>
 #include <QtCore/QScopedPointer>
@@ -31,10 +31,10 @@ public:
     explicit PluginInfoRequestPrivate();
 
     QPointer<Sailfish::Secrets::SecretManager> m_manager;
-    QVector<Sailfish::Secrets::StoragePluginInfo> m_storagePlugins;
-    QVector<Sailfish::Secrets::EncryptionPluginInfo> m_encryptionPlugins;
-    QVector<Sailfish::Secrets::EncryptedStoragePluginInfo> m_encryptedStoragePlugins;
-    QVector<Sailfish::Secrets::AuthenticationPluginInfo> m_authenticationPlugins;
+    QVector<Sailfish::Secrets::PluginInfo> m_storagePlugins;
+    QVector<Sailfish::Secrets::PluginInfo> m_encryptionPlugins;
+    QVector<Sailfish::Secrets::PluginInfo> m_encryptedStoragePlugins;
+    QVector<Sailfish::Secrets::PluginInfo> m_authenticationPlugins;
 
     QScopedPointer<QDBusPendingCallWatcher> m_watcher;
     Sailfish::Secrets::Request::Status m_status;

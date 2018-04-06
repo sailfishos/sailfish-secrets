@@ -5,20 +5,20 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#ifndef LIBSAILFISHSECRETS_EXTENSIONPLUGINS_H
-#define LIBSAILFISHSECRETS_EXTENSIONPLUGINS_H
+#ifndef LIBSAILFISHSECRETS_PLUGINAPI_EXTENSIONPLUGINS_H
+#define LIBSAILFISHSECRETS_PLUGINAPI_EXTENSIONPLUGINS_H
 
-#include "Secrets/secretsglobal.h"
-#include "Secrets/secret.h"
-#include "Secrets/interactionparameters.h"
-#include "Secrets/result.h"
+#include <Secrets/secretsglobal.h>
+#include <Secrets/secretmanager.h>
+#include <Secrets/secret.h>
+#include <Secrets/interactionparameters.h>
+#include <Secrets/result.h>
 
 #include <QtCore/QObject>
 #include <QtCore/QString>
 #include <QtCore/QMap>
 #include <QtCore/QByteArray>
 #include <QtCore/QVector>
-#include <QtCore/QSharedDataPointer>
 
 #define Sailfish_Secrets_StoragePlugin_IID "org.sailfishos.secrets.StoragePlugin/1.0"
 #define Sailfish_Secrets_EncryptionPlugin_IID "org.sailfishos.secrets.EncryptionPlugin/1.0"
@@ -29,7 +29,23 @@ namespace Sailfish {
 
 namespace Secrets {
 
-class SAILFISH_SECRETS_API EncryptionPlugin
+class SAILFISH_SECRETS_API PluginBase
+{
+public:
+    PluginBase();
+    virtual ~PluginBase();
+
+    virtual QString name() const = 0;
+    virtual int version() const = 0;
+    virtual bool supportsLocking() const;
+
+    virtual bool isLocked() const;
+    virtual bool lock();
+    virtual bool unlock(const QByteArray &lockCode);
+    virtual bool setLockCode(const QByteArray &oldLockCode, const QByteArray &newLockCode);
+};
+
+class SAILFISH_SECRETS_API EncryptionPlugin : public virtual Sailfish::Secrets::PluginBase
 {
 public:
     enum EncryptionType {
@@ -47,47 +63,15 @@ public:
     EncryptionPlugin();
     virtual ~EncryptionPlugin();
 
-    virtual QString name() const = 0;
     virtual Sailfish::Secrets::EncryptionPlugin::EncryptionType encryptionType() const = 0;
     virtual Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm encryptionAlgorithm() const = 0;
-
-    virtual bool supportsLocking() const;
-    virtual bool isLocked() const;
-    virtual bool lock();
-    virtual bool unlock(const QByteArray &lockCode);
-    virtual bool setLockCode(const QByteArray &oldLockCode, const QByteArray &newLockCode);
 
     virtual Sailfish::Secrets::Result deriveKeyFromCode(const QByteArray &authenticationCode, const QByteArray &salt, QByteArray *key) = 0;
     virtual Sailfish::Secrets::Result encryptSecret(const QByteArray &plaintext, const QByteArray &key, QByteArray *encrypted) = 0;
     virtual Sailfish::Secrets::Result decryptSecret(const QByteArray &encrypted, const QByteArray &key, QByteArray *plaintext) = 0;
 };
 
-class EncryptionPluginInfoPrivate;
-class SAILFISH_SECRETS_API EncryptionPluginInfo
-{
-public:
-    EncryptionPluginInfo();
-    EncryptionPluginInfo(const Sailfish::Secrets::EncryptionPluginInfo &other);
-    EncryptionPluginInfo(const Sailfish::Secrets::EncryptionPlugin *plugin);
-    ~EncryptionPluginInfo();
-
-    EncryptionPluginInfo& operator=(const EncryptionPluginInfo &other);
-
-    QString name() const;
-    void setName(const QString &name);
-
-    Sailfish::Secrets::EncryptionPlugin::EncryptionType encryptionType() const;
-    void setEncryptionType(Sailfish::Secrets::EncryptionPlugin::EncryptionType type);
-
-    Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm encryptionAlgorithm() const;
-    void setEncryptionAlgorithm(Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm algorithm);
-
-private:
-    QSharedDataPointer<EncryptionPluginInfoPrivate> d_ptr;
-    friend class EncryptionPluginInfoPrivate;
-};
-
-class SAILFISH_SECRETS_API StoragePlugin
+class SAILFISH_SECRETS_API StoragePlugin : public virtual Sailfish::Secrets::PluginBase
 {
 public:
     enum StorageType {
@@ -99,21 +83,21 @@ public:
     };
 
     enum FilterOperator {
-        OperatorOr = 0,
-        OperatorAnd
+        OperatorOr  = SecretManager::OperatorOr,
+        OperatorAnd = SecretManager::OperatorAnd
     };
 
     StoragePlugin();
     virtual ~StoragePlugin();
 
-    virtual QString name() const = 0;
     virtual Sailfish::Secrets::StoragePlugin::StorageType storageType() const = 0;
 
-    virtual bool supportsLocking() const;
-    virtual bool isLocked() const;
-    virtual bool lock();
-    virtual bool unlock(const QByteArray &lockCode);
-    virtual bool setLockCode(const QByteArray &oldLockCode, const QByteArray &newLockCode);
+    // TODO: move this to the plugin wrapper!
+    virtual bool supportsMasterLock() const { return false; }
+    virtual bool isMasterLocked() const { return false; }
+    virtual bool masterLock() { return false; }
+    virtual bool masterUnlock(const QByteArray &) { return true; }
+    virtual bool setMasterLockKey(const QByteArray &, const QByteArray &) { return false; }
 
     virtual Sailfish::Secrets::Result createCollection(const QString &collectionName) = 0;
     virtual Sailfish::Secrets::Result removeCollection(const QString &collectionName) = 0;
@@ -130,49 +114,27 @@ public:
             Sailfish::Secrets::EncryptionPlugin *plugin) = 0;
 };
 
-class StoragePluginInfoPrivate;
-class SAILFISH_SECRETS_API StoragePluginInfo
-{
-public:
-    StoragePluginInfo();
-    StoragePluginInfo(const Sailfish::Secrets::StoragePluginInfo &other);
-    StoragePluginInfo(const Sailfish::Secrets::StoragePlugin *plugin);
-    ~StoragePluginInfo();
-
-    StoragePluginInfo& operator=(const StoragePluginInfo &other);
-
-    QString name() const;
-    void setName(const QString &name);
-
-    Sailfish::Secrets::StoragePlugin::StorageType storageType() const;
-    void setStorageType(Sailfish::Secrets::StoragePlugin::StorageType type);
-
-private:
-    QSharedDataPointer<StoragePluginInfoPrivate> d_ptr;
-    friend class StoragePluginInfoPrivate;
-};
-
-class SAILFISH_SECRETS_API EncryptedStoragePlugin
+class SAILFISH_SECRETS_API EncryptedStoragePlugin : public virtual Sailfish::Secrets::PluginBase
 {
 public:
     EncryptedStoragePlugin();
     virtual ~EncryptedStoragePlugin();
 
-    virtual QString name() const = 0;
     virtual Sailfish::Secrets::StoragePlugin::StorageType storageType() const = 0;
     virtual Sailfish::Secrets::EncryptionPlugin::EncryptionType encryptionType() const = 0;
     virtual Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm encryptionAlgorithm() const = 0;
 
-    virtual bool supportsLocking() const;
-    virtual bool isLocked() const;
-    virtual bool lock();
-    virtual bool unlock(const QByteArray &lockCode);
-    virtual bool setLockCode(const QByteArray &oldLockCode, const QByteArray &newLockCode);
+    // TODO: move this to the plugin wrapper!
+    virtual bool supportsMasterLock() const { return false; }
+    virtual bool isMasterLocked() const { return false; }
+    virtual bool masterLock() { return false; }
+    virtual bool masterUnlock(const QByteArray &) { return true; }
+    virtual bool setMasterLockKey(const QByteArray &, const QByteArray &) { return false; }
 
     virtual Sailfish::Secrets::Result createCollection(const QString &collectionName, const QByteArray &key) = 0;
     virtual Sailfish::Secrets::Result removeCollection(const QString &collectionName) = 0;
 
-    virtual Sailfish::Secrets::Result isLocked(const QString &collectionName, bool *locked) = 0;
+    virtual Sailfish::Secrets::Result isCollectionLocked(const QString &collectionName, bool *locked) = 0;
     virtual Sailfish::Secrets::Result deriveKeyFromCode(const QByteArray &authenticationCode, const QByteArray &salt, QByteArray *key) = 0;
     virtual Sailfish::Secrets::Result setEncryptionKey(const QString &collectionName, const QByteArray &key) = 0;
     virtual Sailfish::Secrets::Result reencrypt(const QString &collectionName, const QByteArray &oldkey, const QByteArray &newkey) = 0;
@@ -186,35 +148,7 @@ public:
     virtual Sailfish::Secrets::Result accessSecret(const QString &collectionName, const QString &hashedSecretName, const QByteArray &key, QString *secretName, QByteArray *secret, Sailfish::Secrets::Secret::FilterData *filterData) = 0;
 };
 
-class EncryptedStoragePluginInfoPrivate;
-class SAILFISH_SECRETS_API EncryptedStoragePluginInfo
-{
-public:
-    EncryptedStoragePluginInfo();
-    EncryptedStoragePluginInfo(const Sailfish::Secrets::EncryptedStoragePluginInfo &other);
-    EncryptedStoragePluginInfo(const Sailfish::Secrets::EncryptedStoragePlugin *plugin);
-    ~EncryptedStoragePluginInfo();
-
-    EncryptedStoragePluginInfo& operator=(const EncryptedStoragePluginInfo &other);
-
-    QString name() const;
-    void setName(const QString &name);
-
-    Sailfish::Secrets::StoragePlugin::StorageType storageType() const;
-    void setStorageType(Sailfish::Secrets::StoragePlugin::StorageType type);
-
-    Sailfish::Secrets::EncryptionPlugin::EncryptionType encryptionType() const;
-    void setEncryptionType(Sailfish::Secrets::EncryptionPlugin::EncryptionType type);
-
-    Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm encryptionAlgorithm() const;
-    void setEncryptionAlgorithm(Sailfish::Secrets::EncryptionPlugin::EncryptionAlgorithm algorithm);
-
-private:
-    QSharedDataPointer<EncryptedStoragePluginInfoPrivate> d_ptr;
-    friend class EncryptedSotragePluginInfoPrivate;
-};
-
-class SAILFISH_SECRETS_API AuthenticationPlugin : public QObject
+class SAILFISH_SECRETS_API AuthenticationPlugin : public QObject, public virtual PluginBase
 {
     Q_OBJECT
 
@@ -235,15 +169,8 @@ public:
     AuthenticationPlugin(QObject *parent = Q_NULLPTR);
     virtual ~AuthenticationPlugin();
 
-    virtual QString name() const = 0;
     virtual Sailfish::Secrets::AuthenticationPlugin::AuthenticationTypes authenticationTypes() const = 0;
     virtual Sailfish::Secrets::InteractionParameters::InputTypes inputTypes() const = 0;
-
-    virtual bool supportsLocking() const;
-    virtual bool isLocked() const;
-    virtual bool lock();
-    virtual bool unlock(const QByteArray &lockCode);
-    virtual bool setLockCode(const QByteArray &oldLockCode, const QByteArray &newLockCode);
 
     virtual Sailfish::Secrets::Result beginAuthentication(
             uint callerPid,
@@ -270,43 +197,9 @@ Q_SIGNALS:
             const QByteArray &userInput);
 };
 
-class AuthenticationPluginInfoPrivate;
-class SAILFISH_SECRETS_API AuthenticationPluginInfo
-{
-public:
-    AuthenticationPluginInfo();
-    AuthenticationPluginInfo(const Sailfish::Secrets::AuthenticationPluginInfo &other);
-    AuthenticationPluginInfo(const Sailfish::Secrets::AuthenticationPlugin *plugin);
-    ~AuthenticationPluginInfo();
-
-    AuthenticationPluginInfo& operator=(const AuthenticationPluginInfo &other);
-
-    QString name() const;
-    void setName(const QString &name);
-
-    Sailfish::Secrets::AuthenticationPlugin::AuthenticationTypes authenticationTypes() const;
-    void setAuthenticationTypes(Sailfish::Secrets::AuthenticationPlugin::AuthenticationTypes types);
-
-    Sailfish::Secrets::InteractionParameters::InputTypes inputTypes() const;
-    void setInputTypes(Sailfish::Secrets::InteractionParameters::InputTypes types);
-
-private:
-    QSharedDataPointer<AuthenticationPluginInfoPrivate> d_ptr;
-    friend class AuthenticationPluginInfoPrivate;
-};
-
 } // namespace Secrets
 
 } // namespace Sailfish
-
-Q_DECLARE_METATYPE(Sailfish::Secrets::EncryptionPluginInfo);
-Q_DECLARE_TYPEINFO(Sailfish::Secrets::EncryptionPluginInfo, Q_MOVABLE_TYPE);
-Q_DECLARE_METATYPE(Sailfish::Secrets::StoragePluginInfo);
-Q_DECLARE_TYPEINFO(Sailfish::Secrets::StoragePluginInfo, Q_MOVABLE_TYPE);
-Q_DECLARE_METATYPE(Sailfish::Secrets::EncryptedStoragePluginInfo);
-Q_DECLARE_TYPEINFO(Sailfish::Secrets::EncryptedStoragePluginInfo, Q_MOVABLE_TYPE);
-Q_DECLARE_METATYPE(Sailfish::Secrets::AuthenticationPluginInfo);
-Q_DECLARE_TYPEINFO(Sailfish::Secrets::AuthenticationPluginInfo, Q_MOVABLE_TYPE);
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Secrets::AuthenticationPlugin::AuthenticationTypes);
 
@@ -317,4 +210,4 @@ Q_DECLARE_INTERFACE(Sailfish::Secrets::EncryptedStoragePlugin, Sailfish_Secrets_
 Q_DECLARE_INTERFACE(Sailfish::Secrets::AuthenticationPlugin, Sailfish_Secrets_AuthenticationPlugin_IID)
 QT_END_NAMESPACE
 
-#endif // LIBSAILFISHSECRETS_EXTENSIONPLUGINS_H
+#endif // LIBSAILFISHSECRETS_PLUGINAPI_EXTENSIONPLUGINS_H

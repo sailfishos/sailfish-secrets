@@ -130,21 +130,27 @@ void tst_cryptosecrets::cleanup()
 
 void tst_cryptosecrets::getPluginInfo()
 {
-    QDBusPendingReply<Sailfish::Crypto::Result, QVector<Sailfish::Crypto::CryptoPluginInfo>, QStringList> reply = cm.getPluginInfo();
+    QDBusPendingReply<Sailfish::Crypto::Result, QVector<Sailfish::Crypto::PluginInfo>, QVector<Sailfish::Crypto::PluginInfo> > reply = cm.getPluginInfo();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
-    QVector<Sailfish::Crypto::CryptoPluginInfo> cryptoPlugins = reply.argumentAt<1>();
-    QString cryptoPluginNames;
+
+    QVector<Sailfish::Crypto::PluginInfo> cryptoPlugins = reply.argumentAt<1>();
+    QStringList cryptoPluginNames;
     for (auto p : cryptoPlugins) {
         cryptoPluginNames.append(p.name());
     }
     QVERIFY(cryptoPluginNames.size());
     QVERIFY(cryptoPluginNames.contains(Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test")));
     QVERIFY(cryptoPluginNames.contains(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName + QLatin1String(".test")));
-    QStringList storagePlugins = reply.argumentAt<2>();
-    QVERIFY(storagePlugins.size());
-    QVERIFY(storagePlugins.contains(Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test")));
+
+    QVector<Sailfish::Crypto::PluginInfo> storagePlugins = reply.argumentAt<2>();
+    QStringList storagePluginNames;
+    for (auto p : storagePlugins) {
+        storagePluginNames.append(p.name());
+    }
+    QVERIFY(storagePluginNames.size());
+    QVERIFY(storagePluginNames.contains(Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test")));
 }
 
 void tst_cryptosecrets::secretsStoredKey_data()

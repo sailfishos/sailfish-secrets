@@ -3,13 +3,13 @@ TARGET = authentication-client
 
 include($$PWD/../../../lib/libsailfishsecrets.pri)
 
-CONFIG += \
-    link_pkgconfig
+CONFIG += link_pkgconfig
+PKGCONFIG += qt5-boostable
 
 SOURCES += main.cpp
 
-PKGCONFIG += \
-    qt5-boostable
+SOURCES += $$PWD/../../../lib/SecretsPluginApi/extensionplugins.cpp
+HEADERS += $$PWD/../../../lib/SecretsPluginApi/extensionplugins.h
 
 target.path = /opt/tests/Sailfish/Secrets/
 

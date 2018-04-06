@@ -12,7 +12,7 @@
 #include "Secrets/secret.h"
 #include "Secrets/interactionparameters.h"
 #include "Secrets/secretsdaemonconnection_p.h"
-#include "Secrets/extensionplugins.h"
+#include "Secrets/plugininfo.h"
 #include "Secrets/interactionview.h"
 #include "Secrets/interactionservice_p.h"
 #include "Secrets/lockcoderequest.h"
@@ -48,10 +48,10 @@ public:
 
     // retrieve information about plugins
     QDBusPendingReply<Sailfish::Secrets::Result,
-                      QVector<Sailfish::Secrets::StoragePluginInfo>,
-                      QVector<Sailfish::Secrets::EncryptionPluginInfo>,
-                      QVector<Sailfish::Secrets::EncryptedStoragePluginInfo>,
-                      QVector<Sailfish::Secrets::AuthenticationPluginInfo> > pluginInfo();
+                      QVector<Sailfish::Secrets::PluginInfo>,
+                      QVector<Sailfish::Secrets::PluginInfo>,
+                      QVector<Sailfish::Secrets::PluginInfo>,
+                      QVector<Sailfish::Secrets::PluginInfo> > getPluginInfo();
 
     // retrieve user input data
     QDBusPendingReply<Sailfish::Secrets::Result, QByteArray> userInput(
@@ -164,11 +164,6 @@ private:
     InteractionView *m_interactionView;
     Sailfish::Secrets::SecretsDaemonConnection *m_secrets;
     QDBusInterface *m_interface;
-
-    QMap<QString, Sailfish::Secrets::StoragePluginInfo> m_storagePluginInfo;
-    QMap<QString, Sailfish::Secrets::EncryptionPluginInfo> m_encryptionPluginInfo;
-    QMap<QString, Sailfish::Secrets::EncryptedStoragePluginInfo> m_encryptedStoragePluginInfo;
-    QMap<QString, Sailfish::Secrets::AuthenticationPluginInfo> m_authenticationPluginInfo;
 };
 
 } // namespace Secrets

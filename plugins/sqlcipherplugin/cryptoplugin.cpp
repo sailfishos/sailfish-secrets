@@ -256,54 +256,6 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::getFullKey(
     return key;
 }
 
-QVector<Sailfish::Crypto::CryptoManager::Algorithm>
-Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::supportedAlgorithms() const
-{
-    return m_opensslCryptoPlugin.supportedAlgorithms();
-}
-
-QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::BlockMode> >
-Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::supportedBlockModes() const
-{
-    return m_opensslCryptoPlugin.supportedBlockModes();
-}
-
-QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::EncryptionPadding> >
-Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::supportedEncryptionPaddings() const
-{
-    return m_opensslCryptoPlugin.supportedEncryptionPaddings();
-}
-
-QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::SignaturePadding> >
-Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::supportedSignaturePaddings() const
-{
-    return m_opensslCryptoPlugin.supportedSignaturePaddings();
-}
-
-QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::DigestFunction> >
-Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::supportedDigests() const
-{
-    return m_opensslCryptoPlugin.supportedDigests();
-}
-
-QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::MessageAuthenticationCode> >
-Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::supportedMessageAuthenticationCodes() const
-{
-    return m_opensslCryptoPlugin.supportedMessageAuthenticationCodes();
-}
-
-QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::KeyDerivationFunction> >
-Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::supportedKeyDerivationFunctions() const
-{
-    return m_opensslCryptoPlugin.supportedKeyDerivationFunctions();
-}
-
-QMap<Sailfish::Crypto::CryptoManager::Algorithm, Sailfish::Crypto::CryptoManager::Operations>
-Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::supportedOperations() const
-{
-    return m_opensslCryptoPlugin.supportedOperations();
-}
-
 Sailfish::Crypto::Result
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::generateRandomData(
         quint64 callerIdent,

@@ -8,7 +8,7 @@
 #ifndef SAILFISHCRYPTO_PLUGIN_CRYPTO_OPENSSL_H
 #define SAILFISHCRYPTO_PLUGIN_CRYPTO_OPENSSL_H
 
-#include "Crypto/extensionplugins.h"
+#include "CryptoPluginApi/extensionplugins.h"
 
 #include <QObject>
 #include <QByteArray>
@@ -34,7 +34,7 @@ namespace Daemon {
 
 namespace Plugins {
 
-class OPENSSLCRYPTOPLUGIN_EXPORT OpenSslCryptoPlugin : public QObject, public Sailfish::Crypto::CryptoPlugin
+class OPENSSLCRYPTOPLUGIN_EXPORT OpenSslCryptoPlugin : public QObject, public virtual Sailfish::Crypto::CryptoPlugin
 {
     Q_OBJECT
 #ifdef SAILFISHCRYPTO_BUILD_OPENSSLCRYPTOPLUGIN
@@ -53,19 +53,12 @@ public:
         return QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl");
 #endif
     }
+    int version() const Q_DECL_OVERRIDE {
+        return 1;
+    }
 
     bool canStoreKeys() const Q_DECL_OVERRIDE { return false; }
-
     Sailfish::Crypto::CryptoPlugin::EncryptionType encryptionType() const Q_DECL_OVERRIDE { return Sailfish::Crypto::CryptoPlugin::SoftwareEncryption; }
-
-    QVector<Sailfish::Crypto::CryptoManager::Algorithm> supportedAlgorithms() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::BlockMode> > supportedBlockModes() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::EncryptionPadding> > supportedEncryptionPaddings() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::SignaturePadding> > supportedSignaturePaddings() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::DigestFunction> > supportedDigests() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::MessageAuthenticationCode> > supportedMessageAuthenticationCodes() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::KeyDerivationFunction> > supportedKeyDerivationFunctions() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, Sailfish::Crypto::CryptoManager::Operations> supportedOperations() const Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result generateRandomData(
             quint64 callerIdent,

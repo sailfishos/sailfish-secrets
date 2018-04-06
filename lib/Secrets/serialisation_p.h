@@ -17,7 +17,7 @@
 #include "Secrets/result.h"
 #include "Secrets/secret.h"
 #include "Secrets/interactionparameters.h"
-#include "Secrets/extensionplugins.h"
+#include "Secrets/plugininfo.h"
 #include "Secrets/secretmanager.h"
 #include "Secrets/interactionparameters.h"
 #include "Secrets/interactionresponse.h"
@@ -50,14 +50,8 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::SecretManager::FilterOperator filterOperator) SAILFISH_SECRETS_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::SecretManager::FilterOperator &filterOperator) SAILFISH_SECRETS_API;
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::EncryptionPluginInfo &info) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::EncryptionPluginInfo &info) SAILFISH_SECRETS_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::StoragePluginInfo &info) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::StoragePluginInfo &info) SAILFISH_SECRETS_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::EncryptedStoragePluginInfo &info) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::EncryptedStoragePluginInfo &info) SAILFISH_SECRETS_API;
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::AuthenticationPluginInfo &info) SAILFISH_SECRETS_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::AuthenticationPluginInfo &info) SAILFISH_SECRETS_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::PluginInfo &info) SAILFISH_SECRETS_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::PluginInfo &info) SAILFISH_SECRETS_API;
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionParameters::InputType &type) SAILFISH_SECRETS_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionParameters::InputType &type) SAILFISH_SECRETS_API;

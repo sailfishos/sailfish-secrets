@@ -15,7 +15,7 @@
 #include "Secrets/result.h"
 #include "Secrets/secretmanager.h"
 #include "Secrets/secret.h"
-#include "Secrets/extensionplugins.h"
+#include "Secrets/plugininfo.h"
 
 #include <QtCore/QPluginLoader>
 #include <QtCore/QDataStream>
@@ -64,25 +64,25 @@ Result
 Daemon::ApiImpl::RequestProcessor::getPluginInfo(
         pid_t callerPid,
         quint64 requestId,
-        QVector<StoragePluginInfo> *storagePlugins,
-        QVector<EncryptionPluginInfo> *encryptionPlugins,
-        QVector<EncryptedStoragePluginInfo> *encryptedStoragePlugins,
-        QVector<AuthenticationPluginInfo> *authenticationPlugins)
+        QVector<PluginInfo> *storagePlugins,
+        QVector<PluginInfo> *encryptionPlugins,
+        QVector<PluginInfo> *encryptedStoragePlugins,
+        QVector<PluginInfo> *authenticationPlugins)
 {
     Q_UNUSED(callerPid); // TODO: perform access control request to see if the application has permission to read secure storage metadata.
     Q_UNUSED(requestId); // The request is synchronous, so don't need the requestId.
 
     for (const StoragePlugin *plugin : m_storagePlugins.values()) {
-        storagePlugins->append(StoragePluginInfo(plugin));
+        storagePlugins->append(PluginInfo(plugin->name(), plugin->version()));
     }
     for (const EncryptionPlugin *plugin : m_encryptionPlugins.values()) {
-        encryptionPlugins->append(EncryptionPluginInfo(plugin));
+        encryptionPlugins->append(PluginInfo(plugin->name(), plugin->version()));
     }
     for (const EncryptedStoragePlugin *plugin : m_encryptedStoragePlugins.values()) {
-        encryptedStoragePlugins->append(EncryptedStoragePluginInfo(plugin));
+        encryptedStoragePlugins->append(PluginInfo(plugin->name(), plugin->version()));
     }
     for (const AuthenticationPlugin *plugin : m_authenticationPlugins.values()) {
-        authenticationPlugins->append(AuthenticationPluginInfo(plugin));
+        authenticationPlugins->append(PluginInfo(plugin->name(), plugin->version()));
     }
 
     return Result(Result::Succeeded);
@@ -766,7 +766,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretMetadata(
     QFuture<EncryptedStoragePluginWrapper::LockedResult> future
             = QtConcurrent::run(
                     m_requestQueue->secretsThreadPool().data(),
-                    EncryptedStoragePluginWrapper::isLocked,
+                    EncryptedStoragePluginWrapper::isCollectionLocked,
                     m_encryptedStoragePlugins[collectionStoragePluginName],
                     identifier.collectionName());
     future.waitForFinished();
@@ -1077,7 +1077,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
         QFuture<EncryptedStoragePluginWrapper::LockedResult> future
                 = QtConcurrent::run(
                         m_requestQueue->secretsThreadPool().data(),
-                        EncryptedStoragePluginWrapper::isLocked,
+                        EncryptedStoragePluginWrapper::isCollectionLocked,
                         m_encryptedStoragePlugins[collectionStoragePluginName],
                         secret.identifier().collectionName());
         future.waitForFinished();
@@ -2228,7 +2228,7 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
         QFuture<EncryptedStoragePluginWrapper::LockedResult> future
                 = QtConcurrent::run(
                         m_requestQueue->secretsThreadPool().data(),
-                        EncryptedStoragePluginWrapper::isLocked,
+                        EncryptedStoragePluginWrapper::isCollectionLocked,
                         m_encryptedStoragePlugins[collectionStoragePluginName],
                         identifier.collectionName());
         future.waitForFinished();
@@ -2881,7 +2881,7 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
         QFuture<EncryptedStoragePluginWrapper::LockedResult> future
                 = QtConcurrent::run(
                         m_requestQueue->secretsThreadPool().data(),
-                        EncryptedStoragePluginWrapper::isLocked,
+                        EncryptedStoragePluginWrapper::isCollectionLocked,
                         m_encryptedStoragePlugins[collectionStoragePluginName],
                         collectionName);
         future.waitForFinished();
@@ -3271,7 +3271,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
         QFuture<EncryptedStoragePluginWrapper::LockedResult> future
                 = QtConcurrent::run(
                         m_requestQueue->secretsThreadPool().data(),
-                        EncryptedStoragePluginWrapper::isLocked,
+                        EncryptedStoragePluginWrapper::isCollectionLocked,
                         m_encryptedStoragePlugins[collectionStoragePluginName],
                         identifier.collectionName());
         future.waitForFinished();
@@ -3865,7 +3865,7 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCodes(
                     m_encryptionPlugins,
                     m_encryptedStoragePlugins,
                     lockCodeTarget,
-                    std::make_tuple(oldLockCode, newLockCode));
+                    LockCodes(oldLockCode, newLockCode));
         future.waitForFinished();
         FoundResult fr = future.result();
         if (fr.found) {
@@ -4078,33 +4078,14 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCodes(
         }
     }
 
-    // finally, re-initialise plugins with the new device lock key.
-    for (AuthenticationPlugin *aplugin : m_authenticationPlugins.values()) {
-        if (aplugin->supportsLocking()) {
-            if (aplugin->isLocked()) {
-                if (!aplugin->unlock(oldDeviceLockKey)) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock authentication plugin:" << aplugin->name();
-                }
-            }
-            if (!aplugin->setLockCode(oldDeviceLockKey, m_requestQueue->deviceLockKey())) {
-                qCWarning(lcSailfishSecretsDaemon) << "Failed to set lock code for authentication plugin:" << aplugin->name();
-            }
-        }
-    }
-
     QFuture<bool> future = QtConcurrent::run(
                 m_requestQueue->secretsThreadPool().data(),
-                &Daemon::ApiImpl::modifyLockPlugins,
-                m_encryptionPlugins.values(),
+                &Daemon::ApiImpl::modifyMasterLockPlugins,
                 m_storagePlugins.values(),
                 m_encryptedStoragePlugins.values(),
                 oldDeviceLockKey,
                 m_requestQueue->deviceLockKey());
     future.waitForFinished();
-
-    if (!m_requestQueue->setLockCodeCryptoPlugins(oldDeviceLockKey, m_requestQueue->deviceLockKey())) {
-        qCWarning(lcSailfishSecretsDaemon) << "Failed to set the lock code for crypto plugins!";
-    }
 
     return reencryptResult;
 }
@@ -4289,28 +4270,13 @@ Daemon::ApiImpl::RequestProcessor::provideLockCodeWithLockCode(
     }
 
     // unlock all of our plugins
-    for (AuthenticationPlugin *aplugin : m_authenticationPlugins.values()) {
-        if (aplugin->supportsLocking()) {
-            if (aplugin->isLocked()) {
-                if (!aplugin->unlock(m_requestQueue->deviceLockKey())) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock authentication plugin:" << aplugin->name();
-                }
-            }
-        }
-    }
-
     QFuture<bool> future = QtConcurrent::run(
                 m_requestQueue->secretsThreadPool().data(),
-                &Daemon::ApiImpl::unlockPlugins,
-                m_encryptionPlugins.values(),
+                &Daemon::ApiImpl::masterUnlockPlugins,
                 m_storagePlugins.values(),
                 m_encryptedStoragePlugins.values(),
                 m_requestQueue->deviceLockKey());
     future.waitForFinished();
-
-    if (!m_requestQueue->unlockCryptoPlugins(m_requestQueue->deviceLockKey())) {
-        qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock crypto plugins!";
-    }
 
     return lockResult;
 }
@@ -4407,19 +4373,12 @@ Daemon::ApiImpl::RequestProcessor::forgetLockCode(
         Result lockResult = m_bkdb->lock();
 
         // lock all of our plugins
-        for (AuthenticationPlugin *aplugin : m_authenticationPlugins.values()) {
-            aplugin->lock();
-        }
-
         QFuture<bool> future = QtConcurrent::run(
                     m_requestQueue->secretsThreadPool().data(),
-                    &Daemon::ApiImpl::lockPlugins,
-                    m_encryptionPlugins.values(),
+                    &Daemon::ApiImpl::masterLockPlugins,
                     m_storagePlugins.values(),
                     m_encryptedStoragePlugins.values());
         future.waitForFinished();
-
-        m_requestQueue->lockCryptoPlugins();
 
         return lockResult;
     }

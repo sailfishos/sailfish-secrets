@@ -8,7 +8,8 @@
 #ifndef SAILFISHSECRETS_PLUGIN_AUTHENTICATION_PASSWORDAGENT_H
 #define SAILFISHSECRETS_PLUGIN_AUTHENTICATION_PASSWORDAGENT_H
 
-#include "Secrets/extensionplugins.h"
+#include "SecretsPluginApi/extensionplugins.h"
+
 #include "Secrets/interactionparameters.h"
 
 #include <QtCore/QHash>
@@ -47,6 +48,7 @@ public:
         return QLatin1String("org.sailfishos.secrets.plugin.authentication.passwordagent");
 #endif
     }
+    int version() const Q_DECL_OVERRIDE { return 1; }
 
     AuthenticationPlugin::AuthenticationTypes authenticationTypes() const Q_DECL_OVERRIDE;
     InteractionParameters::InputTypes inputTypes() const Q_DECL_OVERRIDE;

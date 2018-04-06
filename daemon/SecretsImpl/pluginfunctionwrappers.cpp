@@ -19,50 +19,44 @@ FoundResult Daemon::ApiImpl::lockSpecificPlugin(
         const QMap<QString, EncryptedStoragePlugin*> &encryptedStoragePlugins,
         const QString &lockCodeTarget)
 {
+    auto lambda = [] (PluginBase *p,
+                      const QString &type,
+                      const QString &name,
+                      Result *result) {
+        if (!p->supportsLocking()) {
+            *result = Result(Result::OperationNotSupportedError,
+                             QStringLiteral("%1 plugin %2 does not support locking")
+                             .arg(type, name));
+        }
+        if (p->isLocked() && !p->lock()) {
+            *result = Result(Result::UnknownError,
+                             QStringLiteral("Failed to lock %1 plugin %2")
+                             .arg(type, name));
+        }
+    };
+
+    bool found = true;
+    Result result(Result::Succeeded);
     if (storagePlugins.contains(lockCodeTarget)) {
-        StoragePlugin *p = storagePlugins.value(lockCodeTarget);
-        if (!p->supportsLocking()) {
-            return FoundResult(true,
-                               Result(Result::OperationNotSupportedError,
-                                      QStringLiteral("Storage plugin %1 does not support locking")
-                                      .arg(lockCodeTarget)));
-        } else if (!p->lock()) {
-            return FoundResult(true,
-                               Result(Result::UnknownError,
-                                      QStringLiteral("Failed to lock storage plugin %1")
-                                      .arg(lockCodeTarget)));
-        }
-        return FoundResult(true, Result(Result::Succeeded));
-    } else if (encryptionPlugins.contains(lockCodeTarget)) {
-        EncryptionPlugin *p = encryptionPlugins.value(lockCodeTarget);
-        if (!p->supportsLocking()) {
-            return FoundResult(true,
-                               Result(Result::OperationNotSupportedError,
-                                      QStringLiteral("Encryption plugin %1 does not support locking")
-                                      .arg(lockCodeTarget)));
-        } else if (!p->lock()) {
-            return FoundResult(true,
-                               Result(Result::UnknownError,
-                                      QStringLiteral("Failed to lock encryption plugin %1")
-                                      .arg(lockCodeTarget)));
-        }
-        return FoundResult(true, Result(Result::Succeeded));
+        lambda(storagePlugins.value(lockCodeTarget),
+               QStringLiteral("storage"),
+               lockCodeTarget,
+               &result);
     } else if (encryptedStoragePlugins.contains(lockCodeTarget)) {
-        EncryptedStoragePlugin *p = encryptedStoragePlugins.value(lockCodeTarget);
-        if (!p->supportsLocking()) {
-            return FoundResult(true,
-                               Result(Result::OperationNotSupportedError,
-                                      QStringLiteral("Encrypted storage plugin %1 does not support locking")
-                                      .arg(lockCodeTarget)));
-        } else if (!p->lock()) {
-            return FoundResult(true,
-                               Result(Result::UnknownError,
-                                      QStringLiteral("Failed to lock encrypted storage plugin %1")
-                                      .arg(lockCodeTarget)));
-        }
-        return FoundResult(true, Result(Result::Succeeded));
+        lambda(encryptedStoragePlugins.value(lockCodeTarget),
+               QStringLiteral("encrypted storage"),
+               lockCodeTarget,
+               &result);
+    } else if (encryptionPlugins.contains(lockCodeTarget)) {
+        lambda(encryptionPlugins.value(lockCodeTarget),
+               QStringLiteral("encryption"),
+               lockCodeTarget,
+               &result);
+    } else {
+        found = false;
     }
-    return FoundResult(false, Result(Result::Failed));
+
+    return FoundResult(found, result);
 }
 
 FoundResult Daemon::ApiImpl::unlockSpecificPlugin(
@@ -72,50 +66,48 @@ FoundResult Daemon::ApiImpl::unlockSpecificPlugin(
         const QString &lockCodeTarget,
         const QByteArray &lockCode)
 {
+    auto lambda = [] (PluginBase *p,
+                      const QString &type,
+                      const QString &name,
+                      const QByteArray &lockCode,
+                      Result *result) {
+        if (!p->supportsLocking()) {
+            *result = Result(Result::OperationNotSupportedError,
+                             QStringLiteral("%1 plugin %2 does not support locking")
+                             .arg(type, name));
+        }
+        if (!p->isLocked() && !p->unlock(lockCode)) {
+            *result = Result(Result::UnknownError,
+                             QStringLiteral("Failed to unlock %1 plugin %2")
+                             .arg(type, name));
+        }
+    };
+
+    bool found = true;
+    Result result(Result::Succeeded);
     if (storagePlugins.contains(lockCodeTarget)) {
-        StoragePlugin *p = storagePlugins.value(lockCodeTarget);
-        if (!p->supportsLocking()) {
-            return FoundResult(true,
-                               Result(Result::OperationNotSupportedError,
-                                      QStringLiteral("Storage plugin %1 does not support locking")
-                                      .arg(lockCodeTarget)));
-        } else if (!p->unlock(lockCode)) {
-            return FoundResult(true,
-                               Result(Result::UnknownError,
-                                      QStringLiteral("Failed to unlock storage plugin %1")
-                                      .arg(lockCodeTarget)));
-        }
-        return FoundResult(true, Result(Result::Succeeded));
-    } else if (encryptionPlugins.contains(lockCodeTarget)) {
-        EncryptionPlugin *p = encryptionPlugins.value(lockCodeTarget);
-        if (!p->supportsLocking()) {
-            return FoundResult(true,
-                               Result(Result::OperationNotSupportedError,
-                                      QStringLiteral("Encryption plugin %1 does not support locking")
-                                      .arg(lockCodeTarget)));
-        } else if (!p->unlock(lockCode)) {
-            return FoundResult(true,
-                               Result(Result::UnknownError,
-                                      QStringLiteral("Failed to unlock encryption plugin %1")
-                                      .arg(lockCodeTarget)));
-        }
-        return FoundResult(true, Result(Result::Succeeded));
+        lambda(storagePlugins.value(lockCodeTarget),
+               QStringLiteral("storage"),
+               lockCodeTarget,
+               lockCode,
+               &result);
     } else if (encryptedStoragePlugins.contains(lockCodeTarget)) {
-        EncryptedStoragePlugin *p = encryptedStoragePlugins.value(lockCodeTarget);
-        if (!p->supportsLocking()) {
-            return FoundResult(true,
-                               Result(Result::OperationNotSupportedError,
-                                      QStringLiteral("Encrypted storage plugin %1 does not support locking").
-                                      arg(lockCodeTarget)));
-        } else if (!p->unlock(lockCode)) {
-            return FoundResult(true,
-                               Result(Result::UnknownError,
-                                      QStringLiteral("Failed to unlock encrypted storage plugin %1")
-                                      .arg(lockCodeTarget)));
-        }
-        return FoundResult(true, Result(Result::Succeeded));
+        lambda(encryptedStoragePlugins.value(lockCodeTarget),
+               QStringLiteral("encrypted storage"),
+               lockCodeTarget,
+               lockCode,
+               &result);
+    } else if (encryptionPlugins.contains(lockCodeTarget)) {
+        lambda(encryptionPlugins.value(lockCodeTarget),
+               QStringLiteral("encryption"),
+               lockCodeTarget,
+               lockCode,
+               &result);
+    } else {
+        found = false;
     }
-    return FoundResult(false, Result(Result::Failed));
+
+    return FoundResult(found, result);
 }
 
 FoundResult Daemon::ApiImpl::modifyLockSpecificPlugin(
@@ -123,88 +115,76 @@ FoundResult Daemon::ApiImpl::modifyLockSpecificPlugin(
         const QMap<QString, EncryptionPlugin*> &encryptionPlugins,
         const QMap<QString, EncryptedStoragePlugin*> &encryptedStoragePlugins,
         const QString &lockCodeTarget,
-        std::tuple<QByteArray, QByteArray> newAndOldLockCode)
+        const LockCodes &newAndOldLockCode)
 {
+    auto lambda = [] (PluginBase *p,
+                      const QString &type,
+                      const QString &name,
+                      const QByteArray &oldLockCode,
+                      const QByteArray &newLockCode,
+                      Result *result) {
+        if (!p->supportsLocking()) {
+            *result = Result(Result::OperationNotSupportedError,
+                             QStringLiteral("%1 plugin %2 does not support locking")
+                             .arg(type, name));
+        }
+        if (!p->setLockCode(oldLockCode, newLockCode)) {
+            *result = Result(Result::UnknownError,
+                             QStringLiteral("Failed to set lock code for %1 plugin %2")
+                             .arg(type, name));
+        }
+    };
+
+    bool found = true;
+    Result result(Result::Succeeded);
     if (storagePlugins.contains(lockCodeTarget)) {
-        StoragePlugin *p = storagePlugins.value(lockCodeTarget);
-        if (!p->supportsLocking()) {
-            return FoundResult(true,
-                               Result(Result::OperationNotSupportedError,
-                                      QStringLiteral("Storage plugin %1 does not support locking")
-                                      .arg(lockCodeTarget)));
-        } else if (!p->setLockCode(std::get<0>(newAndOldLockCode),
-                                   std::get<1>(newAndOldLockCode))) {
-            return FoundResult(true,
-                               Result(Result::UnknownError,
-                                      QStringLiteral("Failed to unlock storage plugin %1")
-                                      .arg(lockCodeTarget)));
-        }
-        return FoundResult(true, Result(Result::Succeeded));
-    } else if (encryptionPlugins.contains(lockCodeTarget)) {
-        EncryptionPlugin *p = encryptionPlugins.value(lockCodeTarget);
-        if (!p->supportsLocking()) {
-            return FoundResult(true,
-                               Result(Result::OperationNotSupportedError,
-                                      QStringLiteral("Encryption plugin %1 does not support locking")
-                                      .arg(lockCodeTarget)));
-        } else if (!p->setLockCode(std::get<0>(newAndOldLockCode),
-                                   std::get<1>(newAndOldLockCode))) {
-            return FoundResult(true,
-                               Result(Result::UnknownError,
-                                      QStringLiteral("Failed to unlock encryption plugin %1")
-                                      .arg(lockCodeTarget)));
-        }
-        return FoundResult(true, Result(Result::Succeeded));
+        lambda(storagePlugins.value(lockCodeTarget),
+               QStringLiteral("storage"),
+               lockCodeTarget,
+               newAndOldLockCode.oldCode,
+               newAndOldLockCode.newCode,
+               &result);
     } else if (encryptedStoragePlugins.contains(lockCodeTarget)) {
-        EncryptedStoragePlugin *p = encryptedStoragePlugins.value(lockCodeTarget);
-        if (!p->supportsLocking()) {
-            return FoundResult(true,
-                               Result(Result::OperationNotSupportedError,
-                                      QStringLiteral("Encrypted storage plugin %1 does not support locking")
-                                      .arg(lockCodeTarget)));
-        } else if (!p->setLockCode(std::get<0>(newAndOldLockCode),
-                                   std::get<1>(newAndOldLockCode))) {
-            return FoundResult(true,
-                               Result(Result::UnknownError,
-                                      QStringLiteral("Failed to unlock encrypted storage plugin %1")
-                                      .arg(lockCodeTarget)));
-        }
-        return FoundResult(true, Result(Result::Succeeded));
+        lambda(encryptedStoragePlugins.value(lockCodeTarget),
+               QStringLiteral("encrypted storage"),
+               lockCodeTarget,
+               newAndOldLockCode.oldCode,
+               newAndOldLockCode.newCode,
+               &result);
+    } else if (encryptionPlugins.contains(lockCodeTarget)) {
+        lambda(encryptionPlugins.value(lockCodeTarget),
+               QStringLiteral("encryption"),
+               lockCodeTarget,
+               newAndOldLockCode.oldCode,
+               newAndOldLockCode.newCode,
+               &result);
+    } else {
+        found = false;
     }
-    return FoundResult(false, Result(Result::Failed));
+
+    return FoundResult(found, result);
 }
 
-bool Daemon::ApiImpl::lockPlugins(
-        const QList<EncryptionPlugin*> &encryptionPlugins,
+bool Daemon::ApiImpl::masterLockPlugins(
         const QList<StoragePlugin*> &storagePlugins,
         const QList<EncryptedStoragePlugin*> &encryptedStoragePlugins)
 {
     bool allSucceeded = true;
-    for (EncryptionPlugin *eplugin : encryptionPlugins) {
-        if (eplugin->supportsLocking()) {
-            if (!eplugin->isLocked()) {
-                if (!eplugin->lock()) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to lock encryption plugin:" << eplugin->name();
-                    allSucceeded = false;
-                }
-            }
-        }
-    }
     for (StoragePlugin *splugin : storagePlugins) {
-        if (splugin->supportsLocking()) {
-            if (!splugin->isLocked()) {
-                if (!splugin->lock()) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to lock storage plugin:" << splugin->name();
+        if (splugin->supportsMasterLock()) {
+            if (!splugin->isMasterLocked()) {
+                if (!splugin->masterLock()) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Failed to master-lock storage plugin:" << splugin->name();
                     allSucceeded = false;
                 }
             }
         }
     }
     for (EncryptedStoragePlugin *esplugin : encryptedStoragePlugins) {
-        if (esplugin->supportsLocking()) {
-            if (!esplugin->isLocked()) {
-                if (!esplugin->lock()) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to lock encrypted storage plugin:" << esplugin->name();
+        if (esplugin->supportsMasterLock()) {
+            if (!esplugin->isMasterLocked()) {
+                if (!esplugin->masterLock()) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Failed to master-lock encrypted storage plugin:" << esplugin->name();
                     allSucceeded = false;
                 }
             }
@@ -213,38 +193,27 @@ bool Daemon::ApiImpl::lockPlugins(
     return allSucceeded;
 }
 
-bool Daemon::ApiImpl::unlockPlugins(
-        const QList<EncryptionPlugin*> &encryptionPlugins,
+bool Daemon::ApiImpl::masterUnlockPlugins(
         const QList<StoragePlugin*> &storagePlugins,
         const QList<EncryptedStoragePlugin*> &encryptedStoragePlugins,
         const QByteArray &encryptionKey)
 {
     bool allSucceeded = true;
-    for (EncryptionPlugin *eplugin : encryptionPlugins) {
-        if (eplugin->supportsLocking()) {
-            if (eplugin->isLocked()) {
-                if (!eplugin->unlock(encryptionKey)) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock encryption plugin:" << eplugin->name();
-                    allSucceeded = false;
-                }
-            }
-        }
-    }
     for (StoragePlugin *splugin : storagePlugins) {
-        if (splugin->supportsLocking()) {
-            if (splugin->isLocked()) {
-                if (!splugin->unlock(encryptionKey)) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock storage plugin:" << splugin->name();
+        if (splugin->supportsMasterLock()) {
+            if (splugin->isMasterLocked()) {
+                if (!splugin->masterUnlock(encryptionKey)) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Failed to master-unlock storage plugin:" << splugin->name();
                     allSucceeded = false;
                 }
             }
         }
     }
     for (EncryptedStoragePlugin *esplugin : encryptedStoragePlugins) {
-        if (esplugin->supportsLocking()) {
-            if (esplugin->isLocked()) {
-                if (!esplugin->unlock(encryptionKey)) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock encrypted storage plugin:" << esplugin->name();
+        if (esplugin->supportsMasterLock()) {
+            if (esplugin->isMasterLocked()) {
+                if (!esplugin->masterUnlock(encryptionKey)) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Failed to master-unlock encrypted storage plugin:" << esplugin->name();
                     allSucceeded = false;
                 }
             }
@@ -253,49 +222,35 @@ bool Daemon::ApiImpl::unlockPlugins(
     return allSucceeded;
 }
 
-bool Daemon::ApiImpl::modifyLockPlugins(
-        const QList<EncryptionPlugin*> &encryptionPlugins,
+bool Daemon::ApiImpl::modifyMasterLockPlugins(
         const QList<StoragePlugin*> &storagePlugins,
         const QList<EncryptedStoragePlugin*> &encryptedStoragePlugins,
         const QByteArray &oldEncryptionKey,
         const QByteArray &newEncryptionKey)
 {
     bool allSucceeded = true;
-    for (EncryptionPlugin *eplugin : encryptionPlugins) {
-        if (eplugin->supportsLocking()) {
-            if (eplugin->isLocked()) {
-                if (!eplugin->unlock(oldEncryptionKey)) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock encryption plugin:" << eplugin->name();
-                }
-            }
-            if (!eplugin->setLockCode(oldEncryptionKey, newEncryptionKey)) {
-                qCWarning(lcSailfishSecretsDaemon) << "Failed to set lock code for encryption plugin:" << eplugin->name();
-                allSucceeded = false;
-            }
-        }
-    }
     for (StoragePlugin *splugin : storagePlugins) {
-        if (splugin->supportsLocking()) {
-            if (splugin->isLocked()) {
-                if (!splugin->unlock(oldEncryptionKey)) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock storage plugin:" << splugin->name();
+        if (splugin->supportsMasterLock()) {
+            if (splugin->isMasterLocked()) {
+                if (!splugin->masterUnlock(oldEncryptionKey)) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Failed to master-unlock storage plugin:" << splugin->name();
                 }
             }
-            if (!splugin->setLockCode(oldEncryptionKey, newEncryptionKey)) {
-                qCWarning(lcSailfishSecretsDaemon) << "Failed to set lock code for storage plugin:" << splugin->name();
+            if (!splugin->setMasterLockKey(oldEncryptionKey, newEncryptionKey)) {
+                qCWarning(lcSailfishSecretsDaemon) << "Failed to set master lock code for storage plugin:" << splugin->name();
                 allSucceeded = false;
             }
         }
     }
     for (EncryptedStoragePlugin *esplugin : encryptedStoragePlugins) {
-        if (esplugin->supportsLocking()) {
-            if (esplugin->isLocked()) {
-                if (!esplugin->unlock(oldEncryptionKey)) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock encrypted storage plugin:" << esplugin->name();
+        if (esplugin->supportsMasterLock()) {
+            if (esplugin->isMasterLocked()) {
+                if (!esplugin->masterUnlock(oldEncryptionKey)) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Failed to master-unlock encrypted storage plugin:" << esplugin->name();
                 }
             }
-            if (!esplugin->setLockCode(oldEncryptionKey, newEncryptionKey)) {
-                qCWarning(lcSailfishSecretsDaemon) << "Failed to set lock code for encrypted storage plugin:" << esplugin->name();
+            if (!esplugin->setMasterLockKey(oldEncryptionKey, newEncryptionKey)) {
+                qCWarning(lcSailfishSecretsDaemon) << "Failed to set master lock code for encrypted storage plugin:" << esplugin->name();
                 allSucceeded = false;
             }
         }
@@ -587,12 +542,12 @@ Result EncryptedStoragePluginWrapper::removeCollection(
 }
 
 EncryptedStoragePluginWrapper::LockedResult
-EncryptedStoragePluginWrapper::isLocked(
+EncryptedStoragePluginWrapper::isCollectionLocked(
         EncryptedStoragePlugin *plugin,
         const QString &collectionName)
 {
     bool locked = false;
-    Result result = plugin->isLocked(collectionName, &locked);
+    Result result = plugin->isCollectionLocked(collectionName, &locked);
     return EncryptedStoragePluginWrapper::LockedResult(result, locked);
 }
 
@@ -726,7 +681,7 @@ Result EncryptedStoragePluginWrapper::unlockCollectionAndStoreSecret(
         const QByteArray &encryptionKey)
 {
     bool locked = false;
-    Result pluginResult = plugin->isLocked(secret.identifier().collectionName(), &locked);
+    Result pluginResult = plugin->isCollectionLocked(secret.identifier().collectionName(), &locked);
     if (pluginResult.code() == Result::Succeeded) {
         if (locked) {
             pluginResult = plugin->setEncryptionKey(secret.identifier().collectionName(), encryptionKey);
@@ -737,7 +692,7 @@ Result EncryptedStoragePluginWrapper::unlockCollectionAndStoreSecret(
                               QString::fromLatin1("Unable to decrypt collection %1 with the entered authentication key").arg(secret.identifier().collectionName()));
 
             }
-            pluginResult = plugin->isLocked(secret.identifier().collectionName(), &locked);
+            pluginResult = plugin->isCollectionLocked(secret.identifier().collectionName(), &locked);
             if (pluginResult.code() != Result::Succeeded) {
                 plugin->setEncryptionKey(secret.identifier().collectionName(), QByteArray());
                 return Result(Result::SecretsPluginDecryptionError,
@@ -766,7 +721,7 @@ SecretResult EncryptedStoragePluginWrapper::unlockCollectionAndReadSecret(
 {
     Secret secret;
     bool locked = false;
-    Result pluginResult = plugin->isLocked(identifier.collectionName(), &locked);
+    Result pluginResult = plugin->isCollectionLocked(identifier.collectionName(), &locked);
     if (pluginResult.code() != Result::Succeeded) {
         return SecretResult(pluginResult, secret);
     }
@@ -783,7 +738,7 @@ SecretResult EncryptedStoragePluginWrapper::unlockCollectionAndReadSecret(
                                 secret);
 
         }
-        pluginResult = plugin->isLocked(identifier.collectionName(), &locked);
+        pluginResult = plugin->isCollectionLocked(identifier.collectionName(), &locked);
         if (pluginResult.code() != Result::Succeeded) {
             plugin->setEncryptionKey(identifier.collectionName(), QByteArray());
             return SecretResult(Result(Result::SecretsPluginDecryptionError,
@@ -821,7 +776,7 @@ Result EncryptedStoragePluginWrapper::unlockCollectionAndRemoveSecret(
         const QByteArray &encryptionKey)
 {
     bool locked = false;
-    Result pluginResult = plugin->isLocked(identifier.collectionName(), &locked);
+    Result pluginResult = plugin->isCollectionLocked(identifier.collectionName(), &locked);
     if (pluginResult.code() != Result::Succeeded) {
         return pluginResult;
     }
@@ -836,7 +791,7 @@ Result EncryptedStoragePluginWrapper::unlockCollectionAndRemoveSecret(
                           QString::fromLatin1("Unable to decrypt collection %1 with the entered authentication key").arg(identifier.collectionName()));
 
         }
-        pluginResult = plugin->isLocked(identifier.collectionName(), &locked);
+        pluginResult = plugin->isCollectionLocked(identifier.collectionName(), &locked);
         if (pluginResult.code() != Result::Succeeded) {
             plugin->setEncryptionKey(identifier.collectionName(), QByteArray());
             return Result(Result::SecretsPluginDecryptionError,
@@ -866,7 +821,7 @@ EncryptedStoragePluginWrapper::unlockAndFindSecrets(
 {
     QVector<Secret::Identifier> identifiers;
     bool locked = false;
-    Result pluginResult = plugin->isLocked(collectionName, &locked);
+    Result pluginResult = plugin->isCollectionLocked(collectionName, &locked);
     if (pluginResult.code() != Result::Succeeded) {
         return IdentifiersResult(pluginResult, identifiers);
     }
@@ -883,7 +838,7 @@ EncryptedStoragePluginWrapper::unlockAndFindSecrets(
                                      identifiers);
 
         }
-        pluginResult = plugin->isLocked(collectionName, &locked);
+        pluginResult = plugin->isCollectionLocked(collectionName, &locked);
         if (pluginResult.code() != Result::Succeeded) {
             plugin->setEncryptionKey(collectionName, QByteArray());
             return IdentifiersResult(Result(Result::SecretsPluginDecryptionError,
@@ -916,7 +871,7 @@ Result EncryptedStoragePluginWrapper::unlockAndRemoveSecret(
         const QByteArray &deviceLockKey)
 {
     bool locked = false;
-    Result pluginResult = plugin->isLocked(collectionName, &locked);
+    Result pluginResult = plugin->isCollectionLocked(collectionName, &locked);
     if (pluginResult.code() == Result::Failed) {
         return pluginResult;
     }
@@ -943,7 +898,7 @@ Result EncryptedStoragePluginWrapper::unlockCollectionAndReencrypt(
         bool isDeviceLocked)
 {
     bool collectionLocked = true;
-    plugin->isLocked(collectionName, &collectionLocked);
+    plugin->isCollectionLocked(collectionName, &collectionLocked);
     if (collectionLocked) {
         Result collectionUnlockResult = plugin->setEncryptionKey(collectionName, oldEncryptionKey);
         if (collectionUnlockResult.code() != Result::Succeeded) {
@@ -952,7 +907,7 @@ Result EncryptedStoragePluginWrapper::unlockCollectionAndReencrypt(
                                                << "collection:" << collectionName
                                                << collectionUnlockResult.errorMessage();
         }
-        plugin->isLocked(collectionName, &collectionLocked);
+        plugin->isCollectionLocked(collectionName, &collectionLocked);
         if (collectionLocked) {
             qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock"
                                                << (isDeviceLocked ? "device-locked" : "custom-locked")

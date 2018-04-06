@@ -17,11 +17,11 @@ PUBLIC_HEADERS += \
     $$PWD/createcollectionrequest.h \
     $$PWD/deletecollectionrequest.h \
     $$PWD/deletesecretrequest.h \
-    $$PWD/extensionplugins.h \
     $$PWD/findsecretsrequest.h \
     $$PWD/interactionparameters.h \
     $$PWD/interactionrequest.h \
     $$PWD/lockcoderequest.h \
+    $$PWD/plugininfo.h \
     $$PWD/plugininforequest.h \
     $$PWD/request.h \
     $$PWD/result.h \
@@ -47,6 +47,7 @@ PRIVATE_HEADERS += \
     $$PWD/interactionparameters_p.h \
     $$PWD/interactionrequest_p.h \
     $$PWD/lockcoderequest_p.h \
+    $$PWD/plugininfo_p.h \
     $$PWD/plugininforequest_p.h \
     $$PWD/result_p.h \
     $$PWD/secret_p.h \
@@ -67,11 +68,11 @@ SOURCES += \
     $$PWD/createcollectionrequest.cpp \
     $$PWD/deletecollectionrequest.cpp \
     $$PWD/deletesecretrequest.cpp \
-    $$PWD/extensionplugins.cpp \
     $$PWD/findsecretsrequest.cpp \
     $$PWD/interactionparameters.cpp \
     $$PWD/interactionrequest.cpp \
     $$PWD/lockcoderequest.cpp \
+    $$PWD/plugininfo.cpp \
     $$PWD/plugininforequest.cpp \
     $$PWD/request.cpp \
     $$PWD/result.cpp \

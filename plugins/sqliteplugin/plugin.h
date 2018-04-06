@@ -10,7 +10,8 @@
 
 #include "database_p.h"
 
-#include "Secrets/extensionplugins.h"
+#include "SecretsPluginApi/extensionplugins.h"
+
 #include "Secrets/result.h"
 
 #include <QObject>
@@ -29,7 +30,7 @@ namespace Daemon {
 
 namespace Plugins {
 
-class Q_DECL_EXPORT SqlitePlugin : public QObject, public Sailfish::Secrets::StoragePlugin
+class Q_DECL_EXPORT SqlitePlugin : public QObject, public virtual Sailfish::Secrets::StoragePlugin
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID Sailfish_Secrets_StoragePlugin_IID)
@@ -46,6 +47,10 @@ public:
         return QLatin1String("org.sailfishos.secrets.plugin.storage.sqlite");
 #endif
     }
+    int version() const Q_DECL_OVERRIDE {
+        return 1;
+    }
+
     Sailfish::Secrets::StoragePlugin::StorageType storageType() const Q_DECL_OVERRIDE { return Sailfish::Secrets::StoragePlugin::FileSystemStorage; }
 
     Sailfish::Secrets::Result createCollection(const QString &collectionName) Q_DECL_OVERRIDE;

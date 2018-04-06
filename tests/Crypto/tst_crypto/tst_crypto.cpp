@@ -92,11 +92,11 @@ void tst_crypto::cleanup()
 
 void tst_crypto::getPluginInfo()
 {
-    QDBusPendingReply<Result, QVector<CryptoPluginInfo>, QStringList> reply = cm.getPluginInfo();
+    QDBusPendingReply<Result, QVector<PluginInfo>, QVector<PluginInfo>> reply = cm.getPluginInfo();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
-    QVector<CryptoPluginInfo> cryptoPlugins = reply.argumentAt<1>();
+    QVector<PluginInfo> cryptoPlugins = reply.argumentAt<1>();
     QString cryptoPluginNames;
     for (auto p : cryptoPlugins) {
         cryptoPluginNames.append(p.name());

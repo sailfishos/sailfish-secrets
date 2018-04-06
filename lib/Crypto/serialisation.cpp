@@ -9,7 +9,7 @@
 #include "Crypto/result.h"
 #include "Crypto/key.h"
 #include "Crypto/certificate.h"
-#include "Crypto/extensionplugins.h"
+#include "Crypto/plugininfo.h"
 #include "Crypto/cipherrequest.h"
 #include "Crypto/interactionparameters.h"
 #include "Crypto/keyderivationparameters.h"
@@ -273,113 +273,6 @@ QDataStream& operator<<(QDataStream& out, const CryptoManager::Operations &v)
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
-}
-
-QDataStream& operator>>(QDataStream& in, CryptoPlugin::EncryptionType &v)
-{
-    quint32 temp = 0;
-    in >> temp;
-    v = static_cast<CryptoPlugin::EncryptionType>(temp);
-    return in;
-}
-
-QDataStream& operator<<(QDataStream& out, const CryptoPlugin::EncryptionType &v)
-{
-    quint32 temp = static_cast<quint32>(v);
-    out << temp;
-    return out;
-}
-
-CryptoPluginInfo
-CryptoPluginInfo::deserialise(const QByteArray &data)
-{
-    QBuffer buffer;
-    buffer.setData(data);
-    buffer.open(QIODevice::ReadOnly);
-
-    QDataStream in(&buffer);
-
-    quint32 magic;
-    in >> magic;
-    if (magic != 0x43504900) {
-        qCWarning(lcSailfishCryptoSerialisation) << "Cannot deserialise CryptoPluginInfo, bad magic number:" << magic;
-        return CryptoPluginInfo();
-    }
-
-    qint32 version;
-    in >> version;
-    if (version != 100) {
-        qCWarning(lcSailfishCryptoSerialisation) << "Cannot deserialise CryptoPluginInfo, bad version number:" << version;
-        return CryptoPluginInfo();
-    }
-
-    in.setVersion(QDataStream::Qt_5_6);
-
-    QString name;
-    bool canStoreKeys = false;
-    CryptoPlugin::EncryptionType encryptionType = CryptoPlugin::NoEncryption;
-    QVector<CryptoManager::Algorithm> supportedAlgorithms;
-    QMap<CryptoManager::Algorithm, QVector<CryptoManager::BlockMode> > supportedBlockModes;
-    QMap<CryptoManager::Algorithm, QVector<CryptoManager::EncryptionPadding> > supportedEncryptionPaddings;
-    QMap<CryptoManager::Algorithm, QVector<CryptoManager::SignaturePadding> > supportedSignaturePaddings;
-    QMap<CryptoManager::Algorithm, QVector<CryptoManager::DigestFunction> > supportedDigests;
-    QMap<CryptoManager::Algorithm, CryptoManager::Operations> supportedOperations;
-
-    in >> name;
-    in >> canStoreKeys;
-    in >> encryptionType;
-    in >> supportedAlgorithms;
-    in >> supportedBlockModes;
-    in >> supportedEncryptionPaddings;
-    in >> supportedSignaturePaddings;
-    in >> supportedDigests;
-    in >> supportedOperations;
-
-    buffer.close();
-
-    CryptoPluginInfo retn;
-    retn.setName(name);
-    retn.setCanStoreKeys(canStoreKeys);
-    retn.setEncryptionType(encryptionType);
-    retn.setSupportedAlgorithms(supportedAlgorithms);
-    retn.setSupportedBlockModes(supportedBlockModes);
-    retn.setSupportedEncryptionPaddings(supportedEncryptionPaddings);
-    retn.setSupportedSignaturePaddings(supportedSignaturePaddings);
-    retn.setSupportedDigests(supportedDigests);
-    retn.setSupportedOperations(supportedOperations);
-
-    return retn;
-}
-
-QByteArray
-CryptoPluginInfo::serialise(const CryptoPluginInfo &pluginInfo)
-{
-    QByteArray byteArray;
-    QBuffer buffer(&byteArray);
-    buffer.open(QIODevice::WriteOnly);
-
-    QDataStream out(&buffer);
-
-    // Write a header with a "magic number" and a version
-    out << (quint32)0x43504900; // CPI\0
-    out << (qint32)100;         // version 1.0.0
-
-    // Set the output format version
-    out.setVersion(QDataStream::Qt_5_6);
-
-    out << pluginInfo.name();
-    out << pluginInfo.canStoreKeys();
-    out << pluginInfo.encryptionType();
-    out << pluginInfo.supportedAlgorithms();
-    out << pluginInfo.supportedBlockModes();
-    out << pluginInfo.supportedEncryptionPaddings();
-    out << pluginInfo.supportedSignaturePaddings();
-    out << pluginInfo.supportedDigests();
-    out << pluginInfo.supportedOperations();
-
-    buffer.close();
-
-    return byteArray;
 }
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Certificate &certificate)
@@ -701,21 +594,23 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Result &result)
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const CryptoPluginInfo &pluginInfo)
+QDBusArgument &operator<<(QDBusArgument &argument, const PluginInfo &info)
 {
     argument.beginStructure();
-    argument << CryptoPluginInfo::serialise(pluginInfo);
+    argument << info.name() << info.version();
     argument.endStructure();
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoPluginInfo &pluginInfo)
+const QDBusArgument &operator>>(const QDBusArgument &argument, PluginInfo &info)
 {
-    QByteArray cpidata;
+    QString name;
+    int version = 0;
     argument.beginStructure();
-    argument >> cpidata;
+    argument >> name >> version;
     argument.endStructure();
-    pluginInfo = CryptoPluginInfo::deserialise(cpidata);
+    info.setName(name);
+    info.setVersion(version);
     return argument;
 }
 

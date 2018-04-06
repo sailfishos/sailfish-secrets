@@ -2272,6 +2272,7 @@ void tst_cryptorequests::lockCode()
                                                     .arg(DEFAULT_TEST_CRYPTO_PLUGIN_NAME));
 
     uiParams.setPromptText(QLatin1String("Provide the lock code for the crypto plugin"));
+    uiParams.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
     lcr.setLockCodeRequestType(Sailfish::Crypto::LockCodeRequest::ProvideLockCode);
     lcr.setInteractionParameters(uiParams);
     lcr.startRequest();

@@ -11,6 +11,7 @@
 #include "Secrets/secretsglobal.h"
 #include "Secrets/lockcoderequest.h"
 #include "Secrets/secretmanager.h"
+#include "Secrets/interactionparameters.h"
 
 #include <QtCore/QPointer>
 #include <QtCore/QScopedPointer>

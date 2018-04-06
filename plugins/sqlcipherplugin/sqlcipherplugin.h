@@ -8,11 +8,13 @@
 #ifndef SAILFISHSECRETS_PLUGIN_ENCRYPTEDSTORAGE_SQLCIPHER_H
 #define SAILFISHSECRETS_PLUGIN_ENCRYPTEDSTORAGE_SQLCIPHER_H
 
-#include "Secrets/extensionplugins.h"
+#include "SecretsPluginApi/extensionplugins.h"
+
 #include "Secrets/secret.h"
 #include "Secrets/result.h"
 
-#include "Crypto/extensionplugins.h"
+#include "CryptoPluginApi/extensionplugins.h"
+
 #include "Crypto/key.h"
 #include "Crypto/result.h"
 
@@ -38,7 +40,7 @@ namespace Daemon {
 namespace Plugins {
 
 // we need to do some function renaming to override the appropriate methods correctly.
-class EncryptedStoragePlugin : public Sailfish::Secrets::EncryptedStoragePlugin
+class EncryptedStoragePlugin : public virtual Sailfish::Secrets::EncryptedStoragePlugin
 {
 public:
     EncryptedStoragePlugin() : Sailfish::Secrets::EncryptedStoragePlugin() {}
@@ -47,7 +49,7 @@ public:
     { return encryptedStorageEncryptionType(); }
 };
 
-class CryptoPlugin : public Sailfish::Crypto::CryptoPlugin
+class CryptoPlugin : public virtual Sailfish::Crypto::CryptoPlugin
 {
 public:
     CryptoPlugin() : Sailfish::Crypto::CryptoPlugin() {}
@@ -57,8 +59,8 @@ public:
 };
 
 class Q_DECL_EXPORT SqlCipherPlugin : public QObject
-                                    , public Sailfish::Secrets::Daemon::Plugins::EncryptedStoragePlugin
-                                    , public Sailfish::Secrets::Daemon::Plugins::CryptoPlugin
+                                    , public virtual Sailfish::Secrets::Daemon::Plugins::EncryptedStoragePlugin
+                                    , public virtual Sailfish::Secrets::Daemon::Plugins::CryptoPlugin
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID Sailfish_Secrets_EncryptedStoragePlugin_IID)
@@ -75,6 +77,9 @@ public:
         return QLatin1String("org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher");
 #endif
     }
+    int version() const Q_DECL_OVERRIDE {
+        return 1;
+    }
 
     // This plugin implements the EncryptedStoragePlugin interface
     Sailfish::Secrets::StoragePlugin::StorageType storageType() const Q_DECL_OVERRIDE { return Sailfish::Secrets::StoragePlugin::FileSystemStorage; }
@@ -84,7 +89,7 @@ public:
     Sailfish::Secrets::Result createCollection(const QString &collectionName, const QByteArray &key) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result removeCollection(const QString &collectionName) Q_DECL_OVERRIDE;
 
-    Sailfish::Secrets::Result isLocked(const QString &collectionName, bool *locked) Q_DECL_OVERRIDE;
+    Sailfish::Secrets::Result isCollectionLocked(const QString &collectionName, bool *locked) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result deriveKeyFromCode(const QByteArray &authenticationCode, const QByteArray &salt, QByteArray *key) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result setEncryptionKey(const QString &collectionName, const QByteArray &key) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result reencrypt(const QString &collectionName, const QByteArray &oldkey, const QByteArray &newkey) Q_DECL_OVERRIDE;
@@ -100,15 +105,6 @@ public:
     // And it also implements the CryptoPlugin interface
     bool canStoreKeys() const Q_DECL_OVERRIDE { return true; }
     Sailfish::Crypto::CryptoPlugin::EncryptionType cryptoEncryptionType() const Q_DECL_OVERRIDE { return Sailfish::Crypto::CryptoPlugin::SoftwareEncryption; }
-
-    QVector<Sailfish::Crypto::CryptoManager::Algorithm> supportedAlgorithms() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::BlockMode> > supportedBlockModes() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::EncryptionPadding> > supportedEncryptionPaddings() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::SignaturePadding> > supportedSignaturePaddings() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::DigestFunction> > supportedDigests() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::MessageAuthenticationCode> > supportedMessageAuthenticationCodes() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::KeyDerivationFunction> > supportedKeyDerivationFunctions() const Q_DECL_OVERRIDE;
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, Sailfish::Crypto::CryptoManager::Operations> supportedOperations() const Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result generateRandomData(
             quint64 callerIdent,

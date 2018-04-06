@@ -8,7 +8,7 @@
 #ifndef SAILFISHSECRETS_PLUGIN_ENCRYPTION_OPENSSL_H
 #define SAILFISHSECRETS_PLUGIN_ENCRYPTION_OPENSSL_H
 
-#include "Secrets/extensionplugins.h"
+#include "SecretsPluginApi/extensionplugins.h"
 
 #include <QObject>
 #include <QByteArray>
@@ -22,7 +22,7 @@ namespace Daemon {
 
 namespace Plugins {
 
-class Q_DECL_EXPORT OpenSslPlugin : public QObject, public Sailfish::Secrets::EncryptionPlugin
+class Q_DECL_EXPORT OpenSslPlugin : public QObject, public virtual Sailfish::Secrets::EncryptionPlugin
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID Sailfish_Secrets_EncryptionPlugin_IID)
@@ -37,6 +37,9 @@ public:
 #else
         return QLatin1String("org.sailfishos.secrets.plugin.encryption.openssl");
 #endif
+    }
+    int version() const Q_DECL_OVERRIDE {
+        return 1;
     }
 
     Sailfish::Secrets::EncryptionPlugin::EncryptionType encryptionType() const Q_DECL_OVERRIDE { return Sailfish::Secrets::EncryptionPlugin::SoftwareEncryption; }

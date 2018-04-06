@@ -6,7 +6,7 @@ DEFINES += SAILFISHCRYPTO_BUILD_OPENSSLCRYPTOPLUGIN
 PKGCONFIG += libcrypto
 
 include($$PWD/../../common.pri)
-include($$PWD/../../lib/libsailfishcrypto.pri)
+include($$PWD/../../lib/libsailfishcryptopluginapi.pri)
 
 INCLUDEPATH += $$PWD/evp/
 DEPENDPATH += $$PWD/evp/

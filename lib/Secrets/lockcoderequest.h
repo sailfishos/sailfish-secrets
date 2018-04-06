@@ -12,6 +12,7 @@
 #include "Secrets/request.h"
 #include "Secrets/secret.h"
 #include "Secrets/secretmanager.h"
+#include "Secrets/interactionparameters.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QScopedPointer>

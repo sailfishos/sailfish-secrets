@@ -21,7 +21,6 @@ PUBLIC_HEADERS += \
     $$PWD/decryptrequest.h \
     $$PWD/deletestoredkeyrequest.h \
     $$PWD/encryptrequest.h \
-    $$PWD/extensionplugins.h \
     $$PWD/generateinitializationvectorrequest.h \
     $$PWD/generatekeyrequest.h \
     $$PWD/generaterandomdatarequest.h \
@@ -33,6 +32,7 @@ PUBLIC_HEADERS += \
     $$PWD/keyderivationparameters.h \
     $$PWD/keypairgenerationparameters.h \
     $$PWD/lockcoderequest.h \
+    $$PWD/plugininfo.h \
     $$PWD/plugininforequest.h \
     $$PWD/request.h \
     $$PWD/result.h \
@@ -57,7 +57,6 @@ PRIVATE_HEADERS += \
     $$PWD/decryptrequest_p.h \
     $$PWD/deletestoredkeyrequest_p.h \
     $$PWD/encryptrequest_p.h \
-    $$PWD/extensionplugins_p.h \
     $$PWD/generateinitializationvectorrequest_p.h \
     $$PWD/generatekeyrequest_p.h \
     $$PWD/generaterandomdatarequest_p.h \
@@ -67,6 +66,7 @@ PRIVATE_HEADERS += \
     $$PWD/keyderivationparameters_p.h \
     $$PWD/keypairgenerationparameters_p.h \
     $$PWD/lockcoderequest_p.h \
+    $$PWD/plugininfo_p.h \
     $$PWD/plugininforequest_p.h \
     $$PWD/result_p.h \
     $$PWD/seedrandomdatageneratorrequest_p.h \
@@ -90,7 +90,6 @@ SOURCES += \
     $$PWD/decryptrequest.cpp \
     $$PWD/deletestoredkeyrequest.cpp \
     $$PWD/encryptrequest.cpp \
-    $$PWD/extensionplugins.cpp \
     $$PWD/generateinitializationvectorrequest.cpp \
     $$PWD/generatekeyrequest.cpp \
     $$PWD/generaterandomdatarequest.cpp \
@@ -102,6 +101,7 @@ SOURCES += \
     $$PWD/keyderivationparameters.cpp \
     $$PWD/keypairgenerationparameters.cpp \
     $$PWD/lockcoderequest.cpp \
+    $$PWD/plugininfo.cpp \
     $$PWD/plugininforequest.cpp \
     $$PWD/request.cpp \
     $$PWD/result.cpp \

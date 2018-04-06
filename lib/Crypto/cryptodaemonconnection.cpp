@@ -13,7 +13,7 @@
 #include "Crypto/result.h"
 #include "Crypto/key.h"
 #include "Crypto/certificate.h"
-#include "Crypto/extensionplugins.h"
+#include "Crypto/plugininfo.h"
 #include "Crypto/storedkeyrequest.h"
 #include "Crypto/cipherrequest.h"
 #include "Crypto/lockcoderequest.h"
@@ -173,8 +173,6 @@ void Sailfish::Crypto::CryptoDaemonConnection::registerDBusTypes()
     qRegisterMetaType<Sailfish::Crypto::Certificate>("Sailfish::Crypto::Certificate");
     qRegisterMetaType<QVector<Sailfish::Crypto::Certificate> >("QVector<Sailfish::Crypto::Certificate>");
     qRegisterMetaType<Sailfish::Crypto::Result>("Sailfish::Crypto::Result");
-    qRegisterMetaType<Sailfish::Crypto::CryptoPluginInfo>("Sailfish::Crypto::CryptoPluginInfo");
-    qRegisterMetaType<QVector<Sailfish::Crypto::CryptoPluginInfo> >("QVector<Sailfish::Crypto::CryptoPluginInfo>");
     qRegisterMetaType<Sailfish::Crypto::Key::Component>("Sailfish::Crypto::Key::Component");
     qRegisterMetaType<Sailfish::Crypto::Key::Components>("Sailfish::Crypto::Key::Components");
     qRegisterMetaType<Sailfish::Crypto::CipherRequest::CipherMode>("Sailfish::Crypto::CipherRequest::CipherMode");
@@ -183,6 +181,8 @@ void Sailfish::Crypto::CryptoDaemonConnection::registerDBusTypes()
     qRegisterMetaType<Sailfish::Crypto::KeyDerivationParameters>("Sailfish::Crypto::KeyDerivationParameters");
     qRegisterMetaType<Sailfish::Crypto::InteractionParameters>("Sailfish::Crypto::InteractionParameters");
     qRegisterMetaType<Sailfish::Crypto::LockCodeRequest::LockCodeTargetType>("Sailfish::Crypto::LockCodeRequest::LockCodeTargetType");
+    qRegisterMetaType<Sailfish::Crypto::PluginInfo>("Sailfish::Crypto::PluginInfo");
+    qRegisterMetaType<QVector<Sailfish::Crypto::PluginInfo> >("QVector<Sailfish::Crypto::PluginInfo>");
 
     qDBusRegisterMetaType<Sailfish::Crypto::Key::Origin>();
     qDBusRegisterMetaType<Sailfish::Crypto::CryptoManager::Algorithm>();
@@ -202,8 +202,6 @@ void Sailfish::Crypto::CryptoDaemonConnection::registerDBusTypes()
     qDBusRegisterMetaType<Sailfish::Crypto::Certificate>();
     qDBusRegisterMetaType<QVector<Sailfish::Crypto::Certificate> >();
     qDBusRegisterMetaType<Sailfish::Crypto::Result>();
-    qDBusRegisterMetaType<Sailfish::Crypto::CryptoPluginInfo>();
-    qDBusRegisterMetaType<QVector<Sailfish::Crypto::CryptoPluginInfo> >();
     qDBusRegisterMetaType<Sailfish::Crypto::Key::Component>();
     qDBusRegisterMetaType<Sailfish::Crypto::Key::Components>();
     qDBusRegisterMetaType<Sailfish::Crypto::CipherRequest::CipherMode>();
@@ -212,4 +210,6 @@ void Sailfish::Crypto::CryptoDaemonConnection::registerDBusTypes()
     qDBusRegisterMetaType<Sailfish::Crypto::KeyDerivationParameters>();
     qDBusRegisterMetaType<Sailfish::Crypto::InteractionParameters>();
     qDBusRegisterMetaType<Sailfish::Crypto::LockCodeRequest::LockCodeTargetType>();
+    qDBusRegisterMetaType<Sailfish::Crypto::PluginInfo>();
+    qDBusRegisterMetaType<QVector<Sailfish::Crypto::PluginInfo> >();
 }

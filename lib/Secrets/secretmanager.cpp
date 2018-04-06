@@ -9,7 +9,7 @@
 #include "Secrets/secretmanager_p.h"
 #include "Secrets/serialisation_p.h"
 #include "Secrets/secret.h"
-#include "Secrets/extensionplugins.h"
+#include "Secrets/plugininfo.h"
 
 #include <QtDBus/QDBusInterface>
 #include <QtDBus/QDBusConnection>
@@ -89,11 +89,11 @@ SecretManagerPrivate::registerInteractionService(
 }
 
 QDBusPendingReply<Result,
-                  QVector<StoragePluginInfo>,
-                  QVector<EncryptionPluginInfo>,
-                  QVector<EncryptedStoragePluginInfo>,
-                  QVector<AuthenticationPluginInfo> >
-SecretManagerPrivate::pluginInfo()
+                  QVector<PluginInfo>,
+                  QVector<PluginInfo>,
+                  QVector<PluginInfo>,
+                  QVector<PluginInfo> >
+SecretManagerPrivate::getPluginInfo()
 {
     if (!m_interface) {
         return QDBusPendingReply<Result>(
@@ -102,10 +102,10 @@ SecretManagerPrivate::pluginInfo()
     }
 
     QDBusPendingReply<Result,
-                      QVector<StoragePluginInfo>,
-                      QVector<EncryptionPluginInfo>,
-                      QVector<EncryptedStoragePluginInfo>,
-                      QVector<AuthenticationPluginInfo> > reply
+                      QVector<PluginInfo>,
+                      QVector<PluginInfo>,
+                      QVector<PluginInfo>,
+                      QVector<PluginInfo> > reply
             = m_interface->asyncCall(QStringLiteral("getPluginInfo"));
     return reply;
 }

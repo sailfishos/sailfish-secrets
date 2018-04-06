@@ -158,12 +158,14 @@ IdentifiersResult CryptoPluginWrapper::storedKeyIdentifiers(
 DataResult CryptoPluginWrapper::calculateDigest(
         CryptoPlugin *plugin,
         const QByteArray &data,
-        std::tuple<Sailfish::Crypto::CryptoManager::SignaturePadding,
-                   Sailfish::Crypto::CryptoManager::DigestFunction> options)
+        const SignatureOptions &options)
 {
     QByteArray digest;
     Result result = plugin->calculateDigest(
-                data, std::get<0>(options), std::get<1>(options), &digest);
+                data,
+                options.signaturePadding,
+                options.digestFunction,
+                &digest);
     return DataResult(result, digest);
 }
 
@@ -171,12 +173,14 @@ DataResult CryptoPluginWrapper::sign(
         CryptoPlugin *plugin,
         const QByteArray &data,
         const Key &key,
-        std::tuple<Sailfish::Crypto::CryptoManager::SignaturePadding,
-                   Sailfish::Crypto::CryptoManager::DigestFunction> options)
+        const SignatureOptions &options)
 {
     QByteArray signature;
     Result result = plugin->sign(
-                data, key, std::get<0>(options), std::get<1>(options), &signature);
+                data, key,
+                options.signaturePadding,
+                options.digestFunction,
+                &signature);
     return DataResult(result, signature);
 }
 
@@ -185,29 +189,32 @@ ValidatedResult CryptoPluginWrapper::verify(
         const QByteArray &signature,
         const QByteArray &data,
         const Key &key,
-        std::tuple<Sailfish::Crypto::CryptoManager::SignaturePadding,
-                   Sailfish::Crypto::CryptoManager::DigestFunction> options)
+        const SignatureOptions &options)
 {
     bool verified = false;
     Result result = plugin->verify(
-                signature, data, key, std::get<0>(options), std::get<1>(options), &verified);
+                signature, data, key,
+                options.signaturePadding,
+                options.digestFunction,
+                &verified);
     return ValidatedResult(result, verified);
 }
 
 TagDataResult CryptoPluginWrapper::encrypt(
         CryptoPlugin *plugin,
-        std::tuple<QByteArray, QByteArray> dataAndIv,
-        const Key &key,
-        std::tuple<Sailfish::Crypto::CryptoManager::BlockMode,
-                   Sailfish::Crypto::CryptoManager::EncryptionPadding> options,
+        const DataAndIV &dataAndIv,
+        const Sailfish::Crypto::Key &key,
+        const EncryptionOptions &options,
         const QByteArray &authenticationData)
 {
     QByteArray ciphertext;
     QByteArray authenticationTag;
     Result result = plugin->encrypt(
-                std::get<0>(dataAndIv), std::get<1>(dataAndIv),
+                dataAndIv.data,
+                dataAndIv.initVector,
                 key,
-                std::get<0>(options), std::get<1>(options),
+                options.blockMode,
+                options.encryptionPadding,
                 authenticationData,
                 &ciphertext, &authenticationTag);
     return TagDataResult(result, ciphertext, authenticationTag);
@@ -215,19 +222,21 @@ TagDataResult CryptoPluginWrapper::encrypt(
 
 VerifiedDataResult CryptoPluginWrapper::decrypt(
         CryptoPlugin *plugin,
-        std::tuple<QByteArray, QByteArray> dataAndIv,
+        const DataAndIV &dataAndIv,
         const Key &key, // or keyreference, i.e. Key(keyName)
-        std::tuple<Sailfish::Crypto::CryptoManager::BlockMode,
-                   Sailfish::Crypto::CryptoManager::EncryptionPadding> options,
-        std::tuple<QByteArray, QByteArray> authDataAndTag)
+        const EncryptionOptions &options,
+        const AuthDataAndTag &authDataAndTag)
 {
     QByteArray plaintext;
     bool verified = false;
     Result result = plugin->decrypt(
-                std::get<0>(dataAndIv), std::get<1>(dataAndIv),
+                dataAndIv.data,
+                dataAndIv.initVector,
                 key,
-                std::get<0>(options), std::get<1>(options),
-                std::get<0>(authDataAndTag), std::get<1>(authDataAndTag),
+                options.blockMode,
+                options.encryptionPadding,
+                authDataAndTag.authData,
+                authDataAndTag.tag,
                 &plaintext, &verified);
     return VerifiedDataResult(result, plaintext, verified);
 }
@@ -237,22 +246,18 @@ CipherSessionTokenResult CryptoPluginWrapper::initialiseCipherSession(
         quint64 clientId,
         const QByteArray &iv,
         const Key &key, // or keyreference, i.e. Key(keyName)
-        std::tuple<CryptoManager::Operation,
-                   CryptoManager::BlockMode,
-                   CryptoManager::EncryptionPadding,
-                   CryptoManager::SignaturePadding,
-                   CryptoManager::DigestFunction> options)
+        const CipherSessionOptions &options)
 {
     quint32 cipherSessionToken = 0;
     Result result = plugin->initialiseCipherSession(
                 clientId,
                 iv,
                 key,
-                std::get<0>(options),
-                std::get<1>(options),
-                std::get<2>(options),
-                std::get<3>(options),
-                std::get<4>(options),
+                options.operation,
+                options.blockMode,
+                options.encryptionPadding,
+                options.signaturePadding,
+                options.digestFunction,
                 &cipherSessionToken);
     return CipherSessionTokenResult(result, cipherSessionToken);
 }

@@ -34,8 +34,8 @@ Daemon::ApiImpl::CryptoDBusObject::CryptoDBusObject(
 void Daemon::ApiImpl::CryptoDBusObject::getPluginInfo(
         const QDBusMessage &message,
         Result &result,
-        QVector<CryptoPluginInfo> &cryptoPlugins,
-        QStringList &storagePlugins)
+        QVector<Sailfish::Crypto::PluginInfo> &cryptoPlugins,
+        QVector<Sailfish::Crypto::PluginInfo> &storagePlugins)
 {
     Q_UNUSED(cryptoPlugins);   // outparam, set in handlePendingRequest / handleFinishedRequest
     Q_UNUSED(storagePlugins);  // outparam, set in handlePendingRequest / handleFinishedRequest
@@ -592,22 +592,25 @@ Daemon::ApiImpl::CryptoRequestQueue::plugins() const
     return m_requestProcessor->plugins();
 }
 
-bool Daemon::ApiImpl::CryptoRequestQueue::lockPlugins()
+bool Daemon::ApiImpl::CryptoRequestQueue::lockPlugin(
+        const QString &pluginName)
 {
-    return m_requestProcessor->lockPlugins();
+    return m_requestProcessor->lockPlugin(pluginName);
 }
 
-bool Daemon::ApiImpl::CryptoRequestQueue::unlockPlugins(
-        const QByteArray &unlockCode)
+bool Daemon::ApiImpl::CryptoRequestQueue::unlockPlugin(
+        const QString &pluginName,
+        const QByteArray &lockCode)
 {
-    return m_requestProcessor->unlockPlugins(unlockCode);
+    return m_requestProcessor->unlockPlugin(pluginName, lockCode);
 }
 
-bool Daemon::ApiImpl::CryptoRequestQueue::setLockCodePlugins(
+bool Daemon::ApiImpl::CryptoRequestQueue::setLockCodePlugin(
+        const QString &pluginName,
         const QByteArray &oldCode,
         const QByteArray &newCode)
 {
-    return m_requestProcessor->setLockCodePlugins(oldCode, newCode);
+    return m_requestProcessor->setLockCodePlugin(pluginName, oldCode, newCode);
 }
 
 QString Daemon::ApiImpl::CryptoRequestQueue::requestTypeToString(int type) const
@@ -650,8 +653,8 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
     switch (request->type) {
         case GetPluginInfoRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling GetPluginInfoRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            QVector<CryptoPluginInfo> cryptoPlugins;
-            QStringList storagePlugins;
+            QVector<PluginInfo> cryptoPlugins;
+            QVector<PluginInfo> storagePlugins;
             Result result = m_requestProcessor->getPluginInfo(
                         request->remotePid,
                         request->requestId,
@@ -663,8 +666,8 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
                 *completed = false;
             } else {
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                        << QVariant::fromValue<QVector<CryptoPluginInfo> >(cryptoPlugins)
-                                                                        << QVariant::fromValue<QStringList>(storagePlugins));
+                                                                        << QVariant::fromValue<QVector<PluginInfo> >(cryptoPlugins)
+                                                                        << QVariant::fromValue<QVector<PluginInfo> >(storagePlugins));
                 *completed = true;
             }
             break;
@@ -1338,15 +1341,15 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
                 qCWarning(lcSailfishCryptoDaemon) << "GetPluginInfoRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
-                QVector<CryptoPluginInfo> cryptoPlugins = request->outParams.size()
-                        ? request->outParams.takeFirst().value<QVector<CryptoPluginInfo> >()
-                        : QVector<CryptoPluginInfo>();
-                QStringList storagePlugins = request->outParams.size()
-                        ? request->outParams.takeFirst().value<QStringList>()
-                        : QStringList();
+                QVector<PluginInfo> cryptoPlugins = request->outParams.size()
+                        ? request->outParams.takeFirst().value<QVector<PluginInfo> >()
+                        : QVector<PluginInfo>();
+                QVector<PluginInfo> storagePlugins = request->outParams.size()
+                        ? request->outParams.takeFirst().value<QVector<PluginInfo> >()
+                        : QVector<PluginInfo>();
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                        << QVariant::fromValue<QVector<CryptoPluginInfo> >(cryptoPlugins)
-                                                                        << QVariant::fromValue<QStringList>(storagePlugins));
+                                                                        << QVariant::fromValue<QVector<PluginInfo> >(cryptoPlugins)
+                                                                        << QVariant::fromValue<QVector<PluginInfo> >(storagePlugins));
                 *completed = true;
             }
             break;

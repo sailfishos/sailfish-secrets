@@ -108,10 +108,14 @@ Daemon::ApiImpl::RequestProcessor::potentialCryptoStoragePlugins() const
     return m_potentialCryptoStoragePlugins;
 }
 
-QStringList
-Daemon::ApiImpl::RequestProcessor::storagePluginNames() const
+QVector<PluginInfo>
+Daemon::ApiImpl::RequestProcessor::storagePluginInfo() const
 {
-    return m_storagePlugins.keys();
+    QVector<PluginInfo> infos;
+    for (StoragePlugin *plugin : m_storagePlugins) {
+        infos.append(PluginInfo(plugin->name(), plugin->version()));
+    }
+    return infos;
 }
 
 bool Daemon::ApiImpl::SecretsRequestQueue::interleavedRequestsAllowed(
@@ -127,16 +131,16 @@ Daemon::ApiImpl::SecretsRequestQueue::interleavedRequestError() const
 }
 
 Result
-Daemon::ApiImpl::SecretsRequestQueue::storagePluginNames(
+Daemon::ApiImpl::SecretsRequestQueue::storagePluginInfo(
         pid_t callerPid,
         quint64 cryptoRequestId,
-        QStringList *names) const
+        QVector<PluginInfo> *infos) const
 {
     // TODO: Access control
     Q_UNUSED(callerPid)
     Q_UNUSED(cryptoRequestId)
 
-    *names = m_requestProcessor->storagePluginNames();
+    *infos = m_requestProcessor->storagePluginInfo();
     return Result(Result::Succeeded);
 }
 

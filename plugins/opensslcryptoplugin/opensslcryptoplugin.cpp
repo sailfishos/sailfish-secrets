@@ -38,7 +38,7 @@ Q_PLUGIN_METADATA(IID Sailfish_Crypto_CryptoPlugin_IID)
 using namespace Sailfish::Crypto;
 
 Daemon::Plugins::OpenSslCryptoPlugin::OpenSslCryptoPlugin(QObject *parent)
-    : QObject(parent), CryptoPlugin()
+    : QObject(parent)
 {
     // initialise EVP
     OpenSslEvp::init();
@@ -137,128 +137,6 @@ Daemon::Plugins::OpenSslCryptoPlugin::getFullKey(
             = qobject_cast<Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin*>(QObject::parent());
     return parentPlugin ? parentPlugin->getFullKey(key) : key;
 #endif // SAILFISHCRYPTO_BUILD_OPENSSLCRYPTOPLUGIN
-}
-
-QVector<Sailfish::Crypto::CryptoManager::Algorithm>
-Daemon::Plugins::OpenSslCryptoPlugin::supportedAlgorithms() const
-{
-    QVector<Sailfish::Crypto::CryptoManager::Algorithm> retn;
-    retn.append(Sailfish::Crypto::CryptoManager::AlgorithmAes);
-    return retn;
-}
-
-QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::BlockMode> >
-Daemon::Plugins::OpenSslCryptoPlugin::supportedBlockModes() const
-{
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::BlockMode> > retn;
-
-    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes,
-                {
-                    Sailfish::Crypto::CryptoManager::BlockModeEcb,
-                    Sailfish::Crypto::CryptoManager::BlockModeCbc,
-                    Sailfish::Crypto::CryptoManager::BlockModeCfb1,
-                    Sailfish::Crypto::CryptoManager::BlockModeCfb8,
-                    Sailfish::Crypto::CryptoManager::BlockModeCfb128,
-                    Sailfish::Crypto::CryptoManager::BlockModeOfb,
-                    Sailfish::Crypto::CryptoManager::BlockModeCtr,
-                    Sailfish::Crypto::CryptoManager::BlockModeGcm,
-                });
-
-    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmRsa,
-                {
-                    Sailfish::Crypto::CryptoManager::BlockModeUnknown,
-                });
-
-    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmEc,
-                {
-                    Sailfish::Crypto::CryptoManager::BlockModeUnknown,
-                });
-    return retn;
-}
-
-QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::EncryptionPadding> >
-Daemon::Plugins::OpenSslCryptoPlugin::supportedEncryptionPaddings() const
-{
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::EncryptionPadding> > retn;
-
-    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes, { Sailfish::Crypto::CryptoManager::EncryptionPaddingNone });
-    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmRsa,
-                {
-                    Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
-                    Sailfish::Crypto::CryptoManager::EncryptionPaddingRsaPkcs1,
-                    Sailfish::Crypto::CryptoManager::EncryptionPaddingRsaOaep,
-                });
-    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmEc, { Sailfish::Crypto::CryptoManager::EncryptionPaddingNone });
-
-    return retn;
-}
-
-QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::SignaturePadding> >
-Daemon::Plugins::OpenSslCryptoPlugin::supportedSignaturePaddings() const
-{
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::SignaturePadding> > retn;
-
-    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmRsa,
-                QVector<Sailfish::Crypto::CryptoManager::SignaturePadding>() << Sailfish::Crypto::CryptoManager::SignaturePaddingNone);
-
-    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmEc,
-                QVector<Sailfish::Crypto::CryptoManager::SignaturePadding>() << Sailfish::Crypto::CryptoManager::SignaturePaddingNone);
-
-    return retn;
-}
-
-QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::DigestFunction> >
-Daemon::Plugins::OpenSslCryptoPlugin::supportedDigests() const
-{
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::DigestFunction> > retn;
-
-    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmRsa,
-                { CryptoManager::DigestSha256, CryptoManager::DigestSha512, CryptoManager::DigestMd5 });
-
-    // NOTE: openssl says "invalid digest" when trying MD5 with EC
-    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmEc,
-                { CryptoManager::DigestSha256, CryptoManager::DigestSha512 });
-
-    return retn;
-}
-
-QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::MessageAuthenticationCode> >
-Daemon::Plugins::OpenSslCryptoPlugin::supportedMessageAuthenticationCodes() const
-{
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::MessageAuthenticationCode> > retn;
-    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes, QVector<Sailfish::Crypto::CryptoManager::MessageAuthenticationCode>() << Sailfish::Crypto::CryptoManager::MacHmac);
-    return retn;
-}
-
-QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::KeyDerivationFunction> >
-Daemon::Plugins::OpenSslCryptoPlugin::supportedKeyDerivationFunctions() const
-{
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, QVector<Sailfish::Crypto::CryptoManager::KeyDerivationFunction> > retn;
-    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes, QVector<Sailfish::Crypto::CryptoManager::KeyDerivationFunction>() << Sailfish::Crypto::CryptoManager::KdfPkcs5Pbkdf2);
-    return retn;
-}
-
-QMap<Sailfish::Crypto::CryptoManager::Algorithm, Sailfish::Crypto::CryptoManager::Operations>
-Daemon::Plugins::OpenSslCryptoPlugin::supportedOperations() const
-{
-    // TODO: should this be algorithm specific?  not sure?
-    QMap<Sailfish::Crypto::CryptoManager::Algorithm, Sailfish::Crypto::CryptoManager::Operations> retn;
-
-    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmAes,
-                Sailfish::Crypto::CryptoManager::OperationEncrypt |
-                Sailfish::Crypto::CryptoManager::OperationDecrypt);
-
-    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmRsa,
-                Sailfish::Crypto::CryptoManager::OperationEncrypt |
-                Sailfish::Crypto::CryptoManager::OperationDecrypt |
-                Sailfish::Crypto::CryptoManager::OperationSign |
-                Sailfish::Crypto::CryptoManager::OperationVerify);
-
-    retn.insert(Sailfish::Crypto::CryptoManager::AlgorithmEc,
-                Sailfish::Crypto::CryptoManager::OperationSign |
-                Sailfish::Crypto::CryptoManager::OperationVerify);
-
-    return retn;
 }
 
 Sailfish::Crypto::Result

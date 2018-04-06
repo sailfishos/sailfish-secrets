@@ -183,7 +183,7 @@ Daemon::Plugins::SqlCipherPlugin::removeCollection(
 }
 
 Result
-Daemon::Plugins::SqlCipherPlugin::isLocked(
+Daemon::Plugins::SqlCipherPlugin::isCollectionLocked(
         const QString &collectionName,
         bool *locked)
 {

@@ -32,7 +32,14 @@ PluginInfoRequestPrivate::PluginInfoRequestPrivate()
  * Sailfish::Secrets::SecretManager sm;
  * Sailfish::Secrets::PluginInfoRequest pir;
  * pir.setManager(&sm);
- * pir.startRequest(); // status() will change to Finished when complete
+ * pir.startRequest();
+ * // status() will change to Finished when complete
+ * // real clients should not use waitForFinished().
+ * pir.waitForFinished();
+ * for (const auto &plugin : pir.encryptedStoragePlugins()) {
+ *     qDebug() << "Have encrypted storage plugin:" << plugin.name()
+ *              << "with version:" << plugin.version();
+ * }
  * \endcode
  */
 
@@ -65,7 +72,7 @@ PluginInfoRequest::~PluginInfoRequest()
  * service will use a specific encryption plugin to perform encryption
  * and decryption operations.
  */
-QVector<StoragePluginInfo>
+QVector<PluginInfo>
 PluginInfoRequest::storagePlugins() const
 {
     Q_D(const PluginInfoRequest);
@@ -82,7 +89,7 @@ PluginInfoRequest::storagePlugins() const
  * simply run "normal" application code to perform cryptographic
  * operations).
  */
-QVector<EncryptionPluginInfo>
+QVector<PluginInfo>
 PluginInfoRequest::encryptionPlugins() const
 {
     Q_D(const PluginInfoRequest);
@@ -99,7 +106,7 @@ PluginInfoRequest::encryptionPlugins() const
  * them ideally suited to implement device-lock protected secret
  * collection stores.
  */
-QVector<EncryptedStoragePluginInfo>
+QVector<PluginInfo>
 PluginInfoRequest::encryptedStoragePlugins() const
 {
     Q_D(const PluginInfoRequest);
@@ -127,7 +134,7 @@ PluginInfoRequest::encryptedStoragePlugins() const
  * UI flows which ensure that the integrity of the user's authentication
  * data is maintained.
  */
-QVector<AuthenticationPluginInfo>
+QVector<PluginInfo>
 PluginInfoRequest::authenticationPlugins() const
 {
     Q_D(const PluginInfoRequest);
@@ -173,11 +180,11 @@ void PluginInfoRequest::startRequest()
         }
 
         QDBusPendingReply<Result,
-                          QVector<StoragePluginInfo>,
-                          QVector<EncryptionPluginInfo>,
-                          QVector<EncryptedStoragePluginInfo>,
-                          QVector<AuthenticationPluginInfo> > reply
-                = d->m_manager->d_ptr->pluginInfo();
+                          QVector<PluginInfo>,
+                          QVector<PluginInfo>,
+                          QVector<PluginInfo>,
+                          QVector<PluginInfo> > reply
+                = d->m_manager->d_ptr->getPluginInfo();
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;
             d->m_result = Result(Result::SecretManagerNotInitialisedError,
@@ -205,10 +212,10 @@ void PluginInfoRequest::startRequest()
                     [this] {
                 QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.take();
                 QDBusPendingReply<Result,
-                                  QVector<StoragePluginInfo>,
-                                  QVector<EncryptionPluginInfo>,
-                                  QVector<EncryptedStoragePluginInfo>,
-                                  QVector<AuthenticationPluginInfo> > reply = *watcher;
+                                  QVector<PluginInfo>,
+                                  QVector<PluginInfo>,
+                                  QVector<PluginInfo>,
+                                  QVector<PluginInfo> > reply = *watcher;
                 this->d_ptr->m_status = Request::Finished;
                 this->d_ptr->m_result = reply.argumentAt<0>();
                 this->d_ptr->m_storagePlugins = reply.argumentAt<1>();

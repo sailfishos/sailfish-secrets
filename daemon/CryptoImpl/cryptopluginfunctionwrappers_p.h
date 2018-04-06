@@ -8,16 +8,15 @@
 #ifndef SAILFISHCRYPTO_APIIMPL_CRYPTOPLUGINFUNCTIONWRAPPERS_P_H
 #define SAILFISHCRYPTO_APIIMPL_CRYPTOPLUGINFUNCTIONWRAPPERS_P_H
 
+#include "CryptoPluginApi/extensionplugins.h"
+
 #include "Crypto/key.h"
-#include "Crypto/extensionplugins.h"
 #include "Crypto/cryptomanager.h"
 #include "Crypto/result.h"
 
 #include <QtCore/QString>
 #include <QtCore/QByteArray>
 #include <QtCore/QVector>
-
-#include <tuple>
 
 namespace Sailfish {
 
@@ -97,6 +96,71 @@ struct CipherSessionTokenResult {
     quint32 cipherSessionToken;
 };
 
+struct SignatureOptions {
+    SignatureOptions(Sailfish::Crypto::CryptoManager::SignaturePadding p = Sailfish::Crypto::CryptoManager::SignaturePaddingNone,
+                     Sailfish::Crypto::CryptoManager::DigestFunction df = Sailfish::Crypto::CryptoManager::DigestUnknown)
+        : signaturePadding(p), digestFunction(df) {}
+    SignatureOptions(const SignatureOptions &other)
+        : signaturePadding(other.signaturePadding)
+        , digestFunction(other.digestFunction) {}
+    Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding;
+    Sailfish::Crypto::CryptoManager::DigestFunction digestFunction;
+};
+
+struct EncryptionOptions {
+    EncryptionOptions(Sailfish::Crypto::CryptoManager::BlockMode bm = Sailfish::Crypto::CryptoManager::BlockModeUnknown,
+                      Sailfish::Crypto::CryptoManager::EncryptionPadding p = Sailfish::Crypto::CryptoManager::EncryptionPaddingNone)
+        : blockMode(bm), encryptionPadding(p) {}
+    EncryptionOptions(const EncryptionOptions &other)
+        : blockMode(other.blockMode)
+        , encryptionPadding(other.encryptionPadding) {}
+    Sailfish::Crypto::CryptoManager::BlockMode blockMode;
+    Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding;
+};
+
+struct CipherSessionOptions {
+    CipherSessionOptions(Sailfish::Crypto::CryptoManager::Operation op = Sailfish::Crypto::CryptoManager::OperationUnknown,
+                         Sailfish::Crypto::CryptoManager::BlockMode bm = Sailfish::Crypto::CryptoManager::BlockModeUnknown,
+                         Sailfish::Crypto::CryptoManager::EncryptionPadding ep = Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
+                         Sailfish::Crypto::CryptoManager::SignaturePadding sp = Sailfish::Crypto::CryptoManager::SignaturePaddingNone,
+                         Sailfish::Crypto::CryptoManager::DigestFunction df = Sailfish::Crypto::CryptoManager::DigestUnknown)
+        : operation(op), blockMode(bm), encryptionPadding(ep), signaturePadding(sp), digestFunction(df) {}
+    CipherSessionOptions(const CipherSessionOptions &other)
+        : operation(other.operation)
+        , blockMode(other.blockMode)
+        , encryptionPadding(other.encryptionPadding)
+        , signaturePadding(other.signaturePadding)
+        , digestFunction(other.digestFunction) {}
+    Sailfish::Crypto::CryptoManager::Operation operation;
+    Sailfish::Crypto::CryptoManager::BlockMode blockMode;
+    Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding;
+    Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding;
+    Sailfish::Crypto::CryptoManager::DigestFunction digestFunction;
+};
+
+struct DataAndIV {
+    DataAndIV(const QByteArray &d = QByteArray(),
+              const QByteArray &iv = QByteArray())
+        : data(d), initVector(iv) {}
+    DataAndIV(const DataAndIV &other)
+        : data(other.data)
+        , initVector(other.initVector) {}
+    QByteArray data;
+    QByteArray initVector;
+};
+
+struct AuthDataAndTag {
+    AuthDataAndTag(const QByteArray &ad = QByteArray(),
+                   const QByteArray &t = QByteArray())
+        : authData(ad)
+        , tag(t) {}
+    AuthDataAndTag(const AuthDataAndTag &other)
+        : authData(other.authData)
+        , tag(other.tag) {}
+    QByteArray authData;
+    QByteArray tag;
+};
+
 namespace Daemon {
 
 namespace ApiImpl {
@@ -169,50 +233,41 @@ IdentifiersResult storedKeyIdentifiers(
 DataResult calculateDigest(
         Sailfish::Crypto::CryptoPlugin *plugin,
         const QByteArray &data,
-        std::tuple<Sailfish::Crypto::CryptoManager::SignaturePadding,
-                   Sailfish::Crypto::CryptoManager::DigestFunction> options);
+        const SignatureOptions &options);
 
 DataResult sign(
         Sailfish::Crypto::CryptoPlugin *plugin,
         const QByteArray &data,
         const Sailfish::Crypto::Key &key,
-        std::tuple<Sailfish::Crypto::CryptoManager::SignaturePadding,
-                   Sailfish::Crypto::CryptoManager::DigestFunction> options);
+        const SignatureOptions &options);
 
 ValidatedResult verify(
         Sailfish::Crypto::CryptoPlugin *plugin,
         const QByteArray &signature,
         const QByteArray &data,
         const Sailfish::Crypto::Key &key,
-        std::tuple<Sailfish::Crypto::CryptoManager::SignaturePadding,
-                   Sailfish::Crypto::CryptoManager::DigestFunction> options);
+        const SignatureOptions &options);
 
 TagDataResult encrypt(
         Sailfish::Crypto::CryptoPlugin *plugin,
-        std::tuple<QByteArray, QByteArray> dataAndIv,
+        const DataAndIV &dataAndIv,
         const Sailfish::Crypto::Key &key,
-        std::tuple<Sailfish::Crypto::CryptoManager::BlockMode,
-                   Sailfish::Crypto::CryptoManager::EncryptionPadding> options,
+        const EncryptionOptions &options,
         const QByteArray &authenticationData);
 
 VerifiedDataResult decrypt(
         Sailfish::Crypto::CryptoPlugin *plugin,
-        std::tuple<QByteArray, QByteArray> dataAndIv,
+        const DataAndIV &dataAndIv,
         const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
-        std::tuple<Sailfish::Crypto::CryptoManager::BlockMode,
-                   Sailfish::Crypto::CryptoManager::EncryptionPadding> options,
-        std::tuple<QByteArray, QByteArray> authDataAndTag);
+        const EncryptionOptions &options,
+        const AuthDataAndTag &authDataAndTag);
 
 CipherSessionTokenResult initialiseCipherSession(
         Sailfish::Crypto::CryptoPlugin *plugin,
         quint64 clientId,
         const QByteArray &iv,
         const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
-        std::tuple<CryptoManager::Operation,
-                   CryptoManager::BlockMode,
-                   CryptoManager::EncryptionPadding,
-                   CryptoManager::SignaturePadding,
-                   CryptoManager::DigestFunction> options);
+        const CipherSessionOptions &options);
 
 Sailfish::Crypto::Result updateCipherSessionAuthentication(
         Sailfish::Crypto::CryptoPlugin *plugin,

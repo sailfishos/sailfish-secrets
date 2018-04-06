@@ -18,7 +18,7 @@
 
 #include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
-#include "Crypto/extensionplugins.h"
+#include "Crypto/plugininfo.h"
 #include "Crypto/key.h"
 
 #include <QtCore/QStandardPaths>
@@ -42,10 +42,10 @@ Daemon::ApiImpl::SecretsDBusObject::SecretsDBusObject(
 void Daemon::ApiImpl::SecretsDBusObject::getPluginInfo(
         const QDBusMessage &message,
         Result &result,
-        QVector<StoragePluginInfo> &storagePlugins,
-        QVector<EncryptionPluginInfo> &encryptionPlugins,
-        QVector<EncryptedStoragePluginInfo> &encryptedStoragePlugins,
-        QVector<AuthenticationPluginInfo> &authenticationPlugins)
+        QVector<PluginInfo> &storagePlugins,
+        QVector<PluginInfo> &encryptionPlugins,
+        QVector<PluginInfo> &encryptedStoragePlugins,
+        QVector<PluginInfo> &authenticationPlugins)
 {
     Q_UNUSED(storagePlugins);           // outparam, set in handlePendingRequest / handleFinishedRequest
     Q_UNUSED(encryptionPlugins);        // outparam, set in handlePendingRequest / handleFinishedRequest
@@ -690,34 +690,6 @@ const QByteArray Daemon::ApiImpl::SecretsRequestQueue::deviceLockKey() const
     return QByteArray::fromRawData(m_deviceLockKeyData, m_deviceLockKeyLen);
 }
 
-bool Daemon::ApiImpl::SecretsRequestQueue::lockCryptoPlugins()
-{
-    if (m_controller && m_controller->crypto()) {
-        return m_controller->crypto()->lockPlugins();
-    }
-    return false;
-}
-
-bool Daemon::ApiImpl::SecretsRequestQueue::unlockCryptoPlugins(
-        const QByteArray &lockCode)
-{
-    if (m_controller && m_controller->crypto()) {
-        return m_controller->crypto()->unlockPlugins(lockCode);
-    }
-    return false;
-}
-
-bool Daemon::ApiImpl::SecretsRequestQueue::setLockCodeCryptoPlugins(
-        const QByteArray &oldCode,
-        const QByteArray &newCode)
-{
-
-    if (m_controller && m_controller->crypto()) {
-        return m_controller->crypto()->setLockCodePlugins(oldCode, newCode);
-    }
-    return false;
-}
-
 Result Daemon::ApiImpl::SecretsRequestQueue::lockCryptoPlugin(
         const QString &pluginName)
 {
@@ -736,7 +708,12 @@ Result Daemon::ApiImpl::SecretsRequestQueue::lockCryptoPlugin(
                       QStringLiteral("Crypto plugin %1 does not support locking").arg(pluginName));
     }
 
-    if (!cryptoPlugin->lock()) {
+    if (!m_controller || !m_controller->crypto()) {
+        return Result(Result::UnknownError,
+                      QStringLiteral("Unable to lock crypto plugin"));
+    }
+
+    if (!m_controller->crypto()->lockPlugin(pluginName)) {
         return Result(Result::UnknownError,
                       QStringLiteral("Failed to lock crypto plugin %1").arg(pluginName));
     }
@@ -763,7 +740,12 @@ Result Daemon::ApiImpl::SecretsRequestQueue::unlockCryptoPlugin(
                       QStringLiteral("Crypto plugin %1 does not support locking").arg(pluginName));
     }
 
-    if (cryptoPlugin->isLocked() && !cryptoPlugin->unlock(lockCode)) {
+    if (!m_controller || !m_controller->crypto()) {
+        return Result(Result::UnknownError,
+                      QStringLiteral("Unable to unlock crypto plugin"));
+    }
+
+    if (!m_controller->crypto()->unlockPlugin(pluginName, lockCode)) {
         return Result(Result::UnknownError,
                       QStringLiteral("Failed to unlock crypto plugin %1").arg(pluginName));
     }
@@ -791,9 +773,14 @@ Result Daemon::ApiImpl::SecretsRequestQueue::setLockCodeCryptoPlugin(
                       QStringLiteral("Crypto plugin %1 does not support locking").arg(pluginName));
     }
 
-    if (!cryptoPlugin->setLockCode(oldCode, newCode)) {
+    if (!m_controller || !m_controller->crypto()) {
         return Result(Result::UnknownError,
-                      QStringLiteral("Failed to set the lock code for crypto plugin %1").arg(pluginName));
+                      QStringLiteral("Unable to set lock code for crypto plugin"));
+    }
+
+    if (!m_controller->crypto()->setLockCodePlugin(pluginName, oldCode, newCode)) {
+        return Result(Result::UnknownError,
+                      QStringLiteral("Failed to set lock code for crypto plugin %1").arg(pluginName));
     }
 
     return Result(Result::Succeeded);
@@ -835,10 +822,10 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
     switch (request->type) {
         case GetPluginInfoRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling GetPluginInfoRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            QVector<StoragePluginInfo> storagePlugins;
-            QVector<EncryptionPluginInfo> encryptionPlugins;
-            QVector<EncryptedStoragePluginInfo> encryptedStoragePlugins;
-            QVector<AuthenticationPluginInfo> authenticationPlugins;
+            QVector<PluginInfo> storagePlugins;
+            QVector<PluginInfo> encryptionPlugins;
+            QVector<PluginInfo> encryptedStoragePlugins;
+            QVector<PluginInfo> authenticationPlugins;
             Result result = m_requestProcessor->getPluginInfo(
                         request->remotePid,
                         request->requestId,
@@ -855,10 +842,10 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
                     asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList());
                 } else {
                     request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                            << QVariant::fromValue<QVector<StoragePluginInfo> >(storagePlugins)
-                                                                            << QVariant::fromValue<QVector<EncryptionPluginInfo> >(encryptionPlugins)
-                                                                            << QVariant::fromValue<QVector<EncryptedStoragePluginInfo> >(encryptedStoragePlugins)
-                                                                            << QVariant::fromValue<QVector<AuthenticationPluginInfo> >(authenticationPlugins));
+                                                                            << QVariant::fromValue<QVector<PluginInfo> >(storagePlugins)
+                                                                            << QVariant::fromValue<QVector<PluginInfo> >(encryptionPlugins)
+                                                                            << QVariant::fromValue<QVector<PluginInfo> >(encryptedStoragePlugins)
+                                                                            << QVariant::fromValue<QVector<PluginInfo> >(authenticationPlugins));
                 }
                 *completed = true;
             }
@@ -1636,14 +1623,30 @@ void Daemon::ApiImpl::SecretsRequestQueue::handleFinishedRequest(
                 qCWarning(lcSailfishSecretsDaemon) << "GetPluginInfoRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
-                QByteArray secret = request->outParams.size()
-                        ? request->outParams.takeFirst().toByteArray()
-                        : QByteArray();
+                QVector<PluginInfo> storagePlugins = request->outParams.size()
+                        ? request->outParams.takeFirst().value<QVector<PluginInfo> >()
+                        : QVector<PluginInfo>();
+                QVector<PluginInfo> encryptionPlugins = request->outParams.size()
+                        ? request->outParams.takeFirst().value<QVector<PluginInfo> >()
+                        : QVector<PluginInfo>();
+                QVector<PluginInfo> encryptedStoragePlugins = request->outParams.size()
+                        ? request->outParams.takeFirst().value<QVector<PluginInfo> >()
+                        : QVector<PluginInfo>();
+                QVector<PluginInfo> authenticationPlugins = request->outParams.size()
+                        ? request->outParams.takeFirst().value<QVector<PluginInfo> >()
+                        : QVector<PluginInfo>();
                 if (request->isSecretsCryptoRequest) {
-                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << QVariant::fromValue<QByteArray>(secret));
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result,
+                                                       QVariantList() << QVariant::fromValue<QVector<PluginInfo> >(storagePlugins)
+                                                                      << QVariant::fromValue<QVector<PluginInfo> >(encryptionPlugins)
+                                                                      << QVariant::fromValue<QVector<PluginInfo> >(encryptedStoragePlugins)
+                                                                      << QVariant::fromValue<QVector<PluginInfo> >(authenticationPlugins));
                 } else {
-                    request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                            << QVariant::fromValue<QByteArray>(secret));
+                    request->connection.send(request->message.createReply()
+                                                << QVariant::fromValue<QVector<PluginInfo> >(storagePlugins)
+                                                << QVariant::fromValue<QVector<PluginInfo> >(encryptionPlugins)
+                                                << QVariant::fromValue<QVector<PluginInfo> >(encryptedStoragePlugins)
+                                                << QVariant::fromValue<QVector<PluginInfo> >(authenticationPlugins));
                 }
                 *completed = true;
             }

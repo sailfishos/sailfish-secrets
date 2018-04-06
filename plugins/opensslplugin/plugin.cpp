@@ -16,7 +16,7 @@ Q_PLUGIN_METADATA(IID Sailfish_Secrets_EncryptionPlugin_IID)
 using namespace Sailfish::Secrets;
 
 Daemon::Plugins::OpenSslPlugin::OpenSslPlugin(QObject *parent)
-    : QObject(parent), EncryptionPlugin()
+    : QObject(parent)
 {
     OpenSslEvp::init();
 }

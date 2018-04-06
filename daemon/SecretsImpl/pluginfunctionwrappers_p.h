@@ -8,16 +8,15 @@
 #ifndef SAILFISHSECRETS_APIIMPL_PLUGINFUNCTIONWRAPPERS_P_H
 #define SAILFISHSECRETS_APIIMPL_PLUGINFUNCTIONWRAPPERS_P_H
 
+#include "SecretsPluginApi/extensionplugins.h"
+
 #include "Secrets/secret.h"
 #include "Secrets/interactionparameters.h"
-#include "Secrets/extensionplugins.h"
 #include "Secrets/secretmanager.h"
 #include "Secrets/result.h"
 
 #include <QtCore/QString>
 #include <QtCore/QByteArray>
-
-#include <tuple>
 
 namespace Sailfish {
 
@@ -66,6 +65,16 @@ struct FoundResult {
     Sailfish::Secrets::Result result;
 };
 
+struct LockCodes {
+    LockCodes(const QByteArray &o, const QByteArray &n)
+        : oldCode(o), newCode(n) {}
+    LockCodes(const LockCodes &other)
+        : oldCode(other.oldCode)
+        , newCode(other.newCode) {}
+    QByteArray oldCode;
+    QByteArray newCode;
+};
+
 FoundResult lockSpecificPlugin(
         const QMap<QString, Sailfish::Secrets::StoragePlugin*> &storagePlugins,
         const QMap<QString, Sailfish::Secrets::EncryptionPlugin*> &encryptionPlugins,
@@ -84,21 +93,18 @@ FoundResult modifyLockSpecificPlugin(
         const QMap<QString, Sailfish::Secrets::EncryptionPlugin*> &encryptionPlugins,
         const QMap<QString, Sailfish::Secrets::EncryptedStoragePlugin*> &encryptedStoragePlugins,
         const QString &lockCodeTarget,
-        std::tuple<QByteArray, QByteArray> newAndOldLockCode);
+        const LockCodes &newAndOldLockCode);
 
-bool lockPlugins(
-        const QList<Sailfish::Secrets::EncryptionPlugin*> &encryptionPlugins,
+bool masterLockPlugins(
         const QList<Sailfish::Secrets::StoragePlugin*> &storagePlugins,
         const QList<Sailfish::Secrets::EncryptedStoragePlugin*> &encryptedStoragePlugins);
 
-bool unlockPlugins(
-        const QList<Sailfish::Secrets::EncryptionPlugin*> &encryptionPlugins,
+bool masterUnlockPlugins(
         const QList<Sailfish::Secrets::StoragePlugin*> &storagePlugins,
         const QList<Sailfish::Secrets::EncryptedStoragePlugin*> &encryptedStoragePlugins,
         const QByteArray &encryptionKey);
 
-bool modifyLockPlugins(
-        const QList<Sailfish::Secrets::EncryptionPlugin*> &encryptionPlugins,
+bool modifyMasterLockPlugins(
         const QList<Sailfish::Secrets::StoragePlugin*> &storagePlugins,
         const QList<Sailfish::Secrets::EncryptedStoragePlugin*> &encryptedStoragePlugins,
         const QByteArray &oldEncryptionKey,
@@ -280,7 +286,7 @@ namespace EncryptedStoragePluginWrapper {
             Sailfish::Secrets::EncryptedStoragePlugin *plugin,
             const QString &collectionName);
 
-    LockedResult isLocked(
+    LockedResult isCollectionLocked(
             Sailfish::Secrets::EncryptedStoragePlugin *plugin,
             const QString &collectionName);
     DerivedKeyResult deriveKeyFromCode(

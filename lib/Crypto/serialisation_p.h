@@ -16,8 +16,8 @@
 #include "Crypto/cryptoglobal.h"
 
 #include "Crypto/certificate.h"
-#include "Crypto/extensionplugins.h"
 #include "Crypto/key.h"
+#include "Crypto/plugininfo.h"
 #include "Crypto/result.h"
 #include "Crypto/storedkeyrequest.h"
 #include "Crypto/cipherrequest.h"
@@ -75,8 +75,8 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto:
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Result &result) SAILFISH_CRYPTO_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Result &result) SAILFISH_CRYPTO_API;
 
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CryptoPluginInfo &pluginInfo) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CryptoPluginInfo &pluginInfo) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::PluginInfo &pluginInfo) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::PluginInfo &pluginInfo) SAILFISH_CRYPTO_API;
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CipherRequest::CipherMode mode) SAILFISH_CRYPTO_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CipherRequest::CipherMode &mode) SAILFISH_CRYPTO_API;

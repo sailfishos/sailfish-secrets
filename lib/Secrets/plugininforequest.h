@@ -12,7 +12,7 @@
 #include "Secrets/request.h"
 #include "Secrets/secret.h"
 #include "Secrets/secretmanager.h"
-#include "Secrets/extensionplugins.h"
+#include "Secrets/plugininfo.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QScopedPointer>
@@ -27,19 +27,19 @@ class PluginInfoRequestPrivate;
 class SAILFISH_SECRETS_API PluginInfoRequest : public Sailfish::Secrets::Request
 {
     Q_OBJECT
-    Q_PROPERTY(QVector<Sailfish::Secrets::StoragePluginInfo> storagePlugins READ storagePlugins NOTIFY storagePluginsChanged)
-    Q_PROPERTY(QVector<Sailfish::Secrets::EncryptionPluginInfo> encryptionPlugins READ encryptionPlugins NOTIFY encryptionPluginsChanged)
-    Q_PROPERTY(QVector<Sailfish::Secrets::EncryptedStoragePluginInfo> encryptedStoragePlugins READ encryptedStoragePlugins NOTIFY encryptedStoragePluginsChanged)
-    Q_PROPERTY(QVector<Sailfish::Secrets::AuthenticationPluginInfo> authenticationPlugins READ authenticationPlugins NOTIFY authenticationPluginsChanged)
+    Q_PROPERTY(QVector<Sailfish::Secrets::PluginInfo> storagePlugins READ storagePlugins NOTIFY storagePluginsChanged)
+    Q_PROPERTY(QVector<Sailfish::Secrets::PluginInfo> encryptionPlugins READ encryptionPlugins NOTIFY encryptionPluginsChanged)
+    Q_PROPERTY(QVector<Sailfish::Secrets::PluginInfo> encryptedStoragePlugins READ encryptedStoragePlugins NOTIFY encryptedStoragePluginsChanged)
+    Q_PROPERTY(QVector<Sailfish::Secrets::PluginInfo> authenticationPlugins READ authenticationPlugins NOTIFY authenticationPluginsChanged)
 
 public:
     PluginInfoRequest(QObject *parent = Q_NULLPTR);
     ~PluginInfoRequest();
 
-    QVector<Sailfish::Secrets::StoragePluginInfo> storagePlugins() const;
-    QVector<Sailfish::Secrets::EncryptionPluginInfo> encryptionPlugins() const;
-    QVector<Sailfish::Secrets::EncryptedStoragePluginInfo> encryptedStoragePlugins() const;
-    QVector<Sailfish::Secrets::AuthenticationPluginInfo> authenticationPlugins() const;
+    QVector<Sailfish::Secrets::PluginInfo> storagePlugins() const;
+    QVector<Sailfish::Secrets::PluginInfo> encryptionPlugins() const;
+    QVector<Sailfish::Secrets::PluginInfo> encryptedStoragePlugins() const;
+    QVector<Sailfish::Secrets::PluginInfo> authenticationPlugins() const;
 
     Sailfish::Secrets::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result result() const Q_DECL_OVERRIDE;

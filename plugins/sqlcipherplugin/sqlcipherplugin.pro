@@ -5,8 +5,8 @@ TARGET = $$qtLibraryTarget($$TARGET)
 PKGCONFIG += libcrypto
 
 include($$PWD/../../common.pri)
-include($$PWD/../../lib/libsailfishsecrets.pri)
-include($$PWD/../../lib/libsailfishcrypto.pri)
+include($$PWD/../../lib/libsailfishsecretspluginapi.pri)
+include($$PWD/../../lib/libsailfishcryptopluginapi.pri)
 include($$PWD/../../database/database.pri)
 
 INCLUDEPATH += . $$PWD/../opensslcryptoplugin $$PWD/../opensslcryptoplugin/evp/

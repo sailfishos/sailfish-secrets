@@ -4,7 +4,7 @@ TARGET = sailfishsecrets-inappauth
 TARGET = $$qtLibraryTarget($$TARGET)
 
 include($$PWD/../../common.pri)
-include($$PWD/../../lib/libsailfishsecrets.pri)
+include($$PWD/../../lib/libsailfishsecretspluginapi.pri)
 
 HEADERS += $$PWD/plugin.h
 SOURCES += $$PWD/plugin.cpp
