@@ -124,6 +124,29 @@ CryptoManagerPrivate::seedRandomDataGenerator(
     return reply;
 }
 
+QDBusPendingReply<Sailfish::Crypto::Result, QByteArray>
+CryptoManagerPrivate::generateInitializationVector(
+        Sailfish::Crypto::CryptoManager::Algorithm algorithm,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        int keySize,
+        const QString &cryptosystemProviderName)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result, QByteArray>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result, QByteArray> reply
+            = m_interface->asyncCallWithArgumentList(
+                QStringLiteral("generateInitializationVector"),
+                QVariantList() << QVariant::fromValue<CryptoManager::Algorithm>(algorithm)
+                               << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
+                               << QVariant::fromValue<int>(keySize)
+                               << QVariant::fromValue<QString>(cryptosystemProviderName));
+    return reply;
+}
+
 QDBusPendingReply<Result, bool>
 CryptoManagerPrivate::validateCertificateChain(
         const QVector<Certificate> &chain,
@@ -318,22 +341,23 @@ CryptoManagerPrivate::verify(
     return reply;
 }
 
-QDBusPendingReply<Result, QByteArray>
+QDBusPendingReply<Result, QByteArray, QByteArray>
 CryptoManagerPrivate::encrypt(
         const QByteArray &data,
         const QByteArray &iv,
         const Key &key, // or keyreference, i.e. Key(keyName)
         CryptoManager::BlockMode blockMode,
         CryptoManager::EncryptionPadding padding,
+        const QByteArray &authenticationData,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
-        return QDBusPendingReply<Result>(
+        return QDBusPendingReply<Result, QByteArray, QByteArray>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Result, QByteArray> reply
+    QDBusPendingReply<Result, QByteArray, QByteArray> reply
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("encrypt"),
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
@@ -341,26 +365,28 @@ CryptoManagerPrivate::encrypt(
                                << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
                                << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding)
+                               << QVariant::fromValue<QByteArray>(authenticationData)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
 
-QDBusPendingReply<Result, QByteArray>
-CryptoManagerPrivate::decrypt(
+QDBusPendingReply<Result, QByteArray, bool> CryptoManagerPrivate::decrypt(
         const QByteArray &data,
         const QByteArray &iv,
         const Key &key, // or keyreference, i.e. Key(keyName)
         CryptoManager::BlockMode blockMode,
         CryptoManager::EncryptionPadding padding,
+        const QByteArray &authenticationData,
+        const QByteArray &authenticationTag,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
-        return QDBusPendingReply<Result>(
+        return QDBusPendingReply<Result, QByteArray, bool>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Result, QByteArray> reply
+    QDBusPendingReply<Result, QByteArray, bool> reply
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("decrypt"),
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
@@ -368,11 +394,13 @@ CryptoManagerPrivate::decrypt(
                                << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
                                << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding)
+                               << QVariant::fromValue<QByteArray>(authenticationData)
+                               << QVariant::fromValue<QByteArray>(authenticationTag)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
 
-QDBusPendingReply<Sailfish::Crypto::Result, quint32, QByteArray>
+QDBusPendingReply<Sailfish::Crypto::Result, quint32>
 CryptoManagerPrivate::initialiseCipherSession(
         const QByteArray &initialisationVector,
         const Sailfish::Crypto::Key &key, // or keyreference
@@ -384,12 +412,12 @@ CryptoManagerPrivate::initialiseCipherSession(
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
-        return QDBusPendingReply<Result, quint32, QByteArray>(
+        return QDBusPendingReply<Result, quint32>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Result, quint32, QByteArray> reply
+    QDBusPendingReply<Result, quint32> reply
             = m_interface->asyncCallWithArgumentList(
                 "initialiseCipherSession",
                 QVariantList() << QVariant::fromValue<QByteArray>(initialisationVector)

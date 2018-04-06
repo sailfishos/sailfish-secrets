@@ -43,7 +43,6 @@ public:
     QString m_cryptoPluginName;
     quint32 m_cipherSessionToken;
     QByteArray m_generatedData;
-    QByteArray m_generatedInitialisationVector;
     bool m_verified;
 
     QQueue<QDBusPendingCallWatcher*> m_watcherQueue;

@@ -46,6 +46,8 @@ public:
         InvalidKeyIdentifier,
         DuplicateKeyIdentifier,
         CryptoManagerNotInitialisedError,
+        InvalidInitializationVector,
+        InvalidAuthenticationTag,
 
         UnsupportedOperation = 20,
         UnsupportedBlockMode,
@@ -67,6 +69,8 @@ public:
         CryptoPluginDigestError,
         CryptoPluginSigningError,
         CryptoPluginVerificationError,
+        CryptoPluginAuthenticationTagError,
+        CryptoPluginInvalidCipherSessionToken,
 
         NetworkError = 98,
         NetworkSslError = 99,

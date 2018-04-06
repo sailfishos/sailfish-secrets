@@ -76,6 +76,12 @@ public:
             const QByteArray &seedData,
             double entropyEstimate) = 0;
 
+    virtual Sailfish::Crypto::Result generateInitializationVector(
+            Sailfish::Crypto::CryptoManager::Algorithm algorithm,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            int keySize,
+            QByteArray *generatedIV) = 0;
+
     virtual Sailfish::Crypto::Result validateCertificateChain(
             const QVector<Sailfish::Crypto::Certificate> &chain,
             bool *validated) = 0;
@@ -133,7 +139,9 @@ public:
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-            QByteArray *encrypted) = 0;
+            const QByteArray &authenticationData,
+            QByteArray *encrypted,
+            QByteArray *authenticationTag) = 0;
 
     virtual Sailfish::Crypto::Result decrypt(
             const QByteArray &data,
@@ -141,7 +149,10 @@ public:
             const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
-            QByteArray *decrypted) = 0;
+            const QByteArray &authenticationData,
+            const QByteArray &authenticationTag,
+            QByteArray *decrypted,
+            bool *verified) = 0;
 
     virtual Sailfish::Crypto::Result initialiseCipherSession(
             quint64 clientId,
@@ -152,8 +163,7 @@ public:
             Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
             Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
-            quint32 *cipherSessionToken,
-            QByteArray *generatedIV) = 0;
+            quint32 *cipherSessionToken) = 0;
 
     virtual Sailfish::Crypto::Result updateCipherSessionAuthentication(
             quint64 clientId,

@@ -92,6 +92,15 @@ public:
             const QString &csprngEngineName,
             const QString &cryptosystemProviderName);
 
+    Sailfish::Crypto::Result generateInitializationVector(
+            pid_t callerPid,
+            quint64 requestId,
+            Sailfish::Crypto::CryptoManager::Algorithm algorithm,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            int keySize,
+            const QString &cryptosystemProviderName,
+            QByteArray *generatedIV);
+
     Sailfish::Crypto::Result validateCertificateChain(
             pid_t callerPid,
             quint64 requestId,
@@ -174,8 +183,10 @@ public:
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+            const QByteArray &authenticationData,
             const QString &cryptosystemProviderName,
-            QByteArray *encrypted);
+            QByteArray *encrypted,
+            QByteArray *authenticationTag);
 
     Sailfish::Crypto::Result decrypt(
             pid_t callerPid,
@@ -185,8 +196,11 @@ public:
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+            const QByteArray &authenticationData,
+            const QByteArray &authenticationTag,
             const QString &cryptosystemProviderName,
-            QByteArray *decrypted);
+            QByteArray *decrypted,
+            bool *verified);
 
     Sailfish::Crypto::Result initialiseCipherSession(
             pid_t callerPid,
@@ -199,8 +213,7 @@ public:
             Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QString &cryptosystemProviderName,
-            quint32 *cipherSessionToken,
-            QByteArray *generatedIV);
+            quint32 *cipherSessionToken);
 
     Sailfish::Crypto::Result updateCipherSessionAuthentication(
             pid_t callerPid,
@@ -377,6 +390,7 @@ private:
             const QByteArray &iv,
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+            const QByteArray &authenticationData,
             const QString &cryptoPluginName);
 
     void decrypt2(
@@ -387,6 +401,8 @@ private:
             const QByteArray &iv,
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+            const QByteArray &authenticationData,
+            const QByteArray &authenticationTag,
             const QString &cryptoPluginName);
 
     void initialiseCipherSession2(

@@ -35,8 +35,11 @@ public:
     Sailfish::Crypto::Key m_key;
     Sailfish::Crypto::CryptoManager::BlockMode m_blockMode;
     Sailfish::Crypto::CryptoManager::EncryptionPadding m_padding;
+    QByteArray m_authenticationData;
+    QByteArray m_authenticationTag;
     QString m_cryptoPluginName;
     QByteArray m_plaintext;
+    bool m_verified;
 
     QScopedPointer<QDBusPendingCallWatcher> m_watcher;
     Sailfish::Crypto::Request::Status m_status;

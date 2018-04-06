@@ -87,6 +87,29 @@ void Daemon::ApiImpl::CryptoDBusObject::seedRandomDataGenerator(
                                   result);
 }
 
+void Daemon::ApiImpl::CryptoDBusObject::generateInitializationVector(
+        Sailfish::Crypto::CryptoManager::Algorithm algorithm,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        int keySize,
+        const QString &cryptosystemProviderName,
+        const QDBusMessage &message,
+        Sailfish::Crypto::Result &result,
+        QByteArray &generatedIV)
+{
+    Q_UNUSED(generatedIV);  // outparam
+
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<Sailfish::Crypto::CryptoManager::Algorithm>(algorithm);
+    inParams << QVariant::fromValue<Sailfish::Crypto::CryptoManager::BlockMode>(blockMode);
+    inParams << QVariant::fromValue<int>(keySize);
+    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    m_requestQueue->handleRequest(Daemon::ApiImpl::GenerateInitializationVectorRequest,
+                                  inParams,
+                                  connection(),
+                                  message,
+                                  result);
+}
+
 void Daemon::ApiImpl::CryptoDBusObject::validateCertificateChain(
         const QVector<Certificate> &chain,
         const QString &cryptosystemProviderName,
@@ -277,18 +300,24 @@ void Daemon::ApiImpl::CryptoDBusObject::encrypt(
         const Key &key,
         CryptoManager::BlockMode blockMode,
         CryptoManager::EncryptionPadding padding,
+        const QByteArray &authenticationData,
         const QString &cryptosystemProviderName,
         const QDBusMessage &message,
         Result &result,
-        QByteArray &encrypted)
+        QByteArray &encrypted,
+        QByteArray &authenticationTag)
 {
-    Q_UNUSED(encrypted);  // outparam, set in handlePendingRequest / handleFinishedRequest
+    // outparams, set in handlePendingRequest / handleFinishedRequest
+    Q_UNUSED(encrypted);
+    Q_UNUSED(authenticationTag);
+
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
     inParams << QVariant::fromValue<QByteArray>(iv);
     inParams << QVariant::fromValue<Key>(key);
     inParams << QVariant::fromValue<CryptoManager::BlockMode>(blockMode);
     inParams << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding);
+    inParams << QVariant::fromValue<QByteArray>(authenticationData);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
     m_requestQueue->handleRequest(Daemon::ApiImpl::EncryptRequest,
                                   inParams,
@@ -303,18 +332,26 @@ void Daemon::ApiImpl::CryptoDBusObject::decrypt(
         const Key &key,
         CryptoManager::BlockMode blockMode,
         CryptoManager::EncryptionPadding padding,
+        const QByteArray &authenticationData,
+        const QByteArray &authenticationTag,
         const QString &cryptosystemProviderName,
         const QDBusMessage &message,
         Result &result,
-        QByteArray &decrypted)
+        QByteArray &decrypted,
+        bool &verified)
 {
-    Q_UNUSED(decrypted);  // outparam, set in handlePendingRequest / handleFinishedRequest
+    // outparam, set in handlePendingRequest / handleFinishedRequest
+    Q_UNUSED(decrypted);
+    Q_UNUSED(verified);
+
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
     inParams << QVariant::fromValue<QByteArray>(iv);
     inParams << QVariant::fromValue<Key>(key);
     inParams << QVariant::fromValue<CryptoManager::BlockMode>(blockMode);
     inParams << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding);
+    inParams << QVariant::fromValue<QByteArray>(authenticationData);
+    inParams << QVariant::fromValue<QByteArray>(authenticationTag);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
     m_requestQueue->handleRequest(Daemon::ApiImpl::DecryptRequest,
                                   inParams,
@@ -334,11 +371,9 @@ void Daemon::ApiImpl::CryptoDBusObject::initialiseCipherSession(
         const QString &cryptosystemProviderName,
         const QDBusMessage &message,
         Sailfish::Crypto::Result &result,
-        quint32 &cipherSessionToken,
-        QByteArray &generatedInitialisationVector)
+        quint32 &cipherSessionToken)
 {
     Q_UNUSED(cipherSessionToken);  // outparam, set in handlePendingRequest / handleFinishedRequest
-    Q_UNUSED(generatedInitialisationVector); // outparam
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(initialisationVector);
     inParams << QVariant::fromValue<Key>(key);
@@ -524,6 +559,7 @@ QString Daemon::ApiImpl::CryptoRequestQueue::requestTypeToString(int type) const
         case GetPluginInfoRequest:             return QLatin1String("GetPluginInfoRequest");
         case GenerateRandomDataRequest:        return QLatin1String("GenerateRandomDataRequest");
         case SeedRandomDataGeneratorRequest:   return QLatin1String("SeedRandomDataGeneratorRequest");
+        case GenerateInitializationVectorRequest: return QLatin1String("GenerateInitializationVectorRequest");
         case ValidateCertificateChainRequest:  return QLatin1String("ValidateCertificateChainRequest");
         case GenerateKeyRequest:               return QLatin1String("GenerateKeyRequest");
         case GenerateStoredKeyRequest:         return QLatin1String("GenerateStoredKeyRequest");
@@ -616,6 +652,33 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
                 *completed = false;
             } else {
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result));
+                *completed = true;
+            }
+            break;
+        }
+        case GenerateInitializationVectorRequest:
+        {
+            qCDebug(lcSailfishCryptoDaemon) << "Handling GenerateInitializationVectorRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            QByteArray generatedIV;
+            CryptoManager::Algorithm algorithm = request->inParams.size() ? request->inParams.takeFirst().value<CryptoManager::Algorithm>() : CryptoManager::AlgorithmUnknown;
+            CryptoManager::BlockMode blockMode = request->inParams.size() ? request->inParams.takeFirst().value<CryptoManager::BlockMode>() : CryptoManager::BlockModeUnknown;
+            int keySize = request->inParams.size() ? request->inParams.takeFirst().value<int>() : -1;
+            QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            Result result = m_requestProcessor->generateInitializationVector(
+                        request->remotePid,
+                        request->requestId,
+                        algorithm,
+                        blockMode,
+                        keySize,
+                        cryptosystemProviderName,
+                        &generatedIV);
+            // send the reply to the calling peer.
+            if (result.code() == Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<QByteArray>(generatedIV));
                 *completed = true;
             }
             break;
@@ -868,29 +931,34 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
         case EncryptRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling EncryptRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             QByteArray encrypted;
+            QByteArray authenticationTag;
             QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             QByteArray iv = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
             CryptoManager::BlockMode blockMode = request->inParams.size() ? request->inParams.takeFirst().value<CryptoManager::BlockMode>() : CryptoManager::BlockModeUnknown;
             CryptoManager::EncryptionPadding padding = request->inParams.size() ? request->inParams.takeFirst().value<CryptoManager::EncryptionPadding>() : CryptoManager::EncryptionPaddingUnknown;
+            QByteArray authenticationData = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             Result result = m_requestProcessor->encrypt(
-                        request->remotePid,
-                        request->requestId,
-                        data,
-                        iv,
-                        key,
-                        blockMode,
-                        padding,
-                        cryptosystemProviderName,
-                        &encrypted);
+                          request->remotePid,
+                          request->requestId,
+                          data,
+                          iv,
+                          key,
+                          blockMode,
+                          padding,
+                          authenticationData,
+                          cryptosystemProviderName,
+                          &encrypted,
+                          &authenticationTag);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                        << QVariant::fromValue<QByteArray>(encrypted));
+                                                                        << QVariant::fromValue<QByteArray>(encrypted)
+                                                                        << QVariant::fromValue<QByteArray>(authenticationTag));
                 *completed = true;
             }
             break;
@@ -898,11 +966,14 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
         case DecryptRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling DecryptRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             QByteArray decrypted;
+            bool verified = false;
             QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             QByteArray iv = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
             CryptoManager::BlockMode blockMode = request->inParams.size() ? request->inParams.takeFirst().value<CryptoManager::BlockMode>() : CryptoManager::BlockModeUnknown;
             CryptoManager::EncryptionPadding padding = request->inParams.size() ? request->inParams.takeFirst().value<CryptoManager::EncryptionPadding>() : CryptoManager::EncryptionPaddingUnknown;
+            QByteArray authenticationData = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
+            QByteArray authenticationTag = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             Result result = m_requestProcessor->decrypt(
                         request->remotePid,
@@ -912,22 +983,25 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
                         key,
                         blockMode,
                         padding,
+                        authenticationData,
+                        authenticationTag,
                         cryptosystemProviderName,
-                        &decrypted);
+                        &decrypted,
+                        &verified);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                        << QVariant::fromValue<QByteArray>(decrypted));
+                                                                        << QVariant::fromValue<QByteArray>(decrypted)
+                                                                        << QVariant::fromValue<bool>(verified));
                 *completed = true;
             }
             break;
         }
         case InitialiseCipherSessionRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling InitialiseCipherSessionRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            QByteArray generatedIV;
             quint32 cipherSessionToken = 0;
             QByteArray iv = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
@@ -948,16 +1022,14 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
                         signaturePadding,
                         digest,
                         cryptosystemProviderName,
-                        &cipherSessionToken,
-                        &generatedIV);
+                        &cipherSessionToken);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                        << QVariant::fromValue<quint32>(cipherSessionToken)
-                                                                        << QVariant::fromValue<QByteArray>(generatedIV));
+                                                                        << QVariant::fromValue<quint32>(cipherSessionToken));
                 *completed = true;
             }
             break;
@@ -1184,6 +1256,24 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
             }
             break;
         }
+        case GenerateInitializationVectorRequest:
+        {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of GenerateInitializationVectorRequest request"));
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishCryptoDaemon) << "GenerateInitializationVectorRequest:" << request->requestId << "finished as pending!";
+                *completed = true;
+            } else {
+                QByteArray generatedIV = request->outParams.size() ? request->outParams.takeFirst().value<QByteArray>() : QByteArray();
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<QByteArray>(generatedIV));
+                *completed = true;
+            }
+            break;
+        }
         case ValidateCertificateChainRequest: {
             Result result = request->outParams.size()
                     ? request->outParams.takeFirst().value<Result>()
@@ -1362,8 +1452,12 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
                 QByteArray encrypted = request->outParams.size()
                         ? request->outParams.takeFirst().toByteArray()
                         : QByteArray();
+                QByteArray authenticationTag = request->outParams.size()
+                        ? request->outParams.takeFirst().toByteArray()
+                        : QByteArray();
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                        << QVariant::fromValue<QByteArray>(encrypted));
+                                                                        << QVariant::fromValue<QByteArray>(encrypted)
+                                                                        << QVariant::fromValue<QByteArray>(authenticationTag));
                 *completed = true;
             }
             break;
@@ -1381,8 +1475,12 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
                 QByteArray decrypted = request->outParams.size()
                         ? request->outParams.takeFirst().toByteArray()
                         : QByteArray();
+                bool verified = request->outParams.size()
+                        ? request->outParams.takeFirst().toBool()
+                        : false;
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                        << QVariant::fromValue<QByteArray>(decrypted));
+                                                                        << QVariant::fromValue<QByteArray>(decrypted)
+                                                                        << QVariant::fromValue<bool>(verified));
                 *completed = true;
             }
             break;

@@ -46,6 +46,31 @@ int osslevp_aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
                                    int ciphertext_length,
                                    unsigned char **decrypted);
 
+int osslevp_aes_auth_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
+                                       const unsigned char *init_vector,
+                                       const unsigned char *key,
+                                       int key_length,
+                                       const unsigned char *auth,
+                                       int auth_length,
+                                       const unsigned char *plaintext,
+                                       int plaintext_length,
+                                       unsigned char **encrypted,
+                                       unsigned char **authenticationTag,
+                                       int authenticationTag_length);
+
+int osslevp_aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
+                                        const unsigned char *init_vector,
+                                        const unsigned char *key,
+                                        int key_length,
+                                        const unsigned char *auth,
+                                        int auth_length,
+                                        unsigned char *authenticationTag,
+                                        int authenticationTag_length,
+                                        const unsigned char *ciphertext,
+                                        int ciphertext_length,
+                                        unsigned char **decrypted,
+                                        int *verified);
+
 int osslevp_pkey_encrypt_plaintext(EVP_PKEY *pkey,
                                    int padding,
                                    const unsigned char *plaintext,

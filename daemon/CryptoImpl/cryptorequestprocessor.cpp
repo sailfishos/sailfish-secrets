@@ -205,6 +205,28 @@ Daemon::ApiImpl::RequestProcessor::seedRandomDataGenerator(
 }
 
 Result
+Daemon::ApiImpl::RequestProcessor::generateInitializationVector(
+        pid_t callerPid,
+        quint64 requestId,
+        CryptoManager::Algorithm algorithm,
+        CryptoManager::BlockMode blockMode,
+        int keySize,
+        const QString &cryptosystemProviderName,
+        QByteArray *generatedIV)
+{
+    // TODO: access control!
+    Q_UNUSED(callerPid);
+    Q_UNUSED(requestId);
+
+    if (!m_cryptoPlugins.contains(cryptosystemProviderName)) {
+        return Result(Result::InvalidCryptographicServiceProvider,
+                      QLatin1String("No such cryptographic service provider plugin exists"));
+    }
+
+    return m_cryptoPlugins[cryptosystemProviderName]->generateInitializationVector(algorithm, blockMode, keySize, generatedIV);
+}
+
+Result
 Daemon::ApiImpl::RequestProcessor::validateCertificateChain(
         pid_t callerPid,
         quint64 requestId,
@@ -985,8 +1007,10 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
         const Key &key,
         CryptoManager::BlockMode blockMode,
         CryptoManager::EncryptionPadding padding,
+        const QByteArray &authenticationData,
         const QString &cryptosystemProviderName,
-        QByteArray *encrypted)
+        QByteArray *encrypted,
+        QByteArray *authenticationTag)
 {
     // TODO: Access Control
 
@@ -1043,16 +1067,19 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
                 return retn;
             } else if (retn.code() == Result::Pending) {
                 // asynchronous flow required, will call back to encrypt2().
+                QVariantList args;
+                args << QVariant::fromValue<QByteArray>(data)
+                               << QVariant::fromValue<QByteArray>(iv)
+                               << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
+                               << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding)
+                               << QVariant::fromValue<QByteArray>(authenticationData)
+                               << QVariant::fromValue<QString>(cryptosystemProviderName);
                 m_pendingRequests.insert(requestId,
                                          Daemon::ApiImpl::RequestProcessor::PendingRequest(
                                              callerPid,
                                              requestId,
                                              Daemon::ApiImpl::EncryptRequest,
-                                             QVariantList() << QVariant::fromValue<QByteArray>(data)
-                                                            << QVariant::fromValue<QByteArray>(iv)
-                                                            << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
-                                                            << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding)
-                                                            << QVariant::fromValue<QString>(cryptosystemProviderName)));
+                                             args));
                 return retn;
             }
 
@@ -1062,7 +1089,7 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
         fullKey = key;
     }
 
-    return cryptoPlugin->encrypt(data, iv, fullKey, blockMode, padding, encrypted);
+    return cryptoPlugin->encrypt(data, iv, fullKey, blockMode, padding, authenticationData, encrypted, authenticationTag);
 }
 
 void
@@ -1074,11 +1101,13 @@ Daemon::ApiImpl::RequestProcessor::encrypt2(
         const QByteArray &iv,
         CryptoManager::BlockMode blockMode,
         CryptoManager::EncryptionPadding padding,
+        const QByteArray &authenticationData,
         const QString &cryptoPluginName)
 {
     // finish the request.
     QList<QVariant> outParams;
     QByteArray encrypted;
+    QByteArray authenticationTag;
     if (result.code() == Result::Succeeded) {
         bool ok = false;
         Key fullKey = Key::deserialise(serialisedKey, &ok);
@@ -1086,27 +1115,31 @@ Daemon::ApiImpl::RequestProcessor::encrypt2(
             outParams << QVariant::fromValue<Result>(Result(Result::SerialisationError,
                                                             QLatin1String("Failed to deserialise key!")));
         } else {
-            Result cryptoResult = m_cryptoPlugins[cryptoPluginName]->encrypt(data, iv, fullKey, blockMode, padding, &encrypted);
+            Result cryptoResult = m_cryptoPlugins[cryptoPluginName]->encrypt(data, iv, fullKey, blockMode, padding, authenticationData, &encrypted, &authenticationTag);
             outParams << QVariant::fromValue<Result>(cryptoResult);
         }
     } else {
         outParams << QVariant::fromValue<Result>(result);
     }
     outParams << QVariant::fromValue<QByteArray>(encrypted);
+    outParams << QVariant::fromValue<QByteArray>(authenticationTag);
     m_requestQueue->requestFinished(requestId, outParams);
 }
 
-Result
+Sailfish::Crypto::Result
 Daemon::ApiImpl::RequestProcessor::decrypt(
         pid_t callerPid,
         quint64 requestId,
         const QByteArray &data,
         const QByteArray &iv,
-        const Key &key,
-        CryptoManager::BlockMode blockMode,
-        CryptoManager::EncryptionPadding padding,
+        const Sailfish::Crypto::Key &key,
+        Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+        Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+        const QByteArray &authenticationData,
+        const QByteArray &authenticationTag,
         const QString &cryptosystemProviderName,
-        QByteArray *decrypted)
+        QByteArray *decrypted,
+        bool *verified)
 {
     // TODO: Access Control
 
@@ -1164,16 +1197,20 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
                 return retn;
             } else if (retn.code() == Result::Pending) {
                 // asynchronous flow required, will call back to decrypt2().
+                QVariantList args;
+                args << QVariant::fromValue<QByteArray>(data)
+                     << QVariant::fromValue<QByteArray>(iv)
+                     << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
+                     << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding)
+                     << QVariant::fromValue<QByteArray>(authenticationData)
+                     << QVariant::fromValue<QByteArray>(authenticationTag)
+                     << QVariant::fromValue<QString>(cryptosystemProviderName);
                 m_pendingRequests.insert(requestId,
                                          Daemon::ApiImpl::RequestProcessor::PendingRequest(
                                              callerPid,
                                              requestId,
                                              Daemon::ApiImpl::DecryptRequest,
-                                             QVariantList() << QVariant::fromValue<QByteArray>(data)
-                                                            << QVariant::fromValue<QByteArray>(iv)
-                                                            << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
-                                                            << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding)
-                                                            << QVariant::fromValue<QString>(cryptosystemProviderName)));
+                                             args));
                 return retn;
             }
 
@@ -1183,7 +1220,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
         fullKey = key;
     }
 
-    return cryptoPlugin->decrypt(data, iv, fullKey, blockMode, padding, decrypted);
+    return cryptoPlugin->decrypt(data, iv, fullKey, blockMode, padding, authenticationData, authenticationTag, decrypted, verified);
 }
 
 void
@@ -1195,22 +1232,25 @@ Daemon::ApiImpl::RequestProcessor::decrypt2(
         const QByteArray &iv,
         CryptoManager::BlockMode blockMode,
         CryptoManager::EncryptionPadding padding,
+        const QByteArray &authenticationData,
+        const QByteArray &authenticationTag,
         const QString &cryptoPluginName)
 {
     // finish the request.
     QList<QVariant> outParams;
     QByteArray decrypted;
+    bool verified = false;
     if (result.code() == Result::Succeeded) {
         Key fullKey = Key::deserialise(serialisedKey);
-        Result cryptoResult = m_cryptoPlugins[cryptoPluginName]->decrypt(data, iv, fullKey, blockMode, padding, &decrypted);
+        Result cryptoResult = m_cryptoPlugins[cryptoPluginName]->decrypt(data, iv, fullKey, blockMode, padding, authenticationData, authenticationTag, &decrypted, &verified);
         outParams << QVariant::fromValue<Result>(cryptoResult);
     } else {
         outParams << QVariant::fromValue<Result>(result);
     }
     outParams << QVariant::fromValue<QByteArray>(decrypted);
+    outParams << QVariant::fromValue<bool>(verified);
     m_requestQueue->requestFinished(requestId, outParams);
 }
-
 
 Result
 Daemon::ApiImpl::RequestProcessor::initialiseCipherSession(
@@ -1224,8 +1264,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession(
         CryptoManager::SignaturePadding signaturePadding,
         CryptoManager::DigestFunction digestFunction,
         const QString &cryptosystemProviderName,
-        quint32 *cipherSessionToken,
-        QByteArray *generatedIV)
+        quint32 *cipherSessionToken)
 {
     // TODO: Access Control
 
@@ -1298,7 +1337,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession(
                 iv, fullKey, operation,
                 blockMode, encryptionPadding,
                 signaturePadding, digestFunction,
-                cipherSessionToken, generatedIV);
+                cipherSessionToken);
 }
 
 void
@@ -1318,20 +1357,18 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession2(
     // finish the request.
     QList<QVariant> outParams;
     quint32 cipherSessionToken = 0;
-    QByteArray generatedIV;
     if (result.code() == Result::Succeeded) {
         Key fullKey = Key::deserialise(serialisedKey);
         Result cryptoResult = m_cryptoPlugins[cryptoPluginName]->initialiseCipherSession(
                     callerPid,
                     iv, fullKey, operation, blockMode,
                     encryptionPadding, signaturePadding,
-                    digestFunction, &cipherSessionToken, &generatedIV);
+                    digestFunction, &cipherSessionToken);
         outParams << QVariant::fromValue<Result>(cryptoResult);
     } else {
         outParams << QVariant::fromValue<Result>(result);
     }
     outParams << QVariant::fromValue<quint32>(cipherSessionToken);
-    outParams << QVariant::fromValue<QByteArray>(generatedIV);
     m_requestQueue->requestFinished(requestId, outParams);
 }
 
@@ -1573,8 +1610,9 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 QByteArray iv = pr.parameters.takeFirst().value<QByteArray>();
                 CryptoManager::BlockMode blockMode = pr.parameters.takeFirst().value<CryptoManager::BlockMode>();
                 CryptoManager::EncryptionPadding padding = pr.parameters.takeFirst().value<CryptoManager::EncryptionPadding>();
+                QByteArray authenticationData = pr.parameters.takeFirst().value<QByteArray>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                encrypt2(requestId, returnResult, serialisedKey, data, iv, blockMode, padding, cryptoPluginName);
+                encrypt2(requestId, returnResult, serialisedKey, data, iv, blockMode, padding, authenticationData, cryptoPluginName);
                 break;
             }
             case DecryptRequest: {
@@ -1582,8 +1620,10 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 QByteArray iv = pr.parameters.takeFirst().value<QByteArray>();
                 CryptoManager::BlockMode blockMode = pr.parameters.takeFirst().value<CryptoManager::BlockMode>();
                 CryptoManager::EncryptionPadding padding = pr.parameters.takeFirst().value<CryptoManager::EncryptionPadding>();
+                QByteArray authenticationData = pr.parameters.takeFirst().value<QByteArray>();
+                QByteArray authenticationTag = pr.parameters.takeFirst().value<QByteArray>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                decrypt2(requestId, returnResult, serialisedKey, data, iv, blockMode, padding, cryptoPluginName);
+                decrypt2(requestId, returnResult, serialisedKey, data, iv, blockMode, padding, authenticationData, authenticationTag, cryptoPluginName);
                 break;
             }
             case InitialiseCipherSessionRequest: {

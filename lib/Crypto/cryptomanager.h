@@ -328,6 +328,7 @@ private:
     friend class GenerateKeyRequest;
     friend class GenerateRandomDataRequest;
     friend class GenerateStoredKeyRequest;
+    friend class GenerateInitializationVectorRequest;
     friend class LockCodeRequest;
     friend class PluginInfoRequest;
     friend class SeedRandomDataGeneratorRequest;

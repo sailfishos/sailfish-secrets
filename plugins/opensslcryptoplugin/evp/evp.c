@@ -253,6 +253,197 @@ int osslevp_aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
     return plaintext_length;
 }
 
+int osslevp_aes_auth_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
+                                       const unsigned char *init_vector,
+                                       const unsigned char *key,
+                                       int key_length,
+                                       const unsigned char *auth,
+                                       int auth_length,
+                                       const unsigned char *plaintext,
+                                       int plaintext_length,
+                                       unsigned char **encrypted,
+                                       unsigned char **tag,
+                                       int tag_length)
+{
+    int ciphertext_length = plaintext_length + AES_BLOCK_SIZE;
+    int update_length = 0;
+    int final_length = 0;
+    unsigned char *ciphertext = NULL;
+    unsigned char *tag_output = NULL;
+
+    if (evp_cipher == NULL || plaintext_length <= 0 || plaintext == NULL
+            || auth == NULL || auth_length <= 0
+            || key_length <= 0 || key == NULL || encrypted == NULL || tag_length <= 0) {
+        /* Invalid arguments */
+        fprintf(stderr, "%s\n", "invalid arguments, aborting encryption");
+        return -1;
+    }
+
+    /* Allocate the buffer for the encrypted output */
+    ciphertext = (unsigned char *)malloc(ciphertext_length);
+    memset(ciphertext, 0, ciphertext_length);
+
+    tag_output = (unsigned char *)malloc(tag_length);
+    memset(tag_output, 0, tag_length);
+
+    /* Create the encryption context */
+    EVP_CIPHER_CTX *encryption_context = EVP_CIPHER_CTX_new();
+
+    /* Initialise key and IV */
+    if (!EVP_EncryptInit_ex(encryption_context, evp_cipher, NULL, key, init_vector)) {
+        ERR_print_errors_fp(stderr);
+        EVP_CIPHER_CTX_free(encryption_context);
+        free(ciphertext);
+        free(tag_output);
+        fprintf(stderr, "%s\n", "failed to initialize encryption context");
+        return -1;
+    }
+
+    /* Provide auth data */
+    if (!EVP_EncryptUpdate(encryption_context, NULL, &update_length, auth, auth_length)) {
+        ERR_print_errors_fp(stderr);
+        EVP_CIPHER_CTX_free(encryption_context);
+        free(ciphertext);
+        free(tag_output);
+        fprintf(stderr, "%s\n", "failed to initialize encryption context");
+        return -1;
+    }
+
+    /* Encrypt the plaintext into the encrypted output buffer */
+    if (!EVP_EncryptUpdate(encryption_context, ciphertext, &update_length, plaintext, plaintext_length)) {
+        ERR_print_errors_fp(stderr);
+        EVP_CIPHER_CTX_free(encryption_context);
+        free(ciphertext);
+        free(tag_output);
+        fprintf(stderr, "%s\n", "failed to update ciphertext buffer with encrypted content");
+        return -1;
+    }
+
+    if (!EVP_EncryptFinal_ex(encryption_context, ciphertext+update_length, &final_length)) {
+        ERR_print_errors_fp(stderr);
+        EVP_CIPHER_CTX_free(encryption_context);
+        free(ciphertext);
+        free(tag_output);
+        fprintf(stderr, "%s\n", "failed to encrypt final block");
+        return -1;
+    }
+
+    /* Get the tag */
+    if (!EVP_CIPHER_CTX_ctrl(encryption_context, EVP_CTRL_GCM_GET_TAG, tag_length, tag_output)) {
+        ERR_print_errors_fp(stderr);
+        EVP_CIPHER_CTX_free(encryption_context);
+        free(ciphertext);
+        free(tag_output);
+        fprintf(stderr, "%s\n", "failed to get tag");
+        return -1;
+    }
+
+    /* Update the out parameter */
+    *encrypted = ciphertext;
+    *tag = tag_output;
+
+    /* Clean up the encryption context */
+    EVP_CIPHER_CTX_free(encryption_context);
+    ciphertext_length = update_length + final_length;
+
+    return ciphertext_length;
+}
+
+int osslevp_aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
+                                        const unsigned char *init_vector,
+                                        const unsigned char *key,
+                                        int key_length,
+                                        const unsigned char *auth,
+                                        int auth_length,
+                                        unsigned char *tag,
+                                        int tag_length,
+                                        const unsigned char *ciphertext,
+                                        int ciphertext_length,
+                                        unsigned char **decrypted,
+                                        int *verified)
+{
+    int plaintext_length = 0;
+    int update_length = 0;
+    int final_length = 0;
+    unsigned char *plaintext = NULL;
+
+    if (evp_cipher == NULL || ciphertext_length <= 0 || ciphertext == NULL
+            || auth == NULL || auth_length <= 0 || tag == NULL || tag_length <= 0
+            || key_length <= 0 || key == NULL || decrypted == NULL || verified == NULL) {
+        /* Invalid arguments */
+        fprintf(stderr,
+                "%s: %s\n",
+                "osslevp_aes_auth_decrypt_ciphertext()",
+                "invalid arguments, aborting decryption");
+        return -1;
+    }
+
+    /* Allocate the buffer for the decrypted output */
+    plaintext = (unsigned char *)malloc(ciphertext_length + AES_BLOCK_SIZE);
+    memset(plaintext, 0, ciphertext_length + AES_BLOCK_SIZE);
+
+    /* Create the decryption context */
+    EVP_CIPHER_CTX *decryption_context = EVP_CIPHER_CTX_new();
+
+    /* Initialise key and IV */
+    if (!EVP_DecryptInit_ex(decryption_context, evp_cipher, NULL, key, init_vector)) {
+        ERR_print_errors_fp(stderr);
+        EVP_CIPHER_CTX_free(decryption_context);
+        free(plaintext);
+        fprintf(stderr,
+                "%s: %s\n",
+                "osslevp_aes_decrypt_ciphertext()",
+                "failed to initialize decryption context");
+        return -1;
+    }
+
+    /* Provide auth data */
+    if (!EVP_DecryptUpdate(decryption_context, NULL, &update_length, auth, auth_length)) {
+        ERR_print_errors_fp(stderr);
+        EVP_CIPHER_CTX_free(decryption_context);
+        free(plaintext);
+        fprintf(stderr,
+                "%s: %s\n",
+                "osslevp_aes_decrypt_ciphertext()",
+                "failed to set authentication data");
+        return -1;
+    }
+
+    /* Decrypt the ciphertext into the decrypted output buffer */
+    if (!EVP_DecryptUpdate(decryption_context, plaintext, &update_length, ciphertext, ciphertext_length)) {
+        ERR_print_errors_fp(stderr);
+        EVP_CIPHER_CTX_free(decryption_context);
+        free(plaintext);
+        fprintf(stderr,
+                "%s: %s\n",
+                "osslevp_aes_decrypt_ciphertext()",
+                "failed to update plaintext buffer with decrypted content");
+        return -1;
+    }
+
+    /* Set expected tag value. */
+    if (!EVP_CIPHER_CTX_ctrl(decryption_context, EVP_CTRL_GCM_SET_TAG, tag_length, tag)) {
+        ERR_print_errors_fp(stderr);
+        EVP_CIPHER_CTX_free(decryption_context);
+        free(plaintext);
+        fprintf(stderr,
+                "%s: %s\n",
+                "osslevp_aes_decrypt_ciphertext()",
+                "failed to set expected tag value");
+        return -1;
+    }
+
+    *verified = EVP_DecryptFinal_ex(decryption_context, plaintext+update_length, &final_length);
+
+    /* Update the out parameter */
+    *decrypted = plaintext;
+
+    /* Clean up the decryption context */
+    EVP_CIPHER_CTX_free(decryption_context);
+    plaintext_length = update_length + final_length;
+    return plaintext_length;
+}
+
 /*
     int osslevp_pkey_encrypt_plaintext(EVP_PKEY *pkey,
                                        int padding,
