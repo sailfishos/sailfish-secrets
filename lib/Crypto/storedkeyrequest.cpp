@@ -133,6 +133,25 @@ Result StoredKeyRequest::result() const
     return d->m_result;
 }
 
+QVariantMap StoredKeyRequest::customParameters() const
+{
+    Q_D(const StoredKeyRequest);
+    return d->m_customParameters;
+}
+
+void StoredKeyRequest::setCustomParameters(const QVariantMap &params)
+{
+    Q_D(StoredKeyRequest);
+    if (d->m_customParameters != params) {
+        d->m_customParameters = params;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit customParametersChanged();
+    }
+}
+
 CryptoManager *StoredKeyRequest::manager() const
 {
     Q_D(const StoredKeyRequest);
@@ -159,8 +178,9 @@ void StoredKeyRequest::startRequest()
             emit resultChanged();
         }
 
+        // should we pass customParameters in this case, or not?
+        // there's no "specific plugin" which is the target of the request..
         QDBusPendingReply<Result, Key> reply =
-
                 d->m_manager->d_ptr->storedKey(d->m_identifier,
                                                d->m_keyComponents);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {

@@ -191,6 +191,7 @@ Daemon::ApiImpl::RequestProcessor::generateRandomData(
         quint64 requestId,
         quint64 numberBytes,
         const QString &csprngEngineName,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         QByteArray *randomData)
 {
@@ -206,7 +207,7 @@ Daemon::ApiImpl::RequestProcessor::generateRandomData(
     QFuture<DataResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginWrapper::generateRandomData,
-                m_cryptoPlugins[cryptosystemProviderName],
+                PluginAndCustomParams(m_cryptoPlugins[cryptosystemProviderName], customParameters),
                 static_cast<quint64>(callerPid),
                 csprngEngineName,
                 numberBytes);
@@ -231,6 +232,7 @@ Daemon::ApiImpl::RequestProcessor::seedRandomDataGenerator(
         const QByteArray &seedData,
         double entropyEstimate,
         const QString &csprngEngineName,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName)
 {
     // TODO: access control!
@@ -245,7 +247,7 @@ Daemon::ApiImpl::RequestProcessor::seedRandomDataGenerator(
     QFuture<Result> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginWrapper::seedRandomDataGenerator,
-                m_cryptoPlugins[cryptosystemProviderName],
+                PluginAndCustomParams(m_cryptoPlugins[cryptosystemProviderName], customParameters),
                 static_cast<quint64>(callerPid),
                 csprngEngineName,
                 seedData,
@@ -269,6 +271,7 @@ Daemon::ApiImpl::RequestProcessor::generateInitializationVector(
         CryptoManager::Algorithm algorithm,
         CryptoManager::BlockMode blockMode,
         int keySize,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         QByteArray *generatedIV)
 {
@@ -285,7 +288,7 @@ Daemon::ApiImpl::RequestProcessor::generateInitializationVector(
     QFuture<DataResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginWrapper::generateInitializationVector,
-                m_cryptoPlugins[cryptosystemProviderName],
+                PluginAndCustomParams(m_cryptoPlugins[cryptosystemProviderName], customParameters),
                 algorithm,
                 blockMode,
                 keySize);
@@ -310,6 +313,7 @@ Daemon::ApiImpl::RequestProcessor::generateKey(
         const Key &keyTemplate,
         const KeyPairGenerationParameters &kpgParams,
         const KeyDerivationParameters &skdfParams,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         Key *key)
 {
@@ -327,7 +331,7 @@ Daemon::ApiImpl::RequestProcessor::generateKey(
     QFuture<KeyResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginWrapper::generateKey,
-                m_cryptoPlugins[cryptosystemProviderName],
+                PluginAndCustomParams(m_cryptoPlugins[cryptosystemProviderName], customParameters),
                 keyTemplate,
                 kpgParams,
                 skdfParams);
@@ -371,6 +375,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey(
         const KeyPairGenerationParameters &kpgParams,
         const KeyDerivationParameters &skdfParams,
         const InteractionParameters &uiParams,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName,
         Key *key)
@@ -398,6 +403,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey(
                     keyTemplate,
                     kpgParams,
                     skdfParams,
+                    customParameters,
                     cryptosystemProviderName,
                     storageProviderName);
     }
@@ -428,6 +434,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey(
                                  QVariantList() << QVariant::fromValue<Key>(keyTemplate)
                                                 << QVariant::fromValue<KeyPairGenerationParameters>(kpgParams)
                                                 << QVariant::fromValue<KeyDerivationParameters>(skdfParams)
+                                                << QVariant::fromValue<QVariantMap>(customParameters)
                                                 << QVariant::fromValue<QString>(cryptosystemProviderName)
                                                 << QVariant::fromValue<QString>(storageProviderName)));
     return Result(Result::Pending);
@@ -440,6 +447,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey2(
         const Key &keyTemplate,
         const KeyPairGenerationParameters &kpgParams,
         const KeyDerivationParameters &skdfParams,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName)
 {
@@ -465,6 +473,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey2(
                                      QVariantList() << QVariant::fromValue<Key>(keyTemplate)
                                                     << QVariant::fromValue<KeyPairGenerationParameters>(kpgParams)
                                                     << QVariant::fromValue<KeyDerivationParameters>(skdfParams)
+                                                    << QVariant::fromValue<QVariantMap>(customParameters)
                                                     << QVariant::fromValue<QString>(cryptosystemProviderName)
                                                     << QVariant::fromValue<QString>(storageProviderName)));
         return Result(Result::Pending);
@@ -474,7 +483,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey2(
         QFuture<KeyResult> future = QtConcurrent::run(
                     m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                     CryptoPluginWrapper::generateKey,
-                    m_cryptoPlugins[cryptosystemProviderName],
+                    PluginAndCustomParams(m_cryptoPlugins[cryptosystemProviderName], customParameters),
                     keyTemplate,
                     kpgParams,
                     skdfParams);
@@ -526,6 +535,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_withInputData(
         const Key &keyTemplate,
         const KeyPairGenerationParameters &kpgParams,
         const KeyDerivationParameters &skdfParams,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName)
 {
@@ -541,6 +551,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_withInputData(
                     keyTemplate,
                     kpgParams,
                     skdfParams,
+                    customParameters,
                     cryptosystemProviderName,
                     storageProviderName);
     }
@@ -607,6 +618,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_inCryptoPlugin(
         const Key &keyTemplate,
         const KeyPairGenerationParameters &kpgParams,
         const KeyDerivationParameters &skdfParams,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName)
 {
@@ -664,7 +676,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_inCryptoPlugin(
         QFuture<KeyResult> future = QtConcurrent::run(
                     m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                     CryptoPluginWrapper::generateAndStoreKey,
-                    m_cryptoPlugins[cryptosystemProviderName],
+                    PluginAndCustomParams(m_cryptoPlugins[cryptosystemProviderName], customParameters),
                     keyTemplate,
                     kpgParams,
                     skdfParams);
@@ -763,6 +775,7 @@ Daemon::ApiImpl::RequestProcessor::importKey(
         quint64 requestId,
         const Key &key,
         const Sailfish::Crypto::InteractionParameters &uiParams,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         const QByteArray &passphrase,
         Key *importedKey)
@@ -781,7 +794,8 @@ Daemon::ApiImpl::RequestProcessor::importKey(
     QFuture<KeyResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginWrapper::importKey,
-                m_cryptoPlugins.value(cryptosystemProviderName),
+                PluginAndCustomParams(m_cryptoPlugins.value(cryptosystemProviderName),
+                                      customParameters),
                 key,
                 passphrase);
 
@@ -812,6 +826,7 @@ Daemon::ApiImpl::RequestProcessor::importKey(
                                          Daemon::ApiImpl::ImportKeyRequest,
                                          QVariantList() << QVariant::fromValue<Key>(key)
                                                         << QVariant::fromValue<InteractionParameters>(uiParams)
+                                                        << QVariant::fromValue<QVariantMap>(customParameters)
                                                         << QVariant::fromValue<QString>(cryptosystemProviderName)));
         } else {
             QVariantList outParams;
@@ -831,6 +846,7 @@ Daemon::ApiImpl::RequestProcessor::importKey_withPassphrase(
         const Result &result,
         const Key &key,
         const Sailfish::Crypto::InteractionParameters &uiParams,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         const QByteArray &passphrase)
 {
@@ -838,7 +854,7 @@ Daemon::ApiImpl::RequestProcessor::importKey_withPassphrase(
     Key importedKey(key);
 
     if (retn.code() == Result::Succeeded) {
-        retn = importKey(callerPid, requestId, key, uiParams, cryptosystemProviderName, passphrase, &importedKey);
+        retn = importKey(callerPid, requestId, key, uiParams,customParameters, cryptosystemProviderName, passphrase, &importedKey);
     }
 
     if (retn.code() != Result::Pending) {
@@ -855,6 +871,7 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey(
         quint64 requestId,
         const Key &key,
         const Sailfish::Crypto::InteractionParameters &uiParams,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName,
         const QByteArray &passphrase,
@@ -889,6 +906,7 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey(
                                      Daemon::ApiImpl::ImportStoredKeyRequest,
                                      QVariantList() << QVariant::fromValue<Key>(key)
                                                     << QVariant::fromValue<InteractionParameters>(uiParams)
+                                                    << QVariant::fromValue<QVariantMap>(customParameters)
                                                     << QVariant::fromValue<QString>(cryptosystemProviderName)
                                                     << QVariant::fromValue<QString>(storageProviderName)));
         return Result(Result::Pending);
@@ -897,7 +915,8 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey(
         QFuture<KeyResult> future = QtConcurrent::run(
                     m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                     CryptoPluginWrapper::importAndStoreKey,
-                    m_cryptoPlugins.value(cryptosystemProviderName),
+                    PluginAndCustomParams(m_cryptoPlugins.value(cryptosystemProviderName),
+                                          customParameters),
                     key,
                     passphrase);
 
@@ -916,6 +935,7 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey(
                                              Daemon::ApiImpl::ImportStoredKeyRequest,
                                              QVariantList() << QVariant::fromValue<Key>(key)
                                                             << QVariant::fromValue<InteractionParameters>(uiParams)
+                                                            << QVariant::fromValue<QVariantMap>(customParameters)
                                                             << QVariant::fromValue<QString>(cryptosystemProviderName)
                                                             << QVariant::fromValue<QString>(storageProviderName)));
                 result = Result(Result::Pending);
@@ -939,6 +959,7 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey(
                                                  requestId,
                                                  Daemon::ApiImpl::ImportStoredKeyRequest,
                                                  QVariantList() << QVariant::fromValue<Key>(*importedKey)
+                                                                << QVariant::fromValue<QVariantMap>(customParameters)
                                                                 << QVariant::fromValue<QString>(cryptosystemProviderName)
                                                                 << QVariant::fromValue<QString>(storageProviderName)));
                 }
@@ -991,6 +1012,7 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey_withPassphrase(
         const Result &result,
         const Key &key,
         const Sailfish::Crypto::InteractionParameters &uiParams,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName,
         const QByteArray &passphrase)
@@ -1007,6 +1029,7 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey_withPassphrase(
                     requestId,
                     key,
                     uiParams,
+                    customParameters,
                     cryptosystemProviderName,
                     storageProviderName,
                     passphrase,
@@ -1016,7 +1039,8 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey_withPassphrase(
         QFuture<KeyResult> future = QtConcurrent::run(
                     m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                     CryptoPluginWrapper::importAndStoreKey,
-                    m_cryptoPlugins.value(cryptosystemProviderName),
+                    PluginAndCustomParams(m_cryptoPlugins.value(cryptosystemProviderName),
+                                          customParameters),
                     key,
                     passphrase);
 
@@ -1038,6 +1062,7 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey_withPassphrase(
                                                      Daemon::ApiImpl::ImportStoredKeyRequest,
                                                      QVariantList() << QVariant::fromValue<Key>(key)
                                                                     << QVariant::fromValue<InteractionParameters>(uiParams)
+                                                                    << QVariant::fromValue<QVariantMap>(customParameters)
                                                                     << QVariant::fromValue<QString>(cryptosystemProviderName)
                                                                     << QVariant::fromValue<QString>(storageProviderName)));
                     }
@@ -1080,6 +1105,7 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey_inCryptoPlugin(
         const Result &result,
         const Key &key,
         const Sailfish::Crypto::InteractionParameters &uiParams,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName)
 {
@@ -1096,6 +1122,7 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey_inCryptoPlugin(
                     result,
                     key,
                     uiParams,
+                    customParameters,
                     cryptosystemProviderName,
                     storageProviderName,
                     QByteArray());
@@ -1262,6 +1289,7 @@ Daemon::ApiImpl::RequestProcessor::calculateDigest(
         const QByteArray &data,
         CryptoManager::SignaturePadding padding,
         CryptoManager::DigestFunction digestFunction,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         QByteArray *digest)
 {
@@ -1280,7 +1308,7 @@ Daemon::ApiImpl::RequestProcessor::calculateDigest(
     QFuture<DataResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginWrapper::calculateDigest,
-                cryptoPlugin,
+                PluginAndCustomParams(cryptoPlugin, customParameters),
                 data,
                 SignatureOptions(padding, digestFunction));
 
@@ -1305,6 +1333,7 @@ Daemon::ApiImpl::RequestProcessor::sign(
         const Key &key,
         CryptoManager::SignaturePadding padding,
         CryptoManager::DigestFunction digestFunction,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         QByteArray *signature)
 {
@@ -1361,6 +1390,7 @@ Daemon::ApiImpl::RequestProcessor::sign(
                                              QVariantList() << QVariant::fromValue<QByteArray>(data)
                                                             << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
                                                             << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction)
+                                                            << QVariant::fromValue<QVariantMap>(customParameters)
                                                             << QVariant::fromValue<QString>(cryptosystemProviderName)));
                 return retn;
             }
@@ -1375,7 +1405,7 @@ Daemon::ApiImpl::RequestProcessor::sign(
     QFuture<DataResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginWrapper::sign,
-                cryptoPlugin,
+                PluginAndCustomParams(cryptoPlugin, customParameters),
                 data,
                 fullKey,
                 SignatureOptions(padding, digestFunction));
@@ -1401,6 +1431,7 @@ Daemon::ApiImpl::RequestProcessor::sign2(
         const QByteArray &data,
         CryptoManager::SignaturePadding padding,
         CryptoManager::DigestFunction digestFunction,
+        const QVariantMap &customParameters,
         const QString &cryptoPluginName)
 {
     if (result.code() != Result::Succeeded) {
@@ -1416,7 +1447,7 @@ Daemon::ApiImpl::RequestProcessor::sign2(
     QFuture<DataResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptoPluginName).data(),
                 CryptoPluginWrapper::sign,
-                m_cryptoPlugins[cryptoPluginName],
+                PluginAndCustomParams(m_cryptoPlugins[cryptoPluginName], customParameters),
                 data,
                 Key::deserialise(serialisedKey),
                 SignatureOptions(padding, digestFunction));
@@ -1441,6 +1472,7 @@ Daemon::ApiImpl::RequestProcessor::verify(
         const Key &key,
         CryptoManager::SignaturePadding padding,
         CryptoManager::DigestFunction digestFunction,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         bool *verified)
 {
@@ -1498,6 +1530,7 @@ Daemon::ApiImpl::RequestProcessor::verify(
                                                             << QVariant::fromValue<QByteArray>(data)
                                                             << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
                                                             << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction)
+                                                            << QVariant::fromValue<QVariantMap>(customParameters)
                                                             << QVariant::fromValue<QString>(cryptosystemProviderName)));
                 return retn;
             }
@@ -1512,7 +1545,7 @@ Daemon::ApiImpl::RequestProcessor::verify(
     QFuture<ValidatedResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginWrapper::verify,
-                cryptoPlugin,
+                PluginAndCustomParams(cryptoPlugin, customParameters),
                 signature,
                 data,
                 fullKey,
@@ -1540,6 +1573,7 @@ Daemon::ApiImpl::RequestProcessor::verify2(
         const QByteArray &data,
         CryptoManager::SignaturePadding padding,
         CryptoManager::DigestFunction digestFunction,
+        const QVariantMap &customParameters,
         const QString &cryptoPluginName)
 {
     if (result.code() != Result::Succeeded) {
@@ -1554,7 +1588,7 @@ Daemon::ApiImpl::RequestProcessor::verify2(
     QFuture<ValidatedResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptoPluginName).data(),
                 CryptoPluginWrapper::verify,
-                m_cryptoPlugins[cryptoPluginName],
+                PluginAndCustomParams(m_cryptoPlugins[cryptoPluginName], customParameters),
                 signature,
                 data,
                 Key::deserialise(serialisedKey),
@@ -1581,6 +1615,7 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
         CryptoManager::BlockMode blockMode,
         CryptoManager::EncryptionPadding padding,
         const QByteArray &authenticationData,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         QByteArray *encrypted,
         QByteArray *authenticationTag)
@@ -1637,6 +1672,7 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
                                << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
                                << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding)
                                << QVariant::fromValue<QByteArray>(authenticationData)
+                               << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName);
                 m_pendingRequests.insert(requestId,
                                          Daemon::ApiImpl::RequestProcessor::PendingRequest(
@@ -1657,7 +1693,7 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
     QFuture<TagDataResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginWrapper::encrypt,
-                cryptoPlugin,
+                PluginAndCustomParams(cryptoPlugin, customParameters),
                 DataAndIV(data, iv),
                 fullKey,
                 EncryptionOptions(blockMode, padding),
@@ -1687,6 +1723,7 @@ Daemon::ApiImpl::RequestProcessor::encrypt2(
         CryptoManager::BlockMode blockMode,
         CryptoManager::EncryptionPadding padding,
         const QByteArray &authenticationData,
+        const QVariantMap &customParameters,
         const QString &cryptoPluginName)
 {
     if (result.code() != Result::Succeeded) {
@@ -1714,7 +1751,7 @@ Daemon::ApiImpl::RequestProcessor::encrypt2(
     QFuture<TagDataResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptoPluginName).data(),
                 CryptoPluginWrapper::encrypt,
-                m_cryptoPlugins[cryptoPluginName],
+                PluginAndCustomParams(m_cryptoPlugins[cryptoPluginName], customParameters),
                 DataAndIV(data, iv),
                 fullKey,
                 EncryptionOptions(blockMode, padding),
@@ -1743,6 +1780,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
         Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
         const QByteArray &authenticationData,
         const QByteArray &authenticationTag,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         QByteArray *decrypted,
         bool *verified)
@@ -1800,6 +1838,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
                      << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding)
                      << QVariant::fromValue<QByteArray>(authenticationData)
                      << QVariant::fromValue<QByteArray>(authenticationTag)
+                     << QVariant::fromValue<QVariantMap>(customParameters)
                      << QVariant::fromValue<QString>(cryptosystemProviderName);
                 m_pendingRequests.insert(requestId,
                                          Daemon::ApiImpl::RequestProcessor::PendingRequest(
@@ -1820,7 +1859,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
     QFuture<VerifiedDataResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginWrapper::decrypt,
-                cryptoPlugin,
+                PluginAndCustomParams(cryptoPlugin, customParameters),
                 DataAndIV(data, iv),
                 fullKey,
                 EncryptionOptions(blockMode, padding),
@@ -1851,6 +1890,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt2(
         CryptoManager::EncryptionPadding padding,
         const QByteArray &authenticationData,
         const QByteArray &authenticationTag,
+        const QVariantMap &customParameters,
         const QString &cryptoPluginName)
 {
     if (result.code() != Result::Succeeded) {
@@ -1865,7 +1905,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt2(
     QFuture<VerifiedDataResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptoPluginName).data(),
                 CryptoPluginWrapper::decrypt,
-                m_cryptoPlugins[cryptoPluginName],
+                PluginAndCustomParams(m_cryptoPlugins[cryptoPluginName], customParameters),
                 DataAndIV(data, iv),
                 Key::deserialise(serialisedKey),
                 EncryptionOptions(blockMode, padding),
@@ -1894,6 +1934,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession(
         CryptoManager::EncryptionPadding encryptionPadding,
         CryptoManager::SignaturePadding signaturePadding,
         CryptoManager::DigestFunction digestFunction,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         quint32 *cipherSessionToken)
 {
@@ -1954,6 +1995,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession(
                                                             << QVariant::fromValue<CryptoManager::EncryptionPadding>(encryptionPadding)
                                                             << QVariant::fromValue<CryptoManager::SignaturePadding>(signaturePadding)
                                                             << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction)
+                                                            << QVariant::fromValue<QVariantMap>(customParameters)
                                                             << QVariant::fromValue<QString>(cryptosystemProviderName)));
                 return retn;
             }
@@ -1968,7 +2010,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession(
     QFuture<CipherSessionTokenResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginWrapper::initialiseCipherSession,
-                cryptoPlugin,
+                PluginAndCustomParams(cryptoPlugin, customParameters),
                 callerPid,
                 iv,
                 fullKey,
@@ -2004,6 +2046,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession2(
         CryptoManager::EncryptionPadding encryptionPadding,
         CryptoManager::SignaturePadding signaturePadding,
         CryptoManager::DigestFunction digestFunction,
+        const QVariantMap &customParameters,
         const QString &cryptoPluginName)
 {
     if (result.code() != Result::Succeeded) {
@@ -2018,7 +2061,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession2(
     QFuture<CipherSessionTokenResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptoPluginName).data(),
                 CryptoPluginWrapper::initialiseCipherSession,
-                m_cryptoPlugins[cryptoPluginName],
+                PluginAndCustomParams(m_cryptoPlugins[cryptoPluginName], customParameters),
                 callerPid,
                 iv,
                 Key::deserialise(serialisedKey),
@@ -2045,6 +2088,7 @@ Daemon::ApiImpl::RequestProcessor::updateCipherSessionAuthentication(
         pid_t callerPid,
         quint64 requestId,
         const QByteArray &authenticationData,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         quint32 cipherSessionToken)
 {
@@ -2060,7 +2104,7 @@ Daemon::ApiImpl::RequestProcessor::updateCipherSessionAuthentication(
     QFuture<Result> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginWrapper::updateCipherSessionAuthentication,
-                cryptoPlugin,
+                PluginAndCustomParams(cryptoPlugin, customParameters),
                 callerPid,
                 authenticationData,
                 cipherSessionToken);
@@ -2081,6 +2125,7 @@ Daemon::ApiImpl::RequestProcessor::updateCipherSession(
         pid_t callerPid,
         quint64 requestId,
         const QByteArray &data,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         quint32 cipherSessionToken,
         QByteArray *generatedData)
@@ -2098,7 +2143,7 @@ Daemon::ApiImpl::RequestProcessor::updateCipherSession(
     QFuture<DataResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginWrapper::updateCipherSession,
-                cryptoPlugin,
+                PluginAndCustomParams(cryptoPlugin, customParameters),
                 callerPid,
                 data,
                 cipherSessionToken);
@@ -2121,6 +2166,7 @@ Daemon::ApiImpl::RequestProcessor::finaliseCipherSession(
         pid_t callerPid,
         quint64 requestId,
         const QByteArray &data,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         quint32 cipherSessionToken,
         QByteArray *generatedData,
@@ -2140,7 +2186,7 @@ Daemon::ApiImpl::RequestProcessor::finaliseCipherSession(
     QFuture<VerifiedDataResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginWrapper::finaliseCipherSession,
-                cryptoPlugin,
+                PluginAndCustomParams(cryptoPlugin, customParameters),
                 callerPid,
                 data,
                 cipherSessionToken);
@@ -2307,8 +2353,9 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 QByteArray data = pr.parameters.takeFirst().value<QByteArray>();
                 CryptoManager::SignaturePadding padding = pr.parameters.takeFirst().value<CryptoManager::SignaturePadding>();
                 CryptoManager::DigestFunction digestFunction = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
+                QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                sign2(requestId, returnResult, serialisedKey, data, padding, digestFunction, cryptoPluginName);
+                sign2(requestId, returnResult, serialisedKey, data, padding, digestFunction, customParameters, cryptoPluginName);
                 break;
             }
             case VerifyRequest: {
@@ -2316,8 +2363,9 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 QByteArray data = pr.parameters.takeFirst().value<QByteArray>();
                 CryptoManager::SignaturePadding padding = pr.parameters.takeFirst().value<CryptoManager::SignaturePadding>();
                 CryptoManager::DigestFunction digestFunction = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
+                QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                verify2(requestId, returnResult, serialisedKey, signature, data, padding, digestFunction, cryptoPluginName);
+                verify2(requestId, returnResult, serialisedKey, signature, data, padding, digestFunction, customParameters, cryptoPluginName);
                 break;
             }
             case EncryptRequest: {
@@ -2326,8 +2374,9 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 CryptoManager::BlockMode blockMode = pr.parameters.takeFirst().value<CryptoManager::BlockMode>();
                 CryptoManager::EncryptionPadding padding = pr.parameters.takeFirst().value<CryptoManager::EncryptionPadding>();
                 QByteArray authenticationData = pr.parameters.takeFirst().value<QByteArray>();
+                QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                encrypt2(requestId, returnResult, serialisedKey, data, iv, blockMode, padding, authenticationData, cryptoPluginName);
+                encrypt2(requestId, returnResult, serialisedKey, data, iv, blockMode, padding, authenticationData, customParameters, cryptoPluginName);
                 break;
             }
             case DecryptRequest: {
@@ -2337,8 +2386,9 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 CryptoManager::EncryptionPadding padding = pr.parameters.takeFirst().value<CryptoManager::EncryptionPadding>();
                 QByteArray authenticationData = pr.parameters.takeFirst().value<QByteArray>();
                 QByteArray authenticationTag = pr.parameters.takeFirst().value<QByteArray>();
+                QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                decrypt2(requestId, returnResult, serialisedKey, data, iv, blockMode, padding, authenticationData, authenticationTag, cryptoPluginName);
+                decrypt2(requestId, returnResult, serialisedKey, data, iv, blockMode, padding, authenticationData, authenticationTag, customParameters, cryptoPluginName);
                 break;
             }
             case InitialiseCipherSessionRequest: {
@@ -2349,10 +2399,12 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 CryptoManager::EncryptionPadding encryptionPadding = pr.parameters.takeFirst().value<CryptoManager::EncryptionPadding>();
                 CryptoManager::SignaturePadding signaturePadding = pr.parameters.takeFirst().value<CryptoManager::SignaturePadding>();
                 CryptoManager::DigestFunction digestFunction = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
+                QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
                 initialiseCipherSession2(requestId, returnResult, serialisedKey,
-                                         callerPid, iv, operation, blockMode, encryptionPadding,
-                                         signaturePadding, digestFunction, cryptoPluginName);
+                                         callerPid, iv, operation, blockMode,
+                                         encryptionPadding, signaturePadding,
+                                         digestFunction, customParameters, cryptoPluginName);
                 break;
             }
             default: {
@@ -2413,17 +2465,19 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoreKeyMetadataCompleted(
                 Key keyTemplate = pr.parameters.takeFirst().value<Key>();
                 KeyPairGenerationParameters kpgParams = pr.parameters.takeFirst().value<KeyPairGenerationParameters>();
                 KeyDerivationParameters skdfParams = pr.parameters.takeFirst().value<KeyDerivationParameters>();
+                QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
                 QString storagePluginName = pr.parameters.takeFirst().value<QString>();
-                generateStoredKey_inCryptoPlugin(pr.callerPid, requestId, returnResult, keyTemplate, kpgParams, skdfParams, cryptosystemProviderName, storagePluginName);
+                generateStoredKey_inCryptoPlugin(pr.callerPid, requestId, returnResult, keyTemplate, kpgParams, skdfParams, customParameters, cryptosystemProviderName, storagePluginName);
                 break;
             }
             case ImportStoredKeyRequest: {
                 Key key = pr.parameters.takeFirst().value<Key>();
                 InteractionParameters uiParams = pr.parameters.takeFirst().value<InteractionParameters>();
+                QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
                 QString storagePluginName = pr.parameters.takeFirst().value<QString>();
-                importStoredKey_inCryptoPlugin(pr.callerPid, requestId, returnResult, key, uiParams, cryptosystemProviderName, storagePluginName);
+                importStoredKey_inCryptoPlugin(pr.callerPid, requestId, returnResult, key, uiParams, customParameters, cryptosystemProviderName, storagePluginName);
                 break;
             }
             default: {
@@ -2522,21 +2576,24 @@ void Daemon::ApiImpl::RequestProcessor::secretsUserInputCompleted(
                 KeyPairGenerationParameters kpgParams = pr.parameters.takeFirst().value<KeyPairGenerationParameters>();
                 KeyDerivationParameters skdfParams = pr.parameters.takeFirst().value<KeyDerivationParameters>();
                 skdfParams.setInputData(userInput);
+                QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
                 QString storagePluginName = pr.parameters.takeFirst().value<QString>();
-                generateStoredKey_withInputData(pr.callerPid, requestId, returnResult, keyTemplate, kpgParams, skdfParams, cryptosystemProviderName, storagePluginName);
+                generateStoredKey_withInputData(pr.callerPid, requestId, returnResult, keyTemplate, kpgParams, skdfParams, customParameters, cryptosystemProviderName, storagePluginName);
                 break;
             }
             case ImportKeyRequest: {
                 Key key = pr.parameters.takeFirst().value<Key>();
+                QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
                 InteractionParameters uiParams = pr.parameters.takeFirst().value<InteractionParameters>();
-                importKey_withPassphrase(pr.callerPid, requestId, returnResult, key, uiParams, cryptosystemProviderName, userInput);
+                importKey_withPassphrase(pr.callerPid, requestId, returnResult, key, uiParams, customParameters, cryptosystemProviderName, userInput);
                 break;
             }
             case ImportStoredKeyRequest: {
                 Key key = pr.parameters.takeFirst().value<Key>();
                 InteractionParameters uiParams = pr.parameters.takeFirst().value<InteractionParameters>();
+                QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
                 QString storagePluginName = pr.parameters.takeFirst().value<QString>();
                 importStoredKey_withPassphrase(
@@ -2545,6 +2602,7 @@ void Daemon::ApiImpl::RequestProcessor::secretsUserInputCompleted(
                             returnResult,
                             key,
                             uiParams,
+                            customParameters,
                             cryptosystemProviderName,
                             storagePluginName,
                             userInput);

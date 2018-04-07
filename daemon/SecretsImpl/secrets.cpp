@@ -511,6 +511,7 @@ bool Daemon::ApiImpl::SecretsRequestQueue::testLockCode(
                 keyTemplate,
                 Sailfish::Crypto::KeyPairGenerationParameters(),
                 kdfParams,
+                QVariantMap(),
                 &bookkeepingdbKey);
 
     if (bkdbKeyResult.code() != Sailfish::Crypto::Result::Succeeded) {
@@ -568,6 +569,7 @@ bool Daemon::ApiImpl::SecretsRequestQueue::initialiseKeyData(
                 keyTemplate,
                 Sailfish::Crypto::KeyPairGenerationParameters(),
                 kdfParams,
+                QVariantMap(),
                 &bookkeepingdbKey);
 
     if (bkdbKeyResult.code() != Sailfish::Crypto::Result::Succeeded) {
@@ -580,6 +582,7 @@ bool Daemon::ApiImpl::SecretsRequestQueue::initialiseKeyData(
                 keyTemplate,
                 Sailfish::Crypto::KeyPairGenerationParameters(),
                 kdfParams,
+                QVariantMap(),
                 &devicelockKey);
 
     if (dlKeyResult.code() != Sailfish::Crypto::Result::Succeeded) {

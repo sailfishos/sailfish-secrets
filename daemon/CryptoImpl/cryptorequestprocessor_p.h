@@ -82,6 +82,7 @@ public:
             quint64 requestId,
             quint64 numberBytes,
             const QString &csprngEngineName,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             QByteArray *randomData);
 
@@ -91,6 +92,7 @@ public:
             const QByteArray &seedData,
             double entropyEstimate,
             const QString &csprngEngineName,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName);
 
     Sailfish::Crypto::Result generateInitializationVector(
@@ -99,6 +101,7 @@ public:
             Sailfish::Crypto::CryptoManager::Algorithm algorithm,
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             int keySize,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             QByteArray *generatedIV);
 
@@ -108,6 +111,7 @@ public:
             const Sailfish::Crypto::Key &keyTemplate,
             const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             Sailfish::Crypto::Key *key);
 
@@ -118,6 +122,7 @@ public:
             const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             const Sailfish::Crypto::InteractionParameters &uiParams,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QString &storageProviderName,
             Sailfish::Crypto::Key *key);
@@ -127,6 +132,7 @@ public:
             quint64 requestId,
             const Sailfish::Crypto::Key &key,
             const Sailfish::Crypto::InteractionParameters &uiParams,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QByteArray &passphrase,
             Sailfish::Crypto::Key *importedKey);
@@ -136,6 +142,7 @@ public:
             quint64 requestId,
             const Sailfish::Crypto::Key &key,
             const Sailfish::Crypto::InteractionParameters &uiParams,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QString &storageProviderName,
             const QByteArray &passphrase,
@@ -164,6 +171,7 @@ public:
             const QByteArray &data,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             QByteArray *digest);
 
@@ -174,6 +182,7 @@ public:
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             QByteArray *signature);
 
@@ -185,6 +194,7 @@ public:
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             bool *verified);
 
@@ -197,6 +207,7 @@ public:
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             QByteArray *encrypted,
             QByteArray *authenticationTag);
@@ -211,6 +222,7 @@ public:
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
             const QByteArray &authenticationTag,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             QByteArray *decrypted,
             bool *verified);
@@ -225,6 +237,7 @@ public:
             Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
             Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             quint32 *cipherSessionToken);
 
@@ -232,6 +245,7 @@ public:
             pid_t callerPid,
             quint64 requestId,
             const QByteArray &authenticationData,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             quint32 cipherSessionToken);
 
@@ -239,6 +253,7 @@ public:
             pid_t callerPid,
             quint64 requestId,
             const QByteArray &data,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             quint32 cipherSessionToken,
             QByteArray *generatedData);
@@ -247,6 +262,7 @@ public:
             pid_t callerPid,
             quint64 requestId,
             const QByteArray &data,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             quint32 cipherSessionToken,
             QByteArray *generatedData,
@@ -334,6 +350,7 @@ private:
             const Sailfish::Crypto::Key &keyTemplate,
             const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QString &storageProviderName);
 
@@ -344,6 +361,7 @@ private:
             const Sailfish::Crypto::Key &keyTemplate,
             const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QString &storageProviderName);
 
@@ -362,6 +380,7 @@ private:
             const Sailfish::Crypto::Key &keyTemplate,
             const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QString &storagePluginName);
 
@@ -384,6 +403,7 @@ private:
             const Result &result,
             const Key &key,
             const Sailfish::Crypto::InteractionParameters &uiParams,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QByteArray &passphrase);
 
@@ -399,6 +419,7 @@ private:
             const Result &result,
             const Key &key,
             const Sailfish::Crypto::InteractionParameters &uiParams,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QString &storagePluginName,
             const QByteArray &passphrase);
@@ -409,6 +430,7 @@ private:
             const Sailfish::Crypto::Result &result,
             const Sailfish::Crypto::Key &key,
             const Sailfish::Crypto::InteractionParameters &uiParams,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QString &storagePluginName);
 
@@ -425,6 +447,7 @@ private:
             const QByteArray &data,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QVariantMap &customParameters,
             const QString &cryptoPluginName);
 
     void verify2(
@@ -435,6 +458,7 @@ private:
             const QByteArray &data,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QVariantMap &customParameters,
             const QString &cryptoPluginName);
 
     void encrypt2(
@@ -446,6 +470,7 @@ private:
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
+            const QVariantMap &customParameters,
             const QString &cryptoPluginName);
 
     void decrypt2(
@@ -458,6 +483,7 @@ private:
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
             const QByteArray &authenticationTag,
+            const QVariantMap &customParameters,
             const QString &cryptoPluginName);
 
     void initialiseCipherSession2(
@@ -471,6 +497,7 @@ private:
             Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
             Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QVariantMap &customParameters,
             const QString &cryptoPluginName);
 
 private:

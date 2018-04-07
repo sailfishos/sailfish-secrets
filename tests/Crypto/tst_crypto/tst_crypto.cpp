@@ -7,6 +7,7 @@
 
 #include <QtTest>
 #include <QObject>
+#include <QVariantMap>
 #include <QDBusReply>
 
 #include "Crypto/cryptomanager.h"
@@ -109,6 +110,7 @@ void tst_crypto::randomData()
     QDBusPendingReply<Result, QByteArray> reply = cm.generateRandomData(
             2048,
             QLatin1String("default"),
+            QVariantMap(),
             CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
@@ -129,6 +131,7 @@ void tst_crypto::randomData()
             QByteArray("seed"),
             1.0,
             QLatin1String("default"),
+            QVariantMap(),
             CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(seedReply);
     QVERIFY(seedReply.isValid());
@@ -138,6 +141,7 @@ void tst_crypto::randomData()
     reply = cm.generateRandomData(
             2048,
             QLatin1String("default"),
+            QVariantMap(),
             CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
@@ -177,6 +181,7 @@ void tst_crypto::generateKeyEncryptDecrypt()
             keyTemplate,
             KeyPairGenerationParameters(),
             KeyDerivationParameters(),
+            QVariantMap(),
             CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
@@ -195,6 +200,7 @@ void tst_crypto::generateKeyEncryptDecrypt()
             blockMode,
             CryptoManager::EncryptionPaddingNone,
             QByteArray(),
+            QVariantMap(),
             CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
     QVERIFY(encryptReply.isValid());
@@ -213,6 +219,7 @@ void tst_crypto::generateKeyEncryptDecrypt()
             CryptoManager::EncryptionPaddingNone,
             QByteArray(),
             QByteArray(),
+            QVariantMap(),
             CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());

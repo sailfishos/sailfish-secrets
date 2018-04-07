@@ -1022,7 +1022,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
     modifiedUiParams.setCollectionName(secret.identifier().collectionName());
     modifiedUiParams.setSecretName(secret.identifier().name());
     modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
-    modifiedUiParams.setPromptText(tr("Enter confidential data for secret %1 in collection %3 stored by %3")
+    modifiedUiParams.setPromptText(tr("Enter confidential data for secret %1 in collection %2 stored by plugin %3")
                                    .arg(secret.identifier().name(), secret.identifier().collectionName(), collectionStoragePluginName));
     Result authenticationResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
                 callerPid,
@@ -1542,7 +1542,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSecret(
     modifiedUiParams.setCollectionName(secret.identifier().collectionName());
     modifiedUiParams.setSecretName(secret.identifier().name());
     modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
-    modifiedUiParams.setPromptText(tr("Enter confidential data for secret %1 in collection %3 stored by %3")
+    modifiedUiParams.setPromptText(tr("Enter confidential data for secret %1 in collection %2 stored by %3")
                                    .arg(secret.identifier().name(), secret.identifier().collectionName(), storagePluginName));
     Result authenticationResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
                 callerPid,
@@ -1821,7 +1821,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecret(
     modifiedUiParams.setCollectionName(secret.identifier().collectionName());
     modifiedUiParams.setSecretName(secret.identifier().name());
     modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
-    modifiedUiParams.setPromptText(tr("Enter confidential data for secret %1 in collection %3 stored by %3")
+    modifiedUiParams.setPromptText(tr("Enter confidential data for secret %1 in collection %2 stored by %3")
                                    .arg(secret.identifier().name(), secret.identifier().collectionName(), storagePluginName));
     Result authenticationResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
                 callerPid,

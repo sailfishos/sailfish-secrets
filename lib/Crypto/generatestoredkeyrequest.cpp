@@ -341,6 +341,25 @@ Result GenerateStoredKeyRequest::result() const
     return d->m_result;
 }
 
+QVariantMap GenerateStoredKeyRequest::customParameters() const
+{
+    Q_D(const GenerateStoredKeyRequest);
+    return d->m_customParameters;
+}
+
+void GenerateStoredKeyRequest::setCustomParameters(const QVariantMap &params)
+{
+    Q_D(GenerateStoredKeyRequest);
+    if (d->m_customParameters != params) {
+        d->m_customParameters = params;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit customParametersChanged();
+    }
+}
+
 CryptoManager *GenerateStoredKeyRequest::manager() const
 {
     Q_D(const GenerateStoredKeyRequest);
@@ -372,6 +391,7 @@ void GenerateStoredKeyRequest::startRequest()
                                                        d->m_kpgParams,
                                                        d->m_skdfParams,
                                                        d->m_uiParams,
+                                                       d->m_customParameters,
                                                        d->m_cryptoPluginName,
                                                        d->m_storagePluginName);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {

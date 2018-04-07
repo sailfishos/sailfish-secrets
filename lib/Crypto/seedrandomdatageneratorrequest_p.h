@@ -31,6 +31,7 @@ public:
     explicit SeedRandomDataGeneratorRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
+    QVariantMap m_customParameters;
     QString m_cryptoPluginName;
     QString m_csprngEngineName;
     double m_entropyEstimate;

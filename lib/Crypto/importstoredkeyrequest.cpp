@@ -185,6 +185,25 @@ Result ImportStoredKeyRequest::result() const
     return d->m_result;
 }
 
+QVariantMap ImportStoredKeyRequest::customParameters() const
+{
+    Q_D(const ImportStoredKeyRequest);
+    return d->m_customParameters;
+}
+
+void ImportStoredKeyRequest::setCustomParameters(const QVariantMap &params)
+{
+    Q_D(ImportStoredKeyRequest);
+    if (d->m_customParameters != params) {
+        d->m_customParameters = params;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit customParametersChanged();
+    }
+}
+
 CryptoManager *ImportStoredKeyRequest::manager() const
 {
     Q_D(const ImportStoredKeyRequest);
@@ -214,6 +233,7 @@ void ImportStoredKeyRequest::startRequest()
         QDBusPendingReply<Result, Key> reply =
                 d->m_manager->d_ptr->importStoredKey(d->m_key,
                                                      d->m_uiParams,
+                                                     d->m_customParameters,
                                                      d->m_cryptoPluginName,
                                                      d->m_storagePluginName);
         if (reply.isError()) {

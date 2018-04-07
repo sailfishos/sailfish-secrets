@@ -30,6 +30,7 @@ public:
     explicit StoredKeyRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
+    QVariantMap m_customParameters;
     Sailfish::Crypto::Key::Identifier m_identifier;
     Key::Components m_keyComponents;
     Sailfish::Crypto::Key m_storedKey;

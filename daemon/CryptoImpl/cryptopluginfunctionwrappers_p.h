@@ -161,6 +161,16 @@ struct AuthDataAndTag {
     QByteArray tag;
 };
 
+struct PluginAndCustomParams {
+    PluginAndCustomParams(CryptoPlugin *p, const QVariantMap &cp)
+        : plugin(p), customParameters(cp) {}
+    PluginAndCustomParams(const PluginAndCustomParams &other)
+        : plugin(other.plugin)
+        , customParameters(other.customParameters) {}
+    CryptoPlugin *plugin;
+    QVariantMap customParameters;
+};
+
 namespace Daemon {
 
 namespace ApiImpl {
@@ -178,42 +188,42 @@ bool setLockCode(
         const QByteArray &newLockCode);
 
 DataResult generateRandomData(
-        Sailfish::Crypto::CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         quint64 callerIdent,
         const QString &csprngEngineName,
         quint64 numberBytes);
 
 Sailfish::Crypto::Result seedRandomDataGenerator(
-        Sailfish::Crypto::CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         quint64 callerIdent,
         const QString &csprngEngineName,
         const QByteArray &seedData,
         double entropyEstimate);
 
 DataResult generateInitializationVector(
-        Sailfish::Crypto::CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         Sailfish::Crypto::CryptoManager::Algorithm algorithm,
         Sailfish::Crypto::CryptoManager::BlockMode blockMode,
         int keySize);
 
 KeyResult importKey(
-        Sailfish::Crypto::CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         const Sailfish::Crypto::Key &keyData,
         const QByteArray &passphrase);
 
 KeyResult importAndStoreKey(
-        Sailfish::Crypto::CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         const Sailfish::Crypto::Key &keyData,
         const QByteArray &passphrase);
 
 KeyResult generateKey(
-        Sailfish::Crypto::CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         const Sailfish::Crypto::Key &keyTemplate,
         const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
         const Sailfish::Crypto::KeyDerivationParameters &skdfParams);
 
 KeyResult generateAndStoreKey(
-        Sailfish::Crypto::CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         const Sailfish::Crypto::Key &keyTemplate,
         const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
         const Sailfish::Crypto::KeyDerivationParameters &skdfParams);
@@ -227,58 +237,58 @@ IdentifiersResult storedKeyIdentifiers(
         Sailfish::Crypto::CryptoPlugin *plugin);
 
 DataResult calculateDigest(
-        Sailfish::Crypto::CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         const QByteArray &data,
         const SignatureOptions &options);
 
 DataResult sign(
-        Sailfish::Crypto::CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         const QByteArray &data,
         const Sailfish::Crypto::Key &key,
         const SignatureOptions &options);
 
 ValidatedResult verify(
-        Sailfish::Crypto::CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         const QByteArray &signature,
         const QByteArray &data,
         const Sailfish::Crypto::Key &key,
         const SignatureOptions &options);
 
 TagDataResult encrypt(
-        Sailfish::Crypto::CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         const DataAndIV &dataAndIv,
         const Sailfish::Crypto::Key &key,
         const EncryptionOptions &options,
         const QByteArray &authenticationData);
 
 VerifiedDataResult decrypt(
-        Sailfish::Crypto::CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         const DataAndIV &dataAndIv,
         const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
         const EncryptionOptions &options,
         const AuthDataAndTag &authDataAndTag);
 
 CipherSessionTokenResult initialiseCipherSession(
-        Sailfish::Crypto::CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         quint64 clientId,
         const QByteArray &iv,
         const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
         const CipherSessionOptions &options);
 
 Sailfish::Crypto::Result updateCipherSessionAuthentication(
-        Sailfish::Crypto::CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         quint64 clientId,
         const QByteArray &authenticationData,
         quint32 cipherSessionToken);
 
 DataResult updateCipherSession(
-        Sailfish::Crypto::CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         quint64 clientId,
         const QByteArray &data,
         quint32 cipherSessionToken);
 
 VerifiedDataResult finaliseCipherSession(
-        Sailfish::Crypto::CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         quint64 clientId,
         const QByteArray &data,
         quint32 cipherSessionToken);

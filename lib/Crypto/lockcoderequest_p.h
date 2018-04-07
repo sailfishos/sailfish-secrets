@@ -30,6 +30,7 @@ public:
     explicit LockCodeRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
+    QVariantMap m_customParameters;
     Sailfish::Crypto::LockCodeRequest::LockCodeRequestType m_lockCodeRequestType;
     Sailfish::Crypto::LockCodeRequest::LockCodeTargetType m_lockCodeTargetType;
     Sailfish::Crypto::InteractionParameters m_interactionParameters;

@@ -64,6 +64,9 @@ public:
     Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result result() const Q_DECL_OVERRIDE;
 
+    QVariantMap customParameters() const Q_DECL_OVERRIDE;
+    void setCustomParameters(const QVariantMap &params) Q_DECL_OVERRIDE;
+
     Sailfish::Crypto::CryptoManager *manager() const Q_DECL_OVERRIDE;
     void setManager(Sailfish::Crypto::CryptoManager *manager) Q_DECL_OVERRIDE;
 

@@ -87,6 +87,7 @@ QDBusPendingReply<Sailfish::Crypto::Result, QByteArray>
 CryptoManagerPrivate::generateRandomData(
         quint64 numberBytes,
         const QString &csprngEngineName,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -100,6 +101,7 @@ CryptoManagerPrivate::generateRandomData(
                 QStringLiteral("generateRandomData"),
                 QVariantList() << QVariant::fromValue<quint64>(numberBytes)
                                << QVariant::fromValue<QString>(csprngEngineName)
+                               << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -109,6 +111,7 @@ CryptoManagerPrivate::seedRandomDataGenerator(
         const QByteArray &seedData,
         double entropyEstimate,
         const QString &csprngEngineName,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -123,6 +126,7 @@ CryptoManagerPrivate::seedRandomDataGenerator(
                 QVariantList() << QVariant::fromValue<QByteArray>(seedData)
                                << QVariant::fromValue<double>(entropyEstimate)
                                << QVariant::fromValue<QString>(csprngEngineName)
+                               << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -132,6 +136,7 @@ CryptoManagerPrivate::generateInitializationVector(
         Sailfish::Crypto::CryptoManager::Algorithm algorithm,
         Sailfish::Crypto::CryptoManager::BlockMode blockMode,
         int keySize,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -146,6 +151,7 @@ CryptoManagerPrivate::generateInitializationVector(
                 QVariantList() << QVariant::fromValue<CryptoManager::Algorithm>(algorithm)
                                << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
                                << QVariant::fromValue<int>(keySize)
+                               << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -155,6 +161,7 @@ CryptoManagerPrivate::generateKey(
         const Key &keyTemplate,
         const KeyPairGenerationParameters &kpgParams,
         const KeyDerivationParameters &skdfParams,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -169,6 +176,7 @@ CryptoManagerPrivate::generateKey(
                 QVariantList() << QVariant::fromValue<Key>(keyTemplate)
                                << QVariant::fromValue<KeyPairGenerationParameters>(kpgParams)
                                << QVariant::fromValue<KeyDerivationParameters>(skdfParams)
+                               << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -179,6 +187,7 @@ CryptoManagerPrivate::generateStoredKey(
         const KeyPairGenerationParameters &kpgParams,
         const KeyDerivationParameters &skdfParams,
         const InteractionParameters &uiParams,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName)
 {
@@ -195,6 +204,7 @@ CryptoManagerPrivate::generateStoredKey(
                                << QVariant::fromValue<KeyPairGenerationParameters>(kpgParams)
                                << QVariant::fromValue<KeyDerivationParameters>(skdfParams)
                                << QVariant::fromValue<InteractionParameters>(uiParams)
+                               << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName)
                                << QVariant::fromValue<QString>(storageProviderName));
     return reply;
@@ -204,6 +214,7 @@ QDBusPendingReply<Result, Key>
 CryptoManagerPrivate::importKey(
         const Key &key,
         const Sailfish::Crypto::InteractionParameters &uiParams,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -217,6 +228,7 @@ CryptoManagerPrivate::importKey(
                 QStringLiteral("importKey"),
                 QVariantList() << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<InteractionParameters>(uiParams)
+                               << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -225,6 +237,7 @@ QDBusPendingReply<Result, Key>
 CryptoManagerPrivate::importStoredKey(
         const Key &key,
         const Sailfish::Crypto::InteractionParameters &uiParams,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         const QString &storageProviderName)
 {
@@ -239,6 +252,7 @@ CryptoManagerPrivate::importStoredKey(
                 QStringLiteral("importStoredKey"),
                 QVariantList() << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<InteractionParameters>(uiParams)
+                               << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName)
                                << QVariant::fromValue<QString>(storageProviderName));
     return reply;
@@ -299,6 +313,7 @@ CryptoManagerPrivate::calculateDigest(
         const QByteArray &data,
         CryptoManager::SignaturePadding padding,
         CryptoManager::DigestFunction digestFunction,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -313,6 +328,7 @@ CryptoManagerPrivate::calculateDigest(
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
                                << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction)
+                               << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -323,6 +339,7 @@ CryptoManagerPrivate::sign(
         const Key &key,
         CryptoManager::SignaturePadding padding,
         CryptoManager::DigestFunction digestFunction,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -338,6 +355,7 @@ CryptoManagerPrivate::sign(
                                << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
                                << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction)
+                               << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -349,6 +367,7 @@ CryptoManagerPrivate::verify(
         const Key &key,
         CryptoManager::SignaturePadding padding,
         CryptoManager::DigestFunction digestFunction,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -365,6 +384,7 @@ CryptoManagerPrivate::verify(
                                << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
                                << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction)
+                               << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -377,6 +397,7 @@ CryptoManagerPrivate::encrypt(
         CryptoManager::BlockMode blockMode,
         CryptoManager::EncryptionPadding padding,
         const QByteArray &authenticationData,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -394,6 +415,7 @@ CryptoManagerPrivate::encrypt(
                                << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
                                << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding)
                                << QVariant::fromValue<QByteArray>(authenticationData)
+                               << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -406,6 +428,7 @@ QDBusPendingReply<Result, QByteArray, bool> CryptoManagerPrivate::decrypt(
         CryptoManager::EncryptionPadding padding,
         const QByteArray &authenticationData,
         const QByteArray &authenticationTag,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -424,6 +447,7 @@ QDBusPendingReply<Result, QByteArray, bool> CryptoManagerPrivate::decrypt(
                                << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding)
                                << QVariant::fromValue<QByteArray>(authenticationData)
                                << QVariant::fromValue<QByteArray>(authenticationTag)
+                               << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -437,6 +461,7 @@ CryptoManagerPrivate::initialiseCipherSession(
         const Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
         const Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
         const Sailfish::Crypto::CryptoManager::DigestFunction digest,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
@@ -455,6 +480,7 @@ CryptoManagerPrivate::initialiseCipherSession(
                                << QVariant::fromValue<CryptoManager::EncryptionPadding>(encryptionPadding)
                                << QVariant::fromValue<CryptoManager::SignaturePadding>(signaturePadding)
                                << QVariant::fromValue<CryptoManager::DigestFunction>(digest)
+                               << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -462,6 +488,7 @@ CryptoManagerPrivate::initialiseCipherSession(
 QDBusPendingReply<Sailfish::Crypto::Result>
 CryptoManagerPrivate::updateCipherSessionAuthentication(
         const QByteArray &authenticationData,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         quint32 cipherSessionToken)
 {
@@ -475,6 +502,7 @@ CryptoManagerPrivate::updateCipherSessionAuthentication(
             = m_interface->asyncCallWithArgumentList(
                 "updateCipherSessionAuthentication",
                 QVariantList() << QVariant::fromValue<QByteArray>(authenticationData)
+                               << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName)
                                << QVariant::fromValue<quint32>(cipherSessionToken));
     return reply;
@@ -483,6 +511,7 @@ CryptoManagerPrivate::updateCipherSessionAuthentication(
 QDBusPendingReply<Sailfish::Crypto::Result, QByteArray>
 CryptoManagerPrivate::updateCipherSession(
         const QByteArray &data,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         quint32 cipherSessionToken)
 {
@@ -496,6 +525,7 @@ CryptoManagerPrivate::updateCipherSession(
             = m_interface->asyncCallWithArgumentList(
                 "updateCipherSession",
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
+                               << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName)
                                << QVariant::fromValue<quint32>(cipherSessionToken));
     return reply;
@@ -504,6 +534,7 @@ CryptoManagerPrivate::updateCipherSession(
 QDBusPendingReply<Sailfish::Crypto::Result, QByteArray, bool>
 CryptoManagerPrivate::finaliseCipherSession(
         const QByteArray &data,
+        const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         quint32 cipherSessionToken)
 {
@@ -517,6 +548,7 @@ CryptoManagerPrivate::finaliseCipherSession(
             = m_interface->asyncCallWithArgumentList(
                 "finaliseCipherSession",
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
+                               << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName)
                                << QVariant::fromValue<quint32>(cipherSessionToken));
     return reply;

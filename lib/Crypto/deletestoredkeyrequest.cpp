@@ -80,6 +80,25 @@ Result DeleteStoredKeyRequest::result() const
     return d->m_result;
 }
 
+QVariantMap DeleteStoredKeyRequest::customParameters() const
+{
+    Q_D(const DeleteStoredKeyRequest);
+    return d->m_customParameters;
+}
+
+void DeleteStoredKeyRequest::setCustomParameters(const QVariantMap &params)
+{
+    Q_D(DeleteStoredKeyRequest);
+    if (d->m_customParameters != params) {
+        d->m_customParameters = params;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit customParametersChanged();
+    }
+}
+
 CryptoManager *DeleteStoredKeyRequest::manager() const
 {
     Q_D(const DeleteStoredKeyRequest);
@@ -106,6 +125,8 @@ void DeleteStoredKeyRequest::startRequest()
             emit resultChanged();
         }
 
+        // should we pass customParameters in this case, or not?
+        // there's no "specific plugin" which is the target of the request..
         QDBusPendingReply<Result> reply =
                 d->m_manager->d_ptr->deleteStoredKey(d->m_identifier);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {

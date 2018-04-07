@@ -177,6 +177,25 @@ Result SeedRandomDataGeneratorRequest::result() const
     return d->m_result;
 }
 
+QVariantMap SeedRandomDataGeneratorRequest::customParameters() const
+{
+    Q_D(const SeedRandomDataGeneratorRequest);
+    return d->m_customParameters;
+}
+
+void SeedRandomDataGeneratorRequest::setCustomParameters(const QVariantMap &params)
+{
+    Q_D(SeedRandomDataGeneratorRequest);
+    if (d->m_customParameters != params) {
+        d->m_customParameters = params;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit customParametersChanged();
+    }
+}
+
 CryptoManager *SeedRandomDataGeneratorRequest::manager() const
 {
     Q_D(const SeedRandomDataGeneratorRequest);
@@ -208,6 +227,7 @@ void SeedRandomDataGeneratorRequest::startRequest()
                         d->m_seedData,
                         d->m_entropyEstimate,
                         d->m_csprngEngineName,
+                        d->m_customParameters,
                         d->m_cryptoPluginName);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;

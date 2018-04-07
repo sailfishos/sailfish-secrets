@@ -60,7 +60,8 @@ Daemon::Plugins::OpenSslCryptoPlugin::seedRandomDataGenerator(
         quint64 callerIdent,
         const QString &csprngEngineName,
         const QByteArray &seedData,
-        double entropyEstimate)
+        double entropyEstimate,
+        const QVariantMap & /* customParameters */)
 {
     Q_UNUSED(callerIdent)
 
@@ -80,6 +81,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateAndStoreKey(
         const Key &keyTemplate,
         const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
         const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+        const QVariantMap & /* customParameters */,
         Key *keyMetadata)
 {
     Q_UNUSED(keyTemplate);
@@ -94,10 +96,12 @@ Result
 Daemon::Plugins::OpenSslCryptoPlugin::importAndStoreKey(
         const Sailfish::Crypto::Key &key,
         const QByteArray &passphrase,
+        const QVariantMap &customParameters,
         Key *keyMetadata)
 {
     Q_UNUSED(key);
     Q_UNUSED(passphrase);
+    Q_UNUSED(customParameters);
     Q_UNUSED(keyMetadata);
     return Result(Result::UnsupportedOperation,
                   QLatin1String("The OpenSSL crypto plugin doesn't support storing keys"));
@@ -143,6 +147,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateRandomData(
         quint64 callerIdent,
         const QString &csprngEngineName,
         quint64 numberBytes,
+        const QVariantMap & /* customParameters */,
         QByteArray *randomData)
 {
     Q_UNUSED(callerIdent)
@@ -182,6 +187,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateInitializationVector(
         Sailfish::Crypto::CryptoManager::Algorithm algorithm,
         Sailfish::Crypto::CryptoManager::BlockMode blockMode,
         int keySize,
+        const QVariantMap & /* customParameters */,
         QByteArray *generatedIV)
 {
     int ivSize = initializationVectorSize(algorithm, blockMode, keySize);
@@ -348,6 +354,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateKey(
         const Sailfish::Crypto::Key &keyTemplate,
         const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
         const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+        const QVariantMap & /* customParameters */,
         Sailfish::Crypto::Key *key)
 {
     // generate an asymmetrical key pair if required
@@ -381,7 +388,8 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateKey(
         }
         QByteArray randomKey;
         Sailfish::Crypto::Result randomResult = generateRandomData(
-                    0, QStringLiteral("/dev/urandom"), keyTemplate.size() / 8, &randomKey);
+                    0, QStringLiteral("/dev/urandom"), keyTemplate.size() / 8, QVariantMap(),
+                    &randomKey);
         if (randomResult.code() == Sailfish::Crypto::Result::Failed) {
             return randomResult;
         }
@@ -470,8 +478,11 @@ Sailfish::Crypto::Result
 Daemon::Plugins::OpenSslCryptoPlugin::importKey(
         const Sailfish::Crypto::Key &key,
         const QByteArray &passphrase,
+        const QVariantMap &customParameters,
         Sailfish::Crypto::Key *importedKey)
 {
+    Q_UNUSED(customParameters);
+
     *importedKey = key;
 
     QByteArray privateKey = key.privateKey();
@@ -573,6 +584,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::calculateDigest(
         const QByteArray &data,
         Sailfish::Crypto::CryptoManager::SignaturePadding padding,
         Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+        const QVariantMap & /* customParameters */,
         QByteArray *digest)
 {
     if (digest == Q_NULLPTR) {
@@ -624,6 +636,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::sign(
         const Sailfish::Crypto::Key &keyReferenceOrFullKey,
         Sailfish::Crypto::CryptoManager::SignaturePadding padding,
         Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+        const QVariantMap & /* customParameters */,
         QByteArray *signature)
 {
     Sailfish::Crypto::Key key = getFullKey(keyReferenceOrFullKey);
@@ -703,6 +716,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::verify(
         const Sailfish::Crypto::Key &keyReferenceOrFullKey,
         Sailfish::Crypto::CryptoManager::SignaturePadding padding,
         Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+        const QVariantMap & /* customParameters */,
         bool *verified)
 {
     Sailfish::Crypto::Key key = getFullKey(keyReferenceOrFullKey);
@@ -777,6 +791,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::encrypt(
         Sailfish::Crypto::CryptoManager::BlockMode blockMode,
         Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
         const QByteArray &authenticationData,
+        const QVariantMap & /* customParameters */,
         QByteArray *encrypted,
         QByteArray *authenticationTag)
 {
@@ -970,6 +985,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
         Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
         const QByteArray &authenticationData,
         const QByteArray &authenticationTag,
+        const QVariantMap & /* customParameters */,
         QByteArray *decrypted,
         bool *verified)
 {
@@ -1156,6 +1172,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
         Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
         Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
         Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+        const QVariantMap & /* customParameters */,
         quint32 *cipherSessionToken)
 {
     Sailfish::Crypto::Key fullKey = getFullKey(key);
@@ -1294,6 +1311,7 @@ Sailfish::Crypto::Result
 Daemon::Plugins::OpenSslCryptoPlugin::updateCipherSessionAuthentication(
         quint64 clientId,
         const QByteArray &authenticationData,
+        const QVariantMap & /* customParameters */,
         quint32 cipherSessionToken)
 {
     if (!m_cipherSessions.contains(clientId)
@@ -1339,6 +1357,7 @@ Sailfish::Crypto::Result
 Daemon::Plugins::OpenSslCryptoPlugin::updateCipherSession(
         quint64 clientId,
         const QByteArray &data,
+        const QVariantMap & /* customParameters */,
         quint32 cipherSessionToken,
         QByteArray *generatedData)
 {
@@ -1387,6 +1406,7 @@ Sailfish::Crypto::Result
 Daemon::Plugins::OpenSslCryptoPlugin::finaliseCipherSession(
         quint64 clientId,
         const QByteArray &data,
+        const QVariantMap & /* customParameters */,
         quint32 cipherSessionToken,
         QByteArray *generatedData,
         bool *verified)

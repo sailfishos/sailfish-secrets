@@ -57,6 +57,8 @@ PRIVATE_HEADERS += \
     $$PWD/generatekeyrequest_p.h \
     $$PWD/generaterandomdatarequest_p.h \
     $$PWD/generatestoredkeyrequest_p.h \
+    $$PWD/importkeyrequest_p.h \
+    $$PWD/importstoredkeyrequest_p.h \
     $$PWD/interactionparameters_p.h \
     $$PWD/key_p.h \
     $$PWD/keyderivationparameters_p.h \

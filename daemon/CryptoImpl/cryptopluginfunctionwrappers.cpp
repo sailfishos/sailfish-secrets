@@ -41,89 +41,101 @@ bool CryptoPluginWrapper::setLockCode(
 }
 
 DataResult CryptoPluginWrapper::generateRandomData(
-        CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         quint64 callerIdent,
         const QString &csprngEngineName,
         quint64 numberBytes)
 {
     QByteArray randomData;
-    Result result = plugin->generateRandomData(
+    Result result = pluginAndCustomParams.plugin->generateRandomData(
                 callerIdent,
                 csprngEngineName,
                 numberBytes,
+                pluginAndCustomParams.customParameters,
                 &randomData);
     return DataResult(result, randomData);
 }
 
 Result CryptoPluginWrapper::seedRandomDataGenerator(
-        CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         quint64 callerIdent,
         const QString &csprngEngineName,
         const QByteArray &seedData,
         double entropyEstimate)
 {
-    return plugin->seedRandomDataGenerator(
+    return pluginAndCustomParams.plugin->seedRandomDataGenerator(
                 callerIdent,
                 csprngEngineName,
                 seedData,
-                entropyEstimate);
+                entropyEstimate,
+                pluginAndCustomParams.customParameters);
 }
 
 DataResult CryptoPluginWrapper::generateInitializationVector(
-        CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         CryptoManager::Algorithm algorithm,
         CryptoManager::BlockMode blockMode,
         int keySize)
 {
     QByteArray iv;
-    Result result = plugin->generateInitializationVector(
-                algorithm, blockMode, keySize, &iv);
+    Result result = pluginAndCustomParams.plugin->generateInitializationVector(
+                algorithm, blockMode, keySize,
+                pluginAndCustomParams.customParameters,
+                &iv);
     return DataResult(result, iv);
 }
 
 KeyResult CryptoPluginWrapper::importKey(
-        Sailfish::Crypto::CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         const Sailfish::Crypto::Key &keyData,
         const QByteArray &passphrase)
 {
     Key key;
-    Result result = plugin->importKey(
-                keyData, passphrase, &key);
+    Result result = pluginAndCustomParams.plugin->importKey(
+                keyData, passphrase,
+                pluginAndCustomParams.customParameters,
+                &key);
     return KeyResult(result, key);
 }
 
 KeyResult CryptoPluginWrapper::importAndStoreKey(
-        Sailfish::Crypto::CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         const Sailfish::Crypto::Key &keyData,
         const QByteArray &passphrase)
 {
     Key key;
-    Result result = plugin->importAndStoreKey(
-                keyData, passphrase, &key);
+    Result result = pluginAndCustomParams.plugin->importAndStoreKey(
+                keyData, passphrase,
+                pluginAndCustomParams.customParameters,
+                &key);
     return KeyResult(result, key);
 }
 
 KeyResult CryptoPluginWrapper::generateKey(
-        CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         const Key &keyTemplate,
         const KeyPairGenerationParameters &kpgParams,
         const KeyDerivationParameters &skdfParams)
 {
     Key key;
-    Result result = plugin->generateKey(
-                keyTemplate, kpgParams, skdfParams, &key);
+    Result result = pluginAndCustomParams.plugin->generateKey(
+                keyTemplate, kpgParams, skdfParams,
+                pluginAndCustomParams.customParameters,
+                &key);
     return KeyResult(result, key);
 }
 
 KeyResult CryptoPluginWrapper::generateAndStoreKey(
-        CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         const Key &keyTemplate,
         const KeyPairGenerationParameters &kpgParams,
         const KeyDerivationParameters &skdfParams)
 {
     Key keyReference;
-    Result result = plugin->generateAndStoreKey(
-                keyTemplate, kpgParams, skdfParams, &keyReference);
+    Result result = pluginAndCustomParams.plugin->generateAndStoreKey(
+                keyTemplate, kpgParams, skdfParams,
+                pluginAndCustomParams.customParameters,
+                &keyReference);
     return KeyResult(result, keyReference);
 }
 
@@ -147,52 +159,55 @@ IdentifiersResult CryptoPluginWrapper::storedKeyIdentifiers(
 }
 
 DataResult CryptoPluginWrapper::calculateDigest(
-        CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         const QByteArray &data,
         const SignatureOptions &options)
 {
     QByteArray digest;
-    Result result = plugin->calculateDigest(
+    Result result = pluginAndCustomParams.plugin->calculateDigest(
                 data,
                 options.signaturePadding,
                 options.digestFunction,
+                pluginAndCustomParams.customParameters,
                 &digest);
     return DataResult(result, digest);
 }
 
 DataResult CryptoPluginWrapper::sign(
-        CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         const QByteArray &data,
         const Key &key,
         const SignatureOptions &options)
 {
     QByteArray signature;
-    Result result = plugin->sign(
+    Result result = pluginAndCustomParams.plugin->sign(
                 data, key,
                 options.signaturePadding,
                 options.digestFunction,
+                pluginAndCustomParams.customParameters,
                 &signature);
     return DataResult(result, signature);
 }
 
 ValidatedResult CryptoPluginWrapper::verify(
-        CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         const QByteArray &signature,
         const QByteArray &data,
         const Key &key,
         const SignatureOptions &options)
 {
     bool verified = false;
-    Result result = plugin->verify(
+    Result result = pluginAndCustomParams.plugin->verify(
                 signature, data, key,
                 options.signaturePadding,
                 options.digestFunction,
+                pluginAndCustomParams.customParameters,
                 &verified);
     return ValidatedResult(result, verified);
 }
 
 TagDataResult CryptoPluginWrapper::encrypt(
-        CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         const DataAndIV &dataAndIv,
         const Sailfish::Crypto::Key &key,
         const EncryptionOptions &options,
@@ -200,19 +215,20 @@ TagDataResult CryptoPluginWrapper::encrypt(
 {
     QByteArray ciphertext;
     QByteArray authenticationTag;
-    Result result = plugin->encrypt(
+    Result result = pluginAndCustomParams.plugin->encrypt(
                 dataAndIv.data,
                 dataAndIv.initVector,
                 key,
                 options.blockMode,
                 options.encryptionPadding,
                 authenticationData,
+                pluginAndCustomParams.customParameters,
                 &ciphertext, &authenticationTag);
     return TagDataResult(result, ciphertext, authenticationTag);
 }
 
 VerifiedDataResult CryptoPluginWrapper::decrypt(
-        CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         const DataAndIV &dataAndIv,
         const Key &key, // or keyreference, i.e. Key(keyName)
         const EncryptionOptions &options,
@@ -220,7 +236,7 @@ VerifiedDataResult CryptoPluginWrapper::decrypt(
 {
     QByteArray plaintext;
     bool verified = false;
-    Result result = plugin->decrypt(
+    Result result = pluginAndCustomParams.plugin->decrypt(
                 dataAndIv.data,
                 dataAndIv.initVector,
                 key,
@@ -228,19 +244,20 @@ VerifiedDataResult CryptoPluginWrapper::decrypt(
                 options.encryptionPadding,
                 authDataAndTag.authData,
                 authDataAndTag.tag,
+                pluginAndCustomParams.customParameters,
                 &plaintext, &verified);
     return VerifiedDataResult(result, plaintext, verified);
 }
 
 CipherSessionTokenResult CryptoPluginWrapper::initialiseCipherSession(
-        CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         quint64 clientId,
         const QByteArray &iv,
         const Key &key, // or keyreference, i.e. Key(keyName)
         const CipherSessionOptions &options)
 {
     quint32 cipherSessionToken = 0;
-    Result result = plugin->initialiseCipherSession(
+    Result result = pluginAndCustomParams.plugin->initialiseCipherSession(
                 clientId,
                 iv,
                 key,
@@ -249,41 +266,50 @@ CipherSessionTokenResult CryptoPluginWrapper::initialiseCipherSession(
                 options.encryptionPadding,
                 options.signaturePadding,
                 options.digestFunction,
+                pluginAndCustomParams.customParameters,
                 &cipherSessionToken);
     return CipherSessionTokenResult(result, cipherSessionToken);
 }
 
 Result CryptoPluginWrapper::updateCipherSessionAuthentication(
-        CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         quint64 clientId,
         const QByteArray &authenticationData,
         quint32 cipherSessionToken)
 {
-    return plugin->updateCipherSessionAuthentication(
-                clientId, authenticationData, cipherSessionToken);
+    return pluginAndCustomParams.plugin->updateCipherSessionAuthentication(
+                clientId, authenticationData,
+                pluginAndCustomParams.customParameters,
+                cipherSessionToken);
 }
 
 DataResult CryptoPluginWrapper::updateCipherSession(
-        CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         quint64 clientId,
         const QByteArray &data,
         quint32 cipherSessionToken)
 {
     QByteArray generatedData;
-    Result result = plugin->updateCipherSession(
-                clientId, data, cipherSessionToken, &generatedData);
+    Result result = pluginAndCustomParams.plugin->updateCipherSession(
+                clientId, data,
+                pluginAndCustomParams.customParameters,
+                cipherSessionToken,
+                &generatedData);
     return DataResult(result, generatedData);
 }
 
 VerifiedDataResult CryptoPluginWrapper::finaliseCipherSession(
-        CryptoPlugin *plugin,
+        const PluginAndCustomParams &pluginAndCustomParams,
         quint64 clientId,
         const QByteArray &data,
         quint32 cipherSessionToken)
 {
     bool verified = false;
     QByteArray generatedData;
-    Result result = plugin->finaliseCipherSession(
-                clientId, data, cipherSessionToken, &generatedData, &verified);
+    Result result = pluginAndCustomParams.plugin->finaliseCipherSession(
+                clientId, data,
+                pluginAndCustomParams.customParameters,
+                cipherSessionToken,
+                &generatedData, &verified);
     return VerifiedDataResult(result, generatedData, verified);
 }

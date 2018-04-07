@@ -52,40 +52,47 @@ public:
             quint64 callerIdent,
             const QString &csprngEngineName,
             quint64 numberBytes,
+            const QVariantMap &customParameters,
             QByteArray *randomData) = 0;
 
     virtual Sailfish::Crypto::Result seedRandomDataGenerator(
             quint64 callerIdent,
             const QString &csprngEngineName,
             const QByteArray &seedData,
-            double entropyEstimate) = 0;
+            double entropyEstimate,
+            const QVariantMap &customParameters) = 0;
 
     virtual Sailfish::Crypto::Result generateInitializationVector(
             Sailfish::Crypto::CryptoManager::Algorithm algorithm,
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             int keySize,
+            const QVariantMap &customParameters,
             QByteArray *generatedIV) = 0;
 
     virtual Sailfish::Crypto::Result generateKey(
             const Sailfish::Crypto::Key &keyTemplate,
             const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+            const QVariantMap &customParameters,
             Sailfish::Crypto::Key *key) = 0;
 
     virtual Sailfish::Crypto::Result generateAndStoreKey(
             const Sailfish::Crypto::Key &keyTemplate,
             const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+            const QVariantMap &customParameters,
             Sailfish::Crypto::Key *keyMetadata) = 0;
 
     virtual Sailfish::Crypto::Result importKey(
             const Sailfish::Crypto::Key &key,
             const QByteArray &passphrase,
+            const QVariantMap &customParameters,
             Sailfish::Crypto::Key *importedKey) = 0;
 
     virtual Sailfish::Crypto::Result importAndStoreKey(
             const Sailfish::Crypto::Key &key,
             const QByteArray &passphrase,
+            const QVariantMap &customParameters,
             Sailfish::Crypto::Key *keyMetadata) = 0;
 
     virtual Sailfish::Crypto::Result storedKey(
@@ -106,6 +113,7 @@ public:
             const QByteArray &data,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QVariantMap &customParameters,
             QByteArray *digest) = 0;
 
     virtual Sailfish::Crypto::Result sign(
@@ -113,6 +121,7 @@ public:
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QVariantMap &customParameters,
             QByteArray *signature) = 0;
 
     virtual Sailfish::Crypto::Result verify(
@@ -121,6 +130,7 @@ public:
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QVariantMap &customParameters,
             bool *verified) = 0;
 
     virtual Sailfish::Crypto::Result encrypt(
@@ -130,6 +140,7 @@ public:
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
+            const QVariantMap &customParameters,
             QByteArray *encrypted,
             QByteArray *authenticationTag) = 0;
 
@@ -141,6 +152,7 @@ public:
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
             const QByteArray &authenticationTag,
+            const QVariantMap &customParameters,
             QByteArray *decrypted,
             bool *verified) = 0;
 
@@ -153,22 +165,26 @@ public:
             Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
             Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QVariantMap &customParameters,
             quint32 *cipherSessionToken) = 0;
 
     virtual Sailfish::Crypto::Result updateCipherSessionAuthentication(
             quint64 clientId,
             const QByteArray &authenticationData,
+            const QVariantMap &customParameters,
             quint32 cipherSessionToken) = 0;
 
     virtual Sailfish::Crypto::Result updateCipherSession(
             quint64 clientId,
             const QByteArray &data,
+            const QVariantMap &customParameters,
             quint32 cipherSessionToken,
             QByteArray *generatedData) = 0;
 
     virtual Sailfish::Crypto::Result finaliseCipherSession(
             quint64 clientId,
             const QByteArray &data,
+            const QVariantMap &customParameters,
             quint32 cipherSessionToken,
             QByteArray *generatedData,
             bool *verified) = 0;

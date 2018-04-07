@@ -60,7 +60,8 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::seedRandomDataGenerator(
         quint64 callerIdent,
         const QString &csprngEngineName,
         const QByteArray &seedData,
-        double entropyEstimate)
+        double entropyEstimate,
+        const QVariantMap & /* customParameters */)
 {
     Q_UNUSED(callerIdent)
     Q_UNUSED(csprngEngineName)
@@ -75,6 +76,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::generateAndStoreKey(
         const Sailfish::Crypto::Key &keyTemplate,
         const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
         const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+        const QVariantMap &customParameters,
         Sailfish::Crypto::Key *keyMetadata)
 {
     if (keyTemplate.identifier().name().isEmpty()) {
@@ -89,7 +91,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::generateAndStoreKey(
     }
 
     Sailfish::Crypto::Key fullKey(keyTemplate);
-    Sailfish::Crypto::Result retn = generateKey(keyTemplate, kpgParams, skdfParams, &fullKey);
+    Sailfish::Crypto::Result retn = generateKey(keyTemplate, kpgParams, skdfParams, customParameters, &fullKey);
     if (retn.code() == Sailfish::Crypto::Result::Failed) {
         return retn;
     }
@@ -123,6 +125,7 @@ Sailfish::Crypto::Result
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::importAndStoreKey(
         const Sailfish::Crypto::Key &key,
         const QByteArray &passphrase,
+        const QVariantMap &customParameters,
         Sailfish::Crypto::Key *keyMetadata)
 {
     if (key.identifier().name().isEmpty()) {
@@ -137,7 +140,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::importAndStoreKey(
     }
 
     Sailfish::Crypto::Key importedKey(key);
-    Sailfish::Crypto::Result retn = importKey(key, passphrase, &importedKey);
+    Sailfish::Crypto::Result retn = importKey(key, passphrase, customParameters, &importedKey);
     if (retn.code() == Sailfish::Crypto::Result::Failed) {
         return retn;
     }
@@ -260,9 +263,10 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::generateRandomData(
         quint64 callerIdent,
         const QString &csprngEngineName,
         quint64 numberBytes,
+        const QVariantMap &customParameters,
         QByteArray *randomData)
 {
-    return m_opensslCryptoPlugin.generateRandomData(callerIdent, csprngEngineName, numberBytes, randomData);
+    return m_opensslCryptoPlugin.generateRandomData(callerIdent, csprngEngineName, numberBytes, customParameters, randomData);
 }
 
 Sailfish::Crypto::Result
@@ -270,9 +274,10 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::generateInitializationVecto
         Sailfish::Crypto::CryptoManager::Algorithm algorithm,
         Sailfish::Crypto::CryptoManager::BlockMode blockMode,
         int keySize,
+        const QVariantMap &customParameters,
         QByteArray *generatedIV)
 {
-    return m_opensslCryptoPlugin.generateInitializationVector(algorithm, blockMode, keySize, generatedIV);
+    return m_opensslCryptoPlugin.generateInitializationVector(algorithm, blockMode, keySize, customParameters, generatedIV);
 }
 
 Sailfish::Crypto::Result
@@ -280,18 +285,20 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::generateKey(
         const Sailfish::Crypto::Key &keyTemplate,
         const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
         const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+        const QVariantMap &customParameters,
         Sailfish::Crypto::Key *key)
 {
-    return m_opensslCryptoPlugin.generateKey(keyTemplate, kpgParams, skdfParams, key);
+    return m_opensslCryptoPlugin.generateKey(keyTemplate, kpgParams, skdfParams, customParameters, key);
 }
 
 Sailfish::Crypto::Result
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::importKey(
         const Sailfish::Crypto::Key &key,
         const QByteArray &passphrase,
+        const QVariantMap &customParameters,
         Sailfish::Crypto::Key *importedKey)
 {
-    return m_opensslCryptoPlugin.importKey(key, passphrase, importedKey);
+    return m_opensslCryptoPlugin.importKey(key, passphrase, customParameters, importedKey);
 }
 
 Sailfish::Crypto::Result
@@ -299,9 +306,10 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::calculateDigest(
         const QByteArray &data,
         Sailfish::Crypto::CryptoManager::SignaturePadding padding,
         Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+        const QVariantMap &customParameters,
         QByteArray *digest)
 {
-    return m_opensslCryptoPlugin.calculateDigest(data, padding, digestFunction, digest);
+    return m_opensslCryptoPlugin.calculateDigest(data, padding, digestFunction, customParameters, digest);
 }
 
 Sailfish::Crypto::Result
@@ -310,9 +318,10 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::sign(
         const Sailfish::Crypto::Key &key,
         Sailfish::Crypto::CryptoManager::SignaturePadding padding,
         Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+        const QVariantMap &customParameters,
         QByteArray *signature)
 {
-    return m_opensslCryptoPlugin.sign(data, key, padding, digestFunction, signature);
+    return m_opensslCryptoPlugin.sign(data, key, padding, digestFunction, customParameters, signature);
 }
 
 Sailfish::Crypto::Result
@@ -322,9 +331,10 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::verify(
         const Sailfish::Crypto::Key &key,
         Sailfish::Crypto::CryptoManager::SignaturePadding padding,
         Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+        const QVariantMap &customParameters,
         bool *verified)
 {
-    return m_opensslCryptoPlugin.verify(signature, data, key, padding, digestFunction, verified);
+    return m_opensslCryptoPlugin.verify(signature, data, key, padding, digestFunction, customParameters, verified);
 }
 
 Sailfish::Crypto::Result
@@ -335,10 +345,11 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::encrypt(
         Sailfish::Crypto::CryptoManager::BlockMode blockMode,
         Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
         const QByteArray &authenticationData,
+        const QVariantMap &customParameters,
         QByteArray *encrypted,
         QByteArray *authenticationTag)
 {
-    return m_opensslCryptoPlugin.encrypt(data, iv, key, blockMode, padding, authenticationData, encrypted, authenticationTag);
+    return m_opensslCryptoPlugin.encrypt(data, iv, key, blockMode, padding, authenticationData, customParameters, encrypted, authenticationTag);
 }
 
 Sailfish::Crypto::Result
@@ -350,14 +361,16 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::decrypt(
         Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
         const QByteArray &authenticationData,
         const QByteArray &authenticationTag,
+        const QVariantMap &customParameters,
         QByteArray *decrypted,
         bool *verified)
 {
-    return m_opensslCryptoPlugin.decrypt(data, iv, key, blockMode, padding, authenticationData, authenticationTag, decrypted, verified);
+    return m_opensslCryptoPlugin.decrypt(data, iv, key, blockMode, padding, authenticationData, authenticationTag, customParameters, decrypted, verified);
 }
 
 Sailfish::Crypto::Result
-Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::initialiseCipherSession(quint64 clientId,
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::initialiseCipherSession(
+        quint64 clientId,
         const QByteArray &iv,
         const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
         Sailfish::Crypto::CryptoManager::Operation operation,
@@ -365,6 +378,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::initialiseCipherSession(qui
         Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
         Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
         Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+        const QVariantMap &customParameters,
         quint32 *cipherSessionToken)
 {
     return m_opensslCryptoPlugin.initialiseCipherSession(clientId,
@@ -375,6 +389,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::initialiseCipherSession(qui
                                                          encryptionPadding,
                                                          signaturePadding,
                                                          digestFunction,
+                                                         customParameters,
                                                          cipherSessionToken);
 }
 
@@ -382,10 +397,12 @@ Sailfish::Crypto::Result
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::updateCipherSessionAuthentication(
         quint64 clientId,
         const QByteArray &authenticationData,
+        const QVariantMap &customParameters,
         quint32 cipherSessionToken)
 {
     return m_opensslCryptoPlugin.updateCipherSessionAuthentication(clientId,
                                                                    authenticationData,
+                                                                   customParameters,
                                                                    cipherSessionToken);
 }
 
@@ -393,11 +410,13 @@ Sailfish::Crypto::Result
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::updateCipherSession(
         quint64 clientId,
         const QByteArray &data,
+        const QVariantMap &customParameters,
         quint32 cipherSessionToken,
         QByteArray *generatedData)
 {
     return m_opensslCryptoPlugin.updateCipherSession(clientId,
                                                      data,
+                                                     customParameters,
                                                      cipherSessionToken,
                                                      generatedData);
 }
@@ -406,12 +425,14 @@ Sailfish::Crypto::Result
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::finaliseCipherSession(
         quint64 clientId,
         const QByteArray &data,
+        const QVariantMap &customParameters,
         quint32 cipherSessionToken,
         QByteArray *generatedData,
         bool *verified)
 {
     return m_opensslCryptoPlugin.finaliseCipherSession(clientId,
                                                        data,
+                                                       customParameters,
                                                        cipherSessionToken,
                                                        generatedData,
                                                        verified);

@@ -210,6 +210,25 @@ Result LockCodeRequest::result() const
     return d->m_result;
 }
 
+QVariantMap LockCodeRequest::customParameters() const
+{
+    Q_D(const LockCodeRequest);
+    return d->m_customParameters;
+}
+
+void LockCodeRequest::setCustomParameters(const QVariantMap &params)
+{
+    Q_D(LockCodeRequest);
+    if (d->m_customParameters != params) {
+        d->m_customParameters = params;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit customParametersChanged();
+    }
+}
+
 CryptoManager *LockCodeRequest::manager() const
 {
     Q_D(const LockCodeRequest);
@@ -237,6 +256,7 @@ void LockCodeRequest::startRequest()
         }
 
         QDBusPendingReply<Result> reply;
+        // should we pass customParameters to the lock code request?
         if (d->m_lockCodeRequestType == LockCodeRequest::ModifyLockCode) {
             reply = d->m_manager->d_ptr->modifyLockCode(d->m_lockCodeTargetType,
                                                         d->m_lockCodeTarget,

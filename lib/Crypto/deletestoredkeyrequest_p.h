@@ -30,6 +30,7 @@ public:
     explicit DeleteStoredKeyRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
+    QVariantMap m_customParameters;
     Sailfish::Crypto::Key::Identifier m_identifier;
 
     QScopedPointer<QDBusPendingCallWatcher> m_watcher;

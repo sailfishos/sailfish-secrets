@@ -31,6 +31,7 @@ public:
     explicit CipherRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
+    QVariantMap m_customParameters;
     CipherRequest::CipherMode m_cipherMode;
     CryptoManager::Operation m_operation;
     QByteArray m_data;
