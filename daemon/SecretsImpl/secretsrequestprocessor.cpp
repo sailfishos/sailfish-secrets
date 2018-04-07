@@ -299,7 +299,8 @@ Daemon::ApiImpl::RequestProcessor::createCustomLockCollection(
     ikdRequest.setOperation(InteractionParameters::CreateCollection);
     ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
     ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-    ikdRequest.setPromptTrId("sailfish_secrets_create_customlock_collection_input_key_data_prompt");
+    ikdRequest.setPromptText(tr("Enter the passphrase which will be used to encrypt the new collection %1 in plugin %2")
+                             .arg(collectionName, storagePluginName));
     Result interactionResult = m_authenticationPlugins[authenticationPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -1021,7 +1022,8 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
     modifiedUiParams.setCollectionName(secret.identifier().collectionName());
     modifiedUiParams.setSecretName(secret.identifier().name());
     modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
-    modifiedUiParams.setPromptTrId(QString()); // clear it in case malicious apps try to confuse the user.
+    modifiedUiParams.setPromptText(tr("Enter confidential data for secret %1 in collection %3 stored by %3")
+                                   .arg(secret.identifier().name(), secret.identifier().collectionName(), collectionStoragePluginName));
     Result authenticationResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -1126,7 +1128,8 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
         ikdRequest.setOperation(InteractionParameters::StoreSecret);
         ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
         ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-        ikdRequest.setPromptTrId("sailfish_secrets_store_collection_secret_input_key_data_prompt");
+        ikdRequest.setPromptText(tr("Enter the passphrase to unlock the collection %1 in order to store secret %2")
+                                 .arg(secret.identifier().collectionName(), secret.identifier().name()));
         Result interactionResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginUserInputInteraction(
                     callerPid,
                     requestId,
@@ -1195,7 +1198,8 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
     ikdRequest.setOperation(InteractionParameters::StoreSecret);
     ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
     ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-    ikdRequest.setPromptTrId("sailfish_secrets_store_collection_secret_input_key_data_prompt");
+    ikdRequest.setPromptText(tr("Enter the passphrase to unlock the collection %1 in order to store secret %2")
+                             .arg(secret.identifier().collectionName(), secret.identifier().name()));
     Result interactionResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -1538,7 +1542,8 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSecret(
     modifiedUiParams.setCollectionName(secret.identifier().collectionName());
     modifiedUiParams.setSecretName(secret.identifier().name());
     modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
-    modifiedUiParams.setPromptTrId(QString()); // clear it in case malicious apps try to confuse the user.
+    modifiedUiParams.setPromptText(tr("Enter confidential data for secret %1 in collection %3 stored by %3")
+                                   .arg(secret.identifier().name(), secret.identifier().collectionName(), storagePluginName));
     Result authenticationResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -1816,7 +1821,8 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecret(
     modifiedUiParams.setCollectionName(secret.identifier().collectionName());
     modifiedUiParams.setSecretName(secret.identifier().name());
     modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
-    modifiedUiParams.setPromptTrId(QString()); // clear it in case malicious apps try to confuse the user.
+    modifiedUiParams.setPromptText(tr("Enter confidential data for secret %1 in collection %3 stored by %3")
+                                   .arg(secret.identifier().name(), secret.identifier().collectionName(), storagePluginName));
     Result authenticationResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -1868,7 +1874,8 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretGetAuthenticatio
     ikdRequest.setOperation(InteractionParameters::StoreSecret);
     ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
     ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-    ikdRequest.setPromptTrId("sailfish_secrets_store_standalone_secret_input_key_data_prompt");
+    ikdRequest.setPromptText(tr("Enter passphrase to encrypt standalone secret %1")
+                               .arg(secret.identifier().name()));
     Result interactionResult = m_authenticationPlugins[authenticationPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -2262,7 +2269,7 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                 ikdRequest.setOperation(InteractionParameters::ReadSecret);
                 ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
                 ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-                ikdRequest.setPromptTrId("sailfish_secrets_get_collection_secret_input_key_data_prompt");
+                ikdRequest.setPromptText("sailfish_secrets_get_collection_secret_input_key_data_prompt");
                 Result interactionResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
@@ -2324,7 +2331,7 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                 ikdRequest.setOperation(InteractionParameters::ReadSecret);
                 ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
                 ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-                ikdRequest.setPromptTrId("sailfish_secrets_get_collection_secret_input_key_data_prompt");
+                ikdRequest.setPromptText("sailfish_secrets_get_collection_secret_input_key_data_prompt");
                 Result interactionResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
@@ -2616,7 +2623,7 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
     ikdRequest.setOperation(InteractionParameters::ReadSecret);
     ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
     ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-    ikdRequest.setPromptTrId("sailfish_secrets_get_standalone_secret_input_key_data_prompt");
+    ikdRequest.setPromptText("sailfish_secrets_get_standalone_secret_input_key_data_prompt");
     Result interactionResult = m_authenticationPlugins[secretAuthenticationPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -2915,7 +2922,7 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                 ikdRequest.setOperation(InteractionParameters::UnlockCollection);
                 ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
                 ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-                ikdRequest.setPromptTrId("sailfish_secrets_unlock_collection_find_secrets_input_key_data_prompt");
+                ikdRequest.setPromptText("sailfish_secrets_unlock_collection_find_secrets_input_key_data_prompt");
                 Result interactionResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
@@ -2981,7 +2988,7 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                 ikdRequest.setOperation(InteractionParameters::UnlockCollection);
                 ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
                 ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-                ikdRequest.setPromptTrId("sailfish_secrets_unlock_collection_find_secrets_input_key_data_prompt");
+                ikdRequest.setPromptText("sailfish_secrets_unlock_collection_find_secrets_input_key_data_prompt");
                 Result interactionResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
@@ -3301,7 +3308,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
             ikdRequest.setOperation(InteractionParameters::DeleteSecret);
             ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
             ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-            ikdRequest.setPromptTrId("sailfish_secrets_delete_collection_secret_input_key_data_prompt");
+            ikdRequest.setPromptText("sailfish_secrets_delete_collection_secret_input_key_data_prompt");
             Result interactionResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginUserInputInteraction(
                         callerPid,
                         requestId,
@@ -3352,7 +3359,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
                 ikdRequest.setOperation(InteractionParameters::DeleteSecret);
                 ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
                 ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-                ikdRequest.setPromptTrId("sailfish_secrets_delete_collection_secret_input_key_data_prompt");
+                ikdRequest.setPromptText("sailfish_secrets_delete_collection_secret_input_key_data_prompt");
                 Result interactionResult = m_authenticationPlugins[collectionAuthenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,

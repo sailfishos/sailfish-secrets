@@ -71,7 +71,6 @@ void Daemon::ApiImpl::SecretsDBusObject::userInput(
     modifiedParams.setOperation(InteractionParameters::RequestUserData);
     modifiedParams.setCollectionName(QString());
     modifiedParams.setSecretName(QString());
-    modifiedParams.setPromptTrId(QString());
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<InteractionParameters>(modifiedParams);
     m_requestQueue->handleRequest(Daemon::ApiImpl::UserInputRequest,

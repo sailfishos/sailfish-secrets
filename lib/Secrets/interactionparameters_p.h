@@ -30,7 +30,6 @@ public:
     Sailfish::Secrets::InteractionParameters::Operation m_operation = Sailfish::Secrets::InteractionParameters::UnknownOperation;
     QString m_authenticationPluginName;
     QString m_promptText;
-    QString m_promptTrId;
     Sailfish::Secrets::InteractionParameters::InputType m_inputType = Sailfish::Secrets::InteractionParameters::UnknownInput;
     Sailfish::Secrets::InteractionParameters::EchoMode m_echoMode = Sailfish::Secrets::InteractionParameters::PasswordEchoOnEdit;
 };

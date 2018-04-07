@@ -557,9 +557,7 @@ Result PasswordAgentPlugin::beginUserInputInteraction(
 
     QDBusPendingCall call = agent->asyncCall(QStringLiteral("QueryPassword"),  {
                 QVariant::fromValue(cookie),
-                QVariant::fromValue(interactionParameters.promptText().isEmpty()
-                    ? interactionParameters.promptTrId()
-                    : interactionParameters.promptText()),
+                QVariant::fromValue(interactionParameters.promptText().isEmpty()),
                 QVariant::fromValue(properties) }, 5 * 60 * 1000);
 
     PasswordResponse * const response = new PasswordResponse(

@@ -28,7 +28,6 @@ class SAILFISH_SECRETS_API InteractionParameters {
     Q_PROPERTY(Operation operation READ operation WRITE setOperation)
     Q_PROPERTY(QString authenticationPluginName READ authenticationPluginName WRITE setAuthenticationPluginName)
     Q_PROPERTY(QString promptText READ promptText WRITE setPromptText)
-    Q_PROPERTY(QString promptTrId READ promptTrId WRITE setPromptTrId)
     Q_PROPERTY(InputType inputType READ inputType WRITE setInputType)
     Q_PROPERTY(EchoMode echoMode READ echoMode WRITE setEchoMode)
 
@@ -129,9 +128,6 @@ public:
 
     QString promptText() const;
     void setPromptText(const QString &prompt);
-
-    QString promptTrId() const;
-    void setPromptTrId(const QString &trId);
 
     InputType inputType() const;
     void setInputType(InputType type);

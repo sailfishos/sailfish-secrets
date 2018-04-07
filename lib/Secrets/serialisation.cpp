@@ -275,7 +275,6 @@ QDBusArgument &operator<<(QDBusArgument &argument, const InteractionParameters &
              << request.operation()
              << request.authenticationPluginName()
              << request.promptText()
-             << request.promptTrId()
              << request.inputType()
              << request.echoMode();
     argument.endStructure();
@@ -291,7 +290,6 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionParame
     InteractionParameters::Operation operation = InteractionParameters::UnknownOperation;
     QString authenticationPluginName;
     QString promptText;
-    QString promptTrId;
     InteractionParameters::InputType inputType = InteractionParameters::UnknownInput;
     InteractionParameters::EchoMode echoMode = InteractionParameters::PasswordEchoOnEdit;
 
@@ -303,7 +301,6 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionParame
              >> operation
              >> authenticationPluginName
              >> promptText
-             >> promptTrId
              >> inputType
              >> echoMode;
     argument.endStructure();
@@ -315,7 +312,6 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionParame
     request.setOperation(operation);
     request.setAuthenticationPluginName(authenticationPluginName);
     request.setPromptText(promptText);
-    request.setPromptTrId(promptTrId);
     request.setInputType(inputType);
     request.setEchoMode(echoMode);
 
