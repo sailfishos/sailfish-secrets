@@ -7,7 +7,6 @@
 
 #include "Crypto/key.h"
 #include "Crypto/key_p.h"
-#include "Crypto/x509certificate.h"
 
 #define SAILFISH_SECRETS_SECRET_FILTERDATAFIELDTYPE QLatin1String("Type")
 #define SAILFISH_SECRETS_SECRET_TYPECRYPTOKEY QLatin1String("CryptoKey")
@@ -459,28 +458,6 @@ QVector<QByteArray> Key::customParameters() const
 void Key::setCustomParameters(const QVector<QByteArray> &parameters)
 {
     d_ptr->m_customParameters = parameters;
-}
-
-/*!
- * \brief Extracts metadata and the public key from the given \a certificate and returns a Key encapsulating that data
- */
-Key Key::fromCertificate(const Certificate &certificate)
-{
-    if (certificate.type() != Certificate::X509) {
-        // TODO: other certificate types.
-        return Key();
-    }
-
-    X509Certificate x509cert(X509Certificate::fromCertificate(certificate));
-    Key retn;
-    retn.setPublicKey(x509cert.publicKey());
-    // TODO: read the algorithm from the certificate
-    // TODO: read the digests from the certificate
-    // TODO: read the allowed operations from the X509v3 Key Usage extension:
-    // retn.setOperations(x509cert.tbsCertificate().extensions.find(id-ce-keyUsage).convertToOperations(extnValue));
-    // etc.
-
-    return retn;
 }
 
 /*!

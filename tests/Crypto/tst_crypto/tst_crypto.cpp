@@ -15,7 +15,6 @@
 #include "Crypto/key.h"
 #include "Crypto/keyderivationparameters.h"
 #include "Crypto/result.h"
-#include "Crypto/x509certificate.h"
 
 using namespace Sailfish::Crypto;
 
@@ -42,7 +41,6 @@ private slots:
     void randomData();
     void generateKeyEncryptDecrypt_data();
     void generateKeyEncryptDecrypt();
-    void validateCertificateChain();
 
 private:
     void addCryptoTestData()
@@ -225,22 +223,6 @@ void tst_crypto::generateKeyEncryptDecrypt()
     QVERIFY(!decrypted.isEmpty());
     QCOMPARE(decrypted, plaintext);
     QVERIFY(!verified); // no authentication used in this test
-}
-
-void tst_crypto::validateCertificateChain()
-{
-    // TODO: do this test properly, this currently just tests datatype copy semantics
-    QVector<Certificate> chain;
-    X509Certificate cert;
-    cert.setSignatureValue(QByteArray("testing"));
-    chain << cert;
-
-    QDBusPendingReply<Result, bool> reply = cm.validateCertificateChain(
-            chain,
-            CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
-    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
-    QVERIFY(reply.isValid());
-    QCOMPARE(reply.argumentAt<0>().code(), Result::Failed); // plugin doesn't support this operation yet. TODO.
 }
 
 #include "tst_crypto.moc"

@@ -15,7 +15,6 @@
 #include "Crypto/plugininforequest.h"
 #include "Crypto/seedrandomdatageneratorrequest.h"
 #include "Crypto/generaterandomdatarequest.h"
-#include "Crypto/validatecertificatechainrequest.h"
 #include "Crypto/generatekeyrequest.h"
 #include "Crypto/generatestoredkeyrequest.h"
 #include "Crypto/storedkeyrequest.h"

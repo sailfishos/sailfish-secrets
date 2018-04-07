@@ -9,7 +9,6 @@
 #include "Crypto/cryptomanager_p.h"
 #include "Crypto/serialisation_p.h"
 #include "Crypto/key.h"
-#include "Crypto/certificate.h"
 #include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
 #include "Crypto/interactionparameters.h"
@@ -147,25 +146,6 @@ CryptoManagerPrivate::generateInitializationVector(
                 QVariantList() << QVariant::fromValue<CryptoManager::Algorithm>(algorithm)
                                << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
                                << QVariant::fromValue<int>(keySize)
-                               << QVariant::fromValue<QString>(cryptosystemProviderName));
-    return reply;
-}
-
-QDBusPendingReply<Result, bool>
-CryptoManagerPrivate::validateCertificateChain(
-        const QVector<Certificate> &chain,
-        const QString &cryptosystemProviderName)
-{
-    if (!m_interface) {
-        return QDBusPendingReply<Result, bool>(
-                    QDBusMessage::createError(QDBusError::Other,
-                                              QStringLiteral("Not connected to daemon")));
-    }
-
-    QDBusPendingReply<Result, bool> reply
-            = m_interface->asyncCallWithArgumentList(
-                QStringLiteral("validateCertificateChain"),
-                QVariantList() << QVariant::fromValue<QVector<Certificate> >(chain)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
@@ -619,7 +599,6 @@ CryptoManagerPrivate::forgetLockCode(
   \li \l{LockCodeRequest} to set the lock code for, lock, or unlock a crypto plugin
   \li \l{SeedRandomDataGeneratorRequest} to seed a crypto plugin's random number generator
   \li \l{GenerateRandomDataRequest} to generate random data
-  \li \l{ValidateCertificateChainRequest} to validate certificates
   \li \l{GenerateKeyRequest} to generate a \l{Key}
   \li \l{GenerateStoredKeyRequest} to generate a securely-stored \l{Key}
   \li \l{StoredKeyRequest} to retrieve a securely-stored \l{Key}

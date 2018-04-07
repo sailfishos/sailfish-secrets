@@ -196,10 +196,6 @@ DataResult generateInitializationVector(
         Sailfish::Crypto::CryptoManager::BlockMode blockMode,
         int keySize);
 
-ValidatedResult validateCertificateChain(
-        Sailfish::Crypto::CryptoPlugin *plugin,
-        const QVector<Sailfish::Crypto::Certificate> &chain);
-
 KeyResult importKey(
         Sailfish::Crypto::CryptoPlugin *plugin,
         const Sailfish::Crypto::Key &keyData,

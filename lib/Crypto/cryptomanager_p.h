@@ -13,7 +13,6 @@
 #include "Crypto/cryptodaemonconnection_p.h"
 #include "Crypto/result.h"
 #include "Crypto/key.h"
-#include "Crypto/certificate.h"
 #include "Crypto/plugininfo.h"
 #include "Crypto/storedkeyrequest.h"
 #include "Crypto/keypairgenerationparameters.h"
@@ -67,10 +66,6 @@ public:
             Sailfish::Crypto::CryptoManager::Algorithm algorithm,
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             int keySize,
-            const QString &cryptosystemProviderName);
-
-    QDBusPendingReply<Sailfish::Crypto::Result, bool> validateCertificateChain(
-            const QVector<Sailfish::Crypto::Certificate> &chain,
             const QString &cryptosystemProviderName);
 
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> generateKey(

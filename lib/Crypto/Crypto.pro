@@ -14,7 +14,6 @@ DEPENDPATH += $$INCLUDEPATH $$PWD
 
 PUBLIC_HEADERS += \
     $$PWD/calculatedigestrequest.h \
-    $$PWD/certificate.h \
     $$PWD/cipherrequest.h \
     $$PWD/cryptoglobal.h \
     $$PWD/cryptomanager.h \
@@ -40,9 +39,7 @@ PUBLIC_HEADERS += \
     $$PWD/signrequest.h \
     $$PWD/storedkeyidentifiersrequest.h \
     $$PWD/storedkeyrequest.h \
-    $$PWD/validatecertificatechainrequest.h \
-    $$PWD/verifyrequest.h \
-    $$PWD/x509certificate.h
+    $$PWD/verifyrequest.h
 
 INTERNAL_PUBLIC_HEADERS += \
     $$PWD/cryptodaemonconnection_p.h \
@@ -50,7 +47,6 @@ INTERNAL_PUBLIC_HEADERS += \
 
 PRIVATE_HEADERS += \
     $$PWD/calculatedigestrequest_p.h \
-    $$PWD/certificate_p.h \
     $$PWD/cipherrequest_p.h \
     $$PWD/cryptodaemonconnection_p_p.h \
     $$PWD/cryptomanager_p.h \
@@ -73,7 +69,6 @@ PRIVATE_HEADERS += \
     $$PWD/signrequest_p.h \
     $$PWD/storedkeyidentifiersrequest_p.h \
     $$PWD/storedkeyrequest_p.h \
-    $$PWD/validatecertificatechainrequest_p.h \
     $$PWD/verifyrequest_p.h
 
 HEADERS += \
@@ -83,7 +78,6 @@ HEADERS += \
 
 SOURCES += \
     $$PWD/calculatedigestrequest.cpp \
-    $$PWD/certificate.cpp \
     $$PWD/cipherrequest.cpp \
     $$PWD/cryptodaemonconnection.cpp \
     $$PWD/cryptomanager.cpp \
@@ -110,9 +104,7 @@ SOURCES += \
     $$PWD/signrequest.cpp \
     $$PWD/storedkeyidentifiersrequest.cpp \
     $$PWD/storedkeyrequest.cpp \
-    $$PWD/validatecertificatechainrequest.cpp \
-    $$PWD/verifyrequest.cpp \
-    $$PWD/x509certificate.cpp
+    $$PWD/verifyrequest.cpp
 
 develheaders.path = /usr/include/Sailfish/
 develheaders_crypto.path = /usr/include/Sailfish/Crypto/

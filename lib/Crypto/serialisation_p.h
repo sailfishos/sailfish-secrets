@@ -15,7 +15,6 @@
 
 #include "Crypto/cryptoglobal.h"
 
-#include "Crypto/certificate.h"
 #include "Crypto/key.h"
 #include "Crypto/plugininfo.h"
 #include "Crypto/result.h"
@@ -32,9 +31,6 @@
 namespace Sailfish {
 
 namespace Crypto {
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Certificate &certificate) SAILFISH_CRYPTO_API;
-const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Certificate &certificate) SAILFISH_CRYPTO_API;
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key &key) SAILFISH_CRYPTO_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key &key) SAILFISH_CRYPTO_API;

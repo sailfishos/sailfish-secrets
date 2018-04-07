@@ -11,7 +11,6 @@
 #include "util_p.h"
 
 #include "Crypto/key.h"
-#include "Crypto/certificate.h"
 #include "Crypto/generaterandomdatarequest.h"
 
 #include <QtCore/QByteArray>
@@ -274,14 +273,6 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::generateInitializationVecto
         QByteArray *generatedIV)
 {
     return m_opensslCryptoPlugin.generateInitializationVector(algorithm, blockMode, keySize, generatedIV);
-}
-
-Sailfish::Crypto::Result
-Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::validateCertificateChain(
-        const QVector<Sailfish::Crypto::Certificate> &chain,
-        bool *validated)
-{
-    return m_opensslCryptoPlugin.validateCertificateChain(chain, validated);
 }
 
 Sailfish::Crypto::Result

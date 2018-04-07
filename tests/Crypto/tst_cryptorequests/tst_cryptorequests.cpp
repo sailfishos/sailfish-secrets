@@ -32,13 +32,11 @@
 #include "Crypto/signrequest.h"
 #include "Crypto/storedkeyidentifiersrequest.h"
 #include "Crypto/storedkeyrequest.h"
-#include "Crypto/validatecertificatechainrequest.h"
 #include "Crypto/verifyrequest.h"
 
 #include "Crypto/cryptomanager.h"
 #include "Crypto/key.h"
 #include "Crypto/result.h"
-#include "Crypto/x509certificate.h"
 #include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
 #include "Crypto/interactionparameters.h"
@@ -104,7 +102,6 @@ private slots:
     void generateInitializationVectorRequest();
     void generateKeyEncryptDecrypt_data();
     void generateKeyEncryptDecrypt();
-    void validateCertificateChain();
     void signVerify();
     void signVerify_data();
     void calculateDigest();
@@ -555,35 +552,6 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QVERIFY(!decrypted.isEmpty());
     QCOMPARE(plaintext, decrypted);
     QCOMPARE(dr.verified(), !dr.authenticationData().isEmpty());
-}
-
-void tst_cryptorequests::validateCertificateChain()
-{
-    // TODO: do this test properly, this currently just tests datatype copy semantics
-    QVector<Certificate> chain;
-    X509Certificate cert;
-    cert.setSignatureValue(QByteArray("testing"));
-    chain << cert;
-
-    ValidateCertificateChainRequest vcr;
-    vcr.setManager(&cm);
-    QSignalSpy vcrss(&vcr, &ValidateCertificateChainRequest::statusChanged);
-    QSignalSpy vcrvs(&vcr, &ValidateCertificateChainRequest::validatedChanged);
-    vcr.setCertificateChain(chain);
-    QCOMPARE(vcr.certificateChain(), chain);
-    vcr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
-    QCOMPARE(vcr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
-    QCOMPARE(vcr.status(), Request::Inactive);
-    vcr.startRequest();
-    QCOMPARE(vcrss.count(), 1);
-    QCOMPARE(vcr.status(), Request::Active);
-    QCOMPARE(vcr.result().code(), Result::Pending);
-    QCOMPARE(vcrvs.count(), 0);
-    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(vcr);
-    QCOMPARE(vcrss.count(), 2);
-    QCOMPARE(vcr.status(), Request::Finished);
-    QTest::qWait(250);
-    QSKIP("TODO - certificate validation not yet implemented!");
 }
 
 void tst_cryptorequests::signVerify_data()

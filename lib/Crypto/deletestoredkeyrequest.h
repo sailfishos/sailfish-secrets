@@ -19,7 +19,6 @@ namespace Sailfish {
 
 namespace Crypto {
 
-class Certificate;
 class CryptoManager;
 
 class DeleteStoredKeyRequestPrivate;

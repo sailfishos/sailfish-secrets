@@ -81,15 +81,6 @@ DataResult CryptoPluginWrapper::generateInitializationVector(
     return DataResult(result, iv);
 }
 
-ValidatedResult CryptoPluginWrapper::validateCertificateChain(
-        CryptoPlugin *plugin,
-        const QVector<Certificate> &chain)
-{
-    bool validated = false;
-    Result result = plugin->validateCertificateChain(chain, &validated);
-    return ValidatedResult(result, validated);
-}
-
 KeyResult CryptoPluginWrapper::importKey(
         Sailfish::Crypto::CryptoPlugin *plugin,
         const Sailfish::Crypto::Key &keyData,

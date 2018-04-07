@@ -6,7 +6,6 @@
  */
 
 #include "Crypto/key.h"
-#include "Crypto/certificate.h"
 #include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
 

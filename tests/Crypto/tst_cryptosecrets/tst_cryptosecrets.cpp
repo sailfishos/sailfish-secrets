@@ -19,7 +19,6 @@
 #include "Crypto/keyderivationparameters.h"
 #include "Crypto/interactionparameters.h"
 #include "Crypto/result.h"
-#include "Crypto/x509certificate.h"
 
 #include "Secrets/result.h"
 #include "Secrets/secretmanager.h"

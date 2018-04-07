@@ -13,7 +13,6 @@
 #include "Crypto/cryptodaemonconnection_p.h"
 
 #include "Crypto/key.h"
-#include "Crypto/certificate.h"
 #include "Crypto/result.h"
 #include "Crypto/cryptomanager.h"
 
@@ -104,24 +103,6 @@ void Daemon::ApiImpl::CryptoDBusObject::generateInitializationVector(
     inParams << QVariant::fromValue<int>(keySize);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
     m_requestQueue->handleRequest(Daemon::ApiImpl::GenerateInitializationVectorRequest,
-                                  inParams,
-                                  connection(),
-                                  message,
-                                  result);
-}
-
-void Daemon::ApiImpl::CryptoDBusObject::validateCertificateChain(
-        const QVector<Certificate> &chain,
-        const QString &cryptosystemProviderName,
-        const QDBusMessage &message,
-        Result &result,
-        bool &valid)
-{
-    Q_UNUSED(valid);  // outparam, set in handlePendingRequest / handleFinishedRequest
-    QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QVector<Certificate> >(chain);
-    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
-    m_requestQueue->handleRequest(Daemon::ApiImpl::ValidateCertificateChainRequest,
                                   inParams,
                                   connection(),
                                   message,
@@ -621,7 +602,6 @@ QString Daemon::ApiImpl::CryptoRequestQueue::requestTypeToString(int type) const
         case GenerateRandomDataRequest:        return QLatin1String("GenerateRandomDataRequest");
         case SeedRandomDataGeneratorRequest:   return QLatin1String("SeedRandomDataGeneratorRequest");
         case GenerateInitializationVectorRequest: return QLatin1String("GenerateInitializationVectorRequest");
-        case ValidateCertificateChainRequest:  return QLatin1String("ValidateCertificateChainRequest");
         case GenerateKeyRequest:               return QLatin1String("GenerateKeyRequest");
         case GenerateStoredKeyRequest:         return QLatin1String("GenerateStoredKeyRequest");
         case ImportKeyRequest:                 return QLatin1String("ImportKeyRequest");
@@ -742,28 +722,6 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             } else {
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<QByteArray>(generatedIV));
-                *completed = true;
-            }
-            break;
-        }
-        case ValidateCertificateChainRequest: {
-            qCDebug(lcSailfishCryptoDaemon) << "Handling ValidateCertificateChainRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            bool validated = false;
-            QVector<Certificate> chain = request->inParams.size() ? request->inParams.takeFirst().value<QVector<Certificate> >() : QVector<Certificate>();
-            QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            Result result = m_requestProcessor->validateCertificateChain(
-                        request->remotePid,
-                        request->requestId,
-                        chain,
-                        cryptosystemProviderName,
-                        &validated);
-            // send the reply to the calling peer.
-            if (result.code() == Result::Pending) {
-                // waiting for asynchronous flow to complete
-                *completed = false;
-            } else {
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                        << QVariant::fromValue<bool>(validated));
                 *completed = true;
             }
             break;
@@ -1400,23 +1358,6 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
                 QByteArray generatedIV = request->outParams.size() ? request->outParams.takeFirst().value<QByteArray>() : QByteArray();
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<QByteArray>(generatedIV));
-                *completed = true;
-            }
-            break;
-        }
-        case ValidateCertificateChainRequest: {
-            Result result = request->outParams.size()
-                    ? request->outParams.takeFirst().value<Result>()
-                    : Result(Result::UnknownError,
-                             QLatin1String("Unable to determine result of ValidateCertificateChainRequest request"));
-            if (result.code() == Result::Pending) {
-                // shouldn't happen!
-                qCWarning(lcSailfishCryptoDaemon) << "ValidateCertificateChainRequest:" << request->requestId << "finished as pending!";
-                *completed = true;
-            } else {
-                bool validated = request->outParams.size() ? request->outParams.takeFirst().value<bool>() : false;
-                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                        << QVariant::fromValue<bool>(validated));
                 *completed = true;
             }
             break;

@@ -8,7 +8,6 @@
 #include "Crypto/cryptomanager.h"
 #include "Crypto/result.h"
 #include "Crypto/key.h"
-#include "Crypto/certificate.h"
 #include "Crypto/plugininfo.h"
 #include "Crypto/cipherrequest.h"
 #include "Crypto/interactionparameters.h"
@@ -273,27 +272,6 @@ QDataStream& operator<<(QDataStream& out, const CryptoManager::Operations &v)
     quint32 temp = static_cast<quint32>(v);
     out << temp;
     return out;
-}
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Certificate &certificate)
-{
-    argument.beginStructure();
-    argument << static_cast<int>(certificate.type());
-    argument << certificate.toEncoded();
-    argument.endStructure();
-    return argument;
-}
-
-const QDBusArgument &operator>>(const QDBusArgument &argument, Certificate &certificate)
-{
-    int itype = 0;
-    QByteArray certificatedata;
-    argument.beginStructure();
-    argument >> itype;
-    argument >> certificatedata;
-    argument.endStructure();
-    certificate = Certificate::fromEncoded(certificatedata, static_cast<Certificate::Type>(itype));
-    return argument;
 }
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Key &key)

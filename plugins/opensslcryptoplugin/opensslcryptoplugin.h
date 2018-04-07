@@ -78,10 +78,6 @@ public:
             int keySize,
             QByteArray *generatedIV) Q_DECL_OVERRIDE;
 
-    Sailfish::Crypto::Result validateCertificateChain(
-            const QVector<Sailfish::Crypto::Certificate> &chain,
-            bool *validated) Q_DECL_OVERRIDE;
-
     Sailfish::Crypto::Result generateKey(
             const Sailfish::Crypto::Key &keyTemplate,
             const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,

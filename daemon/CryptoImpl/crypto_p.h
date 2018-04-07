@@ -75,14 +75,6 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "      </method>\n"
-    "      <method name=\"validateCertificateChain\">\n"
-    "          <arg name=\"chain\" type=\"a(iay)\" direction=\"in\" />\n"
-    "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
-    "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
-    "          <arg name=\"valid\" type=\"b\" direction=\"out\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"QVector<Sailfish::Crypto::Certificate>\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
-    "      </method>\n"
     "      <method name=\"generateKey\">\n"
     "          <arg name=\"keyTemplate\" type=\"(ay)\" direction=\"in\" />\n"
     "          <arg name=\"kpgParameters\" type=\"(ia{sv}a{sv})\" direction=\"in\" />\n"
@@ -336,13 +328,6 @@ public Q_SLOTS:
             Sailfish::Crypto::Result &result,
             QByteArray &generatedIV);
 
-    void validateCertificateChain(
-            const QVector<Sailfish::Crypto::Certificate> &chain,
-            const QString &cryptosystemProviderName,
-            const QDBusMessage &message,
-            Sailfish::Crypto::Result &result,
-            bool &valid);
-
     void generateKey(
             const Sailfish::Crypto::Key &keyTemplate,
             const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
@@ -550,7 +535,6 @@ enum RequestType {
     GenerateRandomDataRequest,
     SeedRandomDataGeneratorRequest,
     GenerateInitializationVectorRequest,
-    ValidateCertificateChainRequest,
     GenerateKeyRequest,
     GenerateStoredKeyRequest,
     ImportKeyRequest,

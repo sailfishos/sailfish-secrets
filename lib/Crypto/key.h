@@ -10,7 +10,6 @@
 
 #include "Crypto/cryptoglobal.h"
 #include "Crypto/cryptomanager.h"
-#include "Crypto/certificate.h"
 
 #include <QtCore/QString>
 #include <QtCore/QByteArray>
@@ -45,7 +44,7 @@ class SAILFISH_CRYPTO_API Key
 public:
     enum Origin {
         OriginUnknown       = 0,
-        OriginImported, // do we need a link to the certificate chain?  or backend handles this?
+        OriginImported,
         OriginDevice,
         OriginSecureDevice
     };
@@ -145,7 +144,6 @@ public:
     };
     static QByteArray serialise(const Sailfish::Crypto::Key &key, SerialisationMode serialisationMode = LosslessSerialisationMode);
     static Sailfish::Crypto::Key deserialise(const QByteArray &data, bool *ok = nullptr);
-    static Sailfish::Crypto::Key fromCertificate(const Sailfish::Crypto::Certificate &certificate);
 
 protected:
     QSharedDataPointer<KeyPrivate> d_ptr;

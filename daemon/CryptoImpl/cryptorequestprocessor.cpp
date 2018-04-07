@@ -304,44 +304,6 @@ Daemon::ApiImpl::RequestProcessor::generateInitializationVector(
 }
 
 Result
-Daemon::ApiImpl::RequestProcessor::validateCertificateChain(
-        pid_t callerPid,
-        quint64 requestId,
-        const QVector<Certificate> &chain,
-        const QString &cryptosystemProviderName,
-        bool *valid)
-{
-    // TODO: access control!
-    Q_UNUSED(callerPid);
-    Q_UNUSED(requestId);
-    Q_UNUSED(valid); // asynchronous out-param.
-
-    if (!m_cryptoPlugins.contains(cryptosystemProviderName)) {
-        return Result(Result::InvalidCryptographicServiceProvider,
-                      QLatin1String("No such cryptographic service provider plugin exists"));
-    }
-
-    QFutureWatcher<ValidatedResult> *watcher = new QFutureWatcher<ValidatedResult>(this);
-    QFuture<ValidatedResult> future = QtConcurrent::run(
-                m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
-                CryptoPluginWrapper::validateCertificateChain,
-                m_cryptoPlugins[cryptosystemProviderName],
-                chain);
-
-    watcher->setFuture(future);
-    connect(watcher, &QFutureWatcher<ValidatedResult>::finished, [=] {
-        watcher->deleteLater();
-        ValidatedResult vr = watcher->future().result();
-        QVariantList outParams;
-        outParams << QVariant::fromValue<Result>(vr.result);
-        outParams << QVariant::fromValue<bool>(vr.validated);
-        m_requestQueue->requestFinished(requestId, outParams);
-    });
-
-    return Result(Result::Pending);
-}
-
-Result
 Daemon::ApiImpl::RequestProcessor::generateKey(
         pid_t callerPid,
         quint64 requestId,

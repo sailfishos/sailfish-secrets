@@ -14,7 +14,6 @@
 #endif
 
 #include "Crypto/key.h"
-#include "Crypto/certificate.h"
 #include "Crypto/generaterandomdatarequest.h"
 #include "Crypto/seedrandomdatageneratorrequest.h"
 
@@ -176,17 +175,6 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateRandomData(
 
     *randomData = QByteArray(reinterpret_cast<const char *>(buf.data()), nbytes);
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
-}
-
-Sailfish::Crypto::Result
-Daemon::Plugins::OpenSslCryptoPlugin::validateCertificateChain(
-        const QVector<Sailfish::Crypto::Certificate> &chain,
-        bool *validated)
-{
-    Q_UNUSED(chain);
-    Q_UNUSED(validated);
-    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                    QLatin1String("TODO: validateCertificateChain"));
 }
 
 Sailfish::Crypto::Result

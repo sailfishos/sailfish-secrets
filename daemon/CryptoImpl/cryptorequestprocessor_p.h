@@ -13,7 +13,6 @@
 #include "Crypto/result.h"
 #include "Crypto/cryptomanager.h"
 #include "Crypto/key.h"
-#include "Crypto/certificate.h"
 #include "Crypto/storedkeyrequest.h"
 #include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
@@ -102,13 +101,6 @@ public:
             int keySize,
             const QString &cryptosystemProviderName,
             QByteArray *generatedIV);
-
-    Sailfish::Crypto::Result validateCertificateChain(
-            pid_t callerPid,
-            quint64 requestId,
-            const QVector<Sailfish::Crypto::Certificate> &chain,
-            const QString &cryptosystemProviderName,
-            bool *valid);
 
     Sailfish::Crypto::Result generateKey(
             pid_t callerPid,

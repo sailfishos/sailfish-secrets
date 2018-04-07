@@ -11,7 +11,6 @@
 #include <SecretsPluginApi/extensionplugins.h>
 
 #include <Crypto/cryptoglobal.h>
-#include <Crypto/certificate.h>
 #include <Crypto/key.h>
 #include <Crypto/result.h>
 #include <Crypto/storedkeyrequest.h>
@@ -66,10 +65,6 @@ public:
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             int keySize,
             QByteArray *generatedIV) = 0;
-
-    virtual Sailfish::Crypto::Result validateCertificateChain(
-            const QVector<Sailfish::Crypto::Certificate> &chain,
-            bool *validated) = 0;
 
     virtual Sailfish::Crypto::Result generateKey(
             const Sailfish::Crypto::Key &keyTemplate,
