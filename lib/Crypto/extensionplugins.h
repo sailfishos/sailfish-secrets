@@ -98,6 +98,16 @@ public:
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             Sailfish::Crypto::Key *keyMetadata) = 0;
 
+    virtual Sailfish::Crypto::Result importKey(
+            const Sailfish::Crypto::Key &key,
+            const QByteArray &passphrase,
+            Sailfish::Crypto::Key *importedKey) = 0;
+
+    virtual Sailfish::Crypto::Result importAndStoreKey(
+            const Sailfish::Crypto::Key &key,
+            const QByteArray &passphrase,
+            Sailfish::Crypto::Key *keyMetadata) = 0;
+
     virtual Sailfish::Crypto::Result storedKey(
             const Sailfish::Crypto::Key::Identifier &identifier,
             Sailfish::Crypto::Key::Components keyComponents,

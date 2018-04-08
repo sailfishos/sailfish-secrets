@@ -176,6 +176,48 @@ void Daemon::ApiImpl::CryptoDBusObject::generateStoredKey(
                                   result);
 }
 
+void Daemon::ApiImpl::CryptoDBusObject::importKey(
+        const Key &key,
+        const Sailfish::Crypto::InteractionParameters &uiParams,
+        const QString &cryptosystemProviderName,
+        const QDBusMessage &message,
+        Result &result,
+        Key &importedKey)
+{
+    Q_UNUSED(importedKey);  // outparam, set in handlePendingRequest / handleFinishedRequest
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<Key>(key);
+    inParams << QVariant::fromValue<InteractionParameters>(uiParams);
+    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    m_requestQueue->handleRequest(Daemon::ApiImpl::ImportKeyRequest,
+                                  inParams,
+                                  connection(),
+                                  message,
+                                  result);
+}
+
+void Daemon::ApiImpl::CryptoDBusObject::importStoredKey(
+        const Key &key,
+        const Sailfish::Crypto::InteractionParameters &uiParams,
+        const QString &cryptosystemProviderName,
+        const QString &storageProviderName,
+        const QDBusMessage &message,
+        Result &result,
+        Key &importedKey)
+{
+    Q_UNUSED(importedKey);  // outparam, set in handlePendingRequest / handleFinishedRequest
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<Key>(key);
+    inParams << QVariant::fromValue<InteractionParameters>(uiParams);
+    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    inParams << QVariant::fromValue<QString>(storageProviderName);
+    m_requestQueue->handleRequest(Daemon::ApiImpl::ImportStoredKeyRequest,
+                                  inParams,
+                                  connection(),
+                                  message,
+                                  result);
+}
+
 void Daemon::ApiImpl::CryptoDBusObject::storedKey(
         const Key::Identifier &identifier,
         Key::Components keyComponents,
@@ -563,6 +605,8 @@ QString Daemon::ApiImpl::CryptoRequestQueue::requestTypeToString(int type) const
         case ValidateCertificateChainRequest:  return QLatin1String("ValidateCertificateChainRequest");
         case GenerateKeyRequest:               return QLatin1String("GenerateKeyRequest");
         case GenerateStoredKeyRequest:         return QLatin1String("GenerateStoredKeyRequest");
+        case ImportKeyRequest:                 return QLatin1String("ImportKeyRequest");
+        case ImportStoredKeyRequest:           return QLatin1String("ImportStoredKeyRequest");
         case StoredKeyRequest:                 return QLatin1String("StoredKeyRequest");
         case DeleteStoredKeyRequest:           return QLatin1String("DeleteStoredKeyRequest");
         case StoredKeyIdentifiersRequest:      return QLatin1String("StoredKeyIdentifiersRequest");
@@ -777,6 +821,73 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             } else {
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<Key>(key));
+                *completed = true;
+            }
+            break;
+        }
+        case ImportKeyRequest: {
+            qCDebug(lcSailfishCryptoDaemon) << "Handling GenerateKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            Key importedKey;
+            Key key = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Key>()
+                    : Key();
+            InteractionParameters uiParams = request->inParams.size()
+                    ? request->inParams.takeFirst().value<InteractionParameters>()
+                    : InteractionParameters();
+            QString cryptosystemProviderName = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
+            Result result = m_requestProcessor->importKey(
+                        request->remotePid,
+                        request->requestId,
+                        key,
+                        uiParams,
+                        cryptosystemProviderName,
+                        QByteArray(),
+                        &importedKey);
+            // send the reply to the calling peer.
+            if (result.code() == Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<Key>(importedKey));
+                *completed = true;
+            }
+            break;
+        }
+        case ImportStoredKeyRequest: {
+            qCDebug(lcSailfishCryptoDaemon) << "Handling GenerateStoredKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            Key importedKey;
+            Key key = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Key>()
+                    : Key();
+            InteractionParameters uiParams = request->inParams.size()
+                    ? request->inParams.takeFirst().value<InteractionParameters>()
+                    : InteractionParameters();
+            QString cryptosystemProviderName = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
+            QString storageProviderName = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
+
+            Result result = m_requestProcessor->importStoredKey(
+                        request->remotePid,
+                        request->requestId,
+                        key,
+                        uiParams,
+                        cryptosystemProviderName,
+                        storageProviderName,
+                        QByteArray(),
+                        &importedKey);
+            // send the reply to the calling peer.
+            if (result.code() == Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<Key>(importedKey));
                 *completed = true;
             }
             break;
@@ -1318,6 +1429,44 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
             if (result.code() == Result::Pending) {
                 // shouldn't happen!
                 qCWarning(lcSailfishCryptoDaemon) << "GenerateStoredKeyRequest:" << request->requestId << "finished as pending!";
+                *completed = true;
+            } else {
+                Key key = request->outParams.size()
+                        ? request->outParams.takeFirst().value<Key>()
+                        : Key();
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<Key>(key));
+                *completed = true;
+            }
+            break;
+        }
+        case ImportKeyRequest: {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of ImportKeyRequest request"));
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishCryptoDaemon) << "ImportKeyRequest:" << request->requestId << "finished as pending!";
+                *completed = true;
+            } else {
+                Key key = request->outParams.size()
+                        ? request->outParams.takeFirst().value<Key>()
+                        : Key();
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<Key>(key));
+                *completed = true;
+            }
+            break;
+        }
+        case ImportStoredKeyRequest: {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of ImportStoredKeyRequest request"));
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishCryptoDaemon) << "ImportStoredKeyRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
                 Key key = request->outParams.size()

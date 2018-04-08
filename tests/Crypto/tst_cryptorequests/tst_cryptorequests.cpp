@@ -23,6 +23,8 @@
 #include "Crypto/generatekeyrequest.h"
 #include "Crypto/generaterandomdatarequest.h"
 #include "Crypto/generatestoredkeyrequest.h"
+#include "Crypto/importkeyrequest.h"
+#include "Crypto/importstoredkeyrequest.h"
 #include "Crypto/lockcoderequest.h"
 #include "Crypto/plugininforequest.h"
 #include "Crypto/seedrandomdatageneratorrequest.h"
@@ -114,6 +116,10 @@ private slots:
     void cipherBenchmark();
     void cipherTimeout();
     void lockCode();
+    void importKey_data();
+    void importKey();
+    void importKeyAndStore_data();
+    void importKeyAndStore();
 
 private:
     QByteArray generateInitializationVector(Sailfish::Crypto::CryptoManager::Algorithm algorithm,
@@ -189,7 +195,11 @@ private:
 
     CryptoManager cm;
     Sailfish::Secrets::SecretManager sm;
+    QStringList populatedCollections;
 };
+
+Q_DECLARE_METATYPE(Sailfish::Crypto::Result::ResultCode)
+Q_DECLARE_METATYPE(Sailfish::Crypto::Result::ErrorCode)
 
 static inline QByteArray createRandomTestData(int size) {
     QFile file("/dev/urandom");
@@ -225,6 +235,17 @@ void tst_cryptorequests::init()
 
 void tst_cryptorequests::cleanup()
 {
+    while (!populatedCollections.isEmpty()) {
+        // clean up by deleting the collection in which the secret is stored.
+        Sailfish::Secrets::DeleteCollectionRequest dcr;
+        dcr.setManager(&sm);
+        dcr.setCollectionName(populatedCollections.takeFirst());
+        dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
+        dcr.startRequest();
+        WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
+        QCOMPARE(dcr.status(), Sailfish::Secrets::Request::Finished);
+        QCOMPARE(dcr.result().code(), Sailfish::Secrets::Result::Succeeded);
+    }
 }
 
 void tst_cryptorequests::getPluginInfo()
@@ -2261,6 +2282,544 @@ void tst_cryptorequests::lockCode()
     QCOMPARE(lcr.result().code(), Sailfish::Crypto::Result::Failed);
     QCOMPARE(lcr.result().errorMessage(), QStringLiteral("Crypto plugin %1 does not support locking")
                                                     .arg(DEFAULT_TEST_CRYPTO_PLUGIN_NAME));
+}
+
+static const auto test_key_rsa_1024_in = QByteArrayLiteral(
+            "-----BEGIN RSA PRIVATE KEY-----\n"
+            "MIICXQIBAAKBgQCiqCTjlgV2LMhFSnBOn/QDMUmxJXeMd9umc44nMnBYeI4C225t\n"
+            "BQEqqUReAgxz+nuMJ8LUP4T2LQeYAFbOD99NEOLI4a1HCr+uxFWH3dfxr+BNZzsq\n"
+            "iUQSSVeO1i4WQ9sBMLJrHGOCSLBfroKfdGFdncxvWBqk73AQSl2YzQ72owIDAQAB\n"
+            "AoGAbNMAcz/hAZKunyVRhFkiAazNN/bwSAu86l1voyvs3FQz9xdmhwwNHsTG1/qY\n"
+            "6FOSq0/C2wxwYd/4r6qyaQVXiP/TQS61Vy/LnAyGpQ17l4UWCTH2vNgzarnrDUxt\n"
+            "nwZ46soZVsO1XfLZr+v/h5X9FqaZwsGGt/A5g1uGksN/snECQQDUzLf5y2htHatv\n"
+            "RBIQyUnvejJEHQhpM3xQShqpIS91DFM/HmfM5ERUg9YO23eOXAmY6J6Chys3DN2a\n"
+            "Fvu7Z2DpAkEAw617MhMfp9n1UbOA/5vh4aJUDPwCK+1T4Re77xlFTBz70rcXYgoP\n"
+            "TxNREW5BpKkv9mJ8RJwOKf70JAMzYtqDqwJBANCqjh0cIKIe3eSVU0GyoBV8NZ4k\n"
+            "+gJuwg/ZGpuONwMHuvnBzvdTPs3BGT4oZuvpxF90ezpzYSTyMLrQnrf9f0ECQC9y\n"
+            "WkPrFSrrE6vq3aWdE6lVZhH77T7ffg4/Zgd01jO9d2ZBlP7lt46R/X8/f9VAXOve\n"
+            "N4mfWWPfeS1eRVB78Z8CQQCM5gzW8QjXX/PyuF+CcQx2WkYr3I4btXnKJaU3g0ED\n"
+            "tJSXNq/ZZfAXKa42id05ee2F1ek26dBlOPrXguXO7UlC\n"
+            "-----END RSA PRIVATE KEY-----\n");
+static const auto test_key_rsa_1024_sailfish_in = QByteArrayLiteral(
+            "-----BEGIN RSA PRIVATE KEY-----\n"
+            "Proc-Type: 4,ENCRYPTED\n"
+            "DEK-Info: AES-128-CBC,1BFF649355F7612CC1E6A64DBC54D241\n"
+            "\n"
+            "/cG+zThmi43Grj2JLc0TqbYxt0sBG8deGfRxQkU09dPxk0PeB+z/Itgfo7ex276W\n"
+            "GtoQNx+sbQ4gsKW637Fsmonk2oGniPycz4g2XLB0K6HSCn2XnV7UIwzzveFRsJI7\n"
+            "0yBhNhyZDQmiL2Y+X+1Go9NHltgb0Vxq2zapSuYlgZGV6xIaxwLun58kJ46BYau1\n"
+            "VCMP7QrrPbPp9/Jd70vg+bmO9juU8QI/iSvjQjKnCRV6HlbfEJ9jXuFvoJ3TcdjB\n"
+            "LssLCRq5W31k9LEq9Lb5OZE0qq8Tdz0rPbimVR05V/Zsi/8B1XSyFD8Na70IHLj6\n"
+            "gPvKJE/61kvDNc8Q7QGgEPGYEpjzrli9KjK/VIr/NxR2lvphUVi6g9LY+lwnKUHI\n"
+            "DjI5FY62uL4EVu3RqCTWE+OYOLj5BRH9q7cYNEqOdFCwGuNtjmlgK19BLnk+7EXR\n"
+            "E+Da3g4AeV9dVL+I15tGzeHfld+XOZuOWMGzDnDPNlqVxmXTkwGJ1ZIwtf8mNrgE\n"
+            "20nrqT5ILlb+XU7/STXkN8FJUEkmbvbRsDAfikZU8VN4/BwLp4XiZichRtvwkGe4\n"
+            "wBLstddVka3H5VqFUBa8qVMGxaKAgWkYNTONwbwSfb8rzBAl3akVSKhK1azumXzS\n"
+            "4udmj21HXB/gUftjOhW4IuezCrESGqmR6QAHNxB0DM6DZW/oqNp3n0FC98IaRE1z\n"
+            "7zjntkztt7PKQy+gI3pfq6U7IsXM+xqpR3xGwnOiHoqVMWRsuCGwyweA/wjwpCkd\n"
+            "Y6r4YUlGATyVw+8KaSgRqBrOTo0+McUP3c2GFz2qntSM/+Eaai6dajTBlsAtLjwa\n"
+            "-----END RSA PRIVATE KEY-----\n");
+static const auto test_key_rsa_1024_pub = QByteArrayLiteral(
+            "-----BEGIN PUBLIC KEY-----\n"
+            "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCiqCTjlgV2LMhFSnBOn/QDMUmx\n"
+            "JXeMd9umc44nMnBYeI4C225tBQEqqUReAgxz+nuMJ8LUP4T2LQeYAFbOD99NEOLI\n"
+            "4a1HCr+uxFWH3dfxr+BNZzsqiUQSSVeO1i4WQ9sBMLJrHGOCSLBfroKfdGFdncxv\n"
+            "WBqk73AQSl2YzQ72owIDAQAB\n"
+            "-----END PUBLIC KEY-----\n");
+static const auto test_key_rsa_1024_out = QByteArrayLiteral(
+            "-----BEGIN PRIVATE KEY-----\n"
+            "MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAKKoJOOWBXYsyEVK\n"
+            "cE6f9AMxSbEld4x326ZzjicycFh4jgLbbm0FASqpRF4CDHP6e4wnwtQ/hPYtB5gA\n"
+            "Vs4P300Q4sjhrUcKv67EVYfd1/Gv4E1nOyqJRBJJV47WLhZD2wEwsmscY4JIsF+u\n"
+            "gp90YV2dzG9YGqTvcBBKXZjNDvajAgMBAAECgYBs0wBzP+EBkq6fJVGEWSIBrM03\n"
+            "9vBIC7zqXW+jK+zcVDP3F2aHDA0exMbX+pjoU5KrT8LbDHBh3/ivqrJpBVeI/9NB\n"
+            "LrVXL8ucDIalDXuXhRYJMfa82DNquesNTG2fBnjqyhlWw7Vd8tmv6/+Hlf0WppnC\n"
+            "wYa38DmDW4aSw3+ycQJBANTMt/nLaG0dq29EEhDJSe96MkQdCGkzfFBKGqkhL3UM\n"
+            "Uz8eZ8zkRFSD1g7bd45cCZjonoKHKzcM3ZoW+7tnYOkCQQDDrXsyEx+n2fVRs4D/\n"
+            "m+HholQM/AIr7VPhF7vvGUVMHPvStxdiCg9PE1ERbkGkqS/2YnxEnA4p/vQkAzNi\n"
+            "2oOrAkEA0KqOHRwgoh7d5JVTQbKgFXw1niT6Am7CD9kam443Awe6+cHO91M+zcEZ\n"
+            "Pihm6+nEX3R7OnNhJPIwutCet/1/QQJAL3JaQ+sVKusTq+rdpZ0TqVVmEfvtPt9+\n"
+            "Dj9mB3TWM713ZkGU/uW3jpH9fz9/1UBc6943iZ9ZY995LV5FUHvxnwJBAIzmDNbx\n"
+            "CNdf8/K4X4JxDHZaRivcjhu1ecolpTeDQQO0lJc2r9ll8BcprjaJ3Tl57YXV6Tbp\n"
+            "0GU4+teC5c7tSUI=\n"
+            "-----END PRIVATE KEY-----\n");
+
+static const auto test_key_rsa_2048_in = QByteArrayLiteral(
+            "-----BEGIN RSA PRIVATE KEY-----\n"
+            "MIIEpAIBAAKCAQEAzydUP1CHBVQ+lbD4q0xxg92/NlQApCVMC3eQd9wCXh9ASkjw\n"
+            "mSAEA/koY3G+3dJRE8/KCDbkA54UwMMr5kYDHk8AGe6I5MVAFmo7me2SJ7YnN182\n"
+            "1hYHVq0ED++tYhyYz0EYw/HPc5Blp2SVZYPdrm85D58iixeyMXidDiIVCM+k/a9F\n"
+            "U7Slab7jLIt9MRiN0Yma6G2bnrQjM+WKvjSKXOsfI9GfbxggKZHkyV7A3z013rdn\n"
+            "pKdgxYSxFt7f96B0sygRuUko5CLTCJWoksDzpceTpD1ijmsxGPoPR69rCqAwJDL5\n"
+            "K5hE1C8U80TUcxr5dMhac/5Rg8hSUQPurE7Y2QIDAQABAoIBAHernLvG5XlqpY0M\n"
+            "Y1tyGdG39JKKDKTG9xtYwxi6/JMrMpS3dma/XBJ/iZmJSF4U9cmgLHJ6Y1bDp/GD\n"
+            "zoSExaBouwJADs06Nj+8txnBaMGQNS+DzcX3i93CraoXJ+6Z3p08WfY4Z0O3k0IU\n"
+            "lUnD1/jBQBGKOQZpdgOmTfSwM76WSqcmj7Vc0nomWMsZaXHGTj7QkbrTRUbbM2HT\n"
+            "cMOXmaurZKzwn9yLuU9vohxc66rMg3ffsf73fouR2ZIF5orMSWZqTdfoe4ePnmKo\n"
+            "1sTzeAF2K7kzM04QFs4VrVlJ2I2mqeXN/jW7SsqN3ozuWYdl86Tb9Hw4Hjyv9Uld\n"
+            "R4kWgxECgYEA/s9wp7LBv2cDH/mWdzGimE2+tIuHCIYbT/Lg2v7aE+EBLD/ISZfF\n"
+            "tci1+n+8/3nyy7r0e/irNGIKIHWh6GYoRSETUk6j/GtPYdjR07r5JnWwX1d74Dbe\n"
+            "mA8qkRv2v1kz+pJNDtOabZi3mbijBza/cD6FcufoXOhrSsikAsTb6KMCgYEA0B7t\n"
+            "gmuAFcFvtqOzgwqv3ddSX+qQ8Wvz4Ju3BFtphPx2DMyvpFnFwi272qCfIbZEqlHU\n"
+            "AG0JXLNtVM19mwkiJd6ZW4RZ59p4r61Es2aS1kT0yt/z+bgOm2BwWGSiPHqoZFS+\n"
+            "3AK6rfIxH+Y9QFYHWFiWM0ApJGuqJ3dfL2W+pFMCgYEApQQeRtxDEPtbULfIM8TX\n"
+            "MZ8Xo8DAYErJIUt/RxPIkxsiMU/VG6PIjGNBRsq20RReooWekzKFXVUojcDga6rM\n"
+            "5Yf4BVOca3nrXMiXinEJrViGMhhrxtaB7SPVQ0hC0cSpHtrkQHfVCKjgLhMesStJ\n"
+            "ax1yOuno11JFOZcacBig+dUCgYBbm3Fx+b2MVfPFUbMfWCHnJPMWUxpvmdPkJsZd\n"
+            "PZtptPKFWcdqMTWx7g2FAzRoU2FQEuqdMWFwk23paPYDuvZz8tJQDSbBvlFnCn51\n"
+            "9Q1nET0q2375iUGstLtevRUIR/k9CGxmTTE8haGH6AFIA1YCViPu9Svm4xknfAzC\n"
+            "wSc0DwKBgQDNSd4EHd/qKoR1XC3TBFmPnDR1dTq6sEYzNFdw1A2oX59PV8u6z6U+\n"
+            "HlCnsHW3FUFdKm6NzQBsdcjmZVKb00ps86luvyF9tuteoUWlAEtrQVNaEOqe3jLm\n"
+            "1PPLPcdXQ+zGOY55NxBlxHeer5uV8xh2++dgjt4iJFa2sSOeR8Ac7Q==\n"
+            "-----END RSA PRIVATE KEY-----\n");
+static const auto test_key_rsa_2048_sailfish_in = QByteArrayLiteral(
+            "-----BEGIN RSA PRIVATE KEY-----\n"
+            "Proc-Type: 4,ENCRYPTED\n"
+            "DEK-Info: AES-128-CBC,BA57C602A92FCAF7C707F6DB07726E02\n"
+            "\n"
+            "VJ3x3rpboyS3MMFlF8chau/jUvwLqhaxIVQ6aXFtLmjhz4Jq2v21o1Skle4xL41u\n"
+            "cfzHtrIBw4iZBgDIEOgyRya31mG2xbxG797i1aA/EFRcekGni1wj8n+trXv6Awy9\n"
+            "KVqjcSJdzYuGmfRiaWYSZV7qOiENVlin6/U+z+Oqd/yh6/4uNHNnzE3ENt7AZB7U\n"
+            "I+L2zlMp6Kbg/ikNkFxHEoH2WKW9ja+4/FnqZi51d1/5Im9a2VcTJOGM3amGH42n\n"
+            "4gyqjwI/fl2b/v+LyAAKoiW6KOAF9KVaghvQwFBMWWNNzylofGQQq9/DE8N62gpG\n"
+            "c/paSfq7MW8v4lW0uaz3vjNz3fmHfB/nceVwNji26LMdHQprsngSg8jNlMorbHmW\n"
+            "7NdqWLYp2gRk+6SxMcoW3c2gK1dLAgug+KqnQtYvRteQStF4qxlWhc71XvtytOJA\n"
+            "BKgC/bZk0ETxTjE6vHhd0P+7LjeTdNzQcevP9lcC/uRMUXACJcBfi07J7qcTavS7\n"
+            "+8YvDYH5EeTr1Zf5sxj0mzZnaw+Ys/sUwDwnOpRjDewOCeZvGw6oatr6v3IU3Dmw\n"
+            "IiRGUS4pmz756O9/Ak4l1RQlbC0lz3qiUgsFb2M/PCcUbarqx07EY0R1NkXNiS3M\n"
+            "rXxkf2wjmdrAkJ/yn/itLwOW4qBPHiAOQZGGpoEA/T9R0P6An4h8vlqmRwwR2V9s\n"
+            "y8NkurCd8P4NGQeZWm1bZNuFNY0t1myBxmNfpubcGGKbyW3NXSrlH/7x17Fghn9u\n"
+            "P5prIlfj1YaC8YPpKjEXj3t7HuZmcakOaXpFzjqo9bdX8Z9V0TOqLWWFUATrl82a\n"
+            "6d+wvZyNTVnOPO2CQFiuu952h2uxnpb4wjMtMCKplXWTqBIDxnpuCFE/ZmP7qu3h\n"
+            "lFiV06LyUmrAnFSXXDHOiNyMPMYYCX6q1kZn4DOCDdPxOd3ydFhfIfO3nPdvaIuL\n"
+            "dhzPC/+pNkC+m6EsrvHSmv5SypI7wBWdssBW+kRTVccP8BR87K4peYh7WnYli+Ea\n"
+            "a522UMFQObUBTpB+MN1uNNCHX/v8daOCtnGn64A4ww5248qXt8d37ZVJQKStaiks\n"
+            "1mzz8LlJH/XbVD2jJnwtJSYTFcjNzs+26Uo52a6OpoDI5aGlHHRIQ4z7oyZ30+es\n"
+            "I3DC/vwrIKYJFjAGAPqsMJz7dGGmwrwM/mekAbiEOsmHWpipNSKbBGV/XdcTMnln\n"
+            "1u7oWBGRgWZeVBF06nV182g6Ej5PhPh7uhwd4PB615TxYXkp5hMKewqR04lBz1Sm\n"
+            "YjyInhhJm1u/ERiOS+J4w59/RkJ7XGfj+b80Orw9sgcDPYbWOV3JwT3Pzk8/bI+A\n"
+            "P+hmhF8FNR/YtJCqyn5WBHobGZORCZU1FRdw3GEBXOm28Z0bYGRXr1LQt0axt6If\n"
+            "SeKnmY89yoXAtPbonKBIjS7hYvFBJpAuNmsrokPuir1NzWSHipQOVLX0VlrOCV3T\n"
+            "qlQpZMViqfKicxR+1w8g+O9EuPmFrqhBkLFCfLUUBueYHAzjPC6jYNtexI8LgR5X\n"
+            "Gsy65FMTeUh12TywtqbwWpU+ECrUpt3Gy6VK3nCdt1yQcr4/tR4xG3YZadcnV6Jf\n"
+            "-----END RSA PRIVATE KEY-----\n");
+static const auto test_key_rsa_2048_pub = QByteArrayLiteral(
+            "-----BEGIN PUBLIC KEY-----\n"
+            "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzydUP1CHBVQ+lbD4q0xx\n"
+            "g92/NlQApCVMC3eQd9wCXh9ASkjwmSAEA/koY3G+3dJRE8/KCDbkA54UwMMr5kYD\n"
+            "Hk8AGe6I5MVAFmo7me2SJ7YnN1821hYHVq0ED++tYhyYz0EYw/HPc5Blp2SVZYPd\n"
+            "rm85D58iixeyMXidDiIVCM+k/a9FU7Slab7jLIt9MRiN0Yma6G2bnrQjM+WKvjSK\n"
+            "XOsfI9GfbxggKZHkyV7A3z013rdnpKdgxYSxFt7f96B0sygRuUko5CLTCJWoksDz\n"
+            "pceTpD1ijmsxGPoPR69rCqAwJDL5K5hE1C8U80TUcxr5dMhac/5Rg8hSUQPurE7Y\n"
+            "2QIDAQAB\n"
+            "-----END PUBLIC KEY-----\n");
+static const auto test_key_rsa_2048_out = QByteArrayLiteral(
+            "-----BEGIN PRIVATE KEY-----\n"
+            "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDPJ1Q/UIcFVD6V\n"
+            "sPirTHGD3b82VACkJUwLd5B33AJeH0BKSPCZIAQD+Shjcb7d0lETz8oINuQDnhTA\n"
+            "wyvmRgMeTwAZ7ojkxUAWajuZ7ZIntic3XzbWFgdWrQQP761iHJjPQRjD8c9zkGWn\n"
+            "ZJVlg92ubzkPnyKLF7IxeJ0OIhUIz6T9r0VTtKVpvuMsi30xGI3RiZrobZuetCMz\n"
+            "5Yq+NIpc6x8j0Z9vGCApkeTJXsDfPTXet2ekp2DFhLEW3t/3oHSzKBG5SSjkItMI\n"
+            "laiSwPOlx5OkPWKOazEY+g9Hr2sKoDAkMvkrmETULxTzRNRzGvl0yFpz/lGDyFJR\n"
+            "A+6sTtjZAgMBAAECggEAd6ucu8bleWqljQxjW3IZ0bf0kooMpMb3G1jDGLr8kysy\n"
+            "lLd2Zr9cEn+JmYlIXhT1yaAscnpjVsOn8YPOhITFoGi7AkAOzTo2P7y3GcFowZA1\n"
+            "L4PNxfeL3cKtqhcn7pnenTxZ9jhnQ7eTQhSVScPX+MFAEYo5Bml2A6ZN9LAzvpZK\n"
+            "pyaPtVzSeiZYyxlpccZOPtCRutNFRtszYdNww5eZq6tkrPCf3Iu5T2+iHFzrqsyD\n"
+            "d9+x/vd+i5HZkgXmisxJZmpN1+h7h4+eYqjWxPN4AXYruTMzThAWzhWtWUnYjaap\n"
+            "5c3+NbtKyo3ejO5Zh2XzpNv0fDgePK/1SV1HiRaDEQKBgQD+z3CnssG/ZwMf+ZZ3\n"
+            "MaKYTb60i4cIhhtP8uDa/toT4QEsP8hJl8W1yLX6f7z/efLLuvR7+Ks0YgogdaHo\n"
+            "ZihFIRNSTqP8a09h2NHTuvkmdbBfV3vgNt6YDyqRG/a/WTP6kk0O05ptmLeZuKMH\n"
+            "Nr9wPoVy5+hc6GtKyKQCxNvoowKBgQDQHu2Ca4AVwW+2o7ODCq/d11Jf6pDxa/Pg\n"
+            "m7cEW2mE/HYMzK+kWcXCLbvaoJ8htkSqUdQAbQlcs21UzX2bCSIl3plbhFnn2niv\n"
+            "rUSzZpLWRPTK3/P5uA6bYHBYZKI8eqhkVL7cArqt8jEf5j1AVgdYWJYzQCkka6on\n"
+            "d18vZb6kUwKBgQClBB5G3EMQ+1tQt8gzxNcxnxejwMBgSskhS39HE8iTGyIxT9Ub\n"
+            "o8iMY0FGyrbRFF6ihZ6TMoVdVSiNwOBrqszlh/gFU5xreetcyJeKcQmtWIYyGGvG\n"
+            "1oHtI9VDSELRxKke2uRAd9UIqOAuEx6xK0lrHXI66ejXUkU5lxpwGKD51QKBgFub\n"
+            "cXH5vYxV88VRsx9YIeck8xZTGm+Z0+Qmxl09m2m08oVZx2oxNbHuDYUDNGhTYVAS\n"
+            "6p0xYXCTbelo9gO69nPy0lANJsG+UWcKfnX1DWcRPSrbfvmJQay0u169FQhH+T0I\n"
+            "bGZNMTyFoYfoAUgDVgJWI+71K+bjGSd8DMLBJzQPAoGBAM1J3gQd3+oqhHVcLdME\n"
+            "WY+cNHV1OrqwRjM0V3DUDahfn09Xy7rPpT4eUKewdbcVQV0qbo3NAGx1yOZlUpvT\n"
+            "SmzzqW6/IX22616hRaUAS2tBU1oQ6p7eMubU88s9x1dD7MY5jnk3EGXEd56vm5Xz\n"
+            "GHb752CO3iIkVraxI55HwBzt\n"
+            "-----END PRIVATE KEY-----\n");
+
+static const auto test_key_dsa_1024_in = QByteArrayLiteral(
+            "-----BEGIN DSA PRIVATE KEY-----\n"
+            "MIIBuwIBAAKBgQCp5QVAxr8z+n6eVSmYCE7KB624x0rBRJltGyGaJwrhw4tZnS9O\n"
+            "QpifSJ7OJ2gQR5exWTRVVDzEiSxpfjOo879A9+T7rcEYGTwMap1JVmwZwKfnChKu\n"
+            "/609f6E1UE/4H8W7n98oeJZwd0TOzqJRAceeKtFuD/+0ruVgPZPiK0jEYwIVAKu1\n"
+            "si92K0PnJBOk7kNCv4oyanFPAoGAWvMUZDOSZuTQwvYX9x0Fp+ZOfND9gpEHI6PH\n"
+            "N0vKHrxcr7cT4cbffWmrLLxWVfZottCX1MeJzC9z2AfvZf5s2uha8cWh0Sgw/ipf\n"
+            "huIXstnT9/I9VaN4Vm5O8gu9MmHWyEZxAW2wx3+5ncgdOWzP+dBsE4QN85+RwKY1\n"
+            "9kX/eu0CgYAKKPbq+hfqs9g19SGfIw4O2n0eWAJan4SPD7CnjYw8rYEYS3+wjdUL\n"
+            "/ImsZJRYTq5pMgnaNCi3Dz0gGGPAoVjzyS7xhbA70FjUGH8dO2EUu4Y3ArdDDn5L\n"
+            "09C5XnS203lHkZTmM6uKIg5Y48rK3Q3bIn3cKRMOE61Cnp9CTDJ+LAIVAInCx5tA\n"
+            "O6Ux513Bm8bg+QwLlWKN\n"
+            "-----END DSA PRIVATE KEY-----\n");
+static const auto test_key_dsa_1024_sailfish_in = QByteArrayLiteral(
+            "-----BEGIN DSA PRIVATE KEY-----\n"
+            "Proc-Type: 4,ENCRYPTED\n"
+            "DEK-Info: AES-128-CBC,E07E817AAA64D534D917B5DCACB9E5CF\n"
+            "\n"
+            "p4Q416kw07T7jnT2IQ7HMbpag3MmfAB6ZwPrVCG+r9NennCGs5d37Snh1+6sCL2C\n"
+            "jjPFpfS6f7QRUrttyPsjrL2PATEIijtFrEBGk5Tty237NOZ0+ZbBuwrT+BA68VzQ\n"
+            "3dUgNhVPh4t+/Si5VeIRAsWf4QUljMUVDwzhafAVgwYL5jWAJFvu3JeSjW3jKB3V\n"
+            "QwLT3TPzjXtiCAdAbqND5JHzTf33bMASCBWqC3g4Jup/LSx8SOK5IcSRMh4fNf4K\n"
+            "H3wBD2lC9/2pPs70aPpM6up06KSFg6028btXUeEyLxZsiKpwx9oqMzOwxPmwXZTs\n"
+            "sFAYKeOkmvWdimGroOhJtzxPhdiMxcGwAnmsmxgXuNz8mwlhREg+KGYmTDrL3qAM\n"
+            "HrjXzm/HARzDaIRz2Lyz6NWhgPmDrrH1+ZsAsv0ND3R/BQ7ETJNKjLDxFaR5y3JQ\n"
+            "VJBSFam/PEfdoqUd/JK5k2D2o6AS1tYOziH7IJejE+UFt4v5cZx7MMcD2xYIwn7/\n"
+            "VF8bRZXA96a/pJ6kmFEpSN0qqfLu86JOCHqqQTNAkIfe0oZSIVy0MvoKi90q6CdN\n"
+            "FbWAZ6eVb3eYly755IeiKA==\n"
+            "-----END DSA PRIVATE KEY-----\n");
+static const auto test_key_dsa_1024_pub = QByteArrayLiteral(
+            "-----BEGIN PUBLIC KEY-----\n"
+            "MIIBtjCCASsGByqGSM44BAEwggEeAoGBAKnlBUDGvzP6fp5VKZgITsoHrbjHSsFE\n"
+            "mW0bIZonCuHDi1mdL05CmJ9Ins4naBBHl7FZNFVUPMSJLGl+M6jzv0D35PutwRgZ\n"
+            "PAxqnUlWbBnAp+cKEq7/rT1/oTVQT/gfxbuf3yh4lnB3RM7OolEBx54q0W4P/7Su\n"
+            "5WA9k+IrSMRjAhUAq7WyL3YrQ+ckE6TuQ0K/ijJqcU8CgYBa8xRkM5Jm5NDC9hf3\n"
+            "HQWn5k580P2CkQcjo8c3S8oevFyvtxPhxt99aassvFZV9mi20JfUx4nML3PYB+9l\n"
+            "/mza6FrxxaHRKDD+Kl+G4hey2dP38j1Vo3hWbk7yC70yYdbIRnEBbbDHf7mdyB05\n"
+            "bM/50GwThA3zn5HApjX2Rf967QOBhAACgYAKKPbq+hfqs9g19SGfIw4O2n0eWAJa\n"
+            "n4SPD7CnjYw8rYEYS3+wjdUL/ImsZJRYTq5pMgnaNCi3Dz0gGGPAoVjzyS7xhbA7\n"
+            "0FjUGH8dO2EUu4Y3ArdDDn5L09C5XnS203lHkZTmM6uKIg5Y48rK3Q3bIn3cKRMO\n"
+            "E61Cnp9CTDJ+LA==\n"
+            "-----END PUBLIC KEY-----\n");
+static const auto test_key_dsa_1024_out = QByteArrayLiteral(
+            "-----BEGIN PRIVATE KEY-----\n"
+            "MIIBSwIBADCCASsGByqGSM44BAEwggEeAoGBAKnlBUDGvzP6fp5VKZgITsoHrbjH\n"
+            "SsFEmW0bIZonCuHDi1mdL05CmJ9Ins4naBBHl7FZNFVUPMSJLGl+M6jzv0D35Put\n"
+            "wRgZPAxqnUlWbBnAp+cKEq7/rT1/oTVQT/gfxbuf3yh4lnB3RM7OolEBx54q0W4P\n"
+            "/7Su5WA9k+IrSMRjAhUAq7WyL3YrQ+ckE6TuQ0K/ijJqcU8CgYBa8xRkM5Jm5NDC\n"
+            "9hf3HQWn5k580P2CkQcjo8c3S8oevFyvtxPhxt99aassvFZV9mi20JfUx4nML3PY\n"
+            "B+9l/mza6FrxxaHRKDD+Kl+G4hey2dP38j1Vo3hWbk7yC70yYdbIRnEBbbDHf7md\n"
+            "yB05bM/50GwThA3zn5HApjX2Rf967QQXAhUAicLHm0A7pTHnXcGbxuD5DAuVYo0=\n"
+            "-----END PRIVATE KEY-----\n");
+
+static Key createPublicKey(
+        const Key::Identifier &identifier, const QByteArray &data, Key::Component constraints = Key::PublicKeyData)
+{
+    Key key;
+    key.setIdentifier(identifier);
+    key.setPublicKey(data);
+    key.setComponentConstraints(constraints);
+
+    return key;
+}
+
+static Key createPrivateKey(
+        const Key::Identifier &identifier, const QByteArray &data, Key::Component constraints = Key::PrivateKeyData)
+{
+    Key key;
+    key.setIdentifier(identifier);
+    key.setPrivateKey(data);
+    key.setComponentConstraints(constraints);
+
+    return key;
+}
+
+static Key createSecretKey(
+        const Key::Identifier &identifier, const QByteArray &data, Key::Component constraints = Key::SecretKeyData)
+{
+    Key key;
+    key.setIdentifier(identifier);
+    key.setSecretKey(data);
+    key.setComponentConstraints(constraints);
+
+    return key;
+}
+
+void tst_cryptorequests::importKey_data()
+{
+    QTest::addColumn<Sailfish::Crypto::Key>("key");
+    QTest::addColumn<Sailfish::Crypto::InteractionParameters>("interactionParameters");
+    QTest::addColumn<Sailfish::Crypto::Result::ResultCode>("resultCode");
+    QTest::addColumn<Sailfish::Crypto::Result::ErrorCode>("errorCode");
+    QTest::addColumn<QByteArray>("privateKey");
+    QTest::addColumn<QByteArray>("publicKey");
+    QTest::addColumn<int>("size");
+    QTest::addColumn<Sailfish::Crypto::Key::Origin>("origin");
+    QTest::addColumn<Sailfish::Crypto::CryptoManager::Algorithm>("algorithm");
+
+    InteractionParameters promptForSailfishPassphrase;
+    promptForSailfishPassphrase.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
+    promptForSailfishPassphrase.setInputType(Sailfish::Crypto::InteractionParameters::AlphaNumericInput);
+    promptForSailfishPassphrase.setEchoMode(Sailfish::Crypto::InteractionParameters::NormalEcho);
+    promptForSailfishPassphrase.setPromptText(QLatin1String("Enter the passphrase 'Sailfish'"));
+
+    InteractionParameters promptToCancel;
+    promptToCancel.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
+    promptToCancel.setInputType(Sailfish::Crypto::InteractionParameters::AlphaNumericInput);
+    promptToCancel.setEchoMode(Sailfish::Crypto::InteractionParameters::NormalEcho);
+    promptToCancel.setPromptText(QLatin1String("Cancel input"));
+
+    Sailfish::Crypto::InteractionParameters noUserInteraction;
+
+    Key::Identifier keyIdentifier(QStringLiteral("storedkey"), QStringLiteral("tstcryptorequestsimportKey"));
+
+    QTest::newRow("Private RSA 2048 - no passphrase")
+            << createPrivateKey(keyIdentifier, test_key_rsa_2048_in)
+            << noUserInteraction
+            << Result::Succeeded
+            << Result::NoError
+            << test_key_rsa_2048_out
+            << test_key_rsa_2048_pub
+            << 2048
+            << Key::OriginImported
+            << CryptoManager::AlgorithmRsa;
+    QTest::newRow("Private RSA 2048 - passphrase")
+            << createPrivateKey(keyIdentifier, test_key_rsa_2048_sailfish_in)
+            << promptForSailfishPassphrase
+            << Result::Succeeded
+            << Result::NoError
+            << test_key_rsa_2048_out
+            << test_key_rsa_2048_pub
+            << 2048
+            << Key::OriginImported
+            << CryptoManager::AlgorithmRsa;
+    QTest::newRow("Public RSA 2048")
+            << createPublicKey(keyIdentifier, test_key_rsa_2048_pub)
+            << noUserInteraction
+            << Result::Succeeded
+            << Result::NoError
+            << QByteArray()
+            << test_key_rsa_2048_pub
+            << 2048
+            << Key::OriginImported
+            << CryptoManager::AlgorithmRsa;
+
+    QTest::newRow("Private RSA 1024 - no passphrase")
+            << createPrivateKey(keyIdentifier, test_key_rsa_1024_in)
+            << noUserInteraction
+            << Result::Succeeded
+            << Result::NoError
+            << test_key_rsa_1024_out
+            << test_key_rsa_1024_pub
+            << 1024
+            << Key::OriginImported
+            << CryptoManager::AlgorithmRsa;
+    QTest::newRow("Private RSA 1024 - passphrase")
+            << createPrivateKey(keyIdentifier, test_key_rsa_1024_sailfish_in)
+            << promptForSailfishPassphrase
+            << Result::Succeeded
+            << Result::NoError
+            << test_key_rsa_1024_out
+            << test_key_rsa_1024_pub
+            << 1024
+            << Key::OriginImported
+            << CryptoManager::AlgorithmRsa;
+    QTest::newRow("Public RSA 1024")
+            << createPublicKey(keyIdentifier, test_key_rsa_1024_pub)
+            << noUserInteraction
+            << Result::Succeeded
+            << Result::NoError
+            << QByteArray()
+            << test_key_rsa_1024_pub
+            << 1024
+            << Key::OriginImported
+            << CryptoManager::AlgorithmRsa;
+
+    QTest::newRow("Private DSA 1024 - no passphrase")
+            << createPrivateKey(keyIdentifier, test_key_dsa_1024_in)
+            << noUserInteraction
+            << Result::Succeeded
+            << Result::NoError
+            << test_key_dsa_1024_out
+            << test_key_dsa_1024_pub
+            << 1024
+            << Key::OriginImported
+            << CryptoManager::AlgorithmDsa;
+    QTest::newRow("Private DSA 1024 - passphrase")
+            << createPrivateKey(keyIdentifier, test_key_dsa_1024_sailfish_in)
+            << promptForSailfishPassphrase
+            << Result::Succeeded
+            << Result::NoError
+            << test_key_dsa_1024_out
+            << test_key_dsa_1024_pub
+            << 1024
+            << Key::OriginImported
+            << CryptoManager::AlgorithmDsa;
+    QTest::newRow("Public DSA 1024")
+            << createPublicKey(keyIdentifier, test_key_dsa_1024_pub)
+            << noUserInteraction
+            << Result::Succeeded
+            << Result::NoError
+            << QByteArray()
+            << test_key_dsa_1024_pub
+            << 1024
+            << Key::OriginImported
+            << CryptoManager::AlgorithmDsa;
+
+    QTest::newRow("Private RSA 2048 - secret")
+            << createSecretKey(keyIdentifier, test_key_rsa_2048_in)
+            << noUserInteraction
+            << Result::Succeeded
+            << Result::NoError
+            << test_key_rsa_2048_out
+            << test_key_rsa_2048_pub
+            << 2048
+            << Key::OriginImported
+            << CryptoManager::AlgorithmRsa;
+
+    QTest::newRow("Private RSA 2048 - passphrase, no user interaction")
+            << createPrivateKey(keyIdentifier, test_key_rsa_2048_sailfish_in)
+            << noUserInteraction
+            << Result::Failed
+            << Result::CryptoPluginIncorrectPassphrase
+            << QByteArray()
+            << QByteArray()
+            << 0
+            << Key::OriginUnknown
+            << CryptoManager::AlgorithmUnknown;
+    QTest::newRow("Private RSA 2048 - passphrase, canceled")
+            << createPrivateKey(keyIdentifier, test_key_rsa_2048_sailfish_in)
+            << promptToCancel
+            << Result::Failed
+            << Result::CryptoPluginKeyImportError
+            << QByteArray()
+            << QByteArray()
+            << 0
+            << Key::OriginUnknown
+            << CryptoManager::AlgorithmUnknown;
+    QTest::newRow("Private RSA 2048 - public constraint")
+            << createPrivateKey(keyIdentifier, test_key_rsa_2048_in, Key::PublicKeyData)
+            << noUserInteraction
+            << Result::Succeeded
+            << Result::NoError
+            << QByteArray()
+            << test_key_rsa_2048_pub
+            << 2048
+            << Key::OriginImported
+            << CryptoManager::AlgorithmRsa;
+}
+
+void tst_cryptorequests::importKey()
+{
+    QFETCH(Sailfish::Crypto::Key, key);
+    QFETCH(Sailfish::Crypto::InteractionParameters, interactionParameters);
+    QFETCH(Sailfish::Crypto::Result::ResultCode, resultCode);
+    QFETCH(Sailfish::Crypto::Result::ErrorCode, errorCode);
+    QFETCH(QByteArray, privateKey);
+    QFETCH(QByteArray, publicKey);
+    QFETCH(int, size);
+    QFETCH(Sailfish::Crypto::Key::Origin, origin);
+    QFETCH(Sailfish::Crypto::CryptoManager::Algorithm, algorithm);
+
+    Sailfish::Crypto::ImportKeyRequest request;
+    request.setManager(&cm);
+
+    request.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+    QCOMPARE(request.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+
+    request.setKey(key);
+    QCOMPARE(request.key(), key);
+
+    if (interactionParameters.isValid()) {
+        QSKIP("Invalid interaction service address for in-app authentication");
+    }
+
+    request.startRequest();
+
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(request);
+
+    const Sailfish::Crypto::Result result = request.result();
+    const Sailfish::Crypto::Key importedKey = request.importedKey();
+
+    QCOMPARE(result.code(), resultCode);
+    QCOMPARE(result.errorCode(), errorCode);
+
+    QCOMPARE(importedKey.publicKey(), publicKey);
+    QCOMPARE(importedKey.privateKey(), privateKey);
+    QCOMPARE(importedKey.size(), size);
+    QCOMPARE(importedKey.origin(), origin);
+    QCOMPARE(importedKey.algorithm(), algorithm);
+}
+
+void tst_cryptorequests::importKeyAndStore_data()
+{
+    importKey_data();
+
+    QTest::newRow("Private RSA 2048 - no identifier")
+            << createPrivateKey(Key::Identifier(), test_key_rsa_2048_in)
+            << InteractionParameters()
+            << Result::Failed
+            << Result::InvalidKeyIdentifier
+            << QByteArray()
+            << QByteArray()
+            << 0
+            << Key::OriginUnknown
+            << CryptoManager::AlgorithmUnknown;
+}
+
+void tst_cryptorequests::importKeyAndStore()
+{
+    QFETCH(Sailfish::Crypto::Key, key);
+    QFETCH(Sailfish::Crypto::InteractionParameters, interactionParameters);
+    QFETCH(Sailfish::Crypto::Result::ResultCode, resultCode);
+    QFETCH(Sailfish::Crypto::Result::ErrorCode, errorCode);
+    QFETCH(QByteArray, privateKey);
+    QFETCH(QByteArray, publicKey);
+    QFETCH(int, size);
+    QFETCH(Sailfish::Crypto::Key::Origin, origin);
+    QFETCH(Sailfish::Crypto::CryptoManager::Algorithm, algorithm);
+
+    if (interactionParameters.isValid()) {
+        QSKIP("Invalid interaction service address for in-app authentication");
+    }
+
+    if (!key.collectionName().isEmpty()) {
+        populatedCollections.append(key.collectionName());
+
+        // first, create the collection via the Secrets API.
+        Sailfish::Secrets::CreateCollectionRequest ccr;
+        ccr.setManager(&sm);
+        ccr.setCollectionLockType(Sailfish::Secrets::CreateCollectionRequest::DeviceLock);
+        ccr.setCollectionName(key.collectionName());
+        ccr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+        ccr.setEncryptionPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+        ccr.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
+        ccr.setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked);
+        ccr.setAccessControlMode(Sailfish::Secrets::SecretManager::OwnerOnlyMode);
+        ccr.setUserInteractionMode(Sailfish::Secrets::SecretManager::ApplicationInteraction);
+        ccr.startRequest();
+        WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ccr);
+        QCOMPARE(ccr.status(), Sailfish::Secrets::Request::Finished);
+
+        if (ccr.result().code() == Sailfish::Secrets::Result::Failed) {
+            qDebug() << ccr.result().errorMessage();
+        }
+
+        QCOMPARE(ccr.result().code(), Sailfish::Secrets::Result::Succeeded);
+    }
+
+    Sailfish::Crypto::ImportStoredKeyRequest request;
+    request.setManager(&cm);
+
+    request.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+    QCOMPARE(request.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+
+    request.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+    QCOMPARE(request.storagePluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+
+    request.setKey(key);
+    QCOMPARE(request.key(), key);
+
+    request.startRequest();
+
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(request);
+
+    const Sailfish::Crypto::Result result = request.result();
+
+    QCOMPARE(result.code(), resultCode);
+    QCOMPARE(result.errorCode(), errorCode);
+
+    const Sailfish::Crypto::Key importedKey = request.importedKeyReference();
+
+    QCOMPARE(importedKey.publicKey(), publicKey);
+    QCOMPARE(importedKey.privateKey(), QByteArray());
+    QCOMPARE(importedKey.size(), size);
+    QCOMPARE(importedKey.origin(), origin);
+    QCOMPARE(importedKey.algorithm(), algorithm);
 }
 
 #include "tst_cryptorequests.moc"

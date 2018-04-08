@@ -128,6 +128,25 @@ public:
             const QString &storageProviderName,
             Sailfish::Crypto::Key *key);
 
+    Sailfish::Crypto::Result importKey(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Crypto::Key &key,
+            const Sailfish::Crypto::InteractionParameters &uiParams,
+            const QString &cryptosystemProviderName,
+            const QByteArray &passphrase,
+            Sailfish::Crypto::Key *importedKey);
+
+    Sailfish::Crypto::Result importStoredKey(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Crypto::Key &key,
+            const Sailfish::Crypto::InteractionParameters &uiParams,
+            const QString &cryptosystemProviderName,
+            const QString &storageProviderName,
+            const QByteArray &passphrase,
+            Sailfish::Crypto::Key *importedKey);
+
     Sailfish::Crypto::Result storedKey(
             pid_t callerPid,
             quint64 requestId,
@@ -306,6 +325,8 @@ private:
         QVariantList parameters;
     };
 
+    Result validateKeyIdentifier(pid_t callerPid, quint64 requestId, const Key &keyTemplate);
+
     void storedKey2(
             quint64 requestId,
             Key::Components keyComponents,
@@ -356,6 +377,46 @@ private:
             const Sailfish::Crypto::Key &keyTemplate,
             const Sailfish::Crypto::Result &initialResult,
             const Sailfish::Crypto::Result &result);
+
+    Result promptForKeyPassphrase(
+            pid_t callerPid,
+            quint64 requestId,
+            const Key &keyTemplate,
+            const Sailfish::Crypto::InteractionParameters &uiParams);
+
+    void importKey_withPassphrase(
+            pid_t callerPid,
+            quint64 requestId,
+            const Result &result,
+            const Key &key,
+            const Sailfish::Crypto::InteractionParameters &uiParams,
+            const QString &cryptosystemProviderName,
+            const QByteArray &passphrase);
+
+    bool importStoredKey_revert(
+            pid_t callerPid,
+            quint64 requestId,
+            const Result &result,
+            const Key &key);
+
+    void importStoredKey_withPassphrase(
+            pid_t callerPid,
+            quint64 requestId,
+            const Result &result,
+            const Key &key,
+            const Sailfish::Crypto::InteractionParameters &uiParams,
+            const QString &cryptosystemProviderName,
+            const QString &storagePluginName,
+            const QByteArray &passphrase);
+
+    void importStoredKey_inCryptoPlugin(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Crypto::Result &result,
+            const Sailfish::Crypto::Key &key,
+            const Sailfish::Crypto::InteractionParameters &uiParams,
+            const QString &cryptosystemProviderName,
+            const QString &storagePluginName);
 
     void deleteStoredKey2(
             pid_t callerPid,

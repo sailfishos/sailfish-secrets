@@ -217,6 +217,50 @@ CryptoManagerPrivate::generateStoredKey(
 }
 
 QDBusPendingReply<Result, Key>
+CryptoManagerPrivate::importKey(
+        const Key &key,
+        const Sailfish::Crypto::InteractionParameters &uiParams,
+        const QString &cryptosystemProviderName)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result, Key>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result, Key> reply
+            = m_interface->asyncCallWithArgumentList(
+                QStringLiteral("importKey"),
+                QVariantList() << QVariant::fromValue<Key>(key)
+                               << QVariant::fromValue<InteractionParameters>(uiParams)
+                               << QVariant::fromValue<QString>(cryptosystemProviderName));
+    return reply;
+}
+
+QDBusPendingReply<Result, Key>
+CryptoManagerPrivate::importStoredKey(
+        const Key &key,
+        const Sailfish::Crypto::InteractionParameters &uiParams,
+        const QString &cryptosystemProviderName,
+        const QString &storageProviderName)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result, Key>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result, Key> reply
+            = m_interface->asyncCallWithArgumentList(
+                QStringLiteral("importStoredKey"),
+                QVariantList() << QVariant::fromValue<Key>(key)
+                               << QVariant::fromValue<InteractionParameters>(uiParams)
+                               << QVariant::fromValue<QString>(cryptosystemProviderName)
+                               << QVariant::fromValue<QString>(storageProviderName));
+    return reply;
+}
+
+QDBusPendingReply<Result, Key>
 CryptoManagerPrivate::storedKey(
         const Key::Identifier &identifier,
         Key::Components keyComponents)

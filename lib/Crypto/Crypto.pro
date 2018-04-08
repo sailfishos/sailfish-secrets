@@ -26,6 +26,8 @@ PUBLIC_HEADERS += \
     $$PWD/generatekeyrequest.h \
     $$PWD/generaterandomdatarequest.h \
     $$PWD/generatestoredkeyrequest.h \
+    $$PWD/importkeyrequest.h \
+    $$PWD/importstoredkeyrequest.h \
     $$PWD/interactionparameters.h \
     $$PWD/key.h \
     $$PWD/keyderivationparameters.h \
@@ -93,6 +95,8 @@ SOURCES += \
     $$PWD/generatekeyrequest.cpp \
     $$PWD/generaterandomdatarequest.cpp \
     $$PWD/generatestoredkeyrequest.cpp \
+    $$PWD/importkeyrequest.cpp \
+    $$PWD/importstoredkeyrequest.cpp \
     $$PWD/interactionparameters.cpp \
     $$PWD/key.cpp \
     $$PWD/keyderivationparameters.cpp \
