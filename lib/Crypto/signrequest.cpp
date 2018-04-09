@@ -181,6 +181,17 @@ QByteArray SignRequest::signature() const
     return d->m_signature;
 }
 
+/*!
+ * \brief Returns the length of the signature result of the sign operation.
+ *
+ * Note: this value is only valid if the status of the request is Request::Finished.
+ */
+int SignRequest::signatureLength() const
+{
+    Q_D(const SignRequest);
+    return d->m_signature.length();
+}
+
 Request::Status SignRequest::status() const
 {
     Q_D(const SignRequest);
