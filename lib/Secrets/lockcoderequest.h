@@ -42,9 +42,7 @@ public:
 
     enum LockCodeTargetType {
         BookkeepingDatabase = 0,
-        ExtensionPlugin,
-        Collection,
-        StandaloneSecret
+        ExtensionPlugin
     };
     Q_ENUM(LockCodeTargetType)
 

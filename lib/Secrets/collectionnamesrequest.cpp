@@ -27,9 +27,10 @@ CollectionNamesRequestPrivate::CollectionNamesRequestPrivate()
  * \brief Allows a client request the names of collections of secrets from the system secrets service
  *
  * This class allows clients to request the Secrets service return the names of
- * collections of secrets.  Note that the client may not have the ability to
- * read from or write to any collection returned from this method, depending
- * on the access controls which apply to the collections.
+ * collections of secrets which are stored in a particular storage plugin.
+ * Note that the client may not have the ability to read from or write to any
+ * collection returned from this method, depending on the access controls which
+ * apply to the collections.
  *
  * An example of requesting collection names follows:
  *
@@ -37,6 +38,7 @@ CollectionNamesRequestPrivate::CollectionNamesRequestPrivate()
  * Sailfish::Secrets::SecretManager sm;
  * Sailfish::Secrets::CollectionNamesRequest cnr;
  * cnr.setManager(&sm);
+ * cnr.setStoragePluginName(Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
  * cnr.startRequest();
  * // status() will change to Finished when complete
  * // collectionNames() will contain the names of the collections
@@ -57,6 +59,31 @@ CollectionNamesRequest::CollectionNamesRequest(QObject *parent)
  */
 CollectionNamesRequest::~CollectionNamesRequest()
 {
+}
+
+/*!
+ * \brief Returns the name of the storage plugin from which the client wishes to retrieve collection names
+ */
+QString CollectionNamesRequest::storagePluginName() const
+{
+    Q_D(const CollectionNamesRequest);
+    return d->m_storagePluginName;
+}
+
+/*!
+ * \brief Sets the name of the storage plugin from which the client wishes to retrieve collection names to \a pluginName
+ */
+void CollectionNamesRequest::setStoragePluginName(const QString &pluginName)
+{
+    Q_D(CollectionNamesRequest);
+    if (d->m_status != Request::Active && d->m_storagePluginName != pluginName) {
+        d->m_storagePluginName = pluginName;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit storagePluginNameChanged();
+    }
 }
 
 /*!
@@ -106,7 +133,8 @@ void CollectionNamesRequest::startRequest()
             emit resultChanged();
         }
 
-        QDBusPendingReply<Result, QStringList> reply = d->m_manager->d_ptr->collectionNames();
+        QDBusPendingReply<Result, QStringList> reply = d->m_manager->d_ptr->collectionNames(
+                    d->m_storagePluginName);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;
             d->m_result = Result(Result::SecretManagerNotInitialisedError,

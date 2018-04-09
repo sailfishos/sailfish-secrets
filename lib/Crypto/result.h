@@ -74,6 +74,7 @@ public:
         CryptoPluginAuthenticationTagError,
         CryptoPluginInvalidCipherSessionToken,
         CryptoPluginIncorrectPassphrase,
+        CryptoPluginIsLockedError,
 
         NetworkError = 98,
         NetworkSslError = 99,

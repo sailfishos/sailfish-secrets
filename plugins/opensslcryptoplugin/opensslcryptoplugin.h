@@ -113,6 +113,7 @@ public:
             Sailfish::Crypto::Key *key) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result storedKeyIdentifiers(
+            const QString &collectionName,
             QVector<Sailfish::Crypto::Key::Identifier> *identifiers) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result calculateDigest(
@@ -249,7 +250,6 @@ private:
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             QByteArray *decrypted);
 
-    Sailfish::Crypto::Key getFullKey(const Sailfish::Crypto::Key &key);
     QMap<quint64, QMap<quint32, CipherSessionData*> > m_cipherSessions; // clientId to token to data
     struct CipherSessionLookup {
         CipherSessionData *csd = 0;

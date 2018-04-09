@@ -24,9 +24,21 @@ class SAILFISH_CRYPTO_API PluginInfo
     Q_GADGET
     Q_PROPERTY(QString name READ name WRITE setName)
     Q_PROPERTY(int version READ version WRITE setVersion)
+    Q_PROPERTY(StatusFlags statusFlags READ statusFlags WRITE setStatusFlags)
 
 public:
-    PluginInfo(const QString &name = QString(), int version = 0);
+    enum Status {
+        Unknown   = 0,
+        Available       = 1 << 0,
+        MasterUnlocked  = 1 << 1,
+        PluginUnlocked  = 1 << 2
+    };
+    Q_ENUM(Status)
+    Q_DECLARE_FLAGS(StatusFlags, Status)
+    Q_FLAG(StatusFlags)
+
+    PluginInfo(const QString &name = QString(), int version = 0,
+               StatusFlags status = PluginInfo::Unknown);
     PluginInfo(const PluginInfo &other);
     ~PluginInfo();
 
@@ -37,6 +49,9 @@ public:
 
     void setVersion(int version);
     int version() const;
+
+    StatusFlags statusFlags() const;
+    void setStatusFlags(StatusFlags status);
 
 private:
     QSharedDataPointer<PluginInfoPrivate> d_ptr;
@@ -53,5 +68,9 @@ bool operator<(const Sailfish::Crypto::PluginInfo &lhs, const Sailfish::Crypto::
 
 Q_DECLARE_METATYPE(Sailfish::Crypto::PluginInfo);
 Q_DECLARE_TYPEINFO(Sailfish::Crypto::PluginInfo, Q_MOVABLE_TYPE);
+
+Q_DECLARE_METATYPE(Sailfish::Crypto::PluginInfo::Status);
+Q_DECLARE_METATYPE(Sailfish::Crypto::PluginInfo::StatusFlags);
+Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::PluginInfo::StatusFlags);
 
 #endif // LIBSAILFISHCRYPTO_PLUGININFO_H

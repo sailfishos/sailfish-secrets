@@ -25,13 +25,14 @@ ImportStoredKeyRequestPrivate::ImportStoredKeyRequestPrivate()
  * \class ImportKeyRequest
  * \brief Allows a client request that the system crypto service import and secure store a key.
  *
- * The imported key will be stored securely by the crypto daemon via the storage
- * plugin identified by the given storagePluginName(), and the returned
- * key reference will not contain any private or secret key data.
+ * The imported key will be stored securely by the crypto daemon into the storage
+ * plugin identified by the storage plugin specified in the key template's
+ * identifier, and the returned key reference will not contain any private or secret
+ * key data.
  *
  * Available storage providers can be enumerated from the Sailfish Secrets API.
  *
- * If the cryptoPluginName() and \a storagePluginName() are the
+ * If the cryptoPluginName() and the identifier's storage plugin are the
  * same, then the key will be stored in storage managed by the
  * crypto provider plugin, if that plugin supports storing keys.
  * In that case, the crypto plugin must also be a Sailfish::Secrets::EncryptedStoragePlugin.
@@ -77,31 +78,6 @@ void ImportStoredKeyRequest::setCryptoPluginName(const QString &pluginName)
             emit statusChanged();
         }
         emit cryptoPluginNameChanged();
-    }
-}
-
-/*!
- * \brief Returns the name of the storage plugin which the client wishes the imported key to be stored in
- */
-QString ImportStoredKeyRequest::storagePluginName() const
-{
-    Q_D(const ImportStoredKeyRequest);
-    return d->m_storagePluginName;
-}
-
-/*!
- * \brief Sets the name of the storage plugin which the client wishes the imported key to be stored in to \a pluginName
- */
-void ImportStoredKeyRequest::setStoragePluginName(const QString &pluginName)
-{
-    Q_D(ImportStoredKeyRequest);
-    if (d->m_status != Request::Active && d->m_storagePluginName != pluginName) {
-        d->m_storagePluginName = pluginName;
-        if (d->m_status == Request::Finished) {
-            d->m_status = Request::Inactive;
-            emit statusChanged();
-        }
-        emit storagePluginNameChanged();
     }
 }
 
@@ -234,8 +210,7 @@ void ImportStoredKeyRequest::startRequest()
                 d->m_manager->d_ptr->importStoredKey(d->m_key,
                                                      d->m_uiParams,
                                                      d->m_customParameters,
-                                                     d->m_cryptoPluginName,
-                                                     d->m_storagePluginName);
+                                                     d->m_cryptoPluginName);
         if (reply.isError()) {
             d->m_status = Request::Finished;
             d->m_result = Result(Result::CryptoManagerNotInitialisedError,

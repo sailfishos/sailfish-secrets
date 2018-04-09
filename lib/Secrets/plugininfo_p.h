@@ -8,7 +8,7 @@
 #ifndef LIBSAILFISHSECRETS_PLUGININFO_P_H
 #define LIBSAILFISHSECRETS_PLUGININFO_P_H
 
-#include "Secrets/result.h"
+#include "Secrets/plugininfo.h"
 
 #include <QtCore/QString>
 #include <QtCore/QSharedData>
@@ -26,6 +26,7 @@ public:
 
     QString m_name;
     int m_version;
+    Sailfish::Secrets::PluginInfo::StatusFlags m_statusFlags;
 };
 
 } // namespace Secrets

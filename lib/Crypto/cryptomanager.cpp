@@ -188,8 +188,7 @@ CryptoManagerPrivate::generateStoredKey(
         const KeyDerivationParameters &skdfParams,
         const InteractionParameters &uiParams,
         const QVariantMap &customParameters,
-        const QString &cryptosystemProviderName,
-        const QString &storageProviderName)
+        const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
         return QDBusPendingReply<Result, Key>(
@@ -205,8 +204,7 @@ CryptoManagerPrivate::generateStoredKey(
                                << QVariant::fromValue<KeyDerivationParameters>(skdfParams)
                                << QVariant::fromValue<InteractionParameters>(uiParams)
                                << QVariant::fromValue<QVariantMap>(customParameters)
-                               << QVariant::fromValue<QString>(cryptosystemProviderName)
-                               << QVariant::fromValue<QString>(storageProviderName));
+                               << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
 
@@ -238,8 +236,7 @@ CryptoManagerPrivate::importStoredKey(
         const Key &key,
         const Sailfish::Crypto::InteractionParameters &uiParams,
         const QVariantMap &customParameters,
-        const QString &cryptosystemProviderName,
-        const QString &storageProviderName)
+        const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
         return QDBusPendingReply<Result, Key>(
@@ -253,8 +250,7 @@ CryptoManagerPrivate::importStoredKey(
                 QVariantList() << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<InteractionParameters>(uiParams)
                                << QVariant::fromValue<QVariantMap>(customParameters)
-                               << QVariant::fromValue<QString>(cryptosystemProviderName)
-                               << QVariant::fromValue<QString>(storageProviderName));
+                               << QVariant::fromValue<QString>(cryptosystemProviderName));
     return reply;
 }
 
@@ -295,7 +291,8 @@ CryptoManagerPrivate::deleteStoredKey(
 }
 
 QDBusPendingReply<Result, QVector<Key::Identifier> >
-CryptoManagerPrivate::storedKeyIdentifiers() // TODO: UI interaction mode param, if NoUserInteraction then just show the keys already permitted?
+CryptoManagerPrivate::storedKeyIdentifiers(
+        const QString &storagePluginName)
 {
     if (!m_interface) {
         return QDBusPendingReply<Result, QVector<Key::Identifier> >(
@@ -304,7 +301,9 @@ CryptoManagerPrivate::storedKeyIdentifiers() // TODO: UI interaction mode param,
     }
 
     QDBusPendingReply<Result, QVector<Key::Identifier> > reply
-            = m_interface->asyncCall("storedKeyIdentifiers");
+            = m_interface->asyncCallWithArgumentList(
+                QStringLiteral("storedKeyIdentifiers"),
+                QVariantList() << QVariant::fromValue<QString>(storagePluginName));
     return reply;
 }
 

@@ -5,34 +5,37 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#include "cryptopluginfunctionwrappers_p.h"
+#include "CryptoImpl/cryptopluginfunctionwrappers_p.h"
+#include "SecretsImpl/metadatadb_p.h"
 #include "logging_p.h"
+#include "util_p.h"
 
 using namespace Sailfish::Crypto;
 using namespace Sailfish::Crypto::Daemon::ApiImpl;
+using namespace Sailfish::Secrets::Daemon::Util;
 
 /* These methods are to be called via QtConcurrent */
 
-bool CryptoPluginWrapper::isLocked(
+bool CryptoPluginFunctionWrapper::isLocked(
         CryptoPlugin *plugin)
 {
     return plugin->isLocked();
 }
 
-bool CryptoPluginWrapper::lock(
+bool CryptoPluginFunctionWrapper::lock(
         CryptoPlugin *plugin)
 {
     return plugin->lock();
 }
 
-bool CryptoPluginWrapper::unlock(
+bool CryptoPluginFunctionWrapper::unlock(
         CryptoPlugin *plugin,
         const QByteArray &lockCode)
 {
     return plugin->unlock(lockCode);
 }
 
-bool CryptoPluginWrapper::setLockCode(
+bool CryptoPluginFunctionWrapper::setLockCode(
         CryptoPlugin *plugin,
         const QByteArray &oldLockCode,
         const QByteArray &newLockCode)
@@ -40,7 +43,7 @@ bool CryptoPluginWrapper::setLockCode(
     return plugin->setLockCode(oldLockCode, newLockCode);
 }
 
-DataResult CryptoPluginWrapper::generateRandomData(
+DataResult CryptoPluginFunctionWrapper::generateRandomData(
         const PluginAndCustomParams &pluginAndCustomParams,
         quint64 callerIdent,
         const QString &csprngEngineName,
@@ -56,7 +59,7 @@ DataResult CryptoPluginWrapper::generateRandomData(
     return DataResult(result, randomData);
 }
 
-Result CryptoPluginWrapper::seedRandomDataGenerator(
+Result CryptoPluginFunctionWrapper::seedRandomDataGenerator(
         const PluginAndCustomParams &pluginAndCustomParams,
         quint64 callerIdent,
         const QString &csprngEngineName,
@@ -71,7 +74,7 @@ Result CryptoPluginWrapper::seedRandomDataGenerator(
                 pluginAndCustomParams.customParameters);
 }
 
-DataResult CryptoPluginWrapper::generateInitializationVector(
+DataResult CryptoPluginFunctionWrapper::generateInitializationVector(
         const PluginAndCustomParams &pluginAndCustomParams,
         CryptoManager::Algorithm algorithm,
         CryptoManager::BlockMode blockMode,
@@ -85,7 +88,7 @@ DataResult CryptoPluginWrapper::generateInitializationVector(
     return DataResult(result, iv);
 }
 
-KeyResult CryptoPluginWrapper::importKey(
+KeyResult CryptoPluginFunctionWrapper::importKey(
         const PluginAndCustomParams &pluginAndCustomParams,
         const Sailfish::Crypto::Key &keyData,
         const QByteArray &passphrase)
@@ -98,26 +101,50 @@ KeyResult CryptoPluginWrapper::importKey(
     return KeyResult(result, key);
 }
 
-KeyResult CryptoPluginWrapper::importAndStoreKey(
-        const PluginAndCustomParams &pluginAndCustomParams,
-        const Sailfish::Crypto::Key &keyData,
-        const QByteArray &passphrase)
+KeyResult CryptoPluginFunctionWrapper::importAndStoreKey(
+        const PluginWrapperAndCustomParams &pluginAndCustomParams,
+        const Sailfish::Crypto::Key &keyTemplate,
+        const QByteArray &passphrase,
+        const QByteArray &collectionDecryptionKey)
 {
-    Key key;
+    Sailfish::Secrets::Daemon::ApiImpl::CollectionMetadata collectionMetadata;
+    Sailfish::Secrets::Result sresult = pluginAndCustomParams.plugin->collectionMetadata(
+                keyTemplate.identifier().collectionName(),
+                &collectionMetadata);
+    if (sresult.code() != Sailfish::Secrets::Result::Succeeded) {
+        return KeyResult(transformSecretsResult(sresult), keyTemplate);
+    }
+
+    Sailfish::Secrets::Daemon::ApiImpl::SecretMetadata metadata;
+    metadata.collectionName = keyTemplate.identifier().collectionName();
+    metadata.secretName = keyTemplate.identifier().name();
+    metadata.ownerApplicationId = collectionMetadata.ownerApplicationId;
+    metadata.usesDeviceLockKey = collectionMetadata.usesDeviceLockKey;
+    metadata.encryptionPluginName = collectionMetadata.encryptionPluginName;
+    metadata.authenticationPluginName = collectionMetadata.authenticationPluginName;
+    metadata.unlockSemantic = collectionMetadata.unlockSemantic;
+    metadata.accessControlMode = collectionMetadata.accessControlMode;
+    metadata.secretType = Sailfish::Secrets::Secret::TypeCryptoKey;
+    metadata.cryptoPluginName = pluginAndCustomParams.plugin->name();
+
+    Key keyReference(keyTemplate);
     Result result = pluginAndCustomParams.plugin->importAndStoreKey(
-                keyData, passphrase,
+                metadata,
+                keyTemplate,
+                passphrase,
                 pluginAndCustomParams.customParameters,
-                &key);
-    return KeyResult(result, key);
+                collectionDecryptionKey,
+                &keyReference);
+    return KeyResult(result, keyReference);
 }
 
-KeyResult CryptoPluginWrapper::generateKey(
+KeyResult CryptoPluginFunctionWrapper::generateKey(
         const PluginAndCustomParams &pluginAndCustomParams,
         const Key &keyTemplate,
         const KeyPairGenerationParameters &kpgParams,
         const KeyDerivationParameters &skdfParams)
 {
-    Key key;
+    Key key(keyTemplate);
     Result result = pluginAndCustomParams.plugin->generateKey(
                 keyTemplate, kpgParams, skdfParams,
                 pluginAndCustomParams.customParameters,
@@ -125,40 +152,28 @@ KeyResult CryptoPluginWrapper::generateKey(
     return KeyResult(result, key);
 }
 
-KeyResult CryptoPluginWrapper::generateAndStoreKey(
-        const PluginAndCustomParams &pluginAndCustomParams,
-        const Key &keyTemplate,
-        const KeyPairGenerationParameters &kpgParams,
-        const KeyDerivationParameters &skdfParams)
-{
-    Key keyReference;
-    Result result = pluginAndCustomParams.plugin->generateAndStoreKey(
-                keyTemplate, kpgParams, skdfParams,
-                pluginAndCustomParams.customParameters,
-                &keyReference);
-    return KeyResult(result, keyReference);
-}
-
-KeyResult CryptoPluginWrapper::storedKey(
+KeyResult CryptoPluginFunctionWrapper::storedKey(
         CryptoPlugin *plugin,
         const Key::Identifier &identifier,
         Key::Components keyComponents)
 {
     Key key;
+    key.setIdentifier(identifier);
     Result result = plugin->storedKey(
                 identifier, keyComponents, &key);
     return KeyResult(result, key);
 }
 
-IdentifiersResult CryptoPluginWrapper::storedKeyIdentifiers(
-        CryptoPlugin *plugin)
+IdentifiersResult CryptoPluginFunctionWrapper::storedKeyIdentifiers(
+        CryptoPlugin *plugin,
+        const QString &collectionName)
 {
     QVector<Key::Identifier> identifiers;
-    Result result = plugin->storedKeyIdentifiers(&identifiers);
+    Result result = plugin->storedKeyIdentifiers(collectionName, &identifiers);
     return IdentifiersResult(result, identifiers);
 }
 
-DataResult CryptoPluginWrapper::calculateDigest(
+DataResult CryptoPluginFunctionWrapper::calculateDigest(
         const PluginAndCustomParams &pluginAndCustomParams,
         const QByteArray &data,
         const SignatureOptions &options)
@@ -173,7 +188,7 @@ DataResult CryptoPluginWrapper::calculateDigest(
     return DataResult(result, digest);
 }
 
-DataResult CryptoPluginWrapper::sign(
+DataResult CryptoPluginFunctionWrapper::sign(
         const PluginAndCustomParams &pluginAndCustomParams,
         const QByteArray &data,
         const Key &key,
@@ -189,7 +204,7 @@ DataResult CryptoPluginWrapper::sign(
     return DataResult(result, signature);
 }
 
-ValidatedResult CryptoPluginWrapper::verify(
+ValidatedResult CryptoPluginFunctionWrapper::verify(
         const PluginAndCustomParams &pluginAndCustomParams,
         const QByteArray &signature,
         const QByteArray &data,
@@ -206,7 +221,7 @@ ValidatedResult CryptoPluginWrapper::verify(
     return ValidatedResult(result, verified);
 }
 
-TagDataResult CryptoPluginWrapper::encrypt(
+TagDataResult CryptoPluginFunctionWrapper::encrypt(
         const PluginAndCustomParams &pluginAndCustomParams,
         const DataAndIV &dataAndIv,
         const Sailfish::Crypto::Key &key,
@@ -227,7 +242,7 @@ TagDataResult CryptoPluginWrapper::encrypt(
     return TagDataResult(result, ciphertext, authenticationTag);
 }
 
-VerifiedDataResult CryptoPluginWrapper::decrypt(
+VerifiedDataResult CryptoPluginFunctionWrapper::decrypt(
         const PluginAndCustomParams &pluginAndCustomParams,
         const DataAndIV &dataAndIv,
         const Key &key, // or keyreference, i.e. Key(keyName)
@@ -249,7 +264,7 @@ VerifiedDataResult CryptoPluginWrapper::decrypt(
     return VerifiedDataResult(result, plaintext, verified);
 }
 
-CipherSessionTokenResult CryptoPluginWrapper::initialiseCipherSession(
+CipherSessionTokenResult CryptoPluginFunctionWrapper::initialiseCipherSession(
         const PluginAndCustomParams &pluginAndCustomParams,
         quint64 clientId,
         const QByteArray &iv,
@@ -271,7 +286,7 @@ CipherSessionTokenResult CryptoPluginWrapper::initialiseCipherSession(
     return CipherSessionTokenResult(result, cipherSessionToken);
 }
 
-Result CryptoPluginWrapper::updateCipherSessionAuthentication(
+Result CryptoPluginFunctionWrapper::updateCipherSessionAuthentication(
         const PluginAndCustomParams &pluginAndCustomParams,
         quint64 clientId,
         const QByteArray &authenticationData,
@@ -283,7 +298,7 @@ Result CryptoPluginWrapper::updateCipherSessionAuthentication(
                 cipherSessionToken);
 }
 
-DataResult CryptoPluginWrapper::updateCipherSession(
+DataResult CryptoPluginFunctionWrapper::updateCipherSession(
         const PluginAndCustomParams &pluginAndCustomParams,
         quint64 clientId,
         const QByteArray &data,
@@ -298,7 +313,7 @@ DataResult CryptoPluginWrapper::updateCipherSession(
     return DataResult(result, generatedData);
 }
 
-VerifiedDataResult CryptoPluginWrapper::finaliseCipherSession(
+VerifiedDataResult CryptoPluginFunctionWrapper::finaliseCipherSession(
         const PluginAndCustomParams &pluginAndCustomParams,
         quint64 clientId,
         const QByteArray &data,
@@ -312,4 +327,43 @@ VerifiedDataResult CryptoPluginWrapper::finaliseCipherSession(
                 cipherSessionToken,
                 &generatedData, &verified);
     return VerifiedDataResult(result, generatedData, verified);
+}
+
+KeyResult CryptoPluginFunctionWrapper::generateAndStoreKey(
+        const PluginWrapperAndCustomParams &pluginAndCustomParams,
+        const Sailfish::Crypto::Key &keyTemplate,
+        const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
+        const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+        const QByteArray &collectionUnlockCode)
+{
+    Sailfish::Secrets::Daemon::ApiImpl::CollectionMetadata collectionMetadata;
+    Sailfish::Secrets::Result sresult = pluginAndCustomParams.plugin->collectionMetadata(
+                keyTemplate.identifier().collectionName(),
+                &collectionMetadata);
+    if (sresult.code() != Sailfish::Secrets::Result::Succeeded) {
+        return KeyResult(transformSecretsResult(sresult), keyTemplate);
+    }
+
+    Sailfish::Secrets::Daemon::ApiImpl::SecretMetadata metadata;
+    metadata.collectionName = keyTemplate.identifier().collectionName();
+    metadata.secretName = keyTemplate.identifier().name();
+    metadata.ownerApplicationId = collectionMetadata.ownerApplicationId;
+    metadata.usesDeviceLockKey = collectionMetadata.usesDeviceLockKey;
+    metadata.encryptionPluginName = collectionMetadata.encryptionPluginName;
+    metadata.authenticationPluginName = collectionMetadata.authenticationPluginName;
+    metadata.unlockSemantic = collectionMetadata.unlockSemantic;
+    metadata.accessControlMode = collectionMetadata.accessControlMode;
+    metadata.secretType = Sailfish::Secrets::Secret::TypeCryptoKey;
+    metadata.cryptoPluginName = pluginAndCustomParams.plugin->name();
+
+    Key keyReference(keyTemplate);
+    Result result = pluginAndCustomParams.plugin->generateAndStoreKey(
+                metadata,
+                keyTemplate,
+                kpgParams,
+                skdfParams,
+                pluginAndCustomParams.customParameters,
+                collectionUnlockCode,
+                &keyReference);
+    return KeyResult(result, keyReference);
 }

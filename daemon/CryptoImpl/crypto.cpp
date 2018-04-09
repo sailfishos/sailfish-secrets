@@ -146,7 +146,6 @@ void Daemon::ApiImpl::CryptoDBusObject::generateStoredKey(
         const InteractionParameters &uiParams,
         const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
-        const QString &storageProviderName,
         const QDBusMessage &message,
         Result &result,
         Key &key)
@@ -159,7 +158,6 @@ void Daemon::ApiImpl::CryptoDBusObject::generateStoredKey(
     inParams << QVariant::fromValue<InteractionParameters>(uiParams);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
-    inParams << QVariant::fromValue<QString>(storageProviderName);
     m_requestQueue->handleRequest(Daemon::ApiImpl::GenerateStoredKeyRequest,
                                   inParams,
                                   connection(),
@@ -194,7 +192,6 @@ void Daemon::ApiImpl::CryptoDBusObject::importStoredKey(
         const Sailfish::Crypto::InteractionParameters &uiParams,
         const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
-        const QString &storageProviderName,
         const QDBusMessage &message,
         Result &result,
         Key &importedKey)
@@ -205,7 +202,6 @@ void Daemon::ApiImpl::CryptoDBusObject::importStoredKey(
     inParams << QVariant::fromValue<InteractionParameters>(uiParams);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
-    inParams << QVariant::fromValue<QString>(storageProviderName);
     m_requestQueue->handleRequest(Daemon::ApiImpl::ImportStoredKeyRequest,
                                   inParams,
                                   connection(),
@@ -246,12 +242,14 @@ void Daemon::ApiImpl::CryptoDBusObject::deleteStoredKey(
 }
 
 void Daemon::ApiImpl::CryptoDBusObject::storedKeyIdentifiers(
+        const QString &storagePluginName,
         const QDBusMessage &message,
         Result &result,
         QVector<Key::Identifier> &identifiers)
 {
     Q_UNUSED(identifiers);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
+    inParams << storagePluginName;
     m_requestQueue->handleRequest(Daemon::ApiImpl::StoredKeyIdentifiersRequest,
                                   inParams,
                                   connection(),
@@ -823,9 +821,6 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             QString cryptosystemProviderName = request->inParams.size()
                     ? request->inParams.takeFirst().value<QString>()
                     : QString();
-            QString storageProviderName = request->inParams.size()
-                    ? request->inParams.takeFirst().value<QString>()
-                    : QString();
             Result result = m_requestProcessor->generateStoredKey(
                         request->remotePid,
                         request->requestId,
@@ -835,7 +830,6 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
                         uiParams,
                         customParameters,
                         cryptosystemProviderName,
-                        storageProviderName,
                         &key);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {
@@ -898,10 +892,6 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             QString cryptosystemProviderName = request->inParams.size()
                     ? request->inParams.takeFirst().value<QString>()
                     : QString();
-            QString storageProviderName = request->inParams.size()
-                    ? request->inParams.takeFirst().value<QString>()
-                    : QString();
-
             Result result = m_requestProcessor->importStoredKey(
                         request->remotePid,
                         request->requestId,
@@ -909,8 +899,6 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
                         uiParams,
                         customParameters,
                         cryptosystemProviderName,
-                        storageProviderName,
-                        QByteArray(),
                         &importedKey);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {
@@ -970,10 +958,14 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
         }
         case StoredKeyIdentifiersRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling StoredKeyIdentifiersRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            QString storagePluginName = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
             QVector<Key::Identifier> identifiers;
             Result result = m_requestProcessor->storedKeyIdentifiers(
                         request->remotePid,
                         request->requestId,
+                        storagePluginName,
                         &identifiers);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {

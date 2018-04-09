@@ -84,8 +84,7 @@ public:
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             const Sailfish::Crypto::InteractionParameters &uiParams,
             const QVariantMap &customParameters,
-            const QString &cryptosystemProviderName,
-            const QString &storageProviderName);
+            const QString &cryptosystemProviderName);
 
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> importKey(
             const Sailfish::Crypto::Key &key,
@@ -97,8 +96,7 @@ public:
             const Sailfish::Crypto::Key &key,
             const Sailfish::Crypto::InteractionParameters &uiParams,
             const QVariantMap &customParameters,
-            const QString &cryptosystemProviderName,
-            const QString &storageProviderName);
+            const QString &cryptosystemProviderName);
 
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> storedKey(
             const Sailfish::Crypto::Key::Identifier &identifier,
@@ -107,7 +105,8 @@ public:
     QDBusPendingReply<Sailfish::Crypto::Result> deleteStoredKey(
             const Sailfish::Crypto::Key::Identifier &identifier);
 
-    QDBusPendingReply<Sailfish::Crypto::Result, QVector<Sailfish::Crypto::Key::Identifier> > storedKeyIdentifiers();
+    QDBusPendingReply<Sailfish::Crypto::Result, QVector<Sailfish::Crypto::Key::Identifier> > storedKeyIdentifiers(
+            const QString &storagePluginName);
 
     QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> calculateDigest(
             const QByteArray &data,

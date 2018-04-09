@@ -28,7 +28,8 @@ DeleteCollectionRequestPrivate::DeleteCollectionRequestPrivate()
  * \brief Allows a client request that the system secrets service delete a collection from secrets storage
  *
  * This class allows clients to request the Secrets service to delete a collection
- * with the particular collectionName().
+ * with the particular collectionName() from the storage plugin with the specified
+ * storagePluginName().
  *
  * If the calling application is the creator of the collection, or alternatively
  * if the user has granted the application permission to delete the collection,
@@ -47,6 +48,7 @@ DeleteCollectionRequestPrivate::DeleteCollectionRequestPrivate()
  * Sailfish::Secrets::SecretManager sm;
  * Sailfish::Secrets::DeleteCollectionRequest dcr;
  * dcr.setManager(&sm);
+ * dcr.setStoragePluginName(Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
  * dcr.setCollectionName(QLatin1String("ExampleCollection"));
  * dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
  * dcr.startRequest(); // status() will change to Finished when complete
@@ -56,8 +58,7 @@ DeleteCollectionRequestPrivate::DeleteCollectionRequestPrivate()
  */
 
 /*!
- * \brief Constructs a new DeleteCollectionRequest object which interfaces to the system
- *        crypto service via the given \a manager, with the given \a parent.
+ * \brief Constructs a new DeleteCollectionRequest object with the given \a parent.
  */
 DeleteCollectionRequest::DeleteCollectionRequest(QObject *parent)
     : Request(parent)
@@ -94,6 +95,31 @@ void DeleteCollectionRequest::setCollectionName(const QString &name)
             emit statusChanged();
         }
         emit collectionNameChanged();
+    }
+}
+
+/*!
+ * \brief Returns the name of the storage plugin from which the client wishes to delete the collection
+ */
+QString DeleteCollectionRequest::storagePluginName() const
+{
+    Q_D(const DeleteCollectionRequest);
+    return d->m_storagePluginName;
+}
+
+/*!
+ * \brief Sets the name of the storage plugin from which the client wishes to delete the collection to \a pluginName
+ */
+void DeleteCollectionRequest::setStoragePluginName(const QString &pluginName)
+{
+    Q_D(DeleteCollectionRequest);
+    if (d->m_status != Request::Active && d->m_storagePluginName != pluginName) {
+        d->m_storagePluginName = pluginName;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit storagePluginNameChanged();
     }
 }
 
@@ -162,6 +188,7 @@ void DeleteCollectionRequest::startRequest()
 
         QDBusPendingReply<Result> reply = d->m_manager->d_ptr->deleteCollection(
                                                     d->m_collectionName,
+                                                    d->m_storagePluginName,
                                                     d->m_userInteractionMode);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;

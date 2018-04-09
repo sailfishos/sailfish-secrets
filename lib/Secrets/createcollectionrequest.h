@@ -33,7 +33,6 @@ class SAILFISH_SECRETS_API CreateCollectionRequest : public Sailfish::Secrets::R
     Q_PROPERTY(Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic customLockUnlockSemantic READ customLockUnlockSemantic WRITE setCustomLockUnlockSemantic NOTIFY customLockUnlockSemanticChanged)
     Q_PROPERTY(Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode READ accessControlMode WRITE setAccessControlMode NOTIFY accessControlModeChanged)
     Q_PROPERTY(Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode READ userInteractionMode WRITE setUserInteractionMode NOTIFY userInteractionModeChanged)
-    Q_PROPERTY(int customLockTimeout READ customLockTimeout WRITE setCustomLockTimeout NOTIFY customLockTimeoutChanged)
 
 public:
     enum CollectionLockType {
@@ -71,9 +70,6 @@ public:
     Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode() const;
     void setUserInteractionMode(Sailfish::Secrets::SecretManager::UserInteractionMode mode);
 
-    int customLockTimeout() const;
-    void setCustomLockTimeout(int timeout);
-
     Sailfish::Secrets::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result result() const Q_DECL_OVERRIDE;
 
@@ -93,7 +89,6 @@ Q_SIGNALS:
     void customLockUnlockSemanticChanged();
     void accessControlModeChanged();
     void userInteractionModeChanged();
-    void customLockTimeoutChanged();
 
 private:
     QScopedPointer<CreateCollectionRequestPrivate> const d_ptr;

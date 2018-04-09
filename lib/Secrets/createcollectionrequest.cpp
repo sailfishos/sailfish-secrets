@@ -23,7 +23,6 @@ CreateCollectionRequestPrivate::CreateCollectionRequestPrivate()
     , m_customLockUnlockSemantic(SecretManager::CustomLockKeepUnlocked)
     , m_accessControlMode(SecretManager::OwnerOnlyMode)
     , m_userInteractionMode(SecretManager::PreventInteraction)
-    , m_customLockTimeout(0)
     , m_status(Request::Inactive)
 {
 }
@@ -43,11 +42,6 @@ CreateCollectionRequestPrivate::CreateCollectionRequestPrivate()
  * In either case, secrets stored in the collection will be encrypted with a key
  * derived from the appropriate authentication code, by the encryption plugin
  * identified by its encryptionPluginName().
- *
- * If the collection is protected by a custom-lock and the customLockUnlockSemantic()
- * specified is \c CustomLockTimoutRelock then the specified customLockTimeout() will
- * be used as the timeout (in milliseconds) after the collection is unlocked which
- * will trigger it to be relocked.
  *
  * If the storagePluginName() and encryptionPluginName() are specified to be the
  * same plugin, then that plugin is assumed to be an \tt EncryptedStoragePlugin
@@ -331,34 +325,6 @@ void CreateCollectionRequest::setUserInteractionMode(SecretManager::UserInteract
     }
 }
 
-/*!
- * \brief Returns the lock timeout which should apply to the collection
- */
-int CreateCollectionRequest::customLockTimeout() const
-{
-    Q_D(const CreateCollectionRequest);
-    return d->m_customLockTimeout;
-}
-
-/*!
- * \brief Sets the lock timeout which should apply to the collection
- *
- * Note: this will only apply to collections whose collectionLockType() is CreateCollectionRequest::CustomLock,
- * and whose customLockUnlockSemantic() is SecretManager::CustomLockTimoutRelock.
- */
-void CreateCollectionRequest::setCustomLockTimeout(int timeout)
-{
-    Q_D(CreateCollectionRequest);
-    if (d->m_status != Request::Active && d->m_customLockTimeout != timeout) {
-        d->m_customLockTimeout = timeout;
-        if (d->m_status == Request::Finished) {
-            d->m_status = Request::Inactive;
-            emit statusChanged();
-        }
-        emit customLockTimeoutChanged();
-    }
-}
-
 Request::Status CreateCollectionRequest::status() const
 {
     Q_D(const CreateCollectionRequest);
@@ -404,7 +370,6 @@ void CreateCollectionRequest::startRequest()
                                                           d->m_encryptionPluginName,
                                                           d->m_authenticationPluginName,
                                                           d->m_customLockUnlockSemantic,
-                                                          d->m_customLockTimeout,
                                                           d->m_accessControlMode,
                                                           d->m_userInteractionMode);
         } else {

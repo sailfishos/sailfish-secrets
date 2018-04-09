@@ -198,7 +198,7 @@ private:
 
     CryptoManager cm;
     Sailfish::Secrets::SecretManager sm;
-    QStringList populatedCollections;
+    QMap<QString,QString> populatedCollections;
 };
 
 Q_DECLARE_METATYPE(Sailfish::Crypto::Result::ResultCode)
@@ -238,17 +238,20 @@ void tst_cryptorequests::init()
 
 void tst_cryptorequests::cleanup()
 {
-    while (!populatedCollections.isEmpty()) {
+    for (const QString &collectionName : populatedCollections.keys()) {
         // clean up by deleting the collection in which the secret is stored.
         Sailfish::Secrets::DeleteCollectionRequest dcr;
         dcr.setManager(&sm);
-        dcr.setCollectionName(populatedCollections.takeFirst());
+        dcr.setCollectionName(collectionName);
+        dcr.setStoragePluginName(populatedCollections.value(collectionName));
         dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
         dcr.startRequest();
         WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
         QCOMPARE(dcr.status(), Sailfish::Secrets::Request::Finished);
+        QCOMPARE(dcr.result().errorMessage(), QString());
         QCOMPARE(dcr.result().code(), Sailfish::Secrets::Result::Succeeded);
     }
+    populatedCollections.clear();
 }
 
 void tst_cryptorequests::getPluginInfo()
@@ -767,7 +770,9 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(ccr.result().code(), Sailfish::Secrets::Result::Succeeded);
 
     // request that the secret key be generated and stored into that collection.
-    keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(QLatin1String("storedkey"), QLatin1String("tstcryptosecretsgcsked")));
+    keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(QLatin1String("storedkey"),
+                                                                QLatin1String("tstcryptosecretsgcsked"),
+                                                                DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME));
     // note that the secret key data will never enter the client process address space.
     GenerateStoredKeyRequest gskr;
     gskr.setManager(&cm);
@@ -777,8 +782,6 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(gskr.keyTemplate(), keyTemplate);
     gskr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(gskr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    gskr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    QCOMPARE(gskr.storagePluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(gskr.status(), Request::Inactive);
     gskr.startRequest();
     QCOMPARE(gskrss.count(), 1);
@@ -795,6 +798,9 @@ void tst_cryptorequests::storedKeyRequests()
     QVERIFY(keyReference.secretKey().isEmpty());
     QVERIFY(keyReference.privateKey().isEmpty());
     QCOMPARE(keyReference.filterData(), keyTemplate.filterData());
+    QVERIFY(!keyReference.identifier().name().isEmpty());
+    QVERIFY(!keyReference.identifier().collectionName().isEmpty());
+    QVERIFY(!keyReference.identifier().storagePluginName().isEmpty());
 
     // test encrypting some plaintext with the stored key.
     QByteArray plaintext = "Test plaintext data";
@@ -891,6 +897,7 @@ void tst_cryptorequests::storedKeyRequests()
     fsr.setFilterOperator(Sailfish::Secrets::SecretManager::OperatorAnd);
     fsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
     fsr.setCollectionName(keyTemplate.identifier().collectionName());
+    fsr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     fsr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(fsr);
     QCOMPARE(fsr.status(), Sailfish::Secrets::Request::Finished);
@@ -952,6 +959,7 @@ void tst_cryptorequests::storedKeyRequests()
     Sailfish::Secrets::DeleteCollectionRequest dcr;
     dcr.setManager(&sm);
     dcr.setCollectionName(QLatin1String("tstcryptosecretsgcsked"));
+    dcr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
     dcr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
@@ -1032,7 +1040,8 @@ void tst_cryptorequests::storedKeyRequests()
     gsr.setManager(&sm);
     gsr.setIdentifier(Sailfish::Secrets::Secret::Identifier(
                           keyReference.identifier().name(),
-                          keyReference.identifier().collectionName()));
+                          keyReference.identifier().collectionName(),
+                          keyReference.identifier().storagePluginName()));
     gsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
     gsr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
@@ -1104,7 +1113,10 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     QCOMPARE(ccr.result().code(), Sailfish::Secrets::Result::Succeeded);
 
     // request that the secret key be generated and stored into that collection.
-    keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(QLatin1String("storedkey"), QLatin1String("tstcryptosecretsgcsked")));
+    keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(
+                                  QLatin1String("storedkey"),
+                                  QLatin1String("tstcryptosecretsgcsked"),
+                                  DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME));
     // note that the secret key data will never enter the client process address space.
     GenerateStoredKeyRequest gskr;
     gskr.setManager(&cm);
@@ -1114,8 +1126,6 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     QCOMPARE(gskr.keyTemplate(), keyTemplate);
     gskr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(gskr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    gskr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    QCOMPARE(gskr.storagePluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     gskr.setKeyDerivationParameters(skdf);
     QCOMPARE(gskr.keyDerivationParameters(), skdf);
     gskr.setInteractionParameters(uiParams);
@@ -1229,6 +1239,7 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     fsr.setFilterOperator(Sailfish::Secrets::SecretManager::OperatorAnd);
     fsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
     fsr.setCollectionName(keyTemplate.identifier().collectionName());
+    fsr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     fsr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(fsr);
     QCOMPARE(fsr.status(), Sailfish::Secrets::Request::Finished);
@@ -1290,6 +1301,7 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     Sailfish::Secrets::DeleteCollectionRequest dcr;
     dcr.setManager(&sm);
     dcr.setCollectionName(QLatin1String("tstcryptosecretsgcsked"));
+    dcr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
     dcr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
@@ -1357,7 +1369,8 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     gsr.setManager(&sm);
     gsr.setIdentifier(Sailfish::Secrets::Secret::Identifier(
                           keyReference.identifier().name(),
-                          keyReference.identifier().collectionName()));
+                          keyReference.identifier().collectionName(),
+                          keyReference.identifier().storagePluginName()));
     gsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
     gsr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
@@ -1408,7 +1421,10 @@ void tst_cryptorequests::storedGeneratedKeyRequests()
     QCOMPARE(ccr.result().code(), Sailfish::Secrets::Result::Succeeded);
 
     // request that the secret key be generated and stored into that collection.
-    keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(QLatin1String("storedkey"), QLatin1String("tstcryptosecretsgcsked")));
+    keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(
+                                  QLatin1String("storedkey"),
+                                  QLatin1String("tstcryptosecretsgcsked"),
+                                  DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME));
     // note that the secret key data will never enter the client process address space.
     GenerateStoredKeyRequest gskr;
     gskr.setManager(&cm);
@@ -1418,8 +1434,6 @@ void tst_cryptorequests::storedGeneratedKeyRequests()
     QCOMPARE(gskr.keyTemplate(), keyTemplate);
     gskr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(gskr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    gskr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    QCOMPARE(gskr.storagePluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     gskr.setKeyPairGenerationParameters(rsakpg);
     QCOMPARE(gskr.status(), Request::Inactive);
     gskr.startRequest();
@@ -1448,6 +1462,7 @@ void tst_cryptorequests::storedGeneratedKeyRequests()
     fsr.setFilterOperator(Sailfish::Secrets::SecretManager::OperatorAnd);
     fsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
     fsr.setCollectionName(keyTemplate.identifier().collectionName());
+    fsr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     fsr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(fsr);
     QCOMPARE(fsr.status(), Sailfish::Secrets::Request::Finished);
@@ -1512,6 +1527,7 @@ void tst_cryptorequests::storedGeneratedKeyRequests()
     Sailfish::Secrets::DeleteCollectionRequest dcr;
     dcr.setManager(&sm);
     dcr.setCollectionName(QLatin1String("tstcryptosecretsgcsked"));
+    dcr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
     dcr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
@@ -1561,7 +1577,10 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     QCOMPARE(ccr.result().code(), Sailfish::Secrets::Result::Succeeded);
 
     // request that the secret key be generated and stored into that collection.
-    keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(QLatin1String("storedkey"), QLatin1String("tstcryptosecretsgcsked")));
+    keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(
+                                  QLatin1String("storedkey"),
+                                  QLatin1String("tstcryptosecretsgcsked"),
+                                  DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME));
     // note that the secret key data will never enter the client process address space.
     GenerateStoredKeyRequest gskr;
     gskr.setManager(&cm);
@@ -1571,8 +1590,6 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     QCOMPARE(gskr.keyTemplate(), keyTemplate);
     gskr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(gskr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    gskr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    QCOMPARE(gskr.storagePluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(gskr.status(), Request::Inactive);
     gskr.startRequest();
     QCOMPARE(gskrss.count(), 1);
@@ -1589,7 +1606,8 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     QVERIFY(keyReference.privateKey().isEmpty());
     QCOMPARE(keyReference.filterData(), keyTemplate.filterData());
     Sailfish::Crypto::Key minimalKeyReference(keyReference.identifier().name(),
-                                              keyReference.identifier().collectionName());
+                                              keyReference.identifier().collectionName(),
+                                              keyReference.identifier().storagePluginName());
 
     // now perform encryption.
     QByteArray iv = generateInitializationVector(keyTemplate.algorithm(), blockMode);
@@ -1787,6 +1805,7 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     Sailfish::Secrets::DeleteCollectionRequest dcr;
     dcr.setManager(&sm);
     dcr.setCollectionName(QLatin1String("tstcryptosecretsgcsked"));
+    dcr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
     dcr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
@@ -1844,7 +1863,10 @@ void tst_cryptorequests::cipherBenchmark()
     QCOMPARE(ccr.result().code(), Sailfish::Secrets::Result::Succeeded);
 
     // request that the secret key be generated and stored into that collection.
-    keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(QLatin1String("storedkey"), QLatin1String("tstcryptosecretsgcsked")));
+    keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(
+                                  QLatin1String("storedkey"),
+                                  QLatin1String("tstcryptosecretsgcsked"),
+                                  DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME));
     // note that the secret key data will never enter the client process address space.
     GenerateStoredKeyRequest gskr;
     gskr.setManager(&cm);
@@ -1854,8 +1876,6 @@ void tst_cryptorequests::cipherBenchmark()
     QCOMPARE(gskr.keyTemplate(), keyTemplate);
     gskr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(gskr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    gskr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    QCOMPARE(gskr.storagePluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(gskr.status(), Request::Inactive);
     gskr.startRequest();
     QCOMPARE(gskrss.count(), 1);
@@ -1872,7 +1892,8 @@ void tst_cryptorequests::cipherBenchmark()
     QVERIFY(keyReference.privateKey().isEmpty());
     QCOMPARE(keyReference.filterData(), keyTemplate.filterData());
     Sailfish::Crypto::Key minimalKeyReference(keyReference.identifier().name(),
-                                              keyReference.identifier().collectionName());
+                                              keyReference.identifier().collectionName(),
+                                              keyReference.identifier().storagePluginName());
 
     QByteArray iv = generateInitializationVector(keyTemplate.algorithm(), blockMode);
     QByteArray canonicalCiphertext;
@@ -2067,6 +2088,7 @@ void tst_cryptorequests::cipherBenchmark()
     Sailfish::Secrets::DeleteCollectionRequest dcr;
     dcr.setManager(&sm);
     dcr.setCollectionName(QLatin1String("tstcryptosecretsgcsked"));
+    dcr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
     dcr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
@@ -2105,7 +2127,10 @@ void tst_cryptorequests::cipherTimeout()
     QCOMPARE(ccr.result().code(), Sailfish::Secrets::Result::Succeeded);
 
     // request that the secret key be generated and stored into that collection.
-    keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(QLatin1String("storedkey"), QLatin1String("tstcryptosecretsgcsked")));
+    keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(
+                                  QLatin1String("storedkey"),
+                                  QLatin1String("tstcryptosecretsgcsked"),
+                                  DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME));
     // note that the secret key data will never enter the client process address space.
     GenerateStoredKeyRequest gskr;
     gskr.setManager(&cm);
@@ -2115,8 +2140,6 @@ void tst_cryptorequests::cipherTimeout()
     QCOMPARE(gskr.keyTemplate(), keyTemplate);
     gskr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(gskr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    gskr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    QCOMPARE(gskr.storagePluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(gskr.status(), Request::Inactive);
     gskr.startRequest();
     QCOMPARE(gskrss.count(), 1);
@@ -2133,12 +2156,12 @@ void tst_cryptorequests::cipherTimeout()
     QVERIFY(keyReference.privateKey().isEmpty());
     QCOMPARE(keyReference.filterData(), keyTemplate.filterData());
     Sailfish::Crypto::Key minimalKeyReference(keyReference.identifier().name(),
-                                              keyReference.identifier().collectionName());
+                                              keyReference.identifier().collectionName(),
+                                              keyReference.identifier().storagePluginName());
 
     // now perform encryption.
-    QByteArray iv = generateInitializationVector(keyTemplate.algorithm(), Sailfish::Crypto::CryptoManager::BlockModeCbc);
-    QByteArray ciphertext;
-    QByteArray decrypted;
+    QByteArray iv = generateInitializationVector(keyTemplate.algorithm(),
+                                                 Sailfish::Crypto::CryptoManager::BlockModeCbc);
     QByteArray plaintext("This is a long plaintext"
                          " which contains multiple blocks of data"
                          " which will be encrypted over several updates"
@@ -2207,6 +2230,7 @@ void tst_cryptorequests::cipherTimeout()
     Sailfish::Secrets::DeleteCollectionRequest dcr;
     dcr.setManager(&sm);
     dcr.setCollectionName(QLatin1String("tstcryptosecretsgcsked"));
+    dcr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
     dcr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
@@ -2372,7 +2396,11 @@ void tst_cryptorequests::requestInterleaving()
     er.setPadding(CryptoManager::EncryptionPaddingNone);
     er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
 
-    Sailfish::Secrets::Secret testSecret(Sailfish::Secrets::Secret::Identifier("testsecretname"));
+    Sailfish::Secrets::Secret testSecret(
+                Sailfish::Secrets::Secret::Identifier(
+                        QStringLiteral("testsecretname"),
+                        QString(),
+                        DEFAULT_TEST_STORAGE_PLUGIN));
     testSecret.setData("testsecretvalue");
     testSecret.setType(Sailfish::Secrets::Secret::TypeBlob);
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
@@ -2383,7 +2411,6 @@ void tst_cryptorequests::requestInterleaving()
     ssr.setSecretStorageType(Sailfish::Secrets::StoreSecretRequest::StandaloneDeviceLockSecret);
     ssr.setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked);
     ssr.setAccessControlMode(Sailfish::Secrets::SecretManager::OwnerOnlyMode);
-    ssr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
     ssr.setEncryptionPluginName(DEFAULT_TEST_ENCRYPTION_PLUGIN);
     ssr.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
     ssr.setUserInteractionMode(Sailfish::Secrets::SecretManager::ApplicationInteraction);
@@ -2409,17 +2436,18 @@ void tst_cryptorequests::requestInterleaving()
 
     keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(
                                   QLatin1String("storedkey"),
-                                  QLatin1String("testinterleavingcollection")));
+                                  QLatin1String("testinterleavingcollection"),
+                                  DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME));
     GenerateStoredKeyRequest gskr;
     gskr.setManager(&cm);
     gskr.setKeyTemplate(keyTemplate);
     gskr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    gskr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     gskr.startRequest();
 
     Sailfish::Secrets::DeleteCollectionRequest dcr;
     dcr.setManager(&sm);
     dcr.setCollectionName(QLatin1String("testinterleavingcollection"));
+    dcr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::ApplicationInteraction);
     dcr.startRequest();
 
@@ -2466,8 +2494,7 @@ void tst_cryptorequests::requestInterleaving()
                     // collection request.  If it failed, decrement our step counter
                     // and restart the request; next time it must pass as there will
                     // be no possible conflicts.
-                    if (gskr.result().errorMessage() == QStringLiteral("The identified collection is not stored by that plugin")
-                            || gskr.result().errorMessage() == QStringLiteral("That collection is being modified and cannot currently be used")) {
+                    if (gskr.result().errorCode() == Sailfish::Crypto::Result::InvalidKeyIdentifier) {
                         ensureSucceeded = false;
                         gskrMustSucceed = true;
                         generateStoredKeyStep--;
@@ -2486,25 +2513,12 @@ void tst_cryptorequests::requestInterleaving()
                     // restarting it now would result in a failure (duplicate key).
                     gskr.startRequest();
                 }
-            } else if (gskr.result().errorMessage() == QStringLiteral("The identified collection is not stored by that plugin")) {
-                // Note that if this request was started (on the main thread)
-                // while the delete collection request was ongoing (on the
-                // secrets plugin thread), it might fail specifically at the
-                // point where the secrets request processor attempts to
-                // determine if the target collection is stored by the plugin,
-                // since that check is performed via an asynchronous request.
-                // This is OK, since no data will have been written to the
-                // bookkeeping database (by setCollectionSecretMetadata())
-                // at that point.
-                gskr.startRequest();
-            } else if (gskr.result().errorMessage() == QStringLiteral("That collection is being modified and cannot currently be used")) {
-                // Note that if this request was started (on the main thread)
-                // while the delete collection request was ongoing (on the
-                // secrets plugin thread), it should fail with this error.
-                // This is OK, since no data will have been written to the
-                // bookkeeping database (by setCollectionSecretMetadata())
-                // at that point, as we prevent that via the interleaving-lock.
-                gskr.startRequest();
+            } else if (gskr.result().errorCode() == Sailfish::Crypto::Result::InvalidKeyIdentifier) {
+                // If the request is interleaved such that the collection
+                // has not successfully been created by the time we attempt
+                // to generate and store the key, we may get this error.
+                // This isn't a problem, as no stale data will have been
+                // written to or left in any metadata databases.
             } else {
                 // other errors are potentially erroneous request interleaves.
                 QCOMPARE(gskr.result().errorMessage(), QString());
@@ -2524,14 +2538,18 @@ void tst_cryptorequests::requestInterleaving()
         if (ssr.status() == Sailfish::Secrets::Request::Finished) {
             QCOMPARE(ssr.result().errorMessage(), QString());
             QCOMPARE(ssr.result().code(), Sailfish::Secrets::Result::Succeeded);
-            if (dsr.status() == Sailfish::Secrets::Request::Finished) {
+            if (dsr.status() == Sailfish::Secrets::Request::Finished
+                    && dsr.result().code() == Sailfish::Secrets::Result::Succeeded) {
                 ssr.startRequest();
             }
         }
 
         if (dsr.status() == Sailfish::Secrets::Request::Finished) {
-            QCOMPARE(dsr.result().errorMessage(), QString());
-            QCOMPARE(dsr.result().code(), Sailfish::Secrets::Result::Succeeded);
+            // this may not succeed if the deletion is queued "too soon" after the secret is stored
+            // since the "pre-check" (which retrieves the secret metadata) may fail if the secret
+            // hasn't yet been stored.
+            // E.g.: interleaved as ssr.precheck/dsr.precheck/ssr.store/dsr.delete
+            // But if the previous dsr succeeded, the next ssr should succeed (non-duplicate).
             dsr.startRequest();
         }
 
@@ -2810,7 +2828,9 @@ void tst_cryptorequests::importKey_data()
 
     Sailfish::Crypto::InteractionParameters noUserInteraction;
 
-    Key::Identifier keyIdentifier(QStringLiteral("storedkey"), QStringLiteral("tstcryptorequestsimportKey"));
+    Key::Identifier keyIdentifier(QStringLiteral("storedkey"),
+                                  QStringLiteral("tstcryptorequestsimportKey"),
+                                  DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
 
     QTest::newRow("Private RSA 2048 - no passphrase")
             << createPrivateKey(keyIdentifier, test_key_rsa_2048_in)
@@ -3023,8 +3043,6 @@ void tst_cryptorequests::importKeyAndStore()
     }
 
     if (!key.collectionName().isEmpty()) {
-        populatedCollections.append(key.collectionName());
-
         // first, create the collection via the Secrets API.
         Sailfish::Secrets::CreateCollectionRequest ccr;
         ccr.setManager(&sm);
@@ -3038,13 +3056,11 @@ void tst_cryptorequests::importKeyAndStore()
         ccr.setUserInteractionMode(Sailfish::Secrets::SecretManager::ApplicationInteraction);
         ccr.startRequest();
         WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ccr);
-        QCOMPARE(ccr.status(), Sailfish::Secrets::Request::Finished);
-
         if (ccr.result().code() == Sailfish::Secrets::Result::Failed) {
             qDebug() << ccr.result().errorMessage();
+        } else {
+            populatedCollections.insert(key.collectionName(), key.storagePluginName());
         }
-
-        QCOMPARE(ccr.result().code(), Sailfish::Secrets::Result::Succeeded);
     }
 
     Sailfish::Crypto::ImportStoredKeyRequest request;
@@ -3052,9 +3068,6 @@ void tst_cryptorequests::importKeyAndStore()
 
     request.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(request.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-
-    request.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    QCOMPARE(request.storagePluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
 
     request.setKey(key);
     QCOMPARE(request.key(), key);
@@ -3071,7 +3084,12 @@ void tst_cryptorequests::importKeyAndStore()
     const Sailfish::Crypto::Key importedKey = request.importedKeyReference();
 
     QCOMPARE(importedKey.publicKey(), publicKey);
-    QCOMPARE(importedKey.privateKey(), QByteArray());
+    if (resultCode == Result::Succeeded) {
+        // we return whatever we received, in some failure codepaths.
+        // but, when we successfully store an imported key, we always
+        // return a key reference which contains no private key data.
+        QCOMPARE(importedKey.privateKey(), QByteArray());
+    }
     QCOMPARE(importedKey.size(), size);
     QCOMPARE(importedKey.origin(), origin);
     QCOMPARE(importedKey.algorithm(), algorithm);

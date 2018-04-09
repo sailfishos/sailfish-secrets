@@ -14,9 +14,9 @@ using namespace Sailfish::Secrets::Daemon::ApiImpl;
 /* These methods are to be called via QtConcurrent */
 
 FoundResult Daemon::ApiImpl::lockSpecificPlugin(
-        const QMap<QString, StoragePlugin*> &storagePlugins,
         const QMap<QString, EncryptionPlugin*> &encryptionPlugins,
-        const QMap<QString, EncryptedStoragePlugin*> &encryptedStoragePlugins,
+        const QMap<QString, StoragePluginWrapper*> &storagePlugins,
+        const QMap<QString, EncryptedStoragePluginWrapper*> &encryptedStoragePlugins,
         const QString &lockCodeTarget)
 {
     auto lambda = [] (PluginBase *p,
@@ -60,9 +60,9 @@ FoundResult Daemon::ApiImpl::lockSpecificPlugin(
 }
 
 FoundResult Daemon::ApiImpl::unlockSpecificPlugin(
-        const QMap<QString, StoragePlugin*> &storagePlugins,
         const QMap<QString, EncryptionPlugin*> &encryptionPlugins,
-        const QMap<QString, EncryptedStoragePlugin*> &encryptedStoragePlugins,
+        const QMap<QString, StoragePluginWrapper*> &storagePlugins,
+        const QMap<QString, EncryptedStoragePluginWrapper*> &encryptedStoragePlugins,
         const QString &lockCodeTarget,
         const QByteArray &lockCode)
 {
@@ -111,9 +111,9 @@ FoundResult Daemon::ApiImpl::unlockSpecificPlugin(
 }
 
 FoundResult Daemon::ApiImpl::modifyLockSpecificPlugin(
-        const QMap<QString, StoragePlugin*> &storagePlugins,
         const QMap<QString, EncryptionPlugin*> &encryptionPlugins,
-        const QMap<QString, EncryptedStoragePlugin*> &encryptedStoragePlugins,
+        const QMap<QString, StoragePluginWrapper*> &storagePlugins,
+        const QMap<QString, EncryptedStoragePluginWrapper*> &encryptedStoragePlugins,
         const QString &lockCodeTarget,
         const LockCodes &newAndOldLockCode)
 {
@@ -166,109 +166,141 @@ FoundResult Daemon::ApiImpl::modifyLockSpecificPlugin(
 }
 
 bool Daemon::ApiImpl::masterLockPlugins(
-        const QList<StoragePlugin*> &storagePlugins,
-        const QList<EncryptedStoragePlugin*> &encryptedStoragePlugins)
+        const QList<StoragePluginWrapper*> &storagePlugins,
+        const QList<EncryptedStoragePluginWrapper*> &encryptedStoragePlugins)
 {
+    auto lambda = [] (PluginWrapper *p,
+                      const QString &type,
+                      bool *succeeded) {
+        if (!p->isMasterLocked()) {
+            if (!p->masterLock()) {
+                qCWarning(lcSailfishSecretsDaemon) << "Failed to master-lock" << type << "plugin:" << p->name();
+                *succeeded = false;
+            }
+        }
+    };
+
     bool allSucceeded = true;
-    for (StoragePlugin *splugin : storagePlugins) {
-        if (splugin->supportsMasterLock()) {
-            if (!splugin->isMasterLocked()) {
-                if (!splugin->masterLock()) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to master-lock storage plugin:" << splugin->name();
-                    allSucceeded = false;
-                }
-            }
-        }
+    for (StoragePluginWrapper *splugin : storagePlugins) {
+        lambda(splugin, QStringLiteral("storage"), &allSucceeded);
     }
-    for (EncryptedStoragePlugin *esplugin : encryptedStoragePlugins) {
-        if (esplugin->supportsMasterLock()) {
-            if (!esplugin->isMasterLocked()) {
-                if (!esplugin->masterLock()) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to master-lock encrypted storage plugin:" << esplugin->name();
-                    allSucceeded = false;
-                }
-            }
-        }
+    for (EncryptedStoragePluginWrapper *esplugin : encryptedStoragePlugins) {
+        lambda(esplugin, QStringLiteral("encrypted storage"), &allSucceeded);
     }
     return allSucceeded;
 }
 
 bool Daemon::ApiImpl::masterUnlockPlugins(
-        const QList<StoragePlugin*> &storagePlugins,
-        const QList<EncryptedStoragePlugin*> &encryptedStoragePlugins,
+        const QList<StoragePluginWrapper*> &storagePlugins,
+        const QList<EncryptedStoragePluginWrapper*> &encryptedStoragePlugins,
         const QByteArray &encryptionKey)
 {
+    auto lambda = [] (PluginWrapper *p,
+                      const QByteArray &key,
+                      const QString &type,
+                      bool *succeeded) {
+        if (p->isMasterLocked()) {
+            if (!p->masterUnlock(key)) {
+                qCWarning(lcSailfishSecretsDaemon) << "Failed to master-unlock" << type << "plugin:" << p->name();
+                *succeeded = false;
+            }
+        }
+    };
+
     bool allSucceeded = true;
-    for (StoragePlugin *splugin : storagePlugins) {
-        if (splugin->supportsMasterLock()) {
-            if (splugin->isMasterLocked()) {
-                if (!splugin->masterUnlock(encryptionKey)) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to master-unlock storage plugin:" << splugin->name();
-                    allSucceeded = false;
-                }
-            }
-        }
+    for (StoragePluginWrapper *splugin : storagePlugins) {
+        lambda(splugin, encryptionKey, QStringLiteral("storage"), &allSucceeded);
     }
-    for (EncryptedStoragePlugin *esplugin : encryptedStoragePlugins) {
-        if (esplugin->supportsMasterLock()) {
-            if (esplugin->isMasterLocked()) {
-                if (!esplugin->masterUnlock(encryptionKey)) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to master-unlock encrypted storage plugin:" << esplugin->name();
-                    allSucceeded = false;
-                }
-            }
-        }
+    for (EncryptedStoragePluginWrapper *esplugin : encryptedStoragePlugins) {
+        lambda(esplugin, encryptionKey, QStringLiteral("encrypted storage"), &allSucceeded);
     }
     return allSucceeded;
 }
 
 bool Daemon::ApiImpl::modifyMasterLockPlugins(
-        const QList<StoragePlugin*> &storagePlugins,
-        const QList<EncryptedStoragePlugin*> &encryptedStoragePlugins,
+        const QList<StoragePluginWrapper*> &storagePlugins,
+        const QList<EncryptedStoragePluginWrapper*> &encryptedStoragePlugins,
         const QByteArray &oldEncryptionKey,
         const QByteArray &newEncryptionKey)
 {
+    auto lambda = [] (PluginWrapper *p,
+                      const QByteArray &oldKey,
+                      const QByteArray &newKey,
+                      const QString &type,
+                      bool *succeeded) {
+        if (p->isMasterLocked()) {
+            if (!p->masterUnlock(oldKey)) {
+                qCWarning(lcSailfishSecretsDaemon) << "Failed to master-unlock" << type << "plugin:" << p->name();
+            }
+        }
+        if (!p->setMasterLockKey(oldKey, newKey)) {
+            qCWarning(lcSailfishSecretsDaemon) << "Failed to set master lock code for" << type << "plugin:" << p->name();
+            *succeeded = false;
+        }
+    };
+
     bool allSucceeded = true;
-    for (StoragePlugin *splugin : storagePlugins) {
-        if (splugin->supportsMasterLock()) {
-            if (splugin->isMasterLocked()) {
-                if (!splugin->masterUnlock(oldEncryptionKey)) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to master-unlock storage plugin:" << splugin->name();
-                }
-            }
-            if (!splugin->setMasterLockKey(oldEncryptionKey, newEncryptionKey)) {
-                qCWarning(lcSailfishSecretsDaemon) << "Failed to set master lock code for storage plugin:" << splugin->name();
-                allSucceeded = false;
-            }
-        }
+    for (StoragePluginWrapper *splugin : storagePlugins) {
+        lambda(splugin, oldEncryptionKey, newEncryptionKey, QStringLiteral("storage"), &allSucceeded);
     }
-    for (EncryptedStoragePlugin *esplugin : encryptedStoragePlugins) {
-        if (esplugin->supportsMasterLock()) {
-            if (esplugin->isMasterLocked()) {
-                if (!esplugin->masterUnlock(oldEncryptionKey)) {
-                    qCWarning(lcSailfishSecretsDaemon) << "Failed to master-unlock encrypted storage plugin:" << esplugin->name();
-                }
-            }
-            if (!esplugin->setMasterLockKey(oldEncryptionKey, newEncryptionKey)) {
-                qCWarning(lcSailfishSecretsDaemon) << "Failed to set master lock code for encrypted storage plugin:" << esplugin->name();
-                allSucceeded = false;
-            }
-        }
+    for (EncryptedStoragePluginWrapper *esplugin : encryptedStoragePlugins) {
+        lambda(esplugin, oldEncryptionKey, newEncryptionKey, QStringLiteral("encrypted storage"), &allSucceeded);
     }
     return allSucceeded;
 }
 
-bool EncryptionPluginWrapper::isLocked(EncryptionPlugin *plugin)
+IdentifiersResult Daemon::ApiImpl::storedKeyIdentifiers(
+        StoragePluginWrapper *storagePlugin,
+        EncryptedStoragePluginWrapper *encryptedStoragePlugin,
+        Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *cryptoStoragePlugin)
+{
+    auto lambda = [] (PluginWrapper *p,
+                      Result *result,
+                      QVector<Secret::Identifier> *idents) {
+        QStringList cnames;
+        QStringList knames;
+        *result = p->collectionNames(&cnames);
+        if (result->code() != Result::Succeeded) {
+            return;
+        }
+        for (const QString &cname : cnames) {
+            knames.clear();
+            *result = p->keyNames(cname, &knames);
+            if (result->code() != Result::Succeeded
+                    && result->errorCode() != Result::CollectionIsLockedError) {
+                return;
+            }
+            for (const QString &kname : knames) {
+                idents->append(Secret::Identifier(
+                        kname, cname, p->name()));
+            }
+        }
+    };
+
+    Result result = Result(Result::InvalidExtensionPluginError,
+                           QStringLiteral("No storage plugin specified"));
+    QVector<Secret::Identifier> idents;
+    if (storagePlugin) {
+        lambda(storagePlugin, &result, &idents);
+    } else if (cryptoStoragePlugin) { // order of check is important!
+        lambda(cryptoStoragePlugin, &result, &idents);
+    } else if (encryptedStoragePlugin) {
+        lambda(encryptedStoragePlugin, &result, &idents);
+    }
+    return IdentifiersResult(result, idents);
+}
+
+bool EncryptionPluginFunctionWrapper::isLocked(EncryptionPlugin *plugin)
 {
     return plugin->isLocked();
 }
 
-bool EncryptionPluginWrapper::lock(EncryptionPlugin *plugin)
+bool EncryptionPluginFunctionWrapper::lock(EncryptionPlugin *plugin)
 {
     return plugin->lock();
 }
 
-bool EncryptionPluginWrapper::unlock(EncryptionPlugin *plugin,
+bool EncryptionPluginFunctionWrapper::unlock(EncryptionPlugin *plugin,
                                      const QByteArray &lockCode)
 {
     return plugin->unlock(lockCode);
@@ -282,7 +314,7 @@ bool setLockCode(EncryptionPlugin *plugin,
 }
 
 DerivedKeyResult
-EncryptionPluginWrapper::deriveKeyFromCode(
+EncryptionPluginFunctionWrapper::deriveKeyFromCode(
         EncryptionPlugin *plugin,
         const QByteArray &authenticationCode,
         const QByteArray &salt)
@@ -292,169 +324,178 @@ EncryptionPluginWrapper::deriveKeyFromCode(
     return DerivedKeyResult(result, key);
 }
 
-EncryptionPluginWrapper::DataResult
-EncryptionPluginWrapper::encryptSecret(
+EncryptionPluginFunctionWrapper::DataResult
+EncryptionPluginFunctionWrapper::encryptSecret(
         EncryptionPlugin *plugin,
         const QByteArray &plaintext,
         const QByteArray &key)
 {
     QByteArray ciphertext;
     Result result = plugin->encryptSecret(plaintext, key, &ciphertext);
-    return EncryptionPluginWrapper::DataResult(result, ciphertext);
+    return EncryptionPluginFunctionWrapper::DataResult(result, ciphertext);
 }
 
-EncryptionPluginWrapper::DataResult
-EncryptionPluginWrapper::decryptSecret(
+EncryptionPluginFunctionWrapper::DataResult
+EncryptionPluginFunctionWrapper::decryptSecret(
         EncryptionPlugin *plugin,
         const QByteArray &encrypted,
         const QByteArray &key)
 {
     QByteArray plaintext;
     Result result = plugin->decryptSecret(encrypted, key, &plaintext);
-    return EncryptionPluginWrapper::DataResult(result, plaintext);
+    return EncryptionPluginFunctionWrapper::DataResult(result, plaintext);
 }
 
-bool StoragePluginWrapper::isLocked(StoragePlugin *plugin)
+bool StoragePluginFunctionWrapper::isLocked(StoragePluginWrapper *plugin)
 {
     return plugin->isLocked();
 }
 
-bool StoragePluginWrapper::lock(StoragePlugin *plugin)
+bool StoragePluginFunctionWrapper::lock(StoragePluginWrapper *plugin)
 {
     return plugin->lock();
 }
 
-bool StoragePluginWrapper::unlock(
-        StoragePlugin *plugin,
+bool StoragePluginFunctionWrapper::unlock(
+        StoragePluginWrapper *plugin,
         const QByteArray &lockCode)
 {
     return plugin->unlock(lockCode);
 }
 
-bool StoragePluginWrapper::setLockCode(
-        StoragePlugin *plugin,
+bool StoragePluginFunctionWrapper::setLockCode(
+        StoragePluginWrapper *plugin,
         const QByteArray &oldLockCode,
         const QByteArray &newLockCode)
 {
     return plugin->setLockCode(oldLockCode, newLockCode);
 }
 
-Result StoragePluginWrapper::createCollection(
-        StoragePlugin *plugin,
+CollectionMetadataResult StoragePluginFunctionWrapper::collectionMetadata(
+        StoragePluginWrapper *plugin,
         const QString &collectionName)
 {
-    return plugin->createCollection(collectionName);
+    CollectionMetadata metadata;
+    Result result = plugin->collectionMetadata(collectionName, &metadata);
+    return CollectionMetadataResult(result, metadata);
 }
 
-Result StoragePluginWrapper::removeCollection(
-        StoragePlugin *plugin,
+SecretMetadataResult StoragePluginFunctionWrapper::secretMetadata(
+        StoragePluginWrapper *plugin,
+        const QString &collectionName,
+        const QString &secretName)
+{
+    SecretMetadata metadata;
+    Result result = plugin->secretMetadata(collectionName, secretName, &metadata);
+    return SecretMetadataResult(result, metadata);
+}
+
+CollectionNamesResult StoragePluginFunctionWrapper::collectionNames(
+        StoragePluginWrapper *plugin)
+{
+    QStringList cnames;
+    Result result = plugin->collectionNames(&cnames);
+    return CollectionNamesResult(result, cnames);
+}
+
+Result StoragePluginFunctionWrapper::createCollection(
+        StoragePluginWrapper *plugin,
+        const CollectionMetadata &metadata)
+{
+    return plugin->createCollection(metadata);
+}
+
+Result StoragePluginFunctionWrapper::removeCollection(
+        StoragePluginWrapper *plugin,
         const QString &collectionName)
 {
     return plugin->removeCollection(collectionName);
 }
 
-Result StoragePluginWrapper::setSecret(
-        StoragePlugin *plugin,
-        const QString &collectionName,
-        const QString &hashedSecretName,
-        const QByteArray &encryptedSecretName,
+Result StoragePluginFunctionWrapper::setSecret(
+        StoragePluginWrapper *plugin,
+        const SecretMetadata &secretMetadata,
         const QByteArray &secret,
         const Secret::FilterData &filterData)
 {
-    return plugin->setSecret(collectionName,
-                             hashedSecretName,
-                             encryptedSecretName,
+    return plugin->setSecret(secretMetadata,
                              secret,
                              filterData);
 }
 
-StoragePluginWrapper::SecretDataResult
-StoragePluginWrapper::getSecret(
-        StoragePlugin *plugin,
+SecretDataResult
+StoragePluginFunctionWrapper::getSecret(
+        StoragePluginWrapper *plugin,
         const QString &collectionName,
-        const QString &hashedSecretName)
+        const QString &secretName)
 {
-    QByteArray encryptedSecretName;
     QByteArray secret;
     Secret::FilterData filterData;
     Result result = plugin->getSecret(collectionName,
-                                      hashedSecretName,
-                                      &encryptedSecretName,
+                                      secretName,
                                       &secret,
                                       &filterData);
-    return StoragePluginWrapper::SecretDataResult(
-                result, encryptedSecretName, secret, filterData);
+    return SecretDataResult(
+                result, secret, filterData);
 }
 
-StoragePluginWrapper::EncryptedSecretNamesResult
-StoragePluginWrapper::findSecrets(
-        StoragePlugin *plugin,
+Result StoragePluginFunctionWrapper::removeSecret(
+        StoragePluginWrapper *plugin,
         const QString &collectionName,
-        const Secret::FilterData &filter,
-        StoragePlugin::FilterOperator filterOperator)
-{
-    QVector<QByteArray> encryptedSecretNames;
-    Result result = plugin->findSecrets(collectionName,
-                                        filter,
-                                        filterOperator,
-                                        &encryptedSecretNames);
-    return StoragePluginWrapper::EncryptedSecretNamesResult(
-                result, encryptedSecretNames);
-}
-
-Result StoragePluginWrapper::removeSecret(
-        StoragePlugin *plugin,
-        const QString &collectionName,
-        const QString &hashedSecretName)
+        const QString &secretName)
 {
     return plugin->removeSecret(collectionName,
-                                hashedSecretName);
+                                secretName);
 }
 
-Result StoragePluginWrapper::reencryptSecrets(
-        StoragePlugin *plugin,
+Result StoragePluginFunctionWrapper::reencrypt(
+        StoragePluginWrapper *plugin,
         const QString &collectionName,
-        const QVector<QString> &hashedSecretNames,
+        const QString &secretNames,
         const QByteArray &oldkey,
         const QByteArray &newkey,
         EncryptionPlugin *encryptionPlugin)
 {
-    return plugin->reencryptSecrets(collectionName,
-                                    hashedSecretNames,
-                                    oldkey,
-                                    newkey,
-                                    encryptionPlugin);
+    return plugin->reencrypt(collectionName,
+                             secretNames,
+                             oldkey,
+                             newkey,
+                             encryptionPlugin);
 }
 
-Result StoragePluginWrapper::encryptAndStoreSecret(
+Result StoragePluginFunctionWrapper::encryptAndStoreSecret(
         EncryptionPlugin *encryptionPlugin,
-        StoragePlugin *storagePlugin,
+        StoragePluginWrapper *storagePlugin,
+        const SecretMetadata &secretMetadata,
         const Secret &secret,
-        const QString &hashedSecretName,
         const QByteArray &encryptionKey)
 {
-    QByteArray encrypted, encryptedName;
-    Result pluginResult = encryptionPlugin->encryptSecret(secret.data(), encryptionKey, &encrypted);
+    QByteArray encrypted;
+    Result pluginResult = encryptionPlugin->encryptSecret(
+                secret.data(), encryptionKey, &encrypted);
     if (pluginResult.code() == Result::Succeeded) {
-        pluginResult = encryptionPlugin->encryptSecret(secret.identifier().name().toUtf8(), encryptionKey, &encryptedName);
-        if (pluginResult.code() == Result::Succeeded) {
-            pluginResult = storagePlugin->setSecret(secret.identifier().collectionName(), hashedSecretName, encryptedName, encrypted, secret.filterData());
-        }
+        pluginResult = storagePlugin->setSecret(
+                    secretMetadata,
+                    encrypted,
+                    secret.filterData());
     }
     return pluginResult;
 }
 
-SecretResult StoragePluginWrapper::getAndDecryptSecret(
+SecretResult StoragePluginFunctionWrapper::getAndDecryptSecret(
         EncryptionPlugin *encryptionPlugin,
-        StoragePlugin *storagePlugin,
+        StoragePluginWrapper *storagePlugin,
         const Secret::Identifier &identifier,
-        const QString &hashedSecretName,
         const QByteArray &encryptionKey)
 {
     Secret secret;
-    QByteArray encrypted, encryptedName;
+    QByteArray encrypted;
     Secret::FilterData filterData;
-    Result pluginResult = storagePlugin->getSecret(identifier.collectionName(), hashedSecretName, &encryptedName, &encrypted, &filterData);
+    Result pluginResult = storagePlugin->getSecret(
+                identifier.collectionName(),
+                identifier.name(),
+                &encrypted,
+                &filterData);
     if (pluginResult.code() == Result::Succeeded) {
         QByteArray decrypted;
         pluginResult = encryptionPlugin->decryptSecret(encrypted, encryptionKey, &decrypted);
@@ -467,93 +508,221 @@ SecretResult StoragePluginWrapper::getAndDecryptSecret(
 }
 
 IdentifiersResult
-StoragePluginWrapper::findAndDecryptSecretNames(
-        EncryptionPlugin *encryptionPlugin,
-        StoragePlugin *storagePlugin,
+StoragePluginFunctionWrapper::findSecrets(
+        StoragePluginWrapper *storagePlugin,
         const QString &collectionName,
-        std::pair<Sailfish::Secrets::Secret::FilterData,
-                  Sailfish::Secrets::StoragePlugin::FilterOperator> filter,
-        const QByteArray &encryptionKey)
+        const Sailfish::Secrets::Secret::FilterData &filter,
+        Sailfish::Secrets::StoragePlugin::FilterOperator filterOp)
 {
     QVector<Secret::Identifier> identifiers;
-    QVector<QByteArray> encryptedSecretNames;
-    Result pluginResult = storagePlugin->findSecrets(collectionName, std::get<0>(filter), std::get<1>(filter), &encryptedSecretNames);
-    if (pluginResult.code() == Result::Succeeded) {
-        // decrypt each of the secret names.
-        QVector<QString> decryptedSecretNames;
-        bool decryptionSucceeded = true;
-        for (const QByteArray &esn : encryptedSecretNames) {
-            QByteArray decryptedName;
-            pluginResult = encryptionPlugin->decryptSecret(esn, encryptionKey, &decryptedName);
-            if (pluginResult.code() != Result::Succeeded) {
-                decryptionSucceeded = false;
-                break;
-            }
-            decryptedSecretNames.append(QString::fromUtf8(decryptedName));
-        }
-        if (decryptionSucceeded) {
-            for (const QString &secretName : decryptedSecretNames) {
-                identifiers.append(Secret::Identifier(secretName, collectionName));
-            }
-        }
+    QStringList secretNames;
+    Result pluginResult = storagePlugin->findSecrets(collectionName, filter, filterOp, &secretNames);
+    for (const QString &secretName : secretNames) {
+        identifiers.append(Secret::Identifier(secretName, collectionName, storagePlugin->name()));
     }
 
     return IdentifiersResult(pluginResult, identifiers);
 }
 
-bool EncryptedStoragePluginWrapper::isLocked(EncryptedStoragePlugin *plugin)
+Result
+StoragePluginFunctionWrapper::reencryptDeviceLockedCollectionsAndSecrets(
+        StoragePluginWrapper *plugin,
+        const QMap<QString, EncryptionPlugin*> encryptionPlugins,
+        const QByteArray &oldEncryptionKey,
+        const QByteArray &newEncryptionKey)
+{
+    // get collection names
+    // foreach collection, get metadata
+    // if usesDeviceLockKey, re-encrypt
+    QStringList cnames;
+    Result result = plugin->collectionNames(&cnames);
+    if (result.code() != Result::Succeeded) {
+        return result;
+    }
+    QMap<QString, EncryptionPlugin*> reencryptCollections;
+    for (const QString &cname : cnames) {
+        CollectionMetadata metadata;
+        result = plugin->collectionMetadata(cname, &metadata);
+        if (result.code() != Result::Succeeded) {
+            return result;
+        }
+
+        if (metadata.usesDeviceLockKey) {
+            if (!encryptionPlugins.contains(metadata.encryptionPluginName)) {
+                // TODO: stale data in metadata db?
+                return Result(Result::InvalidExtensionPluginError,
+                              QStringLiteral("Unknown collection encryption plugin %1")
+                              .arg(metadata.encryptionPluginName));
+            }
+            reencryptCollections.insert(cname, encryptionPlugins.value(metadata.encryptionPluginName));
+        }
+    }
+
+    // get standalone secret names
+    // foreach secret, get metadata
+    // if usesDeviceLockKey, re-encrypt
+    QStringList snames;
+    result = plugin->secretNames(QString(), &snames);
+    if (result.code() != Result::Succeeded) {
+        return result;
+    }
+    QMap<QString, EncryptionPlugin*> reencryptSecrets;
+    for (const QString &sname : snames) {
+        SecretMetadata metadata;
+        result = plugin->secretMetadata(QString(), sname, &metadata);
+        if (result.code() != Result::Succeeded) {
+            return result;
+        }
+
+        if (metadata.usesDeviceLockKey) {
+            if (!encryptionPlugins.contains(metadata.encryptionPluginName)) {
+                // TODO: stale data in metadata db?
+                return Result(Result::InvalidExtensionPluginError,
+                              QStringLiteral("Unknown secret encryption plugin %1")
+                              .arg(metadata.encryptionPluginName));
+            }
+            reencryptSecrets.insert(sname, encryptionPlugins.value(metadata.encryptionPluginName));
+        }
+    }
+
+    // Now re-encrypt the collections and secrets.
+    for (const QString &cname : reencryptCollections.keys()) {
+        Result cresult =  plugin->reencrypt(
+                    cname,
+                    QString(),
+                    oldEncryptionKey,
+                    newEncryptionKey,
+                    reencryptCollections.value(cname));
+        if (!cresult.code() == Result::Succeeded) {
+            result = cresult;
+        }
+    }
+    for (const QString &sname : reencryptSecrets.keys()) {
+        Result sresult = plugin->reencrypt(QString(),
+                    sname,
+                    oldEncryptionKey,
+                    newEncryptionKey,
+                    reencryptSecrets.value(sname));
+        if (!sresult.code() == Result::Succeeded) {
+            result = sresult;
+        }
+    }
+    return result;
+}
+
+Result
+StoragePluginFunctionWrapper::collectionSecretPreCheck(
+        StoragePluginWrapper *plugin,
+        const QString &collectionName,
+        const QString &secretName)
+{
+    QStringList cnames;
+    Result result = plugin->collectionNames(&cnames);
+    if (result.code() != Result::Succeeded) {
+        return result;
+    }
+
+    if (!cnames.contains(collectionName)) {
+        return Result(Result::InvalidCollectionError,
+                      QStringLiteral("No such collection %1 exists in plugin %2")
+                      .arg(collectionName, plugin->name()));
+    }
+
+    SecretMetadata metadata;
+    result = plugin->secretMetadata(collectionName, secretName, &metadata);
+    if (result.code() == Result::Succeeded) {
+        // this is bad, since it means that the secret already exists.
+        return Result(Result::SecretAlreadyExistsError,
+                      QStringLiteral("A secret with that name in this collection already exists"));
+    } else if (result.errorCode() == Result::InvalidSecretError) {
+        // this is good, the secret does not exist.
+        return Result(Result::Succeeded);
+    } else {
+        // some database error occurred.
+        return result;
+    }
+}
+
+bool EncryptedStoragePluginFunctionWrapper::isLocked(EncryptedStoragePluginWrapper *plugin)
 {
     return plugin->isLocked();
 }
 
-bool EncryptedStoragePluginWrapper::lock(EncryptedStoragePlugin *plugin)
+bool EncryptedStoragePluginFunctionWrapper::lock(EncryptedStoragePluginWrapper *plugin)
 {
     return plugin->lock();
 }
 
-bool EncryptedStoragePluginWrapper::unlock(
-        EncryptedStoragePlugin *plugin,
+bool EncryptedStoragePluginFunctionWrapper::unlock(
+        EncryptedStoragePluginWrapper *plugin,
         const QByteArray &lockCode)
 {
     return plugin->unlock(lockCode);
 }
 
-bool EncryptedStoragePluginWrapper::setLockCode(
-        EncryptedStoragePlugin *plugin,
+bool EncryptedStoragePluginFunctionWrapper::setLockCode(
+        EncryptedStoragePluginWrapper *plugin,
         const QByteArray &oldLockCode,
         const QByteArray &newLockCode)
 {
     return plugin->setLockCode(oldLockCode, newLockCode);
 }
 
-Result EncryptedStoragePluginWrapper::createCollection(
-        EncryptedStoragePlugin *plugin,
-        const QString &collectionName,
-        const QByteArray &key)
+CollectionMetadataResult EncryptedStoragePluginFunctionWrapper::collectionMetadata(
+        EncryptedStoragePluginWrapper *plugin,
+        const QString &collectionName)
 {
-    return plugin->createCollection(collectionName, key);
+    CollectionMetadata metadata;
+    Result result = plugin->collectionMetadata(collectionName, &metadata);
+    return CollectionMetadataResult(result, metadata);
 }
 
-Result EncryptedStoragePluginWrapper::removeCollection(
-        EncryptedStoragePlugin *plugin,
+SecretMetadataResult EncryptedStoragePluginFunctionWrapper::secretMetadata(
+        EncryptedStoragePluginWrapper *plugin,
+        const QString &collectionName,
+        const QString &secretName)
+{
+    SecretMetadata metadata;
+    Result result = plugin->secretMetadata(collectionName, secretName, &metadata);
+    return SecretMetadataResult(result, metadata);
+}
+
+CollectionNamesResult EncryptedStoragePluginFunctionWrapper::collectionNames(
+        EncryptedStoragePluginWrapper *plugin)
+{
+    QStringList cnames;
+    Result result = plugin->collectionNames(&cnames);
+    return CollectionNamesResult(result, cnames);
+}
+
+Result EncryptedStoragePluginFunctionWrapper::createCollection(
+        EncryptedStoragePluginWrapper *plugin,
+        const CollectionMetadata &metadata,
+        const QByteArray &key)
+{
+    return plugin->createCollection(metadata, key);
+}
+
+Result EncryptedStoragePluginFunctionWrapper::removeCollection(
+        EncryptedStoragePluginWrapper *plugin,
         const QString &collectionName)
 {
     return plugin->removeCollection(collectionName);
 }
 
-EncryptedStoragePluginWrapper::LockedResult
-EncryptedStoragePluginWrapper::isCollectionLocked(
-        EncryptedStoragePlugin *plugin,
+LockedResult
+EncryptedStoragePluginFunctionWrapper::isCollectionLocked(
+        EncryptedStoragePluginWrapper *plugin,
         const QString &collectionName)
 {
     bool locked = false;
     Result result = plugin->isCollectionLocked(collectionName, &locked);
-    return EncryptedStoragePluginWrapper::LockedResult(result, locked);
+    return LockedResult(result, locked);
 }
 
 DerivedKeyResult
-EncryptedStoragePluginWrapper::deriveKeyFromCode(
-        EncryptedStoragePlugin *plugin,
+EncryptedStoragePluginFunctionWrapper::deriveKeyFromCode(
+        EncryptedStoragePluginWrapper *plugin,
         const QByteArray &authenticationCode,
         const QByteArray &salt)
 {
@@ -562,16 +731,16 @@ EncryptedStoragePluginWrapper::deriveKeyFromCode(
     return DerivedKeyResult(result, key);
 }
 
-Result EncryptedStoragePluginWrapper::setEncryptionKey(
-        EncryptedStoragePlugin *plugin,
+Result EncryptedStoragePluginFunctionWrapper::setEncryptionKey(
+        EncryptedStoragePluginWrapper *plugin,
         const QString &collectionName,
         const QByteArray &key)
 {
     return plugin->setEncryptionKey(collectionName, key);
 }
 
-Result EncryptedStoragePluginWrapper::reencrypt(
-        EncryptedStoragePlugin *plugin,
+Result EncryptedStoragePluginFunctionWrapper::reencrypt(
+        EncryptedStoragePluginWrapper *plugin,
         const QString &collectionName,
         const QByteArray &oldkey,
         const QByteArray &newkey)
@@ -581,42 +750,36 @@ Result EncryptedStoragePluginWrapper::reencrypt(
                              newkey);
 }
 
-Result EncryptedStoragePluginWrapper::setSecret(
-        EncryptedStoragePlugin *plugin,
-        const QString &collectionName,
-        const QString &hashedSecretName,
-        const QString &secretName,
+Result EncryptedStoragePluginFunctionWrapper::setSecret(
+        EncryptedStoragePluginWrapper *plugin,
+        const SecretMetadata &secretMetadata,
         const QByteArray &secret,
         const Secret::FilterData &filterData)
 {
-    return plugin->setSecret(collectionName,
-                             hashedSecretName,
-                             secretName,
+    return plugin->setSecret(secretMetadata,
                              secret,
                              filterData);
 }
 
-EncryptedStoragePluginWrapper::SecretDataResult
-EncryptedStoragePluginWrapper::getSecret(
-        EncryptedStoragePlugin *plugin,
+SecretDataResult
+EncryptedStoragePluginFunctionWrapper::getSecret(
+        EncryptedStoragePluginWrapper *plugin,
         const QString &collectionName,
-        const QString &hashedSecretName)
+        const QString &secretName)
 {
-    QString secretName;
     QByteArray secret;
     Secret::FilterData filterData;
     Result result = plugin->getSecret(collectionName,
-                                      hashedSecretName,
-                                      &secretName,
+                                      secretName,
                                       &secret,
                                       &filterData);
-    return EncryptedStoragePluginWrapper::SecretDataResult(
-                result, secretName, secret, filterData);
+    return SecretDataResult(
+                result, secret, filterData);
 }
 
 IdentifiersResult
-EncryptedStoragePluginWrapper::findSecrets(
-        EncryptedStoragePlugin *plugin,
+EncryptedStoragePluginFunctionWrapper::findSecrets(
+        EncryptedStoragePluginWrapper *plugin,
         const QString &collectionName,
         const Secret::FilterData &filter,
         StoragePlugin::FilterOperator filterOperator)
@@ -629,55 +792,47 @@ EncryptedStoragePluginWrapper::findSecrets(
     return IdentifiersResult(result, identifiers);
 }
 
-Result EncryptedStoragePluginWrapper::removeSecret(
-        EncryptedStoragePlugin *plugin,
+Result EncryptedStoragePluginFunctionWrapper::removeSecret(
+        EncryptedStoragePluginWrapper *plugin,
         const QString &collectionName,
-        const QString &hashedSecretName)
+        const QString &secretName)
 {
     return plugin->removeSecret(collectionName,
-                                hashedSecretName);
+                                secretName);
 }
 
-Result EncryptedStoragePluginWrapper::setSecret(
-        EncryptedStoragePlugin *plugin,
-        const QString &collectionName,
-        const QString &hashedSecretName,
+Result EncryptedStoragePluginFunctionWrapper::setStandaloneSecret(
+        EncryptedStoragePluginWrapper *plugin,
+        const SecretMetadata &secretMetadata,
         const Secret &secret,
         const QByteArray &key)
 {
-    return plugin->setSecret(collectionName,
-                             hashedSecretName,
-                             secret.identifier().name(),
+    return plugin->setSecret(secretMetadata,
                              secret.data(),
                              secret.filterData(),
                              key);
 }
 
-EncryptedStoragePluginWrapper::SecretDataResult
-EncryptedStoragePluginWrapper::accessSecret(
-        EncryptedStoragePlugin *plugin,
-        const QString &collectionName,
-        const QString &hashedSecretName,
+SecretDataResult
+EncryptedStoragePluginFunctionWrapper::accessStandaloneSecret(
+        EncryptedStoragePluginWrapper *plugin,
+        const QString &secretName,
         const QByteArray &key)
 {
-    QString secretName;
     QByteArray secret;
     Secret::FilterData filterData;
-    Result result = plugin->accessSecret(collectionName,
-                                         hashedSecretName,
+    Result result = plugin->accessSecret(secretName,
                                          key,
-                                         &secretName,
                                          &secret,
                                          &filterData);
-    return EncryptedStoragePluginWrapper::SecretDataResult(
-                result, secretName, secret, filterData);
+    return SecretDataResult(
+                result, secret, filterData);
 }
 
-
-Result EncryptedStoragePluginWrapper::unlockCollectionAndStoreSecret(
-        EncryptedStoragePlugin *plugin,
+Result EncryptedStoragePluginFunctionWrapper::unlockCollectionAndStoreSecret(
+        EncryptedStoragePluginWrapper *plugin,
+        const SecretMetadata &secretMetadata,
         const Secret &secret,
-        const QString &hashedSecretName,
         const QByteArray &encryptionKey)
 {
     bool locked = false;
@@ -707,16 +862,15 @@ Result EncryptedStoragePluginWrapper::unlockCollectionAndStoreSecret(
                           QString::fromLatin1("The authentication code entered for collection %1 was incorrect").arg(secret.identifier().collectionName()));
         } else {
             // successfully unlocked the encrypted storage collection.  write the secret.
-            pluginResult = plugin->setSecret(secret.identifier().collectionName(), hashedSecretName, secret.identifier().name(), secret.data(), secret.filterData());
+            pluginResult = plugin->setSecret(secretMetadata, secret.data(), secret.filterData());
         }
     }
     return pluginResult;
 }
 
-SecretResult EncryptedStoragePluginWrapper::unlockCollectionAndReadSecret(
-        EncryptedStoragePlugin *plugin,
+SecretResult EncryptedStoragePluginFunctionWrapper::unlockCollectionAndReadSecret(
+        EncryptedStoragePluginWrapper *plugin,
         const Secret::Identifier &identifier,
-        const QString &hashedSecretName,
         const QByteArray &encryptionKey)
 {
     Secret secret;
@@ -759,20 +913,18 @@ SecretResult EncryptedStoragePluginWrapper::unlockCollectionAndReadSecret(
     }
 
     // successfully unlocked the encrypted storage collection.  read the secret.
-    QString secretName;
     QByteArray secretData;
     Secret::FilterData secretFilterdata;
-    pluginResult = plugin->getSecret(identifier.collectionName(), hashedSecretName, &secretName, &secretData, &secretFilterdata);
+    pluginResult = plugin->getSecret(identifier.collectionName(), identifier.name(), &secretData, &secretFilterdata);
     secret.setData(secretData);
     secret.setFilterData(secretFilterdata);
     secret.setIdentifier(identifier);
     return SecretResult(pluginResult, secret);
 }
 
-Result EncryptedStoragePluginWrapper::unlockCollectionAndRemoveSecret(
-        EncryptedStoragePlugin *plugin,
+Result EncryptedStoragePluginFunctionWrapper::unlockCollectionAndRemoveSecret(
+        EncryptedStoragePluginWrapper *plugin,
         const Secret::Identifier &identifier,
-        const QString &hashedSecretName,
         const QByteArray &encryptionKey)
 {
     bool locked = false;
@@ -807,13 +959,13 @@ Result EncryptedStoragePluginWrapper::unlockCollectionAndRemoveSecret(
     }
 
     // successfully unlocked the encrypted storage collection.  remove the secret.
-    pluginResult = plugin->removeSecret(identifier.collectionName(), hashedSecretName);
+    pluginResult = plugin->removeSecret(identifier.collectionName(), identifier.name());
     return pluginResult;
 }
 
 IdentifiersResult
-EncryptedStoragePluginWrapper::unlockAndFindSecrets(
-        EncryptedStoragePlugin *plugin,
+EncryptedStoragePluginFunctionWrapper::unlockAndFindSecrets(
+        EncryptedStoragePluginWrapper *plugin,
         const QString &collectionName,
         const Secret::FilterData &filter,
         StoragePlugin::FilterOperator filterOperator,
@@ -863,10 +1015,10 @@ EncryptedStoragePluginWrapper::unlockAndFindSecrets(
     return IdentifiersResult(pluginResult, identifiers);
 }
 
-Result EncryptedStoragePluginWrapper::unlockAndRemoveSecret(
-        EncryptedStoragePlugin *plugin,
+Result EncryptedStoragePluginFunctionWrapper::unlockAndRemoveSecret(
+        EncryptedStoragePluginWrapper *plugin,
         const QString &collectionName,
-        const QString &hashedSecretName,
+        const QString &secretName,
         bool secretUsesDeviceLockKey,
         const QByteArray &deviceLockKey)
 {
@@ -881,7 +1033,7 @@ Result EncryptedStoragePluginWrapper::unlockAndRemoveSecret(
             return pluginResult;
         }
     }
-    pluginResult = plugin->removeSecret(collectionName, hashedSecretName);
+    pluginResult = plugin->removeSecret(collectionName, secretName);
     if (locked) {
         // relock after delete-access.
         plugin->setEncryptionKey(collectionName, QByteArray());
@@ -890,38 +1042,148 @@ Result EncryptedStoragePluginWrapper::unlockAndRemoveSecret(
     return pluginResult;
 }
 
-Result EncryptedStoragePluginWrapper::unlockCollectionAndReencrypt(
-        EncryptedStoragePlugin *plugin,
-        const QString &collectionName,
+Result EncryptedStoragePluginFunctionWrapper::unlockDeviceLockedCollectionsAndReencrypt(
+        EncryptedStoragePluginWrapper *plugin,
         const QByteArray &oldEncryptionKey,
-        const QByteArray &newEncryptionKey,
-        bool isDeviceLocked)
+        const QByteArray &newEncryptionKey)
 {
-    bool collectionLocked = true;
-    plugin->isCollectionLocked(collectionName, &collectionLocked);
-    if (collectionLocked) {
-        Result collectionUnlockResult = plugin->setEncryptionKey(collectionName, oldEncryptionKey);
-        if (collectionUnlockResult.code() != Result::Succeeded) {
-            qCWarning(lcSailfishSecretsDaemon) << "Error unlocking"
-                                               << (isDeviceLocked ? "device-locked" : "custom-locked")
-                                               << "collection:" << collectionName
-                                               << collectionUnlockResult.errorMessage();
+    // find out which collections are device-locked
+    QStringList cnames;
+    Result result = plugin->collectionNames(&cnames);
+    if (result.code() != Result::Succeeded) {
+        return result;
+    }
+
+    QStringList reencryptCNames;
+    for (const QString &cname : cnames) {
+        CollectionMetadata metadata;
+        result = plugin->collectionMetadata(cname, &metadata);
+        if (result.code() != Result::Succeeded) {
+            return result;
         }
+        if (metadata.usesDeviceLockKey) {
+            reencryptCNames.append(cname);
+        }
+    }
+
+    // re-encrypt every device-locked collection
+    for (const QString &collectionName : reencryptCNames) {
+        bool collectionLocked = true;
         plugin->isCollectionLocked(collectionName, &collectionLocked);
         if (collectionLocked) {
-            qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock"
-                                               << (isDeviceLocked ? "device-locked" : "custom-locked")
-                                               << "collection:" << collectionName;
+            Result collectionUnlockResult = plugin->setEncryptionKey(collectionName, oldEncryptionKey);
+            if (collectionUnlockResult.code() != Result::Succeeded) {
+                qCWarning(lcSailfishSecretsDaemon) << "Error unlocking collection:" << collectionName
+                                                   << collectionUnlockResult.errorMessage();
+            }
+            plugin->isCollectionLocked(collectionName, &collectionLocked);
+            if (collectionLocked) {
+                qCWarning(lcSailfishSecretsDaemon) << "Failed to unlock collection:" << collectionName;
+            }
+        }
+        Result collectionReencryptResult = plugin->reencrypt(
+                    collectionName, oldEncryptionKey, newEncryptionKey);
+        if (collectionReencryptResult.code() != Result::Succeeded) {
+            qCWarning(lcSailfishSecretsDaemon) << "Failed to re-encrypt encrypted storage collection:"
+                                               << collectionName
+                                               << collectionReencryptResult.code()
+                                               << collectionReencryptResult.errorMessage();
+            result = collectionReencryptResult;
         }
     }
-    Result collectionReencryptResult = plugin->reencrypt(
-                collectionName, oldEncryptionKey, newEncryptionKey);
-    if (collectionReencryptResult.code() != Result::Succeeded) {
-        qCWarning(lcSailfishSecretsDaemon) << "Failed to re-encrypt encrypted storage"
-                                           << (isDeviceLocked ? "device-locked" : "custom-locked")
-                                           << "collection:" << collectionName
-                                           << collectionReencryptResult.code()
-                                           << collectionReencryptResult.errorMessage();
+
+    return result;
+}
+
+
+Result EncryptedStoragePluginFunctionWrapper::deriveKeyUnlockAndRemoveCollection(
+        EncryptedStoragePluginWrapper *plugin,
+        const QString &collectionName,
+        const QByteArray &lockCode,
+        const QByteArray &salt)
+{
+    bool locked = false;
+    Result result = plugin->isCollectionLocked(collectionName, &locked);
+    if (result.code() != Result::Succeeded) {
+        return result;
     }
-    return collectionReencryptResult;
+
+    if (locked) {
+        QByteArray derivedKey;
+        result = plugin->deriveKeyFromCode(lockCode, salt, &derivedKey);
+        if (result.code() != Result::Succeeded) {
+            return result;
+        }
+
+        result = plugin->setEncryptionKey(collectionName, derivedKey);
+        if (result.code() != Result::Succeeded) {
+            return result;
+        }
+
+        locked = false;
+        result = plugin->isCollectionLocked(collectionName, &locked);
+        if (result.code() != Result::Succeeded) {
+            return result;
+        } else if (locked) {
+            return Result(Result::CollectionIsLockedError,
+                          QStringLiteral("Invalid lock code, unable to unlock collection to delete"));
+        }
+    }
+
+    return plugin->removeCollection(collectionName);
+}
+
+Result EncryptedStoragePluginFunctionWrapper::collectionSecretPreCheck(
+        EncryptedStoragePluginWrapper *plugin,
+        const QString &collectionName,
+        const QString &secretName,
+        const QByteArray &collectionKey)
+{
+    QStringList cnames;
+    Result result = plugin->collectionNames(&cnames);
+    if (result.code() != Result::Succeeded) {
+        return result;
+    }
+
+    if (!cnames.contains(collectionName)) {
+        return Result(Result::InvalidCollectionError,
+                      QStringLiteral("No such collection %1 exists in plugin %2")
+                      .arg(collectionName, plugin->name()));
+    }
+
+    bool locked = false;
+    result = plugin->isCollectionLocked(collectionName, &locked);
+    if (result.code() != Result::Succeeded) {
+        return result;
+    }
+
+    if (locked) {
+        result = plugin->setEncryptionKey(collectionName, collectionKey);
+        if (result.code() != Result::Succeeded) {
+            return result;
+        }
+
+        locked = false;
+        result = plugin->isCollectionLocked(collectionName, &locked);
+        if (result.code() != Result::Succeeded) {
+            return result;
+        } else if (locked) {
+            return Result(Result::CollectionIsLockedError,
+                          QStringLiteral("Invalid lock code, unable to unlock collection"));
+        }
+    }
+
+    SecretMetadata metadata;
+    result = plugin->secretMetadata(collectionName, secretName, &metadata);
+    if (result.code() == Result::Succeeded) {
+        // this is bad, since it means that the secret already exists.
+        return Result(Result::SecretAlreadyExistsError,
+                      QStringLiteral("A secret with that name in this collection already exists"));
+    } else if (result.errorCode() == Result::InvalidSecretError) {
+        // this is good, the secret does not exist.
+        return Result(Result::Succeeded);
+    } else {
+        // some database error occurred.
+        return result;
+    }
 }

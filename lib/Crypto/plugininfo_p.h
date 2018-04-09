@@ -8,6 +8,8 @@
 #ifndef LIBSAILFISHCRYPTO_PLUGININFO_P_H
 #define LIBSAILFISHCRYPTO_PLUGININFO_P_H
 
+#include "Crypto/plugininfo.h"
+
 #include <QtCore/QString>
 #include <QtCore/QSharedData>
 
@@ -24,6 +26,7 @@ public:
 
     QString m_name;
     int m_version;
+    Sailfish::Crypto::PluginInfo::StatusFlags m_statusFlags;
 };
 
 } // namespace Crypto
