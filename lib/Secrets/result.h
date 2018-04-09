@@ -32,6 +32,7 @@ public:
         Pending   = 1,
         Failed    = 2
     };
+    Q_ENUM(ResultCode)
 
     enum ErrorCode {
         NoError = 0,
@@ -138,6 +139,7 @@ public:
 
         OtherError = 1024,
     };
+    Q_ENUM(ErrorCode)
 
     Result(Sailfish::Secrets::Result::ResultCode resultCode = Succeeded);
     Result(Sailfish::Secrets::Result::ErrorCode errorCode, const QString &errorMessage);

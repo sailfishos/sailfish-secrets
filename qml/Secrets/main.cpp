@@ -61,6 +61,31 @@ Sailfish::Secrets::Plugin::SecretManager::~SecretManager()
 {
 }
 
+QString Sailfish::Secrets::Plugin::SecretManager::inAppAuthenticationPluginName() const
+{
+    return InAppAuthenticationPluginName;
+}
+
+QString Sailfish::Secrets::Plugin::SecretManager::defaultAuthenticationPluginName() const
+{
+    return DefaultAuthenticationPluginName;
+}
+
+QString Sailfish::Secrets::Plugin::SecretManager::defaultStoragePluginName() const
+{
+    return DefaultStoragePluginName;
+}
+
+QString Sailfish::Secrets::Plugin::SecretManager::defaultEncryptionPluginName() const
+{
+    return DefaultEncryptionPluginName;
+}
+
+QString Sailfish::Secrets::Plugin::SecretManager::defaultEncryptedStoragePluginName() const
+{
+    return DefaultEncryptedStoragePluginName;
+}
+
 Sailfish::Secrets::Result Sailfish::Secrets::Plugin::SecretManager::constructResult() const
 {
     return Sailfish::Secrets::Result();

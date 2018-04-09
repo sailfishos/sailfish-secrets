@@ -48,6 +48,8 @@ void Sailfish::Crypto::Plugin::CryptoPlugin::registerTypes(const char *uri)
     qmlRegisterUncreatableType<Sailfish::Crypto::DsaKeyPairGenerationParameters>(uri, 1, 0, "DsaKeyPairGenerationParameters", QStringLiteral("Use CryptoManager.constructRsaKeygenParams, can't construct Q_GADGET type DsaKeyPairGenerationParameters in QML"));
     qmlRegisterUncreatableType<Sailfish::Crypto::DhKeyPairGenerationParameters>(uri, 1, 0, "DhKeyPairGenerationParameters", QStringLiteral("Use CryptoManager.constructRsaKeygenParams, can't construct Q_GADGET type DhKeyPairGenerationParameters in QML"));
 
+    qmlRegisterUncreatableType<Sailfish::Crypto::InteractionParameters>(uri, 1, 0, "InteractionParameters", QStringLiteral("Can't construct InteractionParameters in QML"));
+
     qmlRegisterType<Sailfish::Crypto::Plugin::CryptoManager>(uri, 1, 0, "CryptoManager");
 }
 
