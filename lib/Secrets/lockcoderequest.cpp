@@ -19,7 +19,7 @@ using namespace Sailfish::Secrets;
 
 LockCodeRequestPrivate::LockCodeRequestPrivate()
     : m_lockCodeRequestType(LockCodeRequest::ModifyLockCode)
-    , m_lockCodeTargetType(LockCodeRequest::BookkeepingDatabase)
+    , m_lockCodeTargetType(LockCodeRequest::MetadataDatabase)
     , m_userInteractionMode(SecretManager::SystemInteraction)
     , m_status(Request::Inactive)
 {

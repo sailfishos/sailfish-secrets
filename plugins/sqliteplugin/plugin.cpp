@@ -31,7 +31,7 @@ void Daemon::Plugins::SqlitePlugin::openDatabaseIfNecessary()
     bool autotestMode = false;
 #endif
     if (!m_db.open(QLatin1String("QSQLITE"),
-                   QLatin1String("sqliteplugin"),
+                   name(),
                    QLatin1String("secrets.db"),
                    setupStatements,
                    createStatements,
@@ -72,6 +72,41 @@ void Daemon::Plugins::SqlitePlugin::openDatabaseIfNecessary()
 
 Daemon::Plugins::SqlitePlugin::~SqlitePlugin()
 {
+}
+
+Result
+Daemon::Plugins::SqlitePlugin::collectionNames(QStringList *names)
+{
+    openDatabaseIfNecessary();
+    Daemon::Sqlite::DatabaseLocker locker(&m_db);
+
+    const QString selectCollectionNamesQuery = QStringLiteral(
+                 "SELECT"
+                    " CollectionName"
+                  " FROM Collections;"
+             );
+
+    QString errorText;
+    Daemon::Sqlite::Database::Query sq = m_db.prepare(selectCollectionNamesQuery, &errorText);
+    if (!errorText.isEmpty()) {
+        return Result(Result::DatabaseQueryError,
+                      QString::fromUtf8("Sqlite plugin unable to prepare select collection names query: %1").arg(errorText));
+    }
+
+    if (!m_db.execute(sq, &errorText)) {
+        m_db.rollbackTransaction();
+        return Result(Result::DatabaseQueryError,
+                      QString::fromUtf8("Sqlite plugin unable to execute select collection names query: %1").arg(errorText));
+    }
+
+    while (sq.next()) {
+        const QString cname = sq.value(0).value<QString>();
+        if (cname != QStringLiteral("standalone")) {
+            names->append(cname);
+        }
+    }
+
+    return Result(Result::Succeeded);
 }
 
 Result
@@ -217,8 +252,7 @@ Daemon::Plugins::SqlitePlugin::removeCollection(
 Result
 Daemon::Plugins::SqlitePlugin::setSecret(
         const QString &collectionName,
-        const QString &hashedSecretName,
-        const QByteArray &encryptedSecretName,
+        const QString &secretName,
         const QByteArray &secret,
         const Secret::FilterData &filterData)
 {
@@ -226,7 +260,7 @@ Daemon::Plugins::SqlitePlugin::setSecret(
     Daemon::Sqlite::DatabaseLocker locker(&m_db);
 
     // Note: don't disallow collectionName=standalone, since that's how we store standalone secrets.
-    if (hashedSecretName.isEmpty()) {
+    if (secretName.isEmpty()) {
         return Result(Result::InvalidSecretError,
                       QString::fromUtf8("Empty secret name given"));
     } else if (collectionName.isEmpty()) {
@@ -239,7 +273,7 @@ Daemon::Plugins::SqlitePlugin::setSecret(
                     " Count(*)"
                   " FROM Secrets"
                   " WHERE CollectionName = ?"
-                  " AND HashedSecretName = ?;"
+                  " AND SecretName = ?;"
              );
 
     QString errorText;
@@ -251,7 +285,7 @@ Daemon::Plugins::SqlitePlugin::setSecret(
 
     QVariantList values;
     values << QVariant::fromValue<QString>(collectionName);
-    values << QVariant::fromValue<QString>(hashedSecretName);
+    values << QVariant::fromValue<QString>(secretName);
     sq.bindValues(values);
 
     if (!m_db.beginTransaction()) {
@@ -275,18 +309,17 @@ Daemon::Plugins::SqlitePlugin::setSecret(
                  " SET Secret = ?"
                  "   , Timestamp = date('now')"
                  " WHERE CollectionName = ?"
-                 " AND HashedSecretName = ?;"
+                 " AND SecretName = ?;"
              );
     const QString insertSecretQuery = QStringLiteral(
                 "INSERT INTO Secrets ("
                   "CollectionName,"
-                  "HashedSecretName,"
-                  "EncryptedSecretName,"
+                  "SecretName,"
                   "Secret,"
                   "Timestamp"
                 ")"
                 " VALUES ("
-                  "?,?,?,?,date('now')"
+                  "?,?,?,date('now')"
                 ");");
 
     Daemon::Sqlite::Database::Query iq = m_db.prepare(found ? updateSecretQuery : insertSecretQuery, &errorText);
@@ -300,11 +333,10 @@ Daemon::Plugins::SqlitePlugin::setSecret(
     if (found) {
         ivalues << QVariant::fromValue<QByteArray>(secret);
         ivalues << QVariant::fromValue<QString>(collectionName);
-        ivalues << QVariant::fromValue<QString>(hashedSecretName);
+        ivalues << QVariant::fromValue<QString>(secretName);
     } else {
         ivalues << QVariant::fromValue<QString>(collectionName);
-        ivalues << QVariant::fromValue<QString>(hashedSecretName);
-        ivalues << QVariant::fromValue<QByteArray>(encryptedSecretName);
+        ivalues << QVariant::fromValue<QString>(secretName);
         ivalues << QVariant::fromValue<QByteArray>(secret);
     }
     iq.bindValues(ivalues);
@@ -318,7 +350,7 @@ Daemon::Plugins::SqlitePlugin::setSecret(
     const QString deleteSecretsFilterDataQuery = QStringLiteral(
                  "DELETE FROM SecretsFilterData"
                  " WHERE CollectionName = ?"
-                 " AND HashedSecretName = ?;"
+                 " AND SecretName = ?;"
              );
 
     Daemon::Sqlite::Database::Query dq = m_db.prepare(deleteSecretsFilterDataQuery, &errorText);
@@ -330,7 +362,7 @@ Daemon::Plugins::SqlitePlugin::setSecret(
 
     QVariantList dvalues;
     dvalues << QVariant::fromValue<QString>(collectionName);
-    dvalues << QVariant::fromValue<QString>(hashedSecretName);
+    dvalues << QVariant::fromValue<QString>(secretName);
     dq.bindValues(dvalues);
 
     if (!m_db.execute(dq, &errorText)) {
@@ -342,7 +374,7 @@ Daemon::Plugins::SqlitePlugin::setSecret(
     const QString insertSecretsFilterDataQuery = QStringLiteral(
                 "INSERT INTO SecretsFilterData ("
                   "CollectionName,"
-                  "HashedSecretName,"
+                  "SecretName,"
                   "Field,"
                   "Value"
                 ")"
@@ -360,7 +392,7 @@ Daemon::Plugins::SqlitePlugin::setSecret(
     for (Secret::FilterData::const_iterator it = filterData.constBegin(); it != filterData.constEnd(); it++) {
         ivalues.clear();
         ivalues << QVariant::fromValue<QString>(collectionName);
-        ivalues << QVariant::fromValue<QString>(hashedSecretName);
+        ivalues << QVariant::fromValue<QString>(secretName);
         ivalues << QVariant::fromValue<QString>(it.key());
         ivalues << QVariant::fromValue<QString>(it.value());
         ifdq.bindValues(ivalues);
@@ -383,8 +415,7 @@ Daemon::Plugins::SqlitePlugin::setSecret(
 Result
 Daemon::Plugins::SqlitePlugin::getSecret(
         const QString &collectionName,
-        const QString &hashedSecretName,
-        QByteArray *encryptedSecretName,
+        const QString &secretName,
         QByteArray *secret,
         Secret::FilterData *filterData)
 {
@@ -392,7 +423,7 @@ Daemon::Plugins::SqlitePlugin::getSecret(
     Daemon::Sqlite::DatabaseLocker locker(&m_db);
 
     // Note: don't disallow collectionName=standalone, since that's how we store standalone secrets.
-    if (hashedSecretName.isEmpty()) {
+    if (secretName.isEmpty()) {
         return Result(Result::InvalidSecretError,
                       QString::fromUtf8("Empty secret name given"));
     } else if (collectionName.isEmpty()) {
@@ -402,11 +433,10 @@ Daemon::Plugins::SqlitePlugin::getSecret(
 
     const QString selectSecretQuery = QStringLiteral(
                  "SELECT"
-                    " EncryptedSecretName,"
                     " Secret"
                   " FROM Secrets"
                   " WHERE CollectionName = ?"
-                  " AND HashedSecretName = ?;"
+                  " AND SecretName = ?;"
              );
 
     QString errorText;
@@ -418,7 +448,7 @@ Daemon::Plugins::SqlitePlugin::getSecret(
 
     QVariantList values;
     values << QVariant::fromValue<QString>(collectionName);
-    values << QVariant::fromValue<QString>(hashedSecretName);
+    values << QVariant::fromValue<QString>(secretName);
     sq.bindValues(values);
 
     if (!m_db.beginTransaction()) {
@@ -433,12 +463,10 @@ Daemon::Plugins::SqlitePlugin::getSecret(
     }
 
     bool found = false;
-    QByteArray secretName;
     QByteArray secretData;
     if (sq.next()) {
         found = true;
-        secretName = sq.value(0).value<QByteArray>();
-        secretData = sq.value(1).value<QByteArray>();
+        secretData = sq.value(0).value<QByteArray>();
     }
 
     Secret::FilterData secretFilterData;
@@ -449,7 +477,7 @@ Daemon::Plugins::SqlitePlugin::getSecret(
                         " Value"
                       " FROM SecretsFilterData"
                       " WHERE CollectionName = ?"
-                      " AND HashedSecretName = ?;"
+                      " AND SecretName = ?;"
                  );
 
         Daemon::Sqlite::Database::Query sfdq = m_db.prepare(selectSecretFilterDataQuery, &errorText);
@@ -481,9 +509,46 @@ Daemon::Plugins::SqlitePlugin::getSecret(
                       QString::fromUtf8("No such secret stored"));
     }
 
-    *encryptedSecretName = secretName;
     *secret = secretData;
     *filterData = secretFilterData;
+    return Result(Result::Succeeded);
+}
+
+Result
+Daemon::Plugins::SqlitePlugin::secretNames(const QString &collectionName,
+                                           QStringList *names)
+{
+    openDatabaseIfNecessary();
+    Daemon::Sqlite::DatabaseLocker locker(&m_db);
+
+    const QString selectSecretNamesQuery = QStringLiteral(
+                 "SELECT"
+                    " SecretName"
+                  " FROM Secrets"
+                  " WHERE CollectionName = ?;"
+             );
+
+    QString errorText;
+    Daemon::Sqlite::Database::Query sq = m_db.prepare(selectSecretNamesQuery, &errorText);
+    if (!errorText.isEmpty()) {
+        return Result(Result::DatabaseQueryError,
+                      QString::fromUtf8("Sqlite plugin unable to prepare select secret names query: %1").arg(errorText));
+    }
+
+    QVariantList values;
+    values << QVariant::fromValue<QString>(collectionName);
+    sq.bindValues(values);
+
+    if (!m_db.execute(sq, &errorText)) {
+        m_db.rollbackTransaction();
+        return Result(Result::DatabaseQueryError,
+                      QString::fromUtf8("Sqlite plugin unable to execute select secret names query: %1").arg(errorText));
+    }
+
+    while (sq.next()) {
+        names->append(sq.value(0).value<QString>());
+    }
+
     return Result(Result::Succeeded);
 }
 
@@ -492,7 +557,7 @@ Daemon::Plugins::SqlitePlugin::findSecrets(
         const QString &collectionName,
         const Secret::FilterData &filter,
         StoragePlugin::FilterOperator filterOperator,
-        QVector<QByteArray> *encryptedSecretNames)
+        QStringList *secretNames)
 {
     openDatabaseIfNecessary();
     Daemon::Sqlite::DatabaseLocker locker(&m_db);
@@ -509,11 +574,10 @@ Daemon::Plugins::SqlitePlugin::findSecrets(
     // very naive implementation.
     // first, select all of the field/value filter data for the secret
     // second, filter in-memory.
-    // third, return the encrypted secret names associated with the matches.
 
     const QString selectSecretsFilterDataQuery = QStringLiteral(
                  "SELECT"
-                    " HashedSecretName,"
+                    " SecretName,"
                     " Field,"
                     " Value"
                  " FROM SecretsFilterData"
@@ -542,14 +606,14 @@ Daemon::Plugins::SqlitePlugin::findSecrets(
                       QString::fromUtf8("Sqlite plugin unable to execute select secrets filter data query: %1").arg(errorText));
     }
 
-    QMap<QString, Secret::FilterData > hashedSecretNameToFilterData;
+    QMap<QString, Secret::FilterData> secretNameToFilterData;
     while (sq.next()) {
-        hashedSecretNameToFilterData[sq.value(0).value<QString>()].insert(sq.value(1).value<QString>(), sq.value(2).value<QString>());
+        secretNameToFilterData[sq.value(0).value<QString>()].insert(sq.value(1).value<QString>(), sq.value(2).value<QString>());
     }
 
     // perform in-memory filtering.
-    QSet<QString> matchingHashedSecretNames;
-    for (QMap<QString, Secret::FilterData >::const_iterator it = hashedSecretNameToFilterData.constBegin(); it != hashedSecretNameToFilterData.constEnd(); it++) {
+    QSet<QString> matchingSecretNames;
+    for (QMap<QString, Secret::FilterData >::const_iterator it = secretNameToFilterData.constBegin(); it != secretNameToFilterData.constEnd(); it++) {
         const Secret::FilterData &currFilterData(it.value());
         bool matches = filterOperator == StoragePlugin::OperatorOr ? false : true;
         for (Secret::FilterData::const_iterator fit = filter.constBegin(); fit != filter.constEnd(); fit++) {
@@ -578,41 +642,9 @@ Daemon::Plugins::SqlitePlugin::findSecrets(
                 break; // fit
             }
         }
-        if (matches) {
-            matchingHashedSecretNames.insert(it.key());
-        }
-    }
-
-    // now select all of the encrypted secret names associated with the hashed names and return them.
-    const QString selectEncryptedSecretName = QStringLiteral(
-                 "SELECT"
-                    " EncryptedSecretName"
-                 " FROM Secrets"
-                 " WHERE CollectionName = ?"
-                 " AND HashedSecretName = ?;"
-             );
-
-    Daemon::Sqlite::Database::Query seq = m_db.prepare(selectEncryptedSecretName, &errorText);
-    if (!errorText.isEmpty()) {
-        return Result(Result::DatabaseQueryError,
-                      QString::fromUtf8("Sqlite plugin unable to prepare select encrypted secret name query: %1").arg(errorText));
-    }
-
-    QVector<QByteArray> retn;
-    for (const QString &hashedSecretName : matchingHashedSecretNames) {
-        values.clear();
-        values << QVariant::fromValue<QString>(collectionName);
-        values << QVariant::fromValue<QString>(hashedSecretName);
-        seq.bindValues(values);
-
-        if (!m_db.execute(seq, &errorText)) {
-            m_db.rollbackTransaction();
-            return Result(Result::DatabaseQueryError,
-                          QString::fromUtf8("Sqlite plugin unable to execute select encrypted secret name query: %1").arg(errorText));
-        }
-
-        if (seq.next()) {
-            retn.append(seq.value(0).value<QByteArray>());
+        if (matches && !matchingSecretNames.contains(it.key())) {
+            matchingSecretNames.insert(it.key());
+            secretNames->append(it.key());
         }
     }
 
@@ -622,7 +654,6 @@ Daemon::Plugins::SqlitePlugin::findSecrets(
                       QString::fromUtf8("Sqlite plugin unable to commit find secrets transaction"));
     }
 
-    *encryptedSecretNames = retn;
     return Result(Result::Succeeded);
 }
 
@@ -646,7 +677,7 @@ Daemon::Plugins::SqlitePlugin::removeSecret(
     const QString deleteSecretQuery = QStringLiteral(
                 "DELETE FROM Secrets"
                 " WHERE CollectionName = ?"
-                " AND HashedSecretName = ?;");
+                " AND SecretName = ?;");
 
     QString errorText;
     Daemon::Sqlite::Database::Query dq = m_db.prepare(deleteSecretQuery, &errorText);
@@ -681,9 +712,9 @@ Daemon::Plugins::SqlitePlugin::removeSecret(
 }
 
 Result
-Daemon::Plugins::SqlitePlugin::reencryptSecrets(
-        const QString &collectionName,          // non-empty, all secrets in this collection will be re-encrypted
-        const QVector<QString> &secretNames,    // if collectionName is empty, these standalone secrets will be re-encrypted.
+Daemon::Plugins::SqlitePlugin::reencrypt(
+        const QString &collectionName, // non-empty, all secrets in this collection will be re-encrypted
+        const QString &secretName,     // otherwise, reencrypt this standalone secret
         const QByteArray &oldkey,
         const QByteArray &newkey,
         EncryptionPlugin *plugin)
@@ -692,42 +723,33 @@ Daemon::Plugins::SqlitePlugin::reencryptSecrets(
     Daemon::Sqlite::DatabaseLocker locker(&m_db);
 
     // Note: don't disallow collectionName=standalone, since that's how we store standalone secrets.
-    if (collectionName.isEmpty() && secretNames.isEmpty()) {
+    if (collectionName.isEmpty() && secretName.isEmpty()) {
         return Result(Result::InvalidSecretError,
-                      QString::fromUtf8("Empty secret names given and empty collection name given"));
+                      QString::fromUtf8("Empty secret name given and empty collection name given"));
     }
 
     QString selectSecretsQuery;
     QVariantList values;
     if (collectionName.isEmpty()) {
-        for (const QString &secretName : secretNames) {
-            if (!secretName.isEmpty()) {
-                values.append(QVariant::fromValue<QString>(secretName));
-            }
-        }
-        if (values.isEmpty()) {
+        if (secretName.isEmpty()) {
             return Result(Result::InvalidSecretError,
-                          QString::fromUtf8("Empty secret names given"));
+                          QString::fromUtf8("Empty secret name given"));
         }
+        values.append(QVariant::fromValue<QString>(secretName));
         selectSecretsQuery = QStringLiteral(
                      "SELECT"
                         " CollectionName,"
-                        " HashedSecretName,"
+                        " SecretName,"
                         " Secret"
                       " FROM Secrets"
                       " WHERE CollectionName = 'standalone'"
-                      " AND HashedSecretName IN ("
+                      " AND SecretName = ?;"
                  );
-        for (int i = 0; i < values.size(); ++i) {
-            selectSecretsQuery.append(QStringLiteral("?,"));
-        }
-        selectSecretsQuery.chop(1);
-        selectSecretsQuery.append(QStringLiteral(");"));
     } else {
         selectSecretsQuery = QStringLiteral(
                      "SELECT"
                         " CollectionName,"
-                        " HashedSecretName,"
+                        " SecretName,"
                         " Secret"
                       " FROM Secrets"
                       " WHERE CollectionName = ?;"
@@ -782,7 +804,7 @@ Daemon::Plugins::SqlitePlugin::reencryptSecrets(
                  " SET Secret = ?"
                  "   , Timestamp = date('now')"
                  " WHERE CollectionName = ?"
-                 " AND HashedSecretName = ?;"
+                 " AND SecretName = ?;"
              );
 
     Daemon::Sqlite::Database::Query uq = m_db.prepare(updateSecretQuery, &errorText);

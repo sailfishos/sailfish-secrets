@@ -99,7 +99,6 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"uiParams\" type=\"(sss(i)sss(i)(i))\" direction=\"in\" />\n"
     "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
-    "          <arg name=\"storageProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"key\" type=\"(ay)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Crypto::Key\" />\n"
@@ -126,7 +125,6 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"uiParams\" type=\"(ssss(i)sss(i)(i))\" direction=\"in\" />\n"
     "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
-    "          <arg name=\"storageProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"importedKeyReference\" type=\"(ay)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Crypto::Key\" />\n"
@@ -135,7 +133,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Crypto::Key\" />\n"
     "      </method>\n"
     "      <method name=\"storedKey\">\n"
-    "          <arg name=\"identifier\" type=\"(ss)\" direction=\"in\" />\n"
+    "          <arg name=\"identifier\" type=\"(sss)\" direction=\"in\" />\n"
     "          <arg name=\"keyComponents\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"key\" type=\"(ay)\" direction=\"out\" />\n"
@@ -145,14 +143,15 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Crypto::Key\" />\n"
     "      </method>\n"
     "      <method name=\"deleteStoredKey\">\n"
-    "          <arg name=\"identifier\" type=\"(ss)\" direction=\"in\" />\n"
+    "          <arg name=\"identifier\" type=\"(sss)\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Crypto::Key::Identifier\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "      </method>\n"
     "      <method name=\"storedKeyIdentifiers\">\n"
+    "          <arg name=\"storagePluginName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
-    "          <arg name=\"identifiers\" type=\"a(ss)\" direction=\"out\" />\n"
+    "          <arg name=\"identifiers\" type=\"a(sss)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"QVector<Sailfish::Crypto::Key::Identifier>\" />\n"
     "      </method>\n"
@@ -364,7 +363,6 @@ public Q_SLOTS:
             const Sailfish::Crypto::InteractionParameters &uiParams,
             const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
-            const QString &storageProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
             Sailfish::Crypto::Key &key);
@@ -383,7 +381,6 @@ public Q_SLOTS:
             const Sailfish::Crypto::InteractionParameters &uiParams,
             const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
-            const QString &storageProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
             Sailfish::Crypto::Key &importedKey);
@@ -401,6 +398,7 @@ public Q_SLOTS:
             Sailfish::Crypto::Result &result);
 
     void storedKeyIdentifiers(
+            const QString &storagePluginName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
             QVector<Sailfish::Crypto::Key::Identifier> &identifiers);

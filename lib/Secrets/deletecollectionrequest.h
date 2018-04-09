@@ -25,6 +25,7 @@ class SAILFISH_SECRETS_API DeleteCollectionRequest : public Sailfish::Secrets::R
 {
     Q_OBJECT
     Q_PROPERTY(QString collectionName READ collectionName WRITE setCollectionName NOTIFY collectionNameChanged)
+    Q_PROPERTY(QString storagePluginName READ storagePluginName WRITE setStoragePluginName NOTIFY storagePluginNameChanged)
     Q_PROPERTY(Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode READ userInteractionMode WRITE setUserInteractionMode NOTIFY userInteractionModeChanged)
 
 public:
@@ -33,6 +34,9 @@ public:
 
     QString collectionName() const;
     void setCollectionName(const QString &collectionName);
+
+    QString storagePluginName() const;
+    void setStoragePluginName(const QString &pluginName);
 
     Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode() const;
     void setUserInteractionMode(Sailfish::Secrets::SecretManager::UserInteractionMode mode);
@@ -48,6 +52,7 @@ public:
 
 Q_SIGNALS:
     void collectionNameChanged();
+    void storagePluginNameChanged();
     void userInteractionModeChanged();
 
 private:

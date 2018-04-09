@@ -32,16 +32,14 @@ public:
 
     QPointer<Sailfish::Secrets::SecretManager> m_manager;
     StoreSecretRequest::SecretStorageType m_secretStorageType;
-    QString m_storagePluginName;
+    Sailfish::Secrets::Secret m_secret;
     QString m_encryptionPluginName;
     QString m_authenticationPluginName;
-    Sailfish::Secrets::Secret m_secret;
     Sailfish::Secrets::InteractionParameters m_interactionParameters;
     Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic m_deviceLockUnlockSemantic;
     Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic m_customLockUnlockSemantic;
     Sailfish::Secrets::SecretManager::AccessControlMode m_accessControlMode;
     Sailfish::Secrets::SecretManager::UserInteractionMode m_userInteractionMode;
-    int m_customLockTimeout;
 
     QScopedPointer<QDBusPendingCallWatcher> m_watcher;
     Sailfish::Secrets::Request::Status m_status;

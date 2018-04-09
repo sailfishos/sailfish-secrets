@@ -29,6 +29,7 @@ public:
     explicit CollectionNamesRequestPrivate();
 
     QPointer<Sailfish::Secrets::SecretManager> m_manager;
+    QString m_storagePluginName;
     QStringList m_collectionNames;
 
     QScopedPointer<QDBusPendingCallWatcher> m_watcher;

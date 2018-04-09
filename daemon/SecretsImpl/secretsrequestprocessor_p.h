@@ -33,18 +33,29 @@
 #include "Secrets/lockcoderequest.h"
 
 #include "SecretsImpl/secrets_p.h"
+#include "SecretsImpl/pluginwrapper_p.h"
+#include "SecretsImpl/metadatadb_p.h"
 #include "SecretsImpl/applicationpermissions_p.h"
 
-#include "bookkeepingdatabase_p.h"
 #include "requestqueue_p.h"
 
 namespace Sailfish {
+
+namespace Crypto {
+    namespace Daemon {
+        namespace ApiImpl {
+            class CryptoStoragePluginWrapper;
+        }
+    }
+}
 
 namespace Secrets {
 
 namespace Daemon {
 
 namespace ApiImpl {
+
+class Controller;
 
 // The RequestProcessor implements the Secrets Daemon API.
 // It processes requests from clients which are forwarded
@@ -56,10 +67,11 @@ class RequestProcessor : public QObject
     Q_OBJECT
 
 public:
-    RequestProcessor(Sailfish::Secrets::Daemon::ApiImpl::BookkeepingDatabase *bkdb,
-                     Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *appPermissions,
+    RequestProcessor(Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *appPermissions,
                      bool autotestMode,
                      Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *parent = Q_NULLPTR);
+
+    bool initialisePlugins();
 
     // retrieve information about available plugins
     Sailfish::Secrets::Result getPluginInfo(
@@ -74,6 +86,7 @@ public:
     Sailfish::Secrets::Result collectionNames(
             pid_t callerPid,
             quint64 requestId,
+            const QString &storagePluginName,
             QStringList *names);
 
     // create a DeviceLock-protected collection
@@ -95,7 +108,6 @@ public:
             const QString &encryptionPluginName,
             const QString &authenticationPluginName,
             Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic unlockSemantic,
-            int customLockTimeoutMs,
             Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress);
@@ -105,7 +117,9 @@ public:
             pid_t callerPid,
             quint64 requestId,
             const QString &collectionName,
-            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
+            const QString &storagePluginName,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress);
 
     // set a secret in a collection
     Sailfish::Secrets::Result setCollectionSecret(
@@ -120,9 +134,8 @@ public:
     Sailfish::Secrets::Result setStandaloneDeviceLockSecret(
             pid_t callerPid,
             quint64 requestId,
-            const QString &storagePluginName,
-            const QString &encryptionPluginName,
             const Sailfish::Secrets::Secret &secret,
+            const QString &encryptionPluginName,
             const Sailfish::Secrets::InteractionParameters &uiParams,
             Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic unlockSemantic,
             Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
@@ -133,13 +146,11 @@ public:
     Sailfish::Secrets::Result setStandaloneCustomLockSecret(
             pid_t callerPid,
             quint64 requestId,
-            const QString &storagePluginName,
+            const Sailfish::Secrets::Secret &secret,
             const QString &encryptionPluginName,
             const QString &authenticationPluginName,
-            const Sailfish::Secrets::Secret &secret,
             const Sailfish::Secrets::InteractionParameters &uiParams,
             Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic unlockSemantic,
-            int customLockTimeoutMs,
             Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress);
@@ -167,6 +178,7 @@ public:
             pid_t callerPid,
             quint64 requestId,
             const QString &collectionName,
+            const QString &storagePluginName,
             const Sailfish::Secrets::Secret::FilterData &filter,
             Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
@@ -177,6 +189,7 @@ public:
     Sailfish::Secrets::Result findStandaloneSecrets(
             pid_t callerPid,
             quint64 requestId,
+            const QString &storagePluginName,
             const Sailfish::Secrets::Secret::FilterData &filter,
             Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
@@ -228,33 +241,25 @@ public:
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress);
 
+    // store a crypto key pre-check (crypto api bridge)
+    Sailfish::Secrets::Result setCollectionKeyPreCheck(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Secrets::Secret::Identifier &identifier,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            QByteArray *collectionDecryptionKey);
+
 public: // helper methods for crypto API bridge (secretscryptohelpers)
     QMap<QString, QObject*> potentialCryptoStoragePlugins() const;
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *cryptoStoragePluginWrapper(const QString &pluginName) const;
+    QStringList encryptedStoragePluginNames() const;
+    QStringList storagePluginNames() const;
     QVector<Sailfish::Secrets::PluginInfo> storagePluginInfo() const;
-    Sailfish::Secrets::Result confirmKeyStoragePlugin(
-            const QString &hashedKeyName,
-            const QString &collectionName,
-            const QString &storagePluginName) const;
-    Sailfish::Secrets::Result confirmCollectionStoragePlugin(
-            const QString &collectionName,
-            const QString &storagePluginName) const;
-    Sailfish::Secrets::Result setCollectionSecretMetadata(
-            pid_t callerPid,
-            quint64 requestId,
-            const Sailfish::Secrets::Secret::Identifier &identifier);
-    Sailfish::Secrets::Result deleteCollectionSecretMetadata(
-            pid_t callerPid,
-            quint64 requestId,
-            const Sailfish::Secrets::Secret::Identifier &identifier);
+    Sailfish::Secrets::Result storedKeyIdentifiers(const QString &storagePluginName, QVector<Secret::Identifier> *idents) const;
     Sailfish::Secrets::Result userInput(
             pid_t callerPid,
             quint64 requestId,
             const Sailfish::Secrets::InteractionParameters &uiParams);
-
-    void preventInterleavedRequests(const QString &collectionName);
-    void allowInterleavedRequests(const QString &collectionName);
-    bool interleavedRequestsAllowed(const QString &collectionName) const;
-    Sailfish::Secrets::Result interleavedRequestError() const;
 
 private Q_SLOTS:
     void authenticationCompleted(
@@ -269,15 +274,25 @@ private Q_SLOTS:
             const Sailfish::Secrets::Result &result,
             const QByteArray &authenticationCode);
 
-    void timeoutRelockCollection();
-    void timeoutRelockSecret();
-
 private:
-    void deleteCollectionFinalise(
+    Sailfish::Secrets::Result deleteCollectionWithMetadata(
             pid_t callerPid,
             quint64 requestId,
             const QString &collectionName,
-            SecretManager::AccessControlMode collectionAccessControlMode);
+            const QString &storagePluginName,
+            SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            const CollectionMetadata &collectionMetadata);
+
+    void deleteCollectionWithLockCode(
+            pid_t callerPid,
+            quint64 requestId,
+            const QString &collectionName,
+            const QString &storagePluginName,
+            SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            const CollectionMetadata &collectionMetadata,
+            const QByteArray &lockCode);
 
     Sailfish::Secrets::Result createCustomLockCollectionWithAuthenticationCode(
             pid_t callerPid,
@@ -287,7 +302,6 @@ private:
             const QString &encryptionPluginName,
             const QString &authenticationPluginName,
             Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic unlockSemantic,
-            int customLockTimeoutMs,
             Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
@@ -301,11 +315,19 @@ private:
             const QString &encryptionPluginName,
             const QString &authenticationPluginName,
             Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic unlockSemantic,
-            int customLockTimeoutMs,
             Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
             const QByteArray &encryptionKey);
+
+    Sailfish::Secrets::Result setCollectionSecretWithMetadata(
+            pid_t callerPid,
+            quint64 requestId,
+            const Secret &secret,
+            const Sailfish::Secrets::InteractionParameters &uiParams,
+            SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            const CollectionMetadata &collectionMetadata);
 
     Sailfish::Secrets::Result setCollectionSecretGetAuthenticationCode(
             pid_t callerPid,
@@ -313,14 +335,7 @@ private:
             const Secret &secret,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
-            bool collectionUsesDeviceLockKey,
-            const QString &collectionApplicationId,
-            const QString &collectionStoragePluginName,
-            const QString &collectionEncryptionPluginName,
-            const QString &collectionAuthenticationPluginName,
-            int collectionUnlockSemantic,
-            int collectionCustomLockTimeoutMs,
-            Sailfish::Secrets::SecretManager::AccessControlMode collectionAccessControlMode);
+            const CollectionMetadata &collectionMetadata);
 
     Sailfish::Secrets::Result setCollectionSecretWithAuthenticationCode(
             pid_t callerPid,
@@ -328,14 +343,7 @@ private:
             const Sailfish::Secrets::Secret &secret,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
-            bool collectionUsesDeviceLockKey,
-            const QString &collectionApplicationId,
-            const QString &collectionStoragePluginName,
-            const QString &collectionEncryptionPluginName,
-            const QString &collectionAuthenticationPluginName,
-            int collectionUnlockSemantic,
-            int collectionCustomLockTimeoutMs,
-            Sailfish::Secrets::SecretManager::AccessControlMode collectionAccessControlMode,
+            const CollectionMetadata &collectionMetadata,
             const QByteArray &authenticationCode);
 
     void setCollectionSecretWithEncryptionKey(
@@ -344,99 +352,61 @@ private:
             const Sailfish::Secrets::Secret &secret,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
-            bool collectionUsesDeviceLockKey,
-            const QString &collectionApplicationId,
-            const QString &collectionStoragePluginName,
-            const QString &collectionEncryptionPluginName,
-            const QString &collectionAuthenticationPluginName,
-            int collectionUnlockSemantic,
-            int collectionCustomLockTimeoutMs,
-            Sailfish::Secrets::SecretManager::AccessControlMode collectionAccessControlMode,
+            const CollectionMetadata &collectionMetadata,
             const QByteArray &encryptionKey);
 
-    void setCollectionSecretWithEncryptionKeyFinalise(
+    Sailfish::Secrets::Result setStandaloneDeviceLockSecretWithMetadata(
             pid_t callerPid,
             quint64 requestId,
             const Sailfish::Secrets::Secret &secret,
-            bool secretAlreadyExists,
-            const QString &hashedSecretName,
-            const Sailfish::Secrets::Result &pluginResult);
+            const Sailfish::Secrets::InteractionParameters &uiParams,
+            const QString &interactionServiceAddress,
+            const SecretMetadata &newMetadata);
 
     Sailfish::Secrets::Result writeStandaloneDeviceLockSecret(
             pid_t callerPid,
             quint64 requestId,
-            const QString &callerApplicationId,
-            const QString &storagePluginName,
-            const QString &encryptionPluginName,
             const Sailfish::Secrets::Secret &secret,
-            const QString &collectionName,
-            const QString &hashedSecretName,
-            bool found,
-            Sailfish::Secrets::SecretManager::DeviceLockUnlockSemantic unlockSemantic,
-            Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode);
+            const SecretMetadata &secretMetadata);
 
-    void writeStandaloneDeviceLockSecretFinalise(
+    Sailfish::Secrets::Result setStandaloneCustomLockSecretWithMetadata(
             pid_t callerPid,
             quint64 requestId,
-            const QString &storagePluginName,
-            const QString &encryptionPluginName,
-            const QString &collectionName,
-            const QString &hashedSecretName,
-            bool found,
-            const Sailfish::Secrets::Result &pluginResult);
+            const Secret &secret,
+            const Sailfish::Secrets::InteractionParameters &uiParams,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            const SecretMetadata &newMetadata);
 
     Sailfish::Secrets::Result setStandaloneCustomLockSecretGetAuthenticationCode(
             pid_t callerPid,
             quint64 requestId,
-            const QString &callerApplicationId,
-            const QString &storagePluginName,
-            const QString &encryptionPluginName,
-            const QString &authenticationPluginName,
             const Sailfish::Secrets::Secret &secret,
-            Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic unlockSemantic,
-            int customLockTimeoutMs,
-            Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-            const QString &interactionServiceAddress);
+            const QString &interactionServiceAddress,
+            const SecretMetadata &secretMetadata);
 
     Sailfish::Secrets::Result setStandaloneCustomLockSecretWithAuthenticationCode(
             pid_t callerPid,
             quint64 requestId,
-            const QString &storagePluginName,
-            const QString &encryptionPluginName,
-            const QString &authenticationPluginName,
             const Sailfish::Secrets::Secret &secret,
-            Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic unlockSemantic,
-            int customLockTimeoutMs,
-            Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
-            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-            const QString &interactionServiceAddress,
+            const SecretMetadata &secretMetadata,
             const QByteArray &authenticationCode);
 
     void setStandaloneCustomLockSecretWithEncryptionKey(
             pid_t callerPid,
             quint64 requestId,
-            const QString &storagePluginName,
-            const QString &encryptionPluginName,
-            const QString &authenticationPluginName,
             const Sailfish::Secrets::Secret &secret,
-            Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic unlockSemantic,
-            int customLockTimeoutMs,
-            Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode,
-            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
-            const QString &interactionServiceAddress,
+            const SecretMetadata &secretMetadata,
             const QByteArray &encryptionKey);
 
-    void setStandaloneCustomLockSecretWithEncryptionKeyFinalise(
+    Sailfish::Secrets::Result getCollectionSecretWithMetadata(
             pid_t callerPid,
             quint64 requestId,
-            const QString &storagePluginName,
-            const QString &encryptionPluginName,
-            const QString &collectionName,
-            const QString &hashedSecretName,
-            const QByteArray &encryptionKey,
-            bool found,
-            const Sailfish::Secrets::Result &pluginResult);
+            const Secret::Identifier &identifier,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            const CollectionMetadata &collectionMetadata);
 
     Sailfish::Secrets::Result getCollectionSecretWithAuthenticationCode(
             pid_t callerPid,
@@ -444,10 +414,7 @@ private:
             const Sailfish::Secrets::Secret::Identifier &identifier,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
-            const QString &storagePluginName,
-            const QString &encryptionPluginName,
-            int collectionUnlockSemantic,
-            int collectionCustomLockTimeoutMs,
+            const CollectionMetadata &collectionMetadata,
             const QByteArray &authenticationCode);
 
     void getCollectionSecretWithEncryptionKey(
@@ -456,11 +423,16 @@ private:
             const Sailfish::Secrets::Secret::Identifier &identifier,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
-            const QString &storagePluginName,
-            const QString &encryptionPluginName,
-            int collectionUnlockSemantic,
-            int collectionCustomLockTimeoutMs,
+            const CollectionMetadata &collectionMetadata,
             const QByteArray &encryptionKey);
+
+    Sailfish::Secrets::Result getStandaloneSecretWithMetadata(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Secrets::Secret::Identifier &identifier,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            const SecretMetadata &secretMetadata);
 
     Sailfish::Secrets::Result getStandaloneSecretWithAuthenticationCode(
             pid_t callerPid,
@@ -468,10 +440,7 @@ private:
             const Sailfish::Secrets::Secret::Identifier &identifier,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
-            const QString &storagePluginName,
-            const QString &encryptionPluginName,
-            int lockSemantic,
-            int customLockTimeoutMs,
+            const SecretMetadata &secretMetadata,
             const QByteArray &authenticationCode);
 
     void getStandaloneSecretWithEncryptionKey(
@@ -480,45 +449,56 @@ private:
             const Sailfish::Secrets::Secret::Identifier &identifier,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
-            const QString &storagePluginName,
-            const QString &encryptionPluginName,
-            int lockSemantic,
-            int customLockTimeoutMs,
+            const SecretMetadata &secretMetadata,
             const QByteArray &encryptionKey);
+
+    Sailfish::Secrets::Result findCollectionSecretsWithMetadata(
+            pid_t callerPid,
+            quint64 requestId,
+            const QString &collectionName,
+            const QString &storagePluginName,
+            const Sailfish::Secrets::Secret::FilterData &filter,
+            Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            const CollectionMetadata &collectionMetadata);
 
     Sailfish::Secrets::Result findCollectionSecretsWithAuthenticationCode(
             pid_t callerPid,
             quint64 requestId,
             const QString &collectionName,
+            const QString &storagePluginName,
             const Sailfish::Secrets::Secret::FilterData &filter,
             Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
-            const QString &storagePluginName,
-            const QString &encryptionPluginName,
-            int collectionUnlockSemantic,
-            int collectionCustomLockTimeoutMs,
+            const CollectionMetadata &collectionMetadata,
             const QByteArray &authenticationCode);
 
     void findCollectionSecretsWithEncryptionKey(
             pid_t callerPid,
             quint64 requestId,
             const QString &collectionName,
+            const QString &storagePluginName,
             const Sailfish::Secrets::Secret::FilterData &filter,
             Sailfish::Secrets::SecretManager::FilterOperator filterOperator,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
-            const QString &storagePluginName,
-            const QString &encryptionPluginName,
-            int collectionUnlockSemantic,
-            int collectionCustomLockTimeoutMs,
+            const CollectionMetadata &collectionMetadata,
             const QByteArray &encryptionKey);
+
+    Sailfish::Secrets::Result deleteCollectionSecretWithMetadata(
+            pid_t callerPid,
+            quint64 requestId,
+            const Secret::Identifier &identifier,
+            SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            const CollectionMetadata &collectionMetadata);
 
     Sailfish::Secrets::Result deleteCollectionSecretWithAuthenticationCode(
             pid_t callerPid,
             quint64 requestId,
             const Sailfish::Secrets::Secret::Identifier &identifier,
-            const QString &collectionStoragePluginName,
             const QString &collectionEncryptionPluginName,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
@@ -530,7 +510,15 @@ private:
             const Secret::Identifier &identifier,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
+            const QString &collectionEncryptionPluginName,
             const QByteArray &encryptionKey);
+
+    Sailfish::Secrets::Result deleteStandaloneSecretWithMetadata(
+            pid_t callerPid,
+            quint64 requestId,
+            const Secret::Identifier &identifier,
+            SecretManager::UserInteractionMode userInteractionMode,
+            const SecretMetadata &secretMetadata);
 
     Sailfish::Secrets::Result modifyLockCodeWithLockCode(
             pid_t callerPid,
@@ -563,6 +551,28 @@ private:
             const QString &interactionServiceAddress,
             const QByteArray &lockCode);
 
+    Sailfish::Secrets::Result setCollectionKeyPreCheckWithMetadata(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Secrets::Secret::Identifier &identifier,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const CollectionMetadata &collectionMetadata);
+
+    Sailfish::Secrets::Result setCollectionKeyPreCheckWithAuthenticationCode(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Secrets::Secret::Identifier &identifier,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const CollectionMetadata &collectionMetadata,
+            const QByteArray &authenticationCode);
+
+    void setCollectionKeyPreCheckWithEncryptionKey(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Secrets::Secret::Identifier &identifier,
+            const CollectionMetadata &collectionMetadata,
+            const QByteArray &collectionDecryptionKey);
+
 private:
     struct PendingRequest {
         PendingRequest()
@@ -577,22 +587,19 @@ private:
         QVariantList parameters;
     };
 
-    Sailfish::Secrets::Daemon::ApiImpl::BookkeepingDatabase *m_bkdb;
     Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *m_requestQueue;
     Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *m_appPermissions;
 
-    QMap<QString, Sailfish::Secrets::StoragePlugin*> m_storagePlugins;
     QMap<QString, Sailfish::Secrets::EncryptionPlugin*> m_encryptionPlugins;
-    QMap<QString, Sailfish::Secrets::EncryptedStoragePlugin*> m_encryptedStoragePlugins;
+    QMap<QString, Sailfish::Secrets::Daemon::ApiImpl::StoragePluginWrapper*> m_storagePlugins;
+    QMap<QString, Sailfish::Secrets::Daemon::ApiImpl::EncryptedStoragePluginWrapper*> m_encryptedStoragePlugins;
+    QMap<QString, Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper*> m_cryptoStoragePlugins;
     QMap<QString, Sailfish::Secrets::AuthenticationPlugin*> m_authenticationPlugins;
     QMap<QString, QObject*> m_potentialCryptoStoragePlugins;
 
-    QMap<QString, QTimer*> m_collectionLockTimers;
     QMap<QString, QByteArray> m_collectionEncryptionKeys;
-    QMap<QString, QTimer*> m_standaloneSecretLockTimers;
     QMap<QString, QByteArray> m_standaloneSecretEncryptionKeys;
     QMap<quint64, Sailfish::Secrets::Daemon::ApiImpl::RequestProcessor::PendingRequest> m_pendingRequests;
-    QSet<QString> m_preventInterleavedRequestsCollections;
 
     bool m_autotestMode;
 };

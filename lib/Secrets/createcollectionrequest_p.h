@@ -39,7 +39,6 @@ public:
     Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic m_customLockUnlockSemantic;
     Sailfish::Secrets::SecretManager::AccessControlMode m_accessControlMode;
     Sailfish::Secrets::SecretManager::UserInteractionMode m_userInteractionMode;
-    int m_customLockTimeout;
 
     QScopedPointer<QDBusPendingCallWatcher> m_watcher;
     Sailfish::Secrets::Request::Status m_status;

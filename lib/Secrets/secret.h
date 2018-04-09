@@ -29,6 +29,7 @@ class SAILFISH_SECRETS_API Secret
     Q_GADGET
     Q_PROPERTY(QString name READ name WRITE setName)
     Q_PROPERTY(QString collectionName READ collectionName WRITE setCollectionName)
+    Q_PROPERTY(QString storagePluginName READ storagePluginName WRITE setStoragePluginName)
     Q_PROPERTY(QString type READ type WRITE setType)
     Q_PROPERTY(QByteArray data READ data WRITE setData)
     Q_PROPERTY(QStringList filterDataFields READ filterDataFields)
@@ -44,7 +45,7 @@ public:
     class Identifier {
     public:
         Identifier();
-        explicit Identifier(const QString &name, const QString &collectionName = QString());
+        explicit Identifier(const QString &name, const QString &collectionName, const QString &storagePluginName);
         Identifier(const Sailfish::Secrets::Secret::Identifier &other);
         ~Identifier();
 
@@ -57,6 +58,8 @@ public:
         void setName(const QString &name);
         QString collectionName() const;
         void setCollectionName(const QString &collectionName);
+        QString storagePluginName() const;
+        void setStoragePluginName(const QString &storagePluginName);
     private:
         QSharedDataPointer<SecretIdentifierPrivate> d_ptr;
         friend class SecretIdentifierPrivate;
@@ -74,7 +77,7 @@ public:
 
     Secret();
     Secret(const Secret &other);
-    explicit Secret(const QString &name, const QString &collection);
+    explicit Secret(const QString &name, const QString &collection, const QString &storagePlugin);
     explicit Secret(const Secret::Identifier &ident);
     explicit Secret(const QByteArray &blob, const Sailfish::Secrets::Secret::FilterData &filterData = Sailfish::Secrets::Secret::FilterData());
     ~Secret();
@@ -91,6 +94,8 @@ public:
     void setName(const QString &name);
     QString collectionName() const;
     void setCollectionName(const QString &cname);
+    QString storagePluginName() const;
+    void setStoragePluginName(const QString &pname);
 
     QByteArray data() const;
     void setData(const QByteArray &data);
