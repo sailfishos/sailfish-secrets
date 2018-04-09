@@ -6,6 +6,7 @@
  */
 
 #include "plugintypes.h"
+#include "storedkeyidentifiersrequestwrapper.h"
 
 #include <QtQml/QQmlEngine>
 #include <QtQml>
@@ -33,7 +34,7 @@ void Sailfish::Crypto::Plugin::CryptoPlugin::registerTypes(const char *uri)
     qmlRegisterType<Sailfish::Crypto::GenerateKeyRequest>(uri, 1, 0, "GenerateKeyRequest");
     qmlRegisterType<Sailfish::Crypto::GenerateStoredKeyRequest>(uri, 1, 0, "GenerateStoredKeyRequest");
     qmlRegisterType<Sailfish::Crypto::StoredKeyRequest>(uri, 1, 0, "StoredKeyRequest");
-    qmlRegisterType<Sailfish::Crypto::StoredKeyIdentifiersRequest>(uri, 1, 0, "StoredKeyIdentifiersRequest");
+    qmlRegisterType<Sailfish::Crypto::Plugin::StoredKeyIdentifiersRequestWrapper>(uri, 1, 0, "StoredKeyIdentifiersRequest");
     qmlRegisterType<Sailfish::Crypto::DeleteStoredKeyRequest>(uri, 1, 0, "DeleteStoredKeyRequest");
     qmlRegisterType<Sailfish::Crypto::EncryptRequest>(uri, 1, 0, "EncryptRequest");
     qmlRegisterType<Sailfish::Crypto::DecryptRequest>(uri, 1, 0, "DecryptRequest");

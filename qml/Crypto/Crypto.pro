@@ -8,8 +8,14 @@ include($$PWD/../../lib/libsailfishcrypto.pri)
 
 QT += qml core
 
-HEADERS += $$PWD/plugintypes.h
-SOURCES += $$PWD/main.cpp
+HEADERS += \
+    $$PWD/plugintypes.h \
+    $$PWD/storedkeyidentifiersrequestwrapper.h
+
+SOURCES += \
+    $$PWD/main.cpp \
+    $$PWD/storedkeyidentifiersrequestwrapper.cpp
+
 OTHER_FILES += $$PWD/qmldir
 
 target.path = /usr/lib/qt5/qml/Sailfish/Crypto/
