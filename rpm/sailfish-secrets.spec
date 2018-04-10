@@ -215,6 +215,7 @@ cp -R lib/Crypto/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Crypto/
 /opt/tests/Sailfish/Crypto/tst_cryptorequests
 /opt/tests/Sailfish/Crypto/tst_cryptosecrets
 /opt/tests/Sailfish/Crypto/tst_evp
+/opt/tests/Sailfish/Crypto/tst_qml_signing
 %{_libdir}/Sailfish/Crypto/libsailfishcrypto-testopenssl.so
 
 %files -n libsailfishcryptoplugin

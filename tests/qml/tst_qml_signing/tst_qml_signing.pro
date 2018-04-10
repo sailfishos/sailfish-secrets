@@ -6,7 +6,6 @@ QT += testlib core gui qml quick
 CONFIG += qmltestcase
 
 SOURCES += \
-
     tst_qml_signing.cpp
 
 OTHER_FILES += \
