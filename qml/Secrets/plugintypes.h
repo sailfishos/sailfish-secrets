@@ -47,10 +47,22 @@ public:
 class SecretManager : public Sailfish::Secrets::SecretManager
 {
     Q_OBJECT
+    Q_PROPERTY(QString inAppAuthenticationPluginName READ inAppAuthenticationPluginName CONSTANT)
+    Q_PROPERTY(QString defaultAuthenticationPluginName READ defaultAuthenticationPluginName CONSTANT)
+    Q_PROPERTY(QString defaultStoragePluginName READ defaultStoragePluginName CONSTANT)
+    Q_PROPERTY(QString defaultEncryptionPluginName READ defaultEncryptionPluginName CONSTANT)
+    Q_PROPERTY(QString defaultEncryptedStoragePluginName READ defaultEncryptedStoragePluginName CONSTANT)
 
 public:
     SecretManager(QObject *parent = Q_NULLPTR);
-    ~SecretManager();
+    ~SecretManager() Q_DECL_OVERRIDE;
+
+    // QML API - allow clients to access static properties
+    QString inAppAuthenticationPluginName() const;
+    QString defaultAuthenticationPluginName() const;
+    QString defaultStoragePluginName() const;
+    QString defaultEncryptionPluginName() const;
+    QString defaultEncryptedStoragePluginName() const;
 
     // QML API - allow clients to construct "uncreatable" value types
     Q_INVOKABLE Result constructResult() const;

@@ -80,7 +80,7 @@ public:
     static const QString DefaultEncryptedStoragePluginName;
 
     SecretManager(QObject *parent = Q_NULLPTR);
-    ~SecretManager();
+    virtual ~SecretManager();
 
     bool isInitialised() const;
 

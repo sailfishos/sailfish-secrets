@@ -148,6 +148,7 @@ void CreateCollectionRequest::setCollectionName(const QString &name)
 
 /*!
  * \brief Returns the name of the storage plugin which the client wishes to use to create the collection
+ * \note When storagePluginName is the same as encryptionPluginName, then it is assumed that the user means an EncryptedStoragePlugin.
  */
 QString CreateCollectionRequest::storagePluginName() const
 {
@@ -173,6 +174,7 @@ void CreateCollectionRequest::setStoragePluginName(const QString &pluginName)
 
 /*!
  * \brief Returns the name of the encryption plugin which the client wishes to use to encrypt secrets stored in the collection
+ * \note When storagePluginName is the same as encryptionPluginName, then it is assumed that the user means an EncryptedStoragePlugin.
  */
 QString CreateCollectionRequest::encryptionPluginName() const
 {

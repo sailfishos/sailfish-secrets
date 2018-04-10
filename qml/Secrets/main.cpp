@@ -22,20 +22,22 @@ void Sailfish::Secrets::Plugin::SecretsPlugin::registerTypes(const char *uri)
     qRegisterMetaType<Sailfish::Secrets::InteractionParameters::EchoMode>("InteractionParameters::EchoMode");
     qRegisterMetaType<Sailfish::Secrets::InteractionParameters::Operation>("InteractionParameters::Operation");
     QMetaType::registerComparators<Sailfish::Secrets::InteractionParameters>();
-    qmlRegisterUncreatableType<Sailfish::Secrets::InteractionParameters>(uri, 1, 0, "InteractionParameters", QLatin1String("InteractionParameters objects cannot be constructed directly in QML"));
+    qmlRegisterUncreatableType<Sailfish::Secrets::InteractionParameters>(uri, 1, 0, "InteractionParameters", QStringLiteral("InteractionParameters objects cannot be constructed directly in QML"));
 
     qRegisterMetaType<Sailfish::Secrets::InteractionResponse>("InteractionResponse");
     QMetaType::registerComparators<Sailfish::Secrets::InteractionResponse>();
-    qmlRegisterUncreatableType<Sailfish::Secrets::InteractionResponse>(uri, 1, 0, "InteractionResponse", QLatin1String("InteractionResponse objects cannot be constructed directly in QML"));
+    qmlRegisterUncreatableType<Sailfish::Secrets::InteractionResponse>(uri, 1, 0, "InteractionResponse", QStringLiteral("InteractionResponse objects cannot be constructed directly in QML"));
 
     qRegisterMetaType<Sailfish::Secrets::Result>("Result");
     QMetaType::registerComparators<Sailfish::Secrets::Result>();
-    qmlRegisterUncreatableType<Sailfish::Secrets::Result>(uri, 1, 0, "Result", QLatin1String("Result objects cannot be constructed directly in QML"));
+    qmlRegisterUncreatableType<Sailfish::Secrets::Result>(uri, 1, 0, "Result", QStringLiteral("Result objects cannot be constructed directly in QML"));
 
     qRegisterMetaType<Sailfish::Secrets::Secret>("Secret");
     QMetaType::registerComparators<Sailfish::Secrets::Secret>();
-    qmlRegisterUncreatableType<Sailfish::Secrets::Secret>(uri, 1, 0, "Secret", QLatin1String("Secret objects cannot be constructed directly in QML"));
+    qmlRegisterUncreatableType<Sailfish::Secrets::Secret>(uri, 1, 0, "Secret", QStringLiteral("Secret objects cannot be constructed directly in QML"));
 
+    qmlRegisterUncreatableType<Sailfish::Secrets::Request>(uri, 1, 0, "Request", QStringLiteral("Request is an abstract class, can't construct in QML"));
+    qRegisterMetaType<Sailfish::Secrets::Request::Status>("Request::Status");
     qmlRegisterType<Sailfish::Secrets::PluginInfoRequest>(uri, 1, 0, "PluginInfoRequest");
     qmlRegisterType<Sailfish::Secrets::CollectionNamesRequest>(uri, 1, 0, "CollectionNamesRequest");
     qmlRegisterType<Sailfish::Secrets::CreateCollectionRequest>(uri, 1, 0, "CreateCollectionRequest");
@@ -57,6 +59,31 @@ Sailfish::Secrets::Plugin::SecretManager::SecretManager(QObject *parent)
 
 Sailfish::Secrets::Plugin::SecretManager::~SecretManager()
 {
+}
+
+QString Sailfish::Secrets::Plugin::SecretManager::inAppAuthenticationPluginName() const
+{
+    return InAppAuthenticationPluginName;
+}
+
+QString Sailfish::Secrets::Plugin::SecretManager::defaultAuthenticationPluginName() const
+{
+    return DefaultAuthenticationPluginName;
+}
+
+QString Sailfish::Secrets::Plugin::SecretManager::defaultStoragePluginName() const
+{
+    return DefaultStoragePluginName;
+}
+
+QString Sailfish::Secrets::Plugin::SecretManager::defaultEncryptionPluginName() const
+{
+    return DefaultEncryptionPluginName;
+}
+
+QString Sailfish::Secrets::Plugin::SecretManager::defaultEncryptedStoragePluginName() const
+{
+    return DefaultEncryptedStoragePluginName;
 }
 
 Sailfish::Secrets::Result Sailfish::Secrets::Plugin::SecretManager::constructResult() const

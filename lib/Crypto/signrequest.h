@@ -33,6 +33,7 @@ class SAILFISH_CRYPTO_API SignRequest : public Sailfish::Crypto::Request
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::DigestFunction digestFunction READ digestFunction WRITE setDigestFunction NOTIFY digestFunctionChanged)
     Q_PROPERTY(QString cryptoPluginName READ cryptoPluginName WRITE setCryptoPluginName NOTIFY cryptoPluginNameChanged)
     Q_PROPERTY(QByteArray signature READ signature NOTIFY signatureChanged)
+    Q_PROPERTY(int signatureLength READ signatureLength NOTIFY signatureChanged)
 
 public:
     SignRequest(QObject *parent = Q_NULLPTR);
@@ -54,6 +55,7 @@ public:
     void setCryptoPluginName(const QString &pluginName);
 
     QByteArray signature() const;
+    int signatureLength() const;
 
     Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result result() const Q_DECL_OVERRIDE;

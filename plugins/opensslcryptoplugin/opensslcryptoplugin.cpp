@@ -613,11 +613,13 @@ Daemon::Plugins::OpenSslCryptoPlugin::calculateDigest(
 Sailfish::Crypto::Result
 Daemon::Plugins::OpenSslCryptoPlugin::sign(
         const QByteArray &data,
-        const Sailfish::Crypto::Key &key,
+        const Sailfish::Crypto::Key &keyReferenceOrFullKey,
         Sailfish::Crypto::CryptoManager::SignaturePadding padding,
         Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
         QByteArray *signature)
 {
+    Sailfish::Crypto::Key key = getFullKey(keyReferenceOrFullKey);
+
     if (signature == Q_NULLPTR) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginSigningError,
                                         QLatin1String("Given output argument 'signature' was nullptr."));
@@ -630,7 +632,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::sign(
 
     if (key.privateKey().length() == 0) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptyPrivateKey,
-                                        QLatin1String("Can't verify without private key."));
+                                        QLatin1String("Can't sign without private key."));
     }
 
     if (padding != Sailfish::Crypto::CryptoManager::SignaturePaddingNone) {
@@ -690,11 +692,13 @@ Sailfish::Crypto::Result
 Daemon::Plugins::OpenSslCryptoPlugin::verify(
         const QByteArray &signature,
         const QByteArray &data,
-        const Sailfish::Crypto::Key &key,
+        const Sailfish::Crypto::Key &keyReferenceOrFullKey,
         Sailfish::Crypto::CryptoManager::SignaturePadding padding,
         Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
         bool *verified)
 {
+    Sailfish::Crypto::Key key = getFullKey(keyReferenceOrFullKey);
+
     if (verified == Q_NULLPTR) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginVerificationError,
                                         QLatin1String("Given output argument 'verified' was nullptr."));
