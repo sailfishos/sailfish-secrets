@@ -8,7 +8,7 @@ include($$PWD/../lib/libsailfishcrypto.pri)
 QT += sql dbus
 
 CONFIG += link_pkgconfig hide_symbols
-PKGCONFIG += dbus-1
+PKGCONFIG += dbus-1 libsystemd-daemon libshadowutils
 
 HEADERS += \
     $$PWD/controller_p.h \

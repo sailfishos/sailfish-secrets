@@ -9,4 +9,5 @@ tests.depends = lib
 OTHER_FILES += \
     $$PWD/LICENSE \
     $$PWD/README \
-    $$PWD/rpm/sailfish-secrets.spec
+    $$PWD/rpm/sailfish-secrets.spec \
+    $$PWD/daemon/sailfish-secretsd.service
