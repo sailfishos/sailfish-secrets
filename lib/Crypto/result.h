@@ -67,11 +67,13 @@ public:
         CryptoPluginRandomDataError,
         CryptoPluginCipherSessionError,
         CryptoPluginKeyGenerationError,
+        CryptoPluginKeyImportError,
         CryptoPluginDigestError,
         CryptoPluginSigningError,
         CryptoPluginVerificationError,
         CryptoPluginAuthenticationTagError,
         CryptoPluginInvalidCipherSessionToken,
+        CryptoPluginIncorrectPassphrase,
 
         NetworkError = 98,
         NetworkSslError = 99,

@@ -29,6 +29,9 @@
 #include <cstdlib>
 
 #include <openssl/rand.h>
+#include <openssl/dh.h>
+#include <openssl/dsa.h>
+#include <openssl/rsa.h>
 
 Q_PLUGIN_METADATA(IID Sailfish_Crypto_CryptoPlugin_IID)
 
@@ -82,6 +85,19 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateAndStoreKey(
     Q_UNUSED(keyTemplate);
     Q_UNUSED(kpgParams);
     Q_UNUSED(skdfParams);
+    Q_UNUSED(keyMetadata);
+    return Result(Result::UnsupportedOperation,
+                  QLatin1String("The OpenSSL crypto plugin doesn't support storing keys"));
+}
+
+Result
+Daemon::Plugins::OpenSslCryptoPlugin::importAndStoreKey(
+        const Sailfish::Crypto::Key &key,
+        const QByteArray &passphrase,
+        Key *keyMetadata)
+{
+    Q_UNUSED(key);
+    Q_UNUSED(passphrase);
     Q_UNUSED(keyMetadata);
     return Result(Result::UnsupportedOperation,
                   QLatin1String("The OpenSSL crypto plugin doesn't support storing keys"));
@@ -557,6 +573,131 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateKey(
     *key = keyTemplate;
     key->setSecretKey(QByteArray(buf.data(), nbytes));
     key->setSize(skdfParams.outputKeySize());
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
+}
+
+struct PassphraseData
+{
+    const QByteArray &passphrase;
+    bool requested;
+};
+
+static int importKeyPassphraseCallback(char *buffer, int size, int, void *userData)
+{
+    PassphraseData * const passphraseData = static_cast<PassphraseData *>(userData);
+
+    if (passphraseData->requested) { // Paranoid check in case the callback is called repeatedly.
+        return 0;
+    }
+
+    passphraseData->requested = true;
+
+    const int length = qMin(passphraseData->passphrase.length(), size);
+    if (length > 0) {
+        memcpy(buffer, passphraseData->passphrase.data(), length);
+    }
+    return length;
+}
+
+Sailfish::Crypto::Result
+Daemon::Plugins::OpenSslCryptoPlugin::importKey(
+        const Sailfish::Crypto::Key &key,
+        const QByteArray &passphrase,
+        Sailfish::Crypto::Key *importedKey)
+{
+    *importedKey = key;
+
+    QByteArray privateKey = key.privateKey();
+    QByteArray publicKey = key.publicKey();
+
+    if (privateKey.isEmpty()) {
+        privateKey = key.secretKey();
+    }
+
+    importedKey->setPrivateKey(QByteArray());
+    importedKey->setPublicKey(QByteArray());
+    importedKey->setSecretKey(QByteArray());
+
+    EVP_PKEY *pkeyPtr = Q_NULLPTR;
+
+    PassphraseData passphraseData { passphrase, false };
+
+    const bool exportPrivate = !privateKey.isEmpty();
+
+    if (!privateKey.isEmpty()) {
+        QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(
+                    BIO_new_mem_buf(const_cast<char *>(privateKey.data()), privateKey.size()));
+
+        PEM_read_bio_PrivateKey(bio.data(), &pkeyPtr, importKeyPassphraseCallback, &passphraseData);
+    } else if (!publicKey.isEmpty()) {
+        QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(
+                    BIO_new_mem_buf(const_cast<char *>(publicKey.data()), publicKey.size()));
+
+        PEM_read_bio_PUBKEY(bio.data(), &pkeyPtr, importKeyPassphraseCallback, &passphraseData);
+    } else {
+        return Result(Result::CryptoPluginKeyImportError, QLatin1String("No key data provided"));
+    }
+
+    if (!pkeyPtr) {
+        if (passphraseData.requested) {
+            return Result(Result::CryptoPluginIncorrectPassphrase, QLatin1String("Incorrect passphrase"));
+        } else {
+            return Result(Result::CryptoPluginKeyImportError, QLatin1String("Key read error"));
+        }
+    }
+
+    QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(pkeyPtr);
+
+    switch (EVP_PKEY_base_id(pkey.data())) {
+    case EVP_PKEY_RSA:
+        importedKey->setAlgorithm(CryptoManager::AlgorithmRsa);
+        break;
+    case EVP_PKEY_DSA:
+        importedKey->setAlgorithm(CryptoManager::AlgorithmDsa);
+        break;
+    case EVP_PKEY_DH:
+        importedKey->setAlgorithm(CryptoManager::AlgorithmDh);
+        break;
+    case EVP_PKEY_EC:
+        importedKey->setAlgorithm(CryptoManager::AlgorithmEc);
+        break;
+    default:
+        importedKey->setAlgorithm(CryptoManager::AlgorithmUnknown);
+        break;
+    }
+
+    {
+        QScopedPointer<BIO, LibCrypto_BIO_Deleter> pubbio(BIO_new(BIO_s_mem()));
+        if (PEM_write_bio_PUBKEY(pubbio.data(), pkey.data()) != 1) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyImportError,
+                                            QLatin1String("Failed to write public key data to memory"));
+        }
+
+        publicKey.resize(BIO_pending(pubbio.data()));
+        if (BIO_read(pubbio.data(), reinterpret_cast<unsigned char *>(publicKey.data()), publicKey.length()) < 1) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyImportError,
+                                            QLatin1String("Failed to read public key data from memory"));
+        }
+    }
+
+    if (exportPrivate) {
+        QScopedPointer<BIO, LibCrypto_BIO_Deleter> privbio(BIO_new(BIO_s_mem()));
+        if (PEM_write_bio_PrivateKey(privbio.data(), pkey.data(), NULL, NULL, 0, NULL, NULL) < 1) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyImportError,
+                                            QLatin1String("Failed to write private key data to memory"));
+        }
+
+        privateKey.resize(BIO_pending(privbio.data()));
+        if (BIO_read(privbio.data(), reinterpret_cast<unsigned char *>(privateKey.data()), privateKey.length()) < 1) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyImportError,
+                                            QLatin1String("Failed to read private key data from memory"));
+        }
+    }
+
+    importedKey->setSize(EVP_PKEY_bits(pkey.data()));
+    importedKey->setPublicKey(publicKey);
+    importedKey->setPrivateKey(privateKey);
+
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
 }
 

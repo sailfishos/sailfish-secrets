@@ -269,6 +269,24 @@ Daemon::ApiImpl::RequestProcessor::generateKey(
 }
 
 Result
+Daemon::ApiImpl::RequestProcessor::validateKeyIdentifier(pid_t callerPid, quint64 requestId, const Key &keyTemplate)
+{
+    Result retn(Result::Succeeded);
+    if (keyTemplate.identifier().name().isEmpty()) {
+        retn = Result(Result::InvalidKeyIdentifier,
+                      QLatin1String("Template key identifier has empty name"));
+    } else {
+        QVector<Key::Identifier> identifiers;
+        retn = transformSecretsResult(m_secrets->keyEntryIdentifiers(callerPid, requestId, &identifiers));
+        if (identifiers.contains(keyTemplate.identifier())) {
+            retn = Result(Result::DuplicateKeyIdentifier,
+                          QLatin1String("Template key identifier duplicates existing key"));
+        }
+    }
+    return retn;
+}
+
+Result
 Daemon::ApiImpl::RequestProcessor::generateStoredKey(
         pid_t callerPid,
         quint64 requestId,
@@ -282,20 +300,9 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey(
 {
     Q_UNUSED(key) // asynchronous outparam, returned in generateStoredKey_inStoragePlugin/_inCryptoPlugin
 
-    Result retn(Result::Succeeded);
-    if (keyTemplate.identifier().name().isEmpty()) {
-        return Result(Result::InvalidKeyIdentifier,
-                      QLatin1String("Template key identifier has empty name"));
-    } else {
-        QVector<Key::Identifier> identifiers;
-        retn = transformSecretsResult(m_secrets->keyEntryIdentifiers(callerPid, requestId, &identifiers));
-        if (retn.code() == Result::Failed) {
-            return retn;
-        }
-        if (identifiers.contains(keyTemplate.identifier())) {
-            return Result(Result::DuplicateKeyIdentifier,
-                          QLatin1String("Template key identifier duplicates existing key"));
-        }
+    Result retn = validateKeyIdentifier(callerPid, requestId, keyTemplate);
+    if (retn.code() == Result::Failed) {
+        return retn;
     }
 
     if (!m_cryptoPlugins.contains(cryptosystemProviderName)) {
@@ -613,6 +620,311 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_failedCleanup(
     outParams << QVariant::fromValue<Result>(initialResult);
     outParams << QVariant::fromValue<Key>(partialKey);
     m_requestQueue->requestFinished(requestId, outParams);
+}
+
+Result Daemon::ApiImpl::RequestProcessor::promptForKeyPassphrase(
+        pid_t callerPid,
+        quint64 requestId,
+        const Key &key,
+        const Sailfish::Crypto::InteractionParameters &uiParams)
+{
+    Sailfish::Secrets::InteractionParameters ikdRequest;
+    ikdRequest.setSecretName(key.identifier().name());
+    ikdRequest.setCollectionName(key.identifier().collectionName());
+    ikdRequest.setOperation(Sailfish::Secrets::InteractionParameters::Decrypt);
+    ikdRequest.setAuthenticationPluginName(uiParams.authenticationPluginName());
+    ikdRequest.setPromptText(uiParams.promptText());
+    ikdRequest.setInputType(static_cast<Sailfish::Secrets::InteractionParameters::InputType>(uiParams.inputType()));
+    ikdRequest.setEchoMode(static_cast<Sailfish::Secrets::InteractionParameters::EchoMode>(uiParams.echoMode()));
+
+    return transformSecretsResult(m_secrets->userInput(callerPid, requestId, ikdRequest));
+}
+
+Result
+Daemon::ApiImpl::RequestProcessor::importKey(
+        pid_t callerPid,
+        quint64 requestId,
+        const Key &key,
+        const Sailfish::Crypto::InteractionParameters &uiParams,
+        const QString &cryptosystemProviderName,
+        const QByteArray &passphrase,
+        Key *importedKey)
+{
+    // TODO: access control!
+    Q_UNUSED(callerPid);
+    Q_UNUSED(requestId);
+
+    if (CryptoPlugin * const cryptoPlugin = m_cryptoPlugins.value(cryptosystemProviderName)) {
+        *importedKey = key;
+
+        Result result = cryptoPlugin->importKey(key, passphrase, importedKey);
+        if (result.code() == Result::Failed
+                && result.errorCode() == Result::CryptoPluginIncorrectPassphrase
+                && uiParams.isValid()) {
+            result = promptForKeyPassphrase(callerPid, requestId, key, uiParams);
+        }
+
+        if (result.code() != Result::Failed) {
+            importedKey->setOrigin(Key::OriginImported);
+            if (!(key.componentConstraints() & Key::PrivateKeyData)) {
+                importedKey->setPrivateKey(QByteArray());
+                importedKey->setSecretKey(QByteArray());
+            }
+        }
+
+        if (result.code() == Result::Pending) {
+            m_pendingRequests.insert(requestId, Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                         callerPid,
+                                         requestId,
+                                         Daemon::ApiImpl::ImportKeyRequest,
+                                         QVariantList() << QVariant::fromValue<Key>(key)
+                                                        << QVariant::fromValue<InteractionParameters>(uiParams)
+                                                        << QVariant::fromValue<QString>(cryptosystemProviderName)));
+        }
+
+        return result;
+    } else {
+        return Result(Result::InvalidCryptographicServiceProvider,
+                      QLatin1String("No such cryptographic service provider plugin exists"));
+    }
+}
+
+void
+Daemon::ApiImpl::RequestProcessor::importKey_withPassphrase(
+        pid_t callerPid,
+        quint64 requestId,
+        const Result &result,
+        const Key &key,
+        const Sailfish::Crypto::InteractionParameters &uiParams,
+        const QString &cryptosystemProviderName,
+        const QByteArray &passphrase)
+{
+    Result retn = result;
+    Key importedKey(key);
+
+    if (retn.code() == Result::Succeeded) {
+        retn = importKey(callerPid, requestId, key, uiParams, cryptosystemProviderName, passphrase, &importedKey);
+    }
+
+    if (retn.code() != Result::Pending) {
+        QList<QVariant> outParams;
+        outParams << QVariant::fromValue<Result>(retn);
+        outParams << QVariant::fromValue<Key>(importedKey);
+        m_requestQueue->requestFinished(requestId, outParams);
+    }
+}
+
+Result
+Daemon::ApiImpl::RequestProcessor::importStoredKey(
+        pid_t callerPid,
+        quint64 requestId,
+        const Key &key,
+        const Sailfish::Crypto::InteractionParameters &uiParams,
+        const QString &cryptosystemProviderName,
+        const QString &storageProviderName,
+        const QByteArray &passphrase,
+        Key *importedKey)
+{
+    Result retn = validateKeyIdentifier(callerPid, requestId, key);
+    if (retn.code() == Result::Failed) {
+        return retn;
+    }
+
+    if (CryptoPlugin * const cryptoPlugin = m_cryptoPlugins.value(cryptosystemProviderName)) {
+        if (cryptosystemProviderName == storageProviderName) {
+            if (!cryptoPlugin->canStoreKeys()) {
+                return Result(Result::StorageError,
+                              QLatin1String("The specified cryptographic service provider cannot store keys"));
+            }
+
+            retn = transformSecretsResult(m_secrets->storeKeyMetadata(
+                        callerPid, requestId, key.identifier(), storageProviderName));
+
+            if (retn.code() == Result::Failed) {
+                return retn;
+            }
+
+            m_pendingRequests.insert(requestId,Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                         callerPid,
+                                         requestId,
+                                         Daemon::ApiImpl::ImportStoredKeyRequest,
+                                         QVariantList() << QVariant::fromValue<Key>(key)
+                                                        << QVariant::fromValue<InteractionParameters>(uiParams)
+                                                        << QVariant::fromValue<QString>(cryptosystemProviderName)
+                                                        << QVariant::fromValue<QString>(storageProviderName)));
+            return Result(Result::Pending);
+        } else {
+            *importedKey = key;
+
+            retn = cryptoPlugin->importKey(key, passphrase, importedKey);
+            if (retn.code() == Result::Failed) {
+                if (retn.errorCode() == Result::CryptoPluginIncorrectPassphrase && uiParams.isValid()) {
+                    m_pendingRequests.insert(requestId,Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                                 callerPid,
+                                                 requestId,
+                                                 Daemon::ApiImpl::ImportStoredKeyRequest,
+                                                 QVariantList() << QVariant::fromValue<Key>(key)
+                                                                << QVariant::fromValue<InteractionParameters>(uiParams)
+                                                                << QVariant::fromValue<QString>(cryptosystemProviderName)
+                                                                << QVariant::fromValue<QString>(storageProviderName)));
+                    return Result(Result::Pending);
+                }
+                return retn;
+            }
+            importedKey->setOrigin(Key::OriginImported);
+
+            if (!(key.componentConstraints() & Key::PrivateKeyData)) {
+                importedKey->setPrivateKey(QByteArray());
+                importedKey->setSecretKey(QByteArray());
+            }
+
+            retn = transformSecretsResult(m_secrets->storeKey(
+                                                callerPid,
+                                                requestId,
+                                                importedKey->identifier(),
+                                                Key::serialise(*importedKey, Key::LossySerialisationMode),
+                                                importedKey->filterData(),
+                                                storageProviderName));
+            if (retn.code() == Result::Failed) {
+                return retn;
+            }
+
+            m_pendingRequests.insert(requestId,Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                         callerPid,
+                                         requestId,
+                                         Daemon::ApiImpl::ImportStoredKeyRequest,
+                                         QVariantList() << QVariant::fromValue<Key>(*importedKey)
+                                                        << QVariant::fromValue<QString>(cryptosystemProviderName)
+                                                        << QVariant::fromValue<QString>(storageProviderName)));
+            return Result(Result::Pending);
+        }
+    } else {
+        return Result(Result::InvalidCryptographicServiceProvider,
+                      QStringLiteral("No such cryptographic service provider plugin exists %1").arg(cryptosystemProviderName));
+    }
+}
+
+bool
+Daemon::ApiImpl::RequestProcessor::importStoredKey_revert(
+        pid_t callerPid,
+        quint64 requestId,
+        const Result &result,
+        const Key &key)
+{
+    Result cleanupResult = transformSecretsResult(m_secrets->deleteStoredKeyMetadata(callerPid, requestId, key.identifier()));
+    if (cleanupResult.code() != Result::Failed) {
+        m_pendingRequests.insert(requestId,
+                                 Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                     callerPid,
+                                     requestId,
+                                     Daemon::ApiImpl::ImportStoredKeyRequest,
+                                     QVariantList() << QVariant::fromValue<Key>(key)
+                                                    << QVariant::fromValue<Result>(result)));
+        return true;
+    } else {
+        // TODO: we now have stale data in the secrets main table.
+        //       Add a dirty flag for this datum, and attempt to cleanup later.
+        // Also clean up the importedKey entry as it doesn't actually exist
+        qCWarning(lcSailfishCryptoDaemon) << "Failed to clean up stored importedKey metadata after failed importStoredKey request:"
+                                          << cleanupResult.storageErrorCode() << cleanupResult.errorMessage();
+        m_secrets->removeKeyEntry(callerPid, requestId, key.identifier());
+
+        return false;
+    }
+}
+
+void
+Daemon::ApiImpl::RequestProcessor::importStoredKey_withPassphrase(
+        pid_t callerPid,
+        quint64 requestId,
+        const Result &result,
+        const Key &key,
+        const Sailfish::Crypto::InteractionParameters &uiParams,
+        const QString &cryptosystemProviderName,
+        const QString &storageProviderName,
+        const QByteArray &passphrase)
+{
+    Key importedKey(key);
+
+    Result retn = result;
+    if (retn.code() == Result::Failed) {
+        if (importStoredKey_revert(callerPid, requestId, result, key)) {
+            return;
+        }
+    } else if (cryptosystemProviderName != storageProviderName) {
+        retn = importStoredKey(
+                    callerPid,
+                    requestId,
+                    key,
+                    uiParams,
+                    cryptosystemProviderName,
+                    storageProviderName,
+                    passphrase,
+                    &importedKey);
+    } else {
+        retn = m_cryptoPlugins[cryptosystemProviderName]->importAndStoreKey(key, passphrase, &importedKey);
+        if (retn.code() != Result::Failed) {
+            importedKey.setOrigin(Key::OriginImported);
+        } else {
+            if (retn.errorCode() == Result::CryptoPluginIncorrectPassphrase && uiParams.isValid()) {
+                retn = promptForKeyPassphrase(callerPid, requestId, key, uiParams);
+
+                if (retn.code() == Result::Pending) {
+                    m_pendingRequests.insert(requestId, Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                                 callerPid,
+                                                 requestId,
+                                                 Daemon::ApiImpl::ImportStoredKeyRequest,
+                                                 QVariantList() << QVariant::fromValue<Key>(key)
+                                                                << QVariant::fromValue<InteractionParameters>(uiParams)
+                                                                << QVariant::fromValue<QString>(cryptosystemProviderName)
+                                                                << QVariant::fromValue<QString>(storageProviderName)));
+                    return;
+                }
+            }
+
+            if (importStoredKey_revert(callerPid, requestId, retn, importedKey)) {
+                return;
+            }
+        }
+    }
+
+    // finish the asynchronous request.
+    Key partialKey(importedKey);
+    partialKey.setPrivateKey(QByteArray());
+    partialKey.setSecretKey(QByteArray());
+    QList<QVariant> outParams;
+    outParams << QVariant::fromValue<Result>(retn);
+    outParams << QVariant::fromValue<Key>(partialKey);
+    m_requestQueue->requestFinished(requestId, outParams);
+}
+
+void
+Daemon::ApiImpl::RequestProcessor::importStoredKey_inCryptoPlugin(
+        pid_t callerPid,
+        quint64 requestId,
+        const Result &result,
+        const Key &key,
+        const Sailfish::Crypto::InteractionParameters &uiParams,
+        const QString &cryptosystemProviderName,
+        const QString &storageProviderName)
+{
+    // This method is invoked in the "generate and store into crypto plugin" codepath.
+    if (result.code() != Result::Succeeded) {
+        QList<QVariant> outParams;
+        outParams << QVariant::fromValue<Result>(result);
+        outParams << QVariant::fromValue<Key>(key);
+        m_requestQueue->requestFinished(requestId, outParams);
+    } else {
+        importStoredKey_withPassphrase(
+                    callerPid,
+                    requestId,
+                    result,
+                    key,
+                    uiParams,
+                    cryptosystemProviderName,
+                    storageProviderName,
+                    QByteArray());
+    }
 }
 
 Result
@@ -1663,7 +1975,8 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoreKeyCompleted(
         // call the appropriate method to complete the request
         Daemon::ApiImpl::RequestProcessor::PendingRequest pr = m_pendingRequests.take(requestId);
         switch (pr.requestType) {
-            case GenerateStoredKeyRequest: {
+            case GenerateStoredKeyRequest:
+            case ImportStoredKeyRequest: {
                 Key fullKey = pr.parameters.takeFirst().value<Key>();
                 QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
                 QString storagePluginName = pr.parameters.takeFirst().value<QString>();
@@ -1702,6 +2015,14 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoreKeyMetadataCompleted(
                 generateStoredKey_inCryptoPlugin(pr.callerPid, requestId, returnResult, keyTemplate, kpgParams, skdfParams, cryptosystemProviderName, storagePluginName);
                 break;
             }
+            case ImportStoredKeyRequest: {
+                Key key = pr.parameters.takeFirst().value<Key>();
+                InteractionParameters uiParams = pr.parameters.takeFirst().value<InteractionParameters>();
+                QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
+                QString storagePluginName = pr.parameters.takeFirst().value<QString>();
+                importStoredKey_inCryptoPlugin(pr.callerPid, requestId, returnResult, key, uiParams, cryptosystemProviderName, storagePluginName);
+                break;
+            }
             default: {
                 qCWarning(lcSailfishCryptoDaemon) << "Secrets completed storeKeyMetadata() operation for request:" << requestId << "of invalid type:" << pr.requestType;
                 break;
@@ -1732,7 +2053,8 @@ void Daemon::ApiImpl::RequestProcessor::secretsDeleteStoredKeyCompleted(
                 deleteStoredKey2(pr.callerPid, requestId, returnResult, identifier);
                 break;
             }
-            case GenerateStoredKeyRequest: {
+            case GenerateStoredKeyRequest:
+            case ImportStoredKeyRequest: {
                 Key fullKey = pr.parameters.takeFirst().value<Key>();
                 Result initialResult = pr.parameters.takeFirst().value<Result>();
                 generateStoredKey_failedCleanup(pr.callerPid, requestId, fullKey, initialResult, returnResult);
@@ -1761,7 +2083,8 @@ void Daemon::ApiImpl::RequestProcessor::secretsDeleteStoredKeyMetadataCompleted(
         // call the appropriate method to complete the request
         Daemon::ApiImpl::RequestProcessor::PendingRequest pr = m_pendingRequests.take(requestId);
         switch (pr.requestType) {
-            case GenerateStoredKeyRequest: {
+            case GenerateStoredKeyRequest:
+            case ImportStoredKeyRequest: {
                 Key keyTemplate = pr.parameters.takeFirst().value<Key>();
                 Result initialResult = pr.parameters.takeFirst().value<Result>();
                 generateStoredKey_failedCleanup(pr.callerPid, requestId, keyTemplate, initialResult, returnResult);
@@ -1799,6 +2122,29 @@ void Daemon::ApiImpl::RequestProcessor::secretsUserInputCompleted(
                 QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
                 QString storagePluginName = pr.parameters.takeFirst().value<QString>();
                 generateStoredKey_withInputData(pr.callerPid, requestId, returnResult, keyTemplate, kpgParams, skdfParams, cryptosystemProviderName, storagePluginName);
+                break;
+            }
+            case ImportKeyRequest: {
+                Key key = pr.parameters.takeFirst().value<Key>();
+                QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
+                InteractionParameters uiParams = pr.parameters.takeFirst().value<InteractionParameters>();
+                importKey_withPassphrase(pr.callerPid, requestId, returnResult, key, uiParams, cryptosystemProviderName, userInput);
+                break;
+            }
+            case ImportStoredKeyRequest: {
+                Key key = pr.parameters.takeFirst().value<Key>();
+                InteractionParameters uiParams = pr.parameters.takeFirst().value<InteractionParameters>();
+                QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
+                QString storagePluginName = pr.parameters.takeFirst().value<QString>();
+                importStoredKey_withPassphrase(
+                            pr.callerPid,
+                            requestId,
+                            returnResult,
+                            key,
+                            uiParams,
+                            cryptosystemProviderName,
+                            storagePluginName,
+                            userInput);
                 break;
             }
             default: {
