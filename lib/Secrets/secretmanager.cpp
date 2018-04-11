@@ -36,8 +36,7 @@ const QString Secret::TypeCryptoCertificate = QStringLiteral("CryptoCertificate"
 const QString Secret::TypeUsernamePassword = QStringLiteral("UsernamePassword");
 
 const QString SecretManager::InAppAuthenticationPluginName = QStringLiteral("org.sailfishos.secrets.plugin.authentication.inapp");
-//const QString SecretManager::DefaultAuthenticationPluginName = QStringLiteral("org.sailfishos.secrets.plugin.authentication.system");
-/* TODO: delete this once we implement the system/devicelock auth plugin! */ const QString SecretManager::DefaultAuthenticationPluginName = SecretManager::InAppAuthenticationPluginName;
+const QString SecretManager::DefaultAuthenticationPluginName = QStringLiteral("org.sailfishos.secrets.plugin.authentication.passwordagent");
 const QString SecretManager::DefaultStoragePluginName = QStringLiteral("org.sailfishos.secrets.plugin.storage.sqlite");
 const QString SecretManager::DefaultEncryptionPluginName = QStringLiteral("org.sailfishos.secrets.plugin.encryption.openssl");
 const QString SecretManager::DefaultEncryptedStoragePluginName = QStringLiteral("org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher");
