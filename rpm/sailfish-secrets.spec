@@ -34,7 +34,6 @@ BuildRequires:  qt5-tools
 %package tests
 Summary:    Unit tests for the Sailfish OS Secrets Library.
 Group:      System/Libraries
-BuildRequires:  pkgconfig(Qt5Test)
 BuildRequires:  pkgconfig(Qt5QuickTest)
 Requires: qt5-qtdeclarative-import-qttest
 Requires: qt5-qtdeclarative-devel-tools
@@ -83,7 +82,7 @@ BuildRequires:  qt5-tools
 %package -n libsailfishcrypto-tests
 Summary:    Unit tests for the libsailfishcrypto library.
 Group:      System/Libraries
-BuildRequires:  pkgconfig(Qt5Test)
+BuildRequires: pkgconfig(Qt5QuickTest)
 Requires:   libsailfishcrypto = %{version}-%{release}
 
 %description -n libsailfishcrypto-tests
