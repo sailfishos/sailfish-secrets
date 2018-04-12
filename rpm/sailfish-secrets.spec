@@ -10,6 +10,7 @@ BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Sql)
 BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(qt5-boostable)
+BuildRequires:  qt5-qttools-linguist
 
 %description
 %{summary}.
