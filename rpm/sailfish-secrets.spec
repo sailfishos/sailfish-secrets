@@ -96,6 +96,7 @@ BuildRequires:  qt5-tools
 Summary:    Unit tests for the libsailfishcrypto library.
 Group:      System/Libraries
 BuildRequires: pkgconfig(Qt5QuickTest)
+BuildRequires: pkgconfig(libcrypto)
 Requires:   libsailfishcrypto = %{version}-%{release}
 
 %description -n libsailfishcrypto-tests

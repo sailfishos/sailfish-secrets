@@ -1,5 +1,5 @@
 TEMPLATE = lib
-CONFIG += plugin link_pkgconfig
+CONFIG += plugin hide_symbols link_pkgconfig
 TARGET = sailfishcrypto-testopenssl
 TARGET = $$qtLibraryTarget($$TARGET)
 PKGCONFIG += libcrypto
