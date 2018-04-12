@@ -1,6 +1,5 @@
 INCLUDEPATH += $$PWD
 DEPENDPATH = $$INCLUDEPATH
-PKGCONFIG += libcrypto
 
 include($$PWD/../../database/database.pri)
 

@@ -1,7 +1,8 @@
 TEMPLATE = lib
-CONFIG += plugin hide_symbols
+CONFIG += plugin hide_symbols link_pkgconfig
 TARGET = sailfishsecrets-sqlcipher
 TARGET = $$qtLibraryTarget($$TARGET)
+PKGCONFIG += libcrypto
 
 include($$PWD/../../common.pri)
 include($$PWD/../../lib/libsailfishsecrets.pri)
