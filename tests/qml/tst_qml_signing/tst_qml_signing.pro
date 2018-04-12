@@ -2,7 +2,7 @@ TEMPLATE = app
 TARGET = tst_qml_signing
 target.path = /opt/tests/Sailfish/Crypto/
 
-QT += testlib core gui qml quick
+QT += testlib quick
 CONFIG += qmltestcase
 
 SOURCES += \
