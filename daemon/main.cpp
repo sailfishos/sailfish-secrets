@@ -8,6 +8,7 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QDir>
+#include <QtCore/QTranslator>
 
 #include "controller_p.h"
 #include "logging_p.h"
@@ -37,6 +38,14 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
              args[1] == QLatin1String("--test"))) {
         autotestMode = true;
     }
+
+    QScopedPointer<QTranslator> engineeringEnglish(new QTranslator);
+    engineeringEnglish->load("sailfish-secrets_eng_en", "/usr/share/translations");
+    QScopedPointer<QTranslator> translator(new QTranslator);
+    translator->load(QLocale(), "sailfish-secrets", "-", "/usr/share/translations");
+
+    app.installTranslator(engineeringEnglish.data());
+    app.installTranslator(translator.data());
 
     Sailfish::Secrets::Daemon::ApiImpl::PluginManager::instance()->loadPlugins<Sailfish::Secrets::AuthenticationPlugin,
                                                                                Sailfish::Secrets::EncryptedStoragePlugin,

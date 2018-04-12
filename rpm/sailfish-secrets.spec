@@ -42,6 +42,13 @@ Requires:   %{name} = %{version}-%{release}
 %description tests
 %{summary}.
 
+%package   -n sailfishsecrets-ts-devel
+Summary:   Translation source for Sailfish Secrets
+Group:     System/Applications
+
+%description -n sailfishsecrets-ts-devel
+%{summary}.
+
 %package -n libsailfishsecretsplugin
 Summary:    QML plugin providing types for applications using libsailfishsecrets.
 Group:      System/Libraries
@@ -195,6 +202,10 @@ cp -R lib/Crypto/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Crypto/
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-testsqlite.so
 %{_datadir}/polkit-1/actions/org.sailfishos.secrets.policy
 
+%files -n sailfishsecrets-ts-devel
+%defattr(-,root,root,-)
+%{_datadir}/translations/source/sailfish-secrets.ts
+
 %files -n libsailfishsecretsplugin
 %defattr(-,root,root,-)
 %{_libdir}/qt5/qml/Sailfish/Secrets/libsailfishsecretsplugin.so
@@ -232,6 +243,7 @@ cp -R lib/Crypto/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Crypto/
 %files -n sailfishsecretsdaemon
 %defattr(-,root,root,-)
 %{_bindir}/sailfishsecretsd
+%{_datadir}/translations/sailfish-secrets_eng_en.qm
 
 %files -n sailfishsecretsdaemonplugins
 %defattr(-,root,root,-)
