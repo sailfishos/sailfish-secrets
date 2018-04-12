@@ -22,3 +22,4 @@ debugsources.list
 /tests/Crypto/tst_evp/tst_evp
 /tests/Secrets/tst_secrets/tst_secrets
 /tests/Secrets/tst_secretsrequests/tst_secretsrequests
+tests/plugins/testgnupgplugin/tst_gnupgplugin

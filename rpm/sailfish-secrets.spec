@@ -372,6 +372,7 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 /opt/tests/Sailfish/Crypto/tst_evp
 /opt/tests/Sailfish/Crypto/tst_qml_signing
 /opt/tests/Sailfish/Crypto/tst_qml_signing.qml
+/opt/tests/Sailfish/Crypto/tst_gnupgplugin
 %{_libdir}/Sailfish/Crypto/libsailfishcrypto-testopenssl.so
 
 %files -n libsailfishcryptopluginapi
