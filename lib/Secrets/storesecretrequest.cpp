@@ -23,7 +23,6 @@ StoreSecretRequestPrivate::StoreSecretRequestPrivate()
     , m_customLockUnlockSemantic(SecretManager::CustomLockKeepUnlocked)
     , m_accessControlMode(SecretManager::OwnerOnlyMode)
     , m_userInteractionMode(SecretManager::PreventInteraction)
-    , m_customLockTimeout(0)
     , m_status(Request::Inactive)
 {
 }
@@ -33,7 +32,8 @@ StoreSecretRequestPrivate::StoreSecretRequestPrivate()
  * \brief Allows a client request that the system secrets service securely store a secret
  *
  * This class allows clients to request the Secrets service to store a secret
- * either in a particular collection or as a standalone secret.
+ * (either in a particular collection or as a standalone secret) in a particular
+ * storage plugin.
  *
  * Note that the filter data defined in the secret will be encrypted
  * prior to storage only if the secret is stored in a collection and that collection
@@ -73,10 +73,6 @@ StoreSecretRequestPrivate::StoreSecretRequestPrivate()
  * the system device-lock, then an authentication flow will be required in order
  * to retrieve a custom lock code or passphrase from the user.
  *
- * In that case, if the customLockUnlockSemantic() specified is \c CustomLockTimoutRelock
- * then the given customLockTimeout() will be used as the timeout (in milliseconds)
- * after the secret is unlocked which will trigger it to be relocked.
- *
  * An example of storing a secret into a pre-existing collection is as follows:
  *
  * \code
@@ -84,7 +80,8 @@ StoreSecretRequestPrivate::StoreSecretRequestPrivate()
  * Sailfish::Secrets::Secret exampleSecret(
  *         Sailfish::Secrets::Secret::Identifier(
  *                 QLatin1String("ExampleSecret"),
- *                 QLatin1String("ExampleCollection")));
+ *                 QLatin1String("ExampleCollection"),
+ *                 Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName));
  * exampleSecret.setData("Some secret data");
  * exampleSecret.setType(Sailfish::Secrets::Secret::TypeBlob);
  * exampleSecret.setFilterData(QLatin1String("domain"),
@@ -107,7 +104,10 @@ StoreSecretRequestPrivate::StoreSecretRequestPrivate()
  * \code
  * // Define a standalone secret (no collection name specified in the identifier)
  * Sailfish::Secrets::Secret standaloneSecret(
- *         Sailfish::Secrets::Secret::Identifier("StandaloneSecret"));
+ *         Sailfish::Secrets::Secret::Identifier(
+ *              QStringLiteral("StandaloneSecret"),
+ *              QString(),
+ *              Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName));
  * standaloneSecret.setData("Example secret data");
  * standaloneSecret.setType(Secret::TypeBlob);
  * standaloneSecret.setFilterData(QLatin1String("domain"),
@@ -122,7 +122,6 @@ StoreSecretRequestPrivate::StoreSecretRequestPrivate()
  * ssr.setSecretStorageType(StoreSecretRequest::StandaloneDeviceLockSecret);
  * ssr.setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked);
  * ssr.setAccessControlMode(Sailfish::Secrets::SecretManager::OwnerOnlyMode);
- * ssr.setStoragePluginName(Sailfish::Secrets::SecretManager::DefaultStoragePluginName);
  * ssr.setEncryptionPluginName(Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName);
  * ssr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
  * ssr.setSecret(standaloneSecret);
@@ -144,7 +143,8 @@ StoreSecretRequestPrivate::StoreSecretRequestPrivate()
  * Sailfish::Secrets::Secret exampleSecret(
  *         Sailfish::Secrets::Secret::Identifier(
  *                 QLatin1String("ExampleSecret"),
- *                 QLatin1String("ExampleCollection")));
+ *                 QLatin1String("ExampleCollection"),
+ *                 Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName));
  * exampleSecret.setType(Sailfish::Secrets::Secret::TypeBlob);
  * exampleSecret.setFilterData(QLatin1String("domain"),
  *                             QLatin1String("sailfishos.org"));
@@ -215,35 +215,6 @@ void StoreSecretRequest::setSecretStorageType(StoreSecretRequest::SecretStorageT
             emit statusChanged();
         }
         emit secretStorageTypeChanged();
-    }
-}
-
-/*!
- * \brief Returns the name of the storage plugin which the client wishes to use to store the standalone secret
- */
-QString StoreSecretRequest::storagePluginName() const
-{
-    Q_D(const StoreSecretRequest);
-    return d->m_storagePluginName;
-}
-
-/*!
- * \brief Sets the name of the storage plugin which the client wishes to use to store the standalone secret to \a pluginName
- *
- * Note: this will only apply to secrets whose secretStorageType() is
- * StoreSecretRequest::StandaloneCustomLockSecret or
- * StoreSecretRequest::StandaloneDeviceLockSecret.
- */
-void StoreSecretRequest::setStoragePluginName(const QString &pluginName)
-{
-    Q_D(StoreSecretRequest);
-    if (d->m_status != Request::Active && d->m_storagePluginName != pluginName) {
-        d->m_storagePluginName = pluginName;
-        if (d->m_status == Request::Finished) {
-            d->m_status = Request::Inactive;
-            emit statusChanged();
-        }
-        emit storagePluginNameChanged();
     }
 }
 
@@ -489,34 +460,6 @@ void StoreSecretRequest::setUserInteractionMode(SecretManager::UserInteractionMo
     }
 }
 
-/*!
- * \brief Returns the lock timeout which should apply to the secret
- */
-int StoreSecretRequest::customLockTimeout() const
-{
-    Q_D(const StoreSecretRequest);
-    return d->m_customLockTimeout;
-}
-
-/*!
- * \brief Sets the lock timeout which should apply to the secret
- *
- * Note: this will only apply to secrets whose secretStorageType() is StoreSecretRequest::StandaloneCustomLockSecret,
- * and whose customLockUnlockSemantic() is SecretManager::CustomLockTimoutRelock.
- */
-void StoreSecretRequest::setCustomLockTimeout(int timeout)
-{
-    Q_D(StoreSecretRequest);
-    if (d->m_status != Request::Active && d->m_customLockTimeout != timeout) {
-        d->m_customLockTimeout = timeout;
-        if (d->m_status == Request::Finished) {
-            d->m_status = Request::Inactive;
-            emit statusChanged();
-        }
-        emit customLockTimeoutChanged();
-    }
-}
-
 Request::Status StoreSecretRequest::status() const
 {
     Q_D(const StoreSecretRequest);
@@ -561,19 +504,16 @@ void StoreSecretRequest::startRequest()
                                                    d->m_interactionParameters,
                                                    d->m_userInteractionMode);
         } else if (d->m_secretStorageType == StoreSecretRequest::StandaloneCustomLockSecret) {
-            reply = d->m_manager->d_ptr->setSecret(d->m_storagePluginName,
+            reply = d->m_manager->d_ptr->setSecret(d->m_secret,
                                                    d->m_encryptionPluginName,
                                                    d->m_authenticationPluginName,
-                                                   d->m_secret,
                                                    d->m_interactionParameters,
                                                    d->m_customLockUnlockSemantic,
-                                                   d->m_customLockTimeout,
                                                    d->m_accessControlMode,
                                                    d->m_userInteractionMode);
         } else { // StandaloneDeviceLockSecret
-            reply = d->m_manager->d_ptr->setSecret(d->m_storagePluginName,
+            reply = d->m_manager->d_ptr->setSecret(d->m_secret,
                                                    d->m_encryptionPluginName,
-                                                   d->m_secret,
                                                    d->m_interactionParameters,
                                                    d->m_deviceLockUnlockSemantic,
                                                    d->m_accessControlMode,

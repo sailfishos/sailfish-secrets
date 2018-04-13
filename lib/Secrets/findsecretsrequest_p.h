@@ -32,6 +32,7 @@ public:
 
     QPointer<Sailfish::Secrets::SecretManager> m_manager;
     QString m_collectionName;
+    QString m_storagePluginName;
     Sailfish::Secrets::Secret::FilterData m_filter;
     Sailfish::Secrets::SecretManager::FilterOperator m_filterOperator;
     Sailfish::Secrets::SecretManager::UserInteractionMode m_userInteractionMode;

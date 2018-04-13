@@ -8,6 +8,8 @@
 #ifndef SAILFISHCRYPTO_APIIMPL_CRYPTOPLUGINFUNCTIONWRAPPERS_P_H
 #define SAILFISHCRYPTO_APIIMPL_CRYPTOPLUGINFUNCTIONWRAPPERS_P_H
 
+#include "CryptoImpl/cryptopluginwrapper_p.h"
+
 #include "CryptoPluginApi/extensionplugins.h"
 
 #include "Crypto/key.h"
@@ -162,7 +164,7 @@ struct AuthDataAndTag {
 };
 
 struct PluginAndCustomParams {
-    PluginAndCustomParams(CryptoPlugin *p, const QVariantMap &cp)
+    PluginAndCustomParams(CryptoPlugin *p = Q_NULLPTR, const QVariantMap &cp = QVariantMap())
         : plugin(p), customParameters(cp) {}
     PluginAndCustomParams(const PluginAndCustomParams &other)
         : plugin(other.plugin)
@@ -171,11 +173,22 @@ struct PluginAndCustomParams {
     QVariantMap customParameters;
 };
 
+struct PluginWrapperAndCustomParams {
+    PluginWrapperAndCustomParams(Daemon::ApiImpl::CryptoStoragePluginWrapper *p = Q_NULLPTR,
+                                 const QVariantMap &cp = QVariantMap())
+        : plugin(p), customParameters(cp) {}
+    PluginWrapperAndCustomParams(const PluginWrapperAndCustomParams &other)
+        : plugin(other.plugin)
+        , customParameters(other.customParameters) {}
+    Daemon::ApiImpl::CryptoStoragePluginWrapper *plugin;
+    QVariantMap customParameters;
+};
+
 namespace Daemon {
 
 namespace ApiImpl {
 
-namespace CryptoPluginWrapper {
+namespace CryptoPluginFunctionWrapper {
 
 bool isLocked(Sailfish::Crypto::CryptoPlugin *plugin);
 bool lock(Sailfish::Crypto::CryptoPlugin *plugin);
@@ -212,17 +225,12 @@ KeyResult importKey(
         const QByteArray &passphrase);
 
 KeyResult importAndStoreKey(
-        const PluginAndCustomParams &pluginAndCustomParams,
+        const PluginWrapperAndCustomParams &pluginAndCustomParams,
         const Sailfish::Crypto::Key &keyData,
-        const QByteArray &passphrase);
+        const QByteArray &passphrase,
+        const QByteArray &collectionDecryptionKey);
 
 KeyResult generateKey(
-        const PluginAndCustomParams &pluginAndCustomParams,
-        const Sailfish::Crypto::Key &keyTemplate,
-        const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
-        const Sailfish::Crypto::KeyDerivationParameters &skdfParams);
-
-KeyResult generateAndStoreKey(
         const PluginAndCustomParams &pluginAndCustomParams,
         const Sailfish::Crypto::Key &keyTemplate,
         const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
@@ -234,7 +242,8 @@ KeyResult storedKey(
         Sailfish::Crypto::Key::Components keyComponents);
 
 IdentifiersResult storedKeyIdentifiers(
-        Sailfish::Crypto::CryptoPlugin *plugin);
+        Sailfish::Crypto::CryptoPlugin *plugin,
+        const QString &collectionName);
 
 DataResult calculateDigest(
         const PluginAndCustomParams &pluginAndCustomParams,
@@ -293,7 +302,14 @@ VerifiedDataResult finaliseCipherSession(
         const QByteArray &data,
         quint32 cipherSessionToken);
 
-} // CryptoPluginWrapper
+KeyResult generateAndStoreKey(
+        const PluginWrapperAndCustomParams &pluginAndCustomParams,
+        const Sailfish::Crypto::Key &keyTemplate,
+        const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
+        const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+        const QByteArray &collectionUnlockCode);
+
+} // CryptoPluginFunctionWrapper
 
 } // ApiImpl
 

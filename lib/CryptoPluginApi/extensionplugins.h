@@ -107,6 +107,7 @@ public:
     //        const Sailfish::Crypto::Key::Identifier &identifier) = 0;
 
     virtual Sailfish::Crypto::Result storedKeyIdentifiers(
+            const QString &collectionName,
             QVector<Sailfish::Crypto::Key::Identifier> *identifiers) = 0;
 
     virtual Sailfish::Crypto::Result calculateDigest(

@@ -24,11 +24,15 @@ class CollectionNamesRequestPrivate;
 class SAILFISH_SECRETS_API CollectionNamesRequest : public Sailfish::Secrets::Request
 {
     Q_OBJECT
+    Q_PROPERTY(QString storagePluginName READ storagePluginName WRITE setStoragePluginName NOTIFY storagePluginNameChanged)
     Q_PROPERTY(QStringList collectionNames READ collectionNames NOTIFY collectionNamesChanged)
 
 public:
     CollectionNamesRequest(QObject *parent = Q_NULLPTR);
     ~CollectionNamesRequest();
+
+    QString storagePluginName() const;
+    void setStoragePluginName(const QString &storagePluginName);
 
     QStringList collectionNames() const;
 
@@ -42,6 +46,7 @@ public:
     void waitForFinished() Q_DECL_OVERRIDE;
 
 Q_SIGNALS:
+    void storagePluginNameChanged();
     void collectionNamesChanged();
 
 private:

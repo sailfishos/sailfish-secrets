@@ -50,10 +50,12 @@ public:
         SecretsDaemonRequestPidError = 20,
         SecretsDaemonRequestQueueFullError,
         SecretsDaemonLockedError,
+        SecretsDaemonNotLockedError,
 
         SecretsPluginEncryptionError = 30,
         SecretsPluginDecryptionError,
         SecretsPluginKeyDerivationError,
+        SecretsPluginIsLockedError,
 
         InvalidSecretError = 40,
         InvalidSecretIdentifierError,

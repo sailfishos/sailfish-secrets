@@ -50,7 +50,7 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Result &result)
 QDBusArgument &operator<<(QDBusArgument &argument, const Secret::Identifier &identifier)
 {
     argument.beginStructure();
-    argument << identifier.name() << identifier.collectionName();
+    argument << identifier.name() << identifier.collectionName() << identifier.storagePluginName();
     argument.endStructure();
     return argument;
 }
@@ -59,13 +59,15 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Secret::Identifie
 {
     QString name;
     QString collectionName;
+    QString storagePluginName;
 
     argument.beginStructure();
-    argument >> name >> collectionName;
+    argument >> name >> collectionName >> storagePluginName;
     argument.endStructure();
 
     identifier.setName(name);
     identifier.setCollectionName(collectionName);
+    identifier.setStoragePluginName(storagePluginName);
     return argument;
 }
 
@@ -191,7 +193,7 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, SecretManager::Fi
 QDBusArgument &operator<<(QDBusArgument &argument, const PluginInfo &info)
 {
     argument.beginStructure();
-    argument << info.name() << info.name();
+    argument << info.name() << info.name() << static_cast<int>(info.statusFlags());;
     argument.endStructure();
     return argument;
 }
@@ -200,11 +202,13 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, PluginInfo &info)
 {
     QString name;
     int version = 0;
+    int iStatusFlags = 0;
     argument.beginStructure();
-    argument >> name >> version;
+    argument >> name >> version >> iStatusFlags;
     argument.endStructure();
     info.setName(name);
     info.setVersion(version);
+    info.setStatusFlags(static_cast<PluginInfo::StatusFlags>(iStatusFlags));
     return argument;
 }
 

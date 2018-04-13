@@ -26,6 +26,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QFile>
 #include <QtCore/QDir>
+#include <QtCore/QCryptographicHash>
 
 #include <sys/mman.h>
 
@@ -84,12 +85,14 @@ void Daemon::ApiImpl::SecretsDBusObject::userInput(
 
 // retrieve the names of collections
 void Daemon::ApiImpl::SecretsDBusObject::collectionNames(
+        const QString &storagePluginName,
         const QDBusMessage &message,
         Sailfish::Secrets::Result &result,
         QStringList &names)
 {
     Q_UNUSED(names); // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
+    inParams << storagePluginName;
     m_requestQueue->handleRequest(Daemon::ApiImpl::CollectionNamesRequest,
                                   inParams,
                                   connection(),
@@ -127,7 +130,6 @@ void Daemon::ApiImpl::SecretsDBusObject::createCollection(
         const QString &encryptionPluginName,
         const QString &authenticationPluginName,
         SecretManager::CustomLockUnlockSemantic unlockSemantic,
-        int customLockTimeoutMs,
         SecretManager::AccessControlMode accessControlMode,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress,
@@ -140,7 +142,6 @@ void Daemon::ApiImpl::SecretsDBusObject::createCollection(
              << QVariant::fromValue<QString>(encryptionPluginName)
              << QVariant::fromValue<QString>(authenticationPluginName)
              << QVariant::fromValue<SecretManager::CustomLockUnlockSemantic>(unlockSemantic)
-             << QVariant::fromValue<int>(customLockTimeoutMs)
              << QVariant::fromValue<SecretManager::AccessControlMode>(accessControlMode)
              << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
              << QVariant::fromValue<QString>(interactionServiceAddress);
@@ -154,13 +155,17 @@ void Daemon::ApiImpl::SecretsDBusObject::createCollection(
 // delete a collection
 void Daemon::ApiImpl::SecretsDBusObject::deleteCollection(
         const QString &collectionName,
+        const QString &storagePluginName,
         SecretManager::UserInteractionMode userInteractionMode,
+        const QString &interactionServiceAddress,
         const QDBusMessage &message,
         Result &result)
 {
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QString>(collectionName)
-             << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode);
+             << QVariant::fromValue<QString>(storagePluginName)
+             << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
+             << QVariant::fromValue<QString>(interactionServiceAddress);
     m_requestQueue->handleRequest(Daemon::ApiImpl::DeleteCollectionRequest,
                                   inParams,
                                   connection(),
@@ -191,9 +196,8 @@ void Daemon::ApiImpl::SecretsDBusObject::setSecret(
 
 // set a standalone DeviceLock-protected secret
 void Daemon::ApiImpl::SecretsDBusObject::setSecret(
-        const QString &storagePluginName,
-        const QString &encryptionPluginName,
         const Secret &secret,
+        const QString &encryptionPluginName,
         const InteractionParameters &uiParams,
         SecretManager::DeviceLockUnlockSemantic unlockSemantic,
         SecretManager::AccessControlMode accessControlMode,
@@ -203,9 +207,8 @@ void Daemon::ApiImpl::SecretsDBusObject::setSecret(
         Result &result)
 {
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QString>(storagePluginName)
+    inParams << QVariant::fromValue<Secret>(secret)
              << QVariant::fromValue<QString>(encryptionPluginName)
-             << QVariant::fromValue<Secret>(secret)
              << QVariant::fromValue<InteractionParameters>(uiParams)
              << QVariant::fromValue<SecretManager::DeviceLockUnlockSemantic>(unlockSemantic)
              << QVariant::fromValue<SecretManager::AccessControlMode>(accessControlMode)
@@ -220,13 +223,11 @@ void Daemon::ApiImpl::SecretsDBusObject::setSecret(
 
 // set a standalone CustomLock-protected secret
 void Daemon::ApiImpl::SecretsDBusObject::setSecret(
-        const QString &storagePluginName,
+        const Secret &secret,
         const QString &encryptionPluginName,
         const QString &authenticationPluginName,
-        const Secret &secret,
         const InteractionParameters &uiParams,
         SecretManager::CustomLockUnlockSemantic unlockSemantic,
-        int customLockTimeoutMs,
         SecretManager::AccessControlMode accessControlMode,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress,
@@ -234,13 +235,11 @@ void Daemon::ApiImpl::SecretsDBusObject::setSecret(
         Result &result)
 {
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QString>(storagePluginName)
+    inParams << QVariant::fromValue<Secret>(secret)
              << QVariant::fromValue<QString>(encryptionPluginName)
              << QVariant::fromValue<QString>(authenticationPluginName)
-             << QVariant::fromValue<Secret>(secret)
              << QVariant::fromValue<InteractionParameters>(uiParams)
              << QVariant::fromValue<SecretManager::CustomLockUnlockSemantic>(unlockSemantic)
-             << QVariant::fromValue<int>(customLockTimeoutMs)
              << QVariant::fromValue<SecretManager::AccessControlMode>(accessControlMode)
              << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
              << QVariant::fromValue<QString>(interactionServiceAddress);
@@ -277,6 +276,7 @@ void Daemon::ApiImpl::SecretsDBusObject::getSecret(
 // find secrets via filter
 void Daemon::ApiImpl::SecretsDBusObject::findSecrets(
         const QString &collectionName,
+        const QString &storagePluginName,
         const Secret::FilterData &filter,
         SecretManager::FilterOperator filterOperator,
         SecretManager::UserInteractionMode userInteractionMode,
@@ -290,7 +290,8 @@ void Daemon::ApiImpl::SecretsDBusObject::findSecrets(
     if (!collectionName.isEmpty()) {
         inParams << QVariant::fromValue<QString>(collectionName);
     }
-    inParams << QVariant::fromValue<Secret::FilterData>(filter)
+    inParams << storagePluginName
+             << QVariant::fromValue<Secret::FilterData>(filter)
              << QVariant::fromValue<SecretManager::FilterOperator>(filterOperator)
              << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
              << QVariant::fromValue<QString>(interactionServiceAddress);
@@ -412,6 +413,7 @@ Daemon::ApiImpl::SecretsRequestQueue::SecretsRequestQueue(
     , m_bkdbLockKeyLen(0)
     , m_deviceLockKeyLen(0)
     , m_noLockCode(false)
+    , m_locked(true)
 {
     SecretsDaemonConnection::registerDBusTypes();
 
@@ -419,7 +421,7 @@ Daemon::ApiImpl::SecretsRequestQueue::SecretsRequestQueue(
     m_secretsThreadPool->setMaxThreadCount(1);
     m_secretsThreadPool->setExpiryTimeout(-1);
     m_appPermissions = new Daemon::ApiImpl::ApplicationPermissions(this);
-    m_requestProcessor = new Daemon::ApiImpl::RequestProcessor(&m_bkdb, m_appPermissions, autotestMode, this);
+    m_requestProcessor = new Daemon::ApiImpl::RequestProcessor(m_appPermissions, autotestMode, this);
 
     setDBusObject(new Daemon::ApiImpl::SecretsDBusObject(this));
     qCDebug(lcSailfishSecretsDaemon) << "Secrets: initialisation succeeded, awaiting client connections.";
@@ -435,104 +437,11 @@ QWeakPointer<QThreadPool> Daemon::ApiImpl::SecretsRequestQueue::secretsThreadPoo
     return m_secretsThreadPool.toWeakRef();
 }
 
-bool Daemon::ApiImpl::SecretsRequestQueue::initialise(
-        const QByteArray &lockCode)
-{
-    if (!initialiseKeyData(lockCode)) {
-        qCWarning(lcSailfishSecretsDaemon) << "Secrets: failed to initialise key data!";
-        return false;
-    }
-
-    if (!m_bkdb.isInitialised()) {
-        if (!m_bkdb.initialise(m_autotestMode,
-                               bkdbLockKey())) {
-            qCWarning(lcSailfishSecretsDaemon) << "Secrets: failed to open bookkeeping database!";
-            return false;
-        } else {
-            if (lockCode.isEmpty()) {
-                m_noLockCode = true; // we initialised the key data with a null lock code, which worked.
-            } else {
-                m_noLockCode = false; // we initialise the key data with non-null lock code.
-            }
-
-            // initialise the special "standalone" collection if needed.
-            // Note that it is a "notional" collection only,
-            // existing only to satisfy the database constraints.
-            m_bkdb.insertCollection(QLatin1String("standalone"),
-                                    QLatin1String("standalone"),
-                                    false,
-                                    QLatin1String("standalone"),
-                                    QLatin1String("standalone"),
-                                    QLatin1String("standalone"),
-                                    0,
-                                    0,
-                                    SecretManager::OwnerOnlyMode);
-        }
-    }
-
-    return true;
-}
-
-bool Daemon::ApiImpl::SecretsRequestQueue::testLockCode(
-        const QByteArray &lockCode)
-{
-    QByteArray salt = saltData();
-    if (salt.isEmpty()) {
-        return false;
-    }
-
-    Sailfish::Crypto::Key bookkeepingdbKey;
-    Sailfish::Crypto::Key keyTemplate;
-    keyTemplate.setAlgorithm(Sailfish::Crypto::CryptoManager::AlgorithmAes);
-    keyTemplate.setSize(256);
-    Sailfish::Crypto::KeyDerivationParameters kdfParams;
-    kdfParams.setKeyDerivationFunction(Sailfish::Crypto::CryptoManager::KdfPkcs5Pbkdf2);
-    kdfParams.setKeyDerivationMac(Sailfish::Crypto::CryptoManager::MacHmac);
-    kdfParams.setKeyDerivationDigestFunction(Sailfish::Crypto::CryptoManager::DigestSha512);
-    kdfParams.setIterations(12000);
-    if (lockCode.isEmpty()) {
-        kdfParams.setInputData(QByteArray(1, '\0'));
-    } else {
-        kdfParams.setInputData(lockCode);
-    }
-    kdfParams.setSalt(salt);
-    kdfParams.setOutputKeySize(256);
-
-    Sailfish::Crypto::CryptoPlugin *cplugin = m_autotestMode
-            ? m_controller->crypto()->plugins().value(Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"))
-            : m_controller->crypto()->plugins().value(Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName);
-
-    if (cplugin == Q_NULLPTR) {
-        qCWarning(lcSailfishSecretsDaemon) << "Unable to find default crypto plugin for key initialisation";
-        return false;
-    }
-
-    Sailfish::Crypto::Result bkdbKeyResult = cplugin->generateKey(
-                keyTemplate,
-                Sailfish::Crypto::KeyPairGenerationParameters(),
-                kdfParams,
-                QVariantMap(),
-                &bookkeepingdbKey);
-
-    if (bkdbKeyResult.code() != Sailfish::Crypto::Result::Succeeded) {
-        qCWarning(lcSailfishSecretsDaemon) << "Unable to generate bookkeeping database key for comparison";
-        return false;
-    }
-
-    QByteArray bkdbHex = bookkeepingdbKey.secretKey().toHex();
-    bool locked = true;
-    m_bkdb.isLocked(&locked);
-    if (locked) {
-        Result unlockResult = m_bkdb.unlock(bkdbHex);
-        m_bkdb.lock();
-        return unlockResult.code() == Result::Succeeded;
-    } else {
-        return bkdbHex == bkdbLockKey();
-    }
-}
-
-bool Daemon::ApiImpl::SecretsRequestQueue::initialiseKeyData(
-        const QByteArray &lockCode)
+bool Daemon::ApiImpl::SecretsRequestQueue::generateKeyData(
+        const QByteArray &lockCode,
+        QByteArray *bkdbKey,
+        QByteArray *deviceLockKey,
+        QByteArray *testCipherText) const
 {
     QByteArray salt = saltData();
     if (salt.isEmpty()) {
@@ -590,28 +499,167 @@ bool Daemon::ApiImpl::SecretsRequestQueue::initialiseKeyData(
         return false;
     }
 
+    // now generate the test cipher text with the new bkdbKey.
+    // we will compare this to one stored on device, to see if
+    // the given lockCode was "correct".
+    QByteArray authenticationTag;
+    const QByteArray plaintext("The quick brown fox jumps over the lazy dog");
+    // TODO FIXME: is using a deterministically-generated IV here bad?
+    const QByteArray iv = QCryptographicHash::hash(
+                salt + bookkeepingdbKey.secretKey(),
+                QCryptographicHash::Sha512).mid(0, 16);
+    Sailfish::Crypto::Result testCipherResult = cplugin->encrypt(
+                plaintext,
+                iv,
+                bookkeepingdbKey,
+                Sailfish::Crypto::CryptoManager::BlockModeCbc,
+                Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
+                QByteArray(),
+                QVariantMap(),
+                testCipherText,
+                &authenticationTag);
+    if (testCipherResult.code() != Sailfish::Crypto::Result::Succeeded) {
+        qCWarning(lcSailfishSecretsDaemon) << "Unable to generate key test data:"
+                                           << testCipherResult.errorMessage();
+        return false;
+    }
+
     // we will use the first of these as the bookkeeping database lock
     // (after we hex-encode it as required by sqlcipher).
-    QByteArray bkdbHex = bookkeepingdbKey.secretKey().toHex();
+    *bkdbKey = bookkeepingdbKey.secretKey().toHex();
     // The second one will be used as the "device lock code" for
     // collections/secrets using DeviceLock semantics.
     // That one we don't hex encode, because we pass it to plugins
     // in raw form.
+    *deviceLockKey = devicelockKey.secretKey();
+    return true;
+}
 
+bool Daemon::ApiImpl::SecretsRequestQueue::initialise(
+        const QByteArray &lockCode,
+        SecretsRequestQueue::InitialisationMode mode)
+{
+    QByteArray bkdbKey, deviceLockKey, testCipherText;
+    if (!generateKeyData(lockCode, &bkdbKey, &deviceLockKey, &testCipherText)) {
+        qCWarning(lcSailfishSecretsDaemon) << "Secrets: unable to generate keys from the lock code!";
+        return false;
+    }
+    if (mode == SecretsRequestQueue::UnlockMode && !compareTestCipherText(testCipherText, true)) {
+        qCWarning(lcSailfishSecretsDaemon) << "Secrets: the given master lock code is incorrect!";
+        return false;
+    }
+    if (!initialiseKeyData(bkdbKey, deviceLockKey)) {
+        qCWarning(lcSailfishSecretsDaemon) << "Secrets: failed to initialise key data!";
+        return false;
+    }
+
+    if (mode == SecretsRequestQueue::UnlockMode) {
+        m_locked = false;
+        if (lockCode.isEmpty()) {
+            m_noLockCode = true; // we initialised the key data with a null lock code, which worked.
+        } else {
+            m_noLockCode = false; // we initialise the key data with non-null lock code.
+        }
+    } else {
+        m_locked = true;
+    }
+
+    return true;
+}
+
+bool Daemon::ApiImpl::SecretsRequestQueue::initialisePlugins()
+{
+    return m_requestProcessor->initialisePlugins();
+}
+
+bool Daemon::ApiImpl::SecretsRequestQueue::masterLocked() const
+{
+    return m_locked;
+}
+
+bool Daemon::ApiImpl::SecretsRequestQueue::testLockCode(
+        const QByteArray &lockCode) const
+{
+    QByteArray bkdbKey, deviceLockKey, testCipherText;
+    if (!generateKeyData(lockCode, &bkdbKey, &deviceLockKey, &testCipherText)) {
+        qCWarning(lcSailfishSecretsDaemon) << "Secrets: unable to generate keys from the lock code!";
+        return false;
+    }
+    if (!compareTestCipherText(testCipherText, false)) {
+        qCWarning(lcSailfishSecretsDaemon) << "Secrets: the given master lock code is incorrect!";
+        return false;
+    }
+    return true;
+}
+
+bool Daemon::ApiImpl::SecretsRequestQueue::compareTestCipherText(
+        const QByteArray &testCipherText,
+        bool writeIfNotExists) const
+{
+    // AES does not suffer from known-plaintext attacks
+    // so this test should be safe.
+    // TODO: check with crypto expert!
+    // TODO: Should I just store a hash of the key instead?
+    const QString systemDataDirPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/system/");
+    const QString privilegedDataDirPath(systemDataDirPath + QLatin1String("privileged") + "/");
+    const QString secretsDirPath(privilegedDataDirPath + QLatin1String("Secrets"));
+    QDir secretsDir(secretsDirPath);
+    if (!secretsDir.mkpath(secretsDirPath)) {
+        qCWarning(lcSailfishSecretsDaemon) << "Permissions error: unable to create secrets directory:" << secretsDirPath;
+        return false;
+    }
+
+    const QString lockCodeCheckFileName = m_autotestMode
+            ? QLatin1String("lockcodecheck-test")
+            : QLatin1String("lockcodecheck");
+    const QString lockCodeCheckPath = secretsDir.absoluteFilePath(lockCodeCheckFileName);
+    if (!QFile::exists(lockCodeCheckPath)) {
+        if (writeIfNotExists) {
+            // first time, write the file.
+            QFile lockCodeCheckFile(lockCodeCheckPath);
+            if (!lockCodeCheckFile.open(QIODevice::WriteOnly)) {
+                qCWarning(lcSailfishSecretsDaemon) << "Unable to write ciphertext data to lock code check file";
+                return false;
+            }
+            lockCodeCheckFile.write(testCipherText);
+            lockCodeCheckFile.close();
+        } else {
+            qCWarning(lcSailfishSecretsDaemon) << "Unable to read ciphertext data from nonexistent lock code check file";
+            return false;
+        }
+    } else {
+        QFile lockCodeCheckFile(lockCodeCheckPath);
+        if (!lockCodeCheckFile.open(QIODevice::ReadOnly)) {
+            qCWarning(lcSailfishSecretsDaemon) << "Unable to read ciphertext data from lock code check file";
+            return false;
+        }
+        QByteArray previousData = lockCodeCheckFile.readAll();
+        lockCodeCheckFile.close();
+        if (previousData != testCipherText) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool Daemon::ApiImpl::SecretsRequestQueue::initialiseKeyData(
+        const QByteArray &bkdbKey,
+        const QByteArray &deviceLockKey)
+{
     // now we want to malloc a contiguous chunk of memory large enough
     // to contain both keys data, then mlock() it.
     if (m_bkdbLockKeyData == Q_NULLPTR) {
-        m_bkdbLockKeyData = (char*)malloc(bkdbHex.size()+devicelockKey.secretKey().size());
-        if (mlock(m_bkdbLockKeyData, bkdbHex.size()+devicelockKey.secretKey().size()) < 0) {
+        m_bkdbLockKeyData = (char*)malloc(bkdbKey.size()+deviceLockKey.size());
+        if (mlock(m_bkdbLockKeyData, bkdbKey.size()+deviceLockKey.size()) < 0) {
             qCWarning(lcSailfishSecretsDaemon) << "Warning: unable to mlock secretsd key memory!";
         }
-        m_deviceLockKeyData = m_bkdbLockKeyData + bkdbHex.size();
+        m_deviceLockKeyData = m_bkdbLockKeyData + bkdbKey.size();
     }
 
-    memcpy(m_bkdbLockKeyData, bkdbHex.constData(), bkdbHex.size());
-    memcpy(m_deviceLockKeyData, devicelockKey.secretKey().constData(), devicelockKey.secretKey().size());
-    m_bkdbLockKeyLen = bkdbHex.size();
-    m_deviceLockKeyLen = devicelockKey.secretKey().size();
+    memcpy(m_bkdbLockKeyData, bkdbKey.constData(), bkdbKey.size());
+    memcpy(m_deviceLockKeyData, deviceLockKey.constData(), deviceLockKey.size());
+    m_bkdbLockKeyLen = bkdbKey.size();
+    m_deviceLockKeyLen = deviceLockKey.size();
 
     return true;
 }
@@ -810,8 +858,8 @@ QString Daemon::ApiImpl::SecretsRequestQueue::requestTypeToString(int type) cons
         case ModifyLockCodeRequest:                 return QLatin1String("ModifyLockCodeRequest");
         case ProvideLockCodeRequest:                return QLatin1String("ProvideLockCodeRequest");
         case ForgetLockCodeRequest:                 return QLatin1String("ForgetLockCodeRequest");
-        case SetCollectionSecretMetadataRequest:    return QLatin1String("SetCollectionSecretMetadataRequest");
-        case DeleteCollectionSecretMetadataRequest: return QLatin1String("DeleteCollectionSecretMetadataRequest");
+        case SetCollectionKeyPreCheckRequest:       return QLatin1String("SetCollectionKeyPreCheckRequest");
+        case SetCollectionKeyRequest:               return QLatin1String("SetCollectionKeyRequest");
         default: break;
     }
     return QLatin1String("Unknown Secrets Request!");
@@ -855,16 +903,15 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
         }
         case CollectionNamesRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling CollectionNamesRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            QString storagePluginName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             QStringList names;
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->collectionNames(
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->collectionNames(
                                       request->remotePid,
                                       request->requestId,
+                                      storagePluginName,
                                       &names);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {
@@ -892,13 +939,10 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
             SecretManager::AccessControlMode accessControlMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<SecretManager::AccessControlMode>()
                     : SecretManager::OwnerOnlyMode;
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->createDeviceLockCollection(
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->createDeviceLockCollection(
                                       request->remotePid,
                                       request->requestId,
                                       collectionName,
@@ -929,21 +973,19 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
             SecretManager::CustomLockUnlockSemantic unlockSemantic = request->inParams.size()
                     ? request->inParams.takeFirst().value<SecretManager::CustomLockUnlockSemantic>()
                     : SecretManager::CustomLockKeepUnlocked;
-            int customLockTimeoutMs = request->inParams.size() ? request->inParams.takeFirst().value<int>() : 0;
             SecretManager::AccessControlMode accessControlMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<SecretManager::AccessControlMode>()
                     : SecretManager::OwnerOnlyMode;
             SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<SecretManager::UserInteractionMode>()
                     : SecretManager::PreventInteraction;
-            QString interactionServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->createCustomLockCollection(
+            QString interactionServiceAddress = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->createCustomLockCollection(
                                       request->remotePid,
                                       request->requestId,
                                       collectionName,
@@ -951,7 +993,6 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
                                       encryptionPluginName,
                                       authenticationPluginName,
                                       unlockSemantic,
-                                      customLockTimeoutMs,
                                       accessControlMode,
                                       userInteractionMode,
                                       interactionServiceAddress);
@@ -972,20 +1013,23 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
         case DeleteCollectionRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling DeleteCollectionRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             QString collectionName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            QString storagePluginName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<SecretManager::UserInteractionMode>()
                     : SecretManager::PreventInteraction;
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->deleteCollection(
+            QString interactionServiceAddress = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->deleteCollection(
                                       request->remotePid,
                                       request->requestId,
                                       collectionName,
-                                      userInteractionMode);
+                                      storagePluginName,
+                                      userInteractionMode,
+                                      interactionServiceAddress);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
@@ -1014,13 +1058,10 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
             QString interactionServiceAddress = request->inParams.size()
                     ? request->inParams.takeFirst().value<QString>()
                     : QString();
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->setCollectionSecret(
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->setCollectionSecret(
                                       request->remotePid,
                                       request->requestId,
                                       secret,
@@ -1043,11 +1084,12 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
         }
         case SetStandaloneDeviceLockSecretRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling SetStandaloneDeviceLockSecretRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            QString storagePluginName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            QString encryptionPluginName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             Secret secret = request->inParams.size()
                     ? request->inParams.takeFirst().value<Secret>()
                     : Secret();
+            QString encryptionPluginName = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
             InteractionParameters uiParams = request->inParams.size()
                     ? request->inParams.takeFirst().value<InteractionParameters>()
                     : InteractionParameters();
@@ -1063,18 +1105,14 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
             QString interactionServiceAddress = request->inParams.size()
                     ? request->inParams.takeFirst().value<QString>()
                     : QString();
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->setStandaloneDeviceLockSecret(
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->setStandaloneDeviceLockSecret(
                                       request->remotePid,
                                       request->requestId,
-                                      storagePluginName,
-                                      encryptionPluginName,
                                       secret,
+                                      encryptionPluginName,
                                       uiParams,
                                       unlockSemantic,
                                       accessControlMode,
@@ -1096,19 +1134,21 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
         }
         case SetStandaloneCustomLockSecretRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling SetStandaloneCustomLockSecretRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            QString storagePluginName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            QString encryptionPluginName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            QString authenticationPluginName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             Secret secret = request->inParams.size()
                     ? request->inParams.takeFirst().value<Secret>()
                     : Secret();
+            QString encryptionPluginName = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
+            QString authenticationPluginName = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
             InteractionParameters uiParams = request->inParams.size()
                     ? request->inParams.takeFirst().value<InteractionParameters>()
                     : InteractionParameters();
             SecretManager::CustomLockUnlockSemantic unlockSemantic = request->inParams.size()
                     ? request->inParams.takeFirst().value<SecretManager::CustomLockUnlockSemantic>()
                     : SecretManager::CustomLockKeepUnlocked;
-            int customLockTimeoutMs = request->inParams.size() ? request->inParams.takeFirst().value<int>() : 0;
             SecretManager::AccessControlMode accessControlMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<SecretManager::AccessControlMode>()
                     : SecretManager::OwnerOnlyMode;
@@ -1118,22 +1158,17 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
             QString interactionServiceAddress = request->inParams.size()
                     ? request->inParams.takeFirst().value<QString>()
                     : QString();
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->setStandaloneCustomLockSecret(
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->setStandaloneCustomLockSecret(
                                       request->remotePid,
                                       request->requestId,
-                                      storagePluginName,
+                                      secret,
                                       encryptionPluginName,
                                       authenticationPluginName,
-                                      secret,
                                       uiParams,
                                       unlockSemantic,
-                                      customLockTimeoutMs,
                                       accessControlMode,
                                       userInteractionMode,
                                       interactionServiceAddress);
@@ -1161,13 +1196,10 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
                     : SecretManager::PreventInteraction;
             QString interactionServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             Secret secret;
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->getCollectionSecret(
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->getCollectionSecret(
                                       request->remotePid,
                                       request->requestId,
                                       identifier,
@@ -1199,13 +1231,10 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
                     : SecretManager::PreventInteraction;
             QString interactionServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             Secret secret;
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->getStandaloneSecret(
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->getStandaloneSecret(
                                       request->remotePid,
                                       request->requestId,
                                       identifier,
@@ -1229,7 +1258,12 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
         }
         case FindCollectionSecretsRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling FindCollectionSecretsRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            QString collectionName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
+            QString collectionName = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
+            QString storagePluginName = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
             Secret::FilterData filter = request->inParams.size()
                     ? request->inParams.takeFirst().value<Secret::FilterData >()
                     : Secret::FilterData();
@@ -1241,16 +1275,14 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
                     : SecretManager::PreventInteraction;
             QString interactionServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             QVector<Secret::Identifier> identifiers;
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->findCollectionSecrets(
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->findCollectionSecrets(
                                       request->remotePid,
                                       request->requestId,
                                       collectionName,
+                                      storagePluginName,
                                       filter,
                                       filterOperator,
                                       userInteractionMode,
@@ -1273,6 +1305,9 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
         }
         case FindStandaloneSecretsRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling FindStandaloneSecretsRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            QString storagePluginName = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
             Secret::FilterData filter = request->inParams.size()
                     ? request->inParams.takeFirst().value<Secret::FilterData >()
                     : Secret::FilterData();
@@ -1284,15 +1319,13 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
                     : SecretManager::PreventInteraction;
             QString interactionServiceAddress = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             QVector<Secret::Identifier> identifiers;
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->findStandaloneSecrets(
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->findStandaloneSecrets(
                                       request->remotePid,
                                       request->requestId,
+                                      storagePluginName,
                                       filter,
                                       filterOperator,
                                       userInteractionMode,
@@ -1324,13 +1357,10 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
             QString interactionServiceAddress = request->inParams.size()
                     ? request->inParams.takeFirst().value<QString>()
                     : QString();
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->deleteCollectionSecret(
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->deleteCollectionSecret(
                                       request->remotePid,
                                       request->requestId,
                                       identifier,
@@ -1358,13 +1388,10 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
             SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<SecretManager::UserInteractionMode>()
                     : SecretManager::PreventInteraction;
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->deleteStandaloneSecret(
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->deleteStandaloneSecret(
                                       request->remotePid,
                                       request->requestId,
                                       identifier,
@@ -1400,13 +1427,10 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
             QString interactionServiceAddress = request->inParams.size()
                     ? request->inParams.takeFirst().value<QString>()
                     : QString();
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->modifyLockCode(
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->modifyLockCode(
                                       request->remotePid,
                                       request->requestId,
                                       lockCodeTargetType,
@@ -1445,14 +1469,10 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
             QString interactionServiceAddress = request->inParams.size()
                     ? request->inParams.takeFirst().value<QString>()
                     : QString();
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked && lockCodeTargetType != LockCodeRequest::BookkeepingDatabase
-                             ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->provideLockCode(
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->provideLockCode(
                                       request->remotePid,
                                       request->requestId,
                                       lockCodeTargetType,
@@ -1491,13 +1511,10 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
             QString interactionServiceAddress = request->inParams.size()
                     ? request->inParams.takeFirst().value<QString>()
                     : QString();
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->forgetLockCode(
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->forgetLockCode(
                                       request->remotePid,
                                       request->requestId,
                                       lockCodeTargetType,
@@ -1519,47 +1536,57 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
             }
             break;
         }
-        case SetCollectionSecretMetadataRequest: {
-            qCDebug(lcSailfishSecretsDaemon) << "Handling SetCollectionSecretMetadataRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+        case SetCollectionKeyPreCheckRequest: {
+            qCDebug(lcSailfishSecretsDaemon) << "Handling SetCollectionKeyPreCheckRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             Secret::Identifier identifier = request->inParams.size()
                     ? request->inParams.takeFirst().value<Secret::Identifier>()
                     : Secret::Identifier();
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->setCollectionSecretMetadata(
+            SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
+                    ? request->inParams.takeFirst().value<SecretManager::UserInteractionMode>()
+                    : SecretManager::PreventInteraction;
+            QByteArray collectionDecryptionKey;
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->setCollectionKeyPreCheck(
                                       request->remotePid,
                                       request->requestId,
-                                      identifier);
+                                      identifier,
+                                      userInteractionMode,
+                                      &collectionDecryptionKey);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
                 // This request type exists solely to implement Crypto API functionality.
-                asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList());
+                asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << collectionDecryptionKey);
                 *completed = true;
             }
             break;
         }
-        case DeleteCollectionSecretMetadataRequest: {
-            qCDebug(lcSailfishSecretsDaemon) << "Handling DeleteCollectionSecretMetadataRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            Secret::Identifier identifier = request->inParams.size()
-                    ? request->inParams.takeFirst().value<Secret::Identifier>()
-                    : Secret::Identifier();
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->deleteCollectionSecretMetadata(
+        case SetCollectionKeyRequest: {
+            qCDebug(lcSailfishSecretsDaemon) << "Handling SetCollectionKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            Secret secret = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Secret>()
+                    : Secret();
+            SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
+                    ? request->inParams.takeFirst().value<SecretManager::UserInteractionMode>()
+                    : SecretManager::PreventInteraction;
+            QByteArray collectionDecryptionKey = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QByteArray>()
+                    : QByteArray();
+            Q_UNUSED(collectionDecryptionKey); // TODO: use the collectionDecryptionKey to avoid doing an extra prompt?
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->setCollectionSecret(
                                       request->remotePid,
                                       request->requestId,
-                                      identifier);
+                                      secret,
+                                      InteractionParameters(),
+                                      userInteractionMode,
+                                      QString());
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
@@ -1576,13 +1603,10 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
             InteractionParameters uiParams = request->inParams.size()
                     ? request->inParams.takeFirst().value<InteractionParameters>()
                     : InteractionParameters();
-            bool locked = true;
-            Result lockedResult = m_bkdb.isLocked(&locked);
-            Result result = lockedResult.code() != Result::Succeeded
-                    ? lockedResult
-                    : locked ? Result(Result::SecretsDaemonLockedError,
-                                      QLatin1String("The secrets database is locked"))
-                             : m_requestProcessor->userInput(
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->userInput(
                                       request->remotePid,
                                       request->requestId,
                                       uiParams);
@@ -1996,6 +2020,52 @@ void Daemon::ApiImpl::SecretsRequestQueue::handleFinishedRequest(
                 } else {
                     request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                             << QVariant::fromValue<QByteArray>(userInput));
+                }
+                *completed = true;
+            }
+            break;
+        }
+        case SetCollectionKeyPreCheckRequest: {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of SetCollectionKeyPreCheckRequest request"));
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishSecretsDaemon) << "SetCollectionKeyPreCheckRequest:" << request->requestId << "finished as pending!";
+                *completed = true;
+            } else {
+                QByteArray collectionDecryptionKey = request->outParams.size()
+                        ? request->outParams.takeFirst().value<QByteArray>()
+                        : QByteArray();
+                if (request->isSecretsCryptoRequest) {
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result,
+                                                       QVariantList() << QVariant::fromValue<QByteArray>(collectionDecryptionKey));
+                } else {
+                    // shouldn't happen!
+                    qCWarning(lcSailfishSecretsDaemon) << "SetCollectionKeyPreCheckRequest:" << request->requestId << "finished as non-crypto request!";
+                    *completed = true;
+                }
+                *completed = true;
+            }
+            break;
+        }
+        case SetCollectionKeyRequest: {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of SetCollectionKeyRequest request"));
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishSecretsDaemon) << "SetCollectionKeyRequest:" << request->requestId << "finished as pending!";
+                *completed = true;
+            } else {
+                if (request->isSecretsCryptoRequest) {
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList());
+                } else {
+                    // shouldn't happen!
+                    qCWarning(lcSailfishSecretsDaemon) << "SetCollectionKeyRequest:" << request->requestId << "finished as non-crypto request!";
+                    *completed = true;
                 }
                 *completed = true;
             }

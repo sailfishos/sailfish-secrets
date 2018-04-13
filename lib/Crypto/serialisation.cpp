@@ -63,7 +63,7 @@ Key::deserialise(const QByteArray &data, bool *ok)
 
     in.setVersion(QDataStream::Qt_5_6);
 
-    QString name, collectionName;
+    QString name, collectionName, storagePluginName;
     int iorigin = 0, ialgorithm = 0, ioperations = 0, icomponentConstraints = 0, isize = 0;
     QByteArray publicKey, privateKey, secretKey;
     QVector<QByteArray> customParameters;
@@ -71,6 +71,7 @@ Key::deserialise(const QByteArray &data, bool *ok)
 
     in >> name;
     in >> collectionName;
+    in >> storagePluginName;
 
     in >> iorigin;
     in >> ialgorithm;
@@ -89,7 +90,7 @@ Key::deserialise(const QByteArray &data, bool *ok)
     buffer.close();
 
     Key retn;
-    retn.setIdentifier(Key::Identifier(name, collectionName));
+    retn.setIdentifier(Key::Identifier(name, collectionName, storagePluginName));
     retn.setOrigin(static_cast<Key::Origin>(iorigin));
     retn.setAlgorithm(static_cast<CryptoManager::Algorithm>(ialgorithm));
     retn.setOperations(static_cast<CryptoManager::Operations>(ioperations));
@@ -126,7 +127,9 @@ Key::serialise(const Key &key, Key::SerialisationMode serialisationMode)
     if (serialisationMode == Key::LosslessSerialisationMode) {
         out << key.identifier().name();
         out << key.identifier().collectionName();
+        out << key.identifier().storagePluginName();
     } else {
+        out << QString();
         out << QString();
         out << QString();
     }
@@ -297,18 +300,20 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Key::Identifier &identi
     argument.beginStructure();
     argument << identifier.name();
     argument << identifier.collectionName();
+    argument << identifier.storagePluginName();
     argument.endStructure();
     return argument;
 }
 
 const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Identifier &identifier)
 {
-    QString name, collectionName;
+    QString name, collectionName, storagePluginName;
     argument.beginStructure();
     argument >> name;
     argument >> collectionName;
+    argument >> storagePluginName;
     argument.endStructure();
-    identifier = Key::Identifier(name, collectionName);
+    identifier = Key::Identifier(name, collectionName, storagePluginName);
     return argument;
 }
 
@@ -575,7 +580,7 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Result &result)
 QDBusArgument &operator<<(QDBusArgument &argument, const PluginInfo &info)
 {
     argument.beginStructure();
-    argument << info.name() << info.version();
+    argument << info.name() << info.version() << static_cast<int>(info.statusFlags());
     argument.endStructure();
     return argument;
 }
@@ -584,11 +589,13 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, PluginInfo &info)
 {
     QString name;
     int version = 0;
+    int iStatusFlags = 0;
     argument.beginStructure();
-    argument >> name >> version;
+    argument >> name >> version >> iStatusFlags;
     argument.endStructure();
     info.setName(name);
     info.setVersion(version);
+    info.setStatusFlags(static_cast<PluginInfo::StatusFlags>(iStatusFlags));
     return argument;
 }
 

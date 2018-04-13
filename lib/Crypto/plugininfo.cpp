@@ -15,6 +15,7 @@ using namespace Sailfish::Crypto;
 PluginInfoPrivate::PluginInfoPrivate()
     : QSharedData()
     , m_version(0)
+    , m_statusFlags(PluginInfo::Unknown)
 {
 }
 
@@ -22,6 +23,7 @@ PluginInfoPrivate::PluginInfoPrivate(const PluginInfoPrivate &other)
     : QSharedData(other)
     , m_name(other.m_name)
     , m_version(other.m_version)
+    , m_statusFlags(other.m_statusFlags)
 {
 }
 
@@ -50,13 +52,14 @@ PluginInfoPrivate::~PluginInfoPrivate()
  */
 
 /*!
- * \brief Constructs a plugin info object containing the given \a name and \ version
+ * \brief Constructs a plugin info object containing the given \a name, \a version and \a status
  */
-PluginInfo::PluginInfo(const QString &name, int version)
+PluginInfo::PluginInfo(const QString &name, int version, StatusFlags status)
     : d_ptr(new PluginInfoPrivate)
 {
     d_ptr->m_name = name;
     d_ptr->m_version = version;
+    d_ptr->m_statusFlags = status;
 }
 
 /*!
@@ -116,12 +119,29 @@ int PluginInfo::version() const
 }
 
 /*!
+ * \brief Sets the status flags of the plugin to \a status
+ */
+void PluginInfo::setStatusFlags(PluginInfo::StatusFlags status)
+{
+    d_ptr->m_statusFlags = status;
+}
+
+/*!
+ * \brief Returns the status flags of the plugin
+ */
+PluginInfo::StatusFlags PluginInfo::statusFlags() const
+{
+    return d_ptr->m_statusFlags;
+}
+
+/*!
  * \brief Returns true if the \a lhs plugin info object is equal to the \a rhs plugin info object
  */
 bool Sailfish::Crypto::operator==(const PluginInfo &lhs, const PluginInfo &rhs)
 {
     return lhs.name() == rhs.name()
-            && lhs.version() == rhs.version();
+            && lhs.version() == rhs.version()
+            && lhs.statusFlags() == rhs.statusFlags();
 }
 
 /*!
@@ -139,5 +159,7 @@ bool Sailfish::Crypto::operator<(const PluginInfo &lhs, const PluginInfo &rhs)
 {
     if (lhs.name() != rhs.name())
         return lhs.name() < rhs.name();
-    return lhs.version() < rhs.version();
+    if (lhs.version() != rhs.version())
+        return lhs.version() < rhs.version();
+    return lhs.statusFlags() < rhs.statusFlags();
 }

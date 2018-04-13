@@ -27,6 +27,7 @@ class SAILFISH_SECRETS_API FindSecretsRequest : public Sailfish::Secrets::Reques
 {
     Q_OBJECT
     Q_PROPERTY(QString collectionName READ collectionName WRITE setCollectionName NOTIFY collectionNameChanged)
+    Q_PROPERTY(QString storagePluginName READ storagePluginName WRITE setStoragePluginName NOTIFY storagePluginNameChanged)
     Q_PROPERTY(Sailfish::Secrets::Secret::FilterData filter READ filter WRITE setFilter NOTIFY filterChanged)
     Q_PROPERTY(Sailfish::Secrets::SecretManager::FilterOperator filterOperator READ filterOperator WRITE setFilterOperator NOTIFY filterOperatorChanged)
     Q_PROPERTY(Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode READ userInteractionMode WRITE setUserInteractionMode NOTIFY userInteractionModeChanged)
@@ -38,6 +39,9 @@ public:
 
     QString collectionName() const;
     void setCollectionName(const QString &name);
+
+    QString storagePluginName() const;
+    void setStoragePluginName(const QString &pluginName);
 
     Sailfish::Secrets::Secret::FilterData filter() const;
     void setFilter(const Sailfish::Secrets::Secret::FilterData &filter);
@@ -61,6 +65,7 @@ public:
 
 Q_SIGNALS:
     void collectionNameChanged();
+    void storagePluginNameChanged();
     void filterChanged();
     void filterOperatorChanged();
     void userInteractionModeChanged();

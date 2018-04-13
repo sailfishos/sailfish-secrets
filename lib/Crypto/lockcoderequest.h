@@ -39,7 +39,8 @@ public:
     Q_ENUM(LockCodeRequestType)
 
     enum LockCodeTargetType {
-        ExtensionPlugin = 1,
+        BookkeepingDatabase = 0,
+        ExtensionPlugin,
     };
     Q_ENUM(LockCodeTargetType)
 
