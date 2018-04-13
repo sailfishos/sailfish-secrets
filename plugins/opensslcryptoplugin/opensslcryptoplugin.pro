@@ -1,8 +1,9 @@
 TEMPLATE = lib
-CONFIG += plugin hide_symbols
+CONFIG += plugin hide_symbols link_pkgconfig
 TARGET = sailfishcrypto-openssl
 TARGET = $$qtLibraryTarget($$TARGET)
 DEFINES += SAILFISHCRYPTO_BUILD_OPENSSLCRYPTOPLUGIN
+PKGCONFIG += libcrypto
 
 include($$PWD/../../common.pri)
 include($$PWD/../../lib/libsailfishcrypto.pri)

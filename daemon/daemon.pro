@@ -1,6 +1,13 @@
 TEMPLATE = app
 TARGET = sailfishsecretsd
 
+packagesExist(qt5-boostable) {
+    DEFINES += HAS_BOOSTER
+    PKGCONFIG += qt5-boostable
+} else {
+    warning("qt5-boostable not available; startup times will be slower")
+}
+
 include($$PWD/../common.pri)
 include($$PWD/../lib/libsailfishsecrets.pri)
 include($$PWD/../lib/libsailfishcrypto.pri)
