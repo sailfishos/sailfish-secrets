@@ -7,6 +7,9 @@
 
 #include "storedkeyidentifiersrequestwrapper.h"
 
+#include <QtCore/QVariant>
+#include <QtCore/QVariantList>
+
 Sailfish::Crypto::Plugin::KeyIdentifier::KeyIdentifier(const QString &name, const QString &collectionName)
     : m_name(name), m_collectionName(collectionName)
 {
