@@ -2461,7 +2461,7 @@ void tst_cryptorequests::requestInterleaving()
     QElapsedTimer et;
     et.start();
     while (et.elapsed() < 30000) {
-        if (!er.status() == Request::Finished) {
+        if (er.status() == Request::Finished) {
             er.startRequest();
         }
 
