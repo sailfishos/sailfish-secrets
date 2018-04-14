@@ -27,6 +27,10 @@
         goto labelname;              \
     }
 
+// Below code is for the old threading API before OpenSSL 1.1
+// explanation: https://www.openssl.org/blog/blog/2017/02/21/threads/
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+
 static QVector<QMutex*> s_mutexes;
 
 extern "C" {
@@ -59,6 +63,9 @@ static unsigned long qthreads_thread_id()
 
 } /* extern "C" */
 
+
+#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
+
 /*
     int OpenSslEvp::init()
 
@@ -79,11 +86,13 @@ int OpenSslEvp::init()
         OPENSSL_config(NULL);
 #pragma GCC diagnostic pop
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
         while (s_mutexes.size() < CRYPTO_num_locks()) {
             s_mutexes.append(new QMutex);
         }
         CRYPTO_set_id_callback(qthreads_thread_id);
         CRYPTO_set_locking_callback(qthreads_locking_callback);
+#endif
 
         initialized += 1;
     }
@@ -97,10 +106,12 @@ int OpenSslEvp::init()
  */
 void OpenSslEvp::cleanup()
 {
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
     CRYPTO_set_id_callback(NULL);
     CRYPTO_set_locking_callback(NULL);
     qDeleteAll(s_mutexes);
     s_mutexes.clear();
+#endif
 }
 
 /*
