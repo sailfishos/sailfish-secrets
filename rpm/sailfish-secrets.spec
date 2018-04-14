@@ -43,6 +43,7 @@ BuildRequires:  pkgconfig(Qt5QuickTest)
 BuildRequires:  pkgconfig(libcrypto)
 Requires: qt5-qtdeclarative-import-qttest
 Requires: qt5-qtdeclarative-devel-tools
+Requires: openssl
 Requires:   %{name} = %{version}-%{release}
 
 %description tests
@@ -312,6 +313,7 @@ ln -s ../%{secretsdaemon}.service %{buildroot}/%{user_unitdir}/user-session.targ
 /opt/tests/Sailfish/Crypto/tst_cryptosecrets
 /opt/tests/Sailfish/Crypto/tst_evp
 /opt/tests/Sailfish/Crypto/tst_qml_signing
+/opt/tests/Sailfish/Crypto/tst_qml_signing.qml
 %{_libdir}/Sailfish/Crypto/libsailfishcrypto-testopenssl.so
 
 %files -n libsailfishcryptopluginapi

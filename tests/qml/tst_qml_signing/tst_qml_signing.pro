@@ -11,4 +11,7 @@ SOURCES += \
 OTHER_FILES += \
     tst_qml_signing.qml
 
-INSTALLS += target
+qmlfile.path = /opt/tests/Sailfish/Crypto
+qmlfile.files = tst_qml_signing.qml
+
+INSTALLS += target qmlfile

@@ -17,6 +17,7 @@
 #include <openssl/x509.h>
 
 #include <cassert>
+#include <QDir>
 
 /*!
  * Before each test case, generates a new private-public key pair using
@@ -24,6 +25,10 @@
  */
 void tst_evp::init()
 {
+    qDebug() << "creating test tmp directory";
+    QDir tmpDir("/tmp");
+    tmpDir.mkdir("sailfish_secrets_tst_evp");
+
     qDebug() << "creating test private key file";
     QProcess proc1;
     proc1.start("openssl",
@@ -68,6 +73,10 @@ void tst_evp::cleanup()
         qDebug() << "deleting test public key file";
         publicKeyFile.remove();
     }
+
+    // Remove temp directory
+    QDir tmpDir("/tmp");
+    tmpDir.rmdir("sailfish_secrets_tst_evp");
 }
 
 QByteArray tst_evp::generateTestData(size_t size) {
@@ -184,8 +193,8 @@ void tst_evp::testVerifyIncorrect()
  * \return Signature.
  */
 QByteArray tst_evp::signWithCommandLine(const QByteArray &data) {
-    const char *testDataFileName = "testdata.bin";
-    const char *testSignatureFileName = "test-signature.sha256";
+    const char *testDataFileName = "/tmp/sailfish_secrets_tst_evp/testdata.bin";
+    const char *testSignatureFileName = "/tmp/sailfish_secrets_tst_evp/test-signature.sha256";
 
     QFile file(testDataFileName);
     file.open(QIODevice::WriteOnly);
@@ -219,8 +228,8 @@ QByteArray tst_evp::signWithCommandLine(const QByteArray &data) {
  */
 bool tst_evp::verifyWithCommandLine(const QByteArray &data, const QByteArray &signature)
 {
-    const char *testDataFileName = "testdata.bin";
-    const char *testSignatureFileName = "test-signature.sha256";
+    const char *testDataFileName = "/tmp/sailfish_secrets_tst_evp/testdata.bin";
+    const char *testSignatureFileName = "/tmp/sailfish_secrets_tst_evp/test-signature.sha256";
 
     QFile file(testDataFileName);
     file.open(QIODevice::WriteOnly);
@@ -306,8 +315,8 @@ bool tst_evp::verifyWithEvp(const QByteArray &data, const QByteArray &signature)
  */
 QByteArray tst_evp::digestWithCommandLine(const QByteArray &data)
 {
-    const char *testDataFileName = "testdata-digest.bin";
-    const char *testDigestFileName = "test-digest.sha256";
+    const char *testDataFileName = "/tmp/sailfish_secrets_tst_evp/testdata-digest.bin";
+    const char *testDigestFileName = "/tmp/sailfish_secrets_tst_evp/test-digest.sha256";
 
     QFile file(testDataFileName);
     file.open(QIODevice::WriteOnly);
