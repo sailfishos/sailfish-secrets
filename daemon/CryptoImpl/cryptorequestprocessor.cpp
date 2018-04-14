@@ -2295,6 +2295,7 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoreKeyPreCheckCompleted(
                                               cryptosystemProviderName,
                                               returnResult,
                                               collectionDecryptionKey);
+                break;
             }
             default: {
                 qCWarning(lcSailfishCryptoDaemon) << "Secrets completed storeKey() operation for request:" << requestId << "of invalid type:" << pr.requestType;
