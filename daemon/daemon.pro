@@ -17,7 +17,7 @@ include($$PWD/../lib/libsailfishcryptopluginapi.pri)
 QT += sql dbus concurrent
 
 CONFIG += link_pkgconfig hide_symbols
-PKGCONFIG += dbus-1
+PKGCONFIG += dbus-1 Qt5Concurrent Qt5DBus Qt5Core
 
 HEADERS += \
     $$PWD/controller_p.h \
