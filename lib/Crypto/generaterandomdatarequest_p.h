@@ -31,6 +31,7 @@ public:
     explicit GenerateRandomDataRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
+    QVariantMap m_customParameters;
     QString m_cryptoPluginName;
     QString m_csprngEngineName;
     quint64 m_numberBytes;

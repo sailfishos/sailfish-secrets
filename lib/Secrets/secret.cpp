@@ -21,6 +21,7 @@ SecretIdentifierPrivate::SecretIdentifierPrivate(const SecretIdentifierPrivate &
     : QSharedData(other)
     , m_name(other.m_name)
     , m_collectionName(other.m_collectionName)
+    , m_storagePluginName(other.m_storagePluginName)
 {
 }
 
@@ -57,10 +58,10 @@ SecretPrivate::~SecretPrivate()
  * The identifier consists of the name (alias) of the secret, along with
  * the name of the collection in which the secret is stored (note that the
  * collection name can be empty if the secret is stored as a standalone
- * secret).
+ * secret) and the name of the storage plugin which stores the collection.
  *
- * Together, the secret name and collection name uniquely identify the secret
- * in the secrets storage.
+ * Together, the secret name, collection name and storage plugin name
+ * uniquely identify the secret in the secrets storage.
  */
 
 /*!
@@ -72,13 +73,14 @@ Secret::Identifier::Identifier()
 }
 
 /*!
- * \brief Constructs a new identifier from the given secret \a name and \a collectionName
+ * \brief Constructs a new identifier from the given secret \a name, \a collectionName and \a storagePluginName
  */
-Secret::Identifier::Identifier(const QString &name, const QString &collectionName)
+Secret::Identifier::Identifier(const QString &name, const QString &collectionName, const QString &storagePluginName)
         : d_ptr(new SecretIdentifierPrivate)
 {
     d_ptr->m_name = name;
     d_ptr->m_collectionName = collectionName;
+    d_ptr->m_storagePluginName = storagePluginName;
 }
 
 /*!
@@ -115,7 +117,7 @@ Secret::Identifier& Secret::Identifier::operator=(const Secret::Identifier &othe
  */
 bool Secret::Identifier::isValid() const
 {
-    return !d_ptr->m_name.isEmpty();
+    return !d_ptr->m_name.isEmpty() && !d_ptr->m_storagePluginName.isEmpty();
 }
 
 /*!
@@ -165,6 +167,22 @@ void Secret::Identifier::setCollectionName(const QString &collectionName)
     d_ptr->m_collectionName = collectionName;
 }
 
+/*!
+ * \brief Returns the storage plugin name from the identifier
+ */
+QString Secret::Identifier::storagePluginName() const
+{
+    return d_ptr->m_storagePluginName;
+}
+
+/*!
+ * \brief Sets the storage plugin name in the identifier to \a storagePluginName
+ */
+void Secret::Identifier::setStoragePluginName(const QString &storagePluginName)
+{
+    d_ptr->m_storagePluginName = storagePluginName;
+}
+
 //--------------------------------------------
 
 /*!
@@ -196,12 +214,12 @@ Secret::Secret(const Secret &other)
 }
 
 /*!
- * \brief Constructs a secret which references a stored secret with the given \a name from the given \a collection.
+ * \brief Constructs a secret which references a secret stored in the given \a storagePlugin with the given \a name from the given \a collection.
  */
-Secret::Secret(const QString &name, const QString &collection)
+Secret::Secret(const QString &name, const QString &collection, const QString &storagePlugin)
     : d_ptr(new SecretPrivate)
 {
-    setIdentifier(Secret::Identifier(name, collection));
+    setIdentifier(Secret::Identifier(name, collection, storagePlugin));
     setType(TypeUnknown);
 }
 
@@ -306,6 +324,22 @@ QString Secret::collectionName() const
 void Secret::setCollectionName(const QString &cname)
 {
     d_ptr->m_identifier.setCollectionName(cname);
+}
+
+/*!
+ * \brief Returns the storage plugin name field from the identifier of the secret
+ */
+QString Secret::storagePluginName() const
+{
+    return d_ptr->m_identifier.storagePluginName();
+}
+
+/*!
+ * \brief Sets the storage plugin name field in the identifier of the secret to \a pname
+ */
+void Secret::setStoragePluginName(const QString &pname)
+{
+    d_ptr->m_identifier.setStoragePluginName(pname);
 }
 
 /*!

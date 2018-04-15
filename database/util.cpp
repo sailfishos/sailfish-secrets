@@ -7,32 +7,25 @@
 
 #include "util_p.h"
 
-#include <QtCore/QCryptographicHash>
-#include <QtCore/QString>
-#include <QtCore/QByteArray>
-
-namespace {
-    QByteArray rehashHash(const QByteArray &hash) {
-        QCryptographicHash rehash(QCryptographicHash::QCryptographicHash::Sha3_256);
-        rehash.addData(hash);
-        return rehash.result();
-    }
-}
-
-QString Sailfish::Secrets::Daemon::Util::generateHashedSecretName(
-        const QString &collectionName,
-        const QString &secretName)
+Sailfish::Crypto::Result
+Sailfish::Secrets::Daemon::Util::transformSecretsResult(
+        const Sailfish::Secrets::Result &result)
 {
-    QCryptographicHash keyHash(QCryptographicHash::QCryptographicHash::Sha3_256);
-    QByteArray data = collectionName.toUtf8() + secretName.toUtf8();
-    keyHash.addData(data);
-    QByteArray hashed = keyHash.result();
-
-    // do PBKDF style repeated hashing
-    for (int i = 0; i < 1000; ++i) {
-        hashed = rehashHash(hashed);
+    Sailfish::Crypto::Result retn(Sailfish::Crypto::Result::Succeeded);
+    if (result.code() == Sailfish::Secrets::Result::Failed) {
+        retn.setCode(Sailfish::Crypto::Result::Failed);
+        if (result.errorCode() == Sailfish::Secrets::Result::InvalidSecretError
+                || result.errorCode() == Sailfish::Secrets::Result::InvalidSecretIdentifierError
+                || result.errorCode() == Sailfish::Secrets::Result::InvalidCollectionError
+                || result.errorCode() == Sailfish::Secrets::Result::InvalidExtensionPluginError) {
+            retn.setErrorCode(Sailfish::Crypto::Result::InvalidKeyIdentifier);
+        } else {
+            retn.setErrorCode(Sailfish::Crypto::Result::StorageError);
+        }
+        retn.setStorageErrorCode(static_cast<int>(result.errorCode()));
+        retn.setErrorMessage(result.errorMessage());
+    } else if (result.code() == Sailfish::Secrets::Result::Pending) {
+        retn.setCode(Sailfish::Crypto::Result::Pending);
     }
-
-    return QString::fromLatin1(hashed.toBase64());
+    return retn;
 }
-

@@ -44,6 +44,31 @@ StoredKeyIdentifiersRequest::~StoredKeyIdentifiersRequest()
 }
 
 /*!
+ * \brief Returns the name of the storage plugin from which the client wishes to retrieve key identifiers
+ */
+QString StoredKeyIdentifiersRequest::storagePluginName() const
+{
+    Q_D(const StoredKeyIdentifiersRequest);
+    return d->m_storagePluginName;
+}
+
+/*!
+ * \brief Sets the name of the storage plugin from which the client wishes to retrieve key identifiers to \a pluginName
+ */
+void StoredKeyIdentifiersRequest::setStoragePluginName(const QString &pluginName)
+{
+    Q_D(StoredKeyIdentifiersRequest);
+    if (d->m_status != Request::Active && d->m_storagePluginName != pluginName) {
+        d->m_storagePluginName = pluginName;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit storagePluginNameChanged();
+    }
+}
+
+/*!
  * \brief Returns the identifiers of securely-stored keys
  *
  * Note: this value is only valid if the status of the request is Request::Finished.
@@ -64,6 +89,25 @@ Result StoredKeyIdentifiersRequest::result() const
 {
     Q_D(const StoredKeyIdentifiersRequest);
     return d->m_result;
+}
+
+QVariantMap StoredKeyIdentifiersRequest::customParameters() const
+{
+    Q_D(const StoredKeyIdentifiersRequest);
+    return d->m_customParameters;
+}
+
+void StoredKeyIdentifiersRequest::setCustomParameters(const QVariantMap &params)
+{
+    Q_D(StoredKeyIdentifiersRequest);
+    if (d->m_customParameters != params) {
+        d->m_customParameters = params;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit customParametersChanged();
+    }
 }
 
 CryptoManager *StoredKeyIdentifiersRequest::manager() const
@@ -92,8 +136,10 @@ void StoredKeyIdentifiersRequest::startRequest()
             emit resultChanged();
         }
 
+        // should we pass customParameters in this case, or not?
+        // there's no "specific plugin" which is the target of the request..
         QDBusPendingReply<Result, QVector<Key::Identifier> > reply =
-                d->m_manager->d_ptr->storedKeyIdentifiers();
+                d->m_manager->d_ptr->storedKeyIdentifiers(d->m_storagePluginName);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;
             d->m_result = Result(Result::CryptoManagerNotInitialisedError,

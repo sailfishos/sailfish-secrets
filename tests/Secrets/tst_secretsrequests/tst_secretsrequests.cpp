@@ -7,6 +7,7 @@
 
 #include <QtTest>
 #include <QObject>
+#include <QElapsedTimer>
 #include <QDBusReply>
 #include <QQuickView>
 #include <QQuickItem>
@@ -70,6 +71,8 @@ private slots:
     void accessControl();
 
     void lockCode();
+
+    void pluginThreading();
 
 private:
     SecretManager sm;
@@ -166,6 +169,7 @@ void tst_secretsrequests::devicelockCollection()
     // ensure that the name of the collection is returned from a CollectionNamesRequest
     CollectionNamesRequest cnr;
     cnr.setManager(&sm);
+    cnr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
     QSignalSpy cnrss(&cnr, &CollectionNamesRequest::statusChanged);
     QCOMPARE(cnr.status(), Request::Inactive);
     cnr.startRequest();
@@ -184,6 +188,8 @@ void tst_secretsrequests::devicelockCollection()
     QSignalSpy dcrss(&dcr, &DeleteCollectionRequest::statusChanged);
     dcr.setCollectionName(QLatin1String("testcollection"));
     QCOMPARE(dcr.collectionName(), QLatin1String("testcollection"));
+    dcr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
+    QCOMPARE(dcr.storagePluginName(), DEFAULT_TEST_STORAGE_PLUGIN);
     dcr.setUserInteractionMode(SecretManager::ApplicationInteraction);
     QCOMPARE(dcr.userInteractionMode(), SecretManager::ApplicationInteraction);
     QCOMPARE(dcr.status(), Request::Inactive);
@@ -233,7 +239,8 @@ void tst_secretsrequests::devicelockCollectionSecret()
     // store a new secret into the collection
     Secret testSecret(Secret::Identifier(
                         QLatin1String("testsecretname"),
-                        QLatin1String("testcollection")));
+                        QLatin1String("testcollection"),
+                        DEFAULT_TEST_STORAGE_PLUGIN));
     testSecret.setData("testsecretvalue");
     testSecret.setType(Secret::TypeBlob);
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
@@ -275,7 +282,11 @@ void tst_secretsrequests::devicelockCollectionSecret()
     QCOMPARE(gsrss.count(), 2);
     QCOMPARE(gsr.status(), Request::Finished);
     QCOMPARE(gsr.result().code(), Result::Succeeded);
-    QCOMPARE(gsr.secret(), testSecret);
+    QCOMPARE(gsr.secret().data(), testSecret.data());
+    QCOMPARE(gsr.secret().type(), testSecret.type());
+    QCOMPARE(gsr.secret().filterData(), testSecret.filterData());
+    QCOMPARE(gsr.secret().name(), testSecret.name());
+    QCOMPARE(gsr.secret().collectionName(), testSecret.collectionName());
 
     // test filtering, first with AND with both matching metadata field values, expect match
     Secret::FilterData filter;
@@ -287,6 +298,8 @@ void tst_secretsrequests::devicelockCollectionSecret()
     QSignalSpy fsrss(&fsr, &FindSecretsRequest::statusChanged);
     fsr.setCollectionName(QLatin1String("testcollection"));
     QCOMPARE(fsr.collectionName(), QLatin1String("testcollection"));
+    fsr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
+    QCOMPARE(fsr.storagePluginName(), DEFAULT_TEST_STORAGE_PLUGIN);
     fsr.setFilter(filter);
     QCOMPARE(fsr.filter(), filter);
     fsr.setFilterOperator(SecretManager::OperatorAnd);
@@ -361,6 +374,8 @@ void tst_secretsrequests::devicelockCollectionSecret()
     QSignalSpy dcrss(&dcr, &DeleteCollectionRequest::statusChanged);
     dcr.setCollectionName(QLatin1String("testcollection"));
     QCOMPARE(dcr.collectionName(), QLatin1String("testcollection"));
+    dcr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
+    QCOMPARE(dcr.storagePluginName(), DEFAULT_TEST_STORAGE_PLUGIN);
     dcr.setUserInteractionMode(SecretManager::ApplicationInteraction);
     QCOMPARE(dcr.userInteractionMode(), SecretManager::ApplicationInteraction);
     QCOMPARE(dcr.status(), Request::Inactive);
@@ -378,7 +393,10 @@ void tst_secretsrequests::devicelockCollectionSecret()
 void tst_secretsrequests::devicelockStandaloneSecret()
 {
     // write the secret
-    Secret testSecret(Secret::Identifier("testsecretname"));
+    Secret testSecret(Secret::Identifier(
+            QStringLiteral("testsecretname"),
+            QString(),
+            DEFAULT_TEST_STORAGE_PLUGIN));
     testSecret.setData("testsecretvalue");
     testSecret.setType(Secret::TypeBlob);
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
@@ -393,8 +411,6 @@ void tst_secretsrequests::devicelockStandaloneSecret()
     QCOMPARE(ssr.deviceLockUnlockSemantic(), SecretManager::DeviceLockKeepUnlocked);
     ssr.setAccessControlMode(SecretManager::OwnerOnlyMode);
     QCOMPARE(ssr.accessControlMode(), SecretManager::OwnerOnlyMode);
-    ssr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
-    QCOMPARE(ssr.storagePluginName(), DEFAULT_TEST_STORAGE_PLUGIN);
     ssr.setEncryptionPluginName(DEFAULT_TEST_ENCRYPTION_PLUGIN);
     QCOMPARE(ssr.encryptionPluginName(), DEFAULT_TEST_ENCRYPTION_PLUGIN);
     ssr.setUserInteractionMode(SecretManager::ApplicationInteraction);
@@ -428,7 +444,11 @@ void tst_secretsrequests::devicelockStandaloneSecret()
     QCOMPARE(gsrss.count(), 2);
     QCOMPARE(gsr.status(), Request::Finished);
     QCOMPARE(gsr.result().code(), Result::Succeeded);
-    QCOMPARE(gsr.secret(), testSecret);
+    QCOMPARE(gsr.secret().data(), testSecret.data());
+    QCOMPARE(gsr.secret().type(), testSecret.type());
+    QCOMPARE(gsr.secret().filterData(), testSecret.filterData());
+    QCOMPARE(gsr.secret().name(), testSecret.name());
+    QCOMPARE(gsr.secret().collectionName(), testSecret.collectionName());
 
     // delete the secret
     DeleteSecretRequest dsr;
@@ -499,6 +519,8 @@ void tst_secretsrequests::customlockCollection()
     QSignalSpy dcrss(&dcr, &DeleteCollectionRequest::statusChanged);
     dcr.setCollectionName(QLatin1String("testcollection"));
     QCOMPARE(dcr.collectionName(), QLatin1String("testcollection"));
+    dcr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
+    QCOMPARE(dcr.storagePluginName(), DEFAULT_TEST_STORAGE_PLUGIN);
     dcr.setUserInteractionMode(SecretManager::ApplicationInteraction);
     QCOMPARE(dcr.userInteractionMode(), SecretManager::ApplicationInteraction);
     QCOMPARE(dcr.status(), Request::Inactive);
@@ -555,7 +577,8 @@ void tst_secretsrequests::customlockCollectionSecret()
     Secret testSecret(
                 Secret::Identifier(
                     QLatin1String("testsecretname"),
-                    QLatin1String("testcollection")));
+                    QLatin1String("testcollection"),
+                    DEFAULT_TEST_STORAGE_PLUGIN));
     testSecret.setData("testsecretvalue");
     testSecret.setType(Secret::TypeBlob);
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
@@ -628,6 +651,8 @@ void tst_secretsrequests::customlockCollectionSecret()
     QSignalSpy dcrss(&dcr, &DeleteCollectionRequest::statusChanged);
     dcr.setCollectionName(QLatin1String("testcollection"));
     QCOMPARE(dcr.collectionName(), QLatin1String("testcollection"));
+    dcr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
+    QCOMPARE(dcr.storagePluginName(), DEFAULT_TEST_STORAGE_PLUGIN);
     dcr.setUserInteractionMode(SecretManager::ApplicationInteraction);
     QCOMPARE(dcr.userInteractionMode(), SecretManager::ApplicationInteraction);
     QCOMPARE(dcr.status(), Request::Inactive);
@@ -651,7 +676,10 @@ void tst_secretsrequests::customlockStandaloneSecret()
     QVERIFY(interactionView);
     QMetaObject::invokeMethod(interactionView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &sm));
 
-    Secret testSecret(Secret::Identifier(QLatin1String("testsecretname")));
+    Secret testSecret(Secret::Identifier(
+            QLatin1String("testsecretname"),
+            QString(),
+            DEFAULT_TEST_STORAGE_PLUGIN));
     testSecret.setData("testsecretvalue");
     testSecret.setType(Secret::TypeBlob);
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
@@ -667,8 +695,6 @@ void tst_secretsrequests::customlockStandaloneSecret()
     QCOMPARE(ssr.customLockUnlockSemantic(), SecretManager::CustomLockKeepUnlocked);
     ssr.setAccessControlMode(SecretManager::OwnerOnlyMode);
     QCOMPARE(ssr.accessControlMode(), SecretManager::OwnerOnlyMode);
-    ssr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
-    QCOMPARE(ssr.storagePluginName(), DEFAULT_TEST_STORAGE_PLUGIN);
     ssr.setEncryptionPluginName(DEFAULT_TEST_ENCRYPTION_PLUGIN);
     QCOMPARE(ssr.encryptionPluginName(), DEFAULT_TEST_ENCRYPTION_PLUGIN);
     ssr.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
@@ -704,7 +730,11 @@ void tst_secretsrequests::customlockStandaloneSecret()
     QCOMPARE(gsrss.count(), 2);
     QCOMPARE(gsr.status(), Request::Finished);
     QCOMPARE(gsr.result().code(), Result::Succeeded);
-    QCOMPARE(gsr.secret(), testSecret);
+    QCOMPARE(gsr.secret().data(), testSecret.data());
+    QCOMPARE(gsr.secret().type(), testSecret.type());
+    QCOMPARE(gsr.secret().filterData(), testSecret.filterData());
+    QCOMPARE(gsr.secret().name(), testSecret.name());
+    QCOMPARE(gsr.secret().collectionName(), testSecret.collectionName());
 
     // delete the secret
     DeleteSecretRequest dsr;
@@ -773,7 +803,8 @@ void tst_secretsrequests::encryptedStorageCollection()
     Secret testSecret(
                 Secret::Identifier(
                     QLatin1String("testsecretname"),
-                    QLatin1String("testencryptedcollection")));
+                    QLatin1String("testencryptedcollection"),
+                    DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN));
     testSecret.setData("testsecretvalue");
     testSecret.setType(Secret::TypeBlob);
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
@@ -846,6 +877,8 @@ void tst_secretsrequests::encryptedStorageCollection()
     QSignalSpy dcrss(&dcr, &DeleteCollectionRequest::statusChanged);
     dcr.setCollectionName(QLatin1String("testencryptedcollection"));
     QCOMPARE(dcr.collectionName(), QLatin1String("testencryptedcollection"));
+    dcr.setStoragePluginName(DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN);
+    QCOMPARE(dcr.storagePluginName(), DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN);
     dcr.setUserInteractionMode(SecretManager::ApplicationInteraction);
     QCOMPARE(dcr.userInteractionMode(), SecretManager::ApplicationInteraction);
     QCOMPARE(dcr.status(), Request::Inactive);
@@ -900,7 +933,8 @@ void tst_secretsrequests::storeUserSecret()
         // store a new secret into the collection, where the secret data is requested from the user.
         Secret testSecret(Secret::Identifier(
                             QLatin1String("testsecretname"),
-                            QLatin1String("testcollection")));
+                            QLatin1String("testcollection"),
+                            DEFAULT_TEST_STORAGE_PLUGIN));
         testSecret.setType(Secret::TypeBlob);
         testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
         testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
@@ -982,6 +1016,8 @@ void tst_secretsrequests::storeUserSecret()
         QSignalSpy dcrss(&dcr, &DeleteCollectionRequest::statusChanged);
         dcr.setCollectionName(QLatin1String("testcollection"));
         QCOMPARE(dcr.collectionName(), QLatin1String("testcollection"));
+        dcr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
+        QCOMPARE(dcr.storagePluginName(), DEFAULT_TEST_STORAGE_PLUGIN);
         dcr.setUserInteractionMode(SecretManager::ApplicationInteraction);
         QCOMPARE(dcr.userInteractionMode(), SecretManager::ApplicationInteraction);
         QCOMPARE(dcr.status(), Request::Inactive);
@@ -998,7 +1034,10 @@ void tst_secretsrequests::storeUserSecret()
     {
         // now a standalone device-locked secret.
         // write the secret
-        Secret testSecret(Secret::Identifier("testsecretname"));
+        Secret testSecret(Secret::Identifier(
+                QStringLiteral("testsecretname"),
+                QString(),
+                DEFAULT_TEST_STORAGE_PLUGIN));
         testSecret.setType(Secret::TypeBlob);
         testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
         testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
@@ -1018,8 +1057,6 @@ void tst_secretsrequests::storeUserSecret()
         QCOMPARE(ssr.deviceLockUnlockSemantic(), SecretManager::DeviceLockKeepUnlocked);
         ssr.setAccessControlMode(SecretManager::OwnerOnlyMode);
         QCOMPARE(ssr.accessControlMode(), SecretManager::OwnerOnlyMode);
-        ssr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
-        QCOMPARE(ssr.storagePluginName(), DEFAULT_TEST_STORAGE_PLUGIN);
         ssr.setEncryptionPluginName(DEFAULT_TEST_ENCRYPTION_PLUGIN);
         QCOMPARE(ssr.encryptionPluginName(), DEFAULT_TEST_ENCRYPTION_PLUGIN);
         ssr.setUserInteractionMode(SecretManager::ApplicationInteraction);
@@ -1119,7 +1156,8 @@ void tst_secretsrequests::storeUserSecret()
         Secret testSecret(
                     Secret::Identifier(
                         QLatin1String("testsecretname"),
-                        QLatin1String("testcollection")));
+                        QLatin1String("testcollection"),
+                        DEFAULT_TEST_STORAGE_PLUGIN));
         testSecret.setData("testsecretvalue");
         testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
         testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
@@ -1201,6 +1239,8 @@ void tst_secretsrequests::storeUserSecret()
         QSignalSpy dcrss(&dcr, &DeleteCollectionRequest::statusChanged);
         dcr.setCollectionName(QLatin1String("testcollection"));
         QCOMPARE(dcr.collectionName(), QLatin1String("testcollection"));
+        dcr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
+        QCOMPARE(dcr.storagePluginName(), DEFAULT_TEST_STORAGE_PLUGIN);
         dcr.setUserInteractionMode(SecretManager::ApplicationInteraction);
         QCOMPARE(dcr.userInteractionMode(), SecretManager::ApplicationInteraction);
         QCOMPARE(dcr.status(), Request::Inactive);
@@ -1216,7 +1256,10 @@ void tst_secretsrequests::storeUserSecret()
 
     {
         // now a standalone custom-locked secret.
-        Secret testSecret(Secret::Identifier(QLatin1String("testsecretname")));
+        Secret testSecret(Secret::Identifier(
+                QLatin1String("testsecretname"),
+                QString(),
+                DEFAULT_TEST_STORAGE_PLUGIN));
         testSecret.setType(Secret::TypeBlob);
         testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
         testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
@@ -1237,8 +1280,6 @@ void tst_secretsrequests::storeUserSecret()
         QCOMPARE(ssr.customLockUnlockSemantic(), SecretManager::CustomLockKeepUnlocked);
         ssr.setAccessControlMode(SecretManager::OwnerOnlyMode);
         QCOMPARE(ssr.accessControlMode(), SecretManager::OwnerOnlyMode);
-        ssr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
-        QCOMPARE(ssr.storagePluginName(), DEFAULT_TEST_STORAGE_PLUGIN);
         ssr.setEncryptionPluginName(DEFAULT_TEST_ENCRYPTION_PLUGIN);
         QCOMPARE(ssr.encryptionPluginName(), DEFAULT_TEST_ENCRYPTION_PLUGIN);
         ssr.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
@@ -1348,10 +1389,12 @@ void tst_secretsrequests::accessControl()
 
     Secret unreadableSecret(Secret::Identifier(
                 QLatin1String("unreadablesecret"),
-                QLatin1String("owneronlycollection")));
+                QLatin1String("owneronlycollection"),
+                DEFAULT_TEST_STORAGE_PLUGIN));
     Secret readableSecret(Secret::Identifier(
                 QLatin1String("readablesecret"),
-                QLatin1String("noaccesscontrolcollection")));
+                QLatin1String("noaccesscontrolcollection"),
+                DEFAULT_TEST_STORAGE_PLUGIN));
 
     // attempt to read a secret in an owner-only collection created by another process.
     // this should fail.
@@ -1381,7 +1424,8 @@ void tst_secretsrequests::accessControl()
     // this should fail.
     Secret failsecret(Secret::Identifier(
                 QLatin1String("failsecret"),
-                QLatin1String("owneronlycollection")));
+                QLatin1String("owneronlycollection"),
+                DEFAULT_TEST_STORAGE_PLUGIN));
     failsecret.setData("failsecretvalue");
     failsecret.setType(Secret::TypeBlob);
     failsecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
@@ -1430,7 +1474,8 @@ void tst_secretsrequests::accessControl()
     // this should succeed.
     Secret succeedsecret(Secret::Identifier(
                 QLatin1String("succeedsecret"),
-                QLatin1String("noaccesscontrolcollection")));
+                QLatin1String("noaccesscontrolcollection"),
+                DEFAULT_TEST_STORAGE_PLUGIN));
     succeedsecret.setData("succeedsecretvalue");
     succeedsecret.setType(Secret::TypeBlob);
     succeedsecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
@@ -1488,7 +1533,8 @@ void tst_secretsrequests::lockCode()
     // store a new secret into the collection
     Secret testSecret(Secret::Identifier(
                         QLatin1String("testsecretname"),
-                        QLatin1String("testcollection")));
+                        QLatin1String("testcollection"),
+                        DEFAULT_TEST_STORAGE_PLUGIN));
     testSecret.setData("testsecretvalue");
     testSecret.setType(Secret::TypeBlob);
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
@@ -1544,7 +1590,8 @@ void tst_secretsrequests::lockCode()
     // and store a secret into the encrypted-storage collection
     Secret estestSecret(Secret::Identifier(
                         QLatin1String("estestsecretname"),
-                        QLatin1String("estestcollection")));
+                        QLatin1String("estestcollection"),
+                        DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN));
     estestSecret.setData("estestsecretvalue");
     estestSecret.setType(Secret::TypeBlob);
     estestSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
@@ -1569,8 +1616,8 @@ void tst_secretsrequests::lockCode()
     QSignalSpy lcrss(&lcr, &LockCodeRequest::statusChanged);
     lcr.setLockCodeRequestType(LockCodeRequest::ModifyLockCode);
     QCOMPARE(lcr.lockCodeRequestType(), LockCodeRequest::ModifyLockCode);
-    lcr.setLockCodeTargetType(LockCodeRequest::BookkeepingDatabase);
-    QCOMPARE(lcr.lockCodeTargetType(), LockCodeRequest::BookkeepingDatabase);
+    lcr.setLockCodeTargetType(LockCodeRequest::MetadataDatabase);
+    QCOMPARE(lcr.lockCodeTargetType(), LockCodeRequest::MetadataDatabase);
     lcr.setUserInteractionMode(SecretManager::ApplicationInteraction);
     QCOMPARE(lcr.userInteractionMode(), SecretManager::ApplicationInteraction);
     InteractionParameters uiParams;
@@ -1625,6 +1672,7 @@ void tst_secretsrequests::lockCode()
 
     // Now provide the lock code again to unlock the service.
     lcr.setLockCodeRequestType(LockCodeRequest::ProvideLockCode);
+    uiParams.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
     lcr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
     QCOMPARE(lcr.status(), Request::Finished);
@@ -1647,6 +1695,7 @@ void tst_secretsrequests::lockCode()
 
     // Set the lock code back.
     lcr.setLockCodeRequestType(LockCodeRequest::ModifyLockCode);
+    uiParams.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
     lcr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
     QCOMPARE(lcr.status(), Request::Finished);
@@ -1697,6 +1746,8 @@ void tst_secretsrequests::lockCode()
     QSignalSpy dcrss(&dcr, &DeleteCollectionRequest::statusChanged);
     dcr.setCollectionName(QLatin1String("testcollection"));
     QCOMPARE(dcr.collectionName(), QLatin1String("testcollection"));
+    dcr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
+    QCOMPARE(dcr.storagePluginName(), DEFAULT_TEST_STORAGE_PLUGIN);
     dcr.setUserInteractionMode(SecretManager::ApplicationInteraction);
     QCOMPARE(dcr.userInteractionMode(), SecretManager::ApplicationInteraction);
     QCOMPARE(dcr.status(), Request::Inactive);
@@ -1710,6 +1761,7 @@ void tst_secretsrequests::lockCode()
     QCOMPARE(dcr.result().code(), Result::Succeeded);
 
     dcr.setCollectionName(QLatin1String("estestcollection"));
+    dcr.setStoragePluginName(DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN);
     dcr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
     QCOMPARE(dcr.status(), Request::Finished);
@@ -1721,21 +1773,23 @@ void tst_secretsrequests::lockCode()
     lcr.setLockCodeTargetType(LockCodeRequest::ExtensionPlugin);
     lcr.setLockCodeTarget(DEFAULT_TEST_STORAGE_PLUGIN);
     lcr.setInteractionParameters(uiParams);
+    uiParams.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
     lcr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
     QCOMPARE(lcr.status(), Request::Finished);
     QCOMPARE(lcr.result().code(), Result::Failed);
-    QCOMPARE(lcr.result().errorMessage(), QStringLiteral("Storage plugin %1 does not support locking")
+    QCOMPARE(lcr.result().errorMessage(), QStringLiteral("storage plugin %1 does not support locking")
                                                     .arg(DEFAULT_TEST_STORAGE_PLUGIN));
 
     uiParams.setPromptText(QLatin1String("Provide the lock code for the storage plugin"));
     lcr.setLockCodeRequestType(LockCodeRequest::ProvideLockCode);
     lcr.setInteractionParameters(uiParams);
+    uiParams.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
     lcr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
     QCOMPARE(lcr.status(), Request::Finished);
     QCOMPARE(lcr.result().code(), Result::Failed);
-    QCOMPARE(lcr.result().errorMessage(), QStringLiteral("Storage plugin %1 does not support locking")
+    QCOMPARE(lcr.result().errorMessage(), QStringLiteral("storage plugin %1 does not support locking")
                                                     .arg(DEFAULT_TEST_STORAGE_PLUGIN));
 
     lcr.setLockCodeRequestType(LockCodeRequest::ForgetLockCode);
@@ -1743,8 +1797,95 @@ void tst_secretsrequests::lockCode()
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
     QCOMPARE(lcr.status(), Request::Finished);
     QCOMPARE(lcr.result().code(), Result::Failed);
-    QCOMPARE(lcr.result().errorMessage(), QStringLiteral("Storage plugin %1 does not support locking")
+    QCOMPARE(lcr.result().errorMessage(), QStringLiteral("storage plugin %1 does not support locking")
                                                     .arg(DEFAULT_TEST_STORAGE_PLUGIN));
+}
+
+void tst_secretsrequests::pluginThreading()
+{
+    // This test is meant to be run manually and
+    // concurrently with tst_cryptorequests::pluginThreading().
+    // It performs a series of simple secrets requests which
+    // will use the OpenSSL secrets encryption plugin to encrypt
+    // and decrypt data in the Secrets Plugins Thread.
+    // The tst_cryptorequests::pluginThreading() will concurrently
+    // be using the OpenSSL crypto plugin to encrypt and decrypt
+    // data in the Crypto Plugins Thread.
+    // If the appropriate locking and multithreading has not been
+    // implemented, we expect the daemon to crash, or to produce
+    // incorrect data.
+
+    CreateCollectionRequest ccr;
+    ccr.setManager(&sm);
+    ccr.setCollectionLockType(CreateCollectionRequest::DeviceLock);
+    ccr.setCollectionName(QLatin1String("testthreadscollection"));
+    ccr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
+    ccr.setEncryptionPluginName(DEFAULT_TEST_ENCRYPTION_PLUGIN);
+    ccr.setDeviceLockUnlockSemantic(SecretManager::DeviceLockKeepUnlocked);
+    ccr.setAccessControlMode(SecretManager::OwnerOnlyMode);
+    ccr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ccr);
+    QCOMPARE(ccr.status(), Request::Finished);
+    QCOMPARE(ccr.result().code(), Result::Succeeded);
+
+    QElapsedTimer et;
+    et.start();
+    while (et.elapsed() < 15000) {
+        Secret testSecret(Secret::Identifier(
+                            QLatin1String("testsecretname"),
+                            QLatin1String("testthreadscollection"),
+                            DEFAULT_TEST_STORAGE_PLUGIN));
+        testSecret.setData("testsecretvalue");
+        testSecret.setType(Secret::TypeBlob);
+        testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
+        testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
+
+        // store a new secret into the collection
+        StoreSecretRequest ssr;
+        ssr.setManager(&sm);
+        ssr.setSecretStorageType(StoreSecretRequest::CollectionSecret);
+        ssr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+        ssr.setSecret(testSecret);
+        ssr.startRequest();
+        WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ssr);
+        QCOMPARE(ssr.status(), Request::Finished);
+        QCOMPARE(ssr.result().code(), Result::Succeeded);
+
+        // retrieve the secret, ensure it matches
+        StoredSecretRequest gsr;
+        gsr.setManager(&sm);
+        gsr.setIdentifier(testSecret.identifier());
+        gsr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+        gsr.startRequest();
+        WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gsr);
+        QCOMPARE(gsr.status(), Request::Finished);
+        QCOMPARE(gsr.result().code(), Result::Succeeded);
+        QCOMPARE(gsr.secret().data(), testSecret.data());
+        QCOMPARE(gsr.secret().type(), testSecret.type());
+        QCOMPARE(gsr.secret().filterData(), testSecret.filterData());
+        QCOMPARE(gsr.secret().name(), testSecret.name());
+        QCOMPARE(gsr.secret().collectionName(), testSecret.collectionName());
+
+        // delete the secret
+        DeleteSecretRequest dsr;
+        dsr.setManager(&sm);
+        dsr.setIdentifier(testSecret.identifier());
+        dsr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+        dsr.startRequest();
+        WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dsr);
+        QCOMPARE(dsr.status(), Request::Finished);
+        QCOMPARE(dsr.result().code(), Result::Succeeded);
+    }
+
+    DeleteCollectionRequest dcr;
+    dcr.setManager(&sm);
+    dcr.setCollectionName(QLatin1String("testthreadscollection"));
+    dcr.setStoragePluginName(DEFAULT_TEST_STORAGE_PLUGIN);
+    dcr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+    dcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
+    QCOMPARE(dcr.status(), Request::Finished);
+    QCOMPARE(dcr.result().code(), Result::Succeeded);
 }
 
 #include "tst_secretsrequests.moc"

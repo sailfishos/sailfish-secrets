@@ -10,6 +10,9 @@
 
 #include <QtCore/QString>
 
+#include "Secrets/result.h"
+#include "Crypto/result.h"
+
 namespace Sailfish {
 
 namespace Secrets {
@@ -18,7 +21,7 @@ namespace Daemon {
 
 namespace Util {
 
-QString generateHashedSecretName(const QString &collectionName, const QString &secretName);
+Sailfish::Crypto::Result transformSecretsResult(const Sailfish::Secrets::Result &result);
 
 } // namespace Util
 

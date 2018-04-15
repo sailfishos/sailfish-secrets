@@ -13,8 +13,8 @@
 #include <QtCore/QMap>
 #include <QtCore/QLoggingCategory>
 
-#include "Secrets/extensionplugins.h"
-#include "Crypto/extensionplugins.h"
+#include "SecretsPluginApi/extensionplugins.h"
+#include "CryptoPluginApi/extensionplugins.h"
 
 namespace Sailfish {
 

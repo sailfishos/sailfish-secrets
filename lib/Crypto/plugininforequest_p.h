@@ -30,8 +30,9 @@ public:
     explicit PluginInfoRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
-    QVector<Sailfish::Crypto::CryptoPluginInfo> m_cryptoPlugins;
-    QStringList m_storagePlugins;
+    QVariantMap m_customParameters;
+    QVector<Sailfish::Crypto::PluginInfo> m_cryptoPlugins;
+    QVector<Sailfish::Crypto::PluginInfo> m_storagePlugins;
 
     QScopedPointer<QDBusPendingCallWatcher> m_watcher;
     Sailfish::Crypto::Request::Status m_status;

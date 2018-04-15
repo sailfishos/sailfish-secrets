@@ -6,8 +6,15 @@
  */
 
 #include "evp_p.h"
+
 #include <openssl/ec.h>
 #include <openssl/pem.h>
+#include <openssl/crypto.h>
+
+#include <QtCore/QMutex>
+#include <QtCore/QVector>
+#include <QtCore/QThread>
+#include <QtCore/QHash>
 
 #define OSSLEVP_PRINT_ERR(message) \
     fprintf(stderr, "%s#%d, %s: %s\n", __FILE__, __LINE__, __FUNCTION__, message);
@@ -20,13 +27,52 @@
         goto labelname;              \
     }
 
+// Below code is for the old threading API before OpenSSL 1.1
+// explanation: https://www.openssl.org/blog/blog/2017/02/21/threads/
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+
+static QVector<QMutex*> s_mutexes;
+
+extern "C" {
+
+static void qthreads_locking_callback(int mode, int type, const char * /* file */, int /* line */)
+{
+    if (mode & CRYPTO_LOCK) {
+        QMutex *mutex = s_mutexes.value(type);
+        if (mutex) {
+            mutex->lock();
+        } else {
+            fprintf(stderr, "OpenSslEvp: locking callback: no mutex for type %i\n", type);
+        }
+    } else {
+        QMutex *mutex = s_mutexes.value(type);
+        if (mutex) {
+            mutex->unlock();
+        } else {
+            fprintf(stderr, "OpenSslEvp: unlocking callback: no mutex for type %i\n", type);
+        }
+    }
+}
+
+static unsigned long qthreads_thread_id()
+{
+    QThread *thread = QThread::currentThread();
+    unsigned long retn = qHash(thread);
+    return retn;
+}
+
+} /* extern "C" */
+
+
+#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
+
 /*
-    int osslevp_init()
+    int OpenSslEvp::init()
 
     Initializes the OpenSSL engine for encryption and decryption.
     Returns 1 on success, 0 on failure.
  */
-int osslevp_init()
+int OpenSslEvp::init()
 {
     static int initialized;
     if (initialized < 1) {
@@ -40,30 +86,53 @@ int osslevp_init()
         OPENSSL_config(NULL);
 #pragma GCC diagnostic pop
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+        while (s_mutexes.size() < CRYPTO_num_locks()) {
+            s_mutexes.append(new QMutex);
+        }
+        CRYPTO_set_id_callback(qthreads_thread_id);
+        CRYPTO_set_locking_callback(qthreads_locking_callback);
+#endif
+
         initialized += 1;
     }
     return initialized;
 }
 
 /*
-    int osslevp_pkcs5_pbkdf2_hmac(const char *pass,
-                                  int passlen,
-                                  const unsigned char *salt,
-                                  int saltlen,
-                                  int iter,
-                                  int digestFunction,
-                                  int keylen,
-                                  unsigned char *out)
+    void OpenSslEvp::cleanup()
+
+    Cleans up memory which was allocated during initialisation.
+ */
+void OpenSslEvp::cleanup()
+{
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+    CRYPTO_set_id_callback(NULL);
+    CRYPTO_set_locking_callback(NULL);
+    qDeleteAll(s_mutexes);
+    s_mutexes.clear();
+#endif
+}
+
+/*
+    int OpenSslEvp::pkcs5_pbkdf2_hmac(const char *pass,
+                                      int passlen,
+                                      const unsigned char *salt,
+                                      int saltlen,
+                                      int iter,
+                                      int digestFunction,
+                                      int keylen,
+                                      unsigned char *out)
 
     Derive a key from input data via PKCS5_PBKDF2 key derivation
     using HMAC with a digest function specified by the client.
 
     Returns 1 on success, 0 on failure.
  */
-int osslevp_pkcs5_pbkdf2_hmac(const char *pass, int passlen,
-                              const unsigned char *salt, int saltlen,
-                              int iter, int digestFunction,
-                              int keylen, unsigned char *out)
+int OpenSslEvp::pkcs5_pbkdf2_hmac(const char *pass, int passlen,
+                                  const unsigned char *salt, int saltlen,
+                                  int iter, int digestFunction,
+                                  int keylen, unsigned char *out)
 {
     const EVP_MD *md = 0;
 
@@ -80,13 +149,13 @@ int osslevp_pkcs5_pbkdf2_hmac(const char *pass, int passlen,
 }
 
 /*
-    int osslevp_aes_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
-                                      const unsigned char *init_vector,
-                                      const unsigned char *key,
-                                      int key_length,
-                                      const unsigned char *plaintext,
-                                      int plaintext_length,
-                                      unsigned char **encrypted)
+    int OpenSslEvp::aes_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
+                                          const unsigned char *init_vector,
+                                          const unsigned char *key,
+                                          int key_length,
+                                          const unsigned char *plaintext,
+                                          int plaintext_length,
+                                          unsigned char **encrypted)
 
     Encrypts the \a plaintext of the specified \a plaintext_length with the
     given symmetric encryption \a key, using the specified cipher. The result
@@ -99,13 +168,13 @@ int osslevp_pkcs5_pbkdf2_hmac(const char *pass, int passlen,
     Returns the length of the \a encrypted output on success, or -1 if the
     arguments are invalid or encryption otherwise fails.
 */
-int osslevp_aes_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
-                                  const unsigned char *init_vector,
-                                  const unsigned char *key,
-                                  int key_length,
-                                  const unsigned char *plaintext,
-                                  int plaintext_length,
-                                  unsigned char **encrypted)
+int OpenSslEvp::aes_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
+                                      const unsigned char *init_vector,
+                                      const unsigned char *key,
+                                      int key_length,
+                                      const unsigned char *plaintext,
+                                      int plaintext_length,
+                                      unsigned char **encrypted)
 {
     int ciphertext_length = plaintext_length + AES_BLOCK_SIZE;
     int update_length = 0;
@@ -161,13 +230,13 @@ int osslevp_aes_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
 }
 
 /*
-    int osslevp_aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
-                                       const unsigned char *init_vector,
-                                       const unsigned char *key,
-                                       int key_length,
-                                       const unsigned char *ciphertext,
-                                       int ciphertext_length,
-                                       unsigned char **decrypted)
+    int OpenSslEvp::aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
+                                           const unsigned char *init_vector,
+                                           const unsigned char *key,
+                                           int key_length,
+                                           const unsigned char *ciphertext,
+                                           int ciphertext_length,
+                                           unsigned char **decrypted)
 
     Decrypts the \a ciphertext of the specified \a ciphertext_length with the
     given symmetric decryption \a key, using the specified \a evp_cipher. The
@@ -180,13 +249,13 @@ int osslevp_aes_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
     Returns the length of the \a decrypted output on success, or -1 if the
     arguments are invalid or decryption otherwise fails.
 */
-int osslevp_aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
-                                   const unsigned char *init_vector,
-                                   const unsigned char *key,
-                                   int key_length,
-                                   const unsigned char *ciphertext,
-                                   int ciphertext_length,
-                                   unsigned char **decrypted)
+int OpenSslEvp::aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
+                                       const unsigned char *init_vector,
+                                       const unsigned char *key,
+                                       int key_length,
+                                       const unsigned char *ciphertext,
+                                       int ciphertext_length,
+                                       unsigned char **decrypted)
 {
     int plaintext_length = 0;
     int update_length = 0;
@@ -198,7 +267,7 @@ int osslevp_aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
         /* Invalid arguments */
         fprintf(stderr,
                 "%s: %s\n",
-                "osslevp_aes_decrypt_ciphertext()",
+                "OpenSslEvp::aes_decrypt_ciphertext()",
                 "invalid arguments, aborting decryption");
         return -1;
     }
@@ -216,7 +285,7 @@ int osslevp_aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
         free(plaintext);
         fprintf(stderr,
                 "%s: %s\n",
-                "osslevp_aes_decrypt_ciphertext()",
+                "OpenSslEvp::aes_decrypt_ciphertext()",
                 "failed to initialize decryption context");
         return -1;
     }
@@ -228,7 +297,7 @@ int osslevp_aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
         free(plaintext);
         fprintf(stderr,
                 "%s: %s\n",
-                "osslevp_aes_decrypt_ciphertext()",
+                "OpenSslEvp::aes_decrypt_ciphertext()",
                 "failed to update plaintext buffer with decrypted content");
         return -1;
     }
@@ -239,7 +308,7 @@ int osslevp_aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
         free(plaintext);
         fprintf(stderr,
                 "%s: %s\n",
-                "osslevp_aes_decrypt_ciphertext()",
+                "OpenSslEvp::aes_decrypt_ciphertext()",
                 "failed to decrypt final block: key failure");
         return -1;
     }
@@ -253,17 +322,17 @@ int osslevp_aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
     return plaintext_length;
 }
 
-int osslevp_aes_auth_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
-                                       const unsigned char *init_vector,
-                                       const unsigned char *key,
-                                       int key_length,
-                                       const unsigned char *auth,
-                                       int auth_length,
-                                       const unsigned char *plaintext,
-                                       int plaintext_length,
-                                       unsigned char **encrypted,
-                                       unsigned char **tag,
-                                       int tag_length)
+int OpenSslEvp::aes_auth_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
+                                           const unsigned char *init_vector,
+                                           const unsigned char *key,
+                                           int key_length,
+                                           const unsigned char *auth,
+                                           int auth_length,
+                                           const unsigned char *plaintext,
+                                           int plaintext_length,
+                                           unsigned char **encrypted,
+                                           unsigned char **tag,
+                                           int tag_length)
 {
     int ciphertext_length = plaintext_length + AES_BLOCK_SIZE;
     int update_length = 0;
@@ -349,18 +418,18 @@ int osslevp_aes_auth_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
     return ciphertext_length;
 }
 
-int osslevp_aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
-                                        const unsigned char *init_vector,
-                                        const unsigned char *key,
-                                        int key_length,
-                                        const unsigned char *auth,
-                                        int auth_length,
-                                        unsigned char *tag,
-                                        int tag_length,
-                                        const unsigned char *ciphertext,
-                                        int ciphertext_length,
-                                        unsigned char **decrypted,
-                                        int *verified)
+int OpenSslEvp::aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
+                                            const unsigned char *init_vector,
+                                            const unsigned char *key,
+                                            int key_length,
+                                            const unsigned char *auth,
+                                            int auth_length,
+                                            unsigned char *tag,
+                                            int tag_length,
+                                            const unsigned char *ciphertext,
+                                            int ciphertext_length,
+                                            unsigned char **decrypted,
+                                            int *verified)
 {
     int plaintext_length = 0;
     int update_length = 0;
@@ -373,7 +442,7 @@ int osslevp_aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
         /* Invalid arguments */
         fprintf(stderr,
                 "%s: %s\n",
-                "osslevp_aes_auth_decrypt_ciphertext()",
+                "OpenSslEvp::aes_auth_decrypt_ciphertext()",
                 "invalid arguments, aborting decryption");
         return -1;
     }
@@ -392,7 +461,7 @@ int osslevp_aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
         free(plaintext);
         fprintf(stderr,
                 "%s: %s\n",
-                "osslevp_aes_decrypt_ciphertext()",
+                "OpenSslEvp::aes_decrypt_ciphertext()",
                 "failed to initialize decryption context");
         return -1;
     }
@@ -404,7 +473,7 @@ int osslevp_aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
         free(plaintext);
         fprintf(stderr,
                 "%s: %s\n",
-                "osslevp_aes_decrypt_ciphertext()",
+                "OpenSslEvp::aes_decrypt_ciphertext()",
                 "failed to set authentication data");
         return -1;
     }
@@ -416,7 +485,7 @@ int osslevp_aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
         free(plaintext);
         fprintf(stderr,
                 "%s: %s\n",
-                "osslevp_aes_decrypt_ciphertext()",
+                "OpenSslEvp::aes_decrypt_ciphertext()",
                 "failed to update plaintext buffer with decrypted content");
         return -1;
     }
@@ -428,7 +497,7 @@ int osslevp_aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
         free(plaintext);
         fprintf(stderr,
                 "%s: %s\n",
-                "osslevp_aes_decrypt_ciphertext()",
+                "OpenSslEvp::aes_decrypt_ciphertext()",
                 "failed to set expected tag value");
         return -1;
     }
@@ -445,7 +514,7 @@ int osslevp_aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
 }
 
 /*
-    int osslevp_pkey_encrypt_plaintext(EVP_PKEY *pkey,
+    int OpenSslEvp::pkey_encrypt_plaintext(EVP_PKEY *pkey,
                                        int padding,
                                        const unsigned char *plaintext,
                                        size_t plaintext_length,
@@ -469,7 +538,7 @@ int osslevp_aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
     * 1 when the operation was successful
     * less than 0 when there was an error
  */
-int osslevp_pkey_encrypt_plaintext(EVP_PKEY *pkey,
+int OpenSslEvp::pkey_encrypt_plaintext(EVP_PKEY *pkey,
                                    int padding,
                                    const uint8_t *plaintext,
                                    size_t plaintext_length,
@@ -484,7 +553,7 @@ int osslevp_pkey_encrypt_plaintext(EVP_PKEY *pkey,
     r = EVP_PKEY_encrypt_init(pkctx);
     OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialize EVP_PKEY_CTX for encryption", err_free_pkctx);
 
-    if (osslevp_key_is_rsa(pkey)) {
+    if (OpenSslEvp::key_is_rsa(pkey)) {
         r = EVP_PKEY_CTX_set_rsa_padding(pkctx, padding);
         OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to set RSA padding", err_free_pkctx);
     }
@@ -492,7 +561,7 @@ int osslevp_pkey_encrypt_plaintext(EVP_PKEY *pkey,
     r = EVP_PKEY_encrypt(pkctx, NULL, encrypted_length, plaintext, plaintext_length);
     OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to calculate PKEY encrypted size", err_free_pkctx);
 
-    *encrypted = OPENSSL_malloc(*encrypted_length);
+    *encrypted = static_cast<uint8_t*>(OPENSSL_malloc(*encrypted_length));
     OSSLEVP_HANDLE_ERR(*encrypted == NULL, r = -1, "failed to allocate memory for encrypted data", err_free_pkctx);
 
     r = EVP_PKEY_encrypt(pkctx, *encrypted, encrypted_length, plaintext, plaintext_length);
@@ -511,7 +580,7 @@ int osslevp_pkey_encrypt_plaintext(EVP_PKEY *pkey,
 }
 
 /*
-    int osslevp_pkey_decrypt_ciphertext(EVP_PKEY *pkey,
+    int OpenSslEvp::pkey_decrypt_ciphertext(EVP_PKEY *pkey,
                                         int padding,
                                         const unsigned char *ciphertext,
                                         size_t ciphertext_length,
@@ -534,7 +603,7 @@ int osslevp_pkey_encrypt_plaintext(EVP_PKEY *pkey,
     * 1 when the operation was successful
     * less than 0 when there was an error
 */
-int osslevp_pkey_decrypt_ciphertext(EVP_PKEY *pkey,
+int OpenSslEvp::pkey_decrypt_ciphertext(EVP_PKEY *pkey,
                                     int padding,
                                     const unsigned char *ciphertext,
                                     size_t ciphertext_length,
@@ -549,7 +618,7 @@ int osslevp_pkey_decrypt_ciphertext(EVP_PKEY *pkey,
     r = EVP_PKEY_decrypt_init(pkctx);
     OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialize EVP_PKEY_CTX for decryption", err_free_pkctx);
 
-    if (osslevp_key_is_rsa(pkey)) {
+    if (OpenSslEvp::key_is_rsa(pkey)) {
         r = EVP_PKEY_CTX_set_rsa_padding(pkctx, padding);
         OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to set RSA padding", err_free_pkctx);
     }
@@ -576,11 +645,11 @@ int osslevp_pkey_decrypt_ciphertext(EVP_PKEY *pkey,
 }
 
 /*
-    int osslevp_digest(const EVP_MD *digestFunc,
-                       const void *bytes,
-                       size_t bytesCount,
-                       uint8_t **digest,
-                       size_t *digestLength)
+    int OpenSslEvp::digest(const EVP_MD *digestFunc,
+                           const void *bytes,
+                           size_t bytesCount,
+                           uint8_t **digest,
+                           size_t *digestLength)
 
     Implements digests according to:
     https://wiki.openssl.org/index.php/EVP_Message_Digests
@@ -596,13 +665,14 @@ int osslevp_pkey_decrypt_ciphertext(EVP_PKEY *pkey,
     * 1 when the operation was successful.
     * less than 0 when there was an error.
  */
-int osslevp_digest(const EVP_MD *digestFunc,
-                   const void *bytes,
-                   size_t bytesCount,
-                   uint8_t **digest,
-                   size_t *digestLength)
+int OpenSslEvp::digest(const EVP_MD *digestFunc,
+                       const void *bytes,
+                       size_t bytesCount,
+                       uint8_t **digest,
+                       size_t *digestLength)
 {
     int r = -1;
+    unsigned int actualDigestLength = 0;
     EVP_MD_CTX *mdctx = EVP_MD_CTX_create();
     OSSLEVP_HANDLE_ERR(mdctx == NULL, r = -1, "failed to allocate memory for MD context", err_dontfree);
 
@@ -616,7 +686,6 @@ int osslevp_digest(const EVP_MD *digestFunc,
     *digest = (uint8_t *) OPENSSL_malloc(*digestLength);
     OSSLEVP_HANDLE_ERR(*digest == NULL, r = -1, "failed to allocate memory for digest", err_free_mdctx);
 
-    unsigned int actualDigestLength = 0;
     r = EVP_DigestFinal_ex(mdctx, *digest, &actualDigestLength);
     OSSLEVP_HANDLE_ERR(r != 1, r = -1; OPENSSL_free(*digest), "failed to finalize Digest", err_free_mdctx);
 
@@ -630,12 +699,12 @@ int osslevp_digest(const EVP_MD *digestFunc,
 }
 
 /*
-    int osslevp_sign(const EVP_MD *digestFunc,
-                     EVP_PKEY *pkey,
-                     const void *bytes,
-                     size_t bytesCount,
-                     uint8_t **signature,
-                     size_t *signatureLength)
+    int OpenSslEvp::sign(const EVP_MD *digestFunc,
+                         EVP_PKEY *pkey,
+                         const void *bytes,
+                         size_t bytesCount,
+                         uint8_t **signature,
+                         size_t *signatureLength)
 
     Implements signing according to:
     https://wiki.openssl.org/index.php/EVP_Signing_and_Verifying
@@ -652,12 +721,12 @@ int osslevp_digest(const EVP_MD *digestFunc,
     * 1 when the operation was successful.
     * less than 0 when there was an error.
  */
-int osslevp_sign(const EVP_MD *digestFunc,
-                 EVP_PKEY *pkey,
-                 const void *bytes,
-                 size_t bytesCount,
-                 uint8_t **signature,
-                 size_t *signatureLength)
+int OpenSslEvp::sign(const EVP_MD *digestFunc,
+                     EVP_PKEY *pkey,
+                     const void *bytes,
+                     size_t bytesCount,
+                     uint8_t **signature,
+                     size_t *signatureLength)
 {
     int r = -1;
     EVP_MD_CTX *mdctx = EVP_MD_CTX_create();
@@ -685,12 +754,12 @@ int osslevp_sign(const EVP_MD *digestFunc,
 }
 
 /*
-    int osslevp_verify(const EVP_MD *digestFunc,
-                       EVP_PKEY *pkey,
-                       const void *bytes,
-                       size_t bytesCount,
-                       const uint8_t *signature,
-                       size_t signatureLength)
+    int OpenSslEvp::verify(const EVP_MD *digestFunc,
+                           EVP_PKEY *pkey,
+                           const void *bytes,
+                           size_t bytesCount,
+                           const uint8_t *signature,
+                           size_t signatureLength)
 
     Verifies a signature according to:
     https://wiki.openssl.org/index.php/EVP_Signing_and_Verifying
@@ -708,12 +777,12 @@ int osslevp_sign(const EVP_MD *digestFunc,
     * 0 when the operation was successful but the signature is NOT correct.
     * less than 0 when there was an error and the operation was unsuccessful.
  */
-int osslevp_verify(const EVP_MD *digestFunc,
-                   EVP_PKEY *pkey,
-                   const void *bytes,
-                   size_t bytesCount,
-                   const uint8_t *signature,
-                   size_t signatureLength)
+int OpenSslEvp::verify(const EVP_MD *digestFunc,
+                       EVP_PKEY *pkey,
+                       const void *bytes,
+                       size_t bytesCount,
+                       const uint8_t *signature,
+                       size_t signatureLength)
 {
     int r = -1;
     EVP_MD_CTX *mdctx = EVP_MD_CTX_create();
@@ -735,11 +804,11 @@ int osslevp_verify(const EVP_MD *digestFunc,
 }
 
 /*
-    int osslevp_generate_ec_key(int curveNid,
-                                uint8_t **publicKeyBytes,
-                                size_t *publicKeySize,
-                                uint8_t **privateKeyBytes,
-                                size_t *privateKeySize)
+    int OpenSslEvp::generate_ec_key(int curveNid,
+                                    uint8_t **publicKeyBytes,
+                                    size_t *publicKeySize,
+                                    uint8_t **privateKeyBytes,
+                                    size_t *privateKeySize)
 
     Generates an EC key according to:
     https://wiki.openssl.org/index.php/EVP_Key_and_Parameter_Generation
@@ -757,13 +826,22 @@ int osslevp_verify(const EVP_MD *digestFunc,
       -1 indicates general error
       -2 indicates unsupported curve
  */
-int osslevp_generate_ec_key(int curveNid,
-                            uint8_t **publicKeyBytes,
-                            size_t *publicKeySize,
-                            uint8_t **privateKeyBytes,
-                            size_t *privateKeySize)
+int OpenSslEvp::generate_ec_key(int curveNid,
+                                uint8_t **publicKeyBytes,
+                                size_t *publicKeySize,
+                                uint8_t **privateKeyBytes,
+                                size_t *privateKeySize)
 {
     int r = -1;
+    EVP_PKEY *params = NULL;
+    EVP_PKEY_CTX *kctx = NULL;
+    EVP_PKEY *key = NULL;
+    BIO *bioPrivateKey = NULL;
+    BIO *bioPublicKey = NULL;
+    size_t privKeyLength = 0;
+    size_t pubKeyLength = 0;
+    uint8_t *privKeyBuffer = 0;
+    uint8_t *pubKeyBuffer = 0;
     EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL);
     OSSLEVP_HANDLE_ERR(pctx == NULL, r = -1, "failed to allocate memory for key parameter generation context", err_dontfree);
 
@@ -773,38 +851,35 @@ int osslevp_generate_ec_key(int curveNid,
     r = EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pctx, curveNid);
     OSSLEVP_HANDLE_ERR(r != 1, r = -2, "failed to set EC curve NID", err_free_pctx);
 
-    EVP_PKEY *params = NULL;
     r = EVP_PKEY_paramgen(pctx, &params);
     OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to generate key parameters", err_free_pctx);
-
-    EVP_PKEY_CTX *kctx = EVP_PKEY_CTX_new(params, NULL);
+    kctx = EVP_PKEY_CTX_new(params, NULL);
     OSSLEVP_HANDLE_ERR(kctx == NULL, r = -1, "failed to allocate memory for key generation context", err_free_params);
 
     r = EVP_PKEY_keygen_init(kctx);
     OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialise key generation", err_free_kctx);
 
-    EVP_PKEY *key = NULL;
     r = EVP_PKEY_keygen(kctx, &key);
     OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to generate key", err_free_kctx);
 
-    BIO *bioPrivateKey = BIO_new(BIO_s_mem());
+    bioPrivateKey = BIO_new(BIO_s_mem());
     OSSLEVP_HANDLE_ERR(bioPrivateKey == NULL, r = -1, "failed to allocate memory for private key BIO", err_free_key);
 
     r = PEM_write_bio_PrivateKey(bioPrivateKey, key, NULL, NULL, 0, NULL, NULL);
     OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to write private key to BIO in PEM format", err_free_bioPrivateKey);
-    size_t privKeyLength = BIO_get_mem_data(bioPrivateKey, NULL);
+    privKeyLength = BIO_get_mem_data(bioPrivateKey, NULL);
 
-    BIO *bioPublicKey = BIO_new(BIO_s_mem());
+    bioPublicKey = BIO_new(BIO_s_mem());
     OSSLEVP_HANDLE_ERR(bioPublicKey == NULL, r = -1, "failed to allocate memory for public key BIO", err_free_bioPrivateKey);
 
     r = PEM_write_bio_PUBKEY(bioPublicKey, key);
     OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to write public key to BIO in PEM format", err_free_bioPublicKey);
-    size_t pubKeyLength = BIO_get_mem_data(bioPublicKey, NULL);
+    pubKeyLength = BIO_get_mem_data(bioPublicKey, NULL);
 
-    uint8_t *privKeyBuffer = (uint8_t *) OPENSSL_malloc(privKeyLength);
+    privKeyBuffer = (uint8_t *) OPENSSL_malloc(privKeyLength);
     OSSLEVP_HANDLE_ERR(privKeyBuffer == NULL, r = -1, "failed to allocate memory for private key buffer", err_free_bioPublicKey);
 
-    uint8_t *pubKeyBuffer = (uint8_t *) OPENSSL_malloc(pubKeyLength);
+    pubKeyBuffer = (uint8_t *) OPENSSL_malloc(pubKeyLength);
     OSSLEVP_HANDLE_ERR(pubKeyBuffer == NULL, r = -1, "failed to allocate memory for public key buffer", err_free_privKeyBuffer);
 
     r = BIO_read(bioPrivateKey, privKeyBuffer, privKeyLength);
@@ -847,7 +922,7 @@ int osslevp_generate_ec_key(int curveNid,
 }
 
 /*
-    bool osslevp_key_is_rsa(EVP_PKEY *pkey)
+    bool OpenSslEvp::key_is_rsa(EVP_PKEY *pkey)
 
     Tells if a given key is an RSA key or not.
 
@@ -858,7 +933,7 @@ int osslevp_generate_ec_key(int curveNid,
     * true if the given key is an RSA key
     * false otherwise
 */
-bool osslevp_key_is_rsa(EVP_PKEY *pkey)
+bool OpenSslEvp::key_is_rsa(EVP_PKEY *pkey)
 {
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
     RSA *rsa = EVP_PKEY_get0_RSA(pkey);

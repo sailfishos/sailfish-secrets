@@ -14,7 +14,7 @@ HEADERS += \
     tst_evp.h
 
 SOURCES += \
-    $$PWD/../../../plugins/opensslcryptoplugin/evp/evp.c \
+    $$PWD/../../../plugins/opensslcryptoplugin/evp/evp.cpp \
     tst_evp.cpp
 
 INSTALLS += target

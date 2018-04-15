@@ -10,7 +10,7 @@
 
 #include "Crypto/cryptoglobal.h"
 #include "Crypto/request.h"
-#include "Crypto/extensionplugins.h"
+#include "Crypto/plugininfo.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QScopedPointer>
@@ -27,18 +27,21 @@ class PluginInfoRequestPrivate;
 class SAILFISH_CRYPTO_API PluginInfoRequest : public Sailfish::Crypto::Request
 {
     Q_OBJECT
-    Q_PROPERTY(QVector<Sailfish::Crypto::CryptoPluginInfo> cryptoPlugins READ cryptoPlugins NOTIFY cryptoPluginsChanged)
-    Q_PROPERTY(QStringList storagePlugins READ storagePlugins NOTIFY storagePluginsChanged)
+    Q_PROPERTY(QVector<Sailfish::Crypto::PluginInfo> cryptoPlugins READ cryptoPlugins NOTIFY cryptoPluginsChanged)
+    Q_PROPERTY(QVector<Sailfish::Crypto::PluginInfo> storagePlugins READ storagePlugins NOTIFY storagePluginsChanged)
 
 public:
     PluginInfoRequest(QObject *parent = Q_NULLPTR);
     ~PluginInfoRequest();
 
-    QVector<Sailfish::Crypto::CryptoPluginInfo> cryptoPlugins() const;
-    QStringList storagePlugins() const;
+    QVector<Sailfish::Crypto::PluginInfo> cryptoPlugins() const;
+    QVector<Sailfish::Crypto::PluginInfo> storagePlugins() const;
 
     Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result result() const Q_DECL_OVERRIDE;
+
+    QVariantMap customParameters() const Q_DECL_OVERRIDE;
+    void setCustomParameters(const QVariantMap &params) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::CryptoManager *manager() const Q_DECL_OVERRIDE;
     void setManager(Sailfish::Crypto::CryptoManager *manager) Q_DECL_OVERRIDE;

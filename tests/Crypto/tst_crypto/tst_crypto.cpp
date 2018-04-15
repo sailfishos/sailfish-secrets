@@ -7,6 +7,7 @@
 
 #include <QtTest>
 #include <QObject>
+#include <QVariantMap>
 #include <QDBusReply>
 
 #include "Crypto/cryptomanager.h"
@@ -15,7 +16,6 @@
 #include "Crypto/key.h"
 #include "Crypto/keyderivationparameters.h"
 #include "Crypto/result.h"
-#include "Crypto/x509certificate.h"
 
 using namespace Sailfish::Crypto;
 
@@ -42,7 +42,6 @@ private slots:
     void randomData();
     void generateKeyEncryptDecrypt_data();
     void generateKeyEncryptDecrypt();
-    void validateCertificateChain();
 
 private:
     void addCryptoTestData()
@@ -92,11 +91,11 @@ void tst_crypto::cleanup()
 
 void tst_crypto::getPluginInfo()
 {
-    QDBusPendingReply<Result, QVector<CryptoPluginInfo>, QStringList> reply = cm.getPluginInfo();
+    QDBusPendingReply<Result, QVector<PluginInfo>, QVector<PluginInfo>> reply = cm.getPluginInfo();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
     QCOMPARE(reply.argumentAt<0>().code(), Result::Succeeded);
-    QVector<CryptoPluginInfo> cryptoPlugins = reply.argumentAt<1>();
+    QVector<PluginInfo> cryptoPlugins = reply.argumentAt<1>();
     QString cryptoPluginNames;
     for (auto p : cryptoPlugins) {
         cryptoPluginNames.append(p.name());
@@ -111,6 +110,7 @@ void tst_crypto::randomData()
     QDBusPendingReply<Result, QByteArray> reply = cm.generateRandomData(
             2048,
             QLatin1String("default"),
+            QVariantMap(),
             CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
@@ -131,6 +131,7 @@ void tst_crypto::randomData()
             QByteArray("seed"),
             1.0,
             QLatin1String("default"),
+            QVariantMap(),
             CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(seedReply);
     QVERIFY(seedReply.isValid());
@@ -140,6 +141,7 @@ void tst_crypto::randomData()
     reply = cm.generateRandomData(
             2048,
             QLatin1String("default"),
+            QVariantMap(),
             CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
@@ -179,6 +181,7 @@ void tst_crypto::generateKeyEncryptDecrypt()
             keyTemplate,
             KeyPairGenerationParameters(),
             KeyDerivationParameters(),
+            QVariantMap(),
             CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
@@ -197,6 +200,7 @@ void tst_crypto::generateKeyEncryptDecrypt()
             blockMode,
             CryptoManager::EncryptionPaddingNone,
             QByteArray(),
+            QVariantMap(),
             CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(encryptReply);
     QVERIFY(encryptReply.isValid());
@@ -215,6 +219,7 @@ void tst_crypto::generateKeyEncryptDecrypt()
             CryptoManager::EncryptionPaddingNone,
             QByteArray(),
             QByteArray(),
+            QVariantMap(),
             CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(decryptReply);
     QVERIFY(decryptReply.isValid());
@@ -225,22 +230,6 @@ void tst_crypto::generateKeyEncryptDecrypt()
     QVERIFY(!decrypted.isEmpty());
     QCOMPARE(decrypted, plaintext);
     QVERIFY(!verified); // no authentication used in this test
-}
-
-void tst_crypto::validateCertificateChain()
-{
-    // TODO: do this test properly, this currently just tests datatype copy semantics
-    QVector<Certificate> chain;
-    X509Certificate cert;
-    cert.setSignatureValue(QByteArray("testing"));
-    chain << cert;
-
-    QDBusPendingReply<Result, bool> reply = cm.validateCertificateChain(
-            chain,
-            CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"));
-    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
-    QVERIFY(reply.isValid());
-    QCOMPARE(reply.argumentAt<0>().code(), Result::Failed); // plugin doesn't support this operation yet. TODO.
 }
 
 #include "tst_crypto.moc"

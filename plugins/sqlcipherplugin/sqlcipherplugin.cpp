@@ -14,14 +14,11 @@ Q_PLUGIN_METADATA(IID Sailfish_Secrets_EncryptedStoragePlugin_IID)
 
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::SqlCipherPlugin(QObject *parent)
     : QObject(parent)
-    , Sailfish::Secrets::Daemon::Plugins::EncryptedStoragePlugin()
-    , Sailfish::Secrets::Daemon::Plugins::CryptoPlugin()
-    , m_databaseSubdir(QLatin1String("sqlcipherplugin"))
+    , m_databaseSubdir(name())
     , m_databaseDirPath(databaseDirPath(name().endsWith(QStringLiteral(".test"), Qt::CaseInsensitive),
                                         m_databaseSubdir))
     , m_opensslCryptoPlugin(this)
 {
-    init_aes_encryption();
 }
 
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::~SqlCipherPlugin()
@@ -36,7 +33,7 @@ QString Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::databaseDirPath(
     // note: these paths are very dependent upon the implementation of database.cpp
     const QString systemDataDirPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + QLatin1String("/system/"));
     const QString privilegedDataDirPath(systemDataDirPath + QLatin1String("privileged/"));
-    const QString subdir = isTestPlugin
+    const QString subdir = (isTestPlugin && !databaseSubdir.endsWith(QStringLiteral("test"), Qt::CaseInsensitive))
                          ? QString(QLatin1String("Secrets/%1-test/")).arg(databaseSubdir)
                          : QString(QLatin1String("Secrets/%1/")).arg(databaseSubdir);
     return privilegedDataDirPath + subdir;

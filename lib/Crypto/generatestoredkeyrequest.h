@@ -30,7 +30,6 @@ class SAILFISH_CRYPTO_API GenerateStoredKeyRequest : public Sailfish::Crypto::Re
 {
     Q_OBJECT
     Q_PROPERTY(QString cryptoPluginName READ cryptoPluginName WRITE setCryptoPluginName NOTIFY cryptoPluginNameChanged)
-    Q_PROPERTY(QString storagePluginName READ storagePluginName WRITE setStoragePluginName NOTIFY storagePluginNameChanged)
     Q_PROPERTY(Sailfish::Crypto::InteractionParameters interactionParameters READ interactionParameters WRITE setInteractionParameters NOTIFY interactionParametersChanged)
     Q_PROPERTY(Sailfish::Crypto::KeyDerivationParameters keyDerivationParameters READ keyDerivationParameters WRITE setKeyDerivationParameters NOTIFY keyDerivationParametersChanged)
     Q_PROPERTY(Sailfish::Crypto::KeyPairGenerationParameters keyPairGenerationParameters READ keyPairGenerationParameters WRITE setKeyPairGenerationParameters NOTIFY keyPairGenerationParametersChanged)
@@ -43,9 +42,6 @@ public:
 
     QString cryptoPluginName() const;
     void setCryptoPluginName(const QString &pluginName);
-
-    QString storagePluginName() const;
-    void setStoragePluginName(const QString &pluginName);
 
     Sailfish::Crypto::InteractionParameters interactionParameters() const;
     void setInteractionParameters(const Sailfish::Crypto::InteractionParameters &uiParams);
@@ -64,6 +60,9 @@ public:
     Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result result() const Q_DECL_OVERRIDE;
 
+    QVariantMap customParameters() const Q_DECL_OVERRIDE;
+    void setCustomParameters(const QVariantMap &params) Q_DECL_OVERRIDE;
+
     Sailfish::Crypto::CryptoManager *manager() const Q_DECL_OVERRIDE;
     void setManager(Sailfish::Crypto::CryptoManager *manager) Q_DECL_OVERRIDE;
 
@@ -72,7 +71,6 @@ public:
 
 Q_SIGNALS:
     void cryptoPluginNameChanged();
-    void storagePluginNameChanged();
     void interactionParametersChanged();
     void keyDerivationParametersChanged();
     void keyPairGenerationParametersChanged();

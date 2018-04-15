@@ -30,6 +30,7 @@ public:
     explicit VerifyRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
+    QVariantMap m_customParameters;
     QByteArray m_signature;
     QByteArray m_data;
     Sailfish::Crypto::Key m_key;

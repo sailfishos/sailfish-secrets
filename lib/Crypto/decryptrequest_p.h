@@ -30,6 +30,7 @@ public:
     explicit DecryptRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
+    QVariantMap m_customParameters;
     QByteArray m_data;
     QByteArray m_initialisationVector;
     Sailfish::Crypto::Key m_key;

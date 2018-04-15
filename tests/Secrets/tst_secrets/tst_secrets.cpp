@@ -86,6 +86,7 @@ void tst_secrets::devicelockCollection()
 
     reply = m.d_ptr()->deleteCollection(
                 QLatin1String("testcollection"),
+                SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 SecretManager::ApplicationInteraction);
     reply.waitForFinished();
     QVERIFY(reply.isValid());
@@ -107,7 +108,8 @@ void tst_secrets::devicelockCollectionSecret()
     Secret testSecret(
                 Secret::Identifier(
                     QLatin1String("testsecretname"),
-                    QLatin1String("testcollection")));
+                    QLatin1String("testcollection"),
+                    SecretManager::DefaultStoragePluginName + QLatin1String(".test")));
     testSecret.setData("testsecretvalue");
     testSecret.setType(Secret::TypeBlob);
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
@@ -135,6 +137,7 @@ void tst_secrets::devicelockCollectionSecret()
     filter.insert(QLatin1String("test"), testSecret.filterData(QLatin1String("test")));
     QDBusPendingReply<Result, QVector<Secret::Identifier> > filterReply = m.d_ptr()->findSecrets(
                 QLatin1String("testcollection"),
+                SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 filter,
                 SecretManager::OperatorAnd,
                 SecretManager::PreventInteraction);
@@ -148,6 +151,7 @@ void tst_secrets::devicelockCollectionSecret()
     filter.insert(QLatin1String("test"), QLatin1String("false"));
     filterReply = m.d_ptr()->findSecrets(
                 QLatin1String("testcollection"),
+                SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 filter,
                 SecretManager::OperatorAnd,
                 SecretManager::PreventInteraction);
@@ -159,6 +163,7 @@ void tst_secrets::devicelockCollectionSecret()
     // test filtering with OR with one matching and one non-matching value, expect match
     filterReply = m.d_ptr()->findSecrets(
                 QLatin1String("testcollection"),
+                SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 filter,
                 SecretManager::OperatorOr,
                 SecretManager::PreventInteraction);
@@ -172,6 +177,7 @@ void tst_secrets::devicelockCollectionSecret()
     filter.insert(QLatin1String("domain"), QLatin1String("jolla.com"));
     filterReply = m.d_ptr()->findSecrets(
                 QLatin1String("testcollection"),
+                SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 filter,
                 SecretManager::OperatorOr,
                 SecretManager::PreventInteraction);
@@ -198,6 +204,7 @@ void tst_secrets::devicelockCollectionSecret()
 
     reply = m.d_ptr()->deleteCollection(
                 QLatin1String("testcollection"),
+                SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 SecretManager::ApplicationInteraction);
     reply.waitForFinished();
     QVERIFY(reply.isValid());
@@ -208,15 +215,17 @@ void tst_secrets::devicelockCollectionSecret()
 void tst_secrets::devicelockStandaloneSecret()
 {
     // write the secret
-    Secret testSecret(Secret::Identifier("testsecretname"));
+    Secret testSecret(Secret::Identifier(
+            QStringLiteral("testsecretname"),
+            QString(),
+            SecretManager::DefaultStoragePluginName + QLatin1String(".test")));
     testSecret.setData("testsecretvalue");
     testSecret.setType(Secret::TypeBlob);
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
     testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
     QDBusPendingReply<Result> reply = m.d_ptr()->setSecret(
-                SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
-                SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
                 testSecret,
+                SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
                 InteractionParameters(),
                 SecretManager::DeviceLockKeepUnlocked,
                 SecretManager::OwnerOnlyMode,
@@ -266,7 +275,6 @@ void tst_secrets::customlockCollection()
                 SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
                 SecretManager::InAppAuthenticationPluginName + QLatin1String(".test"),
                 SecretManager::CustomLockKeepUnlocked,
-                0,
                 SecretManager::OwnerOnlyMode,
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
@@ -275,6 +283,7 @@ void tst_secrets::customlockCollection()
 
     reply = m.d_ptr()->deleteCollection(
                 QLatin1String("testcollection"),
+                SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
@@ -296,7 +305,6 @@ void tst_secrets::customlockCollectionSecret()
                 SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
                 SecretManager::InAppAuthenticationPluginName + QLatin1String(".test"),
                 SecretManager::CustomLockKeepUnlocked,
-                0,
                 SecretManager::OwnerOnlyMode,
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
@@ -306,7 +314,8 @@ void tst_secrets::customlockCollectionSecret()
     Secret testSecret(
                 Secret::Identifier(
                     QLatin1String("testsecretname"),
-                    QLatin1String("testcollection")));
+                    QLatin1String("testcollection"),
+                    SecretManager::DefaultStoragePluginName + QLatin1String(".test")));
     testSecret.setData("testsecretvalue");
     testSecret.setType(Secret::TypeBlob);
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
@@ -344,6 +353,7 @@ void tst_secrets::customlockCollectionSecret()
 
     reply = m.d_ptr()->deleteCollection(
                 QLatin1String("testcollection"),
+                SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
@@ -360,19 +370,20 @@ void tst_secrets::customlockStandaloneSecret()
     QVERIFY(interactionView);
     QMetaObject::invokeMethod(interactionView, "setSecretManager", Qt::DirectConnection, Q_ARG(QObject*, &m));
 
-    Secret testSecret(Secret::Identifier(QLatin1String("testsecretname")));
+    Secret testSecret(Secret::Identifier(
+            QStringLiteral("testsecretname"),
+            QString(),
+            SecretManager::DefaultStoragePluginName + QLatin1String(".test")));
     testSecret.setData("testsecretvalue");
     testSecret.setType(Secret::TypeBlob);
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
     testSecret.setFilterData(QLatin1String("test"), QLatin1String("true"));
     QDBusPendingReply<Result> reply = m.d_ptr()->setSecret(
-                SecretManager::DefaultStoragePluginName + QLatin1String(".test"),
+                testSecret,
                 SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"),
                 SecretManager::InAppAuthenticationPluginName + QLatin1String(".test"),
-                testSecret,
                 InteractionParameters(),
                 SecretManager::CustomLockKeepUnlocked,
-                0,
                 SecretManager::OwnerOnlyMode,
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
@@ -418,7 +429,6 @@ void tst_secrets::encryptedStorageCollection()
                 SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"),
                 SecretManager::InAppAuthenticationPluginName + QLatin1String(".test"),
                 SecretManager::CustomLockKeepUnlocked,
-                0,
                 SecretManager::OwnerOnlyMode,
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
@@ -428,7 +438,8 @@ void tst_secrets::encryptedStorageCollection()
     Secret testSecret(
                 Secret::Identifier(
                     QLatin1String("testsecretname"),
-                    QLatin1String("testencryptedcollection")));
+                    QLatin1String("testencryptedcollection"),
+                    SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test")));
     testSecret.setData("testsecretvalue");
     testSecret.setType(Secret::TypeBlob);
     testSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
@@ -466,6 +477,7 @@ void tst_secrets::encryptedStorageCollection()
 
     reply = m.d_ptr()->deleteCollection(
                 QLatin1String("testencryptedcollection"),
+                SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test"),
                 SecretManager::ApplicationInteraction);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(reply);
     QVERIFY(reply.isValid());
@@ -494,7 +506,8 @@ void tst_secrets::accessControl()
     Secret unreadableSecret(
                 Secret::Identifier(
                     QLatin1String("unreadablesecret"),
-                    QLatin1String("owneronlycollection")));
+                    QLatin1String("owneronlycollection"),
+                    SecretManager::DefaultStoragePluginName + QLatin1String(".test")));
     unreadableSecret.setData("unreadablesecretvalue");
     unreadableSecret.setType(Secret::TypeBlob);
     unreadableSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));
@@ -522,7 +535,8 @@ void tst_secrets::accessControl()
     Secret readableSecret(
                 Secret::Identifier(
                     QLatin1String("readablesecret"),
-                    QLatin1String("noaccesscontrolcollection")));
+                    QLatin1String("noaccesscontrolcollection"),
+                    SecretManager::DefaultStoragePluginName + QLatin1String(".test")));
     readableSecret.setData("readablesecretvalue");
     readableSecret.setType(Secret::TypeBlob);
     readableSecret.setFilterData(QLatin1String("domain"), QLatin1String("sailfishos.org"));

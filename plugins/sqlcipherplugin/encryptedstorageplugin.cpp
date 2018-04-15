@@ -8,6 +8,7 @@
 #include "sqlcipherplugin.h"
 #include "evp_p.h"
 
+#include <QDir>
 #include <QFile>
 #include <QCryptographicHash>
 
@@ -38,19 +39,18 @@ static const char *setupSynchronous =
 
 static const char *createSecretsTable =
         "\n CREATE TABLE Secrets ("
-        "   HashedSecretName TEXT NOT NULL,"
         "   SecretName TEXT NOT NULL,"
         "   Secret BLOB,"
         "   Timestamp DATE,"
-        "   PRIMARY KEY (HashedSecretName));";
+        "   PRIMARY KEY (SecretName));";
 
 static const char *createSecretsFilterDataTable =
         "\n CREATE TABLE SecretsFilterData ("
-        "   HashedSecretName TEXT NOT NULL,"
+        "   SecretName TEXT NOT NULL,"
         "   Field TEXT NOT NULL,"
         "   Value TEXT,"
-        "   FOREIGN KEY (HashedSecretName) REFERENCES Secrets (HashedSecretName) ON DELETE CASCADE,"
-        "   PRIMARY KEY (HashedSecretName, Field));";
+        "   FOREIGN KEY (SecretName) REFERENCES Secrets (SecretName) ON DELETE CASCADE,"
+        "   PRIMARY KEY (SecretName, Field));";
 
 static const char *createStatements[] =
 {
@@ -122,12 +122,29 @@ Daemon::Plugins::SqlCipherPlugin::openCollectionDatabase(
 }
 
 Result
+Daemon::Plugins::SqlCipherPlugin::collectionNames(QStringList *names)
+{
+    QDir dir(m_databaseDirPath);
+    const QStringList files = dir.entryList(QStringList() << QStringLiteral("*.db"));
+    for (const QString &file : files) {
+        if (file != QStringLiteral("metadata.db")
+                && file != QStringLiteral("standalone.db")
+                && file.size() > 3) {
+            names->append(file.mid(0, file.size() - 3)); // trim ".db" ending.
+        }
+    }
+    return Result(Result::Succeeded);
+}
+
+Result
 Daemon::Plugins::SqlCipherPlugin::createCollection(
         const QString &collectionName,
         const QByteArray &key)
 {
     Result retn(Result::Succeeded);
-    bool validName = collectionName.size() <= 31;
+    bool validName = collectionName.size() <= 31
+            && collectionName != QStringLiteral("metadata")
+            && collectionName != QStringLiteral("metadata.db"); // prevent overwriting metadata db.
     if (!validName) {
         retn = Result(Result::InvalidCollectionError,
                       QLatin1String("SQLCipher plugin only supports collection names shorter than 32 characters"));
@@ -183,7 +200,7 @@ Daemon::Plugins::SqlCipherPlugin::removeCollection(
 }
 
 Result
-Daemon::Plugins::SqlCipherPlugin::isLocked(
+Daemon::Plugins::SqlCipherPlugin::isCollectionLocked(
         const QString &collectionName,
         bool *locked)
 {
@@ -196,7 +213,7 @@ Daemon::Plugins::SqlCipherPlugin::isLocked(
         Daemon::Sqlite::Database::Query lq = db->prepare(lockedQuery, &errorText);
         if (!errorText.isEmpty()) {
             retn = Result(Result::DatabaseQueryError,
-                                             QString::fromUtf8("SQLCipher plugin unable to prepare is locked query: %1").arg(errorText));
+                          QString::fromUtf8("SQLCipher plugin unable to prepare is locked query: %1").arg(errorText));
         } else if (!db->execute(lq, &errorText)) {
             *locked = true;
         } else {
@@ -227,7 +244,7 @@ Daemon::Plugins::SqlCipherPlugin::deriveKeyFromCode(
                          : authenticationCode;
     const int nbytes = 32; // 256 bit
     QScopedArrayPointer<char> buf(new char[nbytes]);
-    if (osslevp_pkcs5_pbkdf2_hmac(
+    if (OpenSslEvp::pkcs5_pbkdf2_hmac(
             inputData.constData(),
             inputData.size(),
             salt.isEmpty()
@@ -267,18 +284,18 @@ Daemon::Plugins::SqlCipherPlugin::setEncryptionKey(
             Daemon::Sqlite::Database::Query kq = db->prepare(setupKeyStatement, &errorText);
             if (!errorText.isEmpty()) {
                 retn = Result(Result::DatabaseQueryError,
-                                                 QString::fromUtf8("SQLCipher plugin unable to prepare setup key query: %1").arg(errorText));
+                              QString::fromUtf8("SQLCipher plugin unable to prepare setup key query: %1").arg(errorText));
             } else if (!db->beginTransaction()) {
                 retn = Result(Result::DatabaseTransactionError,
-                                                 QString::fromUtf8("SQLCipher plugin unable to begin setup key transaction"));
+                              QString::fromUtf8("SQLCipher plugin unable to begin setup key transaction"));
             } else if (!db->execute(kq, &errorText)) {
                 db->rollbackTransaction();
                 retn = Result(Result::DatabaseQueryError,
-                                                 QString::fromUtf8("SQLCipher plugin unable to execute setup key query: %1").arg(errorText));
+                              QString::fromUtf8("SQLCipher plugin unable to execute setup key query: %1").arg(errorText));
             } else if (!db->commitTransaction()) {
                 db->rollbackTransaction();
                 retn = Result(Result::DatabaseTransactionError,
-                                                 QString::fromUtf8("SQLCipher plugin unable to commit setup key transaction"));
+                              QString::fromUtf8("SQLCipher plugin unable to commit setup key transaction"));
             }
         }
     } else {
@@ -314,18 +331,18 @@ Daemon::Plugins::SqlCipherPlugin::reencrypt(
                 Daemon::Sqlite::Database::Query kq = db->prepare(setupReKeyStatement, &errorText);
                 if (!errorText.isEmpty()) {
                     retn = Result(Result::DatabaseQueryError,
-                                                     QString::fromUtf8("SQLCipher plugin unable to prepare setup rekey query: %1").arg(errorText));
+                                  QString::fromUtf8("SQLCipher plugin unable to prepare setup rekey query: %1").arg(errorText));
                 } else if (!db->beginTransaction()) {
                     retn = Result(Result::DatabaseTransactionError,
-                                                     QString::fromUtf8("SQLCipher plugin unable to begin setup rekey transaction"));
+                                  QString::fromUtf8("SQLCipher plugin unable to begin setup rekey transaction"));
                 } else if (!db->execute(kq, &errorText)) {
                     db->rollbackTransaction();
                     retn = Result(Result::DatabaseQueryError,
-                                                     QString::fromUtf8("SQLCipher plugin unable to execute setup rekey query: %1").arg(errorText));
+                                  QString::fromUtf8("SQLCipher plugin unable to execute setup rekey query: %1").arg(errorText));
                 } else if (!db->commitTransaction()) {
                     db->rollbackTransaction();
                     retn = Result(Result::DatabaseTransactionError,
-                                                     QString::fromUtf8("SQLCipher plugin unable to commit setup rekey transaction"));
+                                  QString::fromUtf8("SQLCipher plugin unable to commit setup rekey transaction"));
                 }
             }
         }
@@ -337,18 +354,17 @@ Daemon::Plugins::SqlCipherPlugin::reencrypt(
 Result
 Daemon::Plugins::SqlCipherPlugin::setSecret(
         const QString &collectionName,
-        const QString &hashedSecretName,
         const QString &secretName,
         const QByteArray &secret,
         const Secret::FilterData &filterData)
 {
     // Note: don't disallow collectionName=standalone, since that's how we store standalone secrets.
-    if (hashedSecretName.isEmpty()) {
+    if (secretName.isEmpty()) {
         return Result(Result::InvalidSecretError,
-                                         QString::fromUtf8("Empty secret name given"));
+                      QString::fromUtf8("Empty secret name given"));
     } else if (collectionName.isEmpty()) {
         return Result(Result::InvalidCollectionError,
-                                         QString::fromUtf8("Empty collection name given"));
+                      QString::fromUtf8("Empty collection name given"));
     }
 
     Daemon::Sqlite::Database *db = m_collectionDatabases.value(collectionName);
@@ -367,29 +383,29 @@ Daemon::Plugins::SqlCipherPlugin::setSecret(
                  "SELECT"
                     " Count(*)"
                   " FROM Secrets"
-                  " WHERE HashedSecretName = ?;"
+                  " WHERE SecretName = ?;"
              );
 
     QString errorText;
     Daemon::Sqlite::Database::Query sq = db->prepare(selectSecretsCountQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("SQLCipher plugin unable to prepare select secrets query: %1").arg(errorText));
+                      QString::fromUtf8("SQLCipher plugin unable to prepare select secrets query: %1").arg(errorText));
     }
 
     QVariantList values;
-    values << QVariant::fromValue<QString>(hashedSecretName);
+    values << QVariant::fromValue<QString>(secretName);
     sq.bindValues(values);
 
     if (!db->beginTransaction()) {
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("SQLCipher plugin unable to begin transaction"));
+                      QString::fromUtf8("SQLCipher plugin unable to begin transaction"));
     }
 
     if (!db->execute(sq, &errorText)) {
         db->rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("SQLCipher plugin unable to execute select secrets query: %1").arg(errorText));
+                      QString::fromUtf8("SQLCipher plugin unable to execute select secrets query: %1").arg(errorText));
     }
 
     bool found = false;
@@ -401,32 +417,30 @@ Daemon::Plugins::SqlCipherPlugin::setSecret(
                  "UPDATE Secrets"
                  " SET Secret = ?"
                  "   , Timestamp = date('now')"
-                 " WHERE HashedSecretName = ?;"
+                 " WHERE SecretName = ?;"
              );
     const QString insertSecretQuery = QStringLiteral(
                 "INSERT INTO Secrets ("
-                  "HashedSecretName,"
                   "SecretName,"
                   "Secret,"
                   "Timestamp"
                 ")"
                 " VALUES ("
-                  "?,?,?,date('now')"
+                  "?,?,date('now')"
                 ");");
 
     Daemon::Sqlite::Database::Query iq = db->prepare(found ? updateSecretQuery : insertSecretQuery, &errorText);
     if (!errorText.isEmpty()) {
         db->rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("SQLCipher plugin unable to prepare insert secret query: %1").arg(errorText));
+                      QString::fromUtf8("SQLCipher plugin unable to prepare insert secret query: %1").arg(errorText));
     }
 
     QVariantList ivalues;
     if (found) {
         ivalues << QVariant::fromValue<QByteArray>(secret);
-        ivalues << QVariant::fromValue<QString>(hashedSecretName);
+        ivalues << QVariant::fromValue<QString>(secretName);
     } else {
-        ivalues << QVariant::fromValue<QString>(hashedSecretName);
         ivalues << QVariant::fromValue<QString>(secretName);
         ivalues << QVariant::fromValue<QByteArray>(secret);
     }
@@ -435,34 +449,34 @@ Daemon::Plugins::SqlCipherPlugin::setSecret(
     if (!db->execute(iq, &errorText)) {
         db->rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("SQLCipher plugin unable to execute insert secret query: %1").arg(errorText));
+                      QString::fromUtf8("SQLCipher plugin unable to execute insert secret query: %1").arg(errorText));
     }
 
     const QString deleteSecretsFilterDataQuery = QStringLiteral(
                  "DELETE FROM SecretsFilterData"
-                 " WHERE HashedSecretName = ?;"
+                 " WHERE SecretName = ?;"
              );
 
     Daemon::Sqlite::Database::Query dq = db->prepare(deleteSecretsFilterDataQuery, &errorText);
     if (!errorText.isEmpty()) {
         db->rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("SQLCipher plugin unable to prepare delete secrets filter data query: %1").arg(errorText));
+                      QString::fromUtf8("SQLCipher plugin unable to prepare delete secrets filter data query: %1").arg(errorText));
     }
 
     QVariantList dvalues;
-    dvalues << QVariant::fromValue<QString>(hashedSecretName);
+    dvalues << QVariant::fromValue<QString>(secretName);
     dq.bindValues(dvalues);
 
     if (!db->execute(dq, &errorText)) {
         db->rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("SQLCipher plugin unable to execute delete secrets filter data query: %1").arg(errorText));
+                      QString::fromUtf8("SQLCipher plugin unable to execute delete secrets filter data query: %1").arg(errorText));
     }
 
     const QString insertSecretsFilterDataQuery = QStringLiteral(
                 "INSERT INTO SecretsFilterData ("
-                  "HashedSecretName,"
+                  "SecretName,"
                   "Field,"
                   "Value"
                 ")"
@@ -474,26 +488,26 @@ Daemon::Plugins::SqlCipherPlugin::setSecret(
     if (!errorText.isEmpty()) {
         db->rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("SQLCipher plugin unable to prepare insert secrets filter data query: %1").arg(errorText));
+                      QString::fromUtf8("SQLCipher plugin unable to prepare insert secrets filter data query: %1").arg(errorText));
     }
 
     for (Secret::FilterData::const_iterator it = filterData.constBegin(); it != filterData.constEnd(); it++) {
         ivalues.clear();
-        ivalues << QVariant::fromValue<QString>(hashedSecretName);
+        ivalues << QVariant::fromValue<QString>(secretName);
         ivalues << QVariant::fromValue<QString>(it.key());
         ivalues << QVariant::fromValue<QString>(it.value());
         ifdq.bindValues(ivalues);
         if (!db->execute(ifdq, &errorText)) {
             db->rollbackTransaction();
             return Result(Result::DatabaseQueryError,
-                                             QString::fromUtf8("SQLCipher plugin unable to execute insert secrets filter data query: %1").arg(errorText));
+                          QString::fromUtf8("SQLCipher plugin unable to execute insert secrets filter data query: %1").arg(errorText));
         }
     }
 
     if (!db->commitTransaction()) {
         db->rollbackTransaction();
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("SQLCipher plugin unable to commit insert secret transaction"));
+                      QString::fromUtf8("SQLCipher plugin unable to commit insert secret transaction"));
     }
 
     return Result(Result::Succeeded);
@@ -502,18 +516,17 @@ Daemon::Plugins::SqlCipherPlugin::setSecret(
 Result
 Daemon::Plugins::SqlCipherPlugin::getSecret(
         const QString &collectionName,
-        const QString &hashedSecretName,
-        QString *secretName,
+        const QString &secretName,
         QByteArray *secret,
         Secret::FilterData *filterData)
 {
     // Note: don't disallow collectionName=standalone, since that's how we store standalone secrets.
-    if (hashedSecretName.isEmpty()) {
+    if (secretName.isEmpty()) {
         return Result(Result::InvalidSecretError,
-                                         QString::fromUtf8("Empty secret name given"));
+                      QString::fromUtf8("Empty secret name given"));
     } else if (collectionName.isEmpty()) {
         return Result(Result::InvalidCollectionError,
-                                         QString::fromUtf8("Empty collection name given"));
+                      QString::fromUtf8("Empty collection name given"));
     }
 
     Daemon::Sqlite::Database *db = m_collectionDatabases.value(collectionName);
@@ -530,41 +543,38 @@ Daemon::Plugins::SqlCipherPlugin::getSecret(
 
     const QString selectSecretQuery = QStringLiteral(
                  "SELECT"
-                    " SecretName,"
                     " Secret"
                   " FROM Secrets"
-                  " WHERE HashedSecretName = ?;"
+                  " WHERE SecretName = ?;"
              );
 
     QString errorText;
     Daemon::Sqlite::Database::Query sq = db->prepare(selectSecretQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("SQLCipher plugin unable to prepare select secret query: %1").arg(errorText));
+                      QString::fromUtf8("SQLCipher plugin unable to prepare select secret query: %1").arg(errorText));
     }
 
     QVariantList values;
-    values << QVariant::fromValue<QString>(hashedSecretName);
+    values << QVariant::fromValue<QString>(secretName);
     sq.bindValues(values);
 
     if (!db->beginTransaction()) {
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("SQLCipher plugin unable to begin transaction"));
+                      QString::fromUtf8("SQLCipher plugin unable to begin transaction"));
     }
 
     if (!db->execute(sq, &errorText)) {
         db->rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("SQLCipher plugin unable to execute select secret query: %1").arg(errorText));
+                      QString::fromUtf8("SQLCipher plugin unable to execute select secret query: %1").arg(errorText));
     }
 
     bool found = false;
-    QByteArray secretNameData;
     QByteArray secretData;
     if (sq.next()) {
         found = true;
-        secretNameData = sq.value(0).value<QByteArray>();
-        secretData = sq.value(1).value<QByteArray>();
+        secretData = sq.value(0).value<QByteArray>();
     }
 
     Secret::FilterData secretFilterData;
@@ -574,20 +584,20 @@ Daemon::Plugins::SqlCipherPlugin::getSecret(
                         " Field,"
                         " Value"
                       " FROM SecretsFilterData"
-                      " WHERE HashedSecretName = ?;"
+                      " WHERE SecretName = ?;"
                  );
 
         Daemon::Sqlite::Database::Query sfdq = db->prepare(selectSecretFilterDataQuery, &errorText);
         if (!errorText.isEmpty()) {
             return Result(Result::DatabaseQueryError,
-                                             QString::fromUtf8("SQLCipher plugin unable to prepare select secret filter data query: %1").arg(errorText));
+                          QString::fromUtf8("SQLCipher plugin unable to prepare select secret filter data query: %1").arg(errorText));
         }
         sfdq.bindValues(values);
 
         if (!db->execute(sfdq, &errorText)) {
             db->rollbackTransaction();
             return Result(Result::DatabaseQueryError,
-                                             QString::fromUtf8("SQLCipher plugin unable to execute select secret filter data query: %1").arg(errorText));
+                          QString::fromUtf8("SQLCipher plugin unable to execute select secret filter data query: %1").arg(errorText));
         }
 
         while (sfdq.next()) {
@@ -598,17 +608,66 @@ Daemon::Plugins::SqlCipherPlugin::getSecret(
     if (!db->commitTransaction()) {
         db->rollbackTransaction();
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("SQLCipher plugin unable to commit select secret transaction"));
+                      QString::fromUtf8("SQLCipher plugin unable to commit select secret transaction"));
     }
 
     if (!found) {
         return Result(Result::InvalidSecretError,
-                                         QString::fromUtf8("No such secret stored"));
+                      QString::fromUtf8("No such secret stored"));
     }
 
-    *secretName = secretNameData;
     *secret = secretData;
     *filterData = secretFilterData;
+    return Result(Result::Succeeded);
+}
+
+Result
+Daemon::Plugins::SqlCipherPlugin::secretNames(
+        const QString &collectionName,
+        QStringList *secretNames)
+{
+    // Note: don't disallow collectionName=standalone, since that's how we store standalone secrets.
+    if (collectionName.isEmpty()) {
+        return Result(Result::InvalidCollectionError,
+                      QString::fromUtf8("Empty collection name given"));
+    }
+
+    Daemon::Sqlite::Database *db = m_collectionDatabases.value(collectionName);
+    if (!db) {
+        const QString collectionPath = m_databaseDirPath + collectionName + QLatin1String(".db");
+        return QFile::exists(collectionPath)
+                ? Result(Result::CollectionIsLockedError,
+                         QLatin1String("That collection is locked"))
+                : Result(Result::InvalidCollectionError,
+                         QLatin1String("No collection with that name exists"));
+    }
+
+    Daemon::Sqlite::DatabaseLocker locker(db);
+
+    const QString selectSecretsFilterDataQuery = QStringLiteral(
+                 "SELECT"
+                    " SecretName,"
+                 " FROM Secrets;"
+             );
+
+    QString errorText;
+    Daemon::Sqlite::Database::Query sq = db->prepare(selectSecretsFilterDataQuery, &errorText);
+    if (!errorText.isEmpty()) {
+        return Result(Result::DatabaseQueryError,
+                      QString::fromUtf8("SQLCipher plugin unable to prepare select secret names query: %1")
+                      .arg(errorText));
+    }
+
+    if (!db->execute(sq, &errorText)) {
+        return Result(Result::DatabaseQueryError,
+                      QString::fromUtf8("SQLCipher plugin unable to execute select select secret names query: %1")
+                      .arg(errorText));
+    }
+
+    while (sq.next()) {
+        secretNames->append(sq.value(0).value<QString>());
+    }
+
     return Result(Result::Succeeded);
 }
 
@@ -622,10 +681,10 @@ Daemon::Plugins::SqlCipherPlugin::findSecrets(
     // Note: don't disallow collectionName=standalone, since that's how we store standalone secrets.
     if (collectionName.isEmpty()) {
         return Result(Result::InvalidCollectionError,
-                                         QString::fromUtf8("Empty collection name given"));
+                      QString::fromUtf8("Empty collection name given"));
     } else if (filter.isEmpty()) {
         return Result(Result::InvalidFilterError,
-                                         QString::fromUtf8("Empty filter given"));
+                      QString::fromUtf8("Empty filter given"));
     }
 
     Daemon::Sqlite::Database *db = m_collectionDatabases.value(collectionName);
@@ -643,11 +702,10 @@ Daemon::Plugins::SqlCipherPlugin::findSecrets(
     // very naive implementation.
     // first, select all of the field/value filter data for the secret
     // second, filter in-memory.
-    // third, return the encrypted secret names associated with the matches.
 
     const QString selectSecretsFilterDataQuery = QStringLiteral(
                  "SELECT"
-                    " HashedSecretName,"
+                    " SecretName,"
                     " Field,"
                     " Value"
                  " FROM SecretsFilterData;"
@@ -657,28 +715,28 @@ Daemon::Plugins::SqlCipherPlugin::findSecrets(
     Daemon::Sqlite::Database::Query sq = db->prepare(selectSecretsFilterDataQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("SQLCipher plugin unable to prepare select secrets filter data query: %1").arg(errorText));
+                      QString::fromUtf8("SQLCipher plugin unable to prepare select secrets filter data query: %1").arg(errorText));
     }
 
     if (!db->beginTransaction()) {
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("SQLCipher plugin unable to begin find secrets transaction"));
+                      QString::fromUtf8("SQLCipher plugin unable to begin find secrets transaction"));
     }
 
     if (!db->execute(sq, &errorText)) {
         db->rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("SQLCipher plugin unable to execute select secrets filter data query: %1").arg(errorText));
+                      QString::fromUtf8("SQLCipher plugin unable to execute select secrets filter data query: %1").arg(errorText));
     }
 
-    QMap<QString, Secret::FilterData > hashedSecretNameToFilterData;
+    QMap<QString, Secret::FilterData > secretNameToFilterData;
     while (sq.next()) {
-        hashedSecretNameToFilterData[sq.value(0).value<QString>()].insert(sq.value(1).value<QString>(), sq.value(2).value<QString>());
+        secretNameToFilterData[sq.value(0).value<QString>()].insert(sq.value(1).value<QString>(), sq.value(2).value<QString>());
     }
 
     // perform in-memory filtering.
-    QSet<QString> matchingHashedSecretNames;
-    for (QMap<QString, Secret::FilterData >::const_iterator it = hashedSecretNameToFilterData.constBegin(); it != hashedSecretNameToFilterData.constEnd(); it++) {
+    QSet<QString> matchingSecretNames;
+    for (QMap<QString, Secret::FilterData >::const_iterator it = secretNameToFilterData.constBegin(); it != secretNameToFilterData.constEnd(); it++) {
         const Secret::FilterData &currFilterData(it.value());
         bool matches = filterOperator == StoragePlugin::OperatorOr ? false : true;
         for (Secret::FilterData::const_iterator fit = filter.constBegin(); fit != filter.constEnd(); fit++) {
@@ -708,45 +766,19 @@ Daemon::Plugins::SqlCipherPlugin::findSecrets(
             }
         }
         if (matches) {
-            matchingHashedSecretNames.insert(it.key());
+            matchingSecretNames.insert(it.key());
         }
-    }
-
-    // now select all of the secret names associated with the hashed names and return them.
-    const QString selectSecretName = QStringLiteral(
-                 "SELECT"
-                    " SecretName"
-                 " FROM Secrets"
-                 " WHERE HashedSecretName = ?;"
-             );
-
-    Daemon::Sqlite::Database::Query seq = db->prepare(selectSecretName, &errorText);
-    if (!errorText.isEmpty()) {
-        return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("SQLCipher plugin unable to prepare select secret name query: %1").arg(errorText));
     }
 
     QVector<Secret::Identifier> retn;
-    for (const QString &hashedSecretName : matchingHashedSecretNames) {
-        QVariantList values;
-        values << QVariant::fromValue<QString>(hashedSecretName);
-        seq.bindValues(values);
-
-        if (!db->execute(seq, &errorText)) {
-            db->rollbackTransaction();
-            return Result(Result::DatabaseQueryError,
-                                             QString::fromUtf8("SQLCipher plugin unable to execute select secret name query: %1").arg(errorText));
-        }
-
-        if (seq.next()) {
-            retn.append(Secret::Identifier(seq.value(0).value<QString>(), collectionName));
-        }
+    for (const QString &secretName : matchingSecretNames) {
+        retn.append(Secret::Identifier(secretName, collectionName, name()));
     }
 
     if (!db->commitTransaction()) {
         db->rollbackTransaction();
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("SQLCipher plugin unable to commit find secrets transaction"));
+                      QString::fromUtf8("SQLCipher plugin unable to commit find secrets transaction"));
     }
 
     *identifiers = retn;
@@ -756,15 +788,15 @@ Daemon::Plugins::SqlCipherPlugin::findSecrets(
 Result
 Daemon::Plugins::SqlCipherPlugin::removeSecret(
         const QString &collectionName,
-        const QString &hashedSecretName)
+        const QString &secretName)
 {
     // Note: don't disallow collectionName=standalone, since that's how we store standalone secrets.
-    if (hashedSecretName.isEmpty()) {
+    if (secretName.isEmpty()) {
         return Result(Result::InvalidSecretError,
-                                         QString::fromUtf8("Empty secret name given"));
+                      QString::fromUtf8("Empty secret name given"));
     } else if (collectionName.isEmpty()) {
         return Result(Result::InvalidCollectionError,
-                                         QString::fromUtf8("Empty collection name given"));
+                      QString::fromUtf8("Empty collection name given"));
     }
 
     Daemon::Sqlite::Database *db = m_collectionDatabases.value(collectionName);
@@ -781,34 +813,34 @@ Daemon::Plugins::SqlCipherPlugin::removeSecret(
 
     const QString deleteSecretQuery = QStringLiteral(
                 "DELETE FROM Secrets"
-                " WHERE HashedSecretName = ?;");
+                " WHERE SecretName = ?;");
 
     QString errorText;
     Daemon::Sqlite::Database::Query dq = db->prepare(deleteSecretQuery, &errorText);
     if (!errorText.isEmpty()) {
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("SQLCipher plugin unable to prepare delete secret query: %1").arg(errorText));
+                      QString::fromUtf8("SQLCipher plugin unable to prepare delete secret query: %1").arg(errorText));
     }
 
     QVariantList values;
-    values << QVariant::fromValue<QString>(hashedSecretName);
+    values << QVariant::fromValue<QString>(secretName);
     dq.bindValues(values);
 
     if (!db->beginTransaction()) {
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("SQLCipher plugin unable to begin transaction"));
+                      QString::fromUtf8("SQLCipher plugin unable to begin transaction"));
     }
 
     if (!db->execute(dq, &errorText)) {
         db->rollbackTransaction();
         return Result(Result::DatabaseQueryError,
-                                         QString::fromUtf8("SQLCipher plugin unable to execute delete secret query: %1").arg(errorText));
+                      QString::fromUtf8("SQLCipher plugin unable to execute delete secret query: %1").arg(errorText));
     }
 
     if (!db->commitTransaction()) {
         db->rollbackTransaction();
         return Result(Result::DatabaseTransactionError,
-                                         QString::fromUtf8("SQLCipher plugin unable to commit delete secret transaction"));
+                      QString::fromUtf8("SQLCipher plugin unable to commit delete secret transaction"));
     }
 
     return Result(Result::Succeeded);
@@ -817,15 +849,11 @@ Daemon::Plugins::SqlCipherPlugin::removeSecret(
 
 Result
 Daemon::Plugins::SqlCipherPlugin::setSecret(
-        const QString &collectionName,
-        const QString &hashedSecretName,
         const QString &secretName,
         const QByteArray &secret,
         const Secret::FilterData &filterData,
         const QByteArray &key)
 {
-    Q_UNUSED(collectionName);
-    Q_UNUSED(hashedSecretName);
     Q_UNUSED(secretName);
     Q_UNUSED(secret);
     Q_UNUSED(filterData);
@@ -836,19 +864,24 @@ Daemon::Plugins::SqlCipherPlugin::setSecret(
 
 Result
 Daemon::Plugins::SqlCipherPlugin::accessSecret(
-        const QString &collectionName,
-        const QString &hashedSecretName,
+        const QString &secretName,
         const QByteArray &key,
-        QString *secretName,
         QByteArray *secret,
         Secret::FilterData *filterData)
 {
-    Q_UNUSED(collectionName);
-    Q_UNUSED(hashedSecretName);
     Q_UNUSED(secretName);
     Q_UNUSED(secret);
     Q_UNUSED(filterData);
     Q_UNUSED(key);
+    return Result(Result::OperationNotSupportedError,
+                  QLatin1String("SQLCipher plugin doesn't support standalone secret operations"));
+}
+
+Result
+Daemon::Plugins::SqlCipherPlugin::removeSecret(
+        const QString &secretName)
+{
+    Q_UNUSED(secretName);
     return Result(Result::OperationNotSupportedError,
                   QLatin1String("SQLCipher plugin doesn't support standalone secret operations"));
 }

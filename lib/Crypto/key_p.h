@@ -30,6 +30,7 @@ public:
 
     QString m_name;
     QString m_collectionName;
+    QString m_storagePluginName;
 };
 
 class KeyPrivate : public QSharedData

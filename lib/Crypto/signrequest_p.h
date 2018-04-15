@@ -30,6 +30,7 @@ public:
     explicit SignRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
+    QVariantMap m_customParameters;
     QByteArray m_data;
     Sailfish::Crypto::Key m_key;
     Sailfish::Crypto::CryptoManager::SignaturePadding m_padding;

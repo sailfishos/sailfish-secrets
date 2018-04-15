@@ -33,6 +33,7 @@ public:
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
     QScopedPointer<QDBusPendingCallWatcher> m_watcher;
 
+    QVariantMap m_customParameters;
     QByteArray m_generatedIv;
     QString m_cryptoPluginName;
     Sailfish::Crypto::CryptoManager::Algorithm m_algorithm;

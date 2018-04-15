@@ -7,7 +7,6 @@
 
 #include "Crypto/key.h"
 #include "Crypto/key_p.h"
-#include "Crypto/x509certificate.h"
 
 #define SAILFISH_SECRETS_SECRET_FILTERDATAFIELDTYPE QLatin1String("Type")
 #define SAILFISH_SECRETS_SECRET_TYPECRYPTOKEY QLatin1String("CryptoKey")
@@ -25,6 +24,7 @@ KeyIdentifierPrivate::KeyIdentifierPrivate(const KeyIdentifierPrivate &other)
     : QSharedData(other)
     , m_name(other.m_name)
     , m_collectionName(other.m_collectionName)
+    , m_storagePluginName(other.m_storagePluginName)
 {
 }
 
@@ -75,10 +75,10 @@ KeyPrivate::~KeyPrivate()
  * The identifier consists of the name (alias) of the key, along with
  * the name of the collection in which the key is stored (note that the
  * collection name can be empty if the key is stored as a standalone
- * secret).
+ * secret) and the plugin which stores that collection.
  *
- * Together, the key name and collection name uniquely identify the key
- * as a specific secret in the secrets storage.
+ * Together, the key name, collection name and storage plugin name uniquely
+ * identify the key as a specific secret in the secrets storage.
  */
 
 /*!
@@ -90,13 +90,14 @@ Key::Identifier::Identifier()
 }
 
 /*!
- * \brief Constructs a new identifier from the given key \a name and \a collectionName
+ * \brief Constructs a new identifier from the given key \a name, \a collectionName and \a storagePluginName
  */
-Key::Identifier::Identifier(const QString &name, const QString &collectionName)
+Key::Identifier::Identifier(const QString &name, const QString &collectionName, const QString &storagePluginName)
         : d_ptr(new KeyIdentifierPrivate)
 {
     d_ptr->m_name = name;
     d_ptr->m_collectionName = collectionName;
+    d_ptr->m_storagePluginName = storagePluginName;
 }
 
 /*!
@@ -155,6 +156,22 @@ void Key::Identifier::setCollectionName(const QString &collectionName)
     d_ptr->m_collectionName = collectionName;
 }
 
+/*!
+ * \brief Returns the storage plugin name from the identifier
+ */
+QString Key::Identifier::storagePluginName() const
+{
+    return d_ptr->m_storagePluginName;
+}
+
+/*!
+ * \brief Sets the storage plugin name in the identifier to \a storagePluginName
+ */
+void Key::Identifier::setStoragePluginName(const QString &storagePluginName)
+{
+    d_ptr->m_storagePluginName = storagePluginName;
+}
+
 //--------------------------------------------
 
 /*!
@@ -190,16 +207,18 @@ Key::Key(const Key &other)
 }
 
 /*!
- * \brief Constructs a key which references a stored key with the given \a name from the given \a collection.
+ * \brief Constructs a key which references a stored key with the given
+ * \a name from the given \a collection in the storage plugin with the
+ * given \a storagePluginName.
  *
  * A stored key is one which is stored securely by the Sailfish Crypto daemon,
  * whose underlying secret data (e.g. private key or secret key data) will never
  * be exposed to the client process.
  */
-Key::Key(const QString &name, const QString &collection)
+Key::Key(const QString &name, const QString &collection, const QString &storagePluginName)
     : d_ptr(new KeyPrivate)
 {
-    setIdentifier(Key::Identifier(name, collection));
+    setIdentifier(Key::Identifier(name, collection, storagePluginName));
 }
 
 /*!
@@ -232,6 +251,56 @@ Key::Identifier Key::identifier() const
 void Key::setIdentifier(const Key::Identifier &identifier)
 {
     d_ptr->m_identifier = identifier;
+}
+
+
+
+/*!
+ * \brief Returns the name field from the identifier of the key
+ */
+QString Key::name() const
+{
+    return d_ptr->m_identifier.name();
+}
+
+/*!
+ * \brief Sets the name field in the identifier of the key to \a name
+ */
+void Key::setName(const QString &name)
+{
+    d_ptr->m_identifier.setName(name);
+}
+
+/*!
+ * \brief Returns the collection name field from the identifier of the key
+ */
+QString Key::collectionName() const
+{
+    return d_ptr->m_identifier.collectionName();
+}
+
+/*!
+ * \brief Sets the collection name field in the identifier of the key to \a cname
+ */
+void Key::setCollectionName(const QString &cname)
+{
+    d_ptr->m_identifier.setCollectionName(cname);
+}
+
+/*!
+ * \brief Returns the storage plugin name field from the identifier of the key
+ */
+QString Key::storagePluginName() const
+{
+    return d_ptr->m_identifier.storagePluginName();
+}
+
+/*!
+ * \brief Sets the storage plugin name field in the identifier of the key to \a pname
+ */
+void Key::setStoragePluginName(const QString &pname)
+{
+    d_ptr->m_identifier.setStoragePluginName(pname);
 }
 
 /*!
@@ -462,28 +531,6 @@ void Key::setCustomParameters(const QVector<QByteArray> &parameters)
 }
 
 /*!
- * \brief Extracts metadata and the public key from the given \a certificate and returns a Key encapsulating that data
- */
-Key Key::fromCertificate(const Certificate &certificate)
-{
-    if (certificate.type() != Certificate::X509) {
-        // TODO: other certificate types.
-        return Key();
-    }
-
-    X509Certificate x509cert(X509Certificate::fromCertificate(certificate));
-    Key retn;
-    retn.setPublicKey(x509cert.publicKey());
-    // TODO: read the algorithm from the certificate
-    // TODO: read the digests from the certificate
-    // TODO: read the allowed operations from the X509v3 Key Usage extension:
-    // retn.setOperations(x509cert.tbsCertificate().extensions.find(id-ce-keyUsage).convertToOperations(extnValue));
-    // etc.
-
-    return retn;
-}
-
-/*!
  * \brief Returns the filter data associated with this key.
  *
  * Other clients can use the filter data to find this key,
@@ -552,7 +599,8 @@ bool Key::hasFilterData(const QString &field)
  */
 bool Sailfish::Crypto::operator==(const Key::Identifier &lhs, const Key::Identifier &rhs)
 {
-    return lhs.collectionName() == rhs.collectionName()
+    return lhs.storagePluginName() == rhs.storagePluginName()
+            && lhs.collectionName() == rhs.collectionName()
             && lhs.name() == rhs.name();
 }
 
@@ -569,6 +617,8 @@ bool Sailfish::Crypto::operator!=(const Key::Identifier &lhs, const Key::Identif
  */
 bool Sailfish::Crypto::operator<(const Key::Identifier &lhs, const Key::Identifier &rhs)
 {
+    if (lhs.storagePluginName() != rhs.storagePluginName())
+        return lhs.storagePluginName() < rhs.storagePluginName();
     if (lhs.collectionName() != rhs.collectionName())
         return lhs.collectionName() < rhs.collectionName();
     return lhs.name() < rhs.name();

@@ -10,9 +10,11 @@ packagesExist(qt5-boostable) {
 
 include($$PWD/../common.pri)
 include($$PWD/../lib/libsailfishsecrets.pri)
+include($$PWD/../lib/libsailfishsecretspluginapi.pri)
 include($$PWD/../lib/libsailfishcrypto.pri)
+include($$PWD/../lib/libsailfishcryptopluginapi.pri)
 
-QT += sql dbus
+QT += sql dbus concurrent
 
 CONFIG += link_pkgconfig hide_symbols
 PKGCONFIG += dbus-1

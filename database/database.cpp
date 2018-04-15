@@ -302,7 +302,7 @@ bool Database::open(
     const QString privilegedDataDirPath(systemDataDirPath + QLatin1String("privileged") + "/");
 
     QString subdir(QString(QLatin1String("Secrets/%1")).arg(databaseSubdir));
-    if (autoTest) {
+    if (autoTest && !subdir.endsWith(QLatin1String("test"), Qt::CaseInsensitive)) {
         subdir.append(QLatin1String("-test"));
     }
 
@@ -357,8 +357,8 @@ bool Database::open(
 
 void Database::close()
 {
-    m_database.close();
     m_preparedQueries.clear();
+    m_database.close();
 }
 
 Database::operator QSqlDatabase &()

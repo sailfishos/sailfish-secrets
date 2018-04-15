@@ -31,6 +31,7 @@ public:
 
     QPointer<Sailfish::Secrets::SecretManager> m_manager;
     QString m_collectionName;
+    QString m_storagePluginName;
     Sailfish::Secrets::SecretManager::UserInteractionMode m_userInteractionMode;
 
     QScopedPointer<QDBusPendingCallWatcher> m_watcher;

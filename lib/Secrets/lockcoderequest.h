@@ -12,6 +12,7 @@
 #include "Secrets/request.h"
 #include "Secrets/secret.h"
 #include "Secrets/secretmanager.h"
+#include "Secrets/interactionparameters.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QScopedPointer>
@@ -40,10 +41,8 @@ public:
     Q_ENUM(LockCodeRequestType)
 
     enum LockCodeTargetType {
-        BookkeepingDatabase = 0,
-        ExtensionPlugin,
-        Collection,
-        StandaloneSecret
+        MetadataDatabase = 0,
+        ExtensionPlugin
     };
     Q_ENUM(LockCodeTargetType)
 

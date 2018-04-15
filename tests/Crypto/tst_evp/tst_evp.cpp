@@ -17,6 +17,7 @@
 #include <openssl/x509.h>
 
 #include <cassert>
+#include <QDir>
 
 /*!
  * Before each test case, generates a new private-public key pair using
@@ -24,6 +25,10 @@
  */
 void tst_evp::init()
 {
+    qDebug() << "creating test tmp directory";
+    QDir tmpDir("/tmp");
+    tmpDir.mkdir("sailfish_secrets_tst_evp");
+
     qDebug() << "creating test private key file";
     QProcess proc1;
     proc1.start("openssl",
@@ -68,6 +73,10 @@ void tst_evp::cleanup()
         qDebug() << "deleting test public key file";
         publicKeyFile.remove();
     }
+
+    // Remove temp directory
+    QDir tmpDir("/tmp");
+    tmpDir.rmdir("sailfish_secrets_tst_evp");
 }
 
 QByteArray tst_evp::generateTestData(size_t size) {
@@ -184,8 +193,8 @@ void tst_evp::testVerifyIncorrect()
  * \return Signature.
  */
 QByteArray tst_evp::signWithCommandLine(const QByteArray &data) {
-    const char *testDataFileName = "testdata.bin";
-    const char *testSignatureFileName = "test-signature.sha256";
+    const char *testDataFileName = "/tmp/sailfish_secrets_tst_evp/testdata.bin";
+    const char *testSignatureFileName = "/tmp/sailfish_secrets_tst_evp/test-signature.sha256";
 
     QFile file(testDataFileName);
     file.open(QIODevice::WriteOnly);
@@ -219,8 +228,8 @@ QByteArray tst_evp::signWithCommandLine(const QByteArray &data) {
  */
 bool tst_evp::verifyWithCommandLine(const QByteArray &data, const QByteArray &signature)
 {
-    const char *testDataFileName = "testdata.bin";
-    const char *testSignatureFileName = "test-signature.sha256";
+    const char *testDataFileName = "/tmp/sailfish_secrets_tst_evp/testdata.bin";
+    const char *testSignatureFileName = "/tmp/sailfish_secrets_tst_evp/test-signature.sha256";
 
     QFile file(testDataFileName);
     file.open(QIODevice::WriteOnly);
@@ -264,7 +273,7 @@ QByteArray tst_evp::signWithEvp(const QByteArray &data) {
     uint8_t *signature;
     size_t signatureLength;
 
-    r = osslevp_sign(digestFunc, pkey, data.data(), data.length(), &signature, &signatureLength);
+    r = OpenSslEvp::sign(digestFunc, pkey, data.data(), data.length(), &signature, &signatureLength);
     assert(r == 1);
     BIO_free(bio);
     EVP_PKEY_free(pkey);
@@ -291,7 +300,7 @@ bool tst_evp::verifyWithEvp(const QByteArray &data, const QByteArray &signature)
     assert(r == publicKey.length());
     PEM_read_bio_PUBKEY(bio, &pkey, nullptr, nullptr);
 
-    r = osslevp_verify(digestFunc, pkey, data.data(), data.length(), reinterpret_cast<const uint8_t*>(signature.data()), signature.length());
+    r = OpenSslEvp::verify(digestFunc, pkey, data.data(), data.length(), reinterpret_cast<const uint8_t*>(signature.data()), signature.length());
     assert(r >= 0);
     BIO_free(bio);
     EVP_PKEY_free(pkey);
@@ -306,8 +315,8 @@ bool tst_evp::verifyWithEvp(const QByteArray &data, const QByteArray &signature)
  */
 QByteArray tst_evp::digestWithCommandLine(const QByteArray &data)
 {
-    const char *testDataFileName = "testdata-digest.bin";
-    const char *testDigestFileName = "test-digest.sha256";
+    const char *testDataFileName = "/tmp/sailfish_secrets_tst_evp/testdata-digest.bin";
+    const char *testDigestFileName = "/tmp/sailfish_secrets_tst_evp/test-digest.sha256";
 
     QFile file(testDataFileName);
     file.open(QIODevice::WriteOnly);
@@ -345,7 +354,7 @@ QByteArray tst_evp::digestWithEvp(const QByteArray &data)
     uint8_t *digest;
     size_t digestLength;
 
-    int r = osslevp_digest(digestFunc, data.data(), data.length(), &digest, &digestLength);
+    int r = OpenSslEvp::digest(digestFunc, data.data(), data.length(), &digest, &digestLength);
     assert(r == 1);
 
     QByteArray result((const char*) digest, (int) digestLength);

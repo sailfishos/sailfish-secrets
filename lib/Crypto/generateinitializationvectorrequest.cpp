@@ -163,6 +163,25 @@ Result GenerateInitializationVectorRequest::result() const
     return d->m_result;
 }
 
+QVariantMap GenerateInitializationVectorRequest::customParameters() const
+{
+    Q_D(const GenerateInitializationVectorRequest);
+    return d->m_customParameters;
+}
+
+void GenerateInitializationVectorRequest::setCustomParameters(const QVariantMap &params)
+{
+    Q_D(GenerateInitializationVectorRequest);
+    if (d->m_customParameters != params) {
+        d->m_customParameters = params;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit customParametersChanged();
+    }
+}
+
 CryptoManager *GenerateInitializationVectorRequest::manager() const
 {
     Q_D(const GenerateInitializationVectorRequest);
@@ -193,6 +212,7 @@ void GenerateInitializationVectorRequest::startRequest()
                 d->m_manager->d_ptr->generateInitializationVector(d->m_algorithm,
                                                                   d->m_blockMode,
                                                                   d->m_keySize,
+                                                                  d->m_customParameters,
                                                                   d->m_cryptoPluginName);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;

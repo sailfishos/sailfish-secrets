@@ -18,8 +18,8 @@
 class tst_evp : public QObject
 {
     Q_OBJECT
-    static constexpr const char *privateKeyFileName = "private_key.pem";
-    static constexpr const char *publicKeyFileName = "public_key.pem";
+    static constexpr const char *privateKeyFileName = "/tmp/sailfish_secrets_tst_evp/private_key.pem";
+    static constexpr const char *publicKeyFileName = "/tmp/sailfish_secrets_tst_evp/public_key.pem";
     QByteArray privateKey;
     QByteArray publicKey;
 

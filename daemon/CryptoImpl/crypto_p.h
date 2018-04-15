@@ -12,16 +12,21 @@
 #include "requestqueue_p.h"
 #include "applicationpermissions_p.h"
 
+#include "CryptoPluginApi/extensionplugins.h"
+
 #include "Crypto/key.h"
-#include "Crypto/extensionplugins.h"
+#include "Crypto/plugininfo.h"
 #include "Crypto/storedkeyrequest.h"
 #include "Crypto/interactionparameters.h"
 #include "Crypto/keyderivationparameters.h"
 #include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/lockcoderequest.h"
 
+#include <QtCore/QVariantMap>
 #include <QtCore/QByteArray>
 #include <QtCore/QString>
+#include <QtCore/QThreadPool>
+#include <QtCore/QSharedPointer>
 #include <QtDBus/QDBusContext>
 
 namespace Sailfish {
@@ -49,14 +54,16 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "  <interface name=\"org.sailfishos.crypto\">\n"
     "      <method name=\"getPluginInfo\">\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
-    "          <arg name=\"cryptoPlugins\" type=\"a(ay))\" direction=\"out\" />\n"
-    "          <arg name=\"storagePlugins\" type=\"as\" direction=\"out\" />\n"
+    "          <arg name=\"cryptoPlugins\" type=\"a(si)\" direction=\"out\" />\n"
+    "          <arg name=\"storagePlugins\" type=\"a(si)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"QVector<Sailfish::Crypto::CryptoPluginInfo>\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"QVector<Sailfish::Crypto::PluginInfo>\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out2\" value=\"QVector<Sailfish::Crypto::PluginInfo>\" />\n"
     "      </method>\n"
     "      <method name=\"generateRandomData\">\n"
     "          <arg name=\"numberBytes\" type=\"t\" direction=\"in\" />\n"
     "          <arg name=\"csprngEngineName\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"randomData\" type=\"ay\" direction=\"out\" />\n"
@@ -66,22 +73,16 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"seedData\" type=\"ay\" direction=\"in\" />\n"
     "          <arg name=\"entropyEstimate\" type=\"d\" direction=\"in\" />\n"
     "          <arg name=\"csprngEngineName\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
-    "      </method>\n"
-    "      <method name=\"validateCertificateChain\">\n"
-    "          <arg name=\"chain\" type=\"a(iay)\" direction=\"in\" />\n"
-    "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
-    "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
-    "          <arg name=\"valid\" type=\"b\" direction=\"out\" />\n"
-    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"QVector<Sailfish::Crypto::Certificate>\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "      </method>\n"
     "      <method name=\"generateKey\">\n"
     "          <arg name=\"keyTemplate\" type=\"(ay)\" direction=\"in\" />\n"
     "          <arg name=\"kpgParameters\" type=\"(ia{sv}a{sv})\" direction=\"in\" />\n"
     "          <arg name=\"skdfParameters\" type=\"(ayay(i)(i)(i)(i)xiiia{sv})\" direction=\"in\" />\n"
+    "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"key\" type=\"(ay)\" direction=\"out\" />\n"
@@ -96,8 +97,8 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"kpgParameters\" type=\"(ia{sv}a{sv})\" direction=\"in\" />\n"
     "          <arg name=\"skdfParameters\" type=\"(ayay(i)(i)(i)(i)xiiia{sv})\" direction=\"in\" />\n"
     "          <arg name=\"uiParams\" type=\"(sss(i)sss(i)(i))\" direction=\"in\" />\n"
+    "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
-    "          <arg name=\"storageProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"key\" type=\"(ay)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Crypto::Key\" />\n"
@@ -110,6 +111,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "      <method name=\"importKey\">\n"
     "          <arg name=\"key\" type=\"(ay)\" direction=\"in\" />\n"
     "          <arg name=\"uiParams\" type=\"(ssss(i)sss(i)(i))\" direction=\"in\" />\n"
+    "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"importedKey\" type=\"(ay)\" direction=\"out\" />\n"
@@ -121,8 +123,8 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "      <method name=\"importStoredKey\">\n"
     "          <arg name=\"key\" type=\"(ay)\" direction=\"in\" />\n"
     "          <arg name=\"uiParams\" type=\"(ssss(i)sss(i)(i))\" direction=\"in\" />\n"
+    "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
-    "          <arg name=\"storageProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"importedKeyReference\" type=\"(ay)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Crypto::Key\" />\n"
@@ -131,7 +133,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Crypto::Key\" />\n"
     "      </method>\n"
     "      <method name=\"storedKey\">\n"
-    "          <arg name=\"identifier\" type=\"(ss)\" direction=\"in\" />\n"
+    "          <arg name=\"identifier\" type=\"(sss)\" direction=\"in\" />\n"
     "          <arg name=\"keyComponents\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"key\" type=\"(ay)\" direction=\"out\" />\n"
@@ -141,14 +143,15 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Crypto::Key\" />\n"
     "      </method>\n"
     "      <method name=\"deleteStoredKey\">\n"
-    "          <arg name=\"identifier\" type=\"(ss)\" direction=\"in\" />\n"
+    "          <arg name=\"identifier\" type=\"(sss)\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Crypto::Key::Identifier\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "      </method>\n"
     "      <method name=\"storedKeyIdentifiers\">\n"
+    "          <arg name=\"storagePluginName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
-    "          <arg name=\"identifiers\" type=\"a(ss)\" direction=\"out\" />\n"
+    "          <arg name=\"identifiers\" type=\"a(sss)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"QVector<Sailfish::Crypto::Key::Identifier>\" />\n"
     "      </method>\n"
@@ -156,6 +159,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"data\" type=\"ay\" direction=\"in\" />\n"
     "          <arg name=\"padding\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"digestFunction\" type=\"(i)\" direction=\"in\" />\n"
+    "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"digest\" type=\"ay\" direction=\"out\" />\n"
@@ -168,6 +172,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"key\" type=\"(ay)\" direction=\"in\" />\n"
     "          <arg name=\"padding\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"digest\" type=\"(i)\" direction=\"in\" />\n"
+    "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"signature\" type=\"ay\" direction=\"out\" />\n"
@@ -182,6 +187,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"key\" type=\"(ay)\" direction=\"in\" />\n"
     "          <arg name=\"padding\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"digest\" type=\"(i)\" direction=\"in\" />\n"
+    "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"verified\" type=\"b\" direction=\"out\" />\n"
@@ -197,6 +203,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"blockMode\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"padding\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"authenticationData\" type=\"ay\" direction=\"in\" />\n"
+    "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"encrypted\" type=\"ay\" direction=\"out\" />\n"
@@ -214,6 +221,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"padding\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"authenticationData\" type=\"ay\" direction=\"in\" />\n"
     "          <arg name=\"authenticationTag\" type=\"ay\" direction=\"in\" />\n"
+    "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"decrypted\" type=\"ay\" direction=\"out\" />\n"
@@ -231,6 +239,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"encryptionPadding\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"signaturePadding\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"digest\" type=\"(i)\" direction=\"in\" />\n"
+    "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"cipherSessionToken\" type=\"u\" direction=\"out\" />\n"
@@ -244,6 +253,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "      </method>\n"
     "      <method name=\"updateCipherSessionAuthentication\">\n"
     "          <arg name=\"authenticationData\" type=\"ay\" direction=\"in\" />\n"
+    "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"cipherSessionToken\" type=\"u\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
@@ -251,6 +261,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "      </method>\n"
     "      <method name=\"updateCipherSession\">\n"
     "          <arg name=\"data\" type=\"ay\" direction=\"in\" />\n"
+    "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"cipherSessionToken\" type=\"u\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
@@ -259,6 +270,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "      </method>\n"
     "      <method name=\"finaliseCipherSession\">\n"
     "          <arg name=\"data\" type=\"ay\" direction=\"in\" />\n"
+    "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"cipherSessionToken\" type=\"u\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
@@ -303,12 +315,13 @@ public Q_SLOTS:
     void getPluginInfo(
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
-            QVector<Sailfish::Crypto::CryptoPluginInfo> &cryptoPlugins,
-            QStringList &storagePlugins);
+            QVector<Sailfish::Crypto::PluginInfo> &cryptoPlugins,
+            QVector<Sailfish::Crypto::PluginInfo> &storagePlugins);
 
     void generateRandomData(
             quint64 numberBytes,
             const QString &csprngEngineName,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
@@ -318,6 +331,7 @@ public Q_SLOTS:
             const QByteArray &seedData,
             double entropyEstimate,
             const QString &csprngEngineName,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result);
@@ -326,22 +340,17 @@ public Q_SLOTS:
             Sailfish::Crypto::CryptoManager::Algorithm algorithm,
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             int keySize,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
             QByteArray &generatedIV);
 
-    void validateCertificateChain(
-            const QVector<Sailfish::Crypto::Certificate> &chain,
-            const QString &cryptosystemProviderName,
-            const QDBusMessage &message,
-            Sailfish::Crypto::Result &result,
-            bool &valid);
-
     void generateKey(
             const Sailfish::Crypto::Key &keyTemplate,
             const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
@@ -352,8 +361,8 @@ public Q_SLOTS:
             const Sailfish::Crypto::KeyPairGenerationParameters &kpgParams,
             const Sailfish::Crypto::KeyDerivationParameters &skdfParams,
             const Sailfish::Crypto::InteractionParameters &uiParams,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
-            const QString &storageProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
             Sailfish::Crypto::Key &key);
@@ -361,6 +370,7 @@ public Q_SLOTS:
     void importKey(
             const Sailfish::Crypto::Key &key,
             const Sailfish::Crypto::InteractionParameters &uiParams,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
@@ -369,8 +379,8 @@ public Q_SLOTS:
     void importStoredKey(
             const Sailfish::Crypto::Key &key,
             const Sailfish::Crypto::InteractionParameters &uiParams,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
-            const QString &storageProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
             Sailfish::Crypto::Key &importedKey);
@@ -388,6 +398,7 @@ public Q_SLOTS:
             Sailfish::Crypto::Result &result);
 
     void storedKeyIdentifiers(
+            const QString &storagePluginName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
             QVector<Sailfish::Crypto::Key::Identifier> &identifiers);
@@ -396,6 +407,7 @@ public Q_SLOTS:
             const QByteArray &data,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
@@ -406,6 +418,7 @@ public Q_SLOTS:
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
@@ -417,6 +430,7 @@ public Q_SLOTS:
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
@@ -429,19 +443,22 @@ public Q_SLOTS:
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
             QByteArray &encrypted,
             QByteArray &authenticationTag);
 
-    void decrypt(const QByteArray &data,
+    void decrypt(
+            const QByteArray &data,
             const QByteArray &iv,
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
             Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
             const QByteArray &authenticationData,
             const QByteArray &authenticationTag,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
@@ -456,6 +473,7 @@ public Q_SLOTS:
             Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
             Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
@@ -463,6 +481,7 @@ public Q_SLOTS:
 
     void updateCipherSessionAuthentication(
             const QByteArray &authenticationData,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             quint32 cipherSessionToken,
             const QDBusMessage &message,
@@ -470,6 +489,7 @@ public Q_SLOTS:
 
     void updateCipherSession(
             const QByteArray &data,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             quint32 cipherSessionToken,
             const QDBusMessage &message,
@@ -478,6 +498,7 @@ public Q_SLOTS:
 
     void finaliseCipherSession(
             const QByteArray &data,
+            const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             quint32 cipherSessionToken,
             const QDBusMessage &message,
@@ -521,17 +542,22 @@ public:
                        bool autotestMode);
     ~CryptoRequestQueue();
 
+    Sailfish::Secrets::Daemon::Controller *controller();
+    QWeakPointer<QThreadPool> cryptoThreadPool();
     QMap<QString, Sailfish::Crypto::CryptoPlugin*> plugins() const;
-    bool lockPlugins();
-    bool unlockPlugins(const QByteArray &unlockCode);
-    bool setLockCodePlugins(const QByteArray &oldCode, const QByteArray &newCode);
+
+    bool lockPlugin(const QString &pluginName);
+    bool unlockPlugin(const QString &pluginName, const QByteArray &lockCode);
+    bool setLockCodePlugin(const QString &pluginName, const QByteArray &oldCode, const QByteArray &newCode);
 
     void handlePendingRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;
     void handleFinishedRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;
     QString requestTypeToString(int type) const Q_DECL_OVERRIDE;
 
 private:
+    QSharedPointer<QThreadPool> m_cryptoThreadPool;
     Sailfish::Crypto::Daemon::ApiImpl::RequestProcessor *m_requestProcessor;
+    Sailfish::Secrets::Daemon::Controller *m_controller;
 };
 
 enum RequestType {
@@ -540,7 +566,6 @@ enum RequestType {
     GenerateRandomDataRequest,
     SeedRandomDataGeneratorRequest,
     GenerateInitializationVectorRequest,
-    ValidateCertificateChainRequest,
     GenerateKeyRequest,
     GenerateStoredKeyRequest,
     ImportKeyRequest,

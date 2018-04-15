@@ -10,7 +10,6 @@
 
 #include "Crypto/cryptoglobal.h"
 #include "Crypto/cryptomanager.h"
-#include "Crypto/certificate.h"
 
 #include <QtCore/QString>
 #include <QtCore/QByteArray>
@@ -45,7 +44,7 @@ class SAILFISH_CRYPTO_API Key
 public:
     enum Origin {
         OriginUnknown       = 0,
-        OriginImported, // do we need a link to the certificate chain?  or backend handles this?
+        OriginImported,
         OriginDevice,
         OriginSecureDevice
     };
@@ -65,7 +64,7 @@ public:
     class Identifier {
     public:
         Identifier();
-        explicit Identifier(const QString &name, const QString &collectionName = QString());
+        explicit Identifier(const QString &name, const QString &collectionName, const QString &storagePluginName);
         Identifier(const Sailfish::Crypto::Key::Identifier &other);
         ~Identifier();
 
@@ -75,6 +74,8 @@ public:
         void setName(const QString &name);
         QString collectionName() const;
         void setCollectionName(const QString &collectionName);
+        QString storagePluginName() const;
+        void setStoragePluginName(const QString &storagePluginName);
     private:
         QSharedDataPointer<KeyIdentifierPrivate> d_ptr;
         friend class KeyIdentifierPrivate;
@@ -92,7 +93,7 @@ public:
 
     Key();
     Key(const Sailfish::Crypto::Key &other);
-    explicit Key(const QString &keyName, const QString &collection);
+    explicit Key(const QString &keyName, const QString &collection, const QString &storagePluginName);
     virtual ~Key();
 
     Sailfish::Crypto::Key& operator=(const Sailfish::Crypto::Key &other);
@@ -100,10 +101,12 @@ public:
     Sailfish::Crypto::Key::Identifier identifier() const;
     void setIdentifier(const Sailfish::Crypto::Key::Identifier &identifier);
 
-    QString name() const { return identifier().name(); }
-    void setName(const QString &name) { setIdentifier(Identifier(name, collectionName())); }
-    QString collectionName() const { return identifier().collectionName(); }
-    void setCollectionName(const QString &collectionName) { setIdentifier(Identifier(name(), collectionName)); }
+    QString name() const;
+    void setName(const QString &name);
+    QString collectionName() const;
+    void setCollectionName(const QString &collectionName);
+    QString storagePluginName() const;
+    void setStoragePluginName(const QString &pluginName);
 
     Sailfish::Crypto::Key::Origin origin() const;
     void setOrigin(Sailfish::Crypto::Key::Origin origin);
@@ -145,7 +148,6 @@ public:
     };
     static QByteArray serialise(const Sailfish::Crypto::Key &key, SerialisationMode serialisationMode = LosslessSerialisationMode);
     static Sailfish::Crypto::Key deserialise(const QByteArray &data, bool *ok = nullptr);
-    static Sailfish::Crypto::Key fromCertificate(const Sailfish::Crypto::Certificate &certificate);
 
 protected:
     QSharedDataPointer<KeyPrivate> d_ptr;

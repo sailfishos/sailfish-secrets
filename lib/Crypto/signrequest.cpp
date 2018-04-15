@@ -204,6 +204,25 @@ Result SignRequest::result() const
     return d->m_result;
 }
 
+QVariantMap SignRequest::customParameters() const
+{
+    Q_D(const SignRequest);
+    return d->m_customParameters;
+}
+
+void SignRequest::setCustomParameters(const QVariantMap &params)
+{
+    Q_D(SignRequest);
+    if (d->m_customParameters != params) {
+        d->m_customParameters = params;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit customParametersChanged();
+    }
+}
+
 CryptoManager *SignRequest::manager() const
 {
     Q_D(const SignRequest);
@@ -235,6 +254,7 @@ void SignRequest::startRequest()
                                           d->m_key,
                                           d->m_padding,
                                           d->m_digestFunction,
+                                          d->m_customParameters,
                                           d->m_cryptoPluginName);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;

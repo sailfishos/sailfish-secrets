@@ -27,7 +27,6 @@ class SAILFISH_SECRETS_API StoreSecretRequest : public Sailfish::Secrets::Reques
 {
     Q_OBJECT
     Q_PROPERTY(SecretStorageType secretStorageType READ secretStorageType WRITE setSecretStorageType NOTIFY secretStorageTypeChanged)
-    Q_PROPERTY(QString storagePluginName READ storagePluginName WRITE setStoragePluginName NOTIFY storagePluginNameChanged)
     Q_PROPERTY(QString encryptionPluginName READ encryptionPluginName WRITE setEncryptionPluginName NOTIFY encryptionPluginNameChanged)
     Q_PROPERTY(QString authenticationPluginName READ authenticationPluginName WRITE setAuthenticationPluginName NOTIFY authenticationPluginNameChanged)
     Q_PROPERTY(Sailfish::Secrets::Secret secret READ secret WRITE setSecret NOTIFY secretChanged)
@@ -36,7 +35,6 @@ class SAILFISH_SECRETS_API StoreSecretRequest : public Sailfish::Secrets::Reques
     Q_PROPERTY(Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic customLockUnlockSemantic READ customLockUnlockSemantic WRITE setCustomLockUnlockSemantic NOTIFY customLockUnlockSemanticChanged)
     Q_PROPERTY(Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode READ accessControlMode WRITE setAccessControlMode NOTIFY accessControlModeChanged)
     Q_PROPERTY(Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode READ userInteractionMode WRITE setUserInteractionMode NOTIFY userInteractionModeChanged)
-    Q_PROPERTY(int customLockTimeout READ customLockTimeout WRITE setCustomLockTimeout NOTIFY customLockTimeoutChanged)
 
 public:
     enum SecretStorageType {
@@ -50,9 +48,6 @@ public:
 
     SecretStorageType secretStorageType() const;
     void setSecretStorageType(SecretStorageType semantic);
-
-    QString storagePluginName() const;
-    void setStoragePluginName(const QString &pluginName);
 
     QString encryptionPluginName() const;
     void setEncryptionPluginName(const QString &pluginName);
@@ -72,9 +67,6 @@ public:
     Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic customLockUnlockSemantic() const;
     void setCustomLockUnlockSemantic(Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic semantic);
 
-    int customLockTimeout() const;
-    void setCustomLockTimeout(int timeout);
-
     Sailfish::Secrets::SecretManager::AccessControlMode accessControlMode() const;
     void setAccessControlMode(Sailfish::Secrets::SecretManager::AccessControlMode mode);
 
@@ -92,7 +84,6 @@ public:
 
 Q_SIGNALS:
     void secretStorageTypeChanged();
-    void storagePluginNameChanged();
     void encryptionPluginNameChanged();
     void authenticationPluginNameChanged();
     void secretChanged();
@@ -101,7 +92,6 @@ Q_SIGNALS:
     void customLockUnlockSemanticChanged();
     void accessControlModeChanged();
     void userInteractionModeChanged();
-    void customLockTimeoutChanged();
 
 private:
     QScopedPointer<StoreSecretRequestPrivate> const d_ptr;

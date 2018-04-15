@@ -30,6 +30,7 @@ public:
     explicit CalculateDigestRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
+    QVariantMap m_customParameters;
     QByteArray m_data;
     Sailfish::Crypto::CryptoManager::SignaturePadding m_padding;
     Sailfish::Crypto::CryptoManager::DigestFunction m_digestFunction;

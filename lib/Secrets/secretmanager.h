@@ -10,7 +10,7 @@
 
 #include "Secrets/secret.h"
 #include "Secrets/secretsglobal.h"
-#include "Secrets/extensionplugins.h"
+#include "Secrets/plugininfo.h"
 
 #include <QtCore/QVector>
 #include <QtCore/QObject>
@@ -68,8 +68,8 @@ public:
     Q_ENUM(CustomLockUnlockSemantic)
 
     enum FilterOperator {
-        OperatorOr  = Sailfish::Secrets::StoragePlugin::OperatorOr,
-        OperatorAnd = Sailfish::Secrets::StoragePlugin::OperatorAnd
+        OperatorOr = 0,
+        OperatorAnd
     };
     Q_ENUM(FilterOperator)
 

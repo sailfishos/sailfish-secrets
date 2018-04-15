@@ -52,6 +52,21 @@ Request::~Request()
  */
 
 /*!
+ * \fn Request::setCustomParameters(const QVariantMap &params)
+ * \brief Sets plugin-specific custom parameters associated with the request to \a params
+ *
+ * Note that in most cases, custom parameters set by the client will be ignored,
+ * unless the plugin they are requesting functionality from specifically requires
+ * a parameter to be passed via the custom parameters.  Plugins must document
+ * any such requirements, in their user documentation.
+ */
+
+/*!
+ * \fn Request::customParameters() const
+ * \brief Returns the plugin-specific custom parameters associated with the request
+ */
+
+/*!
  * \fn Request::status() const
  * \brief Returns the current status of the Request
  */

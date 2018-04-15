@@ -29,7 +29,8 @@ FindSecretsRequestPrivate::FindSecretsRequestPrivate()
  *        from the system's secure secret storage service
  *
  * The filter specifies metadata field/value pairs, and will be matched against
- * secrets in the storage according to the given filterOperator().
+ * secrets in the storage plugin identified by the specified storagePluginName()
+ * according to the given filterOperator().
  *
  * If a collection() is specified to search within, and the calling application is
  * the creator of the collection, or alternatively if the user has granted the
@@ -67,6 +68,7 @@ FindSecretsRequestPrivate::FindSecretsRequestPrivate()
  * Sailfish::Secrets::FindSecretsRequest fsr;
  * fsr.setManager(&sm);
  * fsr.setCollectionName(QLatin1String("ExampleCollection"));
+ * fsr.setStoragePluginName(Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
  * fsr.setFilter(filter);
  * fsr.setFilterOperator(Sailfish::Secrets::SecretManager::OperatorAnd);
  * fsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
@@ -114,6 +116,31 @@ void FindSecretsRequest::setCollectionName(const QString &name)
             emit statusChanged();
         }
         emit collectionNameChanged();
+    }
+}
+
+/*!
+ * \brief Returns the name of the storage plugin within which the client wishes to find secrets
+ */
+QString FindSecretsRequest::storagePluginName() const
+{
+    Q_D(const FindSecretsRequest);
+    return d->m_storagePluginName;
+}
+
+/*!
+ * \brief Sets the name of the storage plugin within which the client wishes to use to find secrets to \a pluginName
+ */
+void FindSecretsRequest::setStoragePluginName(const QString &pluginName)
+{
+    Q_D(FindSecretsRequest);
+    if (d->m_status != Request::Active && d->m_storagePluginName != pluginName) {
+        d->m_storagePluginName = pluginName;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit storagePluginNameChanged();
     }
 }
 
@@ -257,11 +284,13 @@ void FindSecretsRequest::startRequest()
 
         QDBusPendingReply<Result, QVector<Secret::Identifier> > reply;
         if (d->m_collectionName.isEmpty()) {
-            reply = d->m_manager->d_ptr->findSecrets(d->m_filter,
+            reply = d->m_manager->d_ptr->findSecrets(d->m_storagePluginName,
+                                                     d->m_filter,
                                                      d->m_filterOperator,
                                                      d->m_userInteractionMode);
         } else {
             reply = d->m_manager->d_ptr->findSecrets(d->m_collectionName,
+                                                     d->m_storagePluginName,
                                                      d->m_filter,
                                                      d->m_filterOperator,
                                                      d->m_userInteractionMode);

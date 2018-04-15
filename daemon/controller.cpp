@@ -9,12 +9,15 @@
 #include "discoveryobject_p.h"
 #include "logging_p.h"
 
-#include "SecretsImpl/secrets_p.h"
 #include "CryptoImpl/crypto_p.h"
+#include "SecretsImpl/secrets_p.h"
+#include "SecretsImpl/metadatadb_p.h"
 
 #include <QtCore/QString>
 #include <QtCore/QDir>
 #include <QtCore/QStandardPaths>
+
+#include <QtConcurrent>
 
 namespace {
     QString p2pSocketAddress()
@@ -43,6 +46,9 @@ Sailfish::Secrets::Daemon::Controller::Controller(bool autotestMode, QObject *pa
     , m_autotestMode(autotestMode)
     , m_isValid(false)
 {
+    qRegisterMetaType<Sailfish::Secrets::Daemon::ApiImpl::CollectionMetadata>();
+    qRegisterMetaType<Sailfish::Secrets::Daemon::ApiImpl::SecretMetadata>();
+
     // Initialise the various API implementation objects.
     // These objects provide Peer-To-Peer DBus API.
     m_secrets = new Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue(this, autotestMode);
@@ -54,7 +60,11 @@ Sailfish::Secrets::Daemon::Controller::Controller(bool autotestMode, QObject *pa
     // that we have the "correct" bookkeeping database lock key here,
     // but that's ok - we can unlock the database at some later point in
     // time after performing a UI flow asking the user to unlock.
-    m_secrets->initialise(QByteArray());
+    if (m_secrets->initialise(
+                QByteArray(),
+                Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::UnlockMode)) {
+        m_secrets->initialisePlugins();
+    }
 
     // Determine the p2p socket address.
     const QString p2pDBusSocketAddress = p2pSocketAddress();
@@ -106,6 +116,17 @@ Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue*
 Sailfish::Secrets::Daemon::Controller::crypto() const
 {
     return m_crypto;
+}
+
+QWeakPointer<QThreadPool> Sailfish::Secrets::Daemon::Controller::threadPoolForPlugin(const QString &pluginName) const
+{
+    if (m_secrets->potentialCryptoStoragePlugins().contains(pluginName)) {
+        return m_secrets->secretsThreadPool();
+    } else if (m_crypto->plugins().contains(pluginName)) {
+        return m_crypto->cryptoThreadPool();
+    } else {
+        return m_secrets->secretsThreadPool();
+    }
 }
 
 void Sailfish::Secrets::Daemon::Controller::handleClientConnection(const QDBusConnection &connection)

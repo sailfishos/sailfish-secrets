@@ -21,7 +21,6 @@ InteractionParametersPrivate::InteractionParametersPrivate(const InteractionPara
     , m_applicationId(other.m_applicationId)
     , m_operation(other.m_operation)
     , m_promptText(other.m_promptText)
-    , m_promptTrId(other.m_promptTrId)
     , m_inputType(other.m_inputType)
     , m_echoMode(other.m_echoMode)
 {
@@ -223,32 +222,14 @@ QString InteractionParameters::promptText() const
 
 /*!
  * \brief Sets the application-specified prompt text to be displayed as part of the user input flow to \a prompt
+ *
+ * Note that this field will usually be supplied by the secrets service for system-mediated user interaction flows,
+ * so any value set by client applications will have no effect.
  */
 void InteractionParameters::setPromptText(const QString &prompt)
 {
     if (d_ptr->m_promptText != prompt) {
         d_ptr->m_promptText = prompt;
-    }
-}
-
-/*!
- * \brief Returns the translation id of the system-dialog prompt text to be displayed as part of the user input flow
- */
-QString InteractionParameters::promptTrId() const
-{
-    return d_ptr->m_promptTrId;
-}
-
-/*!
- * \brief Sets the translation id of the system-dialog prompt text to be displayed as part of the user input flow to \a trId
- *
- * Note that this field will be supplied by the secrets service for system-mediated user interaction flows,
- * so any value set by client applications will have no effect.
- */
-void InteractionParameters::setPromptTrId(const QString &trId)
-{
-    if (d_ptr->m_promptTrId != trId) {
-        d_ptr->m_promptTrId = trId;
     }
 }
 
@@ -300,7 +281,6 @@ bool Sailfish::Crypto::operator==(const InteractionParameters &lhs, const Intera
             && lhs.operation() == rhs.operation()
             && lhs.authenticationPluginName() == rhs.authenticationPluginName()
             && lhs.promptText() == rhs.promptText()
-            && lhs.promptTrId() == rhs.promptTrId()
             && lhs.inputType() == rhs.inputType()
             && lhs.echoMode() == rhs.echoMode();
 }

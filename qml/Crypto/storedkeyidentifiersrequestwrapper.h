@@ -13,6 +13,8 @@
 
 #include "Crypto/storedkeyidentifiersrequest.h"
 
+#include <QtCore/QVariant>
+#include <QtCore/QVariantList>
 
 namespace Sailfish {
 

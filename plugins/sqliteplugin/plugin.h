@@ -10,7 +10,8 @@
 
 #include "database_p.h"
 
-#include "Secrets/extensionplugins.h"
+#include "SecretsPluginApi/extensionplugins.h"
+
 #include "Secrets/result.h"
 
 #include <QObject>
@@ -29,7 +30,7 @@ namespace Daemon {
 
 namespace Plugins {
 
-class Q_DECL_EXPORT SqlitePlugin : public QObject, public Sailfish::Secrets::StoragePlugin
+class Q_DECL_EXPORT SqlitePlugin : public QObject, public virtual Sailfish::Secrets::StoragePlugin
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID Sailfish_Secrets_StoragePlugin_IID)
@@ -46,18 +47,24 @@ public:
         return QLatin1String("org.sailfishos.secrets.plugin.storage.sqlite");
 #endif
     }
+    int version() const Q_DECL_OVERRIDE {
+        return 1;
+    }
+
     Sailfish::Secrets::StoragePlugin::StorageType storageType() const Q_DECL_OVERRIDE { return Sailfish::Secrets::StoragePlugin::FileSystemStorage; }
 
+    Sailfish::Secrets::Result collectionNames(QStringList *names) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result createCollection(const QString &collectionName) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result removeCollection(const QString &collectionName) Q_DECL_OVERRIDE;
-    Sailfish::Secrets::Result setSecret(const QString &collectionName, const QString &hashedSecretName, const QByteArray &encryptedSecretName, const QByteArray &secret, const Sailfish::Secrets::Secret::FilterData &filterData) Q_DECL_OVERRIDE;
-    Sailfish::Secrets::Result getSecret(const QString &collectionName, const QString &hashedSecretName, QByteArray *encryptedSecretName, QByteArray *secret, Sailfish::Secrets::Secret::FilterData *filterData) Q_DECL_OVERRIDE;
-    Sailfish::Secrets::Result findSecrets(const QString &collectionName, const Sailfish::Secrets::Secret::FilterData &filter, Sailfish::Secrets::StoragePlugin::FilterOperator filterOperator, QVector<QByteArray> *encryptedSecretNames) Q_DECL_OVERRIDE;
-    Sailfish::Secrets::Result removeSecret(const QString &collectionName, const QString &hashedSecretName) Q_DECL_OVERRIDE;
+    Sailfish::Secrets::Result setSecret(const QString &collectionName, const QString &secretName, const QByteArray &secret, const Sailfish::Secrets::Secret::FilterData &filterData) Q_DECL_OVERRIDE;
+    Sailfish::Secrets::Result getSecret(const QString &collectionName, const QString &secretName, QByteArray *secret, Sailfish::Secrets::Secret::FilterData *filterData) Q_DECL_OVERRIDE;
+    Sailfish::Secrets::Result secretNames(const QString &collectionName, QStringList *secretNames) Q_DECL_OVERRIDE;
+    Sailfish::Secrets::Result findSecrets(const QString &collectionName, const Sailfish::Secrets::Secret::FilterData &filter, Sailfish::Secrets::StoragePlugin::FilterOperator filterOperator, QStringList *secretNames) Q_DECL_OVERRIDE;
+    Sailfish::Secrets::Result removeSecret(const QString &collectionName, const QString &secretName) Q_DECL_OVERRIDE;
 
-    Sailfish::Secrets::Result reencryptSecrets(
-            const QString &collectionName,             // non-empty, all secrets in this collection will be re-encrypted
-            const QVector<QString> &hashedSecretNames, // if collectionName is empty, these standalone secrets will be re-encrypted.
+    Sailfish::Secrets::Result reencrypt(
+            const QString &collectionName,  // non-empty, all secrets in this collection will be re-encrypted
+            const QString &secretNames,     // if collectionName is empty, this standalone secret will be re-encrypted.
             const QByteArray &oldkey,
             const QByteArray &newkey,
             Sailfish::Secrets::EncryptionPlugin *plugin) Q_DECL_OVERRIDE;

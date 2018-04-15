@@ -11,6 +11,7 @@
 #include "Crypto/cryptomanager.h"
 #include "Crypto/cryptomanager_p.h"
 #include "Crypto/serialisation_p.h"
+#include "Crypto/plugininfo.h"
 
 #include <QtDBus/QDBusPendingReply>
 #include <QtDBus/QDBusPendingCallWatcher>
@@ -48,18 +49,21 @@ PluginInfoRequest::~PluginInfoRequest()
  *
  * Note: this value is only valid if the status of the request is Request::Finished.
  */
-QVector<Sailfish::Crypto::CryptoPluginInfo> PluginInfoRequest::cryptoPlugins() const
+QVector<Sailfish::Crypto::PluginInfo> PluginInfoRequest::cryptoPlugins() const
 {
     Q_D(const PluginInfoRequest);
     return d->m_cryptoPlugins;
 }
 
 /*!
- * \brief Returns the name of available storage plugins
+ * \brief Returns information about available (Secrets) storage plugins
+ *
+ * A plugin which is both a crypto plugin and a storage plugin is able
+ * to store keys (and thus can be used with GenerateStoredKeyRequest etc).
  *
  * Note: this value is only valid if the status of the request is Request::Finished.
  */
-QStringList PluginInfoRequest::storagePlugins() const
+QVector<Sailfish::Crypto::PluginInfo> PluginInfoRequest::storagePlugins() const
 {
     Q_D(const PluginInfoRequest);
     return d->m_storagePlugins;
@@ -75,6 +79,25 @@ Result PluginInfoRequest::result() const
 {
     Q_D(const PluginInfoRequest);
     return d->m_result;
+}
+
+QVariantMap PluginInfoRequest::customParameters() const
+{
+    Q_D(const PluginInfoRequest);
+    return d->m_customParameters;
+}
+
+void PluginInfoRequest::setCustomParameters(const QVariantMap &params)
+{
+    Q_D(PluginInfoRequest);
+    if (d->m_customParameters != params) {
+        d->m_customParameters = params;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit customParametersChanged();
+    }
 }
 
 CryptoManager *PluginInfoRequest::manager() const
@@ -103,7 +126,9 @@ void PluginInfoRequest::startRequest()
             emit resultChanged();
         }
 
-        QDBusPendingReply<Result, QVector<CryptoPluginInfo>, QStringList> reply =
+        // should we pass customParameters in this case, or not?
+        // there's no "specific plugin" which is the target of the request..
+        QDBusPendingReply<Result, QVector<PluginInfo>, QVector<PluginInfo> > reply =
                 d->m_manager->d_ptr->getPluginInfo();
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;
@@ -127,7 +152,7 @@ void PluginInfoRequest::startRequest()
             connect(d->m_watcher.data(), &QDBusPendingCallWatcher::finished,
                     [this] {
                 QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.take();
-                QDBusPendingReply<Result, QVector<CryptoPluginInfo>, QStringList> reply = *watcher;
+                QDBusPendingReply<Result, QVector<PluginInfo>, QVector<PluginInfo> > reply = *watcher;
                 this->d_ptr->m_status = Request::Finished;
                 this->d_ptr->m_result = reply.argumentAt<0>();
                 this->d_ptr->m_cryptoPlugins = reply.argumentAt<1>();

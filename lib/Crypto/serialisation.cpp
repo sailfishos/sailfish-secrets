@@ -8,8 +8,7 @@
 #include "Crypto/cryptomanager.h"
 #include "Crypto/result.h"
 #include "Crypto/key.h"
-#include "Crypto/certificate.h"
-#include "Crypto/extensionplugins.h"
+#include "Crypto/plugininfo.h"
 #include "Crypto/cipherrequest.h"
 #include "Crypto/interactionparameters.h"
 #include "Crypto/keyderivationparameters.h"
@@ -64,7 +63,7 @@ Key::deserialise(const QByteArray &data, bool *ok)
 
     in.setVersion(QDataStream::Qt_5_6);
 
-    QString name, collectionName;
+    QString name, collectionName, storagePluginName;
     int iorigin = 0, ialgorithm = 0, ioperations = 0, icomponentConstraints = 0, isize = 0;
     QByteArray publicKey, privateKey, secretKey;
     QVector<QByteArray> customParameters;
@@ -72,6 +71,7 @@ Key::deserialise(const QByteArray &data, bool *ok)
 
     in >> name;
     in >> collectionName;
+    in >> storagePluginName;
 
     in >> iorigin;
     in >> ialgorithm;
@@ -90,7 +90,7 @@ Key::deserialise(const QByteArray &data, bool *ok)
     buffer.close();
 
     Key retn;
-    retn.setIdentifier(Key::Identifier(name, collectionName));
+    retn.setIdentifier(Key::Identifier(name, collectionName, storagePluginName));
     retn.setOrigin(static_cast<Key::Origin>(iorigin));
     retn.setAlgorithm(static_cast<CryptoManager::Algorithm>(ialgorithm));
     retn.setOperations(static_cast<CryptoManager::Operations>(ioperations));
@@ -127,7 +127,9 @@ Key::serialise(const Key &key, Key::SerialisationMode serialisationMode)
     if (serialisationMode == Key::LosslessSerialisationMode) {
         out << key.identifier().name();
         out << key.identifier().collectionName();
+        out << key.identifier().storagePluginName();
     } else {
+        out << QString();
         out << QString();
         out << QString();
     }
@@ -275,134 +277,6 @@ QDataStream& operator<<(QDataStream& out, const CryptoManager::Operations &v)
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, CryptoPlugin::EncryptionType &v)
-{
-    quint32 temp = 0;
-    in >> temp;
-    v = static_cast<CryptoPlugin::EncryptionType>(temp);
-    return in;
-}
-
-QDataStream& operator<<(QDataStream& out, const CryptoPlugin::EncryptionType &v)
-{
-    quint32 temp = static_cast<quint32>(v);
-    out << temp;
-    return out;
-}
-
-CryptoPluginInfo
-CryptoPluginInfo::deserialise(const QByteArray &data)
-{
-    QBuffer buffer;
-    buffer.setData(data);
-    buffer.open(QIODevice::ReadOnly);
-
-    QDataStream in(&buffer);
-
-    quint32 magic;
-    in >> magic;
-    if (magic != 0x43504900) {
-        qCWarning(lcSailfishCryptoSerialisation) << "Cannot deserialise CryptoPluginInfo, bad magic number:" << magic;
-        return CryptoPluginInfo();
-    }
-
-    qint32 version;
-    in >> version;
-    if (version != 100) {
-        qCWarning(lcSailfishCryptoSerialisation) << "Cannot deserialise CryptoPluginInfo, bad version number:" << version;
-        return CryptoPluginInfo();
-    }
-
-    in.setVersion(QDataStream::Qt_5_6);
-
-    QString name;
-    bool canStoreKeys = false;
-    CryptoPlugin::EncryptionType encryptionType = CryptoPlugin::NoEncryption;
-    QVector<CryptoManager::Algorithm> supportedAlgorithms;
-    QMap<CryptoManager::Algorithm, QVector<CryptoManager::BlockMode> > supportedBlockModes;
-    QMap<CryptoManager::Algorithm, QVector<CryptoManager::EncryptionPadding> > supportedEncryptionPaddings;
-    QMap<CryptoManager::Algorithm, QVector<CryptoManager::SignaturePadding> > supportedSignaturePaddings;
-    QMap<CryptoManager::Algorithm, QVector<CryptoManager::DigestFunction> > supportedDigests;
-    QMap<CryptoManager::Algorithm, CryptoManager::Operations> supportedOperations;
-
-    in >> name;
-    in >> canStoreKeys;
-    in >> encryptionType;
-    in >> supportedAlgorithms;
-    in >> supportedBlockModes;
-    in >> supportedEncryptionPaddings;
-    in >> supportedSignaturePaddings;
-    in >> supportedDigests;
-    in >> supportedOperations;
-
-    buffer.close();
-
-    CryptoPluginInfo retn;
-    retn.setName(name);
-    retn.setCanStoreKeys(canStoreKeys);
-    retn.setEncryptionType(encryptionType);
-    retn.setSupportedAlgorithms(supportedAlgorithms);
-    retn.setSupportedBlockModes(supportedBlockModes);
-    retn.setSupportedEncryptionPaddings(supportedEncryptionPaddings);
-    retn.setSupportedSignaturePaddings(supportedSignaturePaddings);
-    retn.setSupportedDigests(supportedDigests);
-    retn.setSupportedOperations(supportedOperations);
-
-    return retn;
-}
-
-QByteArray
-CryptoPluginInfo::serialise(const CryptoPluginInfo &pluginInfo)
-{
-    QByteArray byteArray;
-    QBuffer buffer(&byteArray);
-    buffer.open(QIODevice::WriteOnly);
-
-    QDataStream out(&buffer);
-
-    // Write a header with a "magic number" and a version
-    out << (quint32)0x43504900; // CPI\0
-    out << (qint32)100;         // version 1.0.0
-
-    // Set the output format version
-    out.setVersion(QDataStream::Qt_5_6);
-
-    out << pluginInfo.name();
-    out << pluginInfo.canStoreKeys();
-    out << pluginInfo.encryptionType();
-    out << pluginInfo.supportedAlgorithms();
-    out << pluginInfo.supportedBlockModes();
-    out << pluginInfo.supportedEncryptionPaddings();
-    out << pluginInfo.supportedSignaturePaddings();
-    out << pluginInfo.supportedDigests();
-    out << pluginInfo.supportedOperations();
-
-    buffer.close();
-
-    return byteArray;
-}
-
-QDBusArgument &operator<<(QDBusArgument &argument, const Certificate &certificate)
-{
-    argument.beginStructure();
-    argument << static_cast<int>(certificate.type());
-    argument << certificate.toEncoded();
-    argument.endStructure();
-    return argument;
-}
-
-const QDBusArgument &operator>>(const QDBusArgument &argument, Certificate &certificate)
-{
-    int itype = 0;
-    QByteArray certificatedata;
-    argument.beginStructure();
-    argument >> itype;
-    argument >> certificatedata;
-    argument.endStructure();
-    certificate = Certificate::fromEncoded(certificatedata, static_cast<Certificate::Type>(itype));
-    return argument;
-}
-
 QDBusArgument &operator<<(QDBusArgument &argument, const Key &key)
 {
     argument.beginStructure();
@@ -426,18 +300,20 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Key::Identifier &identi
     argument.beginStructure();
     argument << identifier.name();
     argument << identifier.collectionName();
+    argument << identifier.storagePluginName();
     argument.endStructure();
     return argument;
 }
 
 const QDBusArgument &operator>>(const QDBusArgument &argument, Key::Identifier &identifier)
 {
-    QString name, collectionName;
+    QString name, collectionName, storagePluginName;
     argument.beginStructure();
     argument >> name;
     argument >> collectionName;
+    argument >> storagePluginName;
     argument.endStructure();
-    identifier = Key::Identifier(name, collectionName);
+    identifier = Key::Identifier(name, collectionName, storagePluginName);
     return argument;
 }
 
@@ -701,21 +577,25 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Result &result)
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const CryptoPluginInfo &pluginInfo)
+QDBusArgument &operator<<(QDBusArgument &argument, const PluginInfo &info)
 {
     argument.beginStructure();
-    argument << CryptoPluginInfo::serialise(pluginInfo);
+    argument << info.name() << info.version() << static_cast<int>(info.statusFlags());
     argument.endStructure();
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoPluginInfo &pluginInfo)
+const QDBusArgument &operator>>(const QDBusArgument &argument, PluginInfo &info)
 {
-    QByteArray cpidata;
+    QString name;
+    int version = 0;
+    int iStatusFlags = 0;
     argument.beginStructure();
-    argument >> cpidata;
+    argument >> name >> version >> iStatusFlags;
     argument.endStructure();
-    pluginInfo = CryptoPluginInfo::deserialise(cpidata);
+    info.setName(name);
+    info.setVersion(version);
+    info.setStatusFlags(static_cast<PluginInfo::StatusFlags>(iStatusFlags));
     return argument;
 }
 
@@ -804,7 +684,6 @@ QDBusArgument &operator<<(QDBusArgument &argument, const InteractionParameters &
              << request.operation()
              << request.authenticationPluginName()
              << request.promptText()
-             << request.promptTrId()
              << request.inputType()
              << request.echoMode();
     argument.endStructure();
@@ -820,7 +699,6 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionParame
     InteractionParameters::Operation operation = InteractionParameters::UnknownOperation;
     QString authenticationPluginName;
     QString promptText;
-    QString promptTrId;
     InteractionParameters::InputType inputType = InteractionParameters::UnknownInput;
     InteractionParameters::EchoMode echoMode = InteractionParameters::PasswordEchoOnEdit;
 
@@ -832,7 +710,6 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionParame
              >> operation
              >> authenticationPluginName
              >> promptText
-             >> promptTrId
              >> inputType
              >> echoMode;
     argument.endStructure();
@@ -844,7 +721,6 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionParame
     request.setOperation(operation);
     request.setAuthenticationPluginName(authenticationPluginName);
     request.setPromptText(promptText);
-    request.setPromptTrId(promptTrId);
     request.setInputType(inputType);
     request.setEchoMode(echoMode);
 

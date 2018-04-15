@@ -4,7 +4,7 @@ TARGET = sailfishsecrets-sqlite
 TARGET = $$qtLibraryTarget($$TARGET)
 
 include($$PWD/../../common.pri)
-include($$PWD/../../lib/libsailfishsecrets.pri)
+include($$PWD/../../lib/libsailfishsecretspluginapi.pri)
 include($$PWD/../../database/database.pri)
 
 HEADERS += $$PWD/sqlitedatabase_p.h $$PWD/plugin.h

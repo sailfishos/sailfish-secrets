@@ -26,16 +26,23 @@ class StoredKeyIdentifiersRequestPrivate;
 class SAILFISH_CRYPTO_API StoredKeyIdentifiersRequest : public Sailfish::Crypto::Request
 {
     Q_OBJECT
+    Q_PROPERTY(QString storagePluginName READ storagePluginName WRITE setStoragePluginName NOTIFY storagePluginNameChanged)
     Q_PROPERTY(QVector<Sailfish::Crypto::Key::Identifier> identifiers READ identifiers NOTIFY identifiersChanged)
 
 public:
     StoredKeyIdentifiersRequest(QObject *parent = Q_NULLPTR);
     ~StoredKeyIdentifiersRequest();
 
+    QString storagePluginName() const;
+    void setStoragePluginName(const QString &pluginName);
+
     QVector<Sailfish::Crypto::Key::Identifier> identifiers() const;
 
     Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result result() const Q_DECL_OVERRIDE;
+
+    QVariantMap customParameters() const Q_DECL_OVERRIDE;
+    void setCustomParameters(const QVariantMap &params) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::CryptoManager *manager() const Q_DECL_OVERRIDE;
     void setManager(Sailfish::Crypto::CryptoManager *manager) Q_DECL_OVERRIDE;
@@ -44,6 +51,7 @@ public:
     void waitForFinished() Q_DECL_OVERRIDE;
 
 Q_SIGNALS:
+    void storagePluginNameChanged();
     void identifiersChanged();
 
 private:

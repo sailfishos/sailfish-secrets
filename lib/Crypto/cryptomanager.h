@@ -337,7 +337,6 @@ private:
     friend class SignRequest;
     friend class StoredKeyIdentifiersRequest;
     friend class StoredKeyRequest;
-    friend class ValidateCertificateChainRequest;
     friend class VerifyRequest;
 };
 

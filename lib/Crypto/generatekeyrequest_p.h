@@ -32,6 +32,7 @@ public:
     explicit GenerateKeyRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
+    QVariantMap m_customParameters;
     QString m_cryptoPluginName;
     Sailfish::Crypto::KeyDerivationParameters m_skdfParams;
     Sailfish::Crypto::KeyPairGenerationParameters m_kpgParams;
