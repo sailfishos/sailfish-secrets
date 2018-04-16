@@ -9,10 +9,6 @@
 #include "evp_p.h"
 #include "evp_helpers_p.h"
 
-#ifndef SAILFISHCRYPTO_BUILD_OPENSSLCRYPTOPLUGIN
-#include "sqlcipherplugin.h"
-#endif
-
 #include "Crypto/key.h"
 #include "Crypto/generaterandomdatarequest.h"
 #include "Crypto/seedrandomdatageneratorrequest.h"
