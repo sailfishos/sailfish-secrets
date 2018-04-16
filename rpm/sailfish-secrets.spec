@@ -264,6 +264,7 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 /opt/tests/Sailfish/Secrets/tst_secrets.qml
 /opt/tests/Sailfish/Secrets/tst_secretsrequests
 /opt/tests/Sailfish/Secrets/tst_secretsrequests.qml
+%{_libdir}/Sailfish/Secrets/libsailfishsecrets-testexampleusbtoken.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-testinappauth.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-testpasswordagentauth.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-testopenssl.so
