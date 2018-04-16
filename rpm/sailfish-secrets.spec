@@ -1,5 +1,4 @@
 %global secretsdaemon sailfishsecretsdaemon
-%global secretsdaemon sailfish-secretsd
 %global user_unitdir %{_libdir}/systemd/user
 
 Name:       libsailfishsecrets
@@ -7,8 +6,8 @@ Summary:    Sailfish OS secrets storage system functionality client library
 Version:    0.0.8
 Release:    1
 Group:      System/Libraries
-License:    Proprietary
-URL:        https://bitbucket.org/jolla/base-sailfish-secrets/
+License:    BSD-3-Clause
+URL:        https://github.com/sailfishos/sailfish-secrets
 Source0:    %{name}-%{version}.tar.bz2
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Sql)
@@ -237,11 +236,11 @@ mkdir -p %{buildroot}/%{_datadir}/mapplauncherd/privileges.d/
 
 cp -R lib/Secrets/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Secrets/
 cp -R lib/Crypto/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Crypto/
-install -m 0644 daemon/%{secretsdaemon}.service %{buildroot}/%{user_unitdir}
-install -m 0644 daemon/%{secretsdaemon}.privileges %{buildroot}/%{_datadir}/mapplauncherd/privileges.d/
+install -m 0644 daemon/sailfish-secretsd.service %{buildroot}/%{user_unitdir}
+install -m 0644 daemon/sailfish-secretsd.privileges %{buildroot}/%{_datadir}/mapplauncherd/privileges.d/
 install -m 0644 daemon/org.sailfishos.secrets.daemon.discovery.service %{buildroot}/%{_datadir}/dbus-1/services/
 
-ln -s ../%{secretsdaemon}.service %{buildroot}/%{user_unitdir}/user-session.target.wants/%{secretsdaemon}.service
+ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.target.wants/sailfish-secretsd.service
 
 %files
 %defattr(-,root,root,-)
@@ -336,9 +335,9 @@ ln -s ../%{secretsdaemon}.service %{buildroot}/%{user_unitdir}/user-session.targ
 %defattr(-,root,root,-)
 %{_bindir}/sailfishsecretsd
 %{_datadir}/translations/sailfish-secrets_eng_en.qm
-%{_datadir}/mapplauncherd/privileges.d/%{secretsdaemon}.privileges
-%{user_unitdir}/%{secretsdaemon}.service
-%{user_unitdir}/user-session.target.wants/%{secretsdaemon}.service
+%{_datadir}/mapplauncherd/privileges.d/sailfish-secretsd.privileges
+%{user_unitdir}/sailfish-secretsd.service
+%{user_unitdir}/user-session.target.wants/sailfish-secretsd.service
 %{_datadir}/dbus-1/services/org.sailfishos.secrets.daemon.discovery.service
 
 %files -n %{secretsdaemon}-secretsplugins
