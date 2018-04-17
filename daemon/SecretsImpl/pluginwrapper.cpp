@@ -496,45 +496,45 @@ bool EncryptedStoragePluginWrapper::initialize(const QByteArray &masterLockKey)
     }
 
     // step two: read current data from the plugin.
-    if (m_encryptedStoragePlugin->isLocked()) {
-        return false;
-    }
+    // we can only do this if it is not locked.
+    if (!m_encryptedStoragePlugin->isLocked()) {
+        QStringList cnames, lockedCollections;
+        Result result = collectionNames(&cnames);
+        if (result.code() != Result::Succeeded) {
+            return false;
+        }
 
-    QStringList cnames, lockedCollections;
-    Result result = collectionNames(&cnames);
-    if (result.code() != Result::Succeeded) {
-        return false;
-    }
-
-    QVector<Secret::Identifier> identifiers;
-    for (const QString &cname : cnames) {
-        bool locked = false;
-        result = m_encryptedStoragePlugin->isCollectionLocked(cname, &locked);
-        if (locked || result.code() != Result::Succeeded) {
-            lockedCollections.append(cname);
-        } else {
-            QStringList snames;
-            result = secretNames(cname, &snames);
-            if (result.code() != Result::Succeeded) {
-                return false;
-            }
-            for (const QString &sname : snames) {
-                identifiers.append(Secret::Identifier(sname, cname, m_encryptedStoragePlugin->name()));
+        QVector<Secret::Identifier> identifiers;
+        for (const QString &cname : cnames) {
+            bool locked = false;
+            result = m_encryptedStoragePlugin->isCollectionLocked(cname, &locked);
+            if (locked || result.code() != Result::Succeeded) {
+                lockedCollections.append(cname);
+            } else {
+                QStringList snames;
+                result = secretNames(cname, &snames);
+                if (result.code() != Result::Succeeded) {
+                    return false;
+                }
+                for (const QString &sname : snames) {
+                    identifiers.append(Secret::Identifier(sname, cname, m_encryptedStoragePlugin->name()));
+                }
             }
         }
+
+        // step three: initialize the metadata db based on plugin data.
+        // this ensures our data is in sync.
+        if (!m_metadataDb.beginTransaction()) {
+            return false;
+        }
+
+        bool initCollections = m_metadataDb.initializeCollectionsFromPluginData(cnames);
+        bool initSecrets = m_metadataDb.initializeSecretsFromPluginData(identifiers, lockedCollections);
+
+        m_metadataDb.commitTransaction();
+        m_initialized = initCollections && initSecrets && lockedCollections.isEmpty();
     }
 
-    // step three: initialize the metadata db based on plugin data.
-    // this ensures our data is in sync.
-    if (!m_metadataDb.beginTransaction()) {
-        return false;
-    }
-
-    bool initCollections = m_metadataDb.initializeCollectionsFromPluginData(cnames);
-    bool initSecrets = m_metadataDb.initializeSecretsFromPluginData(identifiers, lockedCollections);
-
-    m_metadataDb.commitTransaction();
-    m_initialized = initCollections && initSecrets && lockedCollections.isEmpty();
     return true;
 }
 
