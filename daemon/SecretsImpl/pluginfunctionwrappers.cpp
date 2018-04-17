@@ -27,7 +27,7 @@ FoundResult Daemon::ApiImpl::lockSpecificPlugin(
             *result = Result(Result::OperationNotSupportedError,
                              QStringLiteral("%1 plugin %2 does not support locking")
                              .arg(type, name));
-        } else if (p->isLocked() && !p->lock()) {
+        } else if (!p->isLocked() && !p->lock()) {
             *result = Result(Result::UnknownError,
                              QStringLiteral("Failed to lock %1 plugin %2")
                              .arg(type, name));
@@ -74,7 +74,7 @@ FoundResult Daemon::ApiImpl::unlockSpecificPlugin(
             *result = Result(Result::OperationNotSupportedError,
                              QStringLiteral("%1 plugin %2 does not support locking")
                              .arg(type, name));
-        } else if (!p->isLocked() && !p->unlock(lockCode)) {
+        } else if (p->isLocked() && !p->unlock(lockCode)) {
             *result = Result(Result::UnknownError,
                              QStringLiteral("Failed to unlock %1 plugin %2")
                              .arg(type, name));
