@@ -92,6 +92,9 @@ Daemon::ApiImpl::RequestProcessor::storagePluginInfo() const
     for (StoragePluginWrapper *plugin : m_storagePlugins) {
         infos.append(PluginInfo(plugin->name(), plugin->version()));
     }
+    for (EncryptedStoragePluginWrapper *plugin : m_encryptedStoragePlugins) {
+        infos.append(PluginInfo(plugin->name(), plugin->version()));
+    }
     return infos;
 }
 
