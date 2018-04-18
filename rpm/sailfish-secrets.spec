@@ -26,7 +26,7 @@ BuildRequires:  pkgconfig(Qt5DBus)
 %package -n libsailfishsecrets-devel
 Summary:    Development package for Sailfish OS Secrets Library.
 Group:      System/Libraries
-Requires:   %{name} = %{version}-%{release}
+Requires:   libsailfishsecrets = %{version}-%{release}
 
 %description -n libsailfishsecrets-devel
 %{summary}.
@@ -48,7 +48,7 @@ BuildRequires:  pkgconfig(libcrypto)
 Requires: qt5-qtdeclarative-import-qttest
 Requires: qt5-qtdeclarative-devel-tools
 Requires: openssl
-Requires:   %{name} = %{version}-%{release}
+Requires:   libsailfishsecrets = %{version}-%{release}
 
 %description -n libsailfishsecrets-tests
 %{summary}.
@@ -64,7 +64,7 @@ Summary:    Library providing Sailfish OS Secrets Library plugin abstract base c
 Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
-Requires:   %{name} = %{version}-%{release}
+Requires:   libsailfishsecrets = %{version}-%{release}
 
 %description -n libsailfishsecretspluginapi
 %{summary}.
@@ -74,7 +74,7 @@ Summary:    Library providing Sailfish OS Secrets Library plugin abstract base c
 Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
-Requires:   %{name} = %{version}-%{release}
+Requires:   libsailfishsecrets = %{version}-%{release}
 Requires:   libsailfishsecretspluginapi = %{version}-%{release}
 
 %description -n libsailfishsecretspluginapi-devel
@@ -85,7 +85,7 @@ Summary:    QML plugin providing types for applications using libsailfishsecrets
 Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5Quick)
 BuildRequires:  pkgconfig(Qt5Gui)
-Requires:   %{name} = %{version}-%{release}
+Requires:   libsailfishsecrets = %{version}-%{release}
 
 %description -n libsailfishsecretsplugin
 %{summary}.
@@ -131,7 +131,7 @@ Summary:    Library providing Sailfish OS Crypto Library plugin abstract base cl
 Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
-Requires:   %{name} = %{version}-%{release}
+Requires:   libsailfishsecrets = %{version}-%{release}
 Requires:   libsailfishsecretspluginapi = %{version}-%{release}
 
 %description -n libsailfishcryptopluginapi
@@ -142,7 +142,7 @@ Summary:    Library providing Sailfish OS Crypto Library plugin abstract base cl
 Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
-Requires:   %{name} = %{version}-%{release}
+Requires:   libsailfishsecrets = %{version}-%{release}
 Requires:   libsailfishcryptopluginapi = %{version}-%{release}
 Requires:   libsailfishsecretspluginapi-devel = %{version}-%{release}
 
@@ -169,7 +169,7 @@ BuildRequires:  pkgconfig(libsystemd)
 BuildRequires:  pkgconfig(qt5-boostable)
 BuildRequires:  qt5-qttools-linguist
 BuildRequires:  qt5-plugin-sqldriver-sqlite
-Requires:         %{name} = %{version}-%{release}
+Requires:         libsailfishsecrets = %{version}-%{release}
 Requires:         systemd
 Requires(preun):  systemd
 Requires(postun): systemd
