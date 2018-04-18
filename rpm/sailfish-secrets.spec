@@ -1,41 +1,46 @@
 %global secretsdaemon sailfishsecretsdaemon
 %global user_unitdir %{_libdir}/systemd/user
 
-Name:       libsailfishsecrets
-Summary:    Sailfish OS secrets storage system functionality client library
+Name:       sailfish-secrets
+Summary:    Sailfish OS framework for secrets storage and cryptographic operations
 Version:    0.0.8
 Release:    1
 Group:      System/Libraries
 License:    BSD-3-Clause
 URL:        https://github.com/sailfishos/sailfish-secrets
 Source0:    %{name}-%{version}.tar.bz2
-BuildRequires:  pkgconfig(Qt5Core)
-BuildRequires:  pkgconfig(Qt5Sql)
-BuildRequires:  pkgconfig(Qt5DBus)
-BuildRequires:  pkgconfig(qt5-boostable)
-BuildRequires:  qt5-qttools-linguist
 
 %description
 %{summary}.
 
-%package devel
+%package -n libsailfishsecrets
+Summary:    Sailfish OS secrets storage system functionality client library
+Group:      System/Libraries
+BuildRequires:  pkgconfig(Qt5Core)
+BuildRequires:  pkgconfig(Qt5Sql)
+BuildRequires:  pkgconfig(Qt5DBus)
+
+%description -n libsailfishsecrets
+%{summary}.
+
+%package -n libsailfishsecrets-devel
 Summary:    Development package for Sailfish OS Secrets Library.
 Group:      System/Libraries
 Requires:   %{name} = %{version}-%{release}
 
-%description devel
+%description -n libsailfishsecrets-devel
 %{summary}.
 
-%package doc
+%package -n libsailfishsecrets-doc
 Summary: Documentation for Sailfish OS Secrets Library
 BuildRequires:  mer-qdoc-template
 BuildRequires:  qt5-qttools-qthelp-devel
 BuildRequires:  qt5-tools
 
-%description doc
+%description -n libsailfishsecrets-doc
 %{summary}.
 
-%package tests
+%package -n libsailfishsecrets-tests
 Summary:    Unit tests for the Sailfish OS Secrets Library.
 Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5QuickTest)
@@ -45,14 +50,14 @@ Requires: qt5-qtdeclarative-devel-tools
 Requires: openssl
 Requires:   %{name} = %{version}-%{release}
 
-%description tests
+%description -n libsailfishsecrets-tests
 %{summary}.
 
-%package   -n sailfishsecrets-ts-devel
+%package   ts-devel
 Summary:   Translation source for Sailfish Secrets
 Group:     System/Applications
 
-%description -n sailfishsecrets-ts-devel
+%description ts-devel
 
 %package -n libsailfishsecretspluginapi
 Summary:    Library providing Sailfish OS Secrets Library plugin abstract base classes
@@ -162,6 +167,7 @@ BuildRequires:  pkgconfig(Qt5Concurrent)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(libsystemd)
 BuildRequires:  pkgconfig(qt5-boostable)
+BuildRequires:  qt5-qttools-linguist
 BuildRequires:  qt5-plugin-sqldriver-sqlite
 Requires:         %{name} = %{version}-%{release}
 Requires:         systemd
@@ -242,22 +248,22 @@ install -m 0644 daemon/org.sailfishos.secrets.daemon.discovery.service %{buildro
 
 ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.target.wants/sailfish-secretsd.service
 
-%files
+%files -n libsailfishsecrets
 %defattr(-,root,root,-)
 %{_libdir}/libsailfishsecrets.so.*
 
-%files devel
+%files -n libsailfishsecrets-devel
 %defattr(-,root,root,-)
 %{_libdir}/libsailfishsecrets.so
 %{_libdir}/pkgconfig/sailfishsecrets.pc
 %exclude %{_includedir}/Sailfish/Secrets/extensionplugins.h
 %{_includedir}/Sailfish/Secrets/*
 
-%files doc
+%files -n libsailfishsecrets-doc
 %defattr(-,root,root,-)
 %{_docdir}/Sailfish/Secrets/*
 
-%files tests
+%files -n libsailfishsecrets-tests
 %defattr(-,root,root,-)
 /opt/tests/Sailfish/Secrets/authentication-client
 /opt/tests/Sailfish/Secrets/tst_secrets
@@ -271,7 +277,7 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-testsqlite.so
 %{_datadir}/polkit-1/actions/org.sailfishos.secrets.policy
 
-%files -n sailfishsecrets-ts-devel
+%files ts-devel
 %defattr(-,root,root,-)
 %{_datadir}/translations/source/sailfish-secrets.ts
 
