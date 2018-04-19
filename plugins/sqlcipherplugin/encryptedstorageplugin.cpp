@@ -646,7 +646,7 @@ Daemon::Plugins::SqlCipherPlugin::secretNames(
 
     const QString selectSecretsFilterDataQuery = QStringLiteral(
                  "SELECT"
-                    " SecretName,"
+                    " SecretName"
                  " FROM Secrets;"
              );
 
