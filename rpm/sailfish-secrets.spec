@@ -213,6 +213,18 @@ Requires:   libsailfishcryptopluginapi = %{version}-%{release}
 %{summary}.
 
 
+%package -n sailfishsecrets-tool
+Summary:    Command line tool to interact with the Sailfish OS Secrets and Crypto service
+Group:      Applications/System
+BuildRequires:  pkgconfig(Qt5Core)
+BuildRequires:  pkgconfig(Qt5DBus)
+Requires:   libsailfishcrypto = %{version}-%{release}
+Requires:   libsailfishsecrets = %{version}-%{release}
+
+%description -n sailfishsecrets-tool
+%{summary}.
+
+
 %package -n qt5-plugin-sqldriver-sqlcipher
 Summary:    QtSql driver plugin using SQLCipher.
 Group:      System/Libraries
@@ -358,6 +370,10 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 %files -n %{secretsdaemon}-cryptoplugins
 %defattr(-,root,root,-)
 %{_libdir}/Sailfish/Crypto/libsailfishcrypto-openssl.so
+
+%files -n sailfishsecrets-tool
+%defattr(-,root,root,-)
+%{_bindir}/secrets-tool
 
 %files -n qt5-plugin-sqldriver-sqlcipher
 %defattr(-,root,root,-)
