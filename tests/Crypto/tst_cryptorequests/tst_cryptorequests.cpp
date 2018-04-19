@@ -123,6 +123,7 @@ private slots:
     void importKey();
     void importKeyAndStore_data();
     void importKeyAndStore();
+    void exampleUsbTokenPlugin();
 
 private:
     QByteArray generateInitializationVector(Sailfish::Crypto::CryptoManager::Algorithm algorithm,
@@ -3093,6 +3094,115 @@ void tst_cryptorequests::importKeyAndStore()
     QCOMPARE(importedKey.size(), size);
     QCOMPARE(importedKey.origin(), origin);
     QCOMPARE(importedKey.algorithm(), algorithm);
+}
+
+void tst_cryptorequests::exampleUsbTokenPlugin()
+{
+    // first, ensure that it is loaded by the secrets service.
+    Sailfish::Crypto::PluginInfoRequest pir;
+    pir.setManager(&cm);
+    pir.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(pir);
+    QCOMPARE(pir.result().errorMessage(), QString());
+    QCOMPARE(pir.result().code(), Sailfish::Crypto::Result::Succeeded);
+
+    const QString exampleUsbTokenPluginName = QStringLiteral("org.sailfishos.secrets.plugin.cryptostorage.exampleusbtoken.test");
+    bool foundUsbTokenExampleCryptoPlugin = false;
+    for (const Sailfish::Crypto::PluginInfo &pi : pir.cryptoPlugins()) {
+        if (pi.name() == exampleUsbTokenPluginName) {
+            foundUsbTokenExampleCryptoPlugin = true;
+            break;
+        }
+    }
+    QCOMPARE(foundUsbTokenExampleCryptoPlugin, true);
+
+    bool foundUsbTokenExampleStoragePlugin = false;
+    for (const Sailfish::Crypto::PluginInfo &pi : pir.storagePlugins()) {
+        if (pi.name() == exampleUsbTokenPluginName) {
+            foundUsbTokenExampleStoragePlugin = true;
+            break;
+        }
+    }
+    QCOMPARE(foundUsbTokenExampleStoragePlugin, true);
+
+    // second, attempt to unlock the plugin if it is locked.
+    Sailfish::Crypto::LockCodeRequest lcr;
+    lcr.setManager(&cm);
+    lcr.setLockCodeRequestType(Sailfish::Crypto::LockCodeRequest::ProvideLockCode);
+    lcr.setLockCodeTargetType(Sailfish::Crypto::LockCodeRequest::ExtensionPlugin);
+    lcr.setLockCodeTarget(exampleUsbTokenPluginName);
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.result().errorMessage(), QString());
+    QCOMPARE(lcr.result().code(), Sailfish::Crypto::Result::Succeeded);
+
+    // third, attempt to retrieve the identifiers of keys stored by the plugin.
+    // check that it reports the "Default" key in the "Default" collection.
+    Sailfish::Crypto::StoredKeyIdentifiersRequest skir;
+    skir.setManager(&cm);
+    skir.setStoragePluginName(exampleUsbTokenPluginName);
+    skir.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(skir);
+    QCOMPARE(skir.result().errorMessage(), QString());
+    QCOMPARE(skir.result().code(), Sailfish::Crypto::Result::Succeeded);
+    bool foundDefaultKey = false;
+    for (const Sailfish::Crypto::Key::Identifier &id : skir.identifiers()) {
+        if (id.storagePluginName() == exampleUsbTokenPluginName
+                && id.collectionName() == QStringLiteral("Default")
+                && id.name() == QStringLiteral("Default")) {
+            foundDefaultKey = true;
+            break;
+        }
+    }
+    QCOMPARE(foundDefaultKey, true);
+
+    // fourth, attempt to sign some data with that key.
+    const QByteArray dataToSign("The quick brown fox jumps over the lazy dog");
+    Sailfish::Crypto::SignRequest sr;
+    sr.setManager(&cm);
+    sr.setData(dataToSign);
+    sr.setDigestFunction(Sailfish::Crypto::CryptoManager::DigestSha256);
+    sr.setPadding(Sailfish::Crypto::CryptoManager::SignaturePaddingNone);
+    sr.setKey(Sailfish::Crypto::Key(QStringLiteral("Default"),
+                                    QStringLiteral("Default"),
+                                    exampleUsbTokenPluginName));
+    sr.setCryptoPluginName(exampleUsbTokenPluginName);
+    sr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(sr);
+    QCOMPARE(sr.result().errorMessage(), QString());
+    QCOMPARE(sr.result().code(), Sailfish::Crypto::Result::Succeeded);
+    QCOMPARE(sr.signature().isEmpty(), false);
+
+    // fifth, attempt to verify the signed data.
+    Sailfish::Crypto::VerifyRequest vr;
+    vr.setManager(&cm);
+    vr.setData(dataToSign);
+    vr.setSignature(sr.signature());
+    vr.setDigestFunction(Sailfish::Crypto::CryptoManager::DigestSha256);
+    vr.setPadding(Sailfish::Crypto::CryptoManager::SignaturePaddingNone);
+    vr.setKey(Sailfish::Crypto::Key(QStringLiteral("Default"),
+                                    QStringLiteral("Default"),
+                                    exampleUsbTokenPluginName));
+    vr.setCryptoPluginName(exampleUsbTokenPluginName);
+    vr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(vr);
+    QCOMPARE(vr.result().errorMessage(), QString());
+    QCOMPARE(vr.result().code(), Sailfish::Crypto::Result::Succeeded);
+    QCOMPARE(vr.verified(), true);
+
+    // sixth, attempt to verify some other random data, and ensure that it fails.
+    const QByteArray randomDataToVerify("abcdef1234567890987654321fedcba");
+    vr.setData(randomDataToVerify);
+    vr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(vr);
+    QCOMPARE(vr.verified(), false);
+
+    // finally, re-lock the plugin.
+    lcr.setLockCodeRequestType(Sailfish::Crypto::LockCodeRequest::ForgetLockCode);
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.result().errorMessage(), QString());
+    QCOMPARE(lcr.result().code(), Sailfish::Crypto::Result::Succeeded);
 }
 
 #include "tst_cryptorequests.moc"

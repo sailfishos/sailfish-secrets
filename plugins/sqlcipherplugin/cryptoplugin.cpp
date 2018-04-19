@@ -344,7 +344,13 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::sign(
         const QVariantMap &customParameters,
         QByteArray *signature)
 {
-    return m_opensslCryptoPlugin.sign(data, key, padding, digestFunction, customParameters, signature);
+    Sailfish::Crypto::Key fullKey;
+    Sailfish::Crypto::Result keyResult = getFullKey(key, &fullKey);
+    if (keyResult.code() != Sailfish::Crypto::Result::Succeeded) {
+        return keyResult;
+    }
+
+    return m_opensslCryptoPlugin.sign(data, fullKey, padding, digestFunction, customParameters, signature);
 }
 
 Sailfish::Crypto::Result
@@ -357,7 +363,13 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::verify(
         const QVariantMap &customParameters,
         bool *verified)
 {
-    return m_opensslCryptoPlugin.verify(signature, data, key, padding, digestFunction, customParameters, verified);
+    Sailfish::Crypto::Key fullKey;
+    Sailfish::Crypto::Result keyResult = getFullKey(key, &fullKey);
+    if (keyResult.code() != Sailfish::Crypto::Result::Succeeded) {
+        return keyResult;
+    }
+
+    return m_opensslCryptoPlugin.verify(signature, data, fullKey, padding, digestFunction, customParameters, verified);
 }
 
 Sailfish::Crypto::Result
