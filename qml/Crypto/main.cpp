@@ -19,14 +19,14 @@ void Sailfish::Crypto::Plugin::CryptoPlugin::registerTypes(const char *uri)
 {
     qRegisterMetaType<Sailfish::Crypto::Result>("Result");
     QMetaType::registerComparators<Sailfish::Crypto::Result>();
-    qmlRegisterUncreatableType<Sailfish::Crypto::Result>(uri, 1, 0, "Result", QStringLiteral("Result objects cannot be constructed directly in QML"));
+    qmlRegisterUncreatableType<Sailfish::Crypto::Result>(uri, 1, 0, "CryptoResult", QStringLiteral("Result objects cannot be constructed directly in QML"));
 
     qRegisterMetaType<Sailfish::Crypto::Key>("Key");
     QMetaType::registerComparators<Sailfish::Crypto::Key>();
     qmlRegisterUncreatableType<Sailfish::Crypto::Key>(uri, 1, 0, "Key", QStringLiteral("Key objects cannot be constructed directly in QML"));
 
-    qmlRegisterUncreatableType<Sailfish::Crypto::Request>(uri, 1, 0, "Request", QStringLiteral("Request is an abstract class, can't construct in QML"));
-    qRegisterMetaType<Sailfish::Crypto::Request::Status>("Request::Status");
+    qmlRegisterUncreatableType<Sailfish::Crypto::Request>(uri, 1, 0, "CryptoRequest", QStringLiteral("Request is an abstract class, can't construct in QML"));
+    qRegisterMetaType<Sailfish::Crypto::Request::Status>("CryptoRequestStatus");
     qmlRegisterType<Sailfish::Crypto::PluginInfoRequest>(uri, 1, 0, "PluginInfoRequest");
     qmlRegisterType<Sailfish::Crypto::SeedRandomDataGeneratorRequest>(uri, 1, 0, "SeedRandomDataGeneratorRequest");
     qmlRegisterType<Sailfish::Crypto::GenerateRandomDataRequest>(uri, 1, 0, "GenerateRandomDataRequest");

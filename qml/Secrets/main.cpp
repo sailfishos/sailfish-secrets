@@ -28,7 +28,7 @@ void Sailfish::Secrets::Plugin::SecretsPlugin::registerTypes(const char *uri)
     QMetaType::registerComparators<Sailfish::Secrets::InteractionResponse>();
     qmlRegisterUncreatableType<Sailfish::Secrets::InteractionResponse>(uri, 1, 0, "InteractionResponse", QStringLiteral("InteractionResponse objects cannot be constructed directly in QML"));
 
-    qRegisterMetaType<Sailfish::Secrets::Result>("Result");
+    qRegisterMetaType<Sailfish::Secrets::Result>("SecretsResult");
     QMetaType::registerComparators<Sailfish::Secrets::Result>();
     qmlRegisterUncreatableType<Sailfish::Secrets::Result>(uri, 1, 0, "Result", QStringLiteral("Result objects cannot be constructed directly in QML"));
 
@@ -36,8 +36,8 @@ void Sailfish::Secrets::Plugin::SecretsPlugin::registerTypes(const char *uri)
     QMetaType::registerComparators<Sailfish::Secrets::Secret>();
     qmlRegisterUncreatableType<Sailfish::Secrets::Secret>(uri, 1, 0, "Secret", QStringLiteral("Secret objects cannot be constructed directly in QML"));
 
-    qmlRegisterUncreatableType<Sailfish::Secrets::Request>(uri, 1, 0, "Request", QStringLiteral("Request is an abstract class, can't construct in QML"));
-    qRegisterMetaType<Sailfish::Secrets::Request::Status>("Request::Status");
+    qmlRegisterUncreatableType<Sailfish::Secrets::Request>(uri, 1, 0, "SecretsRequest", QStringLiteral("Request is an abstract class, can't construct in QML"));
+    qRegisterMetaType<Sailfish::Secrets::Request::Status>("SecretsRequestStatus");
     qmlRegisterType<Sailfish::Secrets::PluginInfoRequest>(uri, 1, 0, "PluginInfoRequest");
     qmlRegisterType<Sailfish::Secrets::CollectionNamesRequest>(uri, 1, 0, "CollectionNamesRequest");
     qmlRegisterType<Sailfish::Secrets::CreateCollectionRequest>(uri, 1, 0, "CreateCollectionRequest");
