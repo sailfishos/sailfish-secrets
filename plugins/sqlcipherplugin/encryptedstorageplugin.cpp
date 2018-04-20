@@ -92,7 +92,7 @@ Daemon::Plugins::SqlCipherPlugin::openCollectionDatabase(
         };
 
         const QString databaseFilename = collectionName + QLatin1String(".db");
-        const bool exists = QFile::exists(databaseFilename);
+        const bool exists = QFile::exists(m_databaseDirPath + databaseFilename);
         if (!exists && !createIfNotExists) {
             retn = Result(Result::DatabaseError,
                           QLatin1String("The collection database doesn't exist"));
