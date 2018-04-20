@@ -89,7 +89,6 @@ GenerateStoredKeyRequestPrivate::GenerateStoredKeyRequestPrivate()
  * Sailfish::Crypto::InteractionParameters uiParams;
  * uiParams.setInputType(Sailfish::Crypto::InteractionParameters::AlphaNumericInput);
  * uiParams.setEchoMode(Sailfish::Crypto::InteractionParameters::NormalEcho);
- * uiParams.setPromptText(tr("Enter the passphrase"));
  *
  * // Ask the crypto service to perform the required operations.
  * Sailfish::Crypto::GenerateStoredKeyRequest gskr;

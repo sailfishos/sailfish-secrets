@@ -337,18 +337,20 @@ Daemon::ApiImpl::RequestProcessor::createCustomLockCollection(
 
     // perform the user input flow required to get the input key data which will be used
     // to encrypt the data in this collection.
-    InteractionParameters ikdRequest;
-    ikdRequest.setApplicationId(callerApplicationId);
-    ikdRequest.setCollectionName(collectionName);
-    ikdRequest.setOperation(InteractionParameters::CreateCollection);
-    ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
-    ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-    ikdRequest.setPromptText(tr("Enter the passphrase which will be used to encrypt the new collection %1 in plugin %2")
-                             .arg(collectionName, storagePluginName));
+    InteractionParameters promptParams;
+    promptParams.setApplicationId(callerApplicationId);
+    promptParams.setCollectionName(collectionName);
+    promptParams.setOperation(InteractionParameters::CreateCollection);
+    promptParams.setInputType(InteractionParameters::AlphaNumericInput);
+    promptParams.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+    //: This will be displayed to the user, prompting them to enter a passphrase which will be used to encrypt a collection. %1 is the application name, %2 is the collection name, %3 is the plugin name.
+    //% "App %1 wants to create a new secrets collection %2 in plugin %3. Enter the passphrase which will be used to encrypt the collection."
+    promptParams.setPromptText(qtTrId("sailfish_secrets-create_customlock_collection-la-enter_new_collection_passphrase")
+                             .arg(callerApplicationId, collectionName, storagePluginName));
     Result interactionResult = m_authenticationPlugins[authenticationPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
-                ikdRequest,
+                promptParams,
                 interactionServiceAddress);
     if (interactionResult.code() == Result::Failed) {
         return interactionResult;
@@ -641,18 +643,21 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionWithMetadata(
 
         // perform the user input flow required to get the input key data which will be used
         // to unlock this collection.
-        InteractionParameters ikdRequest;
-        ikdRequest.setApplicationId(callerApplicationId);
-        ikdRequest.setPluginName(storagePluginName);
-        ikdRequest.setCollectionName(collectionName);
-        ikdRequest.setOperation(InteractionParameters::DeleteCollection);
-        ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
-        ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-        ikdRequest.setPromptText(QObject::tr("sailfish_secrets_delete_collection_input_key_data_prompt"));
+        InteractionParameters promptParams;
+        promptParams.setApplicationId(callerApplicationId);
+        promptParams.setPluginName(storagePluginName);
+        promptParams.setCollectionName(collectionName);
+        promptParams.setOperation(InteractionParameters::DeleteCollection);
+        promptParams.setInputType(InteractionParameters::AlphaNumericInput);
+        promptParams.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+        //: This will be displayed to the user, prompting them to enter a passphrase which will be used to unlock a collection for deletion. %1 is the application name, %2 is the collection name, %3 is the plugin name.
+        //% "App %1 wants to delete collection %2 in plugin %3. Enter the passphrase which will be used to unlock the collection for deletion."
+        promptParams.setPromptText(qtTrId("sailfish_secrets-delete_collection-la-enter_collection_passphrase")
+                                 .arg(callerApplicationId, collectionName, storagePluginName));
         Result result = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                     callerPid,
                     requestId,
-                    ikdRequest,
+                    promptParams,
                     interactionServiceAddress);
         if (result.code() == Result::Failed) {
             return result;
@@ -764,21 +769,23 @@ Daemon::ApiImpl::RequestProcessor::userInput(
                       .arg(uiParams.authenticationPluginName()));
     }
 
-    InteractionParameters ikdRequest(uiParams);
-    ikdRequest.setApplicationId(callerApplicationId);
-    if (ikdRequest.collectionName().isEmpty() && ikdRequest.secretName().isEmpty()) {
+    InteractionParameters promptParams(uiParams);
+    promptParams.setApplicationId(callerApplicationId);
+    if (promptParams.collectionName().isEmpty() && promptParams.secretName().isEmpty()) {
         // this is a request on behalf of a client application.
         // the user needs to be warned that the data they enter cannot
         // be considered to be "secure" in the secrets-storage sense.
-        const QString warningPromptText = QString::fromLatin1(
-                    "An application is requesting input which will be returned to the application: %1")
-                .arg(ikdRequest.promptText());
-        ikdRequest.setPromptText(warningPromptText);
+
+        //: Inform the user that the application is requesting data. %1 is the application name, %2 is the prompt text supplied by the application.
+        //% "An application %1 is requesting input which will be returned to the application: %2"
+        const QString warningPromptText = qtTrId("sailfish_secrets-user_input-la-data_request")
+                                            .arg(callerApplicationId, promptParams.promptText());
+        promptParams.setPromptText(warningPromptText);
     }
     Result interactionResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
                 callerPid,
                 requestId,
-                ikdRequest,
+                promptParams,
                 QString());
     if (interactionResult.code() == Result::Failed) {
         return interactionResult;
@@ -789,7 +796,7 @@ Daemon::ApiImpl::RequestProcessor::userInput(
                                  callerPid,
                                  requestId,
                                  Daemon::ApiImpl::UserInputRequest,
-                                 QVariantList() << QVariant::fromValue<InteractionParameters>(ikdRequest)));
+                                 QVariantList() << QVariant::fromValue<InteractionParameters>(promptParams)));
     return Result(Result::Pending);
 }
 
@@ -925,8 +932,11 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithMetadata(
     modifiedUiParams.setCollectionName(secret.identifier().collectionName());
     modifiedUiParams.setSecretName(secret.identifier().name());
     modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
-    modifiedUiParams.setPromptText(QObject::tr("Enter confidential data for secret %1 in collection %2 stored by plugin %3")
-                                   .arg(secret.identifier().name(),
+    //: This will be displayed to the user, prompting them to enter the secret data which will be stored. %1 is the application name, %2 is the secret name, %3 is the collection name, %4 is the plugin name.
+    //% "App %1 wants to store a new secret named %2 into collection %3 in plugin %4. Enter the confidential data which will be stored."
+    modifiedUiParams.setPromptText(qtTrId("sailfish_secrets-set_collection_secret-la-enter_secret_data")
+                                   .arg(callerApplicationId,
+                                        secret.identifier().name(),
                                         secret.identifier().collectionName(),
                                         secret.identifier().storagePluginName()));
     Result authenticationResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
@@ -1009,20 +1019,25 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
 
         // perform the user input flow required to get the input key data which will be used
         // to unlock this collection.
-        InteractionParameters ikdRequest;
-        ikdRequest.setApplicationId(callerApplicationId);
-        ikdRequest.setPluginName(secret.identifier().storagePluginName());
-        ikdRequest.setCollectionName(secret.identifier().collectionName());
-        ikdRequest.setSecretName(secret.identifier().name());
-        ikdRequest.setOperation(InteractionParameters::StoreSecret);
-        ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
-        ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-        ikdRequest.setPromptText(tr("Enter the passphrase to unlock the collection %1 in order to store secret %2")
-                                 .arg(secret.identifier().collectionName(), secret.identifier().name()));
+        InteractionParameters promptParams;
+        promptParams.setApplicationId(callerApplicationId);
+        promptParams.setPluginName(secret.identifier().storagePluginName());
+        promptParams.setCollectionName(secret.identifier().collectionName());
+        promptParams.setSecretName(secret.identifier().name());
+        promptParams.setOperation(InteractionParameters::StoreSecret);
+        promptParams.setInputType(InteractionParameters::AlphaNumericInput);
+        promptParams.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+        //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in which a new secret will be stored. %1 is the application name, %2 is the  secret name, %3 is the collection name, %4 is the plugin name.
+        //% "App %1 wants to store a new secret named %2 into collection %3 in plugin %4. Enter the passphrase to unlock the collection."
+        promptParams.setPromptText(qtTrId("sailfish_secrets-set_collection_secret-la-enter_collection_passphrase")
+                                 .arg(callerApplicationId,
+                                      secret.identifier().name(),
+                                      secret.identifier().collectionName(),
+                                      secret.identifier().storagePluginName()));
         Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                     callerPid,
                     requestId,
-                    ikdRequest,
+                    promptParams,
                     interactionServiceAddress);
         if (interactionResult.code() == Result::Failed) {
             return interactionResult;
@@ -1071,20 +1086,25 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
 
     // perform the user input flow required to get the input key data which will be used
     // to unlock this collection.
-    InteractionParameters ikdRequest;
-    ikdRequest.setApplicationId(callerApplicationId);
-    ikdRequest.setPluginName(secret.identifier().storagePluginName());
-    ikdRequest.setCollectionName(secret.identifier().collectionName());
-    ikdRequest.setSecretName(secret.identifier().name());
-    ikdRequest.setOperation(InteractionParameters::StoreSecret);
-    ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
-    ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-    ikdRequest.setPromptText(tr("Enter the passphrase to unlock the collection %1 in order to store secret %2")
-                             .arg(secret.identifier().collectionName(), secret.identifier().name()));
+    InteractionParameters promptParams;
+    promptParams.setApplicationId(callerApplicationId);
+    promptParams.setPluginName(secret.identifier().storagePluginName());
+    promptParams.setCollectionName(secret.identifier().collectionName());
+    promptParams.setSecretName(secret.identifier().name());
+    promptParams.setOperation(InteractionParameters::StoreSecret);
+    promptParams.setInputType(InteractionParameters::AlphaNumericInput);
+    promptParams.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+    //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in which a new secret will be stored. %1 is the application name, %2 is the  secret name, %3 is the collection name, %4 is the plugin name.
+    //% "App %1 wants to store a new secret named %2 into collection %3 in plugin %4. Enter the passphrase to unlock the collection."
+    promptParams.setPromptText(qtTrId("sailfish_secrets-set_collection_secret-la-enter_collection_passphrase")
+                             .arg(callerApplicationId,
+                                  secret.identifier().name(),
+                                  secret.identifier().collectionName(),
+                                  secret.identifier().storagePluginName()));
     Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
-                ikdRequest,
+                promptParams,
                 interactionServiceAddress);
     if (interactionResult.code() == Result::Failed) {
         return interactionResult;
@@ -1395,12 +1415,14 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSecretWithMetadata(
     InteractionParameters modifiedUiParams(uiParams);
     modifiedUiParams.setApplicationId(newMetadata.ownerApplicationId);
     modifiedUiParams.setPluginName(secret.identifier().storagePluginName());
-    modifiedUiParams.setCollectionName(secret.identifier().collectionName());
+    modifiedUiParams.setCollectionName(QStringLiteral("standalone"));
     modifiedUiParams.setSecretName(secret.identifier().name());
     modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
-    modifiedUiParams.setPromptText(QObject::tr("Enter confidential data for secret %1 in collection %2 stored by plugin %3")
-                                   .arg(secret.identifier().name(),
-                                        secret.identifier().collectionName(),
+    //: This will be displayed to the user, prompting them to enter the standalone secret data which will be stored. %1 is the application name, %2 is the secret name, %3 is the plugin name.
+    //% "App %1 wants to store a new standalone secret named %2 into plugin %3. Enter the confidential data which will be stored."
+    modifiedUiParams.setPromptText(qtTrId("sailfish_secrets-set_standalone_secret-la-enter_secret_data")
+                                   .arg(newMetadata.ownerApplicationId,
+                                        secret.identifier().name(),
                                         secret.identifier().storagePluginName()));
     Result authenticationResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
                 callerPid,
@@ -1624,9 +1646,11 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretWithMetadata(
     modifiedUiParams.setCollectionName(QStringLiteral("standalone"));
     modifiedUiParams.setSecretName(secret.identifier().name());
     modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
-    modifiedUiParams.setPromptText(QObject::tr("Enter confidential data for secret %1 in collection %2 stored by plugin %3")
-                                   .arg(secret.identifier().name(),
-                                        secret.identifier().collectionName(),
+    //: This will be displayed to the user, prompting them to enter the standalone secret data which will be stored. %1 is the application name, %2 is the secret name, %3 is the plugin name.
+    //% "App %1 wants to store a new standalone secret named %2 into plugin %3. Enter the confidential data which will be stored."
+    modifiedUiParams.setPromptText(qtTrId("sailfish_secrets-set_standalone_secret-la-enter_secret_data")
+                                   .arg(newMetadata.ownerApplicationId,
+                                        secret.identifier().name(),
                                         secret.identifier().storagePluginName()));
     Result authenticationResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
                 callerPid,
@@ -1660,21 +1684,25 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretGetAuthenticatio
 {
     // perform the user input flow required to get the input key data which will be used
     // to encrypt the secret
-    InteractionParameters ikdRequest;
-    ikdRequest.setApplicationId(secretMetadata.ownerApplicationId);
-    ikdRequest.setPluginName(secret.identifier().storagePluginName());
-    ikdRequest.setCollectionName(QStringLiteral("standalone"));
-    ikdRequest.setSecretName(secret.identifier().name());
-    ikdRequest.setOperation(InteractionParameters::StoreSecret);
-    ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
-    ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-    ikdRequest.setPromptText(tr("Enter passphrase to encrypt standalone secret %1")
-                               .arg(secret.identifier().name()));
+    InteractionParameters promptParams;
+    promptParams.setApplicationId(secretMetadata.ownerApplicationId);
+    promptParams.setPluginName(secret.identifier().storagePluginName());
+    promptParams.setCollectionName(QStringLiteral("standalone"));
+    promptParams.setSecretName(secret.identifier().name());
+    promptParams.setOperation(InteractionParameters::StoreSecret);
+    promptParams.setInputType(InteractionParameters::AlphaNumericInput);
+    promptParams.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+    //: This will be displayed to the user, prompting them to enter the passphrase to encrypt a standalone secret. %1 is the application name, %2 is the secret name, %3 is the plugin name.
+    //% "App %1 wants to store a new standalone secret named %2 into plugin %3. Enter the passphrase which will be used to encrypt the secret."
+    promptParams.setPromptText(qtTrId("sailfish_secrets-set_standalone_secret-la-enter_secret_passphrase")
+                               .arg(secretMetadata.ownerApplicationId,
+                                    secret.identifier().name(),
+                                    secret.identifier().storagePluginName()));
     Q_UNUSED(userInteractionMode); // TODO: ensure the auth plugin uses the appropriate mode?
     Result interactionResult = m_authenticationPlugins[secretMetadata.authenticationPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
-                ikdRequest,
+                promptParams,
                 interactionServiceAddress);
     if (interactionResult.code() == Result::Failed) {
         return interactionResult;
@@ -1932,18 +1960,24 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
 
                 // perform the user input flow required to get the input key data which will be used
                 // to unlock the collection.
-                InteractionParameters ikdRequest;
-                ikdRequest.setApplicationId(callerApplicationId);
-                ikdRequest.setCollectionName(identifier.collectionName());
-                ikdRequest.setSecretName(identifier.name());
-                ikdRequest.setOperation(InteractionParameters::ReadSecret);
-                ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
-                ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-                ikdRequest.setPromptText("sailfish_secrets_get_collection_secret_input_key_data_prompt");
+                InteractionParameters promptParams;
+                promptParams.setApplicationId(callerApplicationId);
+                promptParams.setCollectionName(identifier.collectionName());
+                promptParams.setSecretName(identifier.name());
+                promptParams.setOperation(InteractionParameters::ReadSecret);
+                promptParams.setInputType(InteractionParameters::AlphaNumericInput);
+                promptParams.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+                //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in order to retrieve a secret. %1 is the application name, %2 is the  secret name, %3 is the collection name, %4 is the plugin name.
+                //% "App %1 wants to retrieve secret %2 from collection %3 in plugin %4. Enter the passphrase to unlock the collection."
+                promptParams.setPromptText(qtTrId("sailfish_secrets-get_collection_secret-la-enter_collection_passphrase")
+                                         .arg(callerApplicationId,
+                                              identifier.name(),
+                                              identifier.collectionName(),
+                                              identifier.storagePluginName()));
                 Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
-                            ikdRequest,
+                            promptParams,
                             interactionServiceAddress);
                 if (interactionResult.code() == Result::Failed) {
                     return interactionResult;
@@ -2000,18 +2034,24 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
 
                 // perform the user input flow required to get the input key data which will be used
                 // to unlock the collection.
-                InteractionParameters ikdRequest;
-                ikdRequest.setApplicationId(callerApplicationId);
-                ikdRequest.setCollectionName(identifier.collectionName());
-                ikdRequest.setSecretName(identifier.name());
-                ikdRequest.setOperation(InteractionParameters::ReadSecret);
-                ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
-                ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-                ikdRequest.setPromptText("sailfish_secrets_get_collection_secret_input_key_data_prompt");
+                InteractionParameters promptParams;
+                promptParams.setApplicationId(callerApplicationId);
+                promptParams.setCollectionName(identifier.collectionName());
+                promptParams.setSecretName(identifier.name());
+                promptParams.setOperation(InteractionParameters::ReadSecret);
+                promptParams.setInputType(InteractionParameters::AlphaNumericInput);
+                promptParams.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+                //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in order to retrieve a secret. %1 is the application name, %2 is the  secret name, %3 is the collection name, %4 is the plugin name.
+                //% "App %1 wants to retrieve secret %2 from collection %3 in plugin %4. Enter the passphrase to unlock the collection."
+                promptParams.setPromptText(qtTrId("sailfish_secrets-get_collection_secret-la-enter_collection_passphrase")
+                                         .arg(callerApplicationId,
+                                              identifier.name(),
+                                              identifier.collectionName(),
+                                              identifier.storagePluginName()));
                 Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
-                            ikdRequest,
+                            promptParams,
                             interactionServiceAddress);
                 if (interactionResult.code() == Result::Failed) {
                     return interactionResult;
@@ -2280,19 +2320,25 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithMetadata(
 
     // perform the user input flow required to get the input key data
     // (authentication code) which will be used to decrypt the secret.
-    InteractionParameters ikdRequest;
-    ikdRequest.setApplicationId(callerApplicationId);
-    ikdRequest.setPluginName(identifier.storagePluginName());
-    ikdRequest.setCollectionName(QString());
-    ikdRequest.setSecretName(identifier.name());
-    ikdRequest.setOperation(InteractionParameters::ReadSecret);
-    ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
-    ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-    ikdRequest.setPromptText("sailfish_secrets_get_standalone_secret_input_key_data_prompt");
+    InteractionParameters promptParams;
+    promptParams.setApplicationId(callerApplicationId);
+    promptParams.setPluginName(identifier.storagePluginName());
+    promptParams.setCollectionName(QString());
+    promptParams.setSecretName(identifier.name());
+    promptParams.setOperation(InteractionParameters::ReadSecret);
+    promptParams.setInputType(InteractionParameters::AlphaNumericInput);
+    promptParams.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+    //: This will be displayed to the user, prompting them to enter the passphrase to unlock the standalone secret in order to retrieve it. %1 is the application name, %2 is the standalone secret name, %3 is the plugin name.
+    //% "App %1 wants to retrieve standalone secret %2 from plugin %3. Enter the passphrase to unlock the secret."
+    promptParams.setPromptText(qtTrId("sailfish_secrets-get_standalone_secret-la-enter_secret_passphrase")
+                             .arg(callerApplicationId,
+                                  identifier.name(),
+                                  identifier.collectionName(),
+                                  identifier.storagePluginName()));
     Result interactionResult = m_authenticationPlugins[secretMetadata.authenticationPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
-                ikdRequest,
+                promptParams,
                 interactionServiceAddress);
     if (interactionResult.code() == Result::Failed) {
         return interactionResult;
@@ -2595,20 +2641,25 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
                 }
 
                 // perform the user input flow required to get the input key data which will be used
-                // to decrypt the secret.
-                InteractionParameters ikdRequest;
-                ikdRequest.setApplicationId(callerApplicationId);
-                ikdRequest.setPluginName(storagePluginName);
-                ikdRequest.setCollectionName(collectionName);
-                ikdRequest.setSecretName(QString());
-                ikdRequest.setOperation(InteractionParameters::UnlockCollection);
-                ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
-                ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-                ikdRequest.setPromptText("sailfish_secrets_unlock_collection_find_secrets_input_key_data_prompt");
+                // to unlock the collection.
+                InteractionParameters promptParams;
+                promptParams.setApplicationId(callerApplicationId);
+                promptParams.setPluginName(storagePluginName);
+                promptParams.setCollectionName(collectionName);
+                promptParams.setSecretName(QString());
+                promptParams.setOperation(InteractionParameters::UnlockCollection);
+                promptParams.setInputType(InteractionParameters::AlphaNumericInput);
+                promptParams.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+                //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in order to filter secrets within it. %1 is the application name, %2 is the collection name, %3 is the plugin name.
+                //% "App %1 wants to search for secrets within collection %2 from plugin %3. Enter the passphrase to unlock the collection."
+                promptParams.setPromptText(qtTrId("sailfish_secrets-find_collection_secrets-la-enter_collection_passphrase")
+                                         .arg(callerApplicationId,
+                                              collectionName,
+                                              storagePluginName));
                 Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
-                            ikdRequest,
+                            promptParams,
                             interactionServiceAddress);
                 if (interactionResult.code() == Result::Failed) {
                     return interactionResult;
@@ -2671,19 +2722,24 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
 
                 // perform the user input flow required to get the input key data which will be used
                 // to decrypt the secret.
-                InteractionParameters ikdRequest;
-                ikdRequest.setApplicationId(callerApplicationId);
-                ikdRequest.setPluginName(storagePluginName);
-                ikdRequest.setCollectionName(collectionName);
-                ikdRequest.setSecretName(QString());
-                ikdRequest.setOperation(InteractionParameters::UnlockCollection);
-                ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
-                ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-                ikdRequest.setPromptText("sailfish_secrets_unlock_collection_find_secrets_input_key_data_prompt");
+                InteractionParameters promptParams;
+                promptParams.setApplicationId(callerApplicationId);
+                promptParams.setPluginName(storagePluginName);
+                promptParams.setCollectionName(collectionName);
+                promptParams.setSecretName(QString());
+                promptParams.setOperation(InteractionParameters::UnlockCollection);
+                promptParams.setInputType(InteractionParameters::AlphaNumericInput);
+                promptParams.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+                //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in order to filter secrets within it. %1 is the application name, %2 is the collection name, %3 is the plugin name.
+                //% "App %1 wants to search for secrets within collection %2 from plugin %3. Enter the passphrase to unlock the collection."
+                promptParams.setPromptText(qtTrId("sailfish_secrets-find_collection_secrets-la-enter_collection_passphrase")
+                                         .arg(callerApplicationId,
+                                              collectionName,
+                                              storagePluginName));
                 Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
-                            ikdRequest,
+                            promptParams,
                             interactionServiceAddress);
                 if (interactionResult.code() == Result::Failed) {
                     return interactionResult;
@@ -3003,20 +3059,26 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
             }
 
             // perform the user input flow required to get the input key data which will be used
-            // to unlock the secret for deletion.
-            InteractionParameters ikdRequest;
-            ikdRequest.setApplicationId(callerApplicationId);
-            ikdRequest.setPluginName(identifier.storagePluginName());
-            ikdRequest.setCollectionName(identifier.collectionName());
-            ikdRequest.setSecretName(identifier.name());
-            ikdRequest.setOperation(InteractionParameters::DeleteSecret);
-            ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
-            ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-            ikdRequest.setPromptText("sailfish_secrets_delete_collection_secret_input_key_data_prompt");
+            // to unlock the collection in order to delete the secret.
+            InteractionParameters promptParams;
+            promptParams.setApplicationId(callerApplicationId);
+            promptParams.setPluginName(identifier.storagePluginName());
+            promptParams.setCollectionName(identifier.collectionName());
+            promptParams.setSecretName(identifier.name());
+            promptParams.setOperation(InteractionParameters::DeleteSecret);
+            promptParams.setInputType(InteractionParameters::AlphaNumericInput);
+            promptParams.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+            //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in order to delete a secret within it. %1 is the application name, %2 is the secret name, %3 is the collection name, %4 is the plugin name.
+            //% "App %1 wants to delete secret %2 within collection %3 in plugin %4. Enter the passphrase to unlock the collection."
+            promptParams.setPromptText(qtTrId("sailfish_secrets-delete_collection_secret-la-enter_collection_passphrase")
+                                     .arg(callerApplicationId,
+                                          identifier.name(),
+                                          identifier.collectionName(),
+                                          identifier.storagePluginName()));
             Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                         callerPid,
                         requestId,
-                        ikdRequest,
+                        promptParams,
                         interactionServiceAddress);
             if (interactionResult.code() == Result::Failed) {
                 return interactionResult;
@@ -3064,19 +3126,25 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
 
                 // perform the user input flow required to get the input key data which will be used
                 // to unlock the secret for deletion.
-                InteractionParameters ikdRequest;
-                ikdRequest.setApplicationId(callerApplicationId);
-                ikdRequest.setPluginName(identifier.storagePluginName());
-                ikdRequest.setCollectionName(identifier.collectionName());
-                ikdRequest.setSecretName(identifier.name());
-                ikdRequest.setOperation(InteractionParameters::DeleteSecret);
-                ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
-                ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-                ikdRequest.setPromptText("sailfish_secrets_delete_collection_secret_input_key_data_prompt");
+                InteractionParameters promptParams;
+                promptParams.setApplicationId(callerApplicationId);
+                promptParams.setPluginName(identifier.storagePluginName());
+                promptParams.setCollectionName(identifier.collectionName());
+                promptParams.setSecretName(identifier.name());
+                promptParams.setOperation(InteractionParameters::DeleteSecret);
+                promptParams.setInputType(InteractionParameters::AlphaNumericInput);
+                promptParams.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+                //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in order to delete a secret within it. %1 is the application name, %2 is the secret name, %3 is the collection name, %4 is the plugin name.
+                //% "App %1 wants to delete secret %2 within collection %3 in plugin %4. Enter the passphrase to unlock the collection."
+                promptParams.setPromptText(qtTrId("sailfish_secrets-delete_collection_secret-la-enter_collection_passphrase")
+                                         .arg(callerApplicationId,
+                                              identifier.name(),
+                                              identifier.collectionName(),
+                                              identifier.storagePluginName()));
                 Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
-                            ikdRequest,
+                            promptParams,
                             interactionServiceAddress);
                 if (interactionResult.code() == Result::Failed) {
                     return interactionResult;
@@ -3351,7 +3419,7 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCode(
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress)
 {
-    // TODO: perform access control request to see if the application has permission to access secure storage data.
+    // TODO: perform access control request to see if the application has permission to modify plugin locks.
     const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
     const QString callerApplicationId = applicationIsPlatformApplication
                 ? m_appPermissions->platformApplicationId()
@@ -3400,14 +3468,23 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCode(
                       .arg(interactionParams.authenticationPluginName()));
     }
 
+    //: This will be displayed to the user, prompting them to enter the old passphrase to unlock the extension plugin in order to change its lock code. %1 is the application name, %2 is the plugin name.
+    //% "App %1 wants to change the lock code for plugin %2. Enter the old passphrase to unlock the plugin."
+    const QString modifyPluginLockOldPrompt = qtTrId("sailfish_secrets-modify_lock_code-la-enter_old_plugin_passphrase")
+                                                .arg(callerApplicationId, lockCodeTarget);
+    //: This will be displayed to the user, prompting them to enter the old passphrase to unlock the secrets service in order to change the master lock code. %1 is the application name.
+    //% "App %1 wants to change the secrets service master lock code. Enter the old master passphrase."
+    const QString modifyMasterLockOldPrompt = qtTrId("sailfish_secrets-modify_lock_code-la-enter_old_master_passphrase")
+                                                .arg(callerApplicationId);
+
     InteractionParameters modifyLockRequest(interactionParams);
     modifyLockRequest.setApplicationId(callerApplicationId);
     modifyLockRequest.setOperation(lockCodeTargetType == LockCodeRequest::ExtensionPlugin
                                    ? InteractionParameters::ModifyLockPlugin
                                    : InteractionParameters::ModifyLockDatabase);
     modifyLockRequest.setPromptText(lockCodeTargetType == LockCodeRequest::ExtensionPlugin
-                                    ? QStringLiteral("Enter the old lock code for the plugin: %1").arg(lockCodeTarget)
-                                    : QStringLiteral("Enter the old master lock code for device secrets"));
+                                    ? modifyPluginLockOldPrompt
+                                    : modifyMasterLockOldPrompt);
     Result interactionResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -3441,6 +3518,12 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCode(
         const QString &interactionServiceAddress,
         const QByteArray &oldLockCode)
 {
+    // TODO: access control, check the application is allowed to modify plugin locks.
+    const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
+    const QString callerApplicationId = applicationIsPlatformApplication
+                ? m_appPermissions->platformApplicationId()
+                : m_appPermissions->applicationId(callerPid);
+
     QString userInputPlugin = interactionParams.authenticationPluginName();
     if (interactionParams.authenticationPluginName().isEmpty()) {
         // TODO: depending on type, choose the appropriate authentication plugin
@@ -3455,13 +3538,22 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCode(
                       .arg(interactionParams.authenticationPluginName()));
     }
 
+    //: This will be displayed to the user, prompting them to enter the new passphrase for the plugin. %1 is the application name, %2 is the plugin name.
+    //% "App %1 wants to change the lock code for plugin %2. Enter the new passphrase for the plugin."
+    const QString modifyPluginLockNewPrompt = qtTrId("sailfish_secrets-modify_lock_code-la-enter_new_plugin_passphrase")
+                                                .arg(callerApplicationId, lockCodeTarget);
+    //: This will be displayed to the user, prompting them to enter the new master lock code for the secrets service. %1 is the application name.
+    //% "App %1 wants to change the secrets service master lock code. Enter the new master passphrase."
+    const QString modifyMasterLockNewPrompt = qtTrId("sailfish_secrets-modify_lock_code-la-enter_new_master_passphrase")
+                                                .arg(callerApplicationId);
+
     InteractionParameters modifyLockRequest(interactionParams);
     modifyLockRequest.setOperation(lockCodeTargetType == LockCodeRequest::ExtensionPlugin
                                    ? InteractionParameters::ModifyLockPlugin
                                    : InteractionParameters::ModifyLockDatabase);
     modifyLockRequest.setPromptText(lockCodeTargetType == LockCodeRequest::ExtensionPlugin
-                                    ? QStringLiteral("Enter the new lock code for the plugin: %1").arg(lockCodeTarget)
-                                    : QStringLiteral("Enter the new master lock code for device secrets"));
+                                    ? modifyPluginLockNewPrompt
+                                    : modifyMasterLockNewPrompt);
     Result interactionResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -3702,14 +3794,23 @@ Daemon::ApiImpl::RequestProcessor::provideLockCode(
                       .arg(interactionParams.authenticationPluginName()));
     }
 
+    //: This will be displayed to the user, prompting them to enter the passphrase to unlock the extension plugin. %1 is the application name, %2 is the plugin name.
+    //% "App %1 wants to use plugin %2. Enter the passphrase to unlock the plugin."
+    const QString providePluginLockPrompt = qtTrId("sailfish_secrets-provide_lock_code-la-enter_plugin_passphrase")
+                                              .arg(callerApplicationId, lockCodeTarget);
+    //: This will be displayed to the user, prompting them to enter the passphrase to unlock the secrets service. %1 is the application name.
+    //% "App %1 wants to use the secrets service. Enter the master passphrase to unlock the secrets service."
+    const QString provideMasterLockPrompt = qtTrId("sailfish_secrets-provide_lock_code-la-enter_master_passphrase")
+                                              .arg(callerApplicationId);
+
     InteractionParameters unlockRequest(interactionParams);
     unlockRequest.setApplicationId(callerApplicationId);
     unlockRequest.setOperation(lockCodeTargetType == LockCodeRequest::ExtensionPlugin
                                ? InteractionParameters::UnlockPlugin
                                : InteractionParameters::UnlockDatabase);
     unlockRequest.setPromptText(lockCodeTargetType == LockCodeRequest::ExtensionPlugin
-                                ? QStringLiteral("Provide the unlock code for the plugin %1").arg(lockCodeTarget)
-                                : QLatin1String("Provide the master unlock code for device secrets"));
+                                ? providePluginLockPrompt
+                                : provideMasterLockPrompt);
     Result interactionResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -4055,19 +4156,25 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
 
         // perform the user input flow required to get the input key data which will be used
         // to unlock this collection.
-        InteractionParameters ikdRequest;
-        ikdRequest.setApplicationId(callerApplicationId);
-        ikdRequest.setPluginName(identifier.storagePluginName());
-        ikdRequest.setCollectionName(identifier.collectionName());
-        ikdRequest.setSecretName(identifier.name());
-        ikdRequest.setOperation(InteractionParameters::StoreKey);
-        ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
-        ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-        ikdRequest.setPromptText(QObject::tr("sailfish_secrets_store_collection_key_input_key_data_prompt"));
+        InteractionParameters promptParams;
+        promptParams.setApplicationId(callerApplicationId);
+        promptParams.setPluginName(identifier.storagePluginName());
+        promptParams.setCollectionName(identifier.collectionName());
+        promptParams.setSecretName(identifier.name());
+        promptParams.setOperation(InteractionParameters::StoreKey);
+        promptParams.setInputType(InteractionParameters::AlphaNumericInput);
+        promptParams.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+        //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection prior to key storage. %1 is the application name, %2 is the key name, %3 is the collection name, %4 is the plugin name.
+        //% "App %1 wants to store a new key named %2 into collection %3 in plugin %4. Enter the passphrase to unlock the collection."
+        promptParams.setPromptText(qtTrId("sailfish_secrets-set_collection_key_precheck-la-enter_collection_passphrase")
+                                   .arg(callerApplicationId,
+                                        identifier.name(),
+                                        identifier.collectionName(),
+                                        identifier.storagePluginName()));
         Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                     callerPid,
                     requestId,
-                    ikdRequest,
+                    promptParams,
                     QString());
         if (interactionResult.code() == Result::Failed) {
             return interactionResult;
@@ -4114,19 +4221,25 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
 
     // perform the user input flow required to get the input key data which will be used
     // to unlock this collection.
-    InteractionParameters ikdRequest;
-    ikdRequest.setApplicationId(callerApplicationId);
-    ikdRequest.setPluginName(identifier.storagePluginName());
-    ikdRequest.setCollectionName(identifier.collectionName());
-    ikdRequest.setSecretName(identifier.name());
-    ikdRequest.setOperation(InteractionParameters::StoreSecret);
-    ikdRequest.setInputType(InteractionParameters::AlphaNumericInput);
-    ikdRequest.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
-    ikdRequest.setPromptText(QObject::tr("sailfish_secrets_store_collection_key_input_key_data_prompt"));
+    InteractionParameters promptParams;
+    promptParams.setApplicationId(callerApplicationId);
+    promptParams.setPluginName(identifier.storagePluginName());
+    promptParams.setCollectionName(identifier.collectionName());
+    promptParams.setSecretName(identifier.name());
+    promptParams.setOperation(InteractionParameters::StoreSecret);
+    promptParams.setInputType(InteractionParameters::AlphaNumericInput);
+    promptParams.setEchoMode(InteractionParameters::PasswordEchoOnEdit);
+    //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection prior to key storage. %1 is the application name, %2 is the key name, %3 is the collection name, %4 is the plugin name.
+    //% "App %1 wants to store a new key named %2 into collection %3 in plugin %4. Enter the passphrase to unlock the collection."
+    promptParams.setPromptText(qtTrId("sailfish_secrets-set_collection_key_precheck-la-enter_collection_passphrase")
+                               .arg(callerApplicationId,
+                                    identifier.name(),
+                                    identifier.collectionName(),
+                                    identifier.storagePluginName()));
     Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
-                ikdRequest,
+                promptParams,
                 QString());
     if (interactionResult.code() == Result::Failed) {
         return interactionResult;

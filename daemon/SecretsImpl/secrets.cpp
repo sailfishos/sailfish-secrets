@@ -70,6 +70,14 @@ void Daemon::ApiImpl::SecretsDBusObject::userInput(
     Q_UNUSED(data); // outparam, set in handlePendingRequest / handleFinishedRequest
     InteractionParameters modifiedParams(uiParams);
     modifiedParams.setOperation(InteractionParameters::RequestUserData);
+    // Explicitly set the plugin name, collection name and secret name to empty.
+    // This is to avoid a malicious application from attempting to trick the
+    // user into providing data to it, under the pretense that it is for some
+    // other cause.
+    // Note that we also prepend an explicit warning to the prompt text (in
+    // secretsrequestprocessor.cpp) that the data will be returned to the
+    // application and thus cannot be considered confidential.
+    modifiedParams.setPluginName(QString());
     modifiedParams.setCollectionName(QString());
     modifiedParams.setSecretName(QString());
     QList<QVariant> inParams;

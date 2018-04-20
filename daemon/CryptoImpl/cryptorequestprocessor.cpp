@@ -315,6 +315,14 @@ Daemon::ApiImpl::RequestProcessor::generateKey(
                       QLatin1String("No such cryptographic service provider plugin exists"));
     }
 
+    // Note: we don't need to potentially perform any user input request
+    // to get the input key data here (in contrast with generateStoredKeyRequest)
+    // because this method assumes that the secret data can be / will be returned
+    // to the application anyway (so the application can request the input key data
+    // from the user itself).
+    // Thus, the key pair generation parameters or key derivation parameters
+    // will be fully specified with input key data.
+
     QFutureWatcher<KeyResult> *watcher = new QFutureWatcher<KeyResult>(this);
     QFuture<KeyResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
@@ -440,19 +448,24 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_afterPreCheck(
             }
         } else {
             // yes, we need to perform a user interaction flow to get the input key data.
-            Sailfish::Secrets::InteractionParameters ikdRequest;
-            ikdRequest.setSecretName(keyTemplate.identifier().name());
-            ikdRequest.setCollectionName(keyTemplate.identifier().collectionName());
-            ikdRequest.setPluginName(keyTemplate.identifier().storagePluginName());
-            ikdRequest.setOperation(Sailfish::Secrets::InteractionParameters::DeriveKey);
-            ikdRequest.setAuthenticationPluginName(uiParams.authenticationPluginName());
-            ikdRequest.setPromptText(uiParams.promptText());
-            ikdRequest.setInputType(static_cast<Sailfish::Secrets::InteractionParameters::InputType>(uiParams.inputType()));
-            ikdRequest.setEchoMode(static_cast<Sailfish::Secrets::InteractionParameters::EchoMode>(uiParams.echoMode()));
+            Sailfish::Secrets::InteractionParameters promptParams;
+            promptParams.setSecretName(keyTemplate.identifier().name());
+            promptParams.setCollectionName(keyTemplate.identifier().collectionName());
+            promptParams.setPluginName(keyTemplate.identifier().storagePluginName());
+            promptParams.setOperation(Sailfish::Secrets::InteractionParameters::DeriveKey);
+            promptParams.setAuthenticationPluginName(uiParams.authenticationPluginName());
+            //: This will be displayed to the user, prompting them to enter a passphrase from which a key will be derived. %1 is the key name, %2 is the collection name, %3 is the plugin name.
+            //% "An application wants to store a new key named %1 within collection %2 in plugin %3. Enter a passphrase from which the key will be derived."
+            promptParams.setPromptText(qtTrId("sailfish_crypto-generate_stored_key-la-enter_key_passphrase")
+                                       .arg(keyTemplate.identifier().name(),
+                                            keyTemplate.identifier().collectionName(),
+                                            keyTemplate.identifier().storagePluginName()));
+            promptParams.setInputType(static_cast<Sailfish::Secrets::InteractionParameters::InputType>(uiParams.inputType()));
+            promptParams.setEchoMode(static_cast<Sailfish::Secrets::InteractionParameters::EchoMode>(uiParams.echoMode()));
             result = transformSecretsResult(m_secrets->userInput(
                                                 callerPid,
                                                 requestId,
-                                                ikdRequest));
+                                                promptParams));
             if (result.code() == Result::Pending) {
                 // asynchronous operation, will call back to generateStoredKey_withInputData().
                 m_pendingRequests.insert(requestId,
@@ -648,16 +661,21 @@ Result Daemon::ApiImpl::RequestProcessor::promptForKeyPassphrase(
         const Key &key,
         const Sailfish::Crypto::InteractionParameters &uiParams)
 {
-    Sailfish::Secrets::InteractionParameters ikdRequest;
-    ikdRequest.setSecretName(key.identifier().name());
-    ikdRequest.setCollectionName(key.identifier().collectionName());
-    ikdRequest.setOperation(Sailfish::Secrets::InteractionParameters::Decrypt);
-    ikdRequest.setAuthenticationPluginName(uiParams.authenticationPluginName());
-    ikdRequest.setPromptText(uiParams.promptText());
-    ikdRequest.setInputType(static_cast<Sailfish::Secrets::InteractionParameters::InputType>(uiParams.inputType()));
-    ikdRequest.setEchoMode(static_cast<Sailfish::Secrets::InteractionParameters::EchoMode>(uiParams.echoMode()));
+    Sailfish::Secrets::InteractionParameters promptParams;
+    promptParams.setSecretName(key.identifier().name());
+    promptParams.setCollectionName(key.identifier().collectionName());
+    promptParams.setOperation(Sailfish::Secrets::InteractionParameters::Decrypt);
+    promptParams.setAuthenticationPluginName(uiParams.authenticationPluginName());
+    //: This will be displayed to the user, prompting them to enter a passphrase to import a key. %1 is the key name, %2 is the collection name, %3 is the plugin name.
+    //% "A passphrase is required in order to import the key %1 into collection %2 in plugin %2. Enter the key import passphrase."
+    promptParams.setPromptText(qtTrId("sailfish_crypto-import_key-la-enter_import_passphrase")
+                               .arg(key.identifier().name(),
+                                    key.identifier().collectionName(),
+                                    key.identifier().storagePluginName()));
+    promptParams.setInputType(static_cast<Sailfish::Secrets::InteractionParameters::InputType>(uiParams.inputType()));
+    promptParams.setEchoMode(static_cast<Sailfish::Secrets::InteractionParameters::EchoMode>(uiParams.echoMode()));
 
-    return transformSecretsResult(m_secrets->userInput(callerPid, requestId, ikdRequest));
+    return transformSecretsResult(m_secrets->userInput(callerPid, requestId, promptParams));
 }
 
 Result
