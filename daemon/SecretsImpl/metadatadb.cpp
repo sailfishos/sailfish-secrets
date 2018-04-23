@@ -217,7 +217,7 @@ Daemon::ApiImpl::MetadataDatabase::unlock(
         if (!m_db.isOpen()) {
             if (!openDatabase(hexKey)) {
                 retn = Result(Result::DatabaseError,
-                              QStringLiteral("Unable to initialise the bookkeeping database with the given key"));
+                              QStringLiteral("Unable to initialize the bookkeeping database with the given key"));
             }
         } else {
             const QString setupKeyStatement = QString::fromLatin1(setupEncryptionKey).arg(QLatin1String(hexKey));

@@ -186,7 +186,7 @@ void StoredSecretRequest::startRequest()
                                                         d->m_userInteractionMode);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;
-            d->m_result = Result(Result::SecretManagerNotInitialisedError,
+            d->m_result = Result(Result::SecretManagerNotInitializedError,
                                  reply.error().message());
             emit statusChanged();
             emit resultChanged();

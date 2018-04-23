@@ -18,7 +18,7 @@
 using namespace Sailfish::Crypto;
 
 CipherRequestPrivate::CipherRequestPrivate()
-    : m_cipherMode(CipherRequest::InitialiseCipher)
+    : m_cipherMode(CipherRequest::InitializeCipher)
     , m_blockMode(CryptoManager::BlockModeCbc)
     , m_encryptionPadding(CryptoManager::EncryptionPaddingNone)
     , m_signaturePadding(CryptoManager::SignaturePaddingNone)
@@ -63,7 +63,7 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * \brief Sets the mode which the client wishes to apply to the cipher session to \a mode
  *
  * The mode will be applied by the system crypto service to the cipher session.
- * In general, the client will want to initialise the cipher session, and then
+ * In general, the client will want to initialize the cipher session, and then
  * repeatedly update the cipher session with data to be operated upon, and
  * then when finished with all data should finalise the cipher session.
  *
@@ -80,12 +80,12 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * CipherRequest cr;
  * cr.setManager(cryptoManager);
  *
- * // Initialise the cipher.
- * cr.setCipherMode(CipherRequest::InitialiseCipher);
+ * // Initialize the cipher.
+ * cr.setCipherMode(CipherRequest::InitializeCipher);
  * cr.setKey(key); // a valid AES 256 key or key reference
  * cr.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
  * cr.setOperation(Sailfish::Crypto::CryptoManager::OperationEncrypt);
- * cr.setInitialisationVector(initializationVector);    // See GenerateInitializationVectorRequest
+ * cr.setInitializationVector(initializationVector);    // See GenerateInitializationVectorRequest
  * cr.startRequest();
  * cr.waitForFinished();
  *
@@ -105,7 +105,7 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * ciphertext.append(cr.generatedData());
  * \endcode
  *
- * To decrypt some ciphertext, the same initialisation vector must be
+ * To decrypt some ciphertext, the same initialization vector must be
  * specified as was used to encrypt the plaintext data originally.
  * An example of decrypting data follows:
  *
@@ -114,12 +114,12 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * CipherRequest cr;
  * cr.setManager(cryptoManager);
  *
- * // Initialise the cipher.
- * cr.setCipherMode(CipherRequest::InitialiseCipher);
+ * // Initialize the cipher.
+ * cr.setCipherMode(CipherRequest::InitializeCipher);
  * cr.setKey(key); // a valid AES 256 key or key reference
  * cr.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
  * cr.setOperation(Sailfish::Crypto::CryptoManager::OperationDecrypt);
- * cr.setInitialisationVector(initializationVector); // IV used during encryption.
+ * cr.setInitializationVector(initializationVector); // IV used during encryption.
  * cr.startRequest();
  * cr.waitForFinished();
  *
@@ -202,8 +202,8 @@ CryptoManager::Operation CipherRequest::operation() const
 /*!
  * \brief Sets the operation which the client wishes to perform with the cipher session to \a op
  *
- * Note: this parameter is only meaningful prior to initialising the cipher.  Once
- * initialised, the operation of the cipher cannot be changed.
+ * Note: this parameter is only meaningful prior to initializing the cipher.  Once
+ * initialized, the operation of the cipher cannot be changed.
  */
 void CipherRequest::setOperation(CryptoManager::Operation op)
 {
@@ -244,40 +244,40 @@ void CipherRequest::setData(const QByteArray &data)
 }
 
 /*!
- * \brief Returns the initialisation vector which the client wishes to use when encrypting or decrypting the data
+ * \brief Returns the initialization vector which the client wishes to use when encrypting or decrypting the data
  */
-QByteArray CipherRequest::initialisationVector() const
+QByteArray CipherRequest::initializationVector() const
 {
     Q_D(const CipherRequest);
-    return d->m_initialisationVector;
+    return d->m_initializationVector;
 }
 
 /*!
- * \brief Sets the initialisation vector which the client wishes to use when encrypting or decrypting the data to \a iv
+ * \brief Sets the initialization vector which the client wishes to use when encrypting or decrypting the data to \a iv
  *
- * This initialisation vector data will only be used for encrypt or decrypt operations, and is only
- * passed to the system service when the cipher mode is \l{CipherRequest::InitialiseCipher}.
+ * This initialization vector data will only be used for encrypt or decrypt operations, and is only
+ * passed to the system service when the cipher mode is \l{CipherRequest::InitializeCipher}.
  *
  * Note that this is only applicable for certain key types using certain
  * modes of encryption or decryption (e.g. CBC mode with AES symmetric keys).
  *
- * The client must specify the same initialisation vector when decrypting
- * the cipher text as they used when encrypting it.  The initialisation
+ * The client must specify the same initialization vector when decrypting
+ * the cipher text as they used when encrypting it.  The initialization
  * vector is not secret, and can be stored along with the ciphertext,
  * however it should be generated using a cryptographically secure
  * random number generator (see \l{GenerateRandomDataRequest}) and must
  * be the appropriate size according to the cipher.
  */
-void CipherRequest::setInitialisationVector(const QByteArray &iv)
+void CipherRequest::setInitializationVector(const QByteArray &iv)
 {
     Q_D(CipherRequest);
-    if (d->m_status != Request::Active && d->m_initialisationVector != iv) {
-        d->m_initialisationVector = iv;
+    if (d->m_status != Request::Active && d->m_initializationVector != iv) {
+        d->m_initializationVector = iv;
         if (d->m_status == Request::Finished) {
             d->m_status = Request::Inactive;
             emit statusChanged();
         }
-        emit initialisationVectorChanged();
+        emit initializationVectorChanged();
     }
 }
 
@@ -514,15 +514,15 @@ void CipherRequest::startRequest()
             emit resultChanged();
         }
 
-        if (d->m_cipherMode == CipherRequest::InitialiseCipher) {
+        if (d->m_cipherMode == CipherRequest::InitializeCipher) {
             for (QDBusPendingCallWatcher *w : d->m_watcherQueue) {
                 w->deleteLater();
             }
             d->m_watcherQueue.clear();
             d->m_cipherSessionToken = 0;
             QDBusPendingReply<Result, quint32> reply =
-                    d->m_manager->d_ptr->initialiseCipherSession(
-                        d->m_initialisationVector,
+                    d->m_manager->d_ptr->initializeCipherSession(
+                        d->m_initializationVector,
                         d->m_key,
                         d->m_operation,
                         d->m_blockMode,
@@ -533,7 +533,7 @@ void CipherRequest::startRequest()
                         d->m_cryptoPluginName);
             if (!reply.isValid() && !reply.error().message().isEmpty()) {
                 d->m_status = Request::Finished;
-                d->m_result = Result(Result::CryptoManagerNotInitialisedError,
+                d->m_result = Result(Result::CryptoManagerNotInitializedError,
                                      reply.error().message());
                 emit statusChanged();
                 emit resultChanged();
@@ -573,7 +573,7 @@ void CipherRequest::startRequest()
             }
         } else if (d->m_cipherMode == CipherRequest::UpdateCipherAuthentication) {
             if (d->m_cipherSessionToken == 0) {
-                qWarning() << "Ignoring attempt to update authentication for uninitialised cipher session!";
+                qWarning() << "Ignoring attempt to update authentication for uninitialized cipher session!";
             } else {
                 QDBusPendingReply<Result> reply =
                         d->m_manager->d_ptr->updateCipherSessionAuthentication(
@@ -583,7 +583,7 @@ void CipherRequest::startRequest()
                                 d->m_cipherSessionToken);
                 if (!reply.isValid() && !reply.error().message().isEmpty()) {
                     d->m_status = Request::Finished;
-                    d->m_result = Result(Result::CryptoManagerNotInitialisedError,
+                    d->m_result = Result(Result::CryptoManagerNotInitializedError,
                                          reply.error().message());
                     emit statusChanged();
                     emit resultChanged();
@@ -617,7 +617,7 @@ void CipherRequest::startRequest()
             }
         } else if (d->m_cipherMode == CipherRequest::UpdateCipher) {
             if (d->m_cipherSessionToken == 0) {
-                qWarning() << "Ignoring attempt to update data for uninitialised cipher session!";
+                qWarning() << "Ignoring attempt to update data for uninitialized cipher session!";
             } else {
                 QDBusPendingReply<Result, QByteArray> reply =
                         d->m_manager->d_ptr->updateCipherSession(
@@ -627,7 +627,7 @@ void CipherRequest::startRequest()
                                 d->m_cipherSessionToken);
                 if (!reply.isValid() && !reply.error().message().isEmpty()) {
                     d->m_status = Request::Finished;
-                    d->m_result = Result(Result::CryptoManagerNotInitialisedError,
+                    d->m_result = Result(Result::CryptoManagerNotInitializedError,
                                          reply.error().message());
                     emit statusChanged();
                     emit resultChanged();
@@ -681,7 +681,7 @@ void CipherRequest::startRequest()
             }
         } else {
             if (d->m_cipherSessionToken == 0) {
-                qWarning() << "Ignoring attempt to finalise uninitialised cipher session!";
+                qWarning() << "Ignoring attempt to finalise uninitialized cipher session!";
             } else {
                 QDBusPendingReply<Result, QByteArray, bool> reply =
                         d->m_manager->d_ptr->finaliseCipherSession(
@@ -691,7 +691,7 @@ void CipherRequest::startRequest()
                                 d->m_cipherSessionToken);
                 if (!reply.isValid() && !reply.error().message().isEmpty()) {
                     d->m_status = Request::Finished;
-                    d->m_result = Result(Result::CryptoManagerNotInitialisedError,
+                    d->m_result = Result(Result::CryptoManagerNotInitializedError,
                                          reply.error().message());
                     emit statusChanged();
                     emit resultChanged();

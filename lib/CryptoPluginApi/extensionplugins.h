@@ -157,7 +157,7 @@ public:
             QByteArray *decrypted,
             bool *verified) = 0;
 
-    virtual Sailfish::Crypto::Result initialiseCipherSession(
+    virtual Sailfish::Crypto::Result initializeCipherSession(
             quint64 clientId,
             const QByteArray &iv,
             const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)

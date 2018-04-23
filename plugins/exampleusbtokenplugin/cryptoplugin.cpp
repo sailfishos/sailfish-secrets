@@ -333,7 +333,7 @@ ExampleUsbTokenPlugin::decrypt(
 }
 
 Result
-ExampleUsbTokenPlugin::initialiseCipherSession(
+ExampleUsbTokenPlugin::initializeCipherSession(
         quint64 clientId,
         const QByteArray &iv,
         const Key &key, // or keyreference, i.e. Key(keyName)
@@ -351,7 +351,7 @@ ExampleUsbTokenPlugin::initialiseCipherSession(
         return keyResult;
     }
 
-    return m_usbInterface.initialiseCipherSession(
+    return m_usbInterface.initializeCipherSession(
                 clientId,
                 iv,
                 fullKey,

@@ -42,7 +42,7 @@ public:
     Q_INVOKABLE void setSecretManager(QObject *manager);
 
 Q_SIGNALS:
-    void cancelled();
+    void canceled();
     void finished();
     void secretManagerChanged();
 

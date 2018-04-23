@@ -88,7 +88,7 @@ void InteractionService::sendResponse(
         const InteractionResponse &response)
 {
     if (m_activeRequestId.isEmpty()) {
-        qCDebug(lcSailfishSecretsUi) << "Refusing to send response for cancelled or finished request";
+        qCDebug(lcSailfishSecretsUi) << "Refusing to send response for canceled or finished request";
         return;
     }
 
@@ -310,7 +310,7 @@ bool InteractionView::cancelRequest(QObject *sender)
         cancelRequest();
         return true;
     } else if (!d_ptr->m_uiService) {
-        // already cancelled
+        // already canceled
         return true;
     }
 

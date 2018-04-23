@@ -264,7 +264,7 @@ VerifiedDataResult CryptoPluginFunctionWrapper::decrypt(
     return VerifiedDataResult(result, plaintext, verified);
 }
 
-CipherSessionTokenResult CryptoPluginFunctionWrapper::initialiseCipherSession(
+CipherSessionTokenResult CryptoPluginFunctionWrapper::initializeCipherSession(
         const PluginAndCustomParams &pluginAndCustomParams,
         quint64 clientId,
         const QByteArray &iv,
@@ -272,7 +272,7 @@ CipherSessionTokenResult CryptoPluginFunctionWrapper::initialiseCipherSession(
         const CipherSessionOptions &options)
 {
     quint32 cipherSessionToken = 0;
-    Result result = pluginAndCustomParams.plugin->initialiseCipherSession(
+    Result result = pluginAndCustomParams.plugin->initializeCipherSession(
                 clientId,
                 iv,
                 key,

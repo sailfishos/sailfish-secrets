@@ -71,7 +71,7 @@ public:
                      bool autotestMode,
                      Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *parent = Q_NULLPTR);
 
-    bool initialisePlugins();
+    bool initializePlugins();
 
     // retrieve information about available plugins
     Sailfish::Secrets::Result getPluginInfo(

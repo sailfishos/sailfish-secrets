@@ -28,7 +28,7 @@ class SAILFISH_CRYPTO_API DecryptRequest : public Sailfish::Crypto::Request
 {
     Q_OBJECT
     Q_PROPERTY(QByteArray data READ data WRITE setData NOTIFY dataChanged)
-    Q_PROPERTY(QByteArray initialisationVector READ initialisationVector WRITE setInitialisationVector NOTIFY initialisationVectorChanged)
+    Q_PROPERTY(QByteArray initializationVector READ initializationVector WRITE setInitializationVector NOTIFY initializationVectorChanged)
     Q_PROPERTY(Sailfish::Crypto::Key key READ key WRITE setKey NOTIFY keyChanged)
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::BlockMode blockMode READ blockMode WRITE setBlockMode NOTIFY blockModeChanged)
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::EncryptionPadding padding READ padding WRITE setPadding NOTIFY paddingChanged)
@@ -45,8 +45,8 @@ public:
     QByteArray data() const;
     void setData(const QByteArray &data);
 
-    QByteArray initialisationVector() const;
-    void setInitialisationVector(const QByteArray &iv);
+    QByteArray initializationVector() const;
+    void setInitializationVector(const QByteArray &iv);
 
     Sailfish::Crypto::Key key() const;
     void setKey(const Sailfish::Crypto::Key &key);
@@ -83,7 +83,7 @@ public:
 
 Q_SIGNALS:
     void dataChanged();
-    void initialisationVectorChanged();
+    void initializationVectorChanged();
     void keyChanged();
     void blockModeChanged();
     void paddingChanged();

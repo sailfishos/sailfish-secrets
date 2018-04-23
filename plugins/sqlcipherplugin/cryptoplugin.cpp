@@ -416,7 +416,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::decrypt(
 }
 
 Sailfish::Crypto::Result
-Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::initialiseCipherSession(
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::initializeCipherSession(
         quint64 clientId,
         const QByteArray &iv,
         const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
@@ -434,7 +434,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::initialiseCipherSession(
         return keyResult;
     }
 
-    return m_opensslCryptoPlugin.initialiseCipherSession(clientId,
+    return m_opensslCryptoPlugin.initializeCipherSession(clientId,
                                                          iv,
                                                          fullKey,
                                                          operation,

@@ -391,7 +391,7 @@ class SecretsRequestQueue : public Sailfish::Secrets::Daemon::ApiImpl::RequestQu
     Q_OBJECT
 
 public:
-    enum InitialisationMode {
+    enum InitializationMode {
         ModifyLockMode,
         UnlockMode,
         LockMode
@@ -401,8 +401,8 @@ public:
     ~SecretsRequestQueue();
 
     QWeakPointer<QThreadPool> secretsThreadPool();
-    bool initialise(const QByteArray &lockCode, InitialisationMode mode);
-    bool initialisePlugins();
+    bool initialize(const QByteArray &lockCode, InitializationMode mode);
+    bool initializePlugins();
 
     void handlePendingRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;
     void handleFinishedRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;
@@ -431,7 +431,7 @@ private:
     bool m_locked;
     mutable QByteArray m_saltData;
     bool generateKeyData(const QByteArray &lockCode, QByteArray *bkdbKey, QByteArray *deviceLockKey, QByteArray *testCipherText) const;
-    bool initialiseKeyData(const QByteArray &bkdkKey, const QByteArray &deviceLockKey);
+    bool initializeKeyData(const QByteArray &bkdkKey, const QByteArray &deviceLockKey);
 
 public: // For use by the secrets request processor to handle device-locked collection/secret semantics
     bool masterLocked() const;

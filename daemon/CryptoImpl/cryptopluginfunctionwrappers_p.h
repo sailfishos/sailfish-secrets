@@ -277,7 +277,7 @@ VerifiedDataResult decrypt(
         const EncryptionOptions &options,
         const AuthDataAndTag &authDataAndTag);
 
-CipherSessionTokenResult initialiseCipherSession(
+CipherSessionTokenResult initializeCipherSession(
         const PluginAndCustomParams &pluginAndCustomParams,
         quint64 clientId,
         const QByteArray &iv,

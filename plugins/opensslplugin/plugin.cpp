@@ -62,7 +62,7 @@ Daemon::Plugins::OpenSslPlugin::encryptSecret(
         const QByteArray &key,
         QByteArray *encrypted)
 {
-    // generate initialisation vector
+    // generate initialization vector
     QCryptographicHash ivHash(QCryptographicHash::Sha256);
     ivHash.addData(key);
     QByteArray initVector = ivHash.result();
@@ -87,7 +87,7 @@ Daemon::Plugins::OpenSslPlugin::decryptSecret(
         const QByteArray &key,
         QByteArray *plaintext)
 {
-    // generate initialisation vector
+    // generate initialization vector
     QCryptographicHash ivHash(QCryptographicHash::Sha256);
     ivHash.addData(key);
     QByteArray initVector = ivHash.result();

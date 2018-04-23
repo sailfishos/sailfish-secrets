@@ -145,7 +145,7 @@ void Plugin::ApplicationInteractionView::cancelRequest()
         m_childItem->deleteLater();
         m_childItem = 0;
     }
-    emit cancelled();
+    emit canceled();
 }
 
 void Plugin::ApplicationInteractionView::finishRequest()

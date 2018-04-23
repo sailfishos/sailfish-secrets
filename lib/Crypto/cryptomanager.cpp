@@ -452,8 +452,8 @@ QDBusPendingReply<Result, QByteArray, bool> CryptoManagerPrivate::decrypt(
 }
 
 QDBusPendingReply<Sailfish::Crypto::Result, quint32>
-CryptoManagerPrivate::initialiseCipherSession(
-        const QByteArray &initialisationVector,
+CryptoManagerPrivate::initializeCipherSession(
+        const QByteArray &initializationVector,
         const Sailfish::Crypto::Key &key, // or keyreference
         const Sailfish::Crypto::CryptoManager::Operation operation,
         const Sailfish::Crypto::CryptoManager::BlockMode blockMode,
@@ -471,8 +471,8 @@ CryptoManagerPrivate::initialiseCipherSession(
 
     QDBusPendingReply<Result, quint32> reply
             = m_interface->asyncCallWithArgumentList(
-                "initialiseCipherSession",
-                QVariantList() << QVariant::fromValue<QByteArray>(initialisationVector)
+                "initializeCipherSession",
+                QVariantList() << QVariant::fromValue<QByteArray>(initializationVector)
                                << QVariant::fromValue<Key>(key)
                                << QVariant::fromValue<CryptoManager::Operation>(operation)
                                << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
@@ -665,9 +665,9 @@ CryptoManager::~CryptoManager()
 }
 
 /*!
-  \brief Returns true if the manager is initialised and can be used to perform requests.
+  \brief Returns true if the manager is initialized and can be used to perform requests.
  */
-bool CryptoManager::isInitialised() const
+bool CryptoManager::isInitialized() const
 {
     Q_D(const CryptoManager);
     return d->m_interface;

@@ -163,7 +163,7 @@ public:
             QByteArray *decrypted,
             bool *verified) Q_DECL_OVERRIDE;
 
-    Sailfish::Crypto::Result initialiseCipherSession(
+    Sailfish::Crypto::Result initializeCipherSession(
             quint64 clientId,
             const QByteArray &iv,
             const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)

@@ -231,8 +231,8 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Crypto::CryptoManager::EncryptionPadding\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "      </method>\n"
-    "      <method name=\"initialiseCipherSession\">\n"
-    "          <arg name=\"initialisationVector\" type=\"ay\" direction=\"in\" />\n"
+    "      <method name=\"initializeCipherSession\">\n"
+    "          <arg name=\"initializationVector\" type=\"ay\" direction=\"in\" />\n"
     "          <arg name=\"key\" type=\"(ay)\" direction=\"in\" />\n"
     "          <arg name=\"operation\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"blockMode\" type=\"(i)\" direction=\"in\" />\n"
@@ -465,8 +465,8 @@ public Q_SLOTS:
             QByteArray &decrypted,
             bool &verified);
 
-    void initialiseCipherSession(
-            const QByteArray &initialisationVector,
+    void initializeCipherSession(
+            const QByteArray &initializationVector,
             const Sailfish::Crypto::Key &key,
             Sailfish::Crypto::CryptoManager::Operation operation,
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
@@ -578,7 +578,7 @@ enum RequestType {
     VerifyRequest,
     EncryptRequest,
     DecryptRequest,
-    InitialiseCipherSessionRequest,
+    InitializeCipherSessionRequest,
     UpdateCipherSessionAuthenticationRequest,
     UpdateCipherSessionRequest,
     FinaliseCipherSessionRequest,

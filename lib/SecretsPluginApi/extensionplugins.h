@@ -78,7 +78,7 @@ public:
         NoStorage = 0,
         InMemoryStorage,            // stored in-memory only, won't survive reboot
         FileSystemStorage,          // normal filesystem storage
-        SecureFilesystemStorage,    // storage available to trusted execution environment applications only
+        SecureFileSystemStorage,    // storage available to trusted execution environment applications only
         SecurePeripheralStorage,    // data is stored to a secure hardware peripheral via TEE application
     };
 
