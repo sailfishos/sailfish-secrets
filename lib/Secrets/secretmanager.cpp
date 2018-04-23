@@ -666,7 +666,7 @@ SecretManager::~SecretManager()
 /*!
   \brief Returns true if the DBus connection has been established
  */
-bool SecretManager::isInitialised() const
+bool SecretManager::isInitialized() const
 {
     Q_D(const SecretManager);
     return d->m_interface;

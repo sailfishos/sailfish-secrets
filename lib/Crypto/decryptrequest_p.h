@@ -32,7 +32,7 @@ public:
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
     QVariantMap m_customParameters;
     QByteArray m_data;
-    QByteArray m_initialisationVector;
+    QByteArray m_initializationVector;
     Sailfish::Crypto::Key m_key;
     Sailfish::Crypto::CryptoManager::BlockMode m_blockMode;
     Sailfish::Crypto::CryptoManager::EncryptionPadding m_padding;

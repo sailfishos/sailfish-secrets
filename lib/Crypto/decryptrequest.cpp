@@ -70,37 +70,37 @@ void DecryptRequest::setData(const QByteArray &data)
 }
 
 /*!
- * \brief Returns the initialisation vector which the client wishes to use when decrypting the data
+ * \brief Returns the initialization vector which the client wishes to use when decrypting the data
  */
-QByteArray DecryptRequest::initialisationVector() const
+QByteArray DecryptRequest::initializationVector() const
 {
     Q_D(const DecryptRequest);
-    return d->m_initialisationVector;
+    return d->m_initializationVector;
 }
 
 /*!
- * \brief Sets the initialisation vector which the client wishes to use when decrypting the data to \a iv
+ * \brief Sets the initialization vector which the client wishes to use when decrypting the data to \a iv
  *
  * Note that this is only applicable for certain key types using certain
  * modes of encryption (e.g. CBC mode with AES symmetric keys).
  *
- * The client must specify the same initialisation vector when decrypting
- * the cipher text as they used when encrypting it.  The initialisation
+ * The client must specify the same initialization vector when decrypting
+ * the cipher text as they used when encrypting it.  The initialization
  * vector is not secret, and can be stored along with the ciphertext,
  * however it should be generated using a cryptographically secure
  * random number generator (see \l{GenerateRandomDataRequest}) and must
  * be the appropriate size according to the cipher.
  */
-void DecryptRequest::setInitialisationVector(const QByteArray &iv)
+void DecryptRequest::setInitializationVector(const QByteArray &iv)
 {
     Q_D(DecryptRequest);
-    if (d->m_status != Request::Active && d->m_initialisationVector != iv) {
-        d->m_initialisationVector = iv;
+    if (d->m_status != Request::Active && d->m_initializationVector != iv) {
+        d->m_initializationVector = iv;
         if (d->m_status == Request::Finished) {
             d->m_status = Request::Inactive;
             emit statusChanged();
         }
-        emit initialisationVectorChanged();
+        emit initializationVectorChanged();
     }
 }
 
@@ -345,7 +345,7 @@ void DecryptRequest::startRequest()
 
         QDBusPendingReply<Result, QByteArray, bool> reply = d->m_manager->d_ptr->decrypt(
                     d->m_data,
-                    d->m_initialisationVector,
+                    d->m_initializationVector,
                     d->m_key,
                     d->m_blockMode,
                     d->m_padding,
@@ -355,7 +355,7 @@ void DecryptRequest::startRequest()
                     d->m_cryptoPluginName);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;
-            d->m_result = Result(Result::CryptoManagerNotInitialisedError,
+            d->m_result = Result(Result::CryptoManagerNotInitializedError,
                                  reply.error().message());
             emit statusChanged();
             emit resultChanged();

@@ -82,13 +82,13 @@ public:
     SecretManager(QObject *parent = Q_NULLPTR);
     virtual ~SecretManager();
 
-    bool isInitialised() const;
+    bool isInitialized() const;
 
     // for In-Process UI flows via ApplicationSpecificAuthentication plugins only.
     void registerInteractionView(Sailfish::Secrets::InteractionView *view);
 
 Q_SIGNALS:
-    void isInitialisedChanged();
+    void isInitializedChanged();
 
 protected:
     SecretManagerPrivate *pimpl() const; // for unit tests

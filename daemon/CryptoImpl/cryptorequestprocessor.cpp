@@ -1757,7 +1757,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt2(
 }
 
 Result
-Daemon::ApiImpl::RequestProcessor::initialiseCipherSession(
+Daemon::ApiImpl::RequestProcessor::initializeCipherSession(
         pid_t callerPid,
         quint64 requestId,
         const QByteArray &iv,
@@ -1811,12 +1811,12 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession(
             if (retn.code() == Result::Failed) {
                 return retn;
             } else if (retn.code() == Result::Pending) {
-                // asynchronous flow required, will call back to initialiseCipherSession2().
+                // asynchronous flow required, will call back to initializeCipherSession2().
                 m_pendingRequests.insert(requestId,
                                          Daemon::ApiImpl::RequestProcessor::PendingRequest(
                                              callerPid,
                                              requestId,
-                                             Daemon::ApiImpl::InitialiseCipherSessionRequest,
+                                             Daemon::ApiImpl::InitializeCipherSessionRequest,
                                              QVariantList() << QVariant::fromValue<pid_t>(callerPid)
                                                             << QVariant::fromValue<QByteArray>(iv)
                                                             << QVariant::fromValue<CryptoManager::Operation>(operation)
@@ -1838,7 +1838,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession(
     QFutureWatcher<CipherSessionTokenResult> *watcher = new QFutureWatcher<CipherSessionTokenResult>(this);
     QFuture<CipherSessionTokenResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
-                CryptoPluginFunctionWrapper::initialiseCipherSession,
+                CryptoPluginFunctionWrapper::initializeCipherSession,
                 PluginAndCustomParams(cryptoPlugin, customParameters),
                 callerPid,
                 iv,
@@ -1864,7 +1864,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession(
 }
 
 void
-Daemon::ApiImpl::RequestProcessor::initialiseCipherSession2(
+Daemon::ApiImpl::RequestProcessor::initializeCipherSession2(
         quint64 requestId,
         const Result &result,
         const QByteArray &serialisedKey,
@@ -1889,7 +1889,7 @@ Daemon::ApiImpl::RequestProcessor::initialiseCipherSession2(
     QFutureWatcher<CipherSessionTokenResult> *watcher = new QFutureWatcher<CipherSessionTokenResult>(this);
     QFuture<CipherSessionTokenResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptoPluginName).data(),
-                CryptoPluginFunctionWrapper::initialiseCipherSession,
+                CryptoPluginFunctionWrapper::initializeCipherSession,
                 PluginAndCustomParams(m_cryptoPlugins[cryptoPluginName], customParameters),
                 callerPid,
                 iv,
@@ -2223,7 +2223,7 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 decrypt2(requestId, returnResult, serialisedKey, data, iv, blockMode, padding, authenticationData, authenticationTag, customParameters, cryptoPluginName);
                 break;
             }
-            case InitialiseCipherSessionRequest: {
+            case InitializeCipherSessionRequest: {
                 pid_t callerPid = pr.parameters.takeFirst().value<pid_t>();
                 QByteArray iv = pr.parameters.takeFirst().value<QByteArray>();
                 CryptoManager::Operation operation = pr.parameters.takeFirst().value<CryptoManager::Operation>();
@@ -2233,7 +2233,7 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 CryptoManager::DigestFunction digestFunction = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
                 QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                initialiseCipherSession2(requestId, returnResult, serialisedKey,
+                initializeCipherSession2(requestId, returnResult, serialisedKey,
                                          callerPid, iv, operation, blockMode,
                                          encryptionPadding, signaturePadding,
                                          digestFunction, customParameters, cryptoPluginName);

@@ -45,7 +45,7 @@ public:
         OperationRequiresUserInteraction,
         OperationRequiresApplicationUserInteraction,
         OperationRequiresSystemUserInteraction,
-        SecretManagerNotInitialisedError,
+        SecretManagerNotInitializedError,
 
         SecretsDaemonRequestPidError = 20,
         SecretsDaemonRequestQueueFullError,

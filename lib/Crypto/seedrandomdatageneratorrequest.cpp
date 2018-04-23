@@ -231,7 +231,7 @@ void SeedRandomDataGeneratorRequest::startRequest()
                         d->m_cryptoPluginName);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;
-            d->m_result = Result(Result::CryptoManagerNotInitialisedError,
+            d->m_result = Result(Result::CryptoManagerNotInitializedError,
                                  reply.error().message());
             emit statusChanged();
             emit resultChanged();

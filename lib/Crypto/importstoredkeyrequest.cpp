@@ -213,7 +213,7 @@ void ImportStoredKeyRequest::startRequest()
                                                      d->m_cryptoPluginName);
         if (reply.isError()) {
             d->m_status = Request::Finished;
-            d->m_result = Result(Result::CryptoManagerNotInitialisedError,
+            d->m_result = Result(Result::CryptoManagerNotInitializedError,
                                  reply.error().message());
             emit statusChanged();
             emit resultChanged();
@@ -234,7 +234,7 @@ void ImportStoredKeyRequest::startRequest()
                 QDBusPendingReply<Result, Key> reply = *watcher;
                 this->d_ptr->m_status = Request::Finished;
                 if (reply.isError()) {
-                    this->d_ptr->m_result = Result(Result::CryptoManagerNotInitialisedError,
+                    this->d_ptr->m_result = Result(Result::CryptoManagerNotInitializedError,
                                          reply.error().message());
                     this->d_ptr->m_importedKeyReference = Key();
                 } else {

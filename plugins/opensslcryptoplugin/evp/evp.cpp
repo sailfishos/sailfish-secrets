@@ -102,7 +102,7 @@ int OpenSslEvp::init()
 /*
     void OpenSslEvp::cleanup()
 
-    Cleans up memory which was allocated during initialisation.
+    Cleans up memory which was allocated during initialization.
  */
 void OpenSslEvp::cleanup()
 {
@@ -163,7 +163,7 @@ int OpenSslEvp::pkcs5_pbkdf2_hmac(const char *pass, int passlen,
     \a encrypted buffer and must free().
 
     The given \a init_vector must be a 16 byte buffer containing the
-    initialisation vector for the AES encryption context.
+    initialization vector for the AES encryption context.
 
     Returns the length of the \a encrypted output on success, or -1 if the
     arguments are invalid or encryption otherwise fails.
@@ -244,7 +244,7 @@ int OpenSslEvp::aes_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
     \a decrypted buffer and must free().
 
     The given \a init_vector must be a 16 byte buffer containing the
-    initialisation vector for the AES decryption context.
+    initialization vector for the AES decryption context.
 
     Returns the length of the \a decrypted output on success, or -1 if the
     arguments are invalid or decryption otherwise fails.
@@ -358,7 +358,7 @@ int OpenSslEvp::aes_auth_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
     /* Create the encryption context */
     EVP_CIPHER_CTX *encryption_context = EVP_CIPHER_CTX_new();
 
-    /* Initialise key and IV */
+    /* Initialize key and IV */
     if (!EVP_EncryptInit_ex(encryption_context, evp_cipher, NULL, key, init_vector)) {
         ERR_print_errors_fp(stderr);
         EVP_CIPHER_CTX_free(encryption_context);
@@ -454,7 +454,7 @@ int OpenSslEvp::aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
     /* Create the decryption context */
     EVP_CIPHER_CTX *decryption_context = EVP_CIPHER_CTX_new();
 
-    /* Initialise key and IV */
+    /* Initialize key and IV */
     if (!EVP_DecryptInit_ex(decryption_context, evp_cipher, NULL, key, init_vector)) {
         ERR_print_errors_fp(stderr);
         EVP_CIPHER_CTX_free(decryption_context);
@@ -677,7 +677,7 @@ int OpenSslEvp::digest(const EVP_MD *digestFunc,
     OSSLEVP_HANDLE_ERR(mdctx == NULL, r = -1, "failed to allocate memory for MD context", err_dontfree);
 
     r = EVP_DigestInit_ex(mdctx, digestFunc, NULL);
-    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialise Digest", err_free_mdctx);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialize Digest", err_free_mdctx);
 
     r = EVP_DigestUpdate(mdctx, bytes, bytesCount);
     OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to update Digest", err_free_mdctx);
@@ -733,7 +733,7 @@ int OpenSslEvp::sign(const EVP_MD *digestFunc,
     OSSLEVP_HANDLE_ERR(mdctx == NULL, r = -1, "failed to allocate memory for MD context", err_dontfree);
 
     r = EVP_DigestSignInit(mdctx, NULL, digestFunc, NULL, pkey);
-    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialise DigestSign", err_free_mdctx);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialize DigestSign", err_free_mdctx);
 
     r = EVP_DigestSignUpdate(mdctx, bytes, bytesCount);
     OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to update DigestSign", err_free_mdctx);
@@ -789,7 +789,7 @@ int OpenSslEvp::verify(const EVP_MD *digestFunc,
     OSSLEVP_HANDLE_ERR(mdctx == NULL, r = -1, "failed to allocate memory for MD context", err_dontfree);
 
     r = EVP_DigestVerifyInit(mdctx, NULL, digestFunc, NULL, pkey);
-    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialise DigestVerify", err_free_mdctx);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialize DigestVerify", err_free_mdctx);
 
     r = EVP_DigestVerifyUpdate(mdctx, bytes, bytesCount);
     OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to update DigestVerify", err_free_mdctx);
@@ -846,7 +846,7 @@ int OpenSslEvp::generate_ec_key(int curveNid,
     OSSLEVP_HANDLE_ERR(pctx == NULL, r = -1, "failed to allocate memory for key parameter generation context", err_dontfree);
 
     r = EVP_PKEY_paramgen_init(pctx);
-    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialise parameter generation", err_free_pctx);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialize parameter generation", err_free_pctx);
 
     r = EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pctx, curveNid);
     OSSLEVP_HANDLE_ERR(r != 1, r = -2, "failed to set EC curve NID", err_free_pctx);
@@ -857,7 +857,7 @@ int OpenSslEvp::generate_ec_key(int curveNid,
     OSSLEVP_HANDLE_ERR(kctx == NULL, r = -1, "failed to allocate memory for key generation context", err_free_params);
 
     r = EVP_PKEY_keygen_init(kctx);
-    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialise key generation", err_free_kctx);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialize key generation", err_free_kctx);
 
     r = EVP_PKEY_keygen(kctx, &key);
     OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to generate key", err_free_kctx);

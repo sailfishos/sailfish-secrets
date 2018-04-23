@@ -35,7 +35,7 @@ using namespace Sailfish::Crypto;
 Daemon::Plugins::OpenSslCryptoPlugin::OpenSslCryptoPlugin(QObject *parent)
     : QObject(parent)
 {
-    // initialise EVP
+    // initialize EVP
     OpenSslEvp::init();
 
     // seed the RNG
@@ -67,7 +67,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::seedRandomDataGenerator(
     }
 
     // Note: this will affect all clients, as we don't currently separate RNGs based on callerIdent.
-    // TODO: initialise separate RNG engine instances for separate callers?
+    // TODO: initialize separate RNG engine instances for separate callers?
     RAND_add(seedData.constData(), seedData.size(), entropyEstimate);
     return Result(Result::Succeeded);
 }
@@ -178,7 +178,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateInitializationVector(
     int ivSize = initializationVectorSize(algorithm, blockMode, keySize);
     if (ivSize < 0) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("Unable to generate initialisation vector for this configuration"));
+                                        QLatin1String("Unable to generate initialization vector for this configuration"));
     }
     if (ivSize == 0) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
@@ -190,7 +190,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateInitializationVector(
     if (RAND_bytes(ivBuf, ivSize) <= 0) {
         free(ivBuf);
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                        QLatin1String("Unable to generate initialisation vector"));
+                                        QLatin1String("Unable to generate initialization vector"));
     }
 
     *generatedIV = QByteArray(reinterpret_cast<char*>(ivBuf), ivSize);
@@ -237,7 +237,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateRsaKey(
     QScopedPointer<RSA, LibCrypto_RSA_Deleter> rsa(RSA_new());
     if (RSA_generate_key_ex(rsa.data(), rsakpgp.modulusLength(), pubExp.data(), NULL) != 1) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
-                                        QLatin1String("Failed to initialise RSA key pair generation"));
+                                        QLatin1String("Failed to initialize RSA key pair generation"));
     }
 
     QScopedPointer<BIO, LibCrypto_BIO_Deleter> pubbio(BIO_new(BIO_s_mem()));
@@ -1140,7 +1140,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::decryptAes(
 }
 
 Sailfish::Crypto::Result
-Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
+Daemon::Plugins::OpenSslCryptoPlugin::initializeCipherSession(
         quint64 clientId,
         const QByteArray &iv,
         const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
@@ -1202,7 +1202,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
         evp_cipher_ctx = EVP_CIPHER_CTX_new();
         if (evp_cipher_ctx == NULL) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                            QLatin1String("Unable to initialise cipher context for encryption"));
+                                            QLatin1String("Unable to initialize cipher context for encryption"));
         }
         if (key.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
             const EVP_CIPHER *evp_cipher = getEvpCipher(blockMode, key.secretKey().size());
@@ -1216,14 +1216,14 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
                                    reinterpret_cast<const unsigned char*>(iv.constData())) != 1) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                                QLatin1String("Unable to initialise encryption cipher context in AES 256 mode"));
+                                                QLatin1String("Unable to initialize encryption cipher context in AES 256 mode"));
             }
         }
     } else if (operation == Sailfish::Crypto::CryptoManager::OperationDecrypt) {
         evp_cipher_ctx = EVP_CIPHER_CTX_new();
         if (evp_cipher_ctx == NULL) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                            QLatin1String("Unable to initialise cipher context for decryption"));
+                                            QLatin1String("Unable to initialize cipher context for decryption"));
         }
         if (key.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
             const EVP_CIPHER *evp_cipher = getEvpCipher(blockMode, key.secretKey().size());
@@ -1237,7 +1237,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::initialiseCipherSession(
                                    reinterpret_cast<const unsigned char *>(iv.constData())) != 1) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                                QLatin1String("Unable to initialise decryption cipher context in AES 256 mode"));
+                                                QLatin1String("Unable to initialize decryption cipher context in AES 256 mode"));
             }
         }
     } else {
@@ -1302,7 +1302,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::updateCipherSessionAuthentication(
                                         QLatin1String("Block mode is not GCM, cannot update authentication data"));
     } else if (csd->evp_cipher_ctx == NULL) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                        QLatin1String("Cipher context has not been initialised"));
+                                        QLatin1String("Cipher context has not been initialized"));
     }
 
     csd->timeout->start(); // restart the timeout due to activity.
@@ -1346,7 +1346,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::updateCipherSession(
     CipherSessionData *csd = m_cipherSessions[clientId].value(cipherSessionToken);
     if (csd->evp_cipher_ctx == NULL) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                        QLatin1String("Cipher context has not been initialised"));
+                                        QLatin1String("Cipher context has not been initialized"));
     }
 
     csd->timeout->start(); // restart the timeout due to activity.
@@ -1396,7 +1396,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::finaliseCipherSession(
     CipherSessionData *csd = m_cipherSessions[clientId].value(cipherSessionToken);
     if (csd->evp_cipher_ctx == NULL) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                        QLatin1String("Cipher context has not been initialised"));
+                                        QLatin1String("Cipher context has not been initialized"));
     }
 
     QScopedPointer<CipherSessionData,CipherSessionDataDeleter> csdd(m_cipherSessions[clientId].take(cipherSessionToken));

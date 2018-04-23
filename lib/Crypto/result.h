@@ -46,7 +46,7 @@ public:
         InvalidStorageProvider,
         InvalidKeyIdentifier,
         DuplicateKeyIdentifier,
-        CryptoManagerNotInitialisedError,
+        CryptoManagerNotInitializedError,
         InvalidInitializationVector,
         InvalidAuthenticationTag,
 

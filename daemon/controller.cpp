@@ -49,7 +49,7 @@ Sailfish::Secrets::Daemon::Controller::Controller(bool autotestMode, QObject *pa
     qRegisterMetaType<Sailfish::Secrets::Daemon::ApiImpl::CollectionMetadata>();
     qRegisterMetaType<Sailfish::Secrets::Daemon::ApiImpl::SecretMetadata>();
 
-    // Initialise the various API implementation objects.
+    // Initialize the various API implementation objects.
     // These objects provide Peer-To-Peer DBus API.
     m_secrets = new Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue(this, autotestMode);
     m_crypto = new Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue(this, m_secrets, autotestMode);
@@ -60,10 +60,10 @@ Sailfish::Secrets::Daemon::Controller::Controller(bool autotestMode, QObject *pa
     // that we have the "correct" bookkeeping database lock key here,
     // but that's ok - we can unlock the database at some later point in
     // time after performing a UI flow asking the user to unlock.
-    if (m_secrets->initialise(
+    if (m_secrets->initialize(
                 QByteArray(),
                 Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::UnlockMode)) {
-        m_secrets->initialisePlugins();
+        m_secrets->initializePlugins();
     }
 
     // Determine the p2p socket address.
@@ -73,7 +73,7 @@ Sailfish::Secrets::Daemon::Controller::Controller(bool autotestMode, QObject *pa
         return;
     }
 
-    // Initialise the discovery objects and register them on the session bus.
+    // Initialize the discovery objects and register them on the session bus.
     // This allows clients who don't know the P2P socket file path to discover it via DBus.
     m_secretsDiscoveryObject  = new Sailfish::Secrets::Daemon::DiscoveryObject(this);
     if (!m_secretsDiscoveryObject->registerObject(QString::fromUtf8("org.sailfishos.secrets.daemon.discovery"),
@@ -94,7 +94,7 @@ Sailfish::Secrets::Daemon::Controller::Controller(bool autotestMode, QObject *pa
     m_secretsDiscoveryObject->setPeerToPeerAddress(p2pDBusSocketAddress);
     m_cryptoDiscoveryObject->setPeerToPeerAddress(p2pDBusSocketAddress);
 
-    // Initialise the Peer-To-Peer DBus server.
+    // Initialize the Peer-To-Peer DBus server.
     m_dbusServer = new QDBusServer(p2pDBusSocketAddress, this);
     connect(m_dbusServer, &QDBusServer::newConnection,
             this, &Sailfish::Secrets::Daemon::Controller::handleClientConnection);

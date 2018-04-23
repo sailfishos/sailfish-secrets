@@ -315,7 +315,7 @@ public:
     CryptoManager(QObject *parent = Q_NULLPTR);
     virtual ~CryptoManager();
 
-    bool isInitialised() const;
+    bool isInitialized() const;
 
 private:
     QScopedPointer<CryptoManagerPrivate> const d_ptr;

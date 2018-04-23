@@ -405,8 +405,8 @@ void Daemon::ApiImpl::CryptoDBusObject::decrypt(
                                   result);
 }
 
-void Daemon::ApiImpl::CryptoDBusObject::initialiseCipherSession(
-        const QByteArray &initialisationVector,
+void Daemon::ApiImpl::CryptoDBusObject::initializeCipherSession(
+        const QByteArray &initializationVector,
         const Sailfish::Crypto::Key &key,
         Sailfish::Crypto::CryptoManager::Operation operation,
         Sailfish::Crypto::CryptoManager::BlockMode blockMode,
@@ -421,7 +421,7 @@ void Daemon::ApiImpl::CryptoDBusObject::initialiseCipherSession(
 {
     Q_UNUSED(cipherSessionToken);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<QByteArray>(initialisationVector);
+    inParams << QVariant::fromValue<QByteArray>(initializationVector);
     inParams << QVariant::fromValue<Key>(key);
     inParams << QVariant::fromValue<CryptoManager::Operation>(operation);
     inParams << QVariant::fromValue<CryptoManager::BlockMode>(blockMode);
@@ -430,7 +430,7 @@ void Daemon::ApiImpl::CryptoDBusObject::initialiseCipherSession(
     inParams << QVariant::fromValue<CryptoManager::DigestFunction>(digest);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
-    m_requestQueue->handleRequest(Daemon::ApiImpl::InitialiseCipherSessionRequest,
+    m_requestQueue->handleRequest(Daemon::ApiImpl::InitializeCipherSessionRequest,
                                   inParams,
                                   connection(),
                                   message,
@@ -579,7 +579,7 @@ Daemon::ApiImpl::CryptoRequestQueue::CryptoRequestQueue(
     m_requestProcessor = new Daemon::ApiImpl::RequestProcessor(secrets, autotestMode, this);
 
     setDBusObject(new Daemon::ApiImpl::CryptoDBusObject(this));
-    qCDebug(lcSailfishCryptoDaemon) << "Crypto: initialisation succeeded, awaiting client connections.";
+    qCDebug(lcSailfishCryptoDaemon) << "Crypto: initialization succeeded, awaiting client connections.";
 }
 
 Daemon::ApiImpl::CryptoRequestQueue::~CryptoRequestQueue()
@@ -644,7 +644,7 @@ QString Daemon::ApiImpl::CryptoRequestQueue::requestTypeToString(int type) const
         case VerifyRequest:                    return QLatin1String("VerifyRequest");
         case EncryptRequest:                   return QLatin1String("EncryptRequest");
         case DecryptRequest:                   return QLatin1String("DecryptRequest");
-        case InitialiseCipherSessionRequest:   return QLatin1String("InitialiseCipherSessionRequest");
+        case InitializeCipherSessionRequest:   return QLatin1String("InitializeCipherSessionRequest");
         case UpdateCipherSessionAuthenticationRequest: return QLatin1String("UpdateCipherSessionAuthenticationRequest");
         case UpdateCipherSessionRequest:       return QLatin1String("UpdateCipherSessionRequest");
         case FinaliseCipherSessionRequest:     return QLatin1String("FinaliseCipherSessionRequest");
@@ -1144,8 +1144,8 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             }
             break;
         }
-        case InitialiseCipherSessionRequest: {
-            qCDebug(lcSailfishCryptoDaemon) << "Handling InitialiseCipherSessionRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+        case InitializeCipherSessionRequest: {
+            qCDebug(lcSailfishCryptoDaemon) << "Handling InitializeCipherSessionRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             quint32 cipherSessionToken = 0;
             QByteArray iv = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
@@ -1156,7 +1156,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             CryptoManager::DigestFunction digest = request->inParams.size() ? request->inParams.takeFirst().value<CryptoManager::DigestFunction>() : CryptoManager::DigestUnknown;
             QVariantMap customParameters = request->inParams.size() ? request->inParams.takeFirst().value<QVariantMap>() : QVariantMap();
             QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            Result result = m_requestProcessor->initialiseCipherSession(
+            Result result = m_requestProcessor->initializeCipherSession(
                         request->remotePid,
                         request->requestId,
                         iv,
@@ -1658,14 +1658,14 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
             }
             break;
         }
-        case InitialiseCipherSessionRequest: {
+        case InitializeCipherSessionRequest: {
             Result result = request->outParams.size()
                     ? request->outParams.takeFirst().value<Result>()
                     : Result(Result::UnknownError,
-                             QLatin1String("Unable to determine result of InitialiseCipherSessionRequest request"));
+                             QLatin1String("Unable to determine result of InitializeCipherSessionRequest request"));
             if (result.code() == Result::Pending) {
                 // shouldn't happen!
-                qCWarning(lcSailfishCryptoDaemon) << "InitialiseCipherSessionRequest:" << request->requestId << "finished as pending!";
+                qCWarning(lcSailfishCryptoDaemon) << "InitializeCipherSessionRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
                 quint32 cipherSessionToken = request->outParams.size()

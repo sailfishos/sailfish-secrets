@@ -29,7 +29,7 @@ class SAILFISH_CRYPTO_API CipherRequest : public Sailfish::Crypto::Request
     Q_PROPERTY(CipherMode cipherMode READ cipherMode WRITE setCipherMode NOTIFY cipherModeChanged)
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::Operation operation READ operation WRITE setOperation NOTIFY operationChanged)
     Q_PROPERTY(QByteArray data READ data WRITE setData NOTIFY dataChanged)
-    Q_PROPERTY(QByteArray initialisationVector READ initialisationVector WRITE setInitialisationVector NOTIFY initialisationVectorChanged)
+    Q_PROPERTY(QByteArray initializationVector READ initializationVector WRITE setInitializationVector NOTIFY initializationVectorChanged)
     Q_PROPERTY(Sailfish::Crypto::Key key READ key WRITE setKey NOTIFY keyChanged)
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::BlockMode blockMode READ blockMode WRITE setBlockMode NOTIFY blockModeChanged)
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding READ encryptionPadding WRITE setEncryptionPadding NOTIFY encryptionPaddingChanged)
@@ -41,7 +41,7 @@ class SAILFISH_CRYPTO_API CipherRequest : public Sailfish::Crypto::Request
 
 public:
     enum CipherMode {
-        InitialiseCipher = 0,
+        InitializeCipher = 0,
         UpdateCipherAuthentication,
         UpdateCipher,
         FinaliseCipher,
@@ -60,8 +60,8 @@ public:
     QByteArray data() const;
     void setData(const QByteArray &data);
 
-    QByteArray initialisationVector() const;
-    void setInitialisationVector(const QByteArray &iv);
+    QByteArray initializationVector() const;
+    void setInitializationVector(const QByteArray &iv);
 
     Sailfish::Crypto::Key key() const;
     void setKey(const Sailfish::Crypto::Key &key);
@@ -100,7 +100,7 @@ Q_SIGNALS:
     void cipherModeChanged();
     void operationChanged();
     void dataChanged();
-    void initialisationVectorChanged();
+    void initializationVectorChanged();
     void keyChanged();
     void blockModeChanged();
     void encryptionPaddingChanged();

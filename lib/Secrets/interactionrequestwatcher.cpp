@@ -181,7 +181,7 @@ bool InteractionRequestWatcher::continueInteractionRequest(const InteractionPara
 bool InteractionRequestWatcher::cancelInteractionRequest()
 {
     if (!m_data->m_watcher || m_data->m_uiRequestId.isEmpty()) {
-        qCWarning(lcSailfishSecretsInteractionServiceConnection) << "Not cancelling Ui request: no outstanding request in progress";
+        qCWarning(lcSailfishSecretsInteractionServiceConnection) << "Not canceling Ui request: no outstanding request in progress";
         return false; // no outstanding request in progress!
     }
 
@@ -259,7 +259,7 @@ void InteractionRequestWatcher::interactionCancelFinished()
 {
     QDBusPendingReply<Result> reply = *m_data->m_watcher;
     if (reply.isValid()) {
-        qCDebug(lcSailfishSecretsInteractionServiceConnection) << "Cancelled Ui request.";
+        qCDebug(lcSailfishSecretsInteractionServiceConnection) << "Canceled Ui request.";
     } else {
         qCDebug(lcSailfishSecretsInteractionServiceConnection) << "Unable to cleanly cancel Ui request!";
     }

@@ -482,8 +482,8 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QSignalSpy ercs(&er, &EncryptRequest::ciphertextChanged);
     er.setData(plaintext);
     QCOMPARE(er.data(), plaintext);
-    er.setInitialisationVector(initVector);
-    QCOMPARE(er.initialisationVector(), initVector);
+    er.setInitializationVector(initVector);
+    QCOMPARE(er.initializationVector(), initVector);
     er.setKey(fullKey);
     QCOMPARE(er.key(), fullKey);
     er.setBlockMode(blockMode);
@@ -523,8 +523,8 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QSignalSpy drps(&dr, &DecryptRequest::plaintextChanged);
     dr.setData(ciphertext);
     QCOMPARE(dr.data(), ciphertext);
-    dr.setInitialisationVector(initVector);
-    QCOMPARE(dr.initialisationVector(), initVector);
+    dr.setInitializationVector(initVector);
+    QCOMPARE(dr.initializationVector(), initVector);
     dr.setKey(fullKey);
     QCOMPARE(dr.key(), fullKey);
     dr.setBlockMode(blockMode);
@@ -815,8 +815,8 @@ void tst_cryptorequests::storedKeyRequests()
     QSignalSpy ercs(&er, &EncryptRequest::ciphertextChanged);
     er.setData(plaintext);
     QCOMPARE(er.data(), plaintext);
-    er.setInitialisationVector(initVector);
-    QCOMPARE(er.initialisationVector(), initVector);
+    er.setInitializationVector(initVector);
+    QCOMPARE(er.initializationVector(), initVector);
     er.setKey(keyReference);
     QCOMPARE(er.key(), keyReference);
     er.setBlockMode(blockMode);
@@ -856,8 +856,8 @@ void tst_cryptorequests::storedKeyRequests()
     QSignalSpy drps(&dr, &DecryptRequest::plaintextChanged);
     dr.setData(ciphertext);
     QCOMPARE(dr.data(), ciphertext);
-    dr.setInitialisationVector(initVector);
-    QCOMPARE(dr.initialisationVector(), initVector);
+    dr.setInitializationVector(initVector);
+    QCOMPARE(dr.initializationVector(), initVector);
     dr.setKey(keyReference);
     QCOMPARE(dr.key(), keyReference);
     dr.setBlockMode(blockMode);
@@ -1159,8 +1159,8 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     QSignalSpy ercs(&er, &EncryptRequest::ciphertextChanged);
     er.setData(plaintext);
     QCOMPARE(er.data(), plaintext);
-    er.setInitialisationVector(initVector);
-    QCOMPARE(er.initialisationVector(), initVector);
+    er.setInitializationVector(initVector);
+    QCOMPARE(er.initializationVector(), initVector);
     er.setKey(keyReference);
     QCOMPARE(er.key(), keyReference);
     er.setBlockMode(blockMode);
@@ -1198,8 +1198,8 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     QSignalSpy drps(&dr, &DecryptRequest::plaintextChanged);
     dr.setData(ciphertext);
     QCOMPARE(dr.data(), ciphertext);
-    dr.setInitialisationVector(initVector);
-    QCOMPARE(dr.initialisationVector(), initVector);
+    dr.setInitializationVector(initVector);
+    QCOMPARE(dr.initializationVector(), initVector);
     dr.setKey(keyReference);
     QCOMPARE(dr.key(), keyReference);
     dr.setBlockMode(blockMode);
@@ -1633,12 +1633,12 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     QCOMPARE(er.blockMode(), blockMode);
     er.setEncryptionPadding(padding);
     QCOMPARE(er.encryptionPadding(), padding);
-    er.setInitialisationVector(iv);
-    QCOMPARE(er.initialisationVector(), iv);
+    er.setInitializationVector(iv);
+    QCOMPARE(er.initializationVector(), iv);
     er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(er.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    er.setCipherMode(CipherRequest::InitialiseCipher);
-    QCOMPARE(er.cipherMode(), CipherRequest::InitialiseCipher);
+    er.setCipherMode(CipherRequest::InitializeCipher);
+    QCOMPARE(er.cipherMode(), CipherRequest::InitializeCipher);
     QCOMPARE(er.status(), Request::Inactive);
     er.startRequest();
     QCOMPARE(erss.count(), 1);
@@ -1720,8 +1720,8 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     QSignalSpy drgds(&dr, &CipherRequest::generatedDataChanged);
     dr.setKey(minimalKeyReference);
     QCOMPARE(dr.key(), minimalKeyReference);
-    dr.setInitialisationVector(iv);
-    QCOMPARE(dr.initialisationVector(), iv);
+    dr.setInitializationVector(iv);
+    QCOMPARE(dr.initializationVector(), iv);
     dr.setOperation(Sailfish::Crypto::CryptoManager::OperationDecrypt);
     QCOMPARE(dr.operation(), Sailfish::Crypto::CryptoManager::OperationDecrypt);
     dr.setBlockMode(blockMode);
@@ -1730,8 +1730,8 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     QCOMPARE(dr.encryptionPadding(), padding);
     dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(dr.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    dr.setCipherMode(CipherRequest::InitialiseCipher);
-    QCOMPARE(dr.cipherMode(), CipherRequest::InitialiseCipher);
+    dr.setCipherMode(CipherRequest::InitializeCipher);
+    QCOMPARE(dr.cipherMode(), CipherRequest::InitializeCipher);
     QCOMPARE(dr.status(), Request::Inactive);
     dr.startRequest();
     QCOMPARE(drss.count(), 1);
@@ -1923,10 +1923,10 @@ void tst_cryptorequests::cipherBenchmark()
         er.setOperation(Sailfish::Crypto::CryptoManager::OperationEncrypt);
         er.setBlockMode(blockMode);
         er.setEncryptionPadding(padding);
-        er.setInitialisationVector(iv);
-        QCOMPARE(er.initialisationVector(), iv);
+        er.setInitializationVector(iv);
+        QCOMPARE(er.initializationVector(), iv);
         er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-        er.setCipherMode(CipherRequest::InitialiseCipher);
+        er.setCipherMode(CipherRequest::InitializeCipher);
         er.startRequest();
         SHORT_WAIT_FOR_FINISHED_WITHOUT_BLOCKING(er);
 
@@ -1955,12 +1955,12 @@ void tst_cryptorequests::cipherBenchmark()
         CipherRequest dr;
         dr.setManager(&cm);
         dr.setKey(minimalKeyReference);
-        dr.setInitialisationVector(iv);
+        dr.setInitializationVector(iv);
         dr.setOperation(Sailfish::Crypto::CryptoManager::OperationDecrypt);
         dr.setBlockMode(blockMode);
         dr.setEncryptionPadding(padding);
         dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-        dr.setCipherMode(CipherRequest::InitialiseCipher);
+        dr.setCipherMode(CipherRequest::InitializeCipher);
         dr.startRequest();
         SHORT_WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dr);
 
@@ -2017,12 +2017,12 @@ void tst_cryptorequests::cipherBenchmark()
         });
         er.setManager(&cm);
         er.setKey(minimalKeyReference);
-        er.setInitialisationVector(iv);
+        er.setInitializationVector(iv);
         er.setOperation(Sailfish::Crypto::CryptoManager::OperationEncrypt);
         er.setBlockMode(blockMode);
         er.setEncryptionPadding(padding);
         er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-        er.setCipherMode(CipherRequest::InitialiseCipher);
+        er.setCipherMode(CipherRequest::InitializeCipher);
         er.startRequest();
         LONG_WAIT_FOR_FINISHED_WITHOUT_BLOCKING(er);
 
@@ -2052,12 +2052,12 @@ void tst_cryptorequests::cipherBenchmark()
         });
         dr.setManager(&cm);
         dr.setKey(minimalKeyReference);
-        dr.setInitialisationVector(iv);
+        dr.setInitializationVector(iv);
         dr.setOperation(Sailfish::Crypto::CryptoManager::OperationDecrypt);
         dr.setBlockMode(blockMode);
         dr.setEncryptionPadding(padding);
         dr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-        dr.setCipherMode(CipherRequest::InitialiseCipher);
+        dr.setCipherMode(CipherRequest::InitializeCipher);
         dr.startRequest();
         LONG_WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dr);
 
@@ -2180,12 +2180,12 @@ void tst_cryptorequests::cipherTimeout()
     QCOMPARE(er.blockMode(), Sailfish::Crypto::CryptoManager::BlockModeCbc);
     er.setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
     QCOMPARE(er.encryptionPadding(), Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
-    er.setInitialisationVector(iv);
-    QCOMPARE(er.initialisationVector(), iv);
+    er.setInitializationVector(iv);
+    QCOMPARE(er.initializationVector(), iv);
     er.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(er.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    er.setCipherMode(CipherRequest::InitialiseCipher);
-    QCOMPARE(er.cipherMode(), CipherRequest::InitialiseCipher);
+    er.setCipherMode(CipherRequest::InitializeCipher);
+    QCOMPARE(er.cipherMode(), CipherRequest::InitializeCipher);
     QCOMPARE(er.status(), Request::Inactive);
     er.startRequest();
     QCOMPARE(erss.count(), 1);
@@ -2326,7 +2326,7 @@ void tst_cryptorequests::pluginThreading()
         EncryptRequest er;
         er.setManager(&cm);
         er.setData(plaintext);
-        er.setInitialisationVector(initVector);
+        er.setInitializationVector(initVector);
         er.setKey(fullKey);
         er.setBlockMode(CryptoManager::BlockModeCbc);
         er.setPadding(CryptoManager::EncryptionPaddingNone);
@@ -2343,7 +2343,7 @@ void tst_cryptorequests::pluginThreading()
         DecryptRequest dr;
         dr.setManager(&cm);
         dr.setData(ciphertext);
-        dr.setInitialisationVector(initVector);
+        dr.setInitializationVector(initVector);
         dr.setKey(fullKey);
         dr.setBlockMode(CryptoManager::BlockModeCbc);
         dr.setPadding(CryptoManager::EncryptionPaddingNone);
@@ -2391,7 +2391,7 @@ void tst_cryptorequests::requestInterleaving()
     EncryptRequest er;
     er.setManager(&cm);
     er.setData(plaintext);
-    er.setInitialisationVector(initVector);
+    er.setInitializationVector(initVector);
     er.setKey(fullKey);
     er.setBlockMode(CryptoManager::BlockModeCbc);
     er.setPadding(CryptoManager::EncryptionPaddingNone);

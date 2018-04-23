@@ -225,7 +225,7 @@ public:
             QByteArray *decrypted,
             bool *verified);
 
-    Sailfish::Crypto::Result initialiseCipherSession(
+    Sailfish::Crypto::Result initializeCipherSession(
             pid_t callerPid,
             quint64 requestId,
             const QByteArray &iv,
@@ -483,7 +483,7 @@ private:
             const QVariantMap &customParameters,
             const QString &cryptoPluginName);
 
-    void initialiseCipherSession2(
+    void initializeCipherSession2(
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
             const QByteArray &serialisedKey,

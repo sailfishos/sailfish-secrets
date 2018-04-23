@@ -153,8 +153,8 @@ public:
             const QVariantMap &customParameters,
             const QString &cryptosystemProviderName);
 
-    QDBusPendingReply<Result, quint32> initialiseCipherSession(
-            const QByteArray &initialisationVector,
+    QDBusPendingReply<Result, quint32> initializeCipherSession(
+            const QByteArray &initializationVector,
             const Sailfish::Crypto::Key &key, // or keyreference
             const Sailfish::Crypto::CryptoManager::Operation operation,
             const Sailfish::Crypto::CryptoManager::BlockMode blockMode,

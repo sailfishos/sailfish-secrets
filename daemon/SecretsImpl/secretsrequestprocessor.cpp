@@ -103,7 +103,7 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(
     }
 }
 
-bool Daemon::ApiImpl::RequestProcessor::initialisePlugins()
+bool Daemon::ApiImpl::RequestProcessor::initializePlugins()
 {
     QFuture<bool> future = QtConcurrent::run(
                 m_requestQueue->secretsThreadPool().data(),
@@ -117,7 +117,7 @@ bool Daemon::ApiImpl::RequestProcessor::initialisePlugins()
         // This is symptomatic of a power-loss halfway through previous re-encryption,
         // meaning that some metadata databases will have been encrypted with
         // the OLD lock code, and some with the NEW lock code...
-        qCWarning(lcSailfishSecretsDaemon) << "Critical Error! Failed to initialise metadata plugins";
+        qCWarning(lcSailfishSecretsDaemon) << "Critical Error! Failed to initialize metadata plugins";
     }
     return future.result();
 }
@@ -3385,7 +3385,7 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCode(
     // Perform the first request "get old passphrase".
     // After it completes, perform the second request "get new passphrase"
     // Once both are complete, perform re-key operation.
-    // If it was a master lock change, re-initialise crypto plugins.
+    // If it was a master lock change, re-initialize crypto plugins.
     QString userInputPlugin = interactionParams.authenticationPluginName();
     if (interactionParams.authenticationPluginName().isEmpty()) {
         // TODO: depending on type, choose the appropriate authentication plugin
@@ -3550,8 +3550,8 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCodes(
         oldDeviceLockKey = QByteArray(dlShallowCopy.constData(), dlShallowCopy.size());
     }
 
-    // the old lock code was correct, initialise the new lock code.
-    m_requestQueue->initialise(newLockCode, SecretsRequestQueue::ModifyLockMode);
+    // the old lock code was correct, initialize the new lock code.
+    m_requestQueue->initialize(newLockCode, SecretsRequestQueue::ModifyLockMode);
 
     // re-encrypt the metadata (bookkeeping) databases for each storage plugin.
     QFuture<bool> reencryptMetadata = QtConcurrent::run(
@@ -3659,11 +3659,11 @@ Daemon::ApiImpl::RequestProcessor::provideLockCode(
             // on startup, and the lock code hasn't been modified since
             // then (but may have been deliberately forgotten).
             // So, we can unlock the database with a null lock code.
-            if (!m_requestQueue->initialise(
+            if (!m_requestQueue->initialize(
                         QByteArray(),
                         SecretsRequestQueue::UnlockMode)) {
                 return Result(Result::UnknownError,
-                              QLatin1String("Unable to initialise key data from null lock code"));
+                              QLatin1String("Unable to initialize key data from null lock code"));
             }
 
             // unlock all of our plugins
@@ -3786,10 +3786,10 @@ Daemon::ApiImpl::RequestProcessor::provideLockCodeWithLockCode(
         return Result(Result::SecretsDaemonLockedError,
                       QLatin1String("The given lock code was incorrect"));
     }
-    if (!m_requestQueue->initialise(
+    if (!m_requestQueue->initialize(
                 lockCode, SecretsRequestQueue::UnlockMode)) {
         return Result(Result::UnknownError,
-                      QLatin1String("Unable to initialise key data to unlock metadata databases"));
+                      QLatin1String("Unable to initialize key data to unlock metadata databases"));
     }
 
     // unlock all of our plugins
@@ -3882,14 +3882,14 @@ Daemon::ApiImpl::RequestProcessor::forgetLockCode(
                           QLatin1String("Invalid target name specified"));
         }
 
-        if (!m_requestQueue->initialise(
+        if (!m_requestQueue->initialize(
                     QByteArray("ffffffffffffffff"
                                "ffffffffffffffff"
                                "ffffffffffffffff"
                                "ffffffffffffffff"),
                     SecretsRequestQueue::LockMode)) {
             return Result(Result::UnknownError,
-                          QLatin1String("Unable to re-initialise key data to lock the secrets service"));
+                          QLatin1String("Unable to re-initialize key data to lock the secrets service"));
         }
 
         // lock all of our plugins' metadata databases

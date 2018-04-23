@@ -424,7 +424,7 @@ Daemon::ApiImpl::SecretsRequestQueue::SecretsRequestQueue(
     m_requestProcessor = new Daemon::ApiImpl::RequestProcessor(m_appPermissions, autotestMode, this);
 
     setDBusObject(new Daemon::ApiImpl::SecretsDBusObject(this));
-    qCDebug(lcSailfishSecretsDaemon) << "Secrets: initialisation succeeded, awaiting client connections.";
+    qCDebug(lcSailfishSecretsDaemon) << "Secrets: initialization succeeded, awaiting client connections.";
 }
 
 Daemon::ApiImpl::SecretsRequestQueue::~SecretsRequestQueue()
@@ -470,7 +470,7 @@ bool Daemon::ApiImpl::SecretsRequestQueue::generateKeyData(
             : m_controller->crypto()->plugins().value(Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName);
 
     if (cplugin == Q_NULLPTR) {
-        qCWarning(lcSailfishSecretsDaemon) << "Unable to find default crypto plugin for key initialisation";
+        qCWarning(lcSailfishSecretsDaemon) << "Unable to find default crypto plugin for key initialization";
         return false;
     }
 
@@ -535,9 +535,9 @@ bool Daemon::ApiImpl::SecretsRequestQueue::generateKeyData(
     return true;
 }
 
-bool Daemon::ApiImpl::SecretsRequestQueue::initialise(
+bool Daemon::ApiImpl::SecretsRequestQueue::initialize(
         const QByteArray &lockCode,
-        SecretsRequestQueue::InitialisationMode mode)
+        SecretsRequestQueue::InitializationMode mode)
 {
     QByteArray bkdbKey, deviceLockKey, testCipherText;
     // generate the keys and test cipher text
@@ -556,17 +556,17 @@ bool Daemon::ApiImpl::SecretsRequestQueue::initialise(
         return false;
     }
     // cache securely in mlock()ed memory
-    if (!initialiseKeyData(bkdbKey, deviceLockKey)) {
-        qCWarning(lcSailfishSecretsDaemon) << "Secrets: failed to initialise key data!";
+    if (!initializeKeyData(bkdbKey, deviceLockKey)) {
+        qCWarning(lcSailfishSecretsDaemon) << "Secrets: failed to initialize key data!";
         return false;
     }
 
     if (mode == SecretsRequestQueue::UnlockMode || mode == SecretsRequestQueue::ModifyLockMode) {
         m_locked = false;
         if (lockCode.isEmpty()) {
-            m_noLockCode = true; // we initialised the key data with a null lock code, which worked.
+            m_noLockCode = true; // we initialized the key data with a null lock code, which worked.
         } else {
-            m_noLockCode = false; // we initialise the key data with non-null lock code.
+            m_noLockCode = false; // we initialize the key data with non-null lock code.
         }
     } else {
         m_locked = true;
@@ -575,9 +575,9 @@ bool Daemon::ApiImpl::SecretsRequestQueue::initialise(
     return true;
 }
 
-bool Daemon::ApiImpl::SecretsRequestQueue::initialisePlugins()
+bool Daemon::ApiImpl::SecretsRequestQueue::initializePlugins()
 {
-    return m_requestProcessor->initialisePlugins();
+    return m_requestProcessor->initializePlugins();
 }
 
 bool Daemon::ApiImpl::SecretsRequestQueue::masterLocked() const
@@ -675,7 +675,7 @@ bool Daemon::ApiImpl::SecretsRequestQueue::compareTestCipherText(
     return true;
 }
 
-bool Daemon::ApiImpl::SecretsRequestQueue::initialiseKeyData(
+bool Daemon::ApiImpl::SecretsRequestQueue::initializeKeyData(
         const QByteArray &bkdbKey,
         const QByteArray &deviceLockKey)
 {

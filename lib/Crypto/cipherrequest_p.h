@@ -35,7 +35,7 @@ public:
     CipherRequest::CipherMode m_cipherMode;
     CryptoManager::Operation m_operation;
     QByteArray m_data;
-    QByteArray m_initialisationVector;
+    QByteArray m_initializationVector;
     Sailfish::Crypto::Key m_key;
     Sailfish::Crypto::CryptoManager::BlockMode m_blockMode;
     Sailfish::Crypto::CryptoManager::EncryptionPadding m_encryptionPadding;
