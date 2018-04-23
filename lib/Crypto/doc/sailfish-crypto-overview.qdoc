@@ -222,4 +222,7 @@ A variety of crypto plugins are shipped by default with the framework, and
 these are documented at the page about
 \l{Default Crypto Plugins for the Sailfish OS Secrets and Crypto Framework}.
 
+One of these in particular is useful to use as an example or basic template,
+and that is the ExampleUsbTokenPlugin which can be found in the source tree.
+
 */

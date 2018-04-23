@@ -258,3 +258,14 @@ ExampleUsbTokenPlugin::removeSecret(
                   QLatin1String("The ExampleUsbToken plugin doesn't support standalone secret operations"));
 }
 
+
+
+Result
+ExampleUsbTokenPlugin::reencryptSecret(
+        const QString &,
+        const QByteArray &,
+        const QByteArray &)
+{
+    return Result(Result::OperationNotSupportedError,
+                  QLatin1String("The ExampleUsbToken plugin doesn't support standalone secret operations"));
+}
