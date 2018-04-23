@@ -545,7 +545,7 @@ void CommandHelper::start(const QString &command, const QStringList &args)
         r->setPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
         r->setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
         r->setData(encryptData);
-        r->setInitialisationVector(ivr.generatedInitializationVector());
+        r->setInitializationVector(ivr.generatedInitializationVector());
         m_cryptoRequest.reset(r);
         m_cryptoRequest->setManager(&m_cryptoManager);
         connect(m_cryptoRequest.data(), &Sailfish::Crypto::Request::statusChanged,
@@ -594,7 +594,7 @@ void CommandHelper::start(const QString &command, const QStringList &args)
         r->setPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddingNone);
         r->setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
         r->setData(decryptData);
-        r->setInitialisationVector(iv);
+        r->setInitializationVector(iv);
         m_cryptoRequest.reset(r);
         m_cryptoRequest->setManager(&m_cryptoManager);
         connect(m_cryptoRequest.data(), &Sailfish::Crypto::Request::statusChanged,
@@ -672,7 +672,7 @@ void CommandHelper::cryptoRequestStatusChanged()
         Sailfish::Crypto::EncryptRequest *r =qobject_cast<Sailfish::Crypto::EncryptRequest*>(m_cryptoRequest.data());
         QFile stdoutFile;
         stdoutFile.open(stdout, QIODevice::WriteOnly, QFile::AutoCloseHandle);
-        stdoutFile.write(QByteArray("IV:") + r->initialisationVector().toBase64() + QByteArray("\n"));
+        stdoutFile.write(QByteArray("IV:") + r->initializationVector().toBase64() + QByteArray("\n"));
         int handled = 0;
         const QByteArray ciphertext = r->ciphertext();
         while (handled < ciphertext.size()) {
