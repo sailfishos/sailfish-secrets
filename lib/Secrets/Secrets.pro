@@ -36,7 +36,7 @@ PUBLIC_HEADERS += \
 
 INTERNAL_PUBLIC_HEADERS += \
     $$PWD/secretsdaemonconnection_p.h \
-    $$PWD/serialisation_p.h
+    $$PWD/serialization_p.h
 
 PRIVATE_HEADERS += \
     $$PWD/collectionnamesrequest_p.h \
@@ -79,7 +79,7 @@ SOURCES += \
     $$PWD/secret.cpp \
     $$PWD/secretsdaemonconnection.cpp \
     $$PWD/secretmanager.cpp \
-    $$PWD/serialisation.cpp \
+    $$PWD/serialization.cpp \
     $$PWD/storedsecretrequest.cpp \
     $$PWD/storesecretrequest.cpp \
     $$PWD/interactionrequestwatcher.cpp \

@@ -1689,14 +1689,14 @@ void tst_cryptorequests::cipherEncryptDecrypt()
         QByteArray ciphertextChunk = er.generatedData();
         if (chunk.size() >= 16) {
             QVERIFY(ciphertextChunk.size() >= chunk.size());
-            // otherwise, it will be emitted during FinaliseCipher
+            // otherwise, it will be emitted during FinalizeCipher
         }
         ciphertext.append(ciphertextChunk);
         QVERIFY(!ciphertext.isEmpty());
     }
 
-    er.setCipherMode(CipherRequest::FinaliseCipher);
-    QCOMPARE(er.cipherMode(), CipherRequest::FinaliseCipher);
+    er.setCipherMode(CipherRequest::FinalizeCipher);
+    QCOMPARE(er.cipherMode(), CipherRequest::FinalizeCipher);
     er.setData(QByteArray());
     ssCount = erss.count();
     er.startRequest();
@@ -1787,8 +1787,8 @@ void tst_cryptorequests::cipherEncryptDecrypt()
         }
     }
 
-    dr.setCipherMode(CipherRequest::FinaliseCipher);
-    QCOMPARE(dr.cipherMode(), CipherRequest::FinaliseCipher);
+    dr.setCipherMode(CipherRequest::FinalizeCipher);
+    QCOMPARE(dr.cipherMode(), CipherRequest::FinalizeCipher);
     dr.setData(blockMode == CryptoManager::BlockModeGcm ? authenticationTag : QByteArray());
     ssCount = drss.count();
     dr.startRequest();
@@ -1943,7 +1943,7 @@ void tst_cryptorequests::cipherBenchmark()
             ciphertext.append(ciphertextChunk);
         }
 
-        er.setCipherMode(CipherRequest::FinaliseCipher);
+        er.setCipherMode(CipherRequest::FinalizeCipher);
         er.setData(QByteArray());
         er.startRequest();
         SHORT_WAIT_FOR_FINISHED_WITHOUT_BLOCKING(er);
@@ -1977,7 +1977,7 @@ void tst_cryptorequests::cipherBenchmark()
             decrypted.append(plaintextChunk);
         }
 
-        dr.setCipherMode(CipherRequest::FinaliseCipher);
+        dr.setCipherMode(CipherRequest::FinalizeCipher);
         dr.setData(QByteArray());
         dr.startRequest();
         SHORT_WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dr);
@@ -2037,7 +2037,7 @@ void tst_cryptorequests::cipherBenchmark()
         }
         LONG_WAIT_FOR_FINISHED_WITHOUT_BLOCKING(er); // wait for the updates to finish.
 
-        er.setCipherMode(CipherRequest::FinaliseCipher);
+        er.setCipherMode(CipherRequest::FinalizeCipher);
         er.setData(QByteArray());
         er.startRequest();
         LONG_WAIT_FOR_FINISHED_WITHOUT_BLOCKING(er);
@@ -2072,7 +2072,7 @@ void tst_cryptorequests::cipherBenchmark()
         }
         LONG_WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dr); // drain the queue of responses.
 
-        dr.setCipherMode(CipherRequest::FinaliseCipher);
+        dr.setCipherMode(CipherRequest::FinalizeCipher);
         dr.setData(QByteArray());
         dr.startRequest();
         LONG_WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dr);

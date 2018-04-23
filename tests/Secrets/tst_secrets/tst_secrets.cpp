@@ -14,7 +14,7 @@
 #include "Secrets/secretmanager.h"
 #include "Secrets/secret.h"
 #include "Secrets/secretmanager_p.h"
-#include "Secrets/serialisation_p.h"
+#include "Secrets/serialization_p.h"
 
 using namespace Sailfish::Secrets;
 

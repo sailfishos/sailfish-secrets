@@ -268,7 +268,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"generatedData\" type=\"ay\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "      </method>\n"
-    "      <method name=\"finaliseCipherSession\">\n"
+    "      <method name=\"finalizeCipherSession\">\n"
     "          <arg name=\"data\" type=\"ay\" direction=\"in\" />\n"
     "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
@@ -496,7 +496,7 @@ public Q_SLOTS:
             Sailfish::Crypto::Result &result,
             QByteArray &generatedData);
 
-    void finaliseCipherSession(
+    void finalizeCipherSession(
             const QByteArray &data,
             const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
@@ -581,7 +581,7 @@ enum RequestType {
     InitializeCipherSessionRequest,
     UpdateCipherSessionAuthenticationRequest,
     UpdateCipherSessionRequest,
-    FinaliseCipherSessionRequest,
+    FinalizeCipherSessionRequest,
     ModifyLockCodeRequest,
     ProvideLockCodeRequest,
     ForgetLockCodeRequest

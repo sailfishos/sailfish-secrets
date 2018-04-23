@@ -562,7 +562,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_withKdfData(
                                 callerPid,
                                 requestId,
                                 kr.key.identifier(),
-                                Key::serialise(kr.key, Key::LossySerialisationMode),
+                                Key::serialize(kr.key, Key::LossySerializationMode),
                                 kr.key.filterData(),
                                 collectionDecryptionKey));
                 if (storeKeyResult.code() == Result::Failed) {
@@ -948,7 +948,7 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey_withPassphrase(
                                                     callerPid,
                                                     requestId,
                                                     outputKey.identifier(),
-                                                    Key::serialise(outputKey, Key::LossySerialisationMode),
+                                                    Key::serialize(outputKey, Key::LossySerializationMode),
                                                     outputKey.filterData(),
                                                     collectionDecryptionKey));
                 if (result.code() != Result::Failed) {
@@ -1029,9 +1029,9 @@ Daemon::ApiImpl::RequestProcessor::storedKey(
         return Result(Result::Pending);
     }
 
-    QByteArray serialisedKey;
+    QByteArray serializedKey;
     QMap<QString, QString> filterData;
-    Result retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, identifier, &serialisedKey, &filterData));
+    Result retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, identifier, &serializedKey, &filterData));
     if (retn.code() == Result::Failed) {
         return retn;
     } else if (retn.code() == Result::Pending) {
@@ -1046,7 +1046,7 @@ Daemon::ApiImpl::RequestProcessor::storedKey(
         return retn;
     }
 
-    *key = Key::deserialise(serialisedKey);
+    *key = Key::deserialize(serializedKey);
     key->setFilterData(filterData);
     nullifyKeyFields(key, keyComponents);
     return retn;
@@ -1057,10 +1057,10 @@ Daemon::ApiImpl::RequestProcessor::storedKey2(
         quint64 requestId,
         Key::Components keyComponents,
         const Result &result,
-        const QByteArray &serialisedKey,
+        const QByteArray &serializedKey,
         const QMap<QString, QString> &filterData)
 {
-    Key retn(Key::deserialise(serialisedKey));
+    Key retn(Key::deserialize(serializedKey));
     retn.setFilterData(filterData);
     nullifyKeyFields(&retn, keyComponents);
 
@@ -1220,9 +1220,9 @@ Daemon::ApiImpl::RequestProcessor::sign(
             fullKey = key; // not a full key, but a reference to a key that the plugin stores.
         } else {
             // no, it is stored in some other plugin
-            QByteArray serialisedKey;
+            QByteArray serializedKey;
             QMap<QString, QString> filterData;
-            Result retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData));
+            Result retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, key.identifier(), &serializedKey, &filterData));
             if (retn.code() == Result::Failed) {
                 return retn;
             } else if (retn.code() == Result::Pending) {
@@ -1240,7 +1240,7 @@ Daemon::ApiImpl::RequestProcessor::sign(
                 return retn;
             }
 
-            fullKey = Key::deserialise(serialisedKey);
+            fullKey = Key::deserialize(serializedKey);
         }
     } else {
         fullKey = key;
@@ -1272,7 +1272,7 @@ void
 Daemon::ApiImpl::RequestProcessor::sign2(
         quint64 requestId,
         const Result &result,
-        const QByteArray &serialisedKey,
+        const QByteArray &serializedKey,
         const QByteArray &data,
         CryptoManager::SignaturePadding padding,
         CryptoManager::DigestFunction digestFunction,
@@ -1294,7 +1294,7 @@ Daemon::ApiImpl::RequestProcessor::sign2(
                 CryptoPluginFunctionWrapper::sign,
                 PluginAndCustomParams(m_cryptoPlugins[cryptoPluginName], customParameters),
                 data,
-                Key::deserialise(serialisedKey),
+                Key::deserialize(serializedKey),
                 SignatureOptions(padding, digestFunction));
 
     watcher->setFuture(future);
@@ -1355,9 +1355,9 @@ Daemon::ApiImpl::RequestProcessor::verify(
             fullKey = key; // not a full key, but a reference to a key that the plugin stores.
         } else {
             // no, it is stored in some other plugin
-            QByteArray serialisedKey;
+            QByteArray serializedKey;
             QMap<QString, QString> filterData;
-            Result retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData));
+            Result retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, key.identifier(), &serializedKey, &filterData));
             if (retn.code() == Result::Failed) {
                 return retn;
             } else if (retn.code() == Result::Pending) {
@@ -1376,7 +1376,7 @@ Daemon::ApiImpl::RequestProcessor::verify(
                 return retn;
             }
 
-            fullKey = Key::deserialise(serialisedKey);
+            fullKey = Key::deserialize(serializedKey);
         }
     } else {
         fullKey = key;
@@ -1409,7 +1409,7 @@ void
 Daemon::ApiImpl::RequestProcessor::verify2(
         quint64 requestId,
         const Result &result,
-        const QByteArray &serialisedKey,
+        const QByteArray &serializedKey,
         const QByteArray &signature,
         const QByteArray &data,
         CryptoManager::SignaturePadding padding,
@@ -1432,7 +1432,7 @@ Daemon::ApiImpl::RequestProcessor::verify2(
                 PluginAndCustomParams(m_cryptoPlugins[cryptoPluginName], customParameters),
                 signature,
                 data,
-                Key::deserialise(serialisedKey),
+                Key::deserialize(serializedKey),
                 SignatureOptions(padding, digestFunction));
 
     watcher->setFuture(future);
@@ -1496,9 +1496,9 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
             fullKey = key; // not a full key, but a reference to a key that the plugin stores.
         } else {
             // no, it is stored in some other plugin
-            QByteArray serialisedKey;
+            QByteArray serializedKey;
             QMap<QString, QString> filterData;
-            Result retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData));
+            Result retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, key.identifier(), &serializedKey, &filterData));
             if (retn.code() == Result::Failed) {
                 return retn;
             } else if (retn.code() == Result::Pending) {
@@ -1520,7 +1520,7 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
                 return retn;
             }
 
-            fullKey = Key::deserialise(serialisedKey);
+            fullKey = Key::deserialize(serializedKey);
         }
     } else {
         fullKey = key;
@@ -1554,7 +1554,7 @@ void
 Daemon::ApiImpl::RequestProcessor::encrypt2(
         quint64 requestId,
         const Result &result,
-        const QByteArray &serialisedKey,
+        const QByteArray &serializedKey,
         const QByteArray &data,
         const QByteArray &iv,
         CryptoManager::BlockMode blockMode,
@@ -1573,11 +1573,11 @@ Daemon::ApiImpl::RequestProcessor::encrypt2(
     }
 
     bool ok = false;
-    Key fullKey = Key::deserialise(serialisedKey, &ok);
+    Key fullKey = Key::deserialize(serializedKey, &ok);
     if (!ok) {
         QList<QVariant> outParams;
-        outParams << QVariant::fromValue<Result>(Result(Result::SerialisationError,
-                                                        QLatin1String("Failed to deserialise key!")));
+        outParams << QVariant::fromValue<Result>(Result(Result::SerializationError,
+                                                        QLatin1String("Failed to deserialize key!")));
         outParams << QVariant::fromValue<QByteArray>(QByteArray());
         outParams << QVariant::fromValue<QByteArray>(QByteArray());
         m_requestQueue->requestFinished(requestId, outParams);
@@ -1657,9 +1657,9 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
             fullKey = key; // not a full key, but a reference to a key that the plugin stores.
         } else {
             // no, it is stored in some other plugin
-            QByteArray serialisedKey;
+            QByteArray serializedKey;
             QMap<QString, QString> filterData;
-            Result retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData));
+            Result retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, key.identifier(), &serializedKey, &filterData));
             if (retn.code() == Result::Failed) {
                 return retn;
             } else if (retn.code() == Result::Pending) {
@@ -1682,7 +1682,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
                 return retn;
             }
 
-            fullKey = Key::deserialise(serialisedKey);
+            fullKey = Key::deserialize(serializedKey);
         }
     } else {
         fullKey = key;
@@ -1716,7 +1716,7 @@ void
 Daemon::ApiImpl::RequestProcessor::decrypt2(
         quint64 requestId,
         const Result &result,
-        const QByteArray &serialisedKey,
+        const QByteArray &serializedKey,
         const QByteArray &data,
         const QByteArray &iv,
         CryptoManager::BlockMode blockMode,
@@ -1740,7 +1740,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt2(
                 CryptoPluginFunctionWrapper::decrypt,
                 PluginAndCustomParams(m_cryptoPlugins[cryptoPluginName], customParameters),
                 DataAndIV(data, iv),
-                Key::deserialise(serialisedKey),
+                Key::deserialize(serializedKey),
                 EncryptionOptions(blockMode, padding),
                 AuthDataAndTag(authenticationData, authenticationTag));
 
@@ -1805,9 +1805,9 @@ Daemon::ApiImpl::RequestProcessor::initializeCipherSession(
             fullKey = key; // not a full key, but a reference to a key that the plugin stores.
         } else {
             // no, it is stored in some other plugin
-            QByteArray serialisedKey;
+            QByteArray serializedKey;
             QMap<QString, QString> filterData;
-            Result retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, key.identifier(), &serialisedKey, &filterData));
+            Result retn = transformSecretsResult(m_secrets->storedKey(callerPid, requestId, key.identifier(), &serializedKey, &filterData));
             if (retn.code() == Result::Failed) {
                 return retn;
             } else if (retn.code() == Result::Pending) {
@@ -1829,7 +1829,7 @@ Daemon::ApiImpl::RequestProcessor::initializeCipherSession(
                 return retn;
             }
 
-            fullKey = Key::deserialise(serialisedKey);
+            fullKey = Key::deserialize(serializedKey);
         }
     } else {
         fullKey = key;
@@ -1867,7 +1867,7 @@ void
 Daemon::ApiImpl::RequestProcessor::initializeCipherSession2(
         quint64 requestId,
         const Result &result,
-        const QByteArray &serialisedKey,
+        const QByteArray &serializedKey,
         pid_t callerPid,
         const QByteArray &iv,
         CryptoManager::Operation operation,
@@ -1893,7 +1893,7 @@ Daemon::ApiImpl::RequestProcessor::initializeCipherSession2(
                 PluginAndCustomParams(m_cryptoPlugins[cryptoPluginName], customParameters),
                 callerPid,
                 iv,
-                Key::deserialise(serialisedKey),
+                Key::deserialize(serializedKey),
                 CipherSessionOptions(
                     operation,
                     blockMode,
@@ -1991,7 +1991,7 @@ Daemon::ApiImpl::RequestProcessor::updateCipherSession(
 }
 
 Result
-Daemon::ApiImpl::RequestProcessor::finaliseCipherSession(
+Daemon::ApiImpl::RequestProcessor::finalizeCipherSession(
         pid_t callerPid,
         quint64 requestId,
         const QByteArray &data,
@@ -2014,7 +2014,7 @@ Daemon::ApiImpl::RequestProcessor::finaliseCipherSession(
     QFutureWatcher<VerifiedDataResult> *watcher = new QFutureWatcher<VerifiedDataResult>(this);
     QFuture<VerifiedDataResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
-                CryptoPluginFunctionWrapper::finaliseCipherSession,
+                CryptoPluginFunctionWrapper::finalizeCipherSession,
                 PluginAndCustomParams(cryptoPlugin, customParameters),
                 callerPid,
                 data,
@@ -2164,7 +2164,7 @@ Daemon::ApiImpl::RequestProcessor::forgetLockCode(
 void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
         quint64 requestId,
         const Sailfish::Secrets::Result &result,
-        const QByteArray &serialisedKey,
+        const QByteArray &serializedKey,
         const QMap<QString, QString> &filterData)
 {
     // look up the pending request in our list
@@ -2178,7 +2178,7 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
             case StoredKeyRequest: {
                 (void)pr.parameters.takeFirst(); // the identifier, we don't need it.
                 Key::Components keyComponents = pr.parameters.takeFirst().value<Key::Components>();
-                storedKey2(requestId, keyComponents, returnResult, serialisedKey, filterData);
+                storedKey2(requestId, keyComponents, returnResult, serializedKey, filterData);
                 break;
             }
             case SignRequest: {
@@ -2187,7 +2187,7 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 CryptoManager::DigestFunction digestFunction = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
                 QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                sign2(requestId, returnResult, serialisedKey, data, padding, digestFunction, customParameters, cryptoPluginName);
+                sign2(requestId, returnResult, serializedKey, data, padding, digestFunction, customParameters, cryptoPluginName);
                 break;
             }
             case VerifyRequest: {
@@ -2197,7 +2197,7 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 CryptoManager::DigestFunction digestFunction = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
                 QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                verify2(requestId, returnResult, serialisedKey, signature, data, padding, digestFunction, customParameters, cryptoPluginName);
+                verify2(requestId, returnResult, serializedKey, signature, data, padding, digestFunction, customParameters, cryptoPluginName);
                 break;
             }
             case EncryptRequest: {
@@ -2208,7 +2208,7 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 QByteArray authenticationData = pr.parameters.takeFirst().value<QByteArray>();
                 QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                encrypt2(requestId, returnResult, serialisedKey, data, iv, blockMode, padding, authenticationData, customParameters, cryptoPluginName);
+                encrypt2(requestId, returnResult, serializedKey, data, iv, blockMode, padding, authenticationData, customParameters, cryptoPluginName);
                 break;
             }
             case DecryptRequest: {
@@ -2220,7 +2220,7 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 QByteArray authenticationTag = pr.parameters.takeFirst().value<QByteArray>();
                 QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                decrypt2(requestId, returnResult, serialisedKey, data, iv, blockMode, padding, authenticationData, authenticationTag, customParameters, cryptoPluginName);
+                decrypt2(requestId, returnResult, serializedKey, data, iv, blockMode, padding, authenticationData, authenticationTag, customParameters, cryptoPluginName);
                 break;
             }
             case InitializeCipherSessionRequest: {
@@ -2233,7 +2233,7 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 CryptoManager::DigestFunction digestFunction = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
                 QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                initializeCipherSession2(requestId, returnResult, serialisedKey,
+                initializeCipherSession2(requestId, returnResult, serializedKey,
                                          callerPid, iv, operation, blockMode,
                                          encryptionPadding, signaturePadding,
                                          digestFunction, customParameters, cryptoPluginName);

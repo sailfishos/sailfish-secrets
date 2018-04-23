@@ -43,7 +43,7 @@ PUBLIC_HEADERS += \
 
 INTERNAL_PUBLIC_HEADERS += \
     $$PWD/cryptodaemonconnection_p.h \
-    $$PWD/serialisation_p.h
+    $$PWD/serialization_p.h
 
 PRIVATE_HEADERS += \
     $$PWD/calculatedigestrequest_p.h \
@@ -102,7 +102,7 @@ SOURCES += \
     $$PWD/request.cpp \
     $$PWD/result.cpp \
     $$PWD/seedrandomdatageneratorrequest.cpp \
-    $$PWD/serialisation.cpp \
+    $$PWD/serialization.cpp \
     $$PWD/signrequest.cpp \
     $$PWD/storedkeyidentifiersrequest.cpp \
     $$PWD/storedkeyrequest.cpp \

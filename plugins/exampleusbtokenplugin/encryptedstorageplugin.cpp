@@ -127,7 +127,7 @@ ExampleUsbTokenPlugin::getSecret(
                       QStringLiteral("Unable to read stored key for getSecret"));
     }
 
-    *secret = Sailfish::Crypto::Key::serialise(key);
+    *secret = Sailfish::Crypto::Key::serialize(key);
     QMap<QString,QString> fd = key.filterData();
     *filterData = fd;
     return Result(Result::Succeeded);

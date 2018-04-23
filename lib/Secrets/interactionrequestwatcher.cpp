@@ -8,7 +8,7 @@
 #include "Secrets/interactionrequestwatcher.h"
 #include "Secrets/interactionparameters.h"
 #include "Secrets/interactionresponse.h"
-#include "Secrets/serialisation_p.h"
+#include "Secrets/serialization_p.h"
 
 #include <QtDBus/QDBusServer>
 #include <QtDBus/QDBusConnection>

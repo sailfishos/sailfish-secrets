@@ -9,7 +9,7 @@
 #include "cryptorequestprocessor_p.h"
 #include "logging_p.h"
 
-#include "Crypto/serialisation_p.h"
+#include "Crypto/serialization_p.h"
 #include "Crypto/cryptodaemonconnection_p.h"
 
 #include "Crypto/key.h"
@@ -479,7 +479,7 @@ void Daemon::ApiImpl::CryptoDBusObject::updateCipherSession(
                                   result);
 }
 
-void Daemon::ApiImpl::CryptoDBusObject::finaliseCipherSession(
+void Daemon::ApiImpl::CryptoDBusObject::finalizeCipherSession(
         const QByteArray &data,
         const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
@@ -496,7 +496,7 @@ void Daemon::ApiImpl::CryptoDBusObject::finaliseCipherSession(
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
     inParams << QVariant::fromValue<quint32>(cipherSessionToken);
-    m_requestQueue->handleRequest(Daemon::ApiImpl::FinaliseCipherSessionRequest,
+    m_requestQueue->handleRequest(Daemon::ApiImpl::FinalizeCipherSessionRequest,
                                   inParams,
                                   connection(),
                                   message,
@@ -647,7 +647,7 @@ QString Daemon::ApiImpl::CryptoRequestQueue::requestTypeToString(int type) const
         case InitializeCipherSessionRequest:   return QLatin1String("InitializeCipherSessionRequest");
         case UpdateCipherSessionAuthenticationRequest: return QLatin1String("UpdateCipherSessionAuthenticationRequest");
         case UpdateCipherSessionRequest:       return QLatin1String("UpdateCipherSessionRequest");
-        case FinaliseCipherSessionRequest:     return QLatin1String("FinaliseCipherSessionRequest");
+        case FinalizeCipherSessionRequest:     return QLatin1String("FinalizeCipherSessionRequest");
         case ModifyLockCodeRequest:            return QLatin1String("ModifyLockCodeRequest");
         case ProvideLockCodeRequest:           return QLatin1String("ProvideLockCodeRequest");
         case ForgetLockCodeRequest:            return QLatin1String("ForgetLockCodeRequest");
@@ -1229,15 +1229,15 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             }
             break;
         }
-        case FinaliseCipherSessionRequest: {
-            qCDebug(lcSailfishCryptoDaemon) << "Handling FinaliseCipherSessionRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+        case FinalizeCipherSessionRequest: {
+            qCDebug(lcSailfishCryptoDaemon) << "Handling FinalizeCipherSessionRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             QByteArray generatedData;
             bool verified = false;
             QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             QVariantMap customParameters = request->inParams.size() ? request->inParams.takeFirst().value<QVariantMap>() : QVariantMap();
             QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
             quint32 cipherSessionToken = request->inParams.size() ? request->inParams.takeFirst().value<quint32>() : 0;
-            Result result = m_requestProcessor->finaliseCipherSession(
+            Result result = m_requestProcessor->finalizeCipherSession(
                         request->remotePid,
                         request->requestId,
                         data,
@@ -1715,14 +1715,14 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
             }
             break;
         }
-        case FinaliseCipherSessionRequest: {
+        case FinalizeCipherSessionRequest: {
             Result result = request->outParams.size()
                     ? request->outParams.takeFirst().value<Result>()
                     : Result(Result::UnknownError,
-                             QLatin1String("Unable to determine result of FinaliseCipherSessionRequest request"));
+                             QLatin1String("Unable to determine result of FinalizeCipherSessionRequest request"));
             if (result.code() == Result::Pending) {
                 // shouldn't happen!
-                qCWarning(lcSailfishCryptoDaemon) << "FinaliseCipherSessionRequest:" << request->requestId << "finished as pending!";
+                qCWarning(lcSailfishCryptoDaemon) << "FinalizeCipherSessionRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
                 QByteArray generatedData = request->outParams.size()

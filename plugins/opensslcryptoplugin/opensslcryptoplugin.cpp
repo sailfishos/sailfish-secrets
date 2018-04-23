@@ -1379,7 +1379,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::updateCipherSession(
 }
 
 Sailfish::Crypto::Result
-Daemon::Plugins::OpenSslCryptoPlugin::finaliseCipherSession(
+Daemon::Plugins::OpenSslCryptoPlugin::finalizeCipherSession(
         quint64 clientId,
         const QByteArray &data,
         const QVariantMap & /* customParameters */,
@@ -1407,14 +1407,14 @@ Daemon::Plugins::OpenSslCryptoPlugin::finaliseCipherSession(
     if (csd->operation == Sailfish::Crypto::CryptoManager::OperationEncrypt) {
         if (EVP_EncryptFinal_ex(csd->evp_cipher_ctx, generatedDataBuf.data(), &generatedDataSize) != 1) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                            QLatin1String("Failed to finalise encryption cipher"));
+                                            QLatin1String("Failed to finalize encryption cipher"));
         }
         if (csd->blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm) {
-            // in GCM mode, the finalisation above does not write extra ciphertext.
+            // in GCM mode, the finalization above does not write extra ciphertext.
             // instead, we should retrieve the authenticationTag.
             if (generatedDataSize > 0) {
                 // This should never happen.
-                qWarning() << "INTERNAL ERROR: GCM finalisation produced ciphertext data!";
+                qWarning() << "INTERNAL ERROR: GCM finalization produced ciphertext data!";
             }
             generatedDataBuf.reset(new unsigned char[SAILFISH_CRYPTO_GCM_TAG_SIZE]);
             generatedDataSize = SAILFISH_CRYPTO_GCM_TAG_SIZE;
@@ -1425,7 +1425,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::finaliseCipherSession(
         }
     } else if (csd->operation == Sailfish::Crypto::CryptoManager::OperationDecrypt) {
         if (csd->blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm) {
-            // in GCM mode, the finalisation requires setting the provided authenticationTag data.
+            // in GCM mode, the finalization requires setting the provided authenticationTag data.
             if (data.size() != SAILFISH_CRYPTO_GCM_TAG_SIZE) {
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                                 QLatin1String("GCM authenticationTag data is not the expected size"));
@@ -1434,14 +1434,14 @@ Daemon::Plugins::OpenSslCryptoPlugin::finaliseCipherSession(
             if (!EVP_CIPHER_CTX_ctrl(csd->evp_cipher_ctx, EVP_CTRL_GCM_SET_TAG, data.size(),
                                      reinterpret_cast<void *>(authenticationTagData.data()))) {
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                                QLatin1String("Unable to set the GCM authenticationTag to finalise the cipher"));
+                                                QLatin1String("Unable to set the GCM authenticationTag to finalize the cipher"));
             }
             int evpRet = EVP_DecryptFinal_ex(csd->evp_cipher_ctx, generatedDataBuf.data(), &generatedDataSize);
             *verified = evpRet > 0;
         } else {
             if (EVP_DecryptFinal_ex(csd->evp_cipher_ctx, generatedDataBuf.data(), &generatedDataSize) != 1) {
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                                QLatin1String("Failed to finalise the decryption cipher"));
+                                                QLatin1String("Failed to finalize the decryption cipher"));
             }
         }
     } else {

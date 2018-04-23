@@ -5,7 +5,7 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#include "Secrets/serialisation_p.h"
+#include "Secrets/serialization_p.h"
 #include "Secrets/secretmanager.h"
 #include "Secrets/secret.h"
 #include "Secrets/result.h"
@@ -17,7 +17,7 @@
 #include <QtCore/QString>
 #include <QtCore/QLoggingCategory>
 
-Q_LOGGING_CATEGORY(lcSailfishSecretsSerialisation, "org.sailfishos.secrets.serialisation", QtWarningMsg)
+Q_LOGGING_CATEGORY(lcSailfishSecretsSerialization, "org.sailfishos.secrets.serialization", QtWarningMsg)
 
 namespace Sailfish {
 

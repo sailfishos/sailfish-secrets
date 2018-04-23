@@ -396,7 +396,7 @@ bool Database::beginTransaction()
         return ::beginTransaction(m_database);
     } else if (oldSemaphoreValue == 1) {
         // already in an "outer" transaction.  This is fine, and is
-        // done within loadPlugins() code to minimise transactions on startup.
+        // done within loadPlugins() code to minimize transactions on startup.
         return true;
     } else {
         // this is always an error, we don't allow recursive transactions.

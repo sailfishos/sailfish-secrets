@@ -14,7 +14,7 @@
 
 #include "Crypto/cryptomanager.h"
 #include "Crypto/cryptomanager_p.h"
-#include "Crypto/serialisation_p.h"
+#include "Crypto/serialization_p.h"
 #include "Crypto/key.h"
 #include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
@@ -24,7 +24,7 @@
 #include "Secrets/result.h"
 #include "Secrets/secretmanager.h"
 #include "Secrets/secretmanager_p.h"
-#include "Secrets/serialisation_p.h"
+#include "Secrets/serialization_p.h"
 
 // Cannot use waitForFinished() for some replies, as ui flows require user interaction / event handling.
 #define WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dbusreply)       \

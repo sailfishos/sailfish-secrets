@@ -10,7 +10,7 @@
 
 #include "Crypto/cryptomanager.h"
 #include "Crypto/cryptomanager_p.h"
-#include "Crypto/serialisation_p.h"
+#include "Crypto/serialization_p.h"
 
 #include <QtDBus/QDBusPendingReply>
 #include <QtDBus/QDBusPendingCallWatcher>
@@ -65,7 +65,7 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * The mode will be applied by the system crypto service to the cipher session.
  * In general, the client will want to initialize the cipher session, and then
  * repeatedly update the cipher session with data to be operated upon, and
- * then when finished with all data should finalise the cipher session.
+ * then when finished with all data should finalize the cipher session.
  *
  * The following example shows how to use a CipherRequest to encrypt a stream
  * of data using AES 256 encryption in CBC mode.  Note that it forces the
@@ -98,8 +98,8 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  *     ciphertext.append(cr.generatedData());
  * }
  *
- * // Finalise the cipher session.
- * cr.setCipherMode(CipherRequest::FinaliseCipher);
+ * // Finalize the cipher session.
+ * cr.setCipherMode(CipherRequest::FinalizeCipher);
  * cr.startRequest();
  * cr.waitForFinished();
  * ciphertext.append(cr.generatedData());
@@ -134,32 +134,32 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  *     plaintext.append(cr.generatedData());
  * }
  *
- * // Finalise the cipher session.
- * cr.setCipherMode(CipherRequest::FinaliseCipher);
+ * // Finalize the cipher session.
+ * cr.setCipherMode(CipherRequest::FinalizeCipher);
  * cr.startRequest();
  * cr.waitForFinished();
  * plaintext.append(cr.generatedData());
  * \endcode
  *
  * Note that authenticated encryption and decryption is slightly
- * different, as encryption finalisation produces an authentication tag, which must
- * be provided during decryption finalisation for verification.
+ * different, as encryption finalization produces an authentication tag, which must
+ * be provided during decryption finalization for verification.
  * For example, after encrypting data using BlockModeGcm:
  *
  * \code
- * // Finalise the GCM encryption cipher session.
- * cr.setCipherMode(CipherRequest::FinaliseCipher);
+ * // Finalize the GCM encryption cipher session.
+ * cr.setCipherMode(CipherRequest::FinalizeCipher);
  * cr.startRequest();
  * cr.waitForFinished();
  * QByteArray gcmTag = cr.generatedData();
  * \endcode
  *
- * and when decrypting, the authentication tag should be provided for finalisation
+ * and when decrypting, the authentication tag should be provided for finalization
  * and the verified flag should be checked carefully:
  *
  * \code
- * // Finalise the GCM decryption cipher session.
- * cr.setCipherMode(CipherRequest::FinaliseCipher);
+ * // Finalize the GCM decryption cipher session.
+ * cr.setCipherMode(CipherRequest::FinalizeCipher);
  * cr.setData(gcmTag);
  * cr.startRequest();
  * cr.waitForFinished();
@@ -167,7 +167,7 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * \endcode
  *
  * If \a mode is either CipherRequest::UpdateCipher or
- * CipherRequest::FinaliseCipher then when the request is finished
+ * CipherRequest::FinalizeCipher then when the request is finished
  * the generatedData() should contain the block of data which
  * was generated based upon the input data (that is, it will be
  * encrypted, decrypted, or signature data) or alternatively
@@ -446,7 +446,7 @@ QByteArray CipherRequest::generatedData() const
  * \brief Returns the true if the verify operation succeeded
  *
  * Note: this value is only valid if the status of the request is Request::Finished
- * and the cipher session has been finalised and the operation() was
+ * and the cipher session has been finalized and the operation() was
  * CryptoManager::OperationVerify.
  */
 bool CipherRequest::verified() const
@@ -681,10 +681,10 @@ void CipherRequest::startRequest()
             }
         } else {
             if (d->m_cipherSessionToken == 0) {
-                qWarning() << "Ignoring attempt to finalise uninitialized cipher session!";
+                qWarning() << "Ignoring attempt to finalize uninitialized cipher session!";
             } else {
                 QDBusPendingReply<Result, QByteArray, bool> reply =
-                        d->m_manager->d_ptr->finaliseCipherSession(
+                        d->m_manager->d_ptr->finalizeCipherSession(
                                 d->m_data,
                                 d->m_customParameters,
                                 d->m_cryptoPluginName,

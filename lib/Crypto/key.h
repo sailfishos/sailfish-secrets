@@ -142,12 +142,12 @@ public:
     Q_INVOKABLE void setFilterData(const QString &field, const QString &value);
     Q_INVOKABLE bool hasFilterData(const QString &field);
 
-    enum SerialisationMode {
-        LossySerialisationMode = 0, // don't serialise filter data or identifier, reduce known-plaintext surface.
-        LosslessSerialisationMode
+    enum SerializationMode {
+        LossySerializationMode = 0, // don't serialize filter data or identifier, reduce known-plaintext surface.
+        LosslessSerializationMode
     };
-    static QByteArray serialise(const Sailfish::Crypto::Key &key, SerialisationMode serialisationMode = LosslessSerialisationMode);
-    static Sailfish::Crypto::Key deserialise(const QByteArray &data, bool *ok = nullptr);
+    static QByteArray serialize(const Sailfish::Crypto::Key &key, SerializationMode serializationMode = LosslessSerializationMode);
+    static Sailfish::Crypto::Key deserialize(const QByteArray &data, bool *ok = nullptr);
 
 protected:
     QSharedDataPointer<KeyPrivate> d_ptr;

@@ -176,7 +176,7 @@ public:
             const QString &cryptosystemProviderName,
             quint32 cipherSessionToken);
 
-    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray, bool> finaliseCipherSession(
+    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray, bool> finalizeCipherSession(
             const QByteArray &data,
             const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,

@@ -739,13 +739,13 @@ int OpenSslEvp::sign(const EVP_MD *digestFunc,
     OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to update DigestSign", err_free_mdctx);
 
     r = EVP_DigestSignFinal(mdctx, NULL, signatureLength);
-    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to finalise DigestSign (1st call)", err_free_mdctx);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to finalize DigestSign (1st call)", err_free_mdctx);
 
     *signature = (uint8_t *) OPENSSL_malloc(*signatureLength);
     OSSLEVP_HANDLE_ERR(*signature == NULL, r = -1, "failed to allocate memory for signature", err_free_mdctx);
 
     r = EVP_DigestSignFinal(mdctx, *signature, signatureLength);
-    OSSLEVP_HANDLE_ERR(r != 1, r = -1; OPENSSL_free(*signature), "failed to finalise DigestSign (2nd call)", err_free_mdctx);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1; OPENSSL_free(*signature), "failed to finalize DigestSign (2nd call)", err_free_mdctx);
 
     err_free_mdctx:
     EVP_MD_CTX_destroy(mdctx);

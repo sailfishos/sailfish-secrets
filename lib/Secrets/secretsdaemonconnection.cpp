@@ -7,7 +7,7 @@
 
 #include "Secrets/secretsdaemonconnection_p.h"
 #include "Secrets/secretsdaemonconnection_p_p.h"
-#include "Secrets/serialisation_p.h"
+#include "Secrets/serialization_p.h"
 
 #include "Secrets/secretmanager.h"
 #include "Secrets/interactionparameters.h"

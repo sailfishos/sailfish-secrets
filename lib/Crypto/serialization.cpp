@@ -15,7 +15,7 @@
 #include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keypairgenerationparameters_p.h"
 
-#include "Crypto/serialisation_p.h"
+#include "Crypto/serialization_p.h"
 #include "Crypto/key_p.h"
 
 #include <QtDBus/QDBusArgument>
@@ -26,14 +26,14 @@
 #include <QtCore/QDataStream>
 #include <QtCore/QByteArray>
 
-Q_LOGGING_CATEGORY(lcSailfishCryptoSerialisation, "org.sailfishos.crypto.serialisation", QtWarningMsg)
+Q_LOGGING_CATEGORY(lcSailfishCryptoSerialization, "org.sailfishos.crypto.serialization", QtWarningMsg)
 
 namespace Sailfish {
 
 namespace Crypto {
 
 Key
-Key::deserialise(const QByteArray &data, bool *ok)
+Key::deserialize(const QByteArray &data, bool *ok)
 {
     QBuffer buffer;
     buffer.setData(data);
@@ -44,7 +44,7 @@ Key::deserialise(const QByteArray &data, bool *ok)
     quint32 magic;
     in >> magic;
     if (magic != 0x4B657900) {
-        qCWarning(lcSailfishCryptoSerialisation) << "Cannot deserialise key, bad magic number:" << magic;
+        qCWarning(lcSailfishCryptoSerialization) << "Cannot deserialize key, bad magic number:" << magic;
         if (ok) {
             *ok = false;
         }
@@ -54,7 +54,7 @@ Key::deserialise(const QByteArray &data, bool *ok)
     qint32 version;
     in >> version;
     if (version != 100) {
-        qCWarning(lcSailfishCryptoSerialisation) << "Cannot deserialise key, bad version number:" << version;
+        qCWarning(lcSailfishCryptoSerialization) << "Cannot deserialize key, bad version number:" << version;
         if (ok) {
             *ok = false;
         }
@@ -109,7 +109,7 @@ Key::deserialise(const QByteArray &data, bool *ok)
 }
 
 QByteArray
-Key::serialise(const Key &key, Key::SerialisationMode serialisationMode)
+Key::serialize(const Key &key, Key::SerializationMode serializationMode)
 {
     QByteArray byteArray;
     QBuffer buffer(&byteArray);
@@ -124,7 +124,7 @@ Key::serialise(const Key &key, Key::SerialisationMode serialisationMode)
     // Set the output format version
     out.setVersion(QDataStream::Qt_5_6);
 
-    if (serialisationMode == Key::LosslessSerialisationMode) {
+    if (serializationMode == Key::LosslessSerializationMode) {
         out << key.identifier().name();
         out << key.identifier().collectionName();
         out << key.identifier().storagePluginName();
@@ -146,7 +146,7 @@ Key::serialise(const Key &key, Key::SerialisationMode serialisationMode)
 
     out << key.customParameters();
 
-    if (serialisationMode == Key::LosslessSerialisationMode) {
+    if (serializationMode == Key::LosslessSerializationMode) {
         out << key.filterData();
     } else {
         out << Key::FilterData();
@@ -280,7 +280,7 @@ QDataStream& operator<<(QDataStream& out, const CryptoManager::Operations &v)
 QDBusArgument &operator<<(QDBusArgument &argument, const Key &key)
 {
     argument.beginStructure();
-    argument << Key::serialise(key);
+    argument << Key::serialize(key);
     argument.endStructure();
     return argument;
 }
@@ -291,7 +291,7 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Key &key)
     argument.beginStructure();
     argument >> keydata;
     argument.endStructure();
-    key = Key::deserialise(keydata);
+    key = Key::deserialize(keydata);
     return argument;
 }
 

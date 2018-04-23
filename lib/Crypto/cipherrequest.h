@@ -44,7 +44,7 @@ public:
         InitializeCipher = 0,
         UpdateCipherAuthentication,
         UpdateCipher,
-        FinaliseCipher,
+        FinalizeCipher,
     };
     Q_ENUM(CipherMode)
 

@@ -296,7 +296,7 @@ DataResult updateCipherSession(
         const QByteArray &data,
         quint32 cipherSessionToken);
 
-VerifiedDataResult finaliseCipherSession(
+VerifiedDataResult finalizeCipherSession(
         const PluginAndCustomParams &pluginAndCustomParams,
         quint64 clientId,
         const QByteArray &data,
