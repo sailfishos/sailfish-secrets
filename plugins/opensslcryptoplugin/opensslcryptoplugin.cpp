@@ -1203,17 +1203,31 @@ Daemon::Plugins::OpenSslCryptoPlugin::initializeCipherSession(
         }
         if (key.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
             const EVP_CIPHER *evp_cipher = getEvpCipher(blockMode, key.secretKey().size());
+            // Initialize context
             if (evp_cipher == NULL) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                                 QLatin1String("Cannot create cipher for AES encryption, check key size and block mode"));
             }
-            if (EVP_EncryptInit_ex(evp_cipher_ctx, evp_cipher, NULL,
+            if (EVP_EncryptInit_ex(evp_cipher_ctx, evp_cipher, NULL, NULL, NULL) != 1) {
+                EVP_CIPHER_CTX_free(evp_cipher_ctx);
+                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                                QLatin1String("Unable to initialize encryption cipher context in AES 256 mode"));
+            }
+            // Set IV length
+            if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm
+                    && EVP_CIPHER_CTX_ctrl(evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, iv.length(), NULL) != 1) {
+                EVP_CIPHER_CTX_free(evp_cipher_ctx);
+                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                                QLatin1String("Unable to set encryption initialization vector length"));
+            }
+            // Initialize key and IV
+            if (EVP_EncryptInit_ex(evp_cipher_ctx, NULL, NULL,
                                    reinterpret_cast<const unsigned char*>(key.secretKey().constData()),
                                    reinterpret_cast<const unsigned char*>(iv.constData())) != 1) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                                QLatin1String("Unable to initialize encryption cipher context in AES 256 mode"));
+                                                QLatin1String("Unable to initialize encryption key and IV"));
             }
         }
     } else if (operation == Sailfish::Crypto::CryptoManager::OperationDecrypt) {
@@ -1224,12 +1238,27 @@ Daemon::Plugins::OpenSslCryptoPlugin::initializeCipherSession(
         }
         if (key.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
             const EVP_CIPHER *evp_cipher = getEvpCipher(blockMode, key.secretKey().size());
+            // Initialize context
             if (evp_cipher == NULL) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                                 QLatin1String("Cannot create cipher for AES deccryption, check key size and block mode"));
             }
-            if (EVP_DecryptInit_ex(evp_cipher_ctx, evp_cipher, NULL,
+            if (EVP_DecryptInit_ex(evp_cipher_ctx, evp_cipher, NULL, NULL, NULL) != 1) {
+                EVP_CIPHER_CTX_free(evp_cipher_ctx);
+                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                                QLatin1String("Unable to initialize decryption cipher context in AES 256 mode"));
+            }
+            // Set IV length
+            if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm
+                    && EVP_CIPHER_CTX_ctrl(evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, iv.length(), NULL) != 1) {
+                EVP_CIPHER_CTX_free(evp_cipher_ctx);
+                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                                QLatin1String("Unable to set decryption initialization vector length"));
+
+            }
+            // Initialize key and IV
+            if (EVP_DecryptInit_ex(evp_cipher_ctx, NULL, NULL,
                                    reinterpret_cast<const unsigned char *>(key.secretKey().constData()),
                                    reinterpret_cast<const unsigned char *>(iv.constData())) != 1) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
