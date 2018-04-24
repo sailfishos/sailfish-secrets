@@ -11,6 +11,7 @@
 #include <QObject>
 #include <QVariantMap>
 #include <QDBusReply>
+#include <QFile>
 
 #include "Crypto/cryptomanager.h"
 #include "Crypto/cryptomanager_p.h"
@@ -35,6 +36,37 @@
             maxWait -= 100;                                 \
         }                                                   \
     } while (0)
+
+
+namespace {
+
+inline QByteArray createRandomTestData(int size) {
+    QFile file("/dev/urandom");
+    file.open(QIODevice::ReadOnly);
+    QByteArray result = file.read(size);
+    file.close();
+    return result;
+}
+
+inline QByteArray generateInitializationVector(Sailfish::Crypto::CryptoManager::Algorithm algorithm,
+                                               Sailfish::Crypto::CryptoManager::BlockMode blockMode)
+{
+    if (algorithm != Sailfish::Crypto::CryptoManager::AlgorithmAes
+            || blockMode == Sailfish::Crypto::CryptoManager::BlockModeEcb) {
+        return QByteArray();
+    }
+    switch (blockMode) {
+        case Sailfish::Crypto::CryptoManager::BlockModeGcm:
+            return createRandomTestData(12);
+        case Sailfish::Crypto::CryptoManager::BlockModeCcm:
+            return createRandomTestData(7);
+    default:
+        break;
+    }
+    return createRandomTestData(16);
+}
+}
+
 
 class TestSecretManager : public Sailfish::Secrets::SecretManager
 {
@@ -63,57 +95,38 @@ private slots:
     void cryptoStoredKey();
 
 private:
-    QByteArray generateInitializationVector(Sailfish::Crypto::CryptoManager::Algorithm algorithm,
-                                            Sailfish::Crypto::CryptoManager::BlockMode blockMode)
-    {
-        if (algorithm != Sailfish::Crypto::CryptoManager::AlgorithmAes
-                || blockMode == Sailfish::Crypto::CryptoManager::BlockModeEcb) {
-            return QByteArray();
-        }
-
-        QByteArray data = QString::number(QDateTime::currentDateTime().currentMSecsSinceEpoch()).toLatin1();
-        data.resize(16);
-
-        if (algorithm == Sailfish::Crypto::CryptoManager::AlgorithmAes
-                && blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm) {
-            data.resize(12);
-        }
-
-        return data;
-    }
-
     void addCryptoTestData()
     {
         QTest::addColumn<Sailfish::Crypto::CryptoManager::BlockMode>("blockMode");
         QTest::addColumn<int>("keySize");
 
-        QTest::newRow("ECB 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeEcb << 128;
-        QTest::newRow("ECB 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeEcb << 192;
-        QTest::newRow("ECB 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeEcb << 256;
+        QTest::newRow("AES ECB 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeEcb << 128;
+        QTest::newRow("AES ECB 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeEcb << 192;
+        QTest::newRow("AES ECB 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeEcb << 256;
 
-        QTest::newRow("CBC 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeCbc << 128;
-        QTest::newRow("CBC 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeCbc << 192;
-        QTest::newRow("CBC 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeCbc << 256;
+        QTest::newRow("AES CBC 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeCbc << 128;
+        QTest::newRow("AES CBC 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeCbc << 192;
+        QTest::newRow("AES CBC 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeCbc << 256;
 
-        QTest::newRow("CFB-1 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb1 << 128;
-        QTest::newRow("CFB-1 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb1 << 192;
-        QTest::newRow("CFB-1 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb1 << 256;
+        QTest::newRow("AES CFB-1 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb1 << 128;
+        QTest::newRow("AES CFB-1 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb1 << 192;
+        QTest::newRow("AES CFB-1 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb1 << 256;
 
-        QTest::newRow("CFB-8 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb8 << 128;
-        QTest::newRow("CFB-8 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb8 << 192;
-        QTest::newRow("CFB-8 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb8 << 256;
+        QTest::newRow("AES CFB-8 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb8 << 128;
+        QTest::newRow("AES CFB-8 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb8 << 192;
+        QTest::newRow("AES CFB-8 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb8 << 256;
 
-        QTest::newRow("CFB-128 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb128 << 128;
-        QTest::newRow("CFB-128 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb128 << 192;
-        QTest::newRow("CFB-128 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb128 << 256;
+        QTest::newRow("AES CFB-128 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb128 << 128;
+        QTest::newRow("AES CFB-128 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb128 << 192;
+        QTest::newRow("AES CFB-128 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeCfb128 << 256;
 
-        QTest::newRow("OFB 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeOfb << 128;
-        QTest::newRow("OFB 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeOfb << 192;
-        QTest::newRow("OFB 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeOfb << 256;
+        QTest::newRow("AES OFB 128-bit") << Sailfish::Crypto::CryptoManager::BlockModeOfb << 128;
+        QTest::newRow("AES OFB 192-bit") << Sailfish::Crypto::CryptoManager::BlockModeOfb << 192;
+        QTest::newRow("AES OFB 256-bit") << Sailfish::Crypto::CryptoManager::BlockModeOfb << 256;
 
-        QTest::newRow("CTR 128-bit") << Sailfish::Crypto::CryptoManager::CryptoManager::BlockModeCtr << 128;
-        QTest::newRow("CTR 192-bit") << Sailfish::Crypto::CryptoManager::CryptoManager::BlockModeCtr << 192;
-        QTest::newRow("CTR 256-bit") << Sailfish::Crypto::CryptoManager::CryptoManager::BlockModeCtr << 256;
+        QTest::newRow("AES CTR 128-bit") << Sailfish::Crypto::CryptoManager::CryptoManager::BlockModeCtr << 128;
+        QTest::newRow("AES CTR 192-bit") << Sailfish::Crypto::CryptoManager::CryptoManager::BlockModeCtr << 192;
+        QTest::newRow("AES CTR 256-bit") << Sailfish::Crypto::CryptoManager::CryptoManager::BlockModeCtr << 256;
     }
 
     Sailfish::Crypto::CryptoManagerPrivate cm;

@@ -34,6 +34,8 @@
 #define MAX_CIPHER_SESSIONS_PER_CLIENT 5
 #define SAILFISH_CRYPTO_GCM_TAG_SIZE 16
 #define SAILFISH_CRYPTO_GCM_IV_SIZE 12
+#define SAILFISH_CRYPTO_CCM_TAG_SIZE 14
+#define SAILFISH_CRYPTO_CCM_IV_SIZE 7
 
 class CipherSessionData
 {
@@ -130,6 +132,8 @@ int initializationVectorSize(Sailfish::Crypto::CryptoManager::Algorithm algorith
     case Sailfish::Crypto::CryptoManager::AlgorithmAes:
         if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm) {
             return SAILFISH_CRYPTO_GCM_IV_SIZE;
+        } else if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeCcm) {
+            return SAILFISH_CRYPTO_CCM_IV_SIZE;
         } else {
             return 16;  // AES = 128-bit block size
         }
@@ -139,6 +143,22 @@ int initializationVectorSize(Sailfish::Crypto::CryptoManager::Algorithm algorith
 
     // Unrecognized configuration, IV should be ignored
     return -1;
+}
+
+int authenticationTagSize(Sailfish::Crypto::CryptoManager::Algorithm algorithm,
+                          Sailfish::Crypto::CryptoManager::BlockMode blockMode)
+{
+    switch (algorithm) {
+    case Sailfish::Crypto::CryptoManager::AlgorithmAes:
+        if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm) {
+            return SAILFISH_CRYPTO_GCM_TAG_SIZE;
+        } else if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeCcm) {
+            return SAILFISH_CRYPTO_CCM_TAG_SIZE;
+        }
+    default:
+        break;
+    }
+    return 0;
 }
 
 const EVP_MD *getEvpDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digestFunction) {
@@ -228,6 +248,15 @@ const EVP_CIPHER *getEvpCipher(int block_mode, int key_length_bytes)
         case 256: return EVP_aes_256_gcm();
         default:
             fprintf(stderr, "%s: %d\n", "unsupported encryption size for GCM block mode", key_length_bits);
+            return NULL;
+        }
+    } else if (block_mode == Sailfish::Crypto::CryptoManager::BlockModeCcm) {
+        switch (key_length_bits) {
+        case 128: return EVP_aes_128_ccm();
+        case 192: return EVP_aes_192_ccm();
+        case 256: return EVP_aes_256_ccm();
+        default:
+            fprintf(stderr, "%s: %d\n", "unsupported encryption size for CCM block mode", key_length_bits);
             return NULL;
         }
     } else if (block_mode == Sailfish::Crypto::CryptoManager::BlockModeXts) {

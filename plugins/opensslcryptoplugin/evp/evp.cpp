@@ -324,6 +324,7 @@ int OpenSslEvp::aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
 
 int OpenSslEvp::aes_auth_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
                                            const unsigned char *init_vector,
+                                           int init_vector_length,
                                            const unsigned char *key,
                                            int key_length,
                                            const unsigned char *auth,
@@ -337,6 +338,7 @@ int OpenSslEvp::aes_auth_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
     int ciphertext_length = plaintext_length + AES_BLOCK_SIZE;
     int update_length = 0;
     int final_length = 0;
+    const int cipher_mode = EVP_CIPHER_mode(evp_cipher);
     unsigned char *ciphertext = NULL;
     unsigned char *tag_output = NULL;
 
@@ -358,13 +360,58 @@ int OpenSslEvp::aes_auth_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
     /* Create the encryption context */
     EVP_CIPHER_CTX *encryption_context = EVP_CIPHER_CTX_new();
 
-    /* Initialize key and IV */
-    if (!EVP_EncryptInit_ex(encryption_context, evp_cipher, NULL, key, init_vector)) {
+    /* Initialize the encryption operation. */
+    if (!EVP_EncryptInit_ex(encryption_context, evp_cipher, NULL, NULL, NULL)) {
         ERR_print_errors_fp(stderr);
         EVP_CIPHER_CTX_free(encryption_context);
         free(ciphertext);
         free(tag_output);
         fprintf(stderr, "%s\n", "failed to initialize encryption context");
+        return -1;
+    }
+
+    /* Set IV length */
+    if ( (cipher_mode == EVP_CIPH_GCM_MODE
+            && !EVP_CIPHER_CTX_ctrl(encryption_context, EVP_CTRL_GCM_SET_IVLEN, init_vector_length, NULL))
+         || (cipher_mode == EVP_CIPH_CCM_MODE
+             && !EVP_CIPHER_CTX_ctrl(encryption_context, EVP_CTRL_CCM_SET_IVLEN, init_vector_length, NULL)) ) {
+        ERR_print_errors_fp(stderr);
+        EVP_CIPHER_CTX_free(encryption_context);
+        free(ciphertext);
+        free(tag_output);
+        fprintf(stderr, "%s\n", "failed to set IV length");
+        return -1;
+    }
+
+    /* For CCM, set tag length */
+    if (cipher_mode == EVP_CIPH_CCM_MODE
+            && !EVP_CIPHER_CTX_ctrl(encryption_context, EVP_CTRL_CCM_SET_TAG, tag_length, NULL)) {
+        ERR_print_errors_fp(stderr);
+        EVP_CIPHER_CTX_free(encryption_context);
+        free(ciphertext);
+        free(tag_output);
+        fprintf(stderr, "%s\n", "failed to set authentication tag length");
+        return -1;
+    }
+
+    /* Initialize key and IV */
+    if (!EVP_EncryptInit_ex(encryption_context, NULL, NULL, key, init_vector)) {
+        ERR_print_errors_fp(stderr);
+        EVP_CIPHER_CTX_free(encryption_context);
+        free(ciphertext);
+        free(tag_output);
+        fprintf(stderr, "%s\n", "failed to initialize encryption context");
+        return -1;
+    }
+
+    /* For CCM, provide the total plaintext length */
+    if (cipher_mode == EVP_CIPH_CCM_MODE
+            && !EVP_EncryptUpdate(encryption_context, NULL, &update_length, NULL, plaintext_length)) {
+        ERR_print_errors_fp(stderr);
+        EVP_CIPHER_CTX_free(encryption_context);
+        free(ciphertext);
+        free(tag_output);
+        fprintf(stderr, "%s\n", "failed to set plaintext length");
         return -1;
     }
 
@@ -374,11 +421,13 @@ int OpenSslEvp::aes_auth_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
         EVP_CIPHER_CTX_free(encryption_context);
         free(ciphertext);
         free(tag_output);
-        fprintf(stderr, "%s\n", "failed to initialize encryption context");
+        fprintf(stderr, "%s\n", "failed to set authentication data");
         return -1;
     }
 
-    /* Encrypt the plaintext into the encrypted output buffer */
+    /* Provide the message to be encrypted, and obtain the encrypted output.
+     * For CCM, EVP_EncryptUpdate can only be called once for this.
+     */
     if (!EVP_EncryptUpdate(encryption_context, ciphertext, &update_length, plaintext, plaintext_length)) {
         ERR_print_errors_fp(stderr);
         EVP_CIPHER_CTX_free(encryption_context);
@@ -388,6 +437,9 @@ int OpenSslEvp::aes_auth_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
         return -1;
     }
 
+    /* Finalize the encryption. Normally ciphertext bytes may be written at
+     * this stage, but this does not occur in GCM/CCM mode
+     */
     if (!EVP_EncryptFinal_ex(encryption_context, ciphertext+update_length, &final_length)) {
         ERR_print_errors_fp(stderr);
         EVP_CIPHER_CTX_free(encryption_context);
@@ -398,7 +450,10 @@ int OpenSslEvp::aes_auth_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
     }
 
     /* Get the tag */
-    if (!EVP_CIPHER_CTX_ctrl(encryption_context, EVP_CTRL_GCM_GET_TAG, tag_length, tag_output)) {
+    if ( (cipher_mode == EVP_CIPH_GCM_MODE
+          && !EVP_CIPHER_CTX_ctrl(encryption_context, EVP_CTRL_GCM_GET_TAG, tag_length, tag_output))
+          || (cipher_mode == EVP_CIPH_CCM_MODE
+              && !EVP_CIPHER_CTX_ctrl(encryption_context, EVP_CTRL_CCM_GET_TAG, tag_length, tag_output)) ) {
         ERR_print_errors_fp(stderr);
         EVP_CIPHER_CTX_free(encryption_context);
         free(ciphertext);
@@ -420,6 +475,7 @@ int OpenSslEvp::aes_auth_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
 
 int OpenSslEvp::aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
                                             const unsigned char *init_vector,
+                                            int init_vector_length,
                                             const unsigned char *key,
                                             int key_length,
                                             const unsigned char *auth,
@@ -434,6 +490,8 @@ int OpenSslEvp::aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
     int plaintext_length = 0;
     int update_length = 0;
     int final_length = 0;
+    int last_update_result = 0;
+    const int cipher_mode = EVP_CIPHER_mode(evp_cipher);
     unsigned char *plaintext = NULL;
 
     if (evp_cipher == NULL || ciphertext_length <= 0 || ciphertext == NULL
@@ -454,8 +512,8 @@ int OpenSslEvp::aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
     /* Create the decryption context */
     EVP_CIPHER_CTX *decryption_context = EVP_CIPHER_CTX_new();
 
-    /* Initialize key and IV */
-    if (!EVP_DecryptInit_ex(decryption_context, evp_cipher, NULL, key, init_vector)) {
+    /* Initialise the decryption operation. */
+    if (!EVP_DecryptInit_ex(decryption_context, evp_cipher, NULL, NULL, NULL)) {
         ERR_print_errors_fp(stderr);
         EVP_CIPHER_CTX_free(decryption_context);
         free(plaintext);
@@ -463,6 +521,59 @@ int OpenSslEvp::aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
                 "%s: %s\n",
                 "OpenSslEvp::aes_decrypt_ciphertext()",
                 "failed to initialize decryption context");
+        return -1;
+    }
+
+    /* Set IV length */
+    if ( (cipher_mode == EVP_CIPH_GCM_MODE
+          && !EVP_CIPHER_CTX_ctrl(decryption_context, EVP_CTRL_GCM_SET_IVLEN, init_vector_length, NULL))
+         || (cipher_mode == EVP_CIPH_CCM_MODE
+             && !EVP_CIPHER_CTX_ctrl(decryption_context, EVP_CTRL_CCM_SET_IVLEN, init_vector_length, NULL)) ) {
+        ERR_print_errors_fp(stderr);
+        EVP_CIPHER_CTX_free(decryption_context);
+        free(plaintext);
+        fprintf(stderr,
+                "%s: %s\n",
+                "OpenSslEvp::aes_decrypt_ciphertext()",
+                "failed to set IV length");
+        return -1;
+    }
+
+    /* For CCM, set expected tag value. */
+    if (cipher_mode == EVP_CIPH_CCM_MODE
+            && !EVP_CIPHER_CTX_ctrl(decryption_context, EVP_CTRL_CCM_SET_TAG, tag_length, tag)) {
+        ERR_print_errors_fp(stderr);
+        EVP_CIPHER_CTX_free(decryption_context);
+        free(plaintext);
+        fprintf(stderr,
+                "%s: %s\n",
+                "OpenSslEvp::aes_decrypt_ciphertext()",
+                "failed to set expected tag value");
+        return -1;
+    }
+
+    /* Initialize key and IV */
+    if (!EVP_DecryptInit_ex(decryption_context, NULL, NULL, key, init_vector)) {
+        ERR_print_errors_fp(stderr);
+        EVP_CIPHER_CTX_free(decryption_context);
+        free(plaintext);
+        fprintf(stderr,
+                "%s: %s\n",
+                "OpenSslEvp::aes_decrypt_ciphertext()",
+                "failed to initialize key and IV");
+        return -1;
+    }
+
+    /* For CCM, provide the total ciphertext length */
+    if (cipher_mode == EVP_CIPH_CCM_MODE
+            && !EVP_DecryptUpdate(decryption_context, NULL, &update_length, NULL, ciphertext_length)) {
+        ERR_print_errors_fp(stderr);
+        EVP_CIPHER_CTX_free(decryption_context);
+        free(plaintext);
+        fprintf(stderr,
+                "%s: %s\n",
+                "OpenSslEvp::aes_decrypt_ciphertext()",
+                "failed to set ciphertext length");
         return -1;
     }
 
@@ -479,30 +590,39 @@ int OpenSslEvp::aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
     }
 
     /* Decrypt the ciphertext into the decrypted output buffer */
-    if (!EVP_DecryptUpdate(decryption_context, plaintext, &update_length, ciphertext, ciphertext_length)) {
-        ERR_print_errors_fp(stderr);
-        EVP_CIPHER_CTX_free(decryption_context);
-        free(plaintext);
-        fprintf(stderr,
-                "%s: %s\n",
-                "OpenSslEvp::aes_decrypt_ciphertext()",
-                "failed to update plaintext buffer with decrypted content");
-        return -1;
+    last_update_result = EVP_DecryptUpdate(decryption_context, plaintext, &update_length, ciphertext, ciphertext_length);
+    if (cipher_mode == EVP_CIPH_GCM_MODE) {
+        if (!last_update_result) {
+            ERR_print_errors_fp(stderr);
+            EVP_CIPHER_CTX_free(decryption_context);
+            free(plaintext);
+            fprintf(stderr,
+                    "%s: %s\n",
+                    "OpenSslEvp::aes_decrypt_ciphertext()",
+                    "failed to update plaintext buffer with decrypted content");
+            return -1;
+        }
+        /* Set expected tag value. */
+        if (!EVP_CIPHER_CTX_ctrl(decryption_context, EVP_CTRL_GCM_SET_TAG, tag_length, tag)) {
+            ERR_print_errors_fp(stderr);
+            EVP_CIPHER_CTX_free(decryption_context);
+            free(plaintext);
+            fprintf(stderr,
+                    "%s: %s\n",
+                    "OpenSslEvp::aes_decrypt_ciphertext()",
+                    "failed to set expected tag value");
+            return -1;
+        }
+        /* Finalize the decryption. A positive return value indicates success,
+         * anything else is a failure - the plaintext is not trustworthy.
+         */
+        *verified = EVP_DecryptFinal_ex(decryption_context, plaintext+update_length, &final_length);
+    } else if (cipher_mode == EVP_CIPH_CCM_MODE) {
+        /* For CCM, tag verification comes from the final call to EVP_DecryptUpdate; there is no
+         * call to EVP_DecryptFinal.
+         */
+        *verified = last_update_result;
     }
-
-    /* Set expected tag value. */
-    if (!EVP_CIPHER_CTX_ctrl(decryption_context, EVP_CTRL_GCM_SET_TAG, tag_length, tag)) {
-        ERR_print_errors_fp(stderr);
-        EVP_CIPHER_CTX_free(decryption_context);
-        free(plaintext);
-        fprintf(stderr,
-                "%s: %s\n",
-                "OpenSslEvp::aes_decrypt_ciphertext()",
-                "failed to set expected tag value");
-        return -1;
-    }
-
-    *verified = EVP_DecryptFinal_ex(decryption_context, plaintext+update_length, &final_length);
 
     /* Update the out parameter */
     *decrypted = plaintext;
