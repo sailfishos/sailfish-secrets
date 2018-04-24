@@ -7,7 +7,7 @@
 
 #include "Crypto/cryptodaemonconnection_p.h"
 #include "Crypto/cryptodaemonconnection_p_p.h"
-#include "Crypto/serialisation_p.h"
+#include "Crypto/serialization_p.h"
 
 #include "Crypto/cryptomanager.h"
 #include "Crypto/result.h"

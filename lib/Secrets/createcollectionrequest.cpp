@@ -10,7 +10,7 @@
 
 #include "Secrets/secretmanager.h"
 #include "Secrets/secretmanager_p.h"
-#include "Secrets/serialisation_p.h"
+#include "Secrets/serialization_p.h"
 
 #include <QtDBus/QDBusPendingReply>
 #include <QtDBus/QDBusPendingCallWatcher>

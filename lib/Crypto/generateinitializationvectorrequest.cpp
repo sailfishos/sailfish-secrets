@@ -9,7 +9,7 @@
 
 #include "Crypto/cryptomanager.h"
 #include "Crypto/cryptomanager_p.h"
-#include "Crypto/serialisation_p.h"
+#include "Crypto/serialization_p.h"
 
 #include <QtDBus/QDBusPendingReply>
 #include <QtDBus/QDBusPendingCallWatcher>

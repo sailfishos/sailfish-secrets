@@ -29,7 +29,7 @@ public:
     QVariantMap m_customParameters;
     QVariantMap m_subclassParameters;
 
-    // for use in serialisation
+    // for use in serialization
     static QVariantMap subclassParameters(const KeyPairGenerationParameters &kpgParams);
     static void setSubclassParameters(KeyPairGenerationParameters &kpgParams, const QVariantMap &params);
 };

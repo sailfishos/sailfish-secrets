@@ -182,7 +182,7 @@ public:
             quint32 cipherSessionToken,
             QByteArray *generatedData) = 0;
 
-    virtual Sailfish::Crypto::Result finaliseCipherSession(
+    virtual Sailfish::Crypto::Result finalizeCipherSession(
             quint64 clientId,
             const QByteArray &data,
             const QVariantMap &customParameters,

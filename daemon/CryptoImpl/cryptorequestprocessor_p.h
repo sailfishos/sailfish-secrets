@@ -256,7 +256,7 @@ public:
             quint32 cipherSessionToken,
             QByteArray *generatedData);
 
-    Sailfish::Crypto::Result finaliseCipherSession(
+    Sailfish::Crypto::Result finalizeCipherSession(
             pid_t callerPid,
             quint64 requestId,
             const QByteArray &data,
@@ -300,7 +300,7 @@ public Q_SLOTS:
     void secretsStoredKeyCompleted(
             quint64 requestId,
             const Sailfish::Secrets::Result &result,
-            const QByteArray &serialisedKey,
+            const QByteArray &serializedKey,
             const QMap<QString, QString> &filterData);
 
     void secretsDeleteStoredKeyCompleted(
@@ -336,7 +336,7 @@ private:
             quint64 requestId,
             Key::Components keyComponents,
             const Sailfish::Crypto::Result &result,
-            const QByteArray &serialisedKey,
+            const QByteArray &serializedKey,
             const QMap<QString, QString> &filterData);
 
     void generateStoredKey_afterPreCheck(
@@ -440,7 +440,7 @@ private:
     void sign2(
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
-            const QByteArray &serialisedKey,
+            const QByteArray &serializedKey,
             const QByteArray &data,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
@@ -450,7 +450,7 @@ private:
     void verify2(
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
-            const QByteArray &serialisedKey,
+            const QByteArray &serializedKey,
             const QByteArray &signature,
             const QByteArray &data,
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
@@ -461,7 +461,7 @@ private:
     void encrypt2(
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
-            const QByteArray &serialisedKey,
+            const QByteArray &serializedKey,
             const QByteArray &data,
             const QByteArray &iv,
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
@@ -473,7 +473,7 @@ private:
     void decrypt2(
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
-            const QByteArray &serialisedKey,
+            const QByteArray &serializedKey,
             const QByteArray &data,
             const QByteArray &iv,
             Sailfish::Crypto::CryptoManager::BlockMode blockMode,
@@ -486,7 +486,7 @@ private:
     void initializeCipherSession2(
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
-            const QByteArray &serialisedKey,
+            const QByteArray &serializedKey,
             pid_t callerPid,
             const QByteArray &iv,
             Sailfish::Crypto::CryptoManager::Operation operation,

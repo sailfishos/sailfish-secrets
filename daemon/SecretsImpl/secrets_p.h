@@ -455,9 +455,9 @@ public: // Crypto API helper methods.
     // the first methods are synchronous:
     Sailfish::Secrets::Result storagePluginInfo(pid_t callerPid, quint64 cryptoRequestId, QVector<Sailfish::Secrets::PluginInfo> *info) const;
     // the others are asynchronous methods:
-    Sailfish::Secrets::Result storedKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, QByteArray *serialisedKey, QMap<QString, QString> *filterData);
+    Sailfish::Secrets::Result storedKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, QByteArray *serializedKey, QMap<QString, QString> *filterData);
     Sailfish::Secrets::Result storeKeyPreCheck(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier);
-    Sailfish::Secrets::Result storeKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, const QByteArray &serialisedKey,
+    Sailfish::Secrets::Result storeKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, const QByteArray &serializedKey,
                                        const QMap<QString, QString> &filterData, const QByteArray &collectionDecryptionKey);
     Sailfish::Secrets::Result deleteStoredKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier);
     Sailfish::Secrets::Result userInput(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Secrets::InteractionParameters &uiParams);
@@ -466,7 +466,7 @@ public: // Crypto API helper methods.
     Sailfish::Secrets::Result forgetCryptoPluginLockCode(pid_t callerPid, quint64 cryptoRequestId, const QString &cryptoPluginName, const Sailfish::Secrets::InteractionParameters &uiParams);
 
 Q_SIGNALS:
-    void storedKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &serialisedKey, const QMap<QString,QString> &filterData);
+    void storedKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &serializedKey, const QMap<QString,QString> &filterData);
     void storeKeyPreCheckCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &collectionDecryptionKey);
     void storeKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
     void deleteStoredKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);

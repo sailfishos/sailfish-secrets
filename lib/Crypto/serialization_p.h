@@ -5,8 +5,8 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#ifndef LIBSAILFISHCRYPTO_SERIALISATION_H
-#define LIBSAILFISHCRYPTO_SERIALISATION_H
+#ifndef LIBSAILFISHCRYPTO_SERIALIZATION_H
+#define LIBSAILFISHCRYPTO_SERIALIZATION_H
 
 // WARNING!
 //
@@ -102,4 +102,4 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto:
 
 } // Sailfish
 
-#endif // LIBSAILFISHCRYPTO_SERIALISATION_H
+#endif // LIBSAILFISHCRYPTO_SERIALIZATION_H

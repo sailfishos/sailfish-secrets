@@ -188,7 +188,7 @@ public:
             quint32 cipherSessionToken,
             QByteArray *generatedData) Q_DECL_OVERRIDE;
 
-    Sailfish::Crypto::Result finaliseCipherSession(
+    Sailfish::Crypto::Result finalizeCipherSession(
             quint64 clientId,
             const QByteArray &data,
             const QVariantMap &customParameters,

@@ -5,8 +5,8 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#ifndef LIBSAILFISHSECRETS_SERIALISATION_H
-#define LIBSAILFISHSECRETS_SERIALISATION_H
+#ifndef LIBSAILFISHSECRETS_SERIALIZATION_H
+#define LIBSAILFISHSECRETS_SERIALIZATION_H
 
 // WARNING!
 //
@@ -71,4 +71,4 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
 
 } // namespace Sailfish
 
-#endif // LIBSAILFISHSECRETS_SERIALISATION_H
+#endif // LIBSAILFISHSECRETS_SERIALIZATION_H

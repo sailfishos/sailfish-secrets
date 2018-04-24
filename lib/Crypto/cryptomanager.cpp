@@ -7,7 +7,7 @@
 
 #include "Crypto/cryptomanager.h"
 #include "Crypto/cryptomanager_p.h"
-#include "Crypto/serialisation_p.h"
+#include "Crypto/serialization_p.h"
 #include "Crypto/key.h"
 #include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
@@ -531,7 +531,7 @@ CryptoManagerPrivate::updateCipherSession(
 }
 
 QDBusPendingReply<Sailfish::Crypto::Result, QByteArray, bool>
-CryptoManagerPrivate::finaliseCipherSession(
+CryptoManagerPrivate::finalizeCipherSession(
         const QByteArray &data,
         const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
@@ -545,7 +545,7 @@ CryptoManagerPrivate::finaliseCipherSession(
 
     QDBusPendingReply<Result, QByteArray, bool> reply
             = m_interface->asyncCallWithArgumentList(
-                "finaliseCipherSession",
+                "finalizeCipherSession",
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName)

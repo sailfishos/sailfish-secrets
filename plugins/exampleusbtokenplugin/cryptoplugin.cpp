@@ -395,7 +395,7 @@ ExampleUsbTokenPlugin::updateCipherSession(
 }
 
 Result
-ExampleUsbTokenPlugin::finaliseCipherSession(
+ExampleUsbTokenPlugin::finalizeCipherSession(
         quint64 clientId,
         const QByteArray &data,
         const QVariantMap &customParameters,
@@ -403,7 +403,7 @@ ExampleUsbTokenPlugin::finaliseCipherSession(
         QByteArray *generatedData,
         bool *verified)
 {
-    return m_usbInterface.finaliseCipherSession(
+    return m_usbInterface.finalizeCipherSession(
                 clientId,
                 data,
                 customParameters,

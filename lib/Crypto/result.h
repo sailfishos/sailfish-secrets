@@ -38,7 +38,7 @@ public:
     enum ErrorCode {
         NoError = 0,
         UnknownError = 2,
-        SerialisationError = 3,
+        SerializationError = 3,
         StorageError = 4,
         DaemonError = 5,
 

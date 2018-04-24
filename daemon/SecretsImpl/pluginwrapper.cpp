@@ -76,7 +76,7 @@ bool PluginWrapper::masterUnlock(const QByteArray &masterLockKey)
                                            << result.errorMessage();
         return false;
     }
-    return initialize(masterLockKey); // may need to synchronise data between metadataDb and plugin.
+    return initialize(masterLockKey); // may need to synchronize data between metadataDb and plugin.
 }
 
 bool PluginWrapper::setMasterLockKey(const QByteArray &oldMasterLockKey, const QByteArray &newMasterLockKey)
@@ -89,7 +89,7 @@ bool PluginWrapper::setMasterLockKey(const QByteArray &oldMasterLockKey, const Q
                                            << result.errorMessage();
         return false;
     }
-    return initialize(newMasterLockKey); // may need to synchronise data between metadataDb and plugin.
+    return initialize(newMasterLockKey); // may need to synchronize data between metadataDb and plugin.
 }
 
 bool PluginWrapper::supportsLocking() const
@@ -110,14 +110,14 @@ bool PluginWrapper::lock()
 bool PluginWrapper::unlock(const QByteArray &lockCode)
 {
     bool ps = m_plugin->unlock(lockCode);
-    initialize(); // may need to synchronise data between metadataDb and plugin.
+    initialize(); // may need to synchronize data between metadataDb and plugin.
     return ps;
 }
 
 bool PluginWrapper::setLockCode(const QByteArray &oldLockCode, const QByteArray &newLockCode)
 {
     bool ps = m_plugin->setLockCode(oldLockCode, newLockCode);
-    initialize(); // may need to synchronise data between metadataDb and plugin.
+    initialize(); // may need to synchronize data between metadataDb and plugin.
     return ps;
 }
 

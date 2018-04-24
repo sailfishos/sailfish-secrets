@@ -143,7 +143,7 @@ Daemon::ApiImpl::SecretsRequestQueue::storeKey(
         pid_t callerPid,
         quint64 cryptoRequestId,
         const Sailfish::Crypto::Key::Identifier &identifier,
-        const QByteArray &serialisedKey,
+        const QByteArray &serializedKey,
         const QMap<QString, QString> &filterData,
         const QByteArray &collectionDecryptionKey)
 {
@@ -151,7 +151,7 @@ Daemon::ApiImpl::SecretsRequestQueue::storeKey(
     Secret secret(Secret::Identifier(identifier.name(), identifier.collectionName(), identifier.storagePluginName()));
     secret.setFilterData(filterData);
     secret.setType(Secret::TypeCryptoKey);
-    secret.setData(serialisedKey);
+    secret.setData(serializedKey);
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<Secret>(secret)
              << QVariant::fromValue<SecretManager::UserInteractionMode>(SecretManager::SystemInteraction)
@@ -202,10 +202,10 @@ Daemon::ApiImpl::SecretsRequestQueue::storedKey(
         pid_t callerPid,
         quint64 cryptoRequestId,
         const Sailfish::Crypto::Key::Identifier &identifier,
-        QByteArray *serialisedKey,
+        QByteArray *serializedKey,
         QMap<QString, QString> *filterData)
 {
-    Q_UNUSED(serialisedKey); // this request is always asynchronous
+    Q_UNUSED(serializedKey); // this request is always asynchronous
     Q_UNUSED(filterData);
 
     // perform the "get collection secret" request, as a secrets-for-crypto request.

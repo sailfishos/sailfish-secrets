@@ -313,7 +313,7 @@ DataResult CryptoPluginFunctionWrapper::updateCipherSession(
     return DataResult(result, generatedData);
 }
 
-VerifiedDataResult CryptoPluginFunctionWrapper::finaliseCipherSession(
+VerifiedDataResult CryptoPluginFunctionWrapper::finalizeCipherSession(
         const PluginAndCustomParams &pluginAndCustomParams,
         quint64 clientId,
         const QByteArray &data,
@@ -321,7 +321,7 @@ VerifiedDataResult CryptoPluginFunctionWrapper::finaliseCipherSession(
 {
     bool verified = false;
     QByteArray generatedData;
-    Result result = pluginAndCustomParams.plugin->finaliseCipherSession(
+    Result result = pluginAndCustomParams.plugin->finalizeCipherSession(
                 clientId, data,
                 pluginAndCustomParams.customParameters,
                 cipherSessionToken,

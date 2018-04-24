@@ -103,7 +103,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::generateAndStoreKey(
     Sailfish::Secrets::Result storeResult = setSecret(
                 fullKey.identifier().collectionName(),
                 fullKey.identifier().name(),
-                Sailfish::Crypto::Key::serialise(fullKey, Sailfish::Crypto::Key::LossySerialisationMode),
+                Sailfish::Crypto::Key::serialize(fullKey, Sailfish::Crypto::Key::LossySerializationMode),
                 filterData);
     if (storeResult.code() == Sailfish::Secrets::Result::Failed) {
         retn.setCode(Sailfish::Crypto::Result::Failed);
@@ -150,7 +150,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::importAndStoreKey(
     Sailfish::Secrets::Result storeResult = setSecret(
                 importedKey.identifier().collectionName(),
                 importedKey.identifier().name(),
-                Sailfish::Crypto::Key::serialise(importedKey, Sailfish::Crypto::Key::LossySerialisationMode),
+                Sailfish::Crypto::Key::serialize(importedKey, Sailfish::Crypto::Key::LossySerializationMode),
                 filterData);
     if (storeResult.code() == Sailfish::Secrets::Result::Failed) {
         retn.setCode(Sailfish::Crypto::Result::Failed);
@@ -198,10 +198,10 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::storedKey_internal(
     QMap<QString, QString> filterData = sfd;
 
     bool ok = true;
-    Sailfish::Crypto::Key fullKey = Sailfish::Crypto::Key::deserialise(secret, &ok);
+    Sailfish::Crypto::Key fullKey = Sailfish::Crypto::Key::deserialize(secret, &ok);
     if (!ok) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::SerialisationError,
-                                        QLatin1String("Unable to deserialise key from secret blob"));
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::SerializationError,
+                                        QLatin1String("Unable to deserialize key from secret blob"));
     }
 
     fullKey.setIdentifier(Sailfish::Crypto::Key::Identifier(
@@ -475,7 +475,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::updateCipherSession(
 }
 
 Sailfish::Crypto::Result
-Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::finaliseCipherSession(
+Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::finalizeCipherSession(
         quint64 clientId,
         const QByteArray &data,
         const QVariantMap &customParameters,
@@ -483,7 +483,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::finaliseCipherSession(
         QByteArray *generatedData,
         bool *verified)
 {
-    return m_opensslCryptoPlugin.finaliseCipherSession(clientId,
+    return m_opensslCryptoPlugin.finalizeCipherSession(clientId,
                                                        data,
                                                        customParameters,
                                                        cipherSessionToken,
