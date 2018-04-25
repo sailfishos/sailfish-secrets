@@ -2,7 +2,10 @@ TEMPLATE = app
 TARGET = secrets-tool
 
 CONFIG += link_pkgconfig console
-PKGCONFIG += qt5-boostable Qt5Core Qt5DBus
+PKGCONFIG += Qt5Core Qt5DBus
+packagesExist(qt5-boostable) {
+    PKGCONFIG += qt5-boostable
+}
 
 #PKGCONFIG += sailfishsecrets sailfishcrypto
 include($$PWD/../../lib/libsailfishsecrets.pri)
