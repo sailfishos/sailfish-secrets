@@ -34,7 +34,7 @@ public:
         : QObject(parent) {}
 
     QString applicationId(pid_t pid) const;
-    QString platformApplicationId() const { return QLatin1String("Sailfish"); }
+    QString platformApplicationId() const { return QLatin1String("Sailfish OS"); }
     bool applicationIsPlatformApplication(pid_t pid) const;
 };
 

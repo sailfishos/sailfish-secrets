@@ -137,7 +137,6 @@ StoreSecretRequestPrivate::StoreSecretRequestPrivate()
  * Sailfish::Secrets::InteractionParameters uiParams;
  * uiParams.setInputType(Sailfish::Secrets::InteractionParameters::AlphaNumericInput);
  * uiParams.setEchoMode(Sailfish::Secrets::InteractionParameters::NormalEcho);
- * uiParams.setPromptText(tr("Enter the secret data"));
  *
  * // Define the secret.  Note that it contains metadata only.
  * Sailfish::Secrets::Secret exampleSecret(
