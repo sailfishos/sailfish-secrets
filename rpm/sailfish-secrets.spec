@@ -417,11 +417,11 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 
 %post -n %{secretsdaemon}
 systemctl-user daemon-reload || :
-systemctl-user reload-or-try-restart %{secretsdaemon} || :
+systemctl-user reload-or-try-restart sailfish-secretsd || :
 
 %preun -n %{secretsdaemon}
 if [ "$1" -eq 0 ]; then
-    systemctl stop %{secretsdaemon} || :
+    systemctl stop sailfish-secretsd || :
 fi
 
 %postun -n %{secretsdaemon}
