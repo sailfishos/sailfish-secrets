@@ -29,6 +29,11 @@ bool PluginWrapper::isInitialized() const
     return m_initialized;
 }
 
+QString PluginWrapper::displayName() const
+{
+    return m_plugin->displayName();
+}
+
 QString PluginWrapper::name() const
 {
     return m_plugin->name();

@@ -346,7 +346,7 @@ Daemon::ApiImpl::RequestProcessor::createCustomLockCollection(
     //: This will be displayed to the user, prompting them to enter a passphrase which will be used to encrypt a collection. %1 is the application name, %2 is the collection name, %3 is the plugin name.
     //% "App %1 wants to create a new secrets collection %2 in plugin %3. Enter the passphrase which will be used to encrypt the collection."
     promptParams.setPromptText(qtTrId("sailfish_secrets-create_customlock_collection-la-enter_new_collection_passphrase")
-                             .arg(callerApplicationId, collectionName, storagePluginName));
+                             .arg(callerApplicationId, collectionName, m_requestQueue->controller()->displayNameForPlugin(storagePluginName)));
     Result interactionResult = m_authenticationPlugins[authenticationPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -653,7 +653,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionWithMetadata(
         //: This will be displayed to the user, prompting them to enter a passphrase which will be used to unlock a collection for deletion. %1 is the application name, %2 is the collection name, %3 is the plugin name.
         //% "App %1 wants to delete collection %2 in plugin %3. Enter the passphrase which will be used to unlock the collection for deletion."
         promptParams.setPromptText(qtTrId("sailfish_secrets-delete_collection-la-enter_collection_passphrase")
-                                 .arg(callerApplicationId, collectionName, storagePluginName));
+                                 .arg(callerApplicationId, collectionName, m_requestQueue->controller()->displayNameForPlugin(storagePluginName)));
         Result result = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                     callerPid,
                     requestId,
@@ -938,7 +938,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithMetadata(
                                    .arg(callerApplicationId,
                                         secret.identifier().name(),
                                         secret.identifier().collectionName(),
-                                        secret.identifier().storagePluginName()));
+                                        m_requestQueue->controller()->displayNameForPlugin(secret.identifier().storagePluginName())));
     Result authenticationResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -1033,7 +1033,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
                                  .arg(callerApplicationId,
                                       secret.identifier().name(),
                                       secret.identifier().collectionName(),
-                                      secret.identifier().storagePluginName()));
+                                      m_requestQueue->controller()->displayNameForPlugin(secret.identifier().storagePluginName())));
         Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                     callerPid,
                     requestId,
@@ -1100,7 +1100,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
                              .arg(callerApplicationId,
                                   secret.identifier().name(),
                                   secret.identifier().collectionName(),
-                                  secret.identifier().storagePluginName()));
+                                  m_requestQueue->controller()->displayNameForPlugin(secret.identifier().storagePluginName())));
     Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -1423,7 +1423,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSecretWithMetadata(
     modifiedUiParams.setPromptText(qtTrId("sailfish_secrets-set_standalone_secret-la-enter_secret_data")
                                    .arg(newMetadata.ownerApplicationId,
                                         secret.identifier().name(),
-                                        secret.identifier().storagePluginName()));
+                                        m_requestQueue->controller()->displayNameForPlugin(secret.identifier().storagePluginName())));
     Result authenticationResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -1651,7 +1651,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretWithMetadata(
     modifiedUiParams.setPromptText(qtTrId("sailfish_secrets-set_standalone_secret-la-enter_secret_data")
                                    .arg(newMetadata.ownerApplicationId,
                                         secret.identifier().name(),
-                                        secret.identifier().storagePluginName()));
+                                        m_requestQueue->controller()->displayNameForPlugin(secret.identifier().storagePluginName())));
     Result authenticationResult = m_authenticationPlugins[userInputPlugin]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -1697,7 +1697,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretGetAuthenticatio
     promptParams.setPromptText(qtTrId("sailfish_secrets-set_standalone_secret-la-enter_secret_passphrase")
                                .arg(secretMetadata.ownerApplicationId,
                                     secret.identifier().name(),
-                                    secret.identifier().storagePluginName()));
+                                    m_requestQueue->controller()->displayNameForPlugin(secret.identifier().storagePluginName())));
     Q_UNUSED(userInteractionMode); // TODO: ensure the auth plugin uses the appropriate mode?
     Result interactionResult = m_authenticationPlugins[secretMetadata.authenticationPluginName]->beginUserInputInteraction(
                 callerPid,
@@ -1973,7 +1973,7 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
                                          .arg(callerApplicationId,
                                               identifier.name(),
                                               identifier.collectionName(),
-                                              identifier.storagePluginName()));
+                                              m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())));
                 Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
@@ -2047,7 +2047,7 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
                                          .arg(callerApplicationId,
                                               identifier.name(),
                                               identifier.collectionName(),
-                                              identifier.storagePluginName()));
+                                              m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())));
                 Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
@@ -2334,7 +2334,7 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithMetadata(
                              .arg(callerApplicationId,
                                   identifier.name(),
                                   identifier.collectionName(),
-                                  identifier.storagePluginName()));
+                                  m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())));
     Result interactionResult = m_authenticationPlugins[secretMetadata.authenticationPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -2655,7 +2655,7 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
                 promptParams.setPromptText(qtTrId("sailfish_secrets-find_collection_secrets-la-enter_collection_passphrase")
                                          .arg(callerApplicationId,
                                               collectionName,
-                                              storagePluginName));
+                                              m_requestQueue->controller()->displayNameForPlugin(storagePluginName)));
                 Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
@@ -2735,7 +2735,7 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
                 promptParams.setPromptText(qtTrId("sailfish_secrets-find_collection_secrets-la-enter_collection_passphrase")
                                          .arg(callerApplicationId,
                                               collectionName,
-                                              storagePluginName));
+                                              m_requestQueue->controller()->displayNameForPlugin(storagePluginName)));
                 Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
@@ -3074,7 +3074,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
                                      .arg(callerApplicationId,
                                           identifier.name(),
                                           identifier.collectionName(),
-                                          identifier.storagePluginName()));
+                                          m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())));
             Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                         callerPid,
                         requestId,
@@ -3140,7 +3140,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
                                          .arg(callerApplicationId,
                                               identifier.name(),
                                               identifier.collectionName(),
-                                              identifier.storagePluginName()));
+                                              m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())));
                 Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
@@ -3471,7 +3471,7 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCode(
     //: This will be displayed to the user, prompting them to enter the old passphrase to unlock the extension plugin in order to change its lock code. %1 is the application name, %2 is the plugin name.
     //% "App %1 wants to change the lock code for plugin %2. Enter the old passphrase to unlock the plugin."
     const QString modifyPluginLockOldPrompt = qtTrId("sailfish_secrets-modify_lock_code-la-enter_old_plugin_passphrase")
-                                                .arg(callerApplicationId, lockCodeTarget);
+                                                .arg(callerApplicationId, m_requestQueue->controller()->displayNameForPlugin(lockCodeTarget));
     //: This will be displayed to the user, prompting them to enter the old passphrase to unlock the secrets service in order to change the master lock code. %1 is the application name.
     //% "App %1 wants to change the secrets service master lock code. Enter the old master passphrase."
     const QString modifyMasterLockOldPrompt = qtTrId("sailfish_secrets-modify_lock_code-la-enter_old_master_passphrase")
@@ -3541,7 +3541,7 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCode(
     //: This will be displayed to the user, prompting them to enter the new passphrase for the plugin. %1 is the application name, %2 is the plugin name.
     //% "App %1 wants to change the lock code for plugin %2. Enter the new passphrase for the plugin."
     const QString modifyPluginLockNewPrompt = qtTrId("sailfish_secrets-modify_lock_code-la-enter_new_plugin_passphrase")
-                                                .arg(callerApplicationId, lockCodeTarget);
+                                                .arg(callerApplicationId, m_requestQueue->controller()->displayNameForPlugin(lockCodeTarget));
     //: This will be displayed to the user, prompting them to enter the new master lock code for the secrets service. %1 is the application name.
     //% "App %1 wants to change the secrets service master lock code. Enter the new master passphrase."
     const QString modifyMasterLockNewPrompt = qtTrId("sailfish_secrets-modify_lock_code-la-enter_new_master_passphrase")
@@ -3797,7 +3797,7 @@ Daemon::ApiImpl::RequestProcessor::provideLockCode(
     //: This will be displayed to the user, prompting them to enter the passphrase to unlock the extension plugin. %1 is the application name, %2 is the plugin name.
     //% "App %1 wants to use plugin %2. Enter the passphrase to unlock the plugin."
     const QString providePluginLockPrompt = qtTrId("sailfish_secrets-provide_lock_code-la-enter_plugin_passphrase")
-                                              .arg(callerApplicationId, lockCodeTarget);
+                                              .arg(callerApplicationId, m_requestQueue->controller()->displayNameForPlugin(lockCodeTarget));
     //: This will be displayed to the user, prompting them to enter the passphrase to unlock the secrets service. %1 is the application name.
     //% "App %1 wants to use the secrets service. Enter the master passphrase to unlock the secrets service."
     const QString provideMasterLockPrompt = qtTrId("sailfish_secrets-provide_lock_code-la-enter_master_passphrase")
@@ -4170,7 +4170,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
                                    .arg(callerApplicationId,
                                         identifier.name(),
                                         identifier.collectionName(),
-                                        identifier.storagePluginName()));
+                                        m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())));
         Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                     callerPid,
                     requestId,
@@ -4235,7 +4235,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
                                .arg(callerApplicationId,
                                     identifier.name(),
                                     identifier.collectionName(),
-                                    identifier.storagePluginName()));
+                                    m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())));
     Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,

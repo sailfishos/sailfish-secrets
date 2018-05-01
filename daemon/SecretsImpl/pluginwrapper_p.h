@@ -46,6 +46,7 @@ public:
     virtual Sailfish::Secrets::Result collectionNames(QStringList *names) const = 0;
     virtual Sailfish::Secrets::Result secretNames(const QString &collectionName, QStringList *secretNames) const = 0;
 
+    QString displayName() const Q_DECL_OVERRIDE;
     QString name() const Q_DECL_OVERRIDE;
     int version() const Q_DECL_OVERRIDE;
 

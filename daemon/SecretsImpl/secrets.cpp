@@ -440,6 +440,11 @@ Daemon::ApiImpl::SecretsRequestQueue::~SecretsRequestQueue()
     free(m_bkdbLockKeyData);
 }
 
+Sailfish::Secrets::Daemon::Controller *Daemon::ApiImpl::SecretsRequestQueue::controller()
+{
+    return m_controller;
+}
+
 QWeakPointer<QThreadPool> Daemon::ApiImpl::SecretsRequestQueue::secretsThreadPool()
 {
     return m_secretsThreadPool.toWeakRef();

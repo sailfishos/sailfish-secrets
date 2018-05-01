@@ -400,6 +400,7 @@ public:
     SecretsRequestQueue(Sailfish::Secrets::Daemon::Controller *parent, bool autotestMode);
     ~SecretsRequestQueue();
 
+    Sailfish::Secrets::Daemon::Controller *controller();
     QWeakPointer<QThreadPool> secretsThreadPool();
     bool initialize(const QByteArray &lockCode, InitializationMode mode);
     bool initializePlugins();
@@ -413,6 +414,7 @@ public: // helpers for crypto API: secretscryptohelpers.cpp
     Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *cryptoStoragePluginWrapper(const QString &pluginName) const;
     QStringList encryptedStoragePluginNames() const;
     QStringList storagePluginNames() const;
+    QString displayNameForStoragePlugin(const QString &name) const;
     Sailfish::Secrets::Result storedKeyIdentifiers(const QString &storagePluginName, QVector<Secret::Identifier> *idents) const;
 
 private:

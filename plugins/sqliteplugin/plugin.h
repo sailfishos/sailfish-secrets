@@ -40,6 +40,9 @@ public:
     SqlitePlugin(QObject *parent = Q_NULLPTR);
     ~SqlitePlugin();
 
+    QString displayName() const Q_DECL_OVERRIDE {
+        return QStringLiteral("SQLite");
+    }
     QString name() const Q_DECL_OVERRIDE {
 #ifdef SAILFISHSECRETS_TESTPLUGIN
         return QLatin1String("org.sailfishos.secrets.plugin.storage.sqlite.test");

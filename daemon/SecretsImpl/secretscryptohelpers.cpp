@@ -29,6 +29,12 @@ using namespace Sailfish::Secrets;
 // The methods in this file exist to help fulfil Sailfish Crypto API requests,
 // while allowing the use of a single (secrets) database for atomicity reasons.
 
+QString
+Daemon::ApiImpl::SecretsRequestQueue::displayNameForStoragePlugin(const QString &name) const
+{
+    return m_requestProcessor->displayNameForStoragePlugin(name);
+}
+
 QStringList
 Daemon::ApiImpl::SecretsRequestQueue::storagePluginNames() const
 {
@@ -71,6 +77,17 @@ Daemon::ApiImpl::SecretsRequestQueue::storedKeyIdentifiers(const QString &storag
 {
     // TODO: make this asynchronous, emit a signal when complete.
     return m_requestProcessor->storedKeyIdentifiers(storagePluginName, idents);
+}
+
+QString
+Daemon::ApiImpl::RequestProcessor::displayNameForStoragePlugin(const QString &name) const
+{
+    if (m_storagePlugins.contains(name)) {
+        return m_storagePlugins.value(name)->displayName();
+    } else if (m_encryptedStoragePlugins.contains(name)) {
+        return m_encryptedStoragePlugins.value(name)->displayName();
+    }
+    return QString();
 }
 
 QStringList

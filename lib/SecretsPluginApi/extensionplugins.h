@@ -35,6 +35,7 @@ public:
     PluginBase();
     virtual ~PluginBase();
 
+    virtual QString displayName() const = 0;
     virtual QString name() const = 0;
     virtual int version() const = 0;
     virtual bool supportsLocking() const;

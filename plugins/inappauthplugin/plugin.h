@@ -42,6 +42,11 @@ public:
     InAppPlugin(QObject *parent = Q_NULLPTR);
     ~InAppPlugin();
 
+    QString displayName() const Q_DECL_OVERRIDE {
+        //: The (human readable) display name of the in-app authentication plugin
+        //% "In-App Authenticator"
+        return qtTrId("in_app_auth-display_name");
+    }
     QString name() const Q_DECL_OVERRIDE {
 #ifdef SAILFISHSECRETS_TESTPLUGIN
         return QLatin1String("org.sailfishos.secrets.plugin.authentication.inapp.test");

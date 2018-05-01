@@ -254,6 +254,7 @@ public: // helper methods for crypto API bridge (secretscryptohelpers)
     Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *cryptoStoragePluginWrapper(const QString &pluginName) const;
     QStringList encryptedStoragePluginNames() const;
     QStringList storagePluginNames() const;
+    QString displayNameForStoragePlugin(const QString &name) const;
     QVector<Sailfish::Secrets::PluginInfo> storagePluginInfo() const;
     Sailfish::Secrets::Result storedKeyIdentifiers(const QString &storagePluginName, QVector<Secret::Identifier> *idents) const;
     Sailfish::Secrets::Result userInput(
