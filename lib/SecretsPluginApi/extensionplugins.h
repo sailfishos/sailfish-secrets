@@ -57,6 +57,7 @@ public:
 
     enum EncryptionAlgorithm {
         NoAlgorithm = 0,
+        CustomAlgorithm,
         AES_256_CBC
     };
 
@@ -138,6 +139,7 @@ public:
     virtual Sailfish::Secrets::Result setSecret(const QString &secretName, const QByteArray &secret, const Sailfish::Secrets::Secret::FilterData &filterData, const QByteArray &key) = 0;
     virtual Sailfish::Secrets::Result accessSecret(const QString &secretName, const QByteArray &key, QByteArray *secret, Sailfish::Secrets::Secret::FilterData *filterData) = 0;
     virtual Sailfish::Secrets::Result removeSecret(const QString &secretName) = 0;
+    virtual Sailfish::Secrets::Result reencryptSecret(const QString &secretName, const QByteArray &oldkey, const QByteArray &newkey) = 0;
 };
 
 class SAILFISH_SECRETS_API AuthenticationPlugin : public QObject, public virtual PluginBase

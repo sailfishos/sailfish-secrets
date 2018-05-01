@@ -76,6 +76,20 @@ Result::Result(Result::ErrorCode errorCode, const QString &errorMessage)
 }
 
 /*!
+ * \brief Constructs a new result with the given \a errorCode, \a storageErrorCode and \a errorMessage
+ */
+Result::Result(Result::ErrorCode errorCode, int storageErrorCode, const QString &errorMessage)
+    : d_ptr(new ResultPrivate)
+{
+    d_ptr->m_errorCode = errorCode;
+    d_ptr->m_storageErrorCode = storageErrorCode;
+    d_ptr->m_errorMessage = errorMessage;
+    d_ptr->m_code = errorCode >= Result::UnknownError
+            ? Result::Failed
+            : Result::Succeeded;
+}
+
+/*!
  * \brief Constructs a copy of the \a other result
  */
 Result::Result(const Result &other)

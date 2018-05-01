@@ -104,6 +104,7 @@ public:
     Sailfish::Secrets::Result setSecret(const QString &secretName, const QByteArray &secret, const Sailfish::Secrets::Secret::FilterData &filterData, const QByteArray &key) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result accessSecret(const QString &secretName, const QByteArray &key, QByteArray *secret, Sailfish::Secrets::Secret::FilterData *filterData) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result removeSecret(const QString &secretName) Q_DECL_OVERRIDE;
+    Sailfish::Secrets::Result reencryptSecret(const QString &secretName, const QByteArray &oldkey, const QByteArray &newkey) Q_DECL_OVERRIDE;
 
     // And it also implements the CryptoPlugin interface
     bool canStoreKeys() const Q_DECL_OVERRIDE { return true; }

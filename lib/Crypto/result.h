@@ -136,6 +136,7 @@ public:
 
     Result(Sailfish::Crypto::Result::ResultCode resultCode = Succeeded);
     Result(Sailfish::Crypto::Result::ErrorCode errorCode, const QString &errorMessage);
+    Result(Sailfish::Crypto::Result::ErrorCode errorCode, int storageErrorCode, const QString &errorMessage);
     Result(const Result &other);
     ~Result();
 

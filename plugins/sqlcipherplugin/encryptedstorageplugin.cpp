@@ -886,3 +886,16 @@ Daemon::Plugins::SqlCipherPlugin::removeSecret(
                   QLatin1String("SQLCipher plugin doesn't support standalone secret operations"));
 }
 
+Result
+Daemon::Plugins::SqlCipherPlugin::reencryptSecret(
+        const QString &secretName,
+        const QByteArray &oldkey,
+        const QByteArray &newkey)
+{
+    Q_UNUSED(secretName);
+    Q_UNUSED(oldkey);
+    Q_UNUSED(newkey);
+    return Result(Result::OperationNotSupportedError,
+                  QLatin1String("SQLCipher plugin doesn't support standalone secret operations"));
+}
+
