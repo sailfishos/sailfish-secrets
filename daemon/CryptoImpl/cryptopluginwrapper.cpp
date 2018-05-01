@@ -57,6 +57,14 @@ CryptoStoragePluginWrapper::keyNames(
     return Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded);
 }
 
+Sailfish::Crypto::Result
+CryptoStoragePluginWrapper::storedKeyIdentifiers(
+        const QString &collectionName,
+        QVector<Sailfish::Crypto::Key::Identifier> *identifiers)
+{
+    return m_cryptoPlugin->storedKeyIdentifiers(collectionName, identifiers);
+}
+
 Result
 CryptoStoragePluginWrapper::prepareToStoreKey(
         const Sailfish::Secrets::Daemon::ApiImpl::SecretMetadata &metadata,

@@ -243,13 +243,15 @@ void Daemon::ApiImpl::CryptoDBusObject::deleteStoredKey(
 
 void Daemon::ApiImpl::CryptoDBusObject::storedKeyIdentifiers(
         const QString &storagePluginName,
+        const QString &collectionName,
         const QDBusMessage &message,
         Result &result,
         QVector<Key::Identifier> &identifiers)
 {
     Q_UNUSED(identifiers);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
-    inParams << storagePluginName;
+    inParams << storagePluginName
+             << collectionName;
     m_requestQueue->handleRequest(Daemon::ApiImpl::StoredKeyIdentifiersRequest,
                                   inParams,
                                   connection(),
@@ -961,11 +963,15 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             QString storagePluginName = request->inParams.size()
                     ? request->inParams.takeFirst().value<QString>()
                     : QString();
+            QString collectionName = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
             QVector<Key::Identifier> identifiers;
             Result result = m_requestProcessor->storedKeyIdentifiers(
                         request->remotePid,
                         request->requestId,
                         storagePluginName,
+                        collectionName,
                         &identifiers);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {

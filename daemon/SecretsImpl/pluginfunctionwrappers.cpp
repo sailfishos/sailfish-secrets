@@ -287,6 +287,94 @@ IdentifiersResult Daemon::ApiImpl::storedKeyIdentifiers(
     return IdentifiersResult(result, idents);
 }
 
+IdentifiersResult Daemon::ApiImpl::storedKeyIdentifiersFromCollection(
+        StoragePluginWrapper *storagePlugin,
+        EncryptedStoragePluginWrapper *encryptedStoragePlugin,
+        Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *cryptoStoragePlugin,
+        const CollectionInfo &collectionInfo)
+{
+    auto unlockLambda = [] (EncryptedStoragePluginWrapper *p,
+                            const QString &cname,
+                            const QByteArray &key,
+                            bool *wasLocked,
+                            Result *result,
+                            QVector<Secret::Identifier> *idents) {
+        QStringList knames;
+        *wasLocked = false;
+        *result = p->keyNames(cname, &knames);
+        if (result->code() != Result::Succeeded
+                && result->errorCode() != Result::CollectionIsLockedError) {
+            *wasLocked = true;
+            *result = p->setEncryptionKey(cname, key);
+            if (result->code() != Result::Succeeded) {
+                return;
+            }
+            *result = p->keyNames(cname, &knames);
+        }
+        if (result->code() == Result::Succeeded && idents) {
+            for (const QString &kname : knames) {
+                idents->append(Secret::Identifier(
+                        kname, cname, p->name()));
+            }
+        }
+    };
+
+    auto relockLambda = [] (EncryptedStoragePluginWrapper *p,
+                            bool locked,
+                            bool relock,
+                            const QString &cname) {
+        if (locked && relock) {
+            p->setEncryptionKey(cname, QByteArray());
+        }
+    };
+
+    Result result = Result(Result::InvalidExtensionPluginError,
+                           QStringLiteral("No storage plugin specified"));
+    QVector<Secret::Identifier> idents;
+    if (storagePlugin) {
+        QStringList knames;
+        result = storagePlugin->keyNames(collectionInfo.collectionName, &knames);
+        for (const QString &kname : knames) {
+            idents.append(Secret::Identifier(
+                    kname, collectionInfo.collectionName, storagePlugin->name()));
+        }
+    } else if (cryptoStoragePlugin) { // order of check is important!
+        bool wasLocked = false;
+        unlockLambda(cryptoStoragePlugin,
+                     collectionInfo.collectionName,
+                     collectionInfo.collectionKey,
+                     &wasLocked, &result, Q_NULLPTR);
+        if (result.code() == Result::Succeeded) {
+            QVector<Sailfish::Crypto::Key::Identifier> cidents;
+            Sailfish::Crypto::Result cresult = cryptoStoragePlugin->storedKeyIdentifiers(
+                        collectionInfo.collectionName, &cidents);
+            if (cresult.code() == Crypto::Result::Failed) {
+                result.setCode(Result::Failed);
+                result.setErrorCode(Result::UnknownError);
+                result.setErrorMessage(cresult.errorMessage());
+            } else {
+                for (const Sailfish::Crypto::Key::Identifier &ident : cidents) {
+                    idents.append(Secret::Identifier(
+                            ident.name(), ident.collectionName(), ident.storagePluginName()));
+                }
+            }
+            relockLambda(cryptoStoragePlugin, wasLocked,
+                         collectionInfo.relockRequired,
+                         collectionInfo.collectionName);
+        }
+    } else if (encryptedStoragePlugin) {
+        bool wasLocked = false;
+        unlockLambda(encryptedStoragePlugin,
+                     collectionInfo.collectionName,
+                     collectionInfo.collectionKey,
+                     &wasLocked, &result, &idents);
+        relockLambda(cryptoStoragePlugin, wasLocked,
+                     collectionInfo.relockRequired,
+                     collectionInfo.collectionName);
+    }
+    return IdentifiersResult(result, idents);
+}
+
 bool EncryptionPluginFunctionWrapper::isLocked(EncryptionPlugin *plugin)
 {
     return plugin->isLocked();

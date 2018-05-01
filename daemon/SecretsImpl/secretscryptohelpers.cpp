@@ -71,14 +71,6 @@ Daemon::ApiImpl::RequestProcessor::cryptoStoragePluginWrapper(const QString &plu
     return m_cryptoStoragePlugins.value(pluginName);
 }
 
-Sailfish::Secrets::Result
-Daemon::ApiImpl::SecretsRequestQueue::storedKeyIdentifiers(const QString &storagePluginName,
-                                                           QVector<Secret::Identifier> *idents) const
-{
-    // TODO: make this asynchronous, emit a signal when complete.
-    return m_requestProcessor->storedKeyIdentifiers(storagePluginName, idents);
-}
-
 QString
 Daemon::ApiImpl::RequestProcessor::displayNameForStoragePlugin(const QString &name) const
 {
@@ -211,6 +203,36 @@ Daemon::ApiImpl::SecretsRequestQueue::deleteStoredKey(
         return enqueueResult;
     }
     m_cryptoApiHelperRequests.insert(cryptoRequestId, Daemon::ApiImpl::SecretsRequestQueue::DeleteStoredKeyCryptoApiHelperRequest);
+    return Result(Result::Pending);
+}
+
+Result
+Daemon::ApiImpl::SecretsRequestQueue::storedKeyIdentifiers(
+        pid_t callerPid,
+        quint64 cryptoRequestId,
+        const QString &collectionName,
+        const QString &storagePluginName,
+        QVector<Sailfish::Crypto::Key::Identifier> *identifiers)
+{
+    Q_UNUSED(identifiers) // asynchronous out-param.
+
+    // perform the "get secret identifiers" request, as a secrets-for-crypto request.
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<QString>(collectionName)
+             << QVariant::fromValue<QString>(storagePluginName)
+             << QVariant::fromValue<SecretManager::UserInteractionMode>(SecretManager::SystemInteraction)
+             << QVariant::fromValue<QString>(QString());
+    Result enqueueResult(Result::Succeeded);
+    handleRequest(
+                callerPid,
+                cryptoRequestId,
+                Daemon::ApiImpl::StoredKeyIdentifiersRequest,
+                inParams,
+                enqueueResult);
+    if (enqueueResult.code() == Result::Failed) {
+        return enqueueResult;
+    }
+    m_cryptoApiHelperRequests.insert(cryptoRequestId, Daemon::ApiImpl::SecretsRequestQueue::StoredKeyIdentifiersCryptoApiHelperRequest);
     return Result(Result::Pending);
 }
 
@@ -369,6 +391,13 @@ Daemon::ApiImpl::SecretsRequestQueue::asynchronousCryptoRequestCompleted(
         case StoredKeyCryptoApiHelperRequest: {
             Secret secret = parameters.size() ? parameters.first().value<Secret>() : Secret();
             emit storedKeyCompleted(cryptoRequestId, result, secret.data(), secret.filterData());
+            break;
+        }
+        case StoredKeyIdentifiersCryptoApiHelperRequest: {
+            QVector<Secret::Identifier> identifiers = parameters.size()
+                    ? parameters.first().value<QVector<Secret::Identifier> >()
+                    : QVector<Secret::Identifier>();
+            emit storedKeyIdentifiersCompleted(cryptoRequestId, result, identifiers);
             break;
         }
         case DeleteStoredKeyCryptoApiHelperRequest: {

@@ -69,6 +69,43 @@ void StoredKeyIdentifiersRequest::setStoragePluginName(const QString &pluginName
 }
 
 /*!
+ * \brief Returns the name of the collection from which the client wishes to retrieve key identifiers
+ */
+QString StoredKeyIdentifiersRequest::collectionName() const
+{
+    Q_D(const StoredKeyIdentifiersRequest);
+    return d->m_collectionName;
+}
+
+/*!
+ * \brief Sets the name of the collection from which the client wishes to retrieve key identifiers to \a name
+ *
+ * If the collection \a name is empty, this signifies that the client wishes
+ * to retrieve the identifiers of keys stored in any collection.  Note that
+ * in this case, if some collection stored by the plugin is locked, the
+ * client may not be returned any identifiers of keys stored within that
+ * collection, and no unlocking flow will be started for such locked
+ * collections.
+ *
+ * If the collection \name is non-empty, this signifies that the client
+ * wishes to retrieve the identifiers of keys stored only in that collection.
+ * If the collection is locked, an unlock flow will be started (prompting
+ * the user for the passphrase to unlock that collection).
+ */
+void StoredKeyIdentifiersRequest::setCollectionName(const QString &name)
+{
+    Q_D(StoredKeyIdentifiersRequest);
+    if (d->m_status != Request::Active && d->m_collectionName != name) {
+        d->m_collectionName = name;
+        if (d->m_status == Request::Finished) {
+            d->m_status = Request::Inactive;
+            emit statusChanged();
+        }
+        emit collectionNameChanged();
+    }
+}
+
+/*!
  * \brief Returns the identifiers of securely-stored keys
  *
  * Note: this value is only valid if the status of the request is Request::Finished.
@@ -139,7 +176,7 @@ void StoredKeyIdentifiersRequest::startRequest()
         // should we pass customParameters in this case, or not?
         // there's no "specific plugin" which is the target of the request..
         QDBusPendingReply<Result, QVector<Key::Identifier> > reply =
-                d->m_manager->d_ptr->storedKeyIdentifiers(d->m_storagePluginName);
+                d->m_manager->d_ptr->storedKeyIdentifiers(d->m_storagePluginName, d->m_collectionName);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;
             d->m_result = Result(Result::CryptoManagerNotInitializedError,

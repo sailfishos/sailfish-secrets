@@ -81,6 +81,8 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(
             this, &Daemon::ApiImpl::RequestProcessor::secretsStoreKeyCompleted);
     connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::deleteStoredKeyCompleted,
             this, &Daemon::ApiImpl::RequestProcessor::secretsDeleteStoredKeyCompleted);
+    connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storedKeyIdentifiersCompleted,
+            this, &Daemon::ApiImpl::RequestProcessor::secretsStoredKeyIdentifiersCompleted);
     connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::userInputCompleted,
             this, &Daemon::ApiImpl::RequestProcessor::secretsUserInputCompleted);
     connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::cryptoPluginLockCodeRequestCompleted,
@@ -1128,25 +1130,37 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiers(
         pid_t callerPid,
         quint64 requestId,
         const QString &storagePluginName,
+        const QString &collectionName,
         QVector<Key::Identifier> *identifiers)
 {
-    Q_UNUSED(callerPid); // TODO: access control
-    Q_UNUSED(requestId); // TODO: make this request asynchronous
+    // TODO: access control
+    Result retn = transformSecretsResult(m_secrets->storedKeyIdentifiers(
+                callerPid, requestId, collectionName, storagePluginName, identifiers));
 
-    QVector<Sailfish::Secrets::Secret::Identifier> idents;
-    Sailfish::Secrets::Result result = m_secrets->storedKeyIdentifiers(
-                storagePluginName, &idents);
-
-    if (result.code() != Sailfish::Secrets::Result::Succeeded) {
-        return transformSecretsResult(result);
+    if (retn.code() == Result::Pending) {
+        // asynchronous flow, will call back to storedKeyIdentifiers2().
+        m_pendingRequests.insert(requestId,
+                                 Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                     callerPid,
+                                     requestId,
+                                     Daemon::ApiImpl::StoredKeyIdentifiersRequest,
+                                     QVariantList()));
     }
 
-    for (const Sailfish::Secrets::Secret::Identifier &id : idents) {
-        identifiers->append(Key::Identifier(
-                id.name(), id.collectionName(), id.storagePluginName()));
-    }
+    return retn;
+}
 
-    return Result(Result::Succeeded);
+void Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiers2(
+        pid_t callerPid,
+        quint64 requestId,
+        const Result &result,
+        const QVector<Key::Identifier> &identifiers)
+{
+    Q_UNUSED(callerPid);
+    QList<QVariant> outParams;
+    outParams << QVariant::fromValue<Result>(result)
+              << QVariant::fromValue<QVector<Key::Identifier> >(identifiers);
+    m_requestQueue->requestFinished(requestId, outParams);
 }
 
 Result
@@ -2385,6 +2399,41 @@ void Daemon::ApiImpl::RequestProcessor::secretsDeleteStoredKeyCompleted(
         }
     } else {
         qCWarning(lcSailfishCryptoDaemon) << "Secrets completed deleteStoredKey() operation for unknown request:" << requestId;
+    }
+}
+
+// asynchronous operation (stored key identifiers) has completed.
+void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyIdentifiersCompleted(
+        quint64 requestId,
+        const Sailfish::Secrets::Result &result,
+        const QVector<Sailfish::Secrets::Secret::Identifier> &idents)
+{
+    // look up the pending request in our list
+    if (m_pendingRequests.contains(requestId)) {
+        // transform the error code.
+        Result returnResult(transformSecretsResult(result));
+
+        // transform the identifiers.
+        QVector<Key::Identifier> identifiers;
+        for (const Sailfish::Secrets::Secret::Identifier &id : idents) {
+            identifiers.append(Key::Identifier(
+                    id.name(), id.collectionName(), id.storagePluginName()));
+        }
+
+        // call the appropriate method to complete the request
+        Daemon::ApiImpl::RequestProcessor::PendingRequest pr = m_pendingRequests.take(requestId);
+        switch (pr.requestType) {
+            case StoredKeyIdentifiersRequest: {
+                storedKeyIdentifiers2(pr.callerPid, requestId, returnResult, identifiers);
+                break;
+            }
+            default: {
+                qCWarning(lcSailfishCryptoDaemon) << "Secrets completed storedKeyIdentifiers() operation for request:" << requestId << "of invalid type:" << pr.requestType;
+                break;
+            }
+        }
+    } else {
+        qCWarning(lcSailfishCryptoDaemon) << "Secrets completed storedKeyIdentifiers() operation for unknown request:" << requestId;
     }
 }
 

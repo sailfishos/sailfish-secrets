@@ -292,7 +292,8 @@ CryptoManagerPrivate::deleteStoredKey(
 
 QDBusPendingReply<Result, QVector<Key::Identifier> >
 CryptoManagerPrivate::storedKeyIdentifiers(
-        const QString &storagePluginName)
+        const QString &storagePluginName,
+        const QString &collectionName)
 {
     if (!m_interface) {
         return QDBusPendingReply<Result, QVector<Key::Identifier> >(
@@ -303,7 +304,8 @@ CryptoManagerPrivate::storedKeyIdentifiers(
     QDBusPendingReply<Result, QVector<Key::Identifier> > reply
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("storedKeyIdentifiers"),
-                QVariantList() << QVariant::fromValue<QString>(storagePluginName));
+                QVariantList() << QVariant::fromValue<QString>(storagePluginName)
+                               << QVariant::fromValue<QString>(collectionName));
     return reply;
 }
 
