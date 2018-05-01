@@ -200,7 +200,7 @@ private:
     QByteArray aes_encrypt_plaintext(Sailfish::Crypto::CryptoManager::BlockMode blockMode, const QByteArray &plaintext, const QByteArray &key, const QByteArray &init_vector);
     QByteArray aes_decrypt_ciphertext(Sailfish::Crypto::CryptoManager::BlockMode blockMode, const QByteArray &ciphertext, const QByteArray &key, const QByteArray &init_vector);
 
-    QPair<QByteArray, QByteArray> aes_auth_encrypt_plaintext(Sailfish::Crypto::CryptoManager::BlockMode blockMode, const QByteArray &plaintext, const QByteArray &key, const QByteArray &init_vector, const QByteArray &auth);
+    QPair<QByteArray, QByteArray> aes_auth_encrypt_plaintext(Sailfish::Crypto::CryptoManager::BlockMode blockMode, const QByteArray &plaintext, const QByteArray &key, const QByteArray &init_vector, const QByteArray &auth, unsigned int authenticationTagLength);
     QPair<QByteArray, bool> aes_auth_decrypt_ciphertext(Sailfish::Crypto::CryptoManager::BlockMode blockMode, const QByteArray &ciphertext, const QByteArray &key, const QByteArray &init_vector, const QByteArray &auth, const QByteArray &authenticationTag);
 
     Sailfish::Crypto::Result generateRsaKey(

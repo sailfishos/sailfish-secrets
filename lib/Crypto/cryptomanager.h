@@ -77,6 +77,7 @@ public:
         BlockModeXts,
         BlockModeCmc,
         BlockModeEme,
+        BlockModeCcm,
         LastBlockMode       = 255 // reserve
     };
     Q_ENUM(BlockMode)

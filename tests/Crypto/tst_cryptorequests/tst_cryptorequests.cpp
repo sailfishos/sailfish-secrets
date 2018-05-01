@@ -87,6 +87,58 @@ using namespace Sailfish::Crypto;
 #define DEFAULT_TEST_ENCRYPTION_PLUGIN Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName + QLatin1String(".test")
 #define IN_APP_TEST_AUTHENTICATION_PLUGIN Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName + QLatin1String(".test")
 
+
+namespace {
+
+inline QByteArray createRandomTestData(int size) {
+    QFile file("/dev/urandom");
+    file.open(QIODevice::ReadOnly);
+    QByteArray result = file.read(size);
+    file.close();
+    return result;
+}
+
+inline KeyPairGenerationParameters getKeyPairGenerationParameters(CryptoManager::Algorithm algorithm, int keySize)
+{
+    switch (algorithm)
+    {
+    case CryptoManager::AlgorithmRsa: {
+        RsaKeyPairGenerationParameters rsa;
+        rsa.setModulusLength(keySize);
+        return rsa;
+    }
+    case CryptoManager::AlgorithmEc: {
+        return EcKeyPairGenerationParameters();
+    }
+    default: {
+        KeyPairGenerationParameters unknown;
+        unknown.setKeyPairType(KeyPairGenerationParameters::KeyPairUnknown);
+        return unknown;
+    }
+    }
+}
+
+inline QByteArray generateInitializationVector(Sailfish::Crypto::CryptoManager::Algorithm algorithm,
+                                               Sailfish::Crypto::CryptoManager::BlockMode blockMode)
+{
+    if (algorithm != Sailfish::Crypto::CryptoManager::AlgorithmAes
+            || blockMode == Sailfish::Crypto::CryptoManager::BlockModeEcb) {
+        return QByteArray();
+    }
+    switch (blockMode) {
+        case Sailfish::Crypto::CryptoManager::BlockModeGcm:
+            return createRandomTestData(12);
+        case Sailfish::Crypto::CryptoManager::BlockModeCcm:
+            return createRandomTestData(7);
+    default:
+        break;
+    }
+    return createRandomTestData(16);
+}
+
+}
+
+
 class tst_cryptorequests : public QObject
 {
     Q_OBJECT
@@ -126,25 +178,6 @@ private slots:
     void exampleUsbTokenPlugin();
 
 private:
-    QByteArray generateInitializationVector(Sailfish::Crypto::CryptoManager::Algorithm algorithm,
-                                            Sailfish::Crypto::CryptoManager::BlockMode blockMode)
-    {
-        if (algorithm != Sailfish::Crypto::CryptoManager::AlgorithmAes
-                || blockMode == Sailfish::Crypto::CryptoManager::BlockModeEcb) {
-            return QByteArray();
-        }
-
-        QByteArray data = QString::number(QDateTime::currentDateTime().currentMSecsSinceEpoch()).toLatin1();
-        data.resize(16);
-
-        if (algorithm == Sailfish::Crypto::CryptoManager::AlgorithmAes
-                && blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm) {
-            data.resize(12);
-        }
-
-        return data;
-    }
-
     void addCryptoTestData()
     {
         QTest::addColumn<CryptoManager::Algorithm>("algorithm");
@@ -180,13 +213,13 @@ private:
         QTest::newRow("AES CTR 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCtr << CryptoManager::EncryptionPaddingNone << 192;
         QTest::newRow("AES CTR 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCtr << CryptoManager::EncryptionPaddingNone << 256;
 
-        QTest::newRow("CTR 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCtr << CryptoManager::EncryptionPaddingNone << 128;
-        QTest::newRow("CTR 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCtr << CryptoManager::EncryptionPaddingNone << 192;
-        QTest::newRow("CTR 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCtr << CryptoManager::EncryptionPaddingNone << 256;
+        QTest::newRow("AES GCM 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeGcm << CryptoManager::EncryptionPaddingNone << 128;
+        QTest::newRow("AES GCM 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeGcm << CryptoManager::EncryptionPaddingNone << 192;
+        QTest::newRow("AES GCM 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeGcm << CryptoManager::EncryptionPaddingNone << 256;
 
-        QTest::newRow("GCM 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeGcm << CryptoManager::EncryptionPaddingNone << 128;
-        QTest::newRow("GCM 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeGcm << CryptoManager::EncryptionPaddingNone << 192;
-        QTest::newRow("GCM 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeGcm << CryptoManager::EncryptionPaddingNone << 256;
+        QTest::newRow("AES CCM 128-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCcm << CryptoManager::EncryptionPaddingNone << 128;
+        QTest::newRow("AES CCM 192-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCcm << CryptoManager::EncryptionPaddingNone << 192;
+        QTest::newRow("AES CCM 256-bit") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCcm << CryptoManager::EncryptionPaddingNone << 256;
 
         QTest::newRow("RSA 512-bit (no padding)") << CryptoManager::AlgorithmRsa << CryptoManager::BlockModeUnknown << CryptoManager::EncryptionPaddingNone << 512;
         QTest::newRow("RSA 512-bit (PKCS1 padding") << CryptoManager::AlgorithmRsa << CryptoManager::BlockModeUnknown << CryptoManager::EncryptionPaddingRsaPkcs1 << 512;
@@ -204,34 +237,6 @@ private:
 
 Q_DECLARE_METATYPE(Sailfish::Crypto::Result::ResultCode)
 Q_DECLARE_METATYPE(Sailfish::Crypto::Result::ErrorCode)
-
-static inline QByteArray createRandomTestData(int size) {
-    QFile file("/dev/urandom");
-    file.open(QIODevice::ReadOnly);
-    QByteArray result = file.read(size);
-    file.close();
-    return result;
-}
-
-static inline KeyPairGenerationParameters getKeyPairGenerationParameters(CryptoManager::Algorithm algorithm, int keySize)
-{
-    switch (algorithm)
-    {
-    case CryptoManager::AlgorithmRsa: {
-        RsaKeyPairGenerationParameters rsa;
-        rsa.setModulusLength(keySize);
-        return rsa;
-    }
-    case CryptoManager::AlgorithmEc: {
-        return EcKeyPairGenerationParameters();
-    }
-    default: {
-        KeyPairGenerationParameters unknown;
-        unknown.setKeyPairType(KeyPairGenerationParameters::KeyPairUnknown);
-        return unknown;
-    }
-    }
-}
 
 void tst_cryptorequests::init()
 {
@@ -369,6 +374,7 @@ void tst_cryptorequests::generateInitializationVectorRequest_data()
     QTest::newRow("AES ECB") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeEcb << 0;
     QTest::newRow("AES CBC") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCbc << 16;
     QTest::newRow("AES GCM") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeGcm << 12;
+    QTest::newRow("AES CCM") << CryptoManager::AlgorithmAes << CryptoManager::BlockModeCcm << 7;
 }
 
 void tst_cryptorequests::generateInitializationVectorRequest()
@@ -490,7 +496,7 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QCOMPARE(er.blockMode(), blockMode);
     er.setPadding(padding);
     QCOMPARE(er.padding(), padding);
-    if (blockMode == CryptoManager::BlockModeGcm) {
+    if (blockMode == CryptoManager::BlockModeGcm || blockMode == CryptoManager::BlockModeCcm) {
         er.setAuthenticationData(authData);
         QCOMPARE(er.authenticationData(), authData);
     }
@@ -514,7 +520,7 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QVERIFY(!ciphertext.isEmpty());
     QVERIFY(ciphertext != plaintext);
     authenticationTag = er.authenticationTag();
-    QCOMPARE(authenticationTag.isEmpty(), blockMode != CryptoManager::BlockModeGcm);
+    QCOMPARE(authenticationTag.isEmpty(), blockMode != CryptoManager::BlockModeGcm && blockMode != CryptoManager::BlockModeCcm);
 
     // test decrypting the ciphertext, and ensure that the roundtrip works.
     DecryptRequest dr;
@@ -531,7 +537,8 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QCOMPARE(dr.blockMode(), blockMode);
     dr.setPadding(padding);
     QCOMPARE(dr.padding(), padding);
-    if (blockMode == CryptoManager::BlockModeGcm) {
+    if (blockMode == CryptoManager::BlockModeGcm
+            || blockMode == CryptoManager::BlockModeCcm) {
         dr.setAuthenticationData(authData);
         QCOMPARE(dr.authenticationData(), authData);
         dr.setAuthenticationTag(authenticationTag);
@@ -542,14 +549,15 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QCOMPARE(dr.status(), Request::Inactive);
 
     dr.startRequest();
+    QCOMPARE(dr.result().errorMessage(), QString());
+    QCOMPARE(dr.result().code(), Result::Pending);
     QCOMPARE(drss.count(), 1);
     QCOMPARE(dr.status(), Request::Active);
-    QCOMPARE(dr.result().code(), Result::Pending);
     QCOMPARE(drps.count(), 0);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dr);
     QCOMPARE(drss.count(), 2);
     QCOMPARE(dr.status(), Request::Finished);
-    QCOMPARE(er.result().errorMessage(), QString());
+    QCOMPARE(dr.result().errorMessage(), QString());
     QCOMPARE(dr.result().code(), Result::Succeeded);
     QCOMPARE(drps.count(), 1);
     QByteArray decrypted = dr.plaintext();
@@ -823,7 +831,7 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(er.blockMode(), blockMode);
     er.setPadding(padding);
     QCOMPARE(er.padding(), padding);
-    if (blockMode == CryptoManager::BlockModeGcm) {
+    if (blockMode == CryptoManager::BlockModeGcm || blockMode == CryptoManager::BlockModeCcm) {
         er.setAuthenticationData(authData);
         QCOMPARE(er.authenticationData(), authData);
     }
@@ -847,7 +855,7 @@ void tst_cryptorequests::storedKeyRequests()
     QVERIFY(!ciphertext.isEmpty());
     QVERIFY(ciphertext != plaintext);
     authenticationTag = er.authenticationTag();
-    QCOMPARE(authenticationTag.isEmpty(), blockMode != CryptoManager::BlockModeGcm);
+    QCOMPARE(authenticationTag.isEmpty(), blockMode != CryptoManager::BlockModeGcm && blockMode != CryptoManager::BlockModeCcm);
 
     // test decrypting the ciphertext, and ensure that the roundtrip works.
     DecryptRequest dr;
@@ -864,7 +872,7 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(dr.blockMode(), blockMode);   
     dr.setPadding(padding);
     QCOMPARE(dr.padding(), padding);
-    if (blockMode == CryptoManager::BlockModeGcm) {
+    if (blockMode == CryptoManager::BlockModeGcm || blockMode == CryptoManager::BlockModeCcm) {
         dr.setAuthenticationData(authData);
         QCOMPARE(dr.authenticationData(), authData);
         dr.setAuthenticationTag(authenticationTag);
@@ -987,7 +995,7 @@ void tst_cryptorequests::storedKeyRequests()
 
     er.setKey(keyReference);
     er.setData(plaintext);
-    if (blockMode == CryptoManager::BlockModeGcm) {
+    if (blockMode == CryptoManager::BlockModeGcm || blockMode == CryptoManager::BlockModeCcm) {
         er.setAuthenticationData(authData);
         QCOMPARE(er.authenticationData(), authData);
     }
@@ -995,13 +1003,13 @@ void tst_cryptorequests::storedKeyRequests()
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(er);
     QCOMPARE(er.result().code(), Sailfish::Crypto::Result::Succeeded);
     ciphertext = er.ciphertext();
-    if (blockMode == CryptoManager::BlockModeGcm) {
+    if (blockMode == CryptoManager::BlockModeGcm || blockMode == CryptoManager::BlockModeCcm) {
         authenticationTag = er.authenticationTag();
     }
 
     dr.setKey(keyReference);
     dr.setData(ciphertext);
-    if (blockMode == CryptoManager::BlockModeGcm) {
+    if (blockMode == CryptoManager::BlockModeGcm || blockMode == CryptoManager::BlockModeCcm) {
         dr.setAuthenticationData(authData);
         QCOMPARE(dr.authenticationData(), authData);
         dr.setAuthenticationTag(authenticationTag);
@@ -1167,7 +1175,7 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     QCOMPARE(er.blockMode(), blockMode);    
     er.setPadding(padding);
     QCOMPARE(er.padding(), padding);
-    if (blockMode == CryptoManager::BlockModeGcm) {
+    if (blockMode == CryptoManager::BlockModeGcm || blockMode == CryptoManager::BlockModeCcm) {
         er.setAuthenticationData(authData);
         QCOMPARE(er.authenticationData(), authData);
     }
@@ -1189,7 +1197,7 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     QVERIFY(!ciphertext.isEmpty());
     QVERIFY(ciphertext != plaintext);
     authenticationTag = er.authenticationTag();
-    QCOMPARE(authenticationTag.isEmpty(), blockMode != CryptoManager::BlockModeGcm);
+    QCOMPARE(authenticationTag.isEmpty(), blockMode != CryptoManager::BlockModeGcm && blockMode != CryptoManager::BlockModeCcm);
 
     // test decrypting the ciphertext, and ensure that the roundtrip works.
     DecryptRequest dr;
@@ -1206,7 +1214,7 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     QCOMPARE(dr.blockMode(), blockMode);
     dr.setPadding(padding);
     QCOMPARE(dr.padding(), padding);
-    if (blockMode == CryptoManager::BlockModeGcm) {
+    if (blockMode == CryptoManager::BlockModeGcm || blockMode == CryptoManager::BlockModeCcm) {
         dr.setAuthenticationData(authData);
         QCOMPARE(dr.authenticationData(), authData);
         dr.setAuthenticationTag(authenticationTag);
@@ -1550,6 +1558,10 @@ void tst_cryptorequests::cipherEncryptDecrypt()
 
     if (algorithm != CryptoManager::AlgorithmAes) {
         QSKIP("Only AES is supported by the current test.");
+    }
+
+    if (blockMode == CryptoManager::BlockModeCcm) {
+        QSKIP("CCM is not supported by CipherRequest");
     }
 
     // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
