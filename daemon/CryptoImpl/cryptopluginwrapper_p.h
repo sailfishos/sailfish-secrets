@@ -63,7 +63,8 @@ protected:
 private:
     Sailfish::Crypto::Result prepareToStoreKey(
             const Sailfish::Secrets::Daemon::ApiImpl::SecretMetadata &metadata,
-            const QByteArray &collectionUnlockKey);
+            const QByteArray &collectionUnlockKey,
+            bool *wasLocked);
 };
 
 } // ApiImpl

@@ -1204,7 +1204,7 @@ void tst_cryptorequests::storedKeyIdentifiersRequests()
     dcr.setManager(&sm);
     dcr.setCollectionName(collectionName);
     dcr.setStoragePluginName(cryptoPluginName);
-    dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
+    dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
     dcr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
     QCOMPARE(dcr.status(), Sailfish::Secrets::Request::Finished);
@@ -1259,7 +1259,7 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     ccr.setCollectionName(QLatin1String("tstcryptosecretsgcsked"));
     ccr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     ccr.setEncryptionPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    ccr.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
+    ccr.setAuthenticationPluginName(PASSWORD_AGENT_TEST_AUTH_PLUGIN);
     ccr.setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked);
     ccr.setAccessControlMode(Sailfish::Secrets::SecretManager::OwnerOnlyMode);
     ccr.setUserInteractionMode(Sailfish::Secrets::SecretManager::ApplicationInteraction);

@@ -41,8 +41,13 @@ CryptoStoragePluginWrapper::keyNames(
     if (m_cryptoPlugin->canStoreKeys()) {
         Result result = m_cryptoPlugin->storedKeyIdentifiers(collectionName, &identifiers);
         if (result != Result::Succeeded) {
-            return Sailfish::Secrets::Result(Sailfish::Secrets::Result::UnknownError,
-                                             result.errorMessage());
+            if (result.storageErrorCode() != 0) {
+                return Sailfish::Secrets::Result(static_cast<Sailfish::Secrets::Result::ErrorCode>(result.storageErrorCode()),
+                                                 result.errorMessage());
+            } else {
+                return Sailfish::Secrets::Result(Sailfish::Secrets::Result::UnknownError,
+                                                 result.errorMessage());
+            }
         }
 
         for (const Key::Identifier &ident : identifiers) {
@@ -68,7 +73,8 @@ CryptoStoragePluginWrapper::storedKeyIdentifiers(
 Result
 CryptoStoragePluginWrapper::prepareToStoreKey(
         const Sailfish::Secrets::Daemon::ApiImpl::SecretMetadata &metadata,
-        const QByteArray &collectionUnlockKey)
+        const QByteArray &collectionUnlockKey,
+        bool *wasLocked)
 {
     if (m_encryptedStoragePlugin->isLocked()) {
         return Result(Result::CryptoPluginIsLockedError,
@@ -92,7 +98,10 @@ CryptoStoragePluginWrapper::prepareToStoreKey(
     Sailfish::Secrets::Result sresult = m_encryptedStoragePlugin->isCollectionLocked(metadata.collectionName, &locked);
     if (sresult.code() != Sailfish::Secrets::Result::Succeeded) {
         return transformSecretsResult(sresult);
-    } else if (locked) {
+    }
+
+    *wasLocked = locked;
+    if (locked) {
         sresult = m_encryptedStoragePlugin->setEncryptionKey(metadata.collectionName, collectionUnlockKey);
         if (sresult.code() != Sailfish::Secrets::Result::Succeeded) {
             return transformSecretsResult(sresult);
@@ -150,7 +159,8 @@ CryptoStoragePluginWrapper::generateAndStoreKey(
         const QByteArray &collectionUnlockKey,
         Sailfish::Crypto::Key *keyReference)
 {
-    Result result = prepareToStoreKey(metadata, collectionUnlockKey);
+    bool wasLocked = false;
+    Result result = prepareToStoreKey(metadata, collectionUnlockKey, &wasLocked);
     if (result.code() == Result::Succeeded) {
         result = m_cryptoPlugin->generateAndStoreKey(
                     keyTemplate,
@@ -162,6 +172,15 @@ CryptoStoragePluginWrapper::generateAndStoreKey(
             m_metadataDb.rollbackTransaction();
         } else {
             m_metadataDb.commitTransaction();
+        }
+    }
+
+    if (wasLocked) {
+        Sailfish::Secrets::Result relockResult = m_encryptedStoragePlugin->setEncryptionKey(
+                    metadata.collectionName, QByteArray());
+        if (relockResult.code() != Sailfish::Secrets::Result::Succeeded) {
+            qCWarning(lcSailfishSecretsDaemon) << "Error relocking collection:" << metadata.collectionName
+                                               << relockResult.errorMessage();
         }
     }
 
@@ -177,7 +196,8 @@ CryptoStoragePluginWrapper::importAndStoreKey(
         const QByteArray &collectionUnlockKey,
         Key *keyReference)
 {
-    Result result = prepareToStoreKey(metadata, collectionUnlockKey);
+    bool wasLocked = false;
+    Result result = prepareToStoreKey(metadata, collectionUnlockKey, &wasLocked);
     if (result.code() == Result::Succeeded) {
         result = m_cryptoPlugin->importAndStoreKey(
                     keyTemplate,
@@ -188,6 +208,15 @@ CryptoStoragePluginWrapper::importAndStoreKey(
             m_metadataDb.rollbackTransaction();
         } else {
             m_metadataDb.commitTransaction();
+        }
+    }
+
+    if (wasLocked) {
+        Sailfish::Secrets::Result relockResult = m_encryptedStoragePlugin->setEncryptionKey(
+                    metadata.collectionName, QByteArray());
+        if (relockResult.code() != Sailfish::Secrets::Result::Succeeded) {
+            qCWarning(lcSailfishSecretsDaemon) << "Error relocking collection:" << metadata.collectionName
+                                               << relockResult.errorMessage();
         }
     }
 

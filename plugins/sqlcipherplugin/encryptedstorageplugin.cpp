@@ -268,41 +268,21 @@ Daemon::Plugins::SqlCipherPlugin::setEncryptionKey(
         const QString &collectionName,
         const QByteArray &key)
 {
-    Result retn(Result::Succeeded);
-    Daemon::Sqlite::Database *db = m_collectionDatabases.value(collectionName);
-    if (db) {
-        const QByteArray hexKey = key.toHex().length() == 64
-                                ? key.toHex()
-                                : QCryptographicHash::hash(key, QCryptographicHash::Sha256).toHex();
-        if (hexKey.length() != 64) {
-            retn = Result(Result::IncorrectAuthenticationCodeError,
-                          QLatin1String("The given key is not a 256 bit key, and could not be converted to one"));
-        } else {
-            Daemon::Sqlite::DatabaseLocker locker(db);
-            const QString setupKeyStatement = QString::fromLatin1(setupEncryptionKey).arg(QLatin1String(hexKey));
-            QString errorText;
-            Daemon::Sqlite::Database::Query kq = db->prepare(setupKeyStatement, &errorText);
-            if (!errorText.isEmpty()) {
-                retn = Result(Result::DatabaseQueryError,
-                              QString::fromUtf8("SQLCipher plugin unable to prepare setup key query: %1").arg(errorText));
-            } else if (!db->beginTransaction()) {
-                retn = Result(Result::DatabaseTransactionError,
-                              QString::fromUtf8("SQLCipher plugin unable to begin setup key transaction"));
-            } else if (!db->execute(kq, &errorText)) {
-                db->rollbackTransaction();
-                retn = Result(Result::DatabaseQueryError,
-                              QString::fromUtf8("SQLCipher plugin unable to execute setup key query: %1").arg(errorText));
-            } else if (!db->commitTransaction()) {
-                db->rollbackTransaction();
-                retn = Result(Result::DatabaseTransactionError,
-                              QString::fromUtf8("SQLCipher plugin unable to commit setup key transaction"));
-            }
+    if (m_collectionDatabases.contains(collectionName)) {
+        Daemon::Sqlite::Database *db = m_collectionDatabases.take(collectionName);
+        if (db) {
+            db->close();
+            delete db;
+            QSqlDatabase::removeDatabase(collectionName);
         }
-    } else {
-        retn = openCollectionDatabase(collectionName, key, false);
     }
 
-    return retn;
+    if (key.isEmpty()) {
+        // caller wants to lock the database.  succeeded.
+        return Result(Result::Succeeded);
+    }
+
+    return openCollectionDatabase(collectionName, key, false);
 }
 
 Result

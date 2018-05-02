@@ -271,7 +271,7 @@ Daemon::ApiImpl::RequestProcessor::createDeviceLockCollection(
         watcher->deleteLater();
         Result pluginResult = watcher->future().result();
         if (pluginResult.code() == Result::Succeeded) {
-            if (storagePluginName != encryptionPluginName) {
+            if (storagePluginName != encryptionPluginName && unlockSemantic == SecretManager::DeviceLockKeepUnlocked) {
                 const QString hashedCollectionName = calculateSecretNameHash(Secret::Identifier(QString(), collectionName, storagePluginName));
                 m_collectionEncryptionKeys.insert(hashedCollectionName, m_requestQueue->deviceLockKey());
             }
@@ -486,7 +486,7 @@ Daemon::ApiImpl::RequestProcessor::createCustomLockCollectionWithEncryptionKey(
         watcher->deleteLater();
         Result pluginResult = watcher->future().result();
         if (pluginResult.code() == Result::Succeeded) {
-            if (storagePluginName != encryptionPluginName) {
+            if (storagePluginName != encryptionPluginName && unlockSemantic == SecretManager::CustomLockKeepUnlocked) {
                 const QString hashedCollectionName = calculateSecretNameHash(
                             Secret::Identifier(QString(), collectionName, storagePluginName));
                 m_collectionEncryptionKeys.insert(hashedCollectionName, encryptionKey);
@@ -1009,9 +1009,9 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithEncryptionKey(
 
     bool requiresRelock = collectionWasLocked &&
             ((!collectionMetadata.usesDeviceLockKey
-              && collectionMetadata.unlockSemantic == SecretManager::CustomLockAccessRelock)
+              && collectionMetadata.unlockSemantic != SecretManager::CustomLockKeepUnlocked)
             || (collectionMetadata.usesDeviceLockKey
-              && collectionMetadata.unlockSemantic == SecretManager::DeviceLockRelock));
+              && collectionMetadata.unlockSemantic != SecretManager::DeviceLockKeepUnlocked));
     QFutureWatcher<IdentifiersResult> *watcher = new QFutureWatcher<IdentifiersResult>(this);
     QFuture<IdentifiersResult> future = QtConcurrent::run(
                 m_requestQueue->secretsThreadPool().data(),
@@ -1523,9 +1523,14 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithEncryptionKey(
                 secret,
                 encryptionKey);
     } else {
+        bool requiresRelock =
+                ((!secretMetadata.usesDeviceLockKey
+                  && secretMetadata.unlockSemantic != SecretManager::CustomLockKeepUnlocked)
+                || (secretMetadata.usesDeviceLockKey
+                  && secretMetadata.unlockSemantic != SecretManager::DeviceLockKeepUnlocked));
         const QString hashedCollectionName = calculateSecretNameHash(
                     Secret::Identifier(QString(), secret.identifier().collectionName(), secret.identifier().storagePluginName()));
-        if (!m_collectionEncryptionKeys.contains(hashedCollectionName)) {
+        if (!m_collectionEncryptionKeys.contains(hashedCollectionName) && !requiresRelock) {
             // TODO: some way to "test" the encryptionKey!
             m_collectionEncryptionKeys.insert(hashedCollectionName, encryptionKey);
         }
@@ -2470,12 +2475,18 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithEncryptionKey(
                 m_requestQueue->secretsThreadPool().data(),
                 EncryptedStoragePluginFunctionWrapper::unlockCollectionAndReadSecret,
                 m_encryptedStoragePlugins[identifier.storagePluginName()],
+                collectionMetadata,
                 identifier,
                 encryptionKey);
     } else {
+        bool requiresRelock =
+                ((!collectionMetadata.usesDeviceLockKey
+                  && collectionMetadata.unlockSemantic != SecretManager::CustomLockKeepUnlocked)
+                || (collectionMetadata.usesDeviceLockKey
+                  && collectionMetadata.unlockSemantic != SecretManager::DeviceLockKeepUnlocked));
         const QString hashedCollectionName = calculateSecretNameHash(
                     Secret::Identifier(QString(), identifier.collectionName(), identifier.storagePluginName()));
-        if (!m_collectionEncryptionKeys.contains(hashedCollectionName)) {
+        if (!m_collectionEncryptionKeys.contains(hashedCollectionName) && !requiresRelock) {
             // TODO: some way to "test" the encryptionKey!  also, if it's a custom lock, set the timeout, etc.
             m_collectionEncryptionKeys.insert(hashedCollectionName, encryptionKey);
         }
@@ -2486,7 +2497,7 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithEncryptionKey(
                 m_encryptionPlugins[collectionMetadata.encryptionPluginName],
                 m_storagePlugins[identifier.storagePluginName()],
                 identifier,
-                m_collectionEncryptionKeys.value(hashedCollectionName));
+                encryptionKey);
     }
 
     watcher->setFuture(future);
@@ -3166,13 +3177,18 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithEncryptionKey(
                     m_requestQueue->secretsThreadPool().data(),
                     EncryptedStoragePluginFunctionWrapper::unlockAndFindSecrets,
                     m_encryptedStoragePlugins[storagePluginName],
-                    collectionName,
+                    collectionMetadata,
                     filter,
                     static_cast<StoragePlugin::FilterOperator>(filterOperator),
                     encryptionKey);
     } else {
+        bool requiresRelock =
+                ((!collectionMetadata.usesDeviceLockKey
+                  && collectionMetadata.unlockSemantic != SecretManager::CustomLockKeepUnlocked)
+                || (collectionMetadata.usesDeviceLockKey
+                  && collectionMetadata.unlockSemantic != SecretManager::DeviceLockKeepUnlocked));
         const QString hashedCollectionName = calculateSecretNameHash(Secret::Identifier(QString(), collectionName, storagePluginName));
-        if (!m_collectionEncryptionKeys.contains(hashedCollectionName)) {
+        if (!m_collectionEncryptionKeys.contains(hashedCollectionName) && !requiresRelock) {
             // TODO: some way to "test" the encryptionKey!  also, if it's a custom lock, set the timeout, etc.
             m_collectionEncryptionKeys.insert(hashedCollectionName, encryptionKey);
         }
@@ -3388,9 +3404,9 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
                                          requestId,
                                          Daemon::ApiImpl::DeleteCollectionSecretRequest,
                                          QVariantList() << QVariant::fromValue<Secret::Identifier>(identifier)
-                                                        << collectionMetadata.encryptionPluginName
                                                         << userInteractionMode
-                                                        << interactionServiceAddress));
+                                                        << interactionServiceAddress
+                                                        << QVariant::fromValue<CollectionMetadata>(collectionMetadata)));
         } else {
             deleteCollectionSecretWithEncryptionKey(
                         callerPid,
@@ -3398,7 +3414,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
                         identifier,
                         userInteractionMode,
                         interactionServiceAddress,
-                        collectionMetadata.encryptionPluginName,
+                        collectionMetadata,
                         m_requestQueue->deviceLockKey());
         }
     } else {
@@ -3454,9 +3470,9 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
                                              requestId,
                                              Daemon::ApiImpl::DeleteCollectionSecretRequest,
                                              QVariantList() << QVariant::fromValue<Secret::Identifier>(identifier)
-                                                            << collectionMetadata.encryptionPluginName
                                                             << userInteractionMode
-                                                            << interactionServiceAddress));
+                                                            << interactionServiceAddress
+                                                            << QVariant::fromValue<CollectionMetadata>(collectionMetadata)));
             }
         } else {
             deleteCollectionSecretWithEncryptionKey(
@@ -3465,7 +3481,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
                         identifier,
                         userInteractionMode,
                         interactionServiceAddress,
-                        collectionMetadata.encryptionPluginName,
+                        collectionMetadata,
                         m_collectionEncryptionKeys.value(hashedCollectionName));
         }
     }
@@ -3478,26 +3494,26 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithAuthenticationCode(
         pid_t callerPid,
         quint64 requestId,
         const Secret::Identifier &identifier,
-        const QString &collectionEncryptionPluginName,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress,
+        const CollectionMetadata &collectionMetadata,
         const QByteArray &authenticationCode)
 {
     // generate the encryption key from the authentication code
-    if (!collectionEncryptionPluginName.isEmpty()
-            && collectionEncryptionPluginName != identifier.storagePluginName()
-            && !m_encryptionPlugins.contains(collectionEncryptionPluginName)) {
+    if (!collectionMetadata.encryptionPluginName.isEmpty()
+            && collectionMetadata.encryptionPluginName != identifier.storagePluginName()
+            && !m_encryptionPlugins.contains(collectionMetadata.encryptionPluginName)) {
         // TODO: stale data in the database?
         return Result(Result::InvalidExtensionPluginError,
                       QStringLiteral("Unknown collection encryption plugin: %1")
-                      .arg(collectionEncryptionPluginName));
+                      .arg(collectionMetadata.encryptionPluginName));
     }
 
     QFutureWatcher<DerivedKeyResult> *watcher
             = new QFutureWatcher<DerivedKeyResult>(this);
     QFuture<DerivedKeyResult> future;
-    if (identifier.storagePluginName() == collectionEncryptionPluginName
-            || collectionEncryptionPluginName.isEmpty()) {
+    if (identifier.storagePluginName() == collectionMetadata.encryptionPluginName
+            || collectionMetadata.encryptionPluginName.isEmpty()) {
         future = QtConcurrent::run(
                     m_requestQueue->secretsThreadPool().data(),
                     EncryptedStoragePluginFunctionWrapper::deriveKeyFromCode,
@@ -3508,7 +3524,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithAuthenticationCode(
         future = QtConcurrent::run(
                     m_requestQueue->secretsThreadPool().data(),
                     EncryptionPluginFunctionWrapper::deriveKeyFromCode,
-                    m_encryptionPlugins[collectionEncryptionPluginName],
+                    m_encryptionPlugins[collectionMetadata.encryptionPluginName],
                     authenticationCode,
                     m_requestQueue->saltData());
     }
@@ -3525,7 +3541,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithAuthenticationCode(
             deleteCollectionSecretWithEncryptionKey(
                             callerPid, requestId, identifier,
                             userInteractionMode, interactionServiceAddress,
-                            collectionEncryptionPluginName, dkr.key);
+                            collectionMetadata, dkr.key);
         }
     });
 
@@ -3539,7 +3555,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithEncryptionKey(
         const Secret::Identifier &identifier,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress,
-        const QString &collectionEncryptionPluginName,
+        const CollectionMetadata &collectionMetadata,
         const QByteArray &encryptionKey)
 {
     // may be needed for access control requests in the future.
@@ -3550,18 +3566,24 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithEncryptionKey(
 
     QFutureWatcher<Result> *watcher = new QFutureWatcher<Result>(this);
     QFuture<Result> future;
-    if (identifier.storagePluginName() == collectionEncryptionPluginName
-            || collectionEncryptionPluginName.isEmpty()) {
+    if (identifier.storagePluginName() == collectionMetadata.encryptionPluginName
+            || collectionMetadata.encryptionPluginName.isEmpty()) {
         future = QtConcurrent::run(
                     m_requestQueue->secretsThreadPool().data(),
                     EncryptedStoragePluginFunctionWrapper::unlockCollectionAndRemoveSecret,
                     m_encryptedStoragePlugins[identifier.storagePluginName()],
+                    collectionMetadata,
                     identifier,
                     encryptionKey);
     } else {
+        bool requiresRelock =
+                ((!collectionMetadata.usesDeviceLockKey
+                  && collectionMetadata.unlockSemantic != SecretManager::CustomLockKeepUnlocked)
+                || (collectionMetadata.usesDeviceLockKey
+                  && collectionMetadata.unlockSemantic != SecretManager::DeviceLockKeepUnlocked));
         const QString hashedCollectionName = calculateSecretNameHash(
                     Secret::Identifier(QString(), identifier.collectionName(), identifier.storagePluginName()));
-        if (!m_collectionEncryptionKeys.contains(hashedCollectionName)) {
+        if (!m_collectionEncryptionKeys.contains(hashedCollectionName) && !requiresRelock) {
             // TODO: some way to "test" the encryptionKey!  also, if it's a custom lock, set the timeout, etc.
             // FIXME: in this case, if the user entered the "wrong" password, we will be caching an incorrect key...
             m_collectionEncryptionKeys.insert(hashedCollectionName, encryptionKey);
@@ -4619,13 +4641,19 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithEncryptionKey(
     QFuture<Result> future;
     if (identifier.storagePluginName() == collectionMetadata.encryptionPluginName
             || collectionMetadata.encryptionPluginName.isEmpty()) {
+        bool requiresRelock = !collectionDecryptionKey.isEmpty() &&
+                ((!collectionMetadata.usesDeviceLockKey
+                  && collectionMetadata.unlockSemantic != SecretManager::CustomLockKeepUnlocked)
+                || (collectionMetadata.usesDeviceLockKey
+                  && collectionMetadata.unlockSemantic != SecretManager::DeviceLockKeepUnlocked));
         future = QtConcurrent::run(
                     m_requestQueue->secretsThreadPool().data(),
                     EncryptedStoragePluginFunctionWrapper::collectionSecretPreCheck,
                     m_encryptedStoragePlugins[identifier.storagePluginName()],
                     identifier.collectionName(),
                     identifier.name(),
-                    collectionDecryptionKey);
+                    collectionDecryptionKey,
+                    requiresRelock);
     } else {
         future = QtConcurrent::run(
                     m_requestQueue->secretsThreadPool().data(),
@@ -4847,9 +4875,9 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                                     pr.callerPid,
                                     pr.requestId,
                                     pr.parameters.takeFirst().value<Secret::Identifier>(),
-                                    pr.parameters.takeFirst().value<QString>(),
                                     static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
                                     pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
                                     userInput);
                     }
                     break;

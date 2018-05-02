@@ -507,9 +507,9 @@ private:
             pid_t callerPid,
             quint64 requestId,
             const Sailfish::Secrets::Secret::Identifier &identifier,
-            const QString &collectionEncryptionPluginName,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
+            const CollectionMetadata &collectionMetadata,
             const QByteArray &authenticationCode);
 
     void deleteCollectionSecretWithEncryptionKey(
@@ -518,7 +518,7 @@ private:
             const Secret::Identifier &identifier,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
-            const QString &collectionEncryptionPluginName,
+            const CollectionMetadata &collectionMetadata,
             const QByteArray &encryptionKey);
 
     Sailfish::Secrets::Result deleteStandaloneSecretWithMetadata(

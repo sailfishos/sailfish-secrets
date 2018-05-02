@@ -266,6 +266,10 @@ IdentifiersResult Daemon::ApiImpl::storedKeyIdentifiers(
             if (result->code() != Result::Succeeded
                     && result->errorCode() != Result::CollectionIsLockedError) {
                 return;
+            } else {
+                // mark this as "successful", as it is expected that if the
+                // collection is locked, we won't return identifiers from it.
+                *result = Result(Result::Succeeded);
             }
             for (const QString &kname : knames) {
                 idents->append(Secret::Identifier(
@@ -303,7 +307,7 @@ IdentifiersResult Daemon::ApiImpl::storedKeyIdentifiersFromCollection(
         *wasLocked = false;
         *result = p->keyNames(cname, &knames);
         if (result->code() != Result::Succeeded
-                && result->errorCode() != Result::CollectionIsLockedError) {
+                && result->errorCode() == Result::CollectionIsLockedError) {
             *wasLocked = true;
             *result = p->setEncryptionKey(cname, key);
             if (result->code() != Result::Succeeded) {
@@ -324,7 +328,11 @@ IdentifiersResult Daemon::ApiImpl::storedKeyIdentifiersFromCollection(
                             bool relock,
                             const QString &cname) {
         if (locked && relock) {
-            p->setEncryptionKey(cname, QByteArray());
+            Result relockResult = p->setEncryptionKey(cname, QByteArray());
+            if (relockResult.code() != Result::Succeeded) {
+                qCWarning(lcSailfishSecretsDaemon) << "Error relocking collection:" << cname
+                                                   << relockResult.errorMessage();
+            }
         }
     };
 
@@ -353,6 +361,7 @@ IdentifiersResult Daemon::ApiImpl::storedKeyIdentifiersFromCollection(
                 result.setErrorCode(Result::UnknownError);
                 result.setErrorMessage(cresult.errorMessage());
             } else {
+                result = Result(Result::Succeeded);
                 for (const Sailfish::Crypto::Key::Identifier &ident : cidents) {
                     idents.append(Secret::Identifier(
                             ident.name(), ident.collectionName(), ident.storagePluginName()));
@@ -759,6 +768,7 @@ CollectionMetadataResult EncryptedStoragePluginFunctionWrapper::collectionMetada
 {
     CollectionMetadata metadata;
     Result result = plugin->collectionMetadata(collectionName, &metadata);
+    metadata.collectionName = collectionName;
     return CollectionMetadataResult(result, metadata);
 }
 
@@ -769,6 +779,8 @@ SecretMetadataResult EncryptedStoragePluginFunctionWrapper::secretMetadata(
 {
     SecretMetadata metadata;
     Result result = plugin->secretMetadata(collectionName, secretName, &metadata);
+    metadata.collectionName = collectionName;
+    metadata.secretName = secretName;
     return SecretMetadataResult(result, metadata);
 }
 
@@ -920,9 +932,11 @@ Result EncryptedStoragePluginFunctionWrapper::unlockCollectionAndStoreSecret(
         const Secret &secret,
         const QByteArray &encryptionKey)
 {
+    bool originallyLocked = false;
     bool locked = false;
     Result pluginResult = plugin->isCollectionLocked(secret.identifier().collectionName(), &locked);
     if (pluginResult.code() == Result::Succeeded) {
+        originallyLocked = locked;
         if (locked) {
             pluginResult = plugin->setEncryptionKey(secret.identifier().collectionName(), encryptionKey);
             if (pluginResult.code() != Result::Succeeded) {
@@ -948,6 +962,17 @@ Result EncryptedStoragePluginFunctionWrapper::unlockCollectionAndStoreSecret(
         } else {
             // successfully unlocked the encrypted storage collection.  write the secret.
             pluginResult = plugin->setSecret(secretMetadata, secret.data(), secret.filterData());
+
+            // relock the collection if we need to.
+            if (originallyLocked
+                    && ((secretMetadata.usesDeviceLockKey && secretMetadata.unlockSemantic != SecretManager::DeviceLockKeepUnlocked)
+                        || (!secretMetadata.usesDeviceLockKey && secretMetadata.unlockSemantic != SecretManager::CustomLockKeepUnlocked))) {
+                Result relockResult = plugin->setEncryptionKey(secret.identifier().collectionName(), QByteArray());
+                if (relockResult.code() != Result::Succeeded) {
+                    qCWarning(lcSailfishSecretsDaemon) << "Error relocking collection:" << secret.identifier().collectionName()
+                                                       << relockResult.errorMessage();
+                }
+            }
         }
     }
     return pluginResult;
@@ -955,10 +980,12 @@ Result EncryptedStoragePluginFunctionWrapper::unlockCollectionAndStoreSecret(
 
 SecretResult EncryptedStoragePluginFunctionWrapper::unlockCollectionAndReadSecret(
         EncryptedStoragePluginWrapper *plugin,
+        const CollectionMetadata &collectionMetadata,
         const Secret::Identifier &identifier,
         const QByteArray &encryptionKey)
 {
     Secret secret;
+    bool originallyLocked = false;
     bool locked = false;
     Result pluginResult = plugin->isCollectionLocked(identifier.collectionName(), &locked);
     if (pluginResult.code() != Result::Succeeded) {
@@ -966,6 +993,7 @@ SecretResult EncryptedStoragePluginFunctionWrapper::unlockCollectionAndReadSecre
     }
 
     // if it's locked, attempt to unlock it
+    originallyLocked = locked;
     if (locked) {
         pluginResult = plugin->setEncryptionKey(identifier.collectionName(), encryptionKey);
         if (pluginResult.code() != Result::Succeeded) {
@@ -1004,14 +1032,28 @@ SecretResult EncryptedStoragePluginFunctionWrapper::unlockCollectionAndReadSecre
     secret.setData(secretData);
     secret.setFilterData(secretFilterdata);
     secret.setIdentifier(identifier);
+
+    // relock the collection if we need to.
+    if (originallyLocked
+            && ((collectionMetadata.usesDeviceLockKey && collectionMetadata.unlockSemantic != SecretManager::DeviceLockKeepUnlocked)
+                || (!collectionMetadata.usesDeviceLockKey && collectionMetadata.unlockSemantic != SecretManager::CustomLockKeepUnlocked))) {
+        Result relockResult = plugin->setEncryptionKey(identifier.collectionName(), QByteArray());
+        if (relockResult.code() != Result::Succeeded) {
+            qCWarning(lcSailfishSecretsDaemon) << "Error relocking collection:" << identifier.collectionName()
+                                               << relockResult.errorMessage();
+        }
+    }
+
     return SecretResult(pluginResult, secret);
 }
 
 Result EncryptedStoragePluginFunctionWrapper::unlockCollectionAndRemoveSecret(
         EncryptedStoragePluginWrapper *plugin,
+        const CollectionMetadata &collectionMetadata,
         const Secret::Identifier &identifier,
         const QByteArray &encryptionKey)
 {
+    bool originallyLocked = false;
     bool locked = false;
     Result pluginResult = plugin->isCollectionLocked(identifier.collectionName(), &locked);
     if (pluginResult.code() != Result::Succeeded) {
@@ -1019,6 +1061,7 @@ Result EncryptedStoragePluginFunctionWrapper::unlockCollectionAndRemoveSecret(
     }
 
     // if it's locked, attempt to unlock it
+    originallyLocked = locked;
     if (locked) {
         pluginResult = plugin->setEncryptionKey(identifier.collectionName(), encryptionKey);
         if (pluginResult.code() != Result::Succeeded) {
@@ -1045,42 +1088,56 @@ Result EncryptedStoragePluginFunctionWrapper::unlockCollectionAndRemoveSecret(
 
     // successfully unlocked the encrypted storage collection.  remove the secret.
     pluginResult = plugin->removeSecret(identifier.collectionName(), identifier.name());
+
+    // relock the collection if we need to.
+    if (originallyLocked
+            && ((collectionMetadata.usesDeviceLockKey && collectionMetadata.unlockSemantic != SecretManager::DeviceLockKeepUnlocked)
+                || (!collectionMetadata.usesDeviceLockKey && collectionMetadata.unlockSemantic != SecretManager::CustomLockKeepUnlocked))) {
+        Result relockResult = plugin->setEncryptionKey(identifier.collectionName(), QByteArray());
+        if (relockResult.code() != Result::Succeeded) {
+            qCWarning(lcSailfishSecretsDaemon) << "Error relocking collection:" << identifier.collectionName()
+                                               << relockResult.errorMessage();
+        }
+    }
+
     return pluginResult;
 }
 
 IdentifiersResult
 EncryptedStoragePluginFunctionWrapper::unlockAndFindSecrets(
         EncryptedStoragePluginWrapper *plugin,
-        const QString &collectionName,
+        const CollectionMetadata &collectionMetadata,
         const Secret::FilterData &filter,
         StoragePlugin::FilterOperator filterOperator,
         const QByteArray &encryptionKey)
 {
     QVector<Secret::Identifier> identifiers;
+    bool originallyLocked = false;
     bool locked = false;
-    Result pluginResult = plugin->isCollectionLocked(collectionName, &locked);
+    Result pluginResult = plugin->isCollectionLocked(collectionMetadata.collectionName, &locked);
     if (pluginResult.code() != Result::Succeeded) {
         return IdentifiersResult(pluginResult, identifiers);
     }
 
     // if it's locked, attempt to unlock it
+    originallyLocked = locked;
     if (locked) {
-        pluginResult = plugin->setEncryptionKey(collectionName, encryptionKey);
+        pluginResult = plugin->setEncryptionKey(collectionMetadata.collectionName, encryptionKey);
         if (pluginResult.code() != Result::Succeeded) {
             // unable to apply the new encryptionKey.
-            plugin->setEncryptionKey(collectionName, QByteArray());
+            plugin->setEncryptionKey(collectionMetadata.collectionName, QByteArray());
             return IdentifiersResult(Result(Result::SecretsPluginDecryptionError,
                                             QString::fromLatin1("Unable to decrypt collection %1 with the entered authentication key")
-                                            .arg(collectionName)),
+                                            .arg(collectionMetadata.collectionName)),
                                      identifiers);
 
         }
-        pluginResult = plugin->isCollectionLocked(collectionName, &locked);
+        pluginResult = plugin->isCollectionLocked(collectionMetadata.collectionName, &locked);
         if (pluginResult.code() != Result::Succeeded) {
-            plugin->setEncryptionKey(collectionName, QByteArray());
+            plugin->setEncryptionKey(collectionMetadata.collectionName, QByteArray());
             return IdentifiersResult(Result(Result::SecretsPluginDecryptionError,
                                             QString::fromLatin1("Unable to check lock state of collection %1 after setting the entered authentication key")
-                                            .arg(collectionName)),
+                                            .arg(collectionMetadata.collectionName)),
                                      identifiers);
 
         }
@@ -1088,43 +1145,28 @@ EncryptedStoragePluginFunctionWrapper::unlockAndFindSecrets(
 
     if (locked) {
         // still locked, even after applying the new encryptionKey?  The authenticationCode was wrong.
-        plugin->setEncryptionKey(collectionName, QByteArray());
+        plugin->setEncryptionKey(collectionMetadata.collectionName, QByteArray());
         return IdentifiersResult(Result(Result::IncorrectAuthenticationCodeError,
                                         QString::fromLatin1("The authentication code entered for collection %1 was incorrect")
-                                        .arg(collectionName)),
+                                        .arg(collectionMetadata.collectionName)),
                                  identifiers);
     }
 
     // successfully unlocked the encrypted storage collection.  perform the filtering operation.
-    pluginResult = plugin->findSecrets(collectionName, filter, static_cast<StoragePlugin::FilterOperator>(filterOperator), &identifiers);
-    return IdentifiersResult(pluginResult, identifiers);
-}
+    pluginResult = plugin->findSecrets(collectionMetadata.collectionName, filter, static_cast<StoragePlugin::FilterOperator>(filterOperator), &identifiers);
 
-Result EncryptedStoragePluginFunctionWrapper::unlockAndRemoveSecret(
-        EncryptedStoragePluginWrapper *plugin,
-        const QString &collectionName,
-        const QString &secretName,
-        bool secretUsesDeviceLockKey,
-        const QByteArray &deviceLockKey)
-{
-    bool locked = false;
-    Result pluginResult = plugin->isCollectionLocked(collectionName, &locked);
-    if (pluginResult.code() == Result::Failed) {
-        return pluginResult;
-    }
-    if (locked && secretUsesDeviceLockKey) {
-        pluginResult = plugin->setEncryptionKey(collectionName, deviceLockKey);
-        if (pluginResult.code() == Result::Failed) {
-            return pluginResult;
+    // relock the collection if we need to.
+    if (originallyLocked
+            && ((collectionMetadata.usesDeviceLockKey && collectionMetadata.unlockSemantic != SecretManager::DeviceLockKeepUnlocked)
+                || (!collectionMetadata.usesDeviceLockKey && collectionMetadata.unlockSemantic != SecretManager::CustomLockKeepUnlocked))) {
+        Result relockResult = plugin->setEncryptionKey(collectionMetadata.collectionName, QByteArray());
+        if (relockResult.code() != Result::Succeeded) {
+            qCWarning(lcSailfishSecretsDaemon) << "Error relocking collection:" << collectionMetadata.collectionName
+                                               << relockResult.errorMessage();
         }
     }
-    pluginResult = plugin->removeSecret(collectionName, secretName);
-    if (locked) {
-        // relock after delete-access.
-        plugin->setEncryptionKey(collectionName, QByteArray());
-    }
 
-    return pluginResult;
+    return IdentifiersResult(pluginResult, identifiers);
 }
 
 Result EncryptedStoragePluginFunctionWrapper::unlockDeviceLockedCollectionsAndReencrypt(
@@ -1222,7 +1264,8 @@ Result EncryptedStoragePluginFunctionWrapper::collectionSecretPreCheck(
         EncryptedStoragePluginWrapper *plugin,
         const QString &collectionName,
         const QString &secretName,
-        const QByteArray &collectionKey)
+        const QByteArray &collectionKey,
+        bool requiresRelock)
 {
     QStringList cnames;
     Result result = plugin->collectionNames(&cnames);
@@ -1236,12 +1279,14 @@ Result EncryptedStoragePluginFunctionWrapper::collectionSecretPreCheck(
                       .arg(collectionName, plugin->name()));
     }
 
+    bool originallyLocked = false;
     bool locked = false;
     result = plugin->isCollectionLocked(collectionName, &locked);
     if (result.code() != Result::Succeeded) {
         return result;
     }
 
+    originallyLocked = locked;
     if (locked) {
         result = plugin->setEncryptionKey(collectionName, collectionKey);
         if (result.code() != Result::Succeeded) {
@@ -1260,6 +1305,16 @@ Result EncryptedStoragePluginFunctionWrapper::collectionSecretPreCheck(
 
     SecretMetadata metadata;
     result = plugin->secretMetadata(collectionName, secretName, &metadata);
+
+    // relock if required.
+    if (originallyLocked && requiresRelock) {
+        Result relockResult = plugin->setEncryptionKey(collectionName, QByteArray());
+        if (relockResult.code() != Result::Succeeded) {
+            qCWarning(lcSailfishSecretsDaemon) << "Error relocking collection:" << collectionName
+                                               << relockResult.errorMessage();
+        }
+    }
+
     if (result.code() == Result::Succeeded) {
         // this is bad, since it means that the secret already exists.
         return Result(Result::SecretAlreadyExistsError,
