@@ -27,6 +27,7 @@ class SecretsDaemonConnectionPrivate : public QObject
 
 public:
     SecretsDaemonConnectionPrivate(SecretsDaemonConnection *parent = Q_NULLPTR);
+    virtual ~SecretsDaemonConnectionPrivate() = default;
     QDBusConnection *connection() { return &m_connection; }
     bool connect();
 

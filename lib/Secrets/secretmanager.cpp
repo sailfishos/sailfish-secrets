@@ -52,7 +52,6 @@ const QString SecretManager::DefaultEncryptedStoragePluginName = QStringLiteral(
  */
 SecretManagerPrivate::SecretManagerPrivate(SecretManager *parent)
     : QObject(parent)
-    , m_parent(parent)
     , m_uiService(Q_NULLPTR)
     , m_interactionView(Q_NULLPTR)
     , m_secrets(SecretsDaemonConnection::instance())
@@ -65,6 +64,7 @@ SecretManagerPrivate::SecretManagerPrivate(SecretManager *parent)
 SecretManagerPrivate::~SecretManagerPrivate()
 {
     SecretsDaemonConnection::releaseInstance();
+    m_interface = Q_NULLPTR;
 }
 
 Result

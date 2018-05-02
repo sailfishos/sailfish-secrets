@@ -25,10 +25,11 @@
 #include <QtDBus/QDBusMetaType>
 #include <QtDBus/QDBusArgument>
 
-#include <QtCore/QObject>
-#include <QtCore/QStringList>
 #include <QtCore/QByteArray>
+#include <QtCore/QObject>
+#include <QtCore/QPointer>
 #include <QtCore/QString>
+#include <QtCore/QStringList>
 #include <QtCore/QVector>
 
 #include <QtDBus/QDBusInterface>
@@ -199,8 +200,7 @@ public:
 
 private:
     friend class CryptoManager;
-    Sailfish::Crypto::CryptoManager *m_parent;
-    Sailfish::Crypto::CryptoDaemonConnection *m_crypto;
+    QPointer<Sailfish::Crypto::CryptoDaemonConnection> m_crypto;
     QDBusInterface *m_interface;
 };
 

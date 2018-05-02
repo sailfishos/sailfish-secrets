@@ -24,6 +24,7 @@
 #include <QtDBus/QDBusArgument>
 
 #include <QtCore/QObject>
+#include <QtCore/QPointer>
 
 namespace Sailfish {
 
@@ -159,10 +160,9 @@ public:
 private:
     friend class SecretManager;
     friend class InteractionService;
-    SecretManager *m_parent;
     InteractionService *m_uiService;
     InteractionView *m_interactionView;
-    Sailfish::Secrets::SecretsDaemonConnection *m_secrets;
+    QPointer<Sailfish::Secrets::SecretsDaemonConnection> m_secrets;
     QDBusInterface *m_interface;
 };
 

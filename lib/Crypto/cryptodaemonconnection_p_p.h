@@ -27,6 +27,7 @@ class CryptoDaemonConnectionPrivate : public QObject
 
 public:
     CryptoDaemonConnectionPrivate(CryptoDaemonConnection *parent = Q_NULLPTR);
+    virtual ~CryptoDaemonConnectionPrivate() = default;
     QDBusConnection *connection() { return &m_connection; }
     bool connect();
 
