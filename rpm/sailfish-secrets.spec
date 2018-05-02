@@ -159,7 +159,7 @@ Requires:   libsailfishcrypto = %{version}-%{release}
 %{summary}.
 
 %package -n %{secretsdaemon}
-Summary:    Sailfish OS secrets daemon (example).
+Summary:    Sailfish OS secrets daemon.
 Group:      Applications/System
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
@@ -179,27 +179,46 @@ Requires:         libsailfishcrypto = %{version}-%{release}
 Requires:         qt5-plugin-sqldriver-sqlcipher
 
 %description -n %{secretsdaemon}
-Provides an example secrets storage and cryptographic operations system daemon service,
+Provides a secrets storage and cryptographic operations system daemon service,
 which exposes functionality provided by libsailfishsecrets and libsailfishcrypto to clients via DBus.
 
-%package -n %{secretsdaemon}-secretsplugins
-Summary:    Sailfish OS secrets daemon (example) plugins.
+%package -n %{secretsdaemon}-secretsplugins-default
+Summary:    Sailfish OS secrets daemon plugins.
 Group:      Applications/System
+Provides: %{secretsdaemon}-secretsplugins
+Provides: %{secretsdaemon}-secretsplugin-ssl
+Provides: %{secretsdaemon}-secretsplugin-sql
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(libcrypto)
 BuildRequires:  qt5-plugin-sqldriver-sqlite
 Requires:   qt5-plugin-sqldriver-sqlcipher
-Requires:   %{secretsdaemon} = %{version}-%{release}
 Requires:   libsailfishsecretspluginapi = %{version}-%{release}
+Requires:   %{secretsdaemon} = %{version}-%{release}
+Requires:   %{secretsdaemon}-secretsplugin-common = %{version}-%{release}
 
-%description -n %{secretsdaemon}-secretsplugins
+%description -n %{secretsdaemon}-secretsplugins-default
 %{summary}.
 
-%package -n %{secretsdaemon}-cryptoplugins
-Summary:    Sailfish OS crypto daemon (example) plugins.
+%package -n %{secretsdaemon}-secretsplugin-common
+Summary:    Sailfish OS secrets daemon plugins that are mandatory for all platforms.
 Group:      Applications/System
+BuildRequires:  pkgconfig(Qt5Core)
+BuildRequires:  pkgconfig(Qt5DBus)
+Requires:  qt5-plugin-sqldriver-sqlite
+Requires:  qt5-plugin-sqldriver-sqlcipher
+Requires:  libsailfishsecretspluginapi = %{version}-%{release}
+Requires:  %{secretsdaemon} = %{version}-%{release}
+
+%description -n %{secretsdaemon}-secretsplugin-common
+%{summary}.
+
+%package -n %{secretsdaemon}-cryptoplugins-default
+Summary:    Sailfish OS crypto daemon plugins.
+Group:      Applications/System
+Provides: %{secretsdaemon}-cryptoplugins
+Provides: %{secretsdaemon}-cryptoplugin-ssl
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(dbus-1)
@@ -209,7 +228,7 @@ Requires:   %{secretsdaemon} = %{version}-%{release}
 Requires:   libsailfishcrypto = %{version}-%{release}
 Requires:   libsailfishcryptopluginapi = %{version}-%{release}
 
-%description -n %{secretsdaemon}-cryptoplugins
+%description -n %{secretsdaemon}-cryptoplugins-default
 %{summary}.
 
 
@@ -359,15 +378,17 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 %{user_unitdir}/user-session.target.wants/sailfish-secretsd.service
 %{_datadir}/dbus-1/services/org.sailfishos.secrets.daemon.discovery.service
 
-%files -n %{secretsdaemon}-secretsplugins
+%files -n %{secretsdaemon}-secretsplugins-default
 %defattr(-,root,root,-)
-%{_libdir}/Sailfish/Secrets/libsailfishsecrets-inappauth.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-openssl.so
-%{_libdir}/Sailfish/Secrets/libsailfishsecrets-passwordagentauth.so
-%{_libdir}/Sailfish/Secrets/libsailfishsecrets-sqlcipher.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-sqlite.so
 
-%files -n %{secretsdaemon}-cryptoplugins
+%files -n %{secretsdaemon}-secretsplugin-common
+%{_libdir}/Sailfish/Secrets/libsailfishsecrets-inappauth.so
+%{_libdir}/Sailfish/Secrets/libsailfishsecrets-passwordagentauth.so
+%{_libdir}/Sailfish/Secrets/libsailfishsecrets-sqlcipher.so
+
+%files -n %{secretsdaemon}-cryptoplugins-default
 %defattr(-,root,root,-)
 %{_libdir}/Sailfish/Crypto/libsailfishcrypto-openssl.so
 
