@@ -35,6 +35,8 @@ class SAILFISH_CRYPTO_API CryptoDaemonConnection : public QObject
     Q_OBJECT
 
 public:
+    virtual ~CryptoDaemonConnection();
+
     static CryptoDaemonConnection *instance();
     static void releaseInstance();
 

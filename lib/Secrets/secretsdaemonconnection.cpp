@@ -99,7 +99,13 @@ Sailfish::Secrets::SecretsDaemonConnection::SecretsDaemonConnection()
     registerDBusTypes();
 }
 
-static Sailfish::Secrets::SecretsDaemonConnection *connectionInstance = Q_NULLPTR;
+static QPointer<Sailfish::Secrets::SecretsDaemonConnection> connectionInstance;
+Sailfish::Secrets::SecretsDaemonConnection::~SecretsDaemonConnection()
+{
+    connectionInstance->m_data->deleteLater();
+    connectionInstance->m_data = Q_NULLPTR;
+}
+
 Sailfish::Secrets::SecretsDaemonConnection* Sailfish::Secrets::SecretsDaemonConnection::instance()
 {
     if (!connectionInstance) {
@@ -118,8 +124,6 @@ void Sailfish::Secrets::SecretsDaemonConnection::releaseInstance()
 {
     if (connectionInstance) {
         if (!connectionInstance->m_refCount.deref()) {
-            connectionInstance->m_data->deleteLater();
-            connectionInstance->m_data = Q_NULLPTR;
             connectionInstance->deleteLater();
         }
     }

@@ -30,6 +30,8 @@ class SAILFISH_SECRETS_API SecretsDaemonConnection : public QObject
     Q_OBJECT
 
 public:
+    virtual ~SecretsDaemonConnection();
+
     static SecretsDaemonConnection *instance();
     static void releaseInstance();
 

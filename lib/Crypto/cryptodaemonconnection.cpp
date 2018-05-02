@@ -99,7 +99,13 @@ Sailfish::Crypto::CryptoDaemonConnection::CryptoDaemonConnection()
     registerDBusTypes();
 }
 
-static Sailfish::Crypto::CryptoDaemonConnection *connectionInstance = Q_NULLPTR;
+static QPointer<Sailfish::Crypto::CryptoDaemonConnection> connectionInstance;
+Sailfish::Crypto::CryptoDaemonConnection::~CryptoDaemonConnection()
+{
+    m_data->deleteLater();
+    m_data = Q_NULLPTR;
+}
+
 Sailfish::Crypto::CryptoDaemonConnection* Sailfish::Crypto::CryptoDaemonConnection::instance()
 {
     if (!connectionInstance) {
@@ -118,8 +124,6 @@ void Sailfish::Crypto::CryptoDaemonConnection::releaseInstance()
 {
     if (connectionInstance) {
         if (!connectionInstance->m_refCount.deref()) {
-            connectionInstance->m_data->deleteLater();
-            connectionInstance->m_data = Q_NULLPTR;
             connectionInstance->deleteLater();
         }
     }
