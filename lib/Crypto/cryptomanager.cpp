@@ -45,8 +45,7 @@ const QString CryptoManager::DefaultCryptoStoragePluginName = QStringLiteral("or
  * \internal
  */
 CryptoManagerPrivate::CryptoManagerPrivate(CryptoManager *parent)
-    : m_parent(parent)
-    , m_crypto(CryptoDaemonConnection::instance())
+    : m_crypto(CryptoDaemonConnection::instance())
     , m_interface(m_crypto->connect()
                   ? m_crypto->createInterface(QLatin1String("/Sailfish/Crypto"), QLatin1String("org.sailfishos.crypto"), parent)
                   : Q_NULLPTR)
@@ -59,6 +58,7 @@ CryptoManagerPrivate::CryptoManagerPrivate(CryptoManager *parent)
 CryptoManagerPrivate::~CryptoManagerPrivate()
 {
     CryptoDaemonConnection::releaseInstance();
+    m_interface = Q_NULLPTR;
 }
 
 /*!
