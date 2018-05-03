@@ -31,6 +31,7 @@ public:
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
     QString m_storagePluginName;
+    QString m_collectionName;
     QVariantMap m_customParameters;
     QVector<Sailfish::Crypto::Key::Identifier> m_identifiers;
 

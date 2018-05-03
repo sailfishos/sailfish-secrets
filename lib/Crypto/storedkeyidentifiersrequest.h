@@ -27,6 +27,7 @@ class SAILFISH_CRYPTO_API StoredKeyIdentifiersRequest : public Sailfish::Crypto:
 {
     Q_OBJECT
     Q_PROPERTY(QString storagePluginName READ storagePluginName WRITE setStoragePluginName NOTIFY storagePluginNameChanged)
+    Q_PROPERTY(QString collectionName READ collectionName WRITE setCollectionName NOTIFY collectionNameChanged)
     Q_PROPERTY(QVector<Sailfish::Crypto::Key::Identifier> identifiers READ identifiers NOTIFY identifiersChanged)
 
 public:
@@ -35,6 +36,9 @@ public:
 
     QString storagePluginName() const;
     void setStoragePluginName(const QString &pluginName);
+
+    QString collectionName() const;
+    void setCollectionName(const QString &name);
 
     QVector<Sailfish::Crypto::Key::Identifier> identifiers() const;
 
@@ -52,6 +56,7 @@ public:
 
 Q_SIGNALS:
     void storagePluginNameChanged();
+    void collectionNameChanged();
     void identifiersChanged();
 
 private:

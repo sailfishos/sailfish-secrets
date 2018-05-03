@@ -86,6 +86,7 @@ using namespace Sailfish::Crypto;
 #define DEFAULT_TEST_STORAGE_PLUGIN Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test")
 #define DEFAULT_TEST_ENCRYPTION_PLUGIN Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName + QLatin1String(".test")
 #define IN_APP_TEST_AUTHENTICATION_PLUGIN Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName + QLatin1String(".test")
+#define PASSWORD_AGENT_TEST_AUTH_PLUGIN Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test")
 
 
 namespace {
@@ -160,6 +161,8 @@ private slots:
     void calculateDigest_data();
     void storedKeyRequests_data();
     void storedKeyRequests();
+    void storedKeyIdentifiersRequests_data();
+    void storedKeyIdentifiersRequests();
     void storedDerivedKeyRequests_data();
     void storedDerivedKeyRequests();
     void storedGeneratedKeyRequests();
@@ -1063,6 +1066,151 @@ void tst_cryptorequests::storedKeyRequests()
     QCOMPARE(dcr.result().code(), Sailfish::Secrets::Result::Succeeded);
 }
 
+void tst_cryptorequests::storedKeyIdentifiersRequests_data()
+{
+    QTest::addColumn<QString>("collectionName");
+    QTest::addColumn<QString>("cryptoPluginName");
+    QTest::addColumn<QString>("keyName");
+    QTest::addColumn<CryptoManager::Algorithm>("algorithm");
+    QTest::addColumn<int>("keySize");
+    QTest::addColumn<Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic>("unlockSemantic");
+
+    QTest::newRow("sqlcipher customlock keepunlocked")
+            << "tstcryptorequestsskir"
+            << DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME
+            << "testkeyname"
+            << CryptoManager::AlgorithmAes
+            << 128
+            << Sailfish::Secrets::SecretManager::CustomLockKeepUnlocked;
+
+    QTest::newRow("sqlcipher customlock accessrelock")
+            << "tstcryptorequestsskir"
+            << DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME
+            << "testkeyname"
+            << CryptoManager::AlgorithmAes
+            << 128
+            << Sailfish::Secrets::SecretManager::CustomLockAccessRelock;
+}
+
+void tst_cryptorequests::storedKeyIdentifiersRequests()
+{
+    QFETCH(QString, cryptoPluginName);
+    QFETCH(QString, collectionName);
+    QFETCH(QString, keyName);
+    QFETCH(CryptoManager::Algorithm, algorithm);
+    QFETCH(int, keySize);
+    QFETCH(Sailfish::Secrets::SecretManager::CustomLockUnlockSemantic, unlockSemantic);
+
+    if (algorithm != CryptoManager::AlgorithmAes) {
+        QSKIP("Only AES is supported by the current test.");
+    }
+
+    // test generating a symmetric cipher key and storing securely in the same plugin which produces the key.
+    Sailfish::Crypto::Key keyTemplate;
+    keyTemplate.setSize(keySize);
+    keyTemplate.setAlgorithm(algorithm);
+    keyTemplate.setOrigin(Sailfish::Crypto::Key::OriginDevice);
+    keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt | Sailfish::Crypto::CryptoManager::OperationDecrypt);
+    keyTemplate.setComponentConstraints(Sailfish::Crypto::Key::MetaData | Sailfish::Crypto::Key::PublicKeyData | Sailfish::Crypto::Key::PrivateKeyData);
+    keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
+    keyTemplate.setCustomParameters(QVector<QByteArray>() << QByteArray("testparameter"));
+
+    // first, create the collection via the Secrets API.
+    Sailfish::Secrets::CreateCollectionRequest ccr;
+    ccr.setManager(&sm);
+    ccr.setCollectionLockType(Sailfish::Secrets::CreateCollectionRequest::CustomLock);
+    ccr.setCollectionName(collectionName);
+    ccr.setStoragePluginName(cryptoPluginName);
+    ccr.setEncryptionPluginName(cryptoPluginName);
+    ccr.setAuthenticationPluginName(PASSWORD_AGENT_TEST_AUTH_PLUGIN);
+    ccr.setCustomLockUnlockSemantic(unlockSemantic);
+    ccr.setAccessControlMode(Sailfish::Secrets::SecretManager::OwnerOnlyMode);
+    ccr.setUserInteractionMode(Sailfish::Secrets::SecretManager::ApplicationInteraction);
+    ccr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ccr);
+    QCOMPARE(ccr.status(), Sailfish::Secrets::Request::Finished);
+    QCOMPARE(ccr.result().errorMessage(), QString());
+    QCOMPARE(ccr.result().code(), Sailfish::Secrets::Result::Succeeded);
+
+    // request that the secret key be generated and stored into that collection.
+    keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(keyName,
+                                                                collectionName,
+                                                                cryptoPluginName));
+    // note that the secret key data will never enter the client process address space.
+    GenerateStoredKeyRequest gskr;
+    gskr.setManager(&cm);
+    QSignalSpy gskrss(&gskr, &GenerateStoredKeyRequest::statusChanged);
+    QSignalSpy gskrks(&gskr, &GenerateStoredKeyRequest::generatedKeyReferenceChanged);
+    gskr.setKeyTemplate(keyTemplate);
+    QCOMPARE(gskr.keyTemplate(), keyTemplate);
+    gskr.setCryptoPluginName(cryptoPluginName);
+    QCOMPARE(gskr.cryptoPluginName(), cryptoPluginName);
+    QCOMPARE(gskr.status(), Request::Inactive);
+    gskr.startRequest();
+    QCOMPARE(gskrss.count(), 1);
+    QCOMPARE(gskr.status(), Request::Active);
+    QCOMPARE(gskr.result().code(), Result::Pending);
+    QCOMPARE(gskrks.count(), 0);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gskr);
+    QCOMPARE(gskrss.count(), 2);
+    QCOMPARE(gskr.status(), Request::Finished);
+    QCOMPARE(ccr.result().errorMessage(), QString());
+    QCOMPARE(gskr.result().code(), Result::Succeeded);
+    QCOMPARE(gskrks.count(), 1);
+    Sailfish::Crypto::Key keyReference = gskr.generatedKeyReference();
+    QVERIFY(keyReference.secretKey().isEmpty());
+    QVERIFY(keyReference.privateKey().isEmpty());
+    QCOMPARE(keyReference.filterData(), keyTemplate.filterData());
+    QVERIFY(!keyReference.identifier().name().isEmpty());
+    QVERIFY(!keyReference.identifier().collectionName().isEmpty());
+    QVERIFY(!keyReference.identifier().storagePluginName().isEmpty());
+
+    // if the unlock semantic is CustomLockRelock then requesting all
+    // stored key identifiers may not return the newly added key,
+    // since that collection should be locked.
+    StoredKeyIdentifiersRequest skir;
+    skir.setManager(&cm);
+    skir.setStoragePluginName(cryptoPluginName);
+    skir.setCollectionName(QString()); // clear.
+    skir.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(skir);
+    QCOMPARE(skir.result().code(), Result::Succeeded);
+    if (unlockSemantic == Sailfish::Secrets::SecretManager::CustomLockKeepUnlocked) {
+        bool keyFound = false;
+        for (const Key::Identifier &ident : skir.identifiers()) {
+            if (ident == keyReference.identifier()) {
+                keyFound = true;
+            }
+        }
+        QCOMPARE(keyFound, true);
+    }
+
+    // in either case, requesting stored key identifiers from the
+    // specific collection should work (after an unlock flow completes).
+    skir.setCollectionName(collectionName);
+    skir.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(skir);
+    QCOMPARE(skir.result().code(), Result::Succeeded);
+    bool keyFound = false;
+    for (const Key::Identifier &ident : skir.identifiers()) {
+        if (ident == keyReference.identifier()) {
+            keyFound = true;
+        }
+    }
+    QCOMPARE(keyFound, true);
+
+    // clean up by deleting the collection in which the secret is stored.
+    Sailfish::Secrets::DeleteCollectionRequest dcr;
+    dcr.setManager(&sm);
+    dcr.setCollectionName(collectionName);
+    dcr.setStoragePluginName(cryptoPluginName);
+    dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
+    dcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
+    QCOMPARE(dcr.status(), Sailfish::Secrets::Request::Finished);
+    QCOMPARE(dcr.result().code(), Sailfish::Secrets::Result::Succeeded);
+}
+
 void tst_cryptorequests::storedDerivedKeyRequests_data()
 {
     addCryptoTestData();
@@ -1111,7 +1259,7 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     ccr.setCollectionName(QLatin1String("tstcryptosecretsgcsked"));
     ccr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     ccr.setEncryptionPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    ccr.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
+    ccr.setAuthenticationPluginName(PASSWORD_AGENT_TEST_AUTH_PLUGIN);
     ccr.setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked);
     ccr.setAccessControlMode(Sailfish::Secrets::SecretManager::OwnerOnlyMode);
     ccr.setUserInteractionMode(Sailfish::Secrets::SecretManager::ApplicationInteraction);

@@ -161,6 +161,7 @@ public:
             pid_t callerPid,
             quint64 requestId,
             const QString &storagePluginName,
+            const QString &collectionName,
             QVector<Sailfish::Crypto::Key::Identifier> *identifiers);
 
     Sailfish::Crypto::Result calculateDigest(
@@ -307,6 +308,11 @@ public Q_SLOTS:
             quint64 requestId,
             const Sailfish::Secrets::Result &result);
 
+    void secretsStoredKeyIdentifiersCompleted(
+            quint64 requestId,
+            const Sailfish::Secrets::Result &result,
+            const QVector<Sailfish::Secrets::Secret::Identifier> &idents);
+
     void secretsUserInputCompleted(
             quint64 requestId,
             const Sailfish::Secrets::Result &result,
@@ -436,6 +442,12 @@ private:
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
             const Sailfish::Crypto::Key::Identifier &identifier);
+
+    void storedKeyIdentifiers2(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Crypto::Result &result,
+            const QVector<Sailfish::Crypto::Key::Identifier> &identifiers);
 
     void sign2(
             quint64 requestId,

@@ -36,6 +36,10 @@ public:
 
     Sailfish::Secrets::Result keyNames(const QString &collectionName, QStringList *keyNames) Q_DECL_OVERRIDE;
 
+    Sailfish::Crypto::Result storedKeyIdentifiers(
+            const QString &collectionName,
+            QVector<Sailfish::Crypto::Key::Identifier> *identifiers);
+
     Sailfish::Crypto::Result generateAndStoreKey(
             const Sailfish::Secrets::Daemon::ApiImpl::SecretMetadata &metadata,
             const Sailfish::Crypto::Key &keyTemplate,
@@ -59,7 +63,8 @@ protected:
 private:
     Sailfish::Crypto::Result prepareToStoreKey(
             const Sailfish::Secrets::Daemon::ApiImpl::SecretMetadata &metadata,
-            const QByteArray &collectionUnlockKey);
+            const QByteArray &collectionUnlockKey,
+            bool *wasLocked);
 };
 
 } // ApiImpl

@@ -730,6 +730,13 @@ Result EncryptedStoragePluginWrapper::createCollection(
     }
 
     m_metadataDb.commitTransaction();
+
+    // if the collection should be relocked, relock it.
+    if ((metadata.usesDeviceLockKey && metadata.unlockSemantic != SecretManager::DeviceLockKeepUnlocked)
+            || (!metadata.usesDeviceLockKey && metadata.unlockSemantic != SecretManager::CustomLockKeepUnlocked)) {
+        m_encryptedStoragePlugin->setEncryptionKey(metadata.collectionName, QByteArray());
+    }
+
     return Result(Result::Succeeded);
 }
 

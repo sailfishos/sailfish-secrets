@@ -107,7 +107,8 @@ public:
             const Sailfish::Crypto::Key::Identifier &identifier);
 
     QDBusPendingReply<Sailfish::Crypto::Result, QVector<Sailfish::Crypto::Key::Identifier> > storedKeyIdentifiers(
-            const QString &storagePluginName);
+            const QString &storagePluginName,
+            const QString &collectionName);
 
     QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> calculateDigest(
             const QByteArray &data,

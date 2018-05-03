@@ -150,6 +150,7 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "      </method>\n"
     "      <method name=\"storedKeyIdentifiers\">\n"
     "          <arg name=\"storagePluginName\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"collectionName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"identifiers\" type=\"a(sss)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
@@ -399,6 +400,7 @@ public Q_SLOTS:
 
     void storedKeyIdentifiers(
             const QString &storagePluginName,
+            const QString &collectionName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
             QVector<Sailfish::Crypto::Key::Identifier> &identifiers);

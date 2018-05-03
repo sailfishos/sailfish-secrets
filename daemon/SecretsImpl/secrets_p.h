@@ -415,7 +415,6 @@ public: // helpers for crypto API: secretscryptohelpers.cpp
     QStringList encryptedStoragePluginNames() const;
     QStringList storagePluginNames() const;
     QString displayNameForStoragePlugin(const QString &name) const;
-    Sailfish::Secrets::Result storedKeyIdentifiers(const QString &storagePluginName, QVector<Secret::Identifier> *idents) const;
 
 private:
     QSharedPointer<QThreadPool> m_secretsThreadPool;
@@ -461,6 +460,8 @@ public: // Crypto API helper methods.
     Sailfish::Secrets::Result storeKeyPreCheck(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier);
     Sailfish::Secrets::Result storeKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, const QByteArray &serializedKey,
                                        const QMap<QString, QString> &filterData, const QByteArray &collectionDecryptionKey);
+    Sailfish::Secrets::Result storedKeyIdentifiers(pid_t callerPid, quint64 cryptoRequestId, const QString &collectionName, const QString &storagePluginName,
+                                                   QVector<Sailfish::Crypto::Key::Identifier> *identifiers);
     Sailfish::Secrets::Result deleteStoredKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier);
     Sailfish::Secrets::Result userInput(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Secrets::InteractionParameters &uiParams);
     Sailfish::Secrets::Result modifyCryptoPluginLockCode(pid_t callerPid, quint64 cryptoRequestId, const QString &cryptoPluginName, const Sailfish::Secrets::InteractionParameters &uiParams);
@@ -472,6 +473,7 @@ Q_SIGNALS:
     void storeKeyPreCheckCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &collectionDecryptionKey);
     void storeKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
     void deleteStoredKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
+    void storedKeyIdentifiersCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QVector<Sailfish::Secrets::Secret::Identifier> &idents);
     void userInputCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &userInput);
     void cryptoPluginLockCodeRequestCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
 private:
@@ -479,6 +481,7 @@ private:
         InvalidCryptoApiHelperRequest = 0,
         StoragePluginNamesCryptoApiHelperRequest,
         StoredKeyCryptoApiHelperRequest,
+        StoredKeyIdentifiersCryptoApiHelperRequest,
         DeleteStoredKeyCryptoApiHelperRequest,
         StoreKeyPreCheckCryptoApiHelperRequest,
         StoreKeyCryptoApiHelperRequest,
@@ -516,7 +519,8 @@ enum RequestType {
     SetStandaloneCustomLockUserInputSecretRequest,
     // Crypto API helper request types:
     SetCollectionKeyPreCheckRequest,
-    SetCollectionKeyRequest
+    SetCollectionKeyRequest,
+    StoredKeyIdentifiersRequest
 };
 
 } // ApiImpl

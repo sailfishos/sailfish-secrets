@@ -256,7 +256,14 @@ public: // helper methods for crypto API bridge (secretscryptohelpers)
     QStringList storagePluginNames() const;
     QString displayNameForStoragePlugin(const QString &name) const;
     QVector<Sailfish::Secrets::PluginInfo> storagePluginInfo() const;
-    Sailfish::Secrets::Result storedKeyIdentifiers(const QString &storagePluginName, QVector<Secret::Identifier> *idents) const;
+    Sailfish::Secrets::Result storedKeyIdentifiers(
+            pid_t callerPid,
+            quint64 requestId,
+            const QString &collectionName,
+            const QString &storagePluginName,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            QVector<Secret::Identifier> *idents);
     Sailfish::Secrets::Result userInput(
             pid_t callerPid,
             quint64 requestId,
@@ -500,9 +507,9 @@ private:
             pid_t callerPid,
             quint64 requestId,
             const Sailfish::Secrets::Secret::Identifier &identifier,
-            const QString &collectionEncryptionPluginName,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
+            const CollectionMetadata &collectionMetadata,
             const QByteArray &authenticationCode);
 
     void deleteCollectionSecretWithEncryptionKey(
@@ -511,7 +518,7 @@ private:
             const Secret::Identifier &identifier,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
-            const QString &collectionEncryptionPluginName,
+            const CollectionMetadata &collectionMetadata,
             const QByteArray &encryptionKey);
 
     Sailfish::Secrets::Result deleteStandaloneSecretWithMetadata(
@@ -573,6 +580,36 @@ private:
             const Sailfish::Secrets::Secret::Identifier &identifier,
             const CollectionMetadata &collectionMetadata,
             const QByteArray &collectionDecryptionKey);
+
+    Sailfish::Secrets::Result storedKeyIdentifiersWithMetadata(
+            pid_t callerPid,
+            quint64 requestId,
+            const QString &collectionName,
+            const QString &storagePluginName,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            const CollectionMetadata &collectionMetadata);
+
+    Sailfish::Secrets::Result storedKeyIdentifiersWithAuthenticationCode(
+            pid_t callerPid,
+            quint64 requestId,
+            const QString &collectionName,
+            const QString &storagePluginName,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            const CollectionMetadata &collectionMetadata,
+            const QByteArray &authenticationCode);
+
+    void storedKeyIdentifiersWithEncryptionKey(
+            pid_t callerPid,
+            quint64 requestId,
+            const QString &collectionName,
+            const QString &storagePluginName,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            const CollectionMetadata &collectionMetadata,
+            const QByteArray &collectionKey,
+            bool collectionWasLocked);
 
 private:
     struct PendingRequest {

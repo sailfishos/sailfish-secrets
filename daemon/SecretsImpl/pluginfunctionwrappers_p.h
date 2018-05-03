@@ -133,6 +133,18 @@ struct LockCodes {
     QByteArray newCode;
 };
 
+struct CollectionInfo {
+    CollectionInfo(const QString &name, const QByteArray &key, bool relock)
+        : collectionName(name), collectionKey(key), relockRequired(relock) {}
+    CollectionInfo(const CollectionInfo &other)
+        : collectionName(other.collectionName)
+        , collectionKey(other.collectionKey)
+        , relockRequired(other.relockRequired) {}
+    QString collectionName;
+    QByteArray collectionKey;
+    bool relockRequired;
+};
+
 FoundResult lockSpecificPlugin(
         const QMap<QString, Sailfish::Secrets::EncryptionPlugin*> &encryptionPlugins,
         const QMap<QString, StoragePluginWrapper*> &storagePlugins,
@@ -172,6 +184,12 @@ IdentifiersResult storedKeyIdentifiers(
         StoragePluginWrapper *storagePlugin,
         EncryptedStoragePluginWrapper *encryptedStoragePlugin,
         Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *cryptoStoragePlugin);
+
+IdentifiersResult storedKeyIdentifiersFromCollection(
+        StoragePluginWrapper *storagePlugin,
+        EncryptedStoragePluginWrapper *encryptedStoragePlugin,
+        Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *cryptoStoragePlugin,
+        const CollectionInfo &collectionInfo);
 
 namespace EncryptionPluginFunctionWrapper {
     struct DataResult {
@@ -385,27 +403,22 @@ namespace EncryptedStoragePluginFunctionWrapper {
 
     SecretResult unlockCollectionAndReadSecret(
             EncryptedStoragePluginWrapper *plugin,
+            const CollectionMetadata &collectionMetadata,
             const Sailfish::Secrets::Secret::Identifier &identifier,
             const QByteArray &encryptionKey);
 
     Sailfish::Secrets::Result unlockCollectionAndRemoveSecret(
             EncryptedStoragePluginWrapper *plugin,
+            const CollectionMetadata &collectionMetadata,
             const Sailfish::Secrets::Secret::Identifier &identifier,
             const QByteArray &encryptionKey);
 
     IdentifiersResult unlockAndFindSecrets(
             EncryptedStoragePluginWrapper *plugin,
-            const QString &collectionName,
+            const CollectionMetadata &collectionMetadata,
             const Sailfish::Secrets::Secret::FilterData &filter,
             Sailfish::Secrets::StoragePlugin::FilterOperator filterOperator,
             const QByteArray &encryptionKey);
-
-    Sailfish::Secrets::Result unlockAndRemoveSecret(
-            EncryptedStoragePluginWrapper *plugin,
-            const QString &collectionName,
-            const QString &secretName,
-            bool secretUsesDeviceLockKey,
-            const QByteArray &deviceLockKey);
 
     Sailfish::Secrets::Result unlockDeviceLockedCollectionsAndReencrypt(
             EncryptedStoragePluginWrapper *plugin,
@@ -422,7 +435,8 @@ namespace EncryptedStoragePluginFunctionWrapper {
             EncryptedStoragePluginWrapper *plugin,
             const QString &collectionName,
             const QString &secretName,
-            const QByteArray &collectionKey);
+            const QByteArray &collectionKey,
+            bool requiresRelock);
 }
 
 } // ApiImpl

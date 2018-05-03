@@ -119,6 +119,15 @@ Daemon::Plugins::InAppPlugin::beginUserInputInteraction(
                                   Q_ARG(Sailfish::Secrets::Result, Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded)),
                                   Q_ARG(QByteArray, QByteArray("pluginlock")));
         return Result(Result::Pending);
+    } else if (interactionParameters.operation() != InteractionParameters::RequestUserData) {
+        QMetaObject::invokeMethod(this, "userInputInteractionCompleted", Qt::QueuedConnection,
+                                  Q_ARG(uint, callerPid),
+                                  Q_ARG(qint64, requestId),
+                                  Q_ARG(Sailfish::Secrets::InteractionParameters, interactionParameters),
+                                  Q_ARG(QString, interactionServiceAddress),
+                                  Q_ARG(Sailfish::Secrets::Result, Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded)),
+                                  Q_ARG(QByteArray, QByteArray("testpassphrase")));
+        return Result(Result::Pending);
     }
 #endif
 

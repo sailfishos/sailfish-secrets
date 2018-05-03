@@ -906,6 +906,7 @@ QString Daemon::ApiImpl::SecretsRequestQueue::requestTypeToString(int type) cons
         case ForgetLockCodeRequest:                 return QLatin1String("ForgetLockCodeRequest");
         case SetCollectionKeyPreCheckRequest:       return QLatin1String("SetCollectionKeyPreCheckRequest");
         case SetCollectionKeyRequest:               return QLatin1String("SetCollectionKeyRequest");
+        case StoredKeyIdentifiersRequest:           return QLatin1String("StoredKeyIdentifiersRequest");
         default: break;
     }
     return QLatin1String("Unknown Secrets Request!");
@@ -1644,6 +1645,44 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
             }
             break;
         }
+        case StoredKeyIdentifiersRequest: {
+            qCDebug(lcSailfishSecretsDaemon) << "Handling StoredKeyIdentifiersRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            QString collectionName = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
+            QString storagePluginName = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
+            SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
+                    ? request->inParams.takeFirst().value<SecretManager::UserInteractionMode>()
+                    : SecretManager::PreventInteraction;
+            QString interactionServiceAddress = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
+            QVector<Secret::Identifier> identifiers;
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->storedKeyIdentifiers(
+                                      request->remotePid,
+                                      request->requestId,
+                                      collectionName,
+                                      storagePluginName,
+                                      userInteractionMode,
+                                      interactionServiceAddress,
+                                      &identifiers);
+            // send the reply to the calling peer.
+            if (result.code() == Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                // This request type exists solely to implement Crypto API functionality.
+                asynchronousCryptoRequestCompleted(request->cryptoRequestId, result,
+                                                   QVariantList() << QVariant::fromValue<QVector<Secret::Identifier> >(identifiers));
+                *completed = true;
+            }
+            break;
+        }
         case UserInputRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling UserInputRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             InteractionParameters uiParams = request->inParams.size()
@@ -2108,6 +2147,31 @@ void Daemon::ApiImpl::SecretsRequestQueue::handleFinishedRequest(
             } else {
                 if (request->isSecretsCryptoRequest) {
                     asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList());
+                } else {
+                    // shouldn't happen!
+                    qCWarning(lcSailfishSecretsDaemon) << "SetCollectionKeyRequest:" << request->requestId << "finished as non-crypto request!";
+                    *completed = true;
+                }
+                *completed = true;
+            }
+            break;
+        }
+        case StoredKeyIdentifiersRequest: {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of SetCollectionKeyRequest request"));
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishSecretsDaemon) << "SetCollectionKeyRequest:" << request->requestId << "finished as pending!";
+                *completed = true;
+            } else {
+                if (request->isSecretsCryptoRequest) {
+                    QVector<Secret::Identifier> identifiers = request->outParams.size()
+                            ? request->outParams.takeFirst().value<QVector<Secret::Identifier> >()
+                            : QVector<Secret::Identifier>();
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result,
+                                                       QVariantList() << QVariant::fromValue<QVector<Secret::Identifier> >(identifiers));
                 } else {
                     // shouldn't happen!
                     qCWarning(lcSailfishSecretsDaemon) << "SetCollectionKeyRequest:" << request->requestId << "finished as non-crypto request!";
