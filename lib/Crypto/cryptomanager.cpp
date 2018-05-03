@@ -210,8 +210,8 @@ CryptoManagerPrivate::generateStoredKey(
 
 QDBusPendingReply<Result, Key>
 CryptoManagerPrivate::importKey(
-        const Key &key,
-        const Sailfish::Crypto::InteractionParameters &uiParams,
+        const QByteArray &data,
+        const InteractionParameters &uiParams,
         const QVariantMap &customParameters,
         const QString &cryptosystemProviderName)
 {
@@ -224,7 +224,7 @@ CryptoManagerPrivate::importKey(
     QDBusPendingReply<Result, Key> reply
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("importKey"),
-                QVariantList() << QVariant::fromValue<Key>(key)
+                QVariantList() << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<InteractionParameters>(uiParams)
                                << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));
@@ -233,8 +233,9 @@ CryptoManagerPrivate::importKey(
 
 QDBusPendingReply<Result, Key>
 CryptoManagerPrivate::importStoredKey(
-        const Key &key,
-        const Sailfish::Crypto::InteractionParameters &uiParams,
+        const QByteArray &data,
+        const Key &keyTemplate,
+        const InteractionParameters &uiParams,
         const QVariantMap &customParameters,
         const QString &cryptosystemProviderName)
 {
@@ -247,7 +248,8 @@ CryptoManagerPrivate::importStoredKey(
     QDBusPendingReply<Result, Key> reply
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("importStoredKey"),
-                QVariantList() << QVariant::fromValue<Key>(key)
+                QVariantList() << QVariant::fromValue<QByteArray>(data)
+                               << QVariant::fromValue<Key>(keyTemplate)
                                << QVariant::fromValue<InteractionParameters>(uiParams)
                                << QVariant::fromValue<QVariantMap>(customParameters)
                                << QVariant::fromValue<QString>(cryptosystemProviderName));

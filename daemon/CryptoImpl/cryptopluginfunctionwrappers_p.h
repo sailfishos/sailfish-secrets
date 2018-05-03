@@ -221,12 +221,13 @@ DataResult generateInitializationVector(
 
 KeyResult importKey(
         const PluginAndCustomParams &pluginAndCustomParams,
-        const Sailfish::Crypto::Key &keyData,
+        const QByteArray &keyData,
         const QByteArray &passphrase);
 
 KeyResult importAndStoreKey(
         const PluginWrapperAndCustomParams &pluginAndCustomParams,
-        const Sailfish::Crypto::Key &keyData,
+        const QByteArray &keyData,
+        const Sailfish::Crypto::Key &keyTemplate,
         const QByteArray &passphrase,
         const QByteArray &collectionDecryptionKey);
 

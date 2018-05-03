@@ -157,13 +157,14 @@ public:
             Sailfish::Crypto::Key *keyMetadata) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result importKey(
-            const Sailfish::Crypto::Key &key,
+            const QByteArray &data,
             const QByteArray &passphrase,
             const QVariantMap &customParameters,
             Sailfish::Crypto::Key *importedKey) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result importAndStoreKey(
-            const Sailfish::Crypto::Key &key,
+            const QByteArray &data,
+            const Sailfish::Crypto::Key &keyTemplate,
             const QByteArray &passphrase,
             const QVariantMap &customParameters,
             Sailfish::Crypto::Key *keyMetadata) Q_DECL_OVERRIDE;

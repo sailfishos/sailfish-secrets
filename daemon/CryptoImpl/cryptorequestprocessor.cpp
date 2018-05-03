@@ -664,18 +664,29 @@ Result Daemon::ApiImpl::RequestProcessor::promptForKeyPassphrase(
         const Sailfish::Crypto::InteractionParameters &uiParams)
 {
     Sailfish::Secrets::InteractionParameters promptParams;
-    promptParams.setSecretName(key.identifier().name());
-    promptParams.setCollectionName(key.identifier().collectionName());
-    promptParams.setOperation(Sailfish::Secrets::InteractionParameters::Decrypt);
-    promptParams.setAuthenticationPluginName(uiParams.authenticationPluginName());
-    //: This will be displayed to the user, prompting them to enter a passphrase to import a key. %1 is the key name, %2 is the collection name, %3 is the plugin name.
-    //% "A passphrase is required in order to import the key %1 into collection %2 in plugin %2. Enter the key import passphrase."
-    promptParams.setPromptText(qtTrId("sailfish_crypto-import_key-la-enter_import_passphrase")
-                               .arg(key.identifier().name(),
-                                    key.identifier().collectionName(),
-                                    m_requestQueue->controller()->displayNameForPlugin(key.identifier().storagePluginName())));
-    promptParams.setInputType(static_cast<Sailfish::Secrets::InteractionParameters::InputType>(uiParams.inputType()));
-    promptParams.setEchoMode(static_cast<Sailfish::Secrets::InteractionParameters::EchoMode>(uiParams.echoMode()));
+    if (key.identifier().isValid()) {
+        promptParams.setSecretName(key.identifier().name());
+        promptParams.setCollectionName(key.identifier().collectionName());
+        promptParams.setOperation(Sailfish::Secrets::InteractionParameters::ImportKey);
+        promptParams.setAuthenticationPluginName(uiParams.authenticationPluginName());
+        //: This will be displayed to the user, prompting them to enter a passphrase to import a stored key. %1 is the key name, %2 is the collection name, %3 is the plugin name.
+        //% "A passphrase is required in order to import the key %1 into collection %2 in plugin %2. Enter the key import passphrase."
+        promptParams.setPromptText(qtTrId("sailfish_crypto-import_key-la-enter_import_passphrase")
+                                   .arg(key.identifier().name(),
+                                        key.identifier().collectionName(),
+                                        m_requestQueue->controller()->displayNameForPlugin(key.identifier().storagePluginName())));
+        promptParams.setInputType(static_cast<Sailfish::Secrets::InteractionParameters::InputType>(uiParams.inputType()));
+        promptParams.setEchoMode(static_cast<Sailfish::Secrets::InteractionParameters::EchoMode>(uiParams.echoMode()));
+    } else {
+        promptParams.setAuthenticationPluginName(uiParams.authenticationPluginName());
+        promptParams.setOperation(Sailfish::Secrets::InteractionParameters::ImportKey);
+        //: This will be displayed to the user, prompting them to enter a passphrase to import a key which will then be returned to the application.  %1 is the plugin name.
+        //% "A passphrase is required in order to import a key with plugin %1 which will then be returned to the application"
+        promptParams.setPromptText(qtTrId("sailfish_crypto-import_key-la-enter_application_import_passphrase")
+                                   .arg(m_requestQueue->controller()->displayNameForPlugin(key.identifier().storagePluginName())));
+        promptParams.setInputType(static_cast<Sailfish::Secrets::InteractionParameters::InputType>(uiParams.inputType()));
+        promptParams.setEchoMode(static_cast<Sailfish::Secrets::InteractionParameters::EchoMode>(uiParams.echoMode()));
+    }
 
     return transformSecretsResult(m_secrets->userInput(callerPid, requestId, promptParams));
 }
@@ -684,7 +695,7 @@ Result
 Daemon::ApiImpl::RequestProcessor::importKey(
         pid_t callerPid,
         quint64 requestId,
-        const Key &key,
+        const QByteArray &data,
         const Sailfish::Crypto::InteractionParameters &uiParams,
         const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
@@ -707,7 +718,7 @@ Daemon::ApiImpl::RequestProcessor::importKey(
                 CryptoPluginFunctionWrapper::importKey,
                 PluginAndCustomParams(m_cryptoPlugins.value(cryptosystemProviderName),
                                       customParameters),
-                key,
+                data,
                 passphrase);
 
     watcher->setFuture(future);
@@ -719,15 +730,11 @@ Daemon::ApiImpl::RequestProcessor::importKey(
         if (result.code() == Result::Failed
                 && result.errorCode() == Result::CryptoPluginIncorrectPassphrase
                 && uiParams.isValid()) {
-            result = promptForKeyPassphrase(callerPid, requestId, key, uiParams);
+            result = promptForKeyPassphrase(callerPid, requestId, Key(), uiParams);
         }
 
         if (result.code() != Result::Failed) {
             outputKey.setOrigin(Key::OriginImported);
-            if (!(key.componentConstraints() & Key::PrivateKeyData)) {
-                outputKey.setPrivateKey(QByteArray());
-                outputKey.setSecretKey(QByteArray());
-            }
         }
 
         if (result.code() == Result::Pending) {
@@ -735,7 +742,7 @@ Daemon::ApiImpl::RequestProcessor::importKey(
                                          callerPid,
                                          requestId,
                                          Daemon::ApiImpl::ImportKeyRequest,
-                                         QVariantList() << QVariant::fromValue<Key>(key)
+                                         QVariantList() << QVariant::fromValue<QByteArray>(data)
                                                         << QVariant::fromValue<InteractionParameters>(uiParams)
                                                         << QVariant::fromValue<QVariantMap>(customParameters)
                                                         << QVariant::fromValue<QString>(cryptosystemProviderName)));
@@ -754,7 +761,7 @@ void
 Daemon::ApiImpl::RequestProcessor::importKey_withPassphrase(
         pid_t callerPid,
         quint64 requestId,
-        const Key &key,
+        const QByteArray &data,
         const Sailfish::Crypto::InteractionParameters &uiParams,
         const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
@@ -762,10 +769,10 @@ Daemon::ApiImpl::RequestProcessor::importKey_withPassphrase(
         const QByteArray &passphrase)
 {
     Result retn = result;
-    Key importedKey(key);
+    Key importedKey;
 
     if (retn.code() == Result::Succeeded) {
-        retn = importKey(callerPid, requestId, key, uiParams,customParameters, cryptosystemProviderName, passphrase, &importedKey);
+        retn = importKey(callerPid, requestId, data, uiParams,customParameters, cryptosystemProviderName, passphrase, &importedKey);
     }
 
     if (retn.code() != Result::Pending) {
@@ -780,6 +787,7 @@ Result
 Daemon::ApiImpl::RequestProcessor::importStoredKey(
         pid_t callerPid,
         quint64 requestId,
+        const QByteArray &data,
         const Key &keyTemplate,
         const Sailfish::Crypto::InteractionParameters &uiParams,
         const QVariantMap &customParameters,
@@ -831,7 +839,8 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey(
                                      callerPid,
                                      requestId,
                                      Daemon::ApiImpl::ImportStoredKeyRequest,
-                                     QVariantList() << QVariant::fromValue<Key>(keyTemplate)
+                                     QVariantList() << QVariant::fromValue<QByteArray>(data)
+                                                    << QVariant::fromValue<Key>(keyTemplate)
                                                     << QVariant::fromValue<InteractionParameters>(uiParams)
                                                     << QVariant::fromValue<QVariantMap>(customParameters)
                                                     << QVariant::fromValue<QString>(cryptosystemProviderName)));
@@ -843,6 +852,7 @@ void
 Daemon::ApiImpl::RequestProcessor::importStoredKey_afterPreCheck(
         pid_t callerPid,
         quint64 requestId,
+        const QByteArray &data,
         const Key &keyTemplate,
         const Sailfish::Crypto::InteractionParameters &uiParams,
         const QVariantMap &customParameters,
@@ -862,6 +872,7 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey_afterPreCheck(
     importStoredKey_withPassphrase(
                 callerPid,
                 requestId,
+                data,
                 keyTemplate,
                 uiParams,
                 customParameters,
@@ -875,6 +886,7 @@ void
 Daemon::ApiImpl::RequestProcessor::importStoredKey_withPassphrase(
         pid_t callerPid,
         quint64 requestId,
+        const QByteArray &data,
         const Key &keyTemplate,
         const Sailfish::Crypto::InteractionParameters &uiParams,
         const QVariantMap &customParameters,
@@ -898,6 +910,7 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey_withPassphrase(
                     CryptoPluginFunctionWrapper::importAndStoreKey,
                     PluginWrapperAndCustomParams(m_secrets->cryptoStoragePluginWrapper(cryptosystemProviderName),
                                                  customParameters),
+                    data,
                     keyTemplate,
                     passphrase,
                     collectionDecryptionKey);
@@ -917,7 +930,8 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey_withPassphrase(
                                                  callerPid,
                                                  requestId,
                                                  Daemon::ApiImpl::ImportStoredKeyRequest,
-                                                 QVariantList() << QVariant::fromValue<Key>(keyTemplate)
+                                                 QVariantList() << QVariant::fromValue<QByteArray>(data)
+                                                                << QVariant::fromValue<Key>(keyTemplate)
                                                                 << QVariant::fromValue<InteractionParameters>(uiParams)
                                                                 << QVariant::fromValue<QVariantMap>(customParameters)
                                                                 << QVariant::fromValue<QString>(cryptosystemProviderName)
@@ -938,7 +952,7 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey_withPassphrase(
                     CryptoPluginFunctionWrapper::importKey,
                     PluginAndCustomParams(m_cryptoPlugins.value(cryptosystemProviderName),
                                           customParameters),
-                    keyTemplate,
+                    data,
                     passphrase);
 
         watcher->setFuture(future);
@@ -955,7 +969,8 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey_withPassphrase(
                                              callerPid,
                                              requestId,
                                              Daemon::ApiImpl::ImportStoredKeyRequest,
-                                             QVariantList() << QVariant::fromValue<Key>(keyTemplate)
+                                             QVariantList() << QVariant::fromValue<QByteArray>(data)
+                                                            << QVariant::fromValue<Key>(keyTemplate)
                                                             << QVariant::fromValue<InteractionParameters>(uiParams)
                                                             << QVariant::fromValue<QVariantMap>(customParameters)
                                                             << QVariant::fromValue<QString>(cryptosystemProviderName)
@@ -2315,12 +2330,14 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoreKeyPreCheckCompleted(
                 break;
             }
             case ImportStoredKeyRequest: {
+                QByteArray data = pr.parameters.takeFirst().value<QByteArray>();
                 Key keyTemplate = pr.parameters.takeFirst().value<Key>();
                 InteractionParameters uiParams = pr.parameters.takeFirst().value<InteractionParameters>();
                 QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
                 importStoredKey_afterPreCheck(pr.callerPid,
                                               requestId,
+                                              data,
                                               keyTemplate,
                                               uiParams,
                                               customParameters,
@@ -2463,15 +2480,16 @@ void Daemon::ApiImpl::RequestProcessor::secretsUserInputCompleted(
                 break;
             }
             case ImportKeyRequest: {
-                Key key = pr.parameters.takeFirst().value<Key>();
+                QByteArray data = pr.parameters.takeFirst().value<QByteArray>();
                 InteractionParameters uiParams = pr.parameters.takeFirst().value<InteractionParameters>();
                 QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
-                importKey_withPassphrase(pr.callerPid, requestId, key, uiParams, customParameters, cryptosystemProviderName, returnResult, userInput);
+                importKey_withPassphrase(pr.callerPid, requestId, data, uiParams, customParameters, cryptosystemProviderName, returnResult, userInput);
                 break;
             }
             case ImportStoredKeyRequest: {
-                Key key = pr.parameters.takeFirst().value<Key>();
+                QByteArray data = pr.parameters.takeFirst().value<QByteArray>();
+                Key keyTemplate = pr.parameters.takeFirst().value<Key>();
                 InteractionParameters uiParams = pr.parameters.takeFirst().value<InteractionParameters>();
                 QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
@@ -2479,7 +2497,8 @@ void Daemon::ApiImpl::RequestProcessor::secretsUserInputCompleted(
                 importStoredKey_withPassphrase(
                             pr.callerPid,
                             requestId,
-                            key,
+                            data,
+                            keyTemplate,
                             uiParams,
                             customParameters,
                             cryptosystemProviderName,

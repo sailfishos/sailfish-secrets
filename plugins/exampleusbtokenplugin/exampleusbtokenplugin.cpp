@@ -85,10 +85,9 @@ bool ExampleUsbTokenPlugin::unlock(const QByteArray &lockCode)
        "6obcnqDfdVsOcLZIjLpXeoW3GQ7dakwe3gPwVvCEEDqNzTPosxKNCUKlzVasRECQ\n"
        "-----END RSA PRIVATE KEY-----\n");
 
-    Sailfish::Crypto::Key keyTemplate, importedKey;
-    keyTemplate.setPrivateKey(pemData);
+    Sailfish::Crypto::Key importedKey;
     Sailfish::Crypto::Result result = m_usbInterface.importKey(
-                keyTemplate, lockCode, QVariantMap(), &importedKey);
+                pemData, lockCode, QVariantMap(), &importedKey);
     if (result.code() == Crypto::Result::Succeeded) {
         m_usbTokenKey = importedKey;
     }

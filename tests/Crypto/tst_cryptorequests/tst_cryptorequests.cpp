@@ -2931,41 +2931,35 @@ static const auto test_key_dsa_1024_out = QByteArrayLiteral(
             "-----END PRIVATE KEY-----\n");
 
 static Key createPublicKey(
-        const Key::Identifier &identifier, const QByteArray &data, Key::Component constraints = Key::PublicKeyData)
+        const Key::Identifier &identifier)
 {
     Key key;
     key.setIdentifier(identifier);
-    key.setPublicKey(data);
-    key.setComponentConstraints(constraints);
+    key.setComponentConstraints(Key::MetaData | Key::PublicKeyData);
+    key.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt
+                     |Sailfish::Crypto::CryptoManager::OperationVerify);
 
     return key;
 }
 
 static Key createPrivateKey(
-        const Key::Identifier &identifier, const QByteArray &data, Key::Component constraints = Key::PrivateKeyData)
+        const Key::Identifier &identifier)
 {
     Key key;
     key.setIdentifier(identifier);
-    key.setPrivateKey(data);
-    key.setComponentConstraints(constraints);
-
-    return key;
-}
-
-static Key createSecretKey(
-        const Key::Identifier &identifier, const QByteArray &data, Key::Component constraints = Key::SecretKeyData)
-{
-    Key key;
-    key.setIdentifier(identifier);
-    key.setSecretKey(data);
-    key.setComponentConstraints(constraints);
+    key.setComponentConstraints(Key::MetaData | Key::PublicKeyData | Key::PrivateKeyData);
+    key.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt
+                     |Sailfish::Crypto::CryptoManager::OperationDecrypt
+                     |Sailfish::Crypto::CryptoManager::OperationSign
+                     |Sailfish::Crypto::CryptoManager::OperationVerify);
 
     return key;
 }
 
 void tst_cryptorequests::importKey_data()
 {
-    QTest::addColumn<Sailfish::Crypto::Key>("key");
+    QTest::addColumn<QByteArray>("data");
+    QTest::addColumn<Sailfish::Crypto::Key>("keyTemplate");
     QTest::addColumn<Sailfish::Crypto::InteractionParameters>("interactionParameters");
     QTest::addColumn<Sailfish::Crypto::Result::ResultCode>("resultCode");
     QTest::addColumn<Sailfish::Crypto::Result::ErrorCode>("errorCode");
@@ -2994,7 +2988,8 @@ void tst_cryptorequests::importKey_data()
                                   DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
 
     QTest::newRow("Private RSA 2048 - no passphrase")
-            << createPrivateKey(keyIdentifier, test_key_rsa_2048_in)
+            << test_key_rsa_2048_in
+            << createPrivateKey(keyIdentifier)
             << noUserInteraction
             << Result::Succeeded
             << Result::NoError
@@ -3004,7 +2999,8 @@ void tst_cryptorequests::importKey_data()
             << Key::OriginImported
             << CryptoManager::AlgorithmRsa;
     QTest::newRow("Private RSA 2048 - passphrase")
-            << createPrivateKey(keyIdentifier, test_key_rsa_2048_sailfish_in)
+            << test_key_rsa_2048_sailfish_in
+            << createPrivateKey(keyIdentifier)
             << promptForSailfishPassphrase
             << Result::Succeeded
             << Result::NoError
@@ -3014,7 +3010,8 @@ void tst_cryptorequests::importKey_data()
             << Key::OriginImported
             << CryptoManager::AlgorithmRsa;
     QTest::newRow("Public RSA 2048")
-            << createPublicKey(keyIdentifier, test_key_rsa_2048_pub)
+            << test_key_rsa_2048_pub
+            << createPublicKey(keyIdentifier)
             << noUserInteraction
             << Result::Succeeded
             << Result::NoError
@@ -3025,7 +3022,8 @@ void tst_cryptorequests::importKey_data()
             << CryptoManager::AlgorithmRsa;
 
     QTest::newRow("Private RSA 1024 - no passphrase")
-            << createPrivateKey(keyIdentifier, test_key_rsa_1024_in)
+            << test_key_rsa_1024_in
+            << createPrivateKey(keyIdentifier)
             << noUserInteraction
             << Result::Succeeded
             << Result::NoError
@@ -3035,7 +3033,8 @@ void tst_cryptorequests::importKey_data()
             << Key::OriginImported
             << CryptoManager::AlgorithmRsa;
     QTest::newRow("Private RSA 1024 - passphrase")
-            << createPrivateKey(keyIdentifier, test_key_rsa_1024_sailfish_in)
+            << test_key_rsa_1024_sailfish_in
+            << createPrivateKey(keyIdentifier)
             << promptForSailfishPassphrase
             << Result::Succeeded
             << Result::NoError
@@ -3045,7 +3044,8 @@ void tst_cryptorequests::importKey_data()
             << Key::OriginImported
             << CryptoManager::AlgorithmRsa;
     QTest::newRow("Public RSA 1024")
-            << createPublicKey(keyIdentifier, test_key_rsa_1024_pub)
+            << test_key_rsa_1024_pub
+            << createPublicKey(keyIdentifier)
             << noUserInteraction
             << Result::Succeeded
             << Result::NoError
@@ -3056,7 +3056,8 @@ void tst_cryptorequests::importKey_data()
             << CryptoManager::AlgorithmRsa;
 
     QTest::newRow("Private DSA 1024 - no passphrase")
-            << createPrivateKey(keyIdentifier, test_key_dsa_1024_in)
+            << test_key_dsa_1024_in
+            << createPrivateKey(keyIdentifier)
             << noUserInteraction
             << Result::Succeeded
             << Result::NoError
@@ -3066,7 +3067,8 @@ void tst_cryptorequests::importKey_data()
             << Key::OriginImported
             << CryptoManager::AlgorithmDsa;
     QTest::newRow("Private DSA 1024 - passphrase")
-            << createPrivateKey(keyIdentifier, test_key_dsa_1024_sailfish_in)
+            << test_key_dsa_1024_sailfish_in
+            << createPrivateKey(keyIdentifier)
             << promptForSailfishPassphrase
             << Result::Succeeded
             << Result::NoError
@@ -3076,7 +3078,8 @@ void tst_cryptorequests::importKey_data()
             << Key::OriginImported
             << CryptoManager::AlgorithmDsa;
     QTest::newRow("Public DSA 1024")
-            << createPublicKey(keyIdentifier, test_key_dsa_1024_pub)
+            << test_key_dsa_1024_pub
+            << createPublicKey(keyIdentifier)
             << noUserInteraction
             << Result::Succeeded
             << Result::NoError
@@ -3086,19 +3089,9 @@ void tst_cryptorequests::importKey_data()
             << Key::OriginImported
             << CryptoManager::AlgorithmDsa;
 
-    QTest::newRow("Private RSA 2048 - secret")
-            << createSecretKey(keyIdentifier, test_key_rsa_2048_in)
-            << noUserInteraction
-            << Result::Succeeded
-            << Result::NoError
-            << test_key_rsa_2048_out
-            << test_key_rsa_2048_pub
-            << 2048
-            << Key::OriginImported
-            << CryptoManager::AlgorithmRsa;
-
     QTest::newRow("Private RSA 2048 - passphrase, no user interaction")
-            << createPrivateKey(keyIdentifier, test_key_rsa_2048_sailfish_in)
+            << test_key_rsa_2048_sailfish_in
+            << createPrivateKey(keyIdentifier)
             << noUserInteraction
             << Result::Failed
             << Result::CryptoPluginIncorrectPassphrase
@@ -3108,7 +3101,8 @@ void tst_cryptorequests::importKey_data()
             << Key::OriginUnknown
             << CryptoManager::AlgorithmUnknown;
     QTest::newRow("Private RSA 2048 - passphrase, canceled")
-            << createPrivateKey(keyIdentifier, test_key_rsa_2048_sailfish_in)
+            << test_key_rsa_2048_sailfish_in
+            << createPrivateKey(keyIdentifier)
             << promptToCancel
             << Result::Failed
             << Result::CryptoPluginKeyImportError
@@ -3117,21 +3111,12 @@ void tst_cryptorequests::importKey_data()
             << 0
             << Key::OriginUnknown
             << CryptoManager::AlgorithmUnknown;
-    QTest::newRow("Private RSA 2048 - public constraint")
-            << createPrivateKey(keyIdentifier, test_key_rsa_2048_in, Key::PublicKeyData)
-            << noUserInteraction
-            << Result::Succeeded
-            << Result::NoError
-            << QByteArray()
-            << test_key_rsa_2048_pub
-            << 2048
-            << Key::OriginImported
-            << CryptoManager::AlgorithmRsa;
 }
 
 void tst_cryptorequests::importKey()
 {
-    QFETCH(Sailfish::Crypto::Key, key);
+    QFETCH(QByteArray, data);
+    QFETCH(Sailfish::Crypto::Key, keyTemplate);
     QFETCH(Sailfish::Crypto::InteractionParameters, interactionParameters);
     QFETCH(Sailfish::Crypto::Result::ResultCode, resultCode);
     QFETCH(Sailfish::Crypto::Result::ErrorCode, errorCode);
@@ -3141,14 +3126,16 @@ void tst_cryptorequests::importKey()
     QFETCH(Sailfish::Crypto::Key::Origin, origin);
     QFETCH(Sailfish::Crypto::CryptoManager::Algorithm, algorithm);
 
+    Q_UNUSED(keyTemplate); // importKey just uses the data.
+
     Sailfish::Crypto::ImportKeyRequest request;
     request.setManager(&cm);
 
     request.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(request.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
 
-    request.setKey(key);
-    QCOMPARE(request.key(), key);
+    request.setData(data);
+    QCOMPARE(request.data(), data);
 
     if (interactionParameters.isValid()) {
         QSKIP("Invalid interaction service address for in-app authentication");
@@ -3169,6 +3156,46 @@ void tst_cryptorequests::importKey()
     QCOMPARE(importedKey.size(), size);
     QCOMPARE(importedKey.origin(), origin);
     QCOMPARE(importedKey.algorithm(), algorithm);
+
+    // ensure that we can perform crypto operations with the imported key.
+    if (resultCode == Result::Succeeded && privateKey.size()) {
+        // attempt to sign some data with the key.
+        const QByteArray dataToSign("The quick brown fox jumps over the lazy dog");
+        Sailfish::Crypto::SignRequest sr;
+        sr.setManager(&cm);
+        sr.setData(dataToSign);
+        sr.setDigestFunction(Sailfish::Crypto::CryptoManager::DigestSha256);
+        sr.setPadding(Sailfish::Crypto::CryptoManager::SignaturePaddingNone);
+        sr.setKey(importedKey);
+        sr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+        sr.startRequest();
+        WAIT_FOR_FINISHED_WITHOUT_BLOCKING(sr);
+        QCOMPARE(sr.result().errorMessage(), QString());
+        QCOMPARE(sr.result().code(), Sailfish::Crypto::Result::Succeeded);
+        QCOMPARE(sr.signature().isEmpty(), false);
+
+        // attempt to verify the signed data.
+        Sailfish::Crypto::VerifyRequest vr;
+        vr.setManager(&cm);
+        vr.setData(dataToSign);
+        vr.setSignature(sr.signature());
+        vr.setDigestFunction(Sailfish::Crypto::CryptoManager::DigestSha256);
+        vr.setPadding(Sailfish::Crypto::CryptoManager::SignaturePaddingNone);
+        vr.setKey(importedKey);
+        vr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+        vr.startRequest();
+        WAIT_FOR_FINISHED_WITHOUT_BLOCKING(vr);
+        QCOMPARE(vr.result().errorMessage(), QString());
+        QCOMPARE(vr.result().code(), Sailfish::Crypto::Result::Succeeded);
+        QCOMPARE(vr.verified(), true);
+
+        // attempt to verify some other random data, and ensure that it fails.
+        const QByteArray randomDataToVerify("abcdef1234567890987654321fedcba");
+        vr.setData(randomDataToVerify);
+        vr.startRequest();
+        WAIT_FOR_FINISHED_WITHOUT_BLOCKING(vr);
+        QCOMPARE(vr.verified(), false);
+    }
 }
 
 void tst_cryptorequests::importKeyAndStore_data()
@@ -3176,7 +3203,8 @@ void tst_cryptorequests::importKeyAndStore_data()
     importKey_data();
 
     QTest::newRow("Private RSA 2048 - no identifier")
-            << createPrivateKey(Key::Identifier(), test_key_rsa_2048_in)
+            << test_key_rsa_2048_in
+            << createPrivateKey(Key::Identifier())
             << InteractionParameters()
             << Result::Failed
             << Result::InvalidKeyIdentifier
@@ -3189,7 +3217,8 @@ void tst_cryptorequests::importKeyAndStore_data()
 
 void tst_cryptorequests::importKeyAndStore()
 {
-    QFETCH(Sailfish::Crypto::Key, key);
+    QFETCH(QByteArray, data);
+    QFETCH(Sailfish::Crypto::Key, keyTemplate);
     QFETCH(Sailfish::Crypto::InteractionParameters, interactionParameters);
     QFETCH(Sailfish::Crypto::Result::ResultCode, resultCode);
     QFETCH(Sailfish::Crypto::Result::ErrorCode, errorCode);
@@ -3203,12 +3232,12 @@ void tst_cryptorequests::importKeyAndStore()
         QSKIP("Invalid interaction service address for in-app authentication");
     }
 
-    if (!key.collectionName().isEmpty()) {
+    if (!keyTemplate.collectionName().isEmpty()) {
         // first, create the collection via the Secrets API.
         Sailfish::Secrets::CreateCollectionRequest ccr;
         ccr.setManager(&sm);
         ccr.setCollectionLockType(Sailfish::Secrets::CreateCollectionRequest::DeviceLock);
-        ccr.setCollectionName(key.collectionName());
+        ccr.setCollectionName(keyTemplate.collectionName());
         ccr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
         ccr.setEncryptionPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
         ccr.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
@@ -3220,7 +3249,7 @@ void tst_cryptorequests::importKeyAndStore()
         if (ccr.result().code() == Sailfish::Secrets::Result::Failed) {
             qDebug() << ccr.result().errorMessage();
         } else {
-            populatedCollections.insert(key.collectionName(), key.storagePluginName());
+            populatedCollections.insert(keyTemplate.collectionName(), keyTemplate.storagePluginName());
         }
     }
 
@@ -3230,8 +3259,10 @@ void tst_cryptorequests::importKeyAndStore()
     request.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(request.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
 
-    request.setKey(key);
-    QCOMPARE(request.key(), key);
+    request.setData(data);
+    QCOMPARE(request.data(), data);
+    request.setKeyTemplate(keyTemplate);
+    QCOMPARE(request.keyTemplate(), keyTemplate);
 
     request.startRequest();
 
@@ -3250,10 +3281,51 @@ void tst_cryptorequests::importKeyAndStore()
         // but, when we successfully store an imported key, we always
         // return a key reference which contains no private key data.
         QCOMPARE(importedKey.privateKey(), QByteArray());
+        QCOMPARE(importedKey.identifier(), keyTemplate.identifier());
     }
     QCOMPARE(importedKey.size(), size);
     QCOMPARE(importedKey.origin(), origin);
     QCOMPARE(importedKey.algorithm(), algorithm);
+
+    // ensure that we can perform crypto operations with the stored key.
+    if (resultCode == Result::Succeeded && privateKey.size()) {
+        // attempt to sign some data with the key.
+        const QByteArray dataToSign("The quick brown fox jumps over the lazy dog");
+        Sailfish::Crypto::SignRequest sr;
+        sr.setManager(&cm);
+        sr.setData(dataToSign);
+        sr.setDigestFunction(Sailfish::Crypto::CryptoManager::DigestSha256);
+        sr.setPadding(Sailfish::Crypto::CryptoManager::SignaturePaddingNone);
+        sr.setKey(importedKey);
+        sr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+        sr.startRequest();
+        WAIT_FOR_FINISHED_WITHOUT_BLOCKING(sr);
+        QCOMPARE(sr.result().errorMessage(), QString());
+        QCOMPARE(sr.result().code(), Sailfish::Crypto::Result::Succeeded);
+        QCOMPARE(sr.signature().isEmpty(), false);
+
+        // attempt to verify the signed data.
+        Sailfish::Crypto::VerifyRequest vr;
+        vr.setManager(&cm);
+        vr.setData(dataToSign);
+        vr.setSignature(sr.signature());
+        vr.setDigestFunction(Sailfish::Crypto::CryptoManager::DigestSha256);
+        vr.setPadding(Sailfish::Crypto::CryptoManager::SignaturePaddingNone);
+        vr.setKey(importedKey);
+        vr.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
+        vr.startRequest();
+        WAIT_FOR_FINISHED_WITHOUT_BLOCKING(vr);
+        QCOMPARE(vr.result().errorMessage(), QString());
+        QCOMPARE(vr.result().code(), Sailfish::Crypto::Result::Succeeded);
+        QCOMPARE(vr.verified(), true);
+
+        // attempt to verify some other random data, and ensure that it fails.
+        const QByteArray randomDataToVerify("abcdef1234567890987654321fedcba");
+        vr.setData(randomDataToVerify);
+        vr.startRequest();
+        WAIT_FOR_FINISHED_WITHOUT_BLOCKING(vr);
+        QCOMPARE(vr.verified(), false);
+    }
 }
 
 void tst_cryptorequests::exampleUsbTokenPlugin()

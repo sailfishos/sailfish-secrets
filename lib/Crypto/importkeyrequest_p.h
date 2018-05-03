@@ -33,7 +33,7 @@ public:
     QString m_cryptoPluginName;
     QVariantMap m_customParameters;
     Sailfish::Crypto::InteractionParameters m_uiParams;
-    Sailfish::Crypto::Key m_key;
+    QByteArray m_data;
     Sailfish::Crypto::Key m_importedKey;
 
     QScopedPointer<QDBusPendingCallWatcher> m_watcher;

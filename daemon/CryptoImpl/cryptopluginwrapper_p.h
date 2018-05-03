@@ -51,6 +51,7 @@ public:
 
     Sailfish::Crypto::Result importAndStoreKey(
             const Sailfish::Secrets::Daemon::ApiImpl::SecretMetadata &metadata,
+            const QByteArray &data,
             const Sailfish::Crypto::Key &keyTemplate,
             const QByteArray &importPassphrase,
             const QVariantMap &customParameters,

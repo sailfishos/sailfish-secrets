@@ -90,12 +90,14 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateAndStoreKey(
 
 Result
 Daemon::Plugins::OpenSslCryptoPlugin::importAndStoreKey(
-        const Sailfish::Crypto::Key &key,
+        const QByteArray &data,
+        const Sailfish::Crypto::Key &keyTemplate,
         const QByteArray &passphrase,
         const QVariantMap &customParameters,
         Key *keyMetadata)
 {
-    Q_UNUSED(key);
+    Q_UNUSED(data);
+    Q_UNUSED(keyTemplate);
     Q_UNUSED(passphrase);
     Q_UNUSED(customParameters);
     Q_UNUSED(keyMetadata);
@@ -461,44 +463,39 @@ static int importKeyPassphraseCallback(char *buffer, int size, int, void *userDa
 
 Sailfish::Crypto::Result
 Daemon::Plugins::OpenSslCryptoPlugin::importKey(
-        const Sailfish::Crypto::Key &key,
+        const QByteArray &data,
         const QByteArray &passphrase,
         const QVariantMap &customParameters,
         Sailfish::Crypto::Key *importedKey)
 {
     Q_UNUSED(customParameters);
 
-    *importedKey = key;
-
-    QByteArray privateKey = key.privateKey();
-    QByteArray publicKey = key.publicKey();
-
-    if (privateKey.isEmpty()) {
-        privateKey = key.secretKey();
-    }
-
-    importedKey->setPrivateKey(QByteArray());
-    importedKey->setPublicKey(QByteArray());
-    importedKey->setSecretKey(QByteArray());
-
+    bool hasPrivateKeyData = false;
     EVP_PKEY *pkeyPtr = Q_NULLPTR;
 
     PassphraseData passphraseData { passphrase, false };
 
-    const bool exportPrivate = !privateKey.isEmpty();
-
-    if (!privateKey.isEmpty()) {
+    if (data.isEmpty()) {
+        return Result(Result::CryptoPluginKeyImportError, QLatin1String("No key data provided"));
+    } else {
+        // attempt to read the data as a private key
         QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(
-                    BIO_new_mem_buf(const_cast<char *>(privateKey.data()), privateKey.size()));
+                    BIO_new_mem_buf(const_cast<char *>(data.data()), data.size()));
 
         PEM_read_bio_PrivateKey(bio.data(), &pkeyPtr, importKeyPassphraseCallback, &passphraseData);
-    } else if (!publicKey.isEmpty()) {
+        if (pkeyPtr) {
+            hasPrivateKeyData = true;
+        } else if (passphraseData.requested) {
+            return Result(Result::CryptoPluginIncorrectPassphrase, QLatin1String("Incorrect passphrase"));
+        }
+    }
+
+    if (!hasPrivateKeyData) {
+        // otherwise, attempt to read the data as a public key
         QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(
-                    BIO_new_mem_buf(const_cast<char *>(publicKey.data()), publicKey.size()));
+                    BIO_new_mem_buf(const_cast<char *>(data.data()), data.size()));
 
         PEM_read_bio_PUBKEY(bio.data(), &pkeyPtr, importKeyPassphraseCallback, &passphraseData);
-    } else {
-        return Result(Result::CryptoPluginKeyImportError, QLatin1String("No key data provided"));
     }
 
     if (!pkeyPtr) {
@@ -529,6 +526,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::importKey(
         break;
     }
 
+    QByteArray publicKey;
     {
         QScopedPointer<BIO, LibCrypto_BIO_Deleter> pubbio(BIO_new(BIO_s_mem()));
         if (PEM_write_bio_PUBKEY(pubbio.data(), pkey.data()) != 1) {
@@ -543,7 +541,8 @@ Daemon::Plugins::OpenSslCryptoPlugin::importKey(
         }
     }
 
-    if (exportPrivate) {
+    QByteArray privateKey;
+    if (hasPrivateKeyData) {
         QScopedPointer<BIO, LibCrypto_BIO_Deleter> privbio(BIO_new(BIO_s_mem()));
         if (PEM_write_bio_PrivateKey(privbio.data(), pkey.data(), NULL, NULL, 0, NULL, NULL) < 1) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyImportError,

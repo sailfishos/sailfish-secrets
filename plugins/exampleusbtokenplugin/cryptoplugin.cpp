@@ -85,7 +85,8 @@ ExampleUsbTokenPlugin::generateAndStoreKey(
 
 Result
 ExampleUsbTokenPlugin::importAndStoreKey(
-        const Key & /* key */,
+        const QByteArray & /* data */,
+        const Key & /* keyTemplate */,
         const QByteArray & /* passphrase */,
         const QVariantMap & /* customParameters */,
         Key * /* keyMetadata */)
@@ -195,7 +196,7 @@ ExampleUsbTokenPlugin::generateKey(
 
 Result
 ExampleUsbTokenPlugin::importKey(
-        const Key & /* key */,
+        const QByteArray & /* keyData */,
         const QByteArray & /* passphrase */,
         const QVariantMap & /* customParameters */,
         Key * /* importedKey */)
