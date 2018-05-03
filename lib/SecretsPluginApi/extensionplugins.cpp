@@ -46,10 +46,10 @@ using namespace Sailfish::Secrets;
   they are implementing a Crypto-Storage plugin).
 
   Plugin implementers must be aware that the information reporting methods (name(), version(),
-  and supportsLocking()) will be invoked from the main thread of the secrets daemon, while
-  the various locking operation methods (isLocked(), lock(), unlock(), and setLockCode())
-  will be invoked from a separate thread.  Plugins are loaded and plugin instances are constructed
-  in the main thread.
+  supportsLocking(), and supportsSetLockCode()) will be invoked from the main thread of the
+  secrets daemon, while the various locking operation methods (isLocked(), lock(), unlock(),
+  and setLockCode()) and availability reporting method (isAvailable()) will be invoked from a
+  separate thread.  Plugins are loaded and plugin instances are constructed in the main thread.
 
   In order to implement a Secrets extension plugin, plugin implementers should
   specify the following in their .pro file:
@@ -119,6 +119,36 @@ PluginBase::~PluginBase()
 bool PluginBase::supportsLocking() const
 {
     return false;
+}
+
+/*!
+ * \brief Returns true if the plugin supports allowing clients to set the lock code.
+ *
+ * The default implementation returns the same value as supportsLocking(),
+ * as most plugins which support locking should allow clients to change
+ * the lock code, however this may be overridden by the plugin implementation
+ * if the lock code is pre-set and cannot be changed, or if the lock code
+ * may only be set initially but thereafter cannot be changed.
+ */
+bool PluginBase::supportsSetLockCode() const
+{
+    return supportsLocking();
+}
+
+/*!
+ * \brief Returns true if the plugin is available for use.
+ *
+ * The default implementation returns true, as by default it is
+ * assumed that the plugin does not require any external hardware
+ * to be connected to the device in order to offer functionality
+ * to clients.  This method should be overridden by a specific plugin
+ * implementation if it requires physical hardware (e.g. a USB token)
+ * or network connectivity (e.g. to talk to remote web service) and
+ * thus may situationally be either available or unavailable.
+ */
+bool PluginBase::isAvailable() const
+{
+    return true;
 }
 
 /*!

@@ -86,7 +86,9 @@ public:
     }
 
     // Implement the PluginBase interface methods
+    bool isAvailable() const Q_DECL_OVERRIDE;
     bool supportsLocking() const Q_DECL_OVERRIDE { return true; }
+    bool supportsSetLockCode() const Q_DECL_OVERRIDE;
     bool isLocked() const Q_DECL_OVERRIDE;
     bool lock() Q_DECL_OVERRIDE;
     bool unlock(const QByteArray &lockCode) Q_DECL_OVERRIDE;

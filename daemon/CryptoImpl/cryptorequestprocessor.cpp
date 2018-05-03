@@ -164,12 +164,25 @@ Daemon::ApiImpl::RequestProcessor::getPluginInfo(
     }
 
     for (const Sailfish::Secrets::PluginInfo &plugin : storagePluginInfos) {
-        storagePlugins->append(PluginInfo(plugin.name(), plugin.version()));
+        storagePlugins->append(PluginInfo(plugin.displayName(),
+                                          plugin.name(),
+                                          plugin.version(),
+                                          static_cast<PluginInfo::StatusFlags>(
+                                              static_cast<int>(plugin.statusFlags()))));
     }
 
-    QMap<QString, CryptoPlugin*>::const_iterator it = m_cryptoPlugins.constBegin();
-    for (; it != m_cryptoPlugins.constEnd(); it++) {
-        cryptoPlugins->append(PluginInfo(it.value()->name(), it.value()->version()));
+    QList<Sailfish::Secrets::PluginBase*> cplugins;
+    for (CryptoPlugin *plugin : m_cryptoPlugins.values()) {
+        cplugins.append(plugin);
+    }
+    const QMap<QString, Sailfish::Secrets::PluginInfo> cryptoPluginInfos
+            = m_requestQueue->controller()->pluginInfoForPlugins(cplugins, m_secrets->masterLocked());
+    for (const Sailfish::Secrets::PluginInfo &plugin : cryptoPluginInfos) {
+        cryptoPlugins->append(PluginInfo(plugin.displayName(),
+                                         plugin.name(),
+                                         plugin.version(),
+                                         static_cast<PluginInfo::StatusFlags>(
+                                             static_cast<int>(plugin.statusFlags()))));
     }
 
     return retn;

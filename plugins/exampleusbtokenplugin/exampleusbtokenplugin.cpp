@@ -27,6 +27,22 @@ ExampleUsbTokenPlugin::~ExampleUsbTokenPlugin()
 {
 }
 
+bool ExampleUsbTokenPlugin::isAvailable() const
+{
+    // In a real USB token-backed plugin, this method would
+    // detect whether the USB token is connected to the device
+    // via USB, and return its availability status.
+
+    // In this example, we always return true.
+    return true;
+}
+
+bool ExampleUsbTokenPlugin::supportsSetLockCode() const
+{
+    // we don't support changing the lock code in this example.
+    return false;
+}
+
 bool ExampleUsbTokenPlugin::isLocked() const
 {
     return m_usbTokenKey.publicKey().isEmpty();

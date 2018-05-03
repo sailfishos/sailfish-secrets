@@ -12,6 +12,7 @@
 #include "CryptoImpl/crypto_p.h"
 #include "SecretsImpl/secrets_p.h"
 #include "SecretsImpl/metadatadb_p.h"
+#include "SecretsImpl/pluginfunctionwrappers_p.h"
 
 #include <QtCore/QString>
 #include <QtCore/QDir>
@@ -136,6 +137,53 @@ QString Sailfish::Secrets::Daemon::Controller::displayNameForPlugin(const QStrin
     } else {
         return m_secrets->displayNameForStoragePlugin(pluginName);
     }
+}
+
+QMap<QString, Sailfish::Secrets::PluginInfo>
+Sailfish::Secrets::Daemon::Controller::pluginInfoForPlugins(
+        QList<Sailfish::Secrets::PluginBase*> plugins,
+        bool masterLocked)
+{
+    QMap<QString, Sailfish::Secrets::PluginInfo> infos;
+    for (Sailfish::Secrets::PluginBase *plugin : plugins) {
+        Sailfish::Secrets::PluginInfo info;
+
+        // metadata reporting occurs in main thread
+        Sailfish::Secrets::PluginInfo::StatusFlags flags = Sailfish::Secrets::PluginInfo::Unknown;
+        info.setDisplayName(plugin->displayName());
+        info.setName(plugin->name());
+        info.setVersion(plugin->version());
+        if (plugin->supportsLocking()) {
+            flags |= Sailfish::Secrets::PluginInfo::PluginSupportsLocking;
+        }
+        if (plugin->supportsSetLockCode()) {
+            flags |= Sailfish::Secrets::PluginInfo::PluginSupportsSetLockCode;
+        }
+        if (!masterLocked) {
+            flags |= Sailfish::Secrets::PluginInfo::MasterUnlocked;
+        }
+
+        // lock state and availability reporting occurs in plugin thread
+        // TODO: make this asynchronous instead of blocking the main thread!
+        QFuture<Sailfish::Secrets::Daemon::ApiImpl::PluginState> future
+                = QtConcurrent::run(
+                        threadPoolForPlugin(info.name()).data(),
+                        &Sailfish::Secrets::Daemon::ApiImpl::pluginState,
+                        plugin);
+        future.waitForFinished();
+        Sailfish::Secrets::Daemon::ApiImpl::PluginState ps = future.result();
+        if (ps.available) {
+            flags |= Sailfish::Secrets::PluginInfo::Available;
+        }
+        if (!ps.locked) {
+            flags |= Sailfish::Secrets::PluginInfo::PluginUnlocked;
+        }
+
+        info.setStatusFlags(flags);
+        infos.insert(info.name(), info);
+    }
+
+    return infos;
 }
 
 void Sailfish::Secrets::Daemon::Controller::handleClientConnection(const QDBusConnection &connection)

@@ -98,12 +98,25 @@ QVector<PluginInfo>
 Daemon::ApiImpl::RequestProcessor::storagePluginInfo() const
 {
     QVector<PluginInfo> infos;
+    QList<PluginBase*> storagePlugins;
+    for (StoragePluginWrapper *plugin : m_storagePlugins.values()) {
+        storagePlugins.append(plugin);
+    }
+    for (EncryptedStoragePluginWrapper *plugin : m_encryptedStoragePlugins.values()) {
+        storagePlugins.append(plugin);
+    }
+
+    QMap<QString, PluginInfo> pluginInfos
+            = m_requestQueue->controller()->pluginInfoForPlugins(
+                storagePlugins, m_requestQueue->masterLocked());
+
     for (StoragePluginWrapper *plugin : m_storagePlugins) {
-        infos.append(PluginInfo(plugin->name(), plugin->version()));
+        infos.append(pluginInfos.value(plugin->name()));
     }
     for (EncryptedStoragePluginWrapper *plugin : m_encryptedStoragePlugins) {
-        infos.append(PluginInfo(plugin->name(), plugin->version()));
+        infos.append(pluginInfos.value(plugin->name()));
     }
+
     return infos;
 }
 
