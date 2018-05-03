@@ -46,6 +46,9 @@ public:
     OpenSslCryptoPlugin(QObject *parent = Q_NULLPTR);
     ~OpenSslCryptoPlugin();
 
+    QString displayName() const Q_DECL_OVERRIDE {
+        return QStringLiteral("OpenSSL Crypto");
+    }
     QString name() const Q_DECL_OVERRIDE {
 #ifdef SAILFISHCRYPTO_TESTPLUGIN
         return QLatin1String("org.sailfishos.crypto.plugin.crypto.openssl.test");

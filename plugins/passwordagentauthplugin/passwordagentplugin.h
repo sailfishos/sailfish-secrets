@@ -41,6 +41,11 @@ public:
     explicit PasswordAgentPlugin(QObject *parent = Q_NULLPTR);
     ~PasswordAgentPlugin();
 
+    QString displayName() const Q_DECL_OVERRIDE {
+        //: The (human readable) display name of the default system password-agent plugin
+        //% "Sailfish OS Password Agent"
+        return qtTrId("password_agent-display_name");
+    }
     QString name() const Q_DECL_OVERRIDE {
 #ifdef SAILFISHSECRETS_TESTPLUGIN
         return QLatin1String("org.sailfishos.secrets.plugin.authentication.passwordagent.test");

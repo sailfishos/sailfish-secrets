@@ -459,7 +459,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_afterPreCheck(
             promptParams.setPromptText(qtTrId("sailfish_crypto-generate_stored_key-la-enter_key_passphrase")
                                        .arg(keyTemplate.identifier().name(),
                                             keyTemplate.identifier().collectionName(),
-                                            keyTemplate.identifier().storagePluginName()));
+                                            m_requestQueue->controller()->displayNameForPlugin(keyTemplate.identifier().storagePluginName())));
             promptParams.setInputType(static_cast<Sailfish::Secrets::InteractionParameters::InputType>(uiParams.inputType()));
             promptParams.setEchoMode(static_cast<Sailfish::Secrets::InteractionParameters::EchoMode>(uiParams.echoMode()));
             result = transformSecretsResult(m_secrets->userInput(
@@ -671,7 +671,7 @@ Result Daemon::ApiImpl::RequestProcessor::promptForKeyPassphrase(
     promptParams.setPromptText(qtTrId("sailfish_crypto-import_key-la-enter_import_passphrase")
                                .arg(key.identifier().name(),
                                     key.identifier().collectionName(),
-                                    key.identifier().storagePluginName()));
+                                    m_requestQueue->controller()->displayNameForPlugin(key.identifier().storagePluginName())));
     promptParams.setInputType(static_cast<Sailfish::Secrets::InteractionParameters::InputType>(uiParams.inputType()));
     promptParams.setEchoMode(static_cast<Sailfish::Secrets::InteractionParameters::EchoMode>(uiParams.echoMode()));
 

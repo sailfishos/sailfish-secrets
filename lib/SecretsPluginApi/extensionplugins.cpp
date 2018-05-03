@@ -60,13 +60,28 @@ using namespace Sailfish::Secrets;
  */
 
 /*!
+ * \fn PluginBase::displayName() const
+ * \brief Return the translated display name of the plugin
+ *
+ * This name will be shown to the user of the device in system prompts when
+ * an attempt is made to access a secret or key stored within the plugin.
+ * It should be a human-readable string, which is informative for the user,
+ * and may need to be translated into different languages if the display
+ * name is not a proper noun.
+ *
+ * For example, the example encrypted storage plugin based on SQLCipher
+ * has the display name "SQLCipher".
+ */
+
+/*!
  * \fn PluginBase::name() const
  * \brief Return the name of the plugin
  *
  * This name must be globally unique, so a fully-qualified-domain-name
- * prefix is recommended.  For example, the example encrypted storage
- * plugin based on SQLCipher has the name:
- * "org.sailfishos.secrets.encryptedstorage.sqlcipher"
+ * prefix is recommended.
+ *
+ * For example, the example encrypted storage plugin based on SQLCipher
+ * has the name: "org.sailfishos.secrets.encryptedstorage.sqlcipher".
  */
 
 /*!

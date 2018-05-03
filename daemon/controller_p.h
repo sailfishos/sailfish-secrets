@@ -52,6 +52,7 @@ public:
     Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *secrets() const;
     Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *crypto() const;
     QWeakPointer<QThreadPool> threadPoolForPlugin(const QString &pluginName) const;
+    QString displayNameForPlugin(const QString &pluginName) const;
 
 public Q_SLOTS:
     void handleClientConnection(const QDBusConnection &connection);

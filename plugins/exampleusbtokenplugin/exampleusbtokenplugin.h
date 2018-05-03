@@ -69,6 +69,11 @@ public:
     ExampleUsbTokenPlugin(QObject *parent = Q_NULLPTR);
     ~ExampleUsbTokenPlugin();
 
+    QString displayName() const Q_DECL_OVERRIDE {
+        //: The (human readable) display name of the Example USB Token plugin
+        //% "Example USB Token"
+        return qtTrId("example_usb_token-display_name");
+    }
     QString name() const Q_DECL_OVERRIDE {
 #ifdef SAILFISHSECRETS_TESTPLUGIN
         return QLatin1String("org.sailfishos.secrets.plugin.cryptostorage.exampleusbtoken.test");

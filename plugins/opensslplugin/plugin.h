@@ -31,6 +31,10 @@ class Q_DECL_EXPORT OpenSslPlugin : public QObject, public virtual Sailfish::Sec
 public:
     OpenSslPlugin(QObject *parent = Q_NULLPTR);
     ~OpenSslPlugin();
+
+    QString displayName() const Q_DECL_OVERRIDE {
+        return QStringLiteral("OpenSSL Secrets");
+    }
     QString name() const Q_DECL_OVERRIDE {
 #ifdef SAILFISHSECRETS_TESTPLUGIN
         return QLatin1String("org.sailfishos.secrets.plugin.encryption.openssl.test");

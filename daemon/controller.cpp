@@ -129,6 +129,15 @@ QWeakPointer<QThreadPool> Sailfish::Secrets::Daemon::Controller::threadPoolForPl
     }
 }
 
+QString Sailfish::Secrets::Daemon::Controller::displayNameForPlugin(const QString &pluginName) const
+{
+    if (m_crypto->plugins().contains(pluginName)) {
+        return m_crypto->plugins().value(pluginName)->displayName();
+    } else {
+        return m_secrets->displayNameForStoragePlugin(pluginName);
+    }
+}
+
 void Sailfish::Secrets::Daemon::Controller::handleClientConnection(const QDBusConnection &connection)
 {
     qCDebug(lcSailfishSecretsDaemon) << "New client p2p connection received!" << connection.name();
