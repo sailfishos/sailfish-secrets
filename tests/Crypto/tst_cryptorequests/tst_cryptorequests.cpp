@@ -81,6 +81,7 @@ using namespace Sailfish::Crypto;
         }                                                                   \
     } while (0)
 
+#define TEST_USB_TOKEN_PLUGIN_NAME QStringLiteral("org.sailfishos.secrets.plugin.cryptostorage.exampleusbtoken.test")
 #define DEFAULT_TEST_CRYPTO_PLUGIN_NAME CryptoManager::DefaultCryptoPluginName + QLatin1String(".test")
 #define DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName + QLatin1String(".test")
 #define DEFAULT_TEST_STORAGE_PLUGIN Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test")
@@ -280,11 +281,52 @@ void tst_cryptorequests::getPluginInfo()
     QCOMPARE(r.result().code(), Result::Succeeded);
     QCOMPARE(cs.count(), 1);
     QVERIFY(r.cryptoPlugins().size());
-    QStringList cryptoPluginNames;
+    bool foundTestCryptoPlugin = false;
+    bool foundTestCryptoStoragePluginInC = false;
+    bool foundTestCryptoStoragePluginInS = false;
+    bool foundTestUsbPlugin = false;
     for (auto p : r.cryptoPlugins()) {
-        cryptoPluginNames.append(p.name());
+        if (p.name() == DEFAULT_TEST_CRYPTO_PLUGIN_NAME) {
+            foundTestCryptoPlugin = true;
+            QCOMPARE(p.displayName(), QStringLiteral("OpenSSL Crypto"));
+            QCOMPARE(p.statusFlags() & PluginInfo::Available, PluginInfo::Available);
+            QCOMPARE(p.statusFlags() & PluginInfo::MasterUnlocked, PluginInfo::MasterUnlocked);
+            QCOMPARE(p.statusFlags() & PluginInfo::PluginUnlocked, PluginInfo::PluginUnlocked);
+            QCOMPARE(p.statusFlags() & PluginInfo::PluginSupportsLocking, 0);
+            QCOMPARE(p.statusFlags() & PluginInfo::PluginSupportsSetLockCode, 0);
+        } else if (p.name() == DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME) {
+            foundTestCryptoStoragePluginInC = true;
+            QCOMPARE(p.displayName(), QStringLiteral("SQLCipher"));
+            QCOMPARE(p.statusFlags() & PluginInfo::Available, PluginInfo::Available);
+            QCOMPARE(p.statusFlags() & PluginInfo::MasterUnlocked, PluginInfo::MasterUnlocked);
+            QCOMPARE(p.statusFlags() & PluginInfo::PluginUnlocked, PluginInfo::PluginUnlocked);
+            QCOMPARE(p.statusFlags() & PluginInfo::PluginSupportsLocking, 0);
+            QCOMPARE(p.statusFlags() & PluginInfo::PluginSupportsSetLockCode, 0);
+        } else if (p.name() == TEST_USB_TOKEN_PLUGIN_NAME) {
+            foundTestUsbPlugin = true;
+            QCOMPARE(p.statusFlags() & PluginInfo::Available, PluginInfo::Available);
+            QCOMPARE(p.statusFlags() & PluginInfo::MasterUnlocked, PluginInfo::MasterUnlocked);
+            QCOMPARE(p.statusFlags() & PluginInfo::PluginUnlocked, 0);
+            QCOMPARE(p.statusFlags() & PluginInfo::PluginSupportsLocking, PluginInfo::PluginSupportsLocking);
+            QCOMPARE(p.statusFlags() & PluginInfo::PluginSupportsSetLockCode, 0);
+        }
     }
-    QVERIFY(cryptoPluginNames.contains(DEFAULT_TEST_CRYPTO_PLUGIN_NAME));
+    for (auto p : r.storagePlugins()) {
+        if (p.name() == DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME) {
+            foundTestCryptoStoragePluginInS = true;
+            QCOMPARE(p.displayName(), QStringLiteral("SQLCipher"));
+            QCOMPARE(p.statusFlags() & PluginInfo::Available, PluginInfo::Available);
+            QCOMPARE(p.statusFlags() & PluginInfo::MasterUnlocked, PluginInfo::MasterUnlocked);
+            QCOMPARE(p.statusFlags() & PluginInfo::PluginUnlocked, PluginInfo::PluginUnlocked);
+            QCOMPARE(p.statusFlags() & PluginInfo::PluginSupportsLocking, 0);
+            QCOMPARE(p.statusFlags() & PluginInfo::PluginSupportsSetLockCode, 0);
+        }
+    }
+
+    QCOMPARE(foundTestCryptoPlugin, true);
+    QCOMPARE(foundTestCryptoStoragePluginInC, true);
+    QCOMPARE(foundTestCryptoStoragePluginInS, true);
+    QCOMPARE(foundTestUsbPlugin, true);
 }
 
 void tst_cryptorequests::randomData()
@@ -3266,10 +3308,9 @@ void tst_cryptorequests::exampleUsbTokenPlugin()
     QCOMPARE(pir.result().errorMessage(), QString());
     QCOMPARE(pir.result().code(), Sailfish::Crypto::Result::Succeeded);
 
-    const QString exampleUsbTokenPluginName = QStringLiteral("org.sailfishos.secrets.plugin.cryptostorage.exampleusbtoken.test");
     bool foundUsbTokenExampleCryptoPlugin = false;
     for (const Sailfish::Crypto::PluginInfo &pi : pir.cryptoPlugins()) {
-        if (pi.name() == exampleUsbTokenPluginName) {
+        if (pi.name() == TEST_USB_TOKEN_PLUGIN_NAME) {
             foundUsbTokenExampleCryptoPlugin = true;
             break;
         }
@@ -3278,7 +3319,7 @@ void tst_cryptorequests::exampleUsbTokenPlugin()
 
     bool foundUsbTokenExampleStoragePlugin = false;
     for (const Sailfish::Crypto::PluginInfo &pi : pir.storagePlugins()) {
-        if (pi.name() == exampleUsbTokenPluginName) {
+        if (pi.name() == TEST_USB_TOKEN_PLUGIN_NAME) {
             foundUsbTokenExampleStoragePlugin = true;
             break;
         }
@@ -3290,7 +3331,7 @@ void tst_cryptorequests::exampleUsbTokenPlugin()
     lcr.setManager(&cm);
     lcr.setLockCodeRequestType(Sailfish::Crypto::LockCodeRequest::ProvideLockCode);
     lcr.setLockCodeTargetType(Sailfish::Crypto::LockCodeRequest::ExtensionPlugin);
-    lcr.setLockCodeTarget(exampleUsbTokenPluginName);
+    lcr.setLockCodeTarget(TEST_USB_TOKEN_PLUGIN_NAME);
     lcr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
     QCOMPARE(lcr.result().errorMessage(), QString());
@@ -3300,14 +3341,14 @@ void tst_cryptorequests::exampleUsbTokenPlugin()
     // check that it reports the "Default" key in the "Default" collection.
     Sailfish::Crypto::StoredKeyIdentifiersRequest skir;
     skir.setManager(&cm);
-    skir.setStoragePluginName(exampleUsbTokenPluginName);
+    skir.setStoragePluginName(TEST_USB_TOKEN_PLUGIN_NAME);
     skir.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(skir);
     QCOMPARE(skir.result().errorMessage(), QString());
     QCOMPARE(skir.result().code(), Sailfish::Crypto::Result::Succeeded);
     bool foundDefaultKey = false;
     for (const Sailfish::Crypto::Key::Identifier &id : skir.identifiers()) {
-        if (id.storagePluginName() == exampleUsbTokenPluginName
+        if (id.storagePluginName() == TEST_USB_TOKEN_PLUGIN_NAME
                 && id.collectionName() == QStringLiteral("Default")
                 && id.name() == QStringLiteral("Default")) {
             foundDefaultKey = true;
@@ -3325,8 +3366,8 @@ void tst_cryptorequests::exampleUsbTokenPlugin()
     sr.setPadding(Sailfish::Crypto::CryptoManager::SignaturePaddingNone);
     sr.setKey(Sailfish::Crypto::Key(QStringLiteral("Default"),
                                     QStringLiteral("Default"),
-                                    exampleUsbTokenPluginName));
-    sr.setCryptoPluginName(exampleUsbTokenPluginName);
+                                    TEST_USB_TOKEN_PLUGIN_NAME));
+    sr.setCryptoPluginName(TEST_USB_TOKEN_PLUGIN_NAME);
     sr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(sr);
     QCOMPARE(sr.result().errorMessage(), QString());
@@ -3342,8 +3383,8 @@ void tst_cryptorequests::exampleUsbTokenPlugin()
     vr.setPadding(Sailfish::Crypto::CryptoManager::SignaturePaddingNone);
     vr.setKey(Sailfish::Crypto::Key(QStringLiteral("Default"),
                                     QStringLiteral("Default"),
-                                    exampleUsbTokenPluginName));
-    vr.setCryptoPluginName(exampleUsbTokenPluginName);
+                                    TEST_USB_TOKEN_PLUGIN_NAME));
+    vr.setCryptoPluginName(TEST_USB_TOKEN_PLUGIN_NAME);
     vr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(vr);
     QCOMPARE(vr.result().errorMessage(), QString());

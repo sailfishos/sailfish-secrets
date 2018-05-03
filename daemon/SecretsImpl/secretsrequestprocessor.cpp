@@ -135,17 +135,34 @@ Daemon::ApiImpl::RequestProcessor::getPluginInfo(
     Q_UNUSED(callerPid); // TODO: perform access control request to see if the application has permission to read secure storage metadata.
     Q_UNUSED(requestId); // The request is synchronous, so don't need the requestId.
 
-    for (const StoragePluginWrapper *plugin : m_storagePlugins.values()) {
-        storagePlugins->append(PluginInfo(plugin->name(), plugin->version()));
+    QList<PluginBase*> allPlugins;
+    for (StoragePluginWrapper *plugin : m_storagePlugins.values()) {
+        allPlugins.append(plugin);
     }
-    for (const EncryptionPlugin *plugin : m_encryptionPlugins.values()) {
-        encryptionPlugins->append(PluginInfo(plugin->name(), plugin->version()));
+    for (EncryptedStoragePluginWrapper *plugin : m_encryptedStoragePlugins.values()) {
+        allPlugins.append(plugin);
     }
-    for (const EncryptedStoragePluginWrapper *plugin : m_encryptedStoragePlugins.values()) {
-        encryptedStoragePlugins->append(PluginInfo(plugin->name(), plugin->version()));
+    for (EncryptionPlugin *plugin : m_encryptionPlugins.values()) {
+        allPlugins.append(plugin);
     }
-    for (const AuthenticationPlugin *plugin : m_authenticationPlugins.values()) {
-        authenticationPlugins->append(PluginInfo(plugin->name(), plugin->version()));
+    for (AuthenticationPlugin *plugin : m_authenticationPlugins.values()) {
+        allPlugins.append(plugin);
+    }
+
+    QMap<QString, PluginInfo> pluginInfos = m_requestQueue->controller()->pluginInfoForPlugins(
+                allPlugins, m_requestQueue->masterLocked());
+
+    for (const QString &pluginName : m_storagePlugins.keys()) {
+        storagePlugins->append(pluginInfos.value(pluginName));
+    }
+    for (const QString &pluginName : m_encryptionPlugins.keys()) {
+        encryptionPlugins->append(pluginInfos.value(pluginName));
+    }
+    for (const QString &pluginName : m_encryptedStoragePlugins.keys()) {
+        encryptedStoragePlugins->append(pluginInfos.value(pluginName));
+    }
+    for (const QString &pluginName : m_authenticationPlugins.keys()) {
+        authenticationPlugins->append(pluginInfos.value(pluginName));
     }
 
     return Result(Result::Succeeded);

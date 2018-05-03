@@ -22,27 +22,35 @@ class PluginInfoPrivate;
 class SAILFISH_SECRETS_API PluginInfo
 {
     Q_GADGET
+    Q_PROPERTY(QString displayName READ displayName WRITE setDisplayName)
     Q_PROPERTY(QString name READ name WRITE setName)
     Q_PROPERTY(int version READ version WRITE setVersion)
     Q_PROPERTY(StatusFlags statusFlags READ statusFlags WRITE setStatusFlags)
 
 public:
     enum Status {
-        Unknown   = 0,
-        Available       = 1 << 0,
-        MasterUnlocked  = 1 << 1,
-        PluginUnlocked  = 1 << 2
+        Unknown                     = 0,
+        Available                   = 1 << 0,
+        MasterUnlocked              = 1 << 1,
+        PluginUnlocked              = 1 << 2,
+        PluginSupportsLocking       = 1 << 3,
+        PluginSupportsSetLockCode   = 1 << 4
     };
     Q_ENUM(Status)
     Q_DECLARE_FLAGS(StatusFlags, Status)
     Q_FLAG(StatusFlags)
 
-    PluginInfo(const QString &name = QString(), int version = 0,
+    PluginInfo(const QString &displayName = QString(),
+               const QString &name = QString(),
+               int version = 0,
                StatusFlags status = PluginInfo::Unknown);
     PluginInfo(const PluginInfo &other);
     ~PluginInfo();
 
     PluginInfo &operator=(const Sailfish::Secrets::PluginInfo &other);
+
+    void setDisplayName(const QString &dispName);
+    QString displayName() const;
 
     void setName(const QString &name);
     QString name() const;

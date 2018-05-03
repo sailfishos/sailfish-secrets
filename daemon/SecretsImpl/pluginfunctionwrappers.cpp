@@ -13,6 +13,11 @@ using namespace Sailfish::Secrets::Daemon::ApiImpl;
 
 /* These methods are to be called via QtConcurrent */
 
+PluginState Daemon::ApiImpl::pluginState(PluginBase *plugin)
+{
+    return PluginState(plugin->isAvailable(), plugin->isLocked());
+}
+
 FoundResult Daemon::ApiImpl::lockSpecificPlugin(
         const QMap<QString, EncryptionPlugin*> &encryptionPlugins,
         const QMap<QString, StoragePluginWrapper*> &storagePlugins,

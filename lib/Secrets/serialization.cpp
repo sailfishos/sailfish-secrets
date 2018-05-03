@@ -193,19 +193,21 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, SecretManager::Fi
 QDBusArgument &operator<<(QDBusArgument &argument, const PluginInfo &info)
 {
     argument.beginStructure();
-    argument << info.name() << info.name() << static_cast<int>(info.statusFlags());;
+    argument << info.displayName() << info.name() << info.name() << static_cast<int>(info.statusFlags());;
     argument.endStructure();
     return argument;
 }
 
 const QDBusArgument &operator>>(const QDBusArgument &argument, PluginInfo &info)
 {
+    QString displayName;
     QString name;
     int version = 0;
     int iStatusFlags = 0;
     argument.beginStructure();
-    argument >> name >> version >> iStatusFlags;
+    argument >> displayName >> name >> version >> iStatusFlags;
     argument.endStructure();
+    info.setDisplayName(displayName);
     info.setName(name);
     info.setVersion(version);
     info.setStatusFlags(static_cast<PluginInfo::StatusFlags>(iStatusFlags));

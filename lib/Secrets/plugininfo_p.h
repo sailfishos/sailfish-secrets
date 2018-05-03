@@ -24,6 +24,7 @@ public:
     PluginInfoPrivate(const PluginInfoPrivate &other);
     ~PluginInfoPrivate();
 
+    QString m_displayName;
     QString m_name;
     int m_version;
     Sailfish::Secrets::PluginInfo::StatusFlags m_statusFlags;

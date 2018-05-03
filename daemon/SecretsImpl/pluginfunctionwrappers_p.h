@@ -145,6 +145,18 @@ struct CollectionInfo {
     bool relockRequired;
 };
 
+struct PluginState {
+    PluginState(bool a = false, bool l = false)
+        : available(a), locked(l) {}
+    PluginState(const PluginState &other)
+        : available(other.available)
+        , locked(other.locked) {}
+    bool available;
+    bool locked;
+};
+
+PluginState pluginState(PluginBase *plugin);
+
 FoundResult lockSpecificPlugin(
         const QMap<QString, Sailfish::Secrets::EncryptionPlugin*> &encryptionPlugins,
         const QMap<QString, StoragePluginWrapper*> &storagePlugins,

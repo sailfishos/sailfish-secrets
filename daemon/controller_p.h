@@ -19,6 +19,9 @@
 #include <QtCore/QThreadPool>
 #include <QtCore/QSharedPointer>
 
+#include <SecretsPluginApi/extensionplugins.h>
+#include <Secrets/plugininfo.h>
+
 namespace Sailfish {
 
 namespace Crypto {
@@ -53,6 +56,9 @@ public:
     Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *crypto() const;
     QWeakPointer<QThreadPool> threadPoolForPlugin(const QString &pluginName) const;
     QString displayNameForPlugin(const QString &pluginName) const;
+    QMap<QString, Sailfish::Secrets::PluginInfo> pluginInfoForPlugins(
+            QList<Sailfish::Secrets::PluginBase*> plugins,
+            bool masterLocked);
 
 public Q_SLOTS:
     void handleClientConnection(const QDBusConnection &connection);

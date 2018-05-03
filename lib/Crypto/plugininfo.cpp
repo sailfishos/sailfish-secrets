@@ -54,9 +54,13 @@ PluginInfoPrivate::~PluginInfoPrivate()
 /*!
  * \brief Constructs a plugin info object containing the given \a name, \a version and \a status
  */
-PluginInfo::PluginInfo(const QString &name, int version, StatusFlags status)
+PluginInfo::PluginInfo(const QString &displayName,
+                       const QString &name,
+                       int version,
+                       StatusFlags status)
     : d_ptr(new PluginInfoPrivate)
 {
+    d_ptr->m_displayName = displayName;
     d_ptr->m_name = name;
     d_ptr->m_version = version;
     d_ptr->m_statusFlags = status;
@@ -87,7 +91,26 @@ PluginInfo& PluginInfo::operator=(const PluginInfo &other)
 }
 
 /*!
- * \brief Sets the name of the plugin to \a name
+ * \brief Sets the display name reported for the plugin to \a dispName
+ */
+void PluginInfo::setDisplayName(const QString &dispName)
+{
+    d_ptr->m_displayName = dispName;
+}
+
+/*!
+ * \brief Returns the display name of the plugin
+ *
+ * This is the user-friendly, human-readable name reported by the
+ * plugin and should already be translated.
+ */
+QString PluginInfo::displayName() const
+{
+    return d_ptr->m_displayName;
+}
+
+/*!
+ * \brief Sets the name reported for the plugin to \a name
  */
 void PluginInfo::setName(const QString &name)
 {
@@ -96,6 +119,9 @@ void PluginInfo::setName(const QString &name)
 
 /*!
  * \brief Returns the name of the plugin
+ *
+ * This is a unique identifier for the plugin, and is not
+ * necessarily human-readable.
  */
 QString PluginInfo::name() const
 {
@@ -139,7 +165,8 @@ PluginInfo::StatusFlags PluginInfo::statusFlags() const
  */
 bool Sailfish::Crypto::operator==(const PluginInfo &lhs, const PluginInfo &rhs)
 {
-    return lhs.name() == rhs.name()
+    return lhs.displayName() == rhs.displayName()
+            && lhs.name() == rhs.name()
             && lhs.version() == rhs.version()
             && lhs.statusFlags() == rhs.statusFlags();
 }
@@ -161,5 +188,7 @@ bool Sailfish::Crypto::operator<(const PluginInfo &lhs, const PluginInfo &rhs)
         return lhs.name() < rhs.name();
     if (lhs.version() != rhs.version())
         return lhs.version() < rhs.version();
+    if (lhs.displayName() != rhs.displayName())
+        return lhs.displayName() < rhs.displayName();
     return lhs.statusFlags() < rhs.statusFlags();
 }
