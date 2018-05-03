@@ -90,7 +90,7 @@ DataResult CryptoPluginFunctionWrapper::generateInitializationVector(
 
 KeyResult CryptoPluginFunctionWrapper::importKey(
         const PluginAndCustomParams &pluginAndCustomParams,
-        const Sailfish::Crypto::Key &keyData,
+        const QByteArray &keyData,
         const QByteArray &passphrase)
 {
     Key key;
@@ -103,6 +103,7 @@ KeyResult CryptoPluginFunctionWrapper::importKey(
 
 KeyResult CryptoPluginFunctionWrapper::importAndStoreKey(
         const PluginWrapperAndCustomParams &pluginAndCustomParams,
+        const QByteArray &keyData,
         const Sailfish::Crypto::Key &keyTemplate,
         const QByteArray &passphrase,
         const QByteArray &collectionDecryptionKey)
@@ -130,6 +131,7 @@ KeyResult CryptoPluginFunctionWrapper::importAndStoreKey(
     Key keyReference(keyTemplate);
     Result result = pluginAndCustomParams.plugin->importAndStoreKey(
                 metadata,
+                keyData,
                 keyTemplate,
                 passphrase,
                 pluginAndCustomParams.customParameters,

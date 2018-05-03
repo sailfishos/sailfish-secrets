@@ -29,7 +29,8 @@ class SAILFISH_CRYPTO_API ImportStoredKeyRequest : public Sailfish::Crypto::Requ
     Q_OBJECT
     Q_PROPERTY(QString cryptoPluginName READ cryptoPluginName WRITE setCryptoPluginName NOTIFY cryptoPluginNameChanged)
     Q_PROPERTY(Sailfish::Crypto::InteractionParameters interactionParameters READ interactionParameters WRITE setInteractionParameters NOTIFY interactionParametersChanged)
-    Q_PROPERTY(Sailfish::Crypto::Key key READ key WRITE setKey NOTIFY keyChanged)
+    Q_PROPERTY(QByteArray data READ data WRITE setData NOTIFY dataChanged)
+    Q_PROPERTY(Sailfish::Crypto::Key keyTemplate READ keyTemplate WRITE setKeyTemplate NOTIFY keyTemplateChanged)
     Q_PROPERTY(Sailfish::Crypto::Key importedKeyReference READ importedKeyReference NOTIFY importedKeyReferenceChanged)
 
 public:
@@ -42,8 +43,11 @@ public:
     Sailfish::Crypto::InteractionParameters interactionParameters() const;
     void setInteractionParameters(const Sailfish::Crypto::InteractionParameters &uiParams);
 
-    Sailfish::Crypto::Key key() const;
-    void setKey(const Sailfish::Crypto::Key &key);
+    QByteArray data() const;
+    void setData(const QByteArray &data);
+
+    Sailfish::Crypto::Key keyTemplate() const;
+    void setKeyTemplate(const Sailfish::Crypto::Key &keyTemplate);
 
     Sailfish::Crypto::Key importedKeyReference() const;
 
@@ -62,7 +66,8 @@ public:
 Q_SIGNALS:
     void cryptoPluginNameChanged();
     void interactionParametersChanged();
-    void keyChanged();
+    void dataChanged();
+    void keyTemplateChanged();
     void importedKeyReferenceChanged();
 
 private:

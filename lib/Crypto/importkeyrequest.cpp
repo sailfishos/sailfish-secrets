@@ -101,27 +101,27 @@ void ImportKeyRequest::setInteractionParameters(
 }
 
 /*!
- * \brief Returns the key which should be imported.
+ * \brief Returns the data which should be imported as a key.
  */
-Key ImportKeyRequest::key() const
+QByteArray ImportKeyRequest::data() const
 {
     Q_D(const ImportKeyRequest);
-    return d->m_key;
+    return d->m_data;
 }
 
 /*!
- * \brief Sets the \a key which should be imported.
+ * \brief Sets the \a data which should be imported.
  */
-void ImportKeyRequest::setKey(const Key &key)
+void ImportKeyRequest::setData(const QByteArray &data)
 {
     Q_D(ImportKeyRequest);
-    if (d->m_status != Request::Active && d->m_key != key) {
-        d->m_key = key;
+    if (d->m_status != Request::Active && d->m_data != data) {
+        d->m_data = data;
         if (d->m_status == Request::Finished) {
             d->m_status = Request::Inactive;
             emit statusChanged();
         }
-        emit keyChanged();
+        emit dataChanged();
     }
 }
 
@@ -194,7 +194,7 @@ void ImportKeyRequest::startRequest()
         }
 
         QDBusPendingReply<Result, Key> reply =
-                d->m_manager->d_ptr->importKey(d->m_key,
+                d->m_manager->d_ptr->importKey(d->m_data,
                                                d->m_uiParams,
                                                d->m_customParameters,
                                                d->m_cryptoPluginName);

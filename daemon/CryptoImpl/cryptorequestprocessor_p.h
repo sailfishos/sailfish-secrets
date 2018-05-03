@@ -129,7 +129,7 @@ public:
     Sailfish::Crypto::Result importKey(
             pid_t callerPid,
             quint64 requestId,
-            const Sailfish::Crypto::Key &key,
+            const QByteArray &data,
             const Sailfish::Crypto::InteractionParameters &uiParams,
             const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
@@ -139,7 +139,8 @@ public:
     Sailfish::Crypto::Result importStoredKey(
             pid_t callerPid,
             quint64 requestId,
-            const Sailfish::Crypto::Key &key,
+            const QByteArray &data,
+            const Sailfish::Crypto::Key &keyTemplate,
             const Sailfish::Crypto::InteractionParameters &uiParams,
             const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
@@ -403,7 +404,7 @@ private:
     void importKey_withPassphrase(
             pid_t callerPid,
             quint64 requestId,
-            const Sailfish::Crypto::Key &key,
+            const QByteArray &data,
             const Sailfish::Crypto::InteractionParameters &uiParams,
             const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
@@ -413,6 +414,7 @@ private:
     void importStoredKey_afterPreCheck(
             pid_t callerPid,
             quint64 requestId,
+            const QByteArray &data,
             const Sailfish::Crypto::Key &keyTemplate,
             const Sailfish::Crypto::InteractionParameters &uiParams,
             const QVariantMap &customParameters,
@@ -423,6 +425,7 @@ private:
     void importStoredKey_withPassphrase(
             pid_t callerPid,
             quint64 requestId,
+            const QByteArray &data,
             const Sailfish::Crypto::Key &keyTemplate,
             const Sailfish::Crypto::InteractionParameters &uiParams,
             const QVariantMap &customParameters,

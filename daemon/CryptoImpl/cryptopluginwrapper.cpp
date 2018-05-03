@@ -190,6 +190,7 @@ CryptoStoragePluginWrapper::generateAndStoreKey(
 Result
 CryptoStoragePluginWrapper::importAndStoreKey(
         const Sailfish::Secrets::Daemon::ApiImpl::SecretMetadata &metadata,
+        const QByteArray &data,
         const Key &keyTemplate,
         const QByteArray &importPassphrase,
         const QVariantMap &customParameters,
@@ -200,6 +201,7 @@ CryptoStoragePluginWrapper::importAndStoreKey(
     Result result = prepareToStoreKey(metadata, collectionUnlockKey, &wasLocked);
     if (result.code() == Result::Succeeded) {
         result = m_cryptoPlugin->importAndStoreKey(
+                    data,
                     keyTemplate,
                     importPassphrase,
                     customParameters,

@@ -92,6 +92,7 @@ public:
         DeriveMac           = 1 << 23,
         DeriveKey           = 1 << 24,
         StoreKey            = 1 << 25,
+        ImportKey           = 1 << 26,
 
         // reserved
         LastOperation       = 1 << 30

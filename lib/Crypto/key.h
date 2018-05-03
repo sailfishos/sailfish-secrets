@@ -70,6 +70,8 @@ public:
 
         Identifier &operator=(const Sailfish::Crypto::Key::Identifier &other);
 
+        bool isValid() const;
+
         QString name() const;
         void setName(const QString &name);
         QString collectionName() const;

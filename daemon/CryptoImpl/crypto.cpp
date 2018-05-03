@@ -166,7 +166,7 @@ void Daemon::ApiImpl::CryptoDBusObject::generateStoredKey(
 }
 
 void Daemon::ApiImpl::CryptoDBusObject::importKey(
-        const Key &key,
+        const QByteArray &data,
         const Sailfish::Crypto::InteractionParameters &uiParams,
         const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
@@ -176,7 +176,7 @@ void Daemon::ApiImpl::CryptoDBusObject::importKey(
 {
     Q_UNUSED(importedKey);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<Key>(key);
+    inParams << QVariant::fromValue<QByteArray>(data);
     inParams << QVariant::fromValue<InteractionParameters>(uiParams);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
@@ -188,7 +188,8 @@ void Daemon::ApiImpl::CryptoDBusObject::importKey(
 }
 
 void Daemon::ApiImpl::CryptoDBusObject::importStoredKey(
-        const Key &key,
+        const QByteArray &data,
+        const Key &keyTemplate,
         const Sailfish::Crypto::InteractionParameters &uiParams,
         const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
@@ -198,7 +199,8 @@ void Daemon::ApiImpl::CryptoDBusObject::importStoredKey(
 {
     Q_UNUSED(importedKey);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<Key>(key);
+    inParams << QVariant::fromValue<QByteArray>(data);
+    inParams << QVariant::fromValue<Key>(keyTemplate);
     inParams << QVariant::fromValue<InteractionParameters>(uiParams);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
     inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
@@ -847,9 +849,9 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
         case ImportKeyRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling GenerateKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             Key importedKey;
-            Key key = request->inParams.size()
-                    ? request->inParams.takeFirst().value<Key>()
-                    : Key();
+            QByteArray data = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QByteArray>()
+                    : QByteArray();
             InteractionParameters uiParams = request->inParams.size()
                     ? request->inParams.takeFirst().value<InteractionParameters>()
                     : InteractionParameters();
@@ -862,7 +864,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             Result result = m_requestProcessor->importKey(
                         request->remotePid,
                         request->requestId,
-                        key,
+                        data,
                         uiParams,
                         customParameters,
                         cryptosystemProviderName,
@@ -882,7 +884,10 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
         case ImportStoredKeyRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling GenerateStoredKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             Key importedKey;
-            Key key = request->inParams.size()
+            QByteArray data = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QByteArray>()
+                    : QByteArray();
+            Key keyTemplate = request->inParams.size()
                     ? request->inParams.takeFirst().value<Key>()
                     : Key();
             InteractionParameters uiParams = request->inParams.size()
@@ -897,7 +902,8 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             Result result = m_requestProcessor->importStoredKey(
                         request->remotePid,
                         request->requestId,
-                        key,
+                        data,
+                        keyTemplate,
                         uiParams,
                         customParameters,
                         cryptosystemProviderName,

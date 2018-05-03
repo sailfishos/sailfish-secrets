@@ -123,29 +123,31 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::generateAndStoreKey(
 
 Sailfish::Crypto::Result
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::importAndStoreKey(
-        const Sailfish::Crypto::Key &key,
+        const QByteArray &data,
+        const Sailfish::Crypto::Key &keyTemplate,
         const QByteArray &passphrase,
         const QVariantMap &customParameters,
         Sailfish::Crypto::Key *keyMetadata)
 {
-    if (key.identifier().name().isEmpty()) {
+    if (keyTemplate.identifier().name().isEmpty()) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidKeyIdentifier,
                                          QString::fromUtf8("Empty key name given"));
-    } else if (key.identifier().collectionName().isEmpty()) {
+    } else if (keyTemplate.identifier().collectionName().isEmpty()) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidKeyIdentifier,
                                          QString::fromUtf8("Empty collection name given"));
-    } else if (key.identifier().collectionName().compare(QLatin1String("standalone"), Qt::CaseInsensitive) == 0) {
+    } else if (keyTemplate.identifier().collectionName().compare(QLatin1String("standalone"), Qt::CaseInsensitive) == 0) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidKeyIdentifier,
                                          QString::fromUtf8("Invalid collection name given"));
     }
 
-    Sailfish::Crypto::Key importedKey(key);
-    Sailfish::Crypto::Result retn = importKey(key, passphrase, customParameters, &importedKey);
+    Sailfish::Crypto::Key importedKey(keyTemplate);
+    Sailfish::Crypto::Result retn = importKey(data, passphrase, customParameters, &importedKey);
     if (retn.code() == Sailfish::Crypto::Result::Failed) {
         return retn;
     }
 
     // store the key as a secret.
+    importedKey.setOrigin(Sailfish::Crypto::Key::OriginImported);
     const QMap<QString, QString> filterData(importedKey.filterData());
     Sailfish::Secrets::Result storeResult = setSecret(
                 importedKey.identifier().collectionName(),
@@ -316,12 +318,12 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::generateKey(
 
 Sailfish::Crypto::Result
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::importKey(
-        const Sailfish::Crypto::Key &key,
+        const QByteArray &data,
         const QByteArray &passphrase,
         const QVariantMap &customParameters,
         Sailfish::Crypto::Key *importedKey)
 {
-    return m_opensslCryptoPlugin.importKey(key, passphrase, customParameters, importedKey);
+    return m_opensslCryptoPlugin.importKey(data, passphrase, customParameters, importedKey);
 }
 
 Sailfish::Crypto::Result

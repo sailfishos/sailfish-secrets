@@ -88,13 +88,14 @@ public:
             const QString &cryptosystemProviderName);
 
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> importKey(
-            const Sailfish::Crypto::Key &key,
+            const QByteArray &data,
             const Sailfish::Crypto::InteractionParameters &uiParams,
             const QVariantMap &customParameters,
             const QString &cryptosystemProviderName);
 
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> importStoredKey(
-            const Sailfish::Crypto::Key &key,
+            const QByteArray &data,
+            const Sailfish::Crypto::Key &keyTemplate,
             const Sailfish::Crypto::InteractionParameters &uiParams,
             const QVariantMap &customParameters,
             const QString &cryptosystemProviderName);

@@ -125,6 +125,26 @@ Key::Identifier& Key::Identifier::operator=(const Key::Identifier &other)
 }
 
 /*!
+ * \brief Returns true if the key identifier consists of valid, non-empty components
+ *
+ * Note that this doesn't mean that the identifier does in fact identify
+ * a valid key stored by the system secrets service; rather, it means
+ * that if a key with the name() specified in this identifier is stored
+ * in a collection with the collectionName() specified in this identifier
+ * by the storage (or crypto storage) plugin identified by the storagePluginName()
+ * specified in this identifier, then this identifier would identify it.
+ *
+ * That is, if either name() or collectionName() or storagePluginName() is
+ * empty, the identifier is not considered valid.
+ */
+bool Key::Identifier::isValid() const
+{
+    return !d_ptr->m_name.isEmpty()
+            && !d_ptr->m_collectionName.isEmpty()
+            && !d_ptr->m_storagePluginName.isEmpty();
+}
+
+/*!
  * \brief Returns the key name from the identifier
  */
 QString Key::Identifier::name() const
