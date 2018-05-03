@@ -39,7 +39,9 @@ public:
     virtual QString name() const = 0;
     virtual int version() const = 0;
     virtual bool supportsLocking() const;
+    virtual bool supportsSetLockCode() const;
 
+    virtual bool isAvailable() const;
     virtual bool isLocked() const;
     virtual bool lock();
     virtual bool unlock(const QByteArray &lockCode);
