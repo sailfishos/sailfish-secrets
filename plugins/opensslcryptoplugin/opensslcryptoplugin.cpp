@@ -755,11 +755,12 @@ Daemon::Plugins::OpenSslCryptoPlugin::verify(
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
     } else if (r == 0) {
         // Verification performed without error, but signature didn't match.
+        *verified = false;
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
     } else {
         // Verification had errors.
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginVerificationError,
-                                        QLatin1String("Error occoured while verifying the given signature."));
+                                        QLatin1String("Error occurred while verifying the given signature."));
     }
 }
 
@@ -1148,29 +1149,46 @@ Daemon::Plugins::OpenSslCryptoPlugin::initializeCipherSession(
         const QVariantMap & /* customParameters */,
         quint32 *cipherSessionToken)
 {
-    if (key.secretKey().isEmpty()) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptySecretKey,
-                                        QLatin1String("Cannot create a cipher session with empty secret key"));
-    }
-
-    if (key.algorithm() != Sailfish::Crypto::CryptoManager::AlgorithmAes) {
+    if (key.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
+        if (operation != Sailfish::Crypto::CryptoManager::OperationEncrypt
+                && operation != Sailfish::Crypto::CryptoManager::OperationDecrypt) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                            QLatin1String("Plugin only supports encrypt and decrypt symmetric cipher sessions"));
+        } else if (key.secretKey().isEmpty()) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptySecretKey,
+                                            QLatin1String("Cannot create a cipher session with empty secret key"));
+        }
+    } else if (key.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmRsa) {
+        if (operation != Sailfish::Crypto::CryptoManager::OperationSign
+                && operation != Sailfish::Crypto::CryptoManager::OperationVerify) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                            QLatin1String("Plugin only supports sign and verify asymmetric cipher sessions"));
+        } else if (key.publicKey().isEmpty()) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptyPublicKey,
+                                            QLatin1String("Cannot create a cipher session with empty public key"));
+        } else if ((operation == Sailfish::Crypto::CryptoManager::OperationSign)
+                   && key.privateKey().isEmpty()) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptyPrivateKey,
+                                            QLatin1String("Cannot create a sign or encrypt cipher session with empty private key"));
+        }
+    } else {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: algorithms other than Aes256"));
+                                        QLatin1String("Plugin only supports AES and RSA cipher sessions"));
     }
 
     if (encryptionPadding != Sailfish::Crypto::CryptoManager::EncryptionPaddingNone) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: encryption padding other than None"));
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedEncryptionPadding,
+                                        QLatin1String("Plugin only supports encryption padding None"));
     }
 
     if (signaturePadding != Sailfish::Crypto::CryptoManager::SignaturePaddingNone) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: signature padding other than None"));
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedSignaturePadding,
+                                        QLatin1String("Plugin only supports signature padding None"));
     }
 
     if (digestFunction != Sailfish::Crypto::CryptoManager::DigestSha256) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
-                                        QLatin1String("TODO: digests other than Sha256"));
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedDigest,
+                                        QLatin1String("Plugin only supports digest function Sha256"));
     }
 
     quint32 sessionToken = getNextCipherSessionToken(&m_cipherSessions, clientId);
@@ -1265,9 +1283,86 @@ Daemon::Plugins::OpenSslCryptoPlugin::initializeCipherSession(
                                                 QLatin1String("Unable to initialize decryption cipher context in AES 256 mode"));
             }
         }
+    } else if (operation == Sailfish::Crypto::CryptoManager::OperationSign) {
+        // Get the EVP digest function
+        const EVP_MD *evpDigestFunc = getEvpDigestFunction(digestFunction);
+        if (!evpDigestFunc) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedDigest,
+                                            QLatin1String("Unsupported digest function chosen."));
+        }
+
+        QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(BIO_new(BIO_s_mem()));
+
+        // Use BIO to write private key data
+        int r = BIO_write(bio.data(), key.privateKey().data(), key.privateKey().length());
+        if (r == 0 || r != key.privateKey().length()) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                            QLatin1String("Failed to read private key data."));
+        }
+
+        // Read the private key data into an EVP_PKEY, which SHOULD handle different formats transparently.
+        // See https://www.openssl.org/docs/man1.1.0/crypto/PEM_read_bio_PrivateKey.html
+        EVP_PKEY *pkeyPtr = Q_NULLPTR;
+        PEM_read_bio_PrivateKey(bio.data(), &pkeyPtr, Q_NULLPTR, Q_NULLPTR);
+        if (pkeyPtr == Q_NULLPTR) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                            QLatin1String("Failed to read private key from PEM format."));
+        }
+
+        QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(pkeyPtr);
+
+        evp_md_ctx = EVP_MD_CTX_create();
+        if (evp_md_ctx == NULL) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                            QLatin1String("Failed to create cipher session context"));
+        }
+
+        if (EVP_DigestSignInit(evp_md_ctx, NULL, evpDigestFunc, NULL, pkey.data()) != 1) {
+            EVP_MD_CTX_destroy(evp_md_ctx);
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                            QLatin1String("Failed to initialize cipher session context"));
+        }
+    } else if (operation == Sailfish::Crypto::CryptoManager::OperationVerify) {
+        // Get the EVP digest function
+        const EVP_MD *evpDigestFunc = getEvpDigestFunction(digestFunction);
+        if (!evpDigestFunc) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedDigest,
+                                            QLatin1String("Unsupported digest function chosen."));
+        }
+
+        QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(BIO_new(BIO_s_mem()));
+
+        // Use BIO to write public key data
+        int r = BIO_write(bio.data(), key.publicKey().data(), key.publicKey().length());
+        if (r != key.publicKey().length()) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginVerificationError,
+                                            QLatin1String("Failed to read public key data."));
+        }
+
+        // Read the public key data into an EVP_PKEY
+        EVP_PKEY *pkeyPtr = Q_NULLPTR;
+        PEM_read_bio_PUBKEY(bio.data(), &pkeyPtr, Q_NULLPTR, Q_NULLPTR);
+        if (pkeyPtr == Q_NULLPTR) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginVerificationError,
+                                            QLatin1String("Failed to read public key from PEM format."));
+        }
+
+        QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(pkeyPtr);
+
+        evp_md_ctx = EVP_MD_CTX_create();
+        if (evp_md_ctx == NULL) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                            QLatin1String("Failed to create cipher session context"));
+        }
+
+        if (EVP_DigestVerifyInit(evp_md_ctx, NULL, evpDigestFunc, NULL, pkey.data()) != 1) {
+            EVP_MD_CTX_destroy(evp_md_ctx);
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                            QLatin1String("Failed to initialize cipher session context"));
+        }
     } else {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                        QLatin1String("TODO: implement sign/verify data!"));
+        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+                                        QLatin1String("Unsupported operation for cipher request"));
     }
 
     CipherSessionData *csd = new CipherSessionData;
@@ -1369,37 +1464,56 @@ Daemon::Plugins::OpenSslCryptoPlugin::updateCipherSession(
     }
 
     CipherSessionData *csd = m_cipherSessions[clientId].value(cipherSessionToken);
-    if (csd->evp_cipher_ctx == NULL) {
+    if (csd->evp_cipher_ctx == NULL && csd->evp_md_ctx == NULL) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                         QLatin1String("Cipher context has not been initialized"));
     }
 
     csd->timeout->start(); // restart the timeout due to activity.
-    int blockSizeForCipher = 16; // TODO: lookup for different algorithms, but AES is 128 bit blocks = 16 bytes
-    QScopedArrayPointer<unsigned char> generatedDataBuf(new unsigned char[data.size() + blockSizeForCipher]);
-    int generatedDataSize = 0;
-    if (csd->operation == Sailfish::Crypto::CryptoManager::OperationEncrypt) {
-        if (EVP_EncryptUpdate(csd->evp_cipher_ctx,
-                              generatedDataBuf.data(), &generatedDataSize,
-                              reinterpret_cast<const unsigned char *>(data.constData()),
-                              data.size()) != 1) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                            QLatin1String("Failed to update encryption cipher data"));
+    if (csd->evp_cipher_ctx) {
+        int blockSizeForCipher = 16; // TODO: lookup for different algorithms, but AES is 128 bit blocks = 16 bytes
+        QScopedArrayPointer<unsigned char> generatedDataBuf(new unsigned char[data.size() + blockSizeForCipher]);
+        int generatedDataSize = 0;
+        if (csd->operation == Sailfish::Crypto::CryptoManager::OperationEncrypt) {
+            if (EVP_EncryptUpdate(csd->evp_cipher_ctx,
+                                  generatedDataBuf.data(), &generatedDataSize,
+                                  reinterpret_cast<const unsigned char *>(data.constData()),
+                                  data.size()) != 1) {
+                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                                QLatin1String("Failed to update encryption cipher data"));
+            }
+        } else if (csd->operation == Sailfish::Crypto::CryptoManager::OperationDecrypt) {
+            if (EVP_DecryptUpdate(csd->evp_cipher_ctx,
+                                  generatedDataBuf.data(), &generatedDataSize,
+                                  reinterpret_cast<const unsigned char *>(data.constData()),
+                                  data.size()) != 1) {
+                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                                QLatin1String("Failed to update decryption cipher data"));
+            }
         }
-    } else if (csd->operation == Sailfish::Crypto::CryptoManager::OperationDecrypt) {
-        if (EVP_DecryptUpdate(csd->evp_cipher_ctx,
-                              generatedDataBuf.data(), &generatedDataSize,
-                              reinterpret_cast<const unsigned char *>(data.constData()),
-                              data.size()) != 1) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                            QLatin1String("Failed to update decryption cipher data"));
+        *generatedData = QByteArray(reinterpret_cast<const char *>(generatedDataBuf.data()), generatedDataSize);
+    } else if (csd->evp_md_ctx) {
+        if (data.length() == 0) {
+            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptyData,
+                                            QLatin1String("Empty input data specified"));
+        } else if (csd->operation == Sailfish::Crypto::CryptoManager::OperationSign) {
+            if (EVP_DigestSignUpdate(csd->evp_md_ctx,
+                                     reinterpret_cast<const unsigned char *>(data.constData()),
+                                     data.size()) != 1) {
+                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                                QLatin1String("Failed to update sign cipher data"));
+            }
+        } else if (csd->operation == Sailfish::Crypto::CryptoManager::OperationVerify) {
+            if (EVP_DigestVerifyUpdate(csd->evp_md_ctx,
+                                       reinterpret_cast<const unsigned char *>(data.constData()),
+                                       data.size()) != 1) {
+                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                                QLatin1String("Failed to update verify cipher data"));
+            }
         }
-    } else {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                        QLatin1String("TODO: implement sign/verify data!"));
+        *generatedData = QByteArray();
     }
 
-    *generatedData = QByteArray(reinterpret_cast<const char *>(generatedDataBuf.data()), generatedDataSize);
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
 }
 
@@ -1419,62 +1533,103 @@ Daemon::Plugins::OpenSslCryptoPlugin::finalizeCipherSession(
     }
 
     CipherSessionData *csd = m_cipherSessions[clientId].value(cipherSessionToken);
-    if (csd->evp_cipher_ctx == NULL) {
+    if (csd->evp_cipher_ctx == NULL && csd->evp_md_ctx == NULL) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                         QLatin1String("Cipher context has not been initialized"));
     }
 
     QScopedPointer<CipherSessionData,CipherSessionDataDeleter> csdd(m_cipherSessions[clientId].take(cipherSessionToken));
     m_cipherSessionTimeouts.remove(csd->timeout);
-    int blockSizeForCipher = 16; // TODO: lookup for different algorithms, but AES is 128 bit blocks = 16 bytes
-    QScopedArrayPointer<unsigned char> generatedDataBuf(new unsigned char[blockSizeForCipher*2]); // final 1 or 2 blocks.
-    int generatedDataSize = 0;
-    if (csd->operation == Sailfish::Crypto::CryptoManager::OperationEncrypt) {
-        if (EVP_EncryptFinal_ex(csd->evp_cipher_ctx, generatedDataBuf.data(), &generatedDataSize) != 1) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                            QLatin1String("Failed to finalize encryption cipher"));
+    if (csd->evp_cipher_ctx) {
+        int blockSizeForCipher = 16; // TODO: lookup for different algorithms, but AES is 128 bit blocks = 16 bytes
+        QScopedArrayPointer<unsigned char> generatedDataBuf(new unsigned char[blockSizeForCipher*2]); // final 1 or 2 blocks.
+        int generatedDataSize = 0;
+        if (csd->operation == Sailfish::Crypto::CryptoManager::OperationEncrypt) {
+            if (EVP_EncryptFinal_ex(csd->evp_cipher_ctx, generatedDataBuf.data(), &generatedDataSize) != 1) {
+                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                                QLatin1String("Failed to finalize encryption cipher"));
+            }
+            if (csd->blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm) {
+                // in GCM mode, the finalization above does not write extra ciphertext.
+                // instead, we should retrieve the authenticationTag.
+                if (generatedDataSize > 0) {
+                    // This should never happen.
+                    qWarning() << "INTERNAL ERROR: GCM finalization produced ciphertext data!";
+                }
+                generatedDataBuf.reset(new unsigned char[SAILFISH_CRYPTO_GCM_TAG_SIZE]);
+                generatedDataSize = SAILFISH_CRYPTO_GCM_TAG_SIZE;
+                if (EVP_CIPHER_CTX_ctrl(csd->evp_cipher_ctx, EVP_CTRL_GCM_GET_TAG, generatedDataSize, generatedDataBuf.data()) != 1) {
+                    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                                    QLatin1String("Failed to retrieve authentication tag"));
+                }
+            }
+        } else if (csd->operation == Sailfish::Crypto::CryptoManager::OperationDecrypt) {
+            if (csd->blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm) {
+                // in GCM mode, the finalization requires setting the provided authenticationTag data.
+                if (data.size() != SAILFISH_CRYPTO_GCM_TAG_SIZE) {
+                    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                                    QLatin1String("GCM authenticationTag data is not the expected size"));
+                }
+                QByteArray authenticationTagData(data);
+                if (!EVP_CIPHER_CTX_ctrl(csd->evp_cipher_ctx, EVP_CTRL_GCM_SET_TAG, data.size(),
+                                         reinterpret_cast<void *>(authenticationTagData.data()))) {
+                    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                                    QLatin1String("Unable to set the GCM authenticationTag to finalize the cipher"));
+                }
+                int evpRet = EVP_DecryptFinal_ex(csd->evp_cipher_ctx, generatedDataBuf.data(), &generatedDataSize);
+                *verified = evpRet > 0;
+            } else {
+                if (EVP_DecryptFinal_ex(csd->evp_cipher_ctx, generatedDataBuf.data(), &generatedDataSize) != 1) {
+                    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                                    QLatin1String("Failed to finalize the decryption cipher"));
+                }
+            }
         }
-        if (csd->blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm) {
-            // in GCM mode, the finalization above does not write extra ciphertext.
-            // instead, we should retrieve the authenticationTag.
-            if (generatedDataSize > 0) {
-                // This should never happen.
-                qWarning() << "INTERNAL ERROR: GCM finalization produced ciphertext data!";
-            }
-            generatedDataBuf.reset(new unsigned char[SAILFISH_CRYPTO_GCM_TAG_SIZE]);
-            generatedDataSize = SAILFISH_CRYPTO_GCM_TAG_SIZE;
-            if (EVP_CIPHER_CTX_ctrl(csd->evp_cipher_ctx, EVP_CTRL_GCM_GET_TAG, generatedDataSize, generatedDataBuf.data()) != 1) {
+        *generatedData = QByteArray(reinterpret_cast<const char *>(generatedDataBuf.data()), generatedDataSize);
+    } else if (csd->evp_md_ctx) {
+        if (csd->operation == Sailfish::Crypto::CryptoManager::OperationSign) {
+            size_t signatureLength = 0;
+            if (EVP_DigestSignFinal(csd->evp_md_ctx,
+                                    NULL,
+                                    &signatureLength) != 1) {
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                                QLatin1String("Failed to retrieve authentication tag"));
+                                                QLatin1String("Failed to finalize sign cipher"));
             }
+
+            unsigned char *signatureData = (unsigned char *)OPENSSL_malloc(signatureLength);
+            if (EVP_DigestSignFinal(csd->evp_md_ctx,
+                                    signatureData,
+                                    &signatureLength) != 1) {
+                OPENSSL_free(signatureData);
+                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                                QLatin1String("Failed to finalize sign cipher to produce signature"));
+            }
+            *generatedData = QByteArray(reinterpret_cast<const char *>(signatureData), signatureLength);
+            OPENSSL_free(signatureData);
+        } else if (csd->operation == Sailfish::Crypto::CryptoManager::OperationVerify) {
+            if (data.length() == 0) {
+                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptySignature,
+                                                QLatin1String("Empty signature data specified"));
+            }
+
+            int r = EVP_DigestVerifyFinal(csd->evp_md_ctx,
+                                          reinterpret_cast<const unsigned char *>(data.constData()),
+                                          data.size());
+            if (r == 1) {
+                // Verification performed without error, signature matched.
+                *verified = true;
+            } else if (r == 0) {
+                // Verification performed without error, but signature didn't match.
+                *verified = false;
+            } else {
+                // Verification had errors.
+                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
+                                                QLatin1String("Failed to finalize verify cipher with signature data"));
+            }
+            *generatedData = QByteArray();
         }
-    } else if (csd->operation == Sailfish::Crypto::CryptoManager::OperationDecrypt) {
-        if (csd->blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm) {
-            // in GCM mode, the finalization requires setting the provided authenticationTag data.
-            if (data.size() != SAILFISH_CRYPTO_GCM_TAG_SIZE) {
-                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                                QLatin1String("GCM authenticationTag data is not the expected size"));
-            }
-            QByteArray authenticationTagData(data);
-            if (!EVP_CIPHER_CTX_ctrl(csd->evp_cipher_ctx, EVP_CTRL_GCM_SET_TAG, data.size(),
-                                     reinterpret_cast<void *>(authenticationTagData.data()))) {
-                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                                QLatin1String("Unable to set the GCM authenticationTag to finalize the cipher"));
-            }
-            int evpRet = EVP_DecryptFinal_ex(csd->evp_cipher_ctx, generatedDataBuf.data(), &generatedDataSize);
-            *verified = evpRet > 0;
-        } else {
-            if (EVP_DecryptFinal_ex(csd->evp_cipher_ctx, generatedDataBuf.data(), &generatedDataSize) != 1) {
-                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                                QLatin1String("Failed to finalize the decryption cipher"));
-            }
-        }
-    } else {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                        QLatin1String("TODO: implement sign/verify authentication data!"));
     }
 
-    *generatedData = QByteArray(reinterpret_cast<const char *>(generatedDataBuf.data()), generatedDataSize);
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
 }
 
