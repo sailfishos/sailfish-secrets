@@ -274,11 +274,11 @@ CryptoPlugin::~CryptoPlugin()
  */
 
 /*!
- * \fn CryptoPlugin::importKey(const Sailfish::Crypto::Key &key, const QByteArray &passphrase, const QVariantMap &customParameters, Sailfish::Crypto::Key *importedKey)
- * \brief Imports the serialized key data found in the secret, public, or
- *        private key properties of the given \a key and generates a fully
- *        specified and usable key, which is written to the out-parameter
- *        \a importedKey.
+ * \fn CryptoPlugin::importKey(const QByteArray &data, const QByteArray &passphrase, const QVariantMap &customParameters, Sailfish::Crypto::Key *importedKey)
+ * \brief Imports the serialized key data of the given \a data and generates
+ *        a fully specified and usable key, which is written to the out-parameter
+ *        \a importedKey. The interpretation of the serialized data is left
+ *        to the plugin to be interpreted.
  *
  * If the plugin itself is locked, this function should return a
  * Sailfish::Crypto::Result with the result code set to
@@ -299,12 +299,12 @@ CryptoPlugin::~CryptoPlugin()
  */
 
 /*!
- * \fn CryptoPlugin::importAndStoreKey(const Sailfish::Crypto::Key &key, const QByteArray &passphrase, const QVariantMap &customParameters, Sailfish::Crypto::Key *keyMetadata)
- * \brief Imports the serialized key data found in the secret, public, or
- *        private key properties of the given \a key and generates a fully
+ * \fn CryptoPlugin::importAndStoreKey(const QByteArray &data, const Sailfish::Crypto::Key &keyTemplate, const QByteArray &passphrase, const QVariantMap &customParameters, Sailfish::Crypto::Key *keyMetadata)
+ * \brief Imports the serialized key data of the given \a data and generates a fully
  *        specified and usable key, which is stored to the key storage managed
  *        by the plugin, and a reference to that key is written to the
- *        out-parameter \a keyMetadata.
+ *        out-parameter \a keyMetadata. The identification of the newly imported
+ *        key is defined in \a keyTemplate.
  *
  * If the plugin itself is locked, this function should return a
  * Sailfish::Crypto::Result with the result code set to
@@ -327,16 +327,16 @@ CryptoPlugin::~CryptoPlugin()
  * its algorithm, size, and its full identifier) as well as public key data,
  * but not private or secret key data.
  *
- * If the collection name specified in the identifier of the \a key
+ * If the collection name specified in the identifier of the \a keyTemplate
  * does not specify a valid collection managed by the plugin, the plugin
  * should return a Sailfish::Crypto::Result with the result code set to
  * Sailfish::Crypto::Failed and the error code set to
  * Sailfish::Crypto::Result::InvalidKeyIdentifier and the storage error code
  * set to Sailfish::Secrets::Result::InvalidCollectionError.
  *
- * If the secret name specified in the identifier of the \a key
+ * If the secret name specified in the identifier of the \a keyTemplate
  * duplicates an existing key or secret in the same collection identified by
- * the collection name specified in the identifier of the \a key, the
+ * the collection name specified in the identifier of the \a keyTemplate, the
  * plugin should return a Sailfish::Crypto::Result with the result code set to
  * Sailfish::Crypto::Failed and the error code set to
  * Sailfish::Crypto::Result::InvalidKeyIdentifier and the storage error code
