@@ -9,7 +9,7 @@ tools.depends = lib
 
 OTHER_FILES += \
     $$PWD/LICENSE \
-    $$PWD/README \
+    $$PWD/README.md \
     $$PWD/rpm/sailfish-secrets.spec \
     $$PWD/daemon/sailfish-secretsd.service \
     $$PWD/daemon/sailfish-secretsd.privileges \

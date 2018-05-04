@@ -21,10 +21,95 @@ are not returned to the client process address space, and in the case
 of Secure Peripheral or TEE application backends, they are not returned
 to the system daemon process address space after initial storage).
 
-## Building requirements:
+## Components
+
+### Secrets daemon
+
+We have a system service (daemon) called `sailfishsecretsd` which listens to connections over
+peer-to-peer D-Bus and has two responsibilities:
+
+* Store (and retrieve) sensitive data in secure locations
+* Perform cryptographic operations on behalf of clients
+
+Rationale:
+
+* The user's secret keys are never actually exposed to the client application, so
+the user doesn't have to trust the client to handle sensitive data correctly. In fact, if
+you have a plugin that enables the use of a suitable peripheral, the key is never even loaded
+into system memory.
+* Clients don't have to "know about cryptography" or be certified, because all crypto
+operations are done by plugins which are loaded by the daemon.
+* The daemon can expose a uniform API while still being able to load various kinds of plugins.
+Such plugins could provide for example: support for secure hardware peripherals, custom
+encryption algorithms or signing schemes, etc.
+* Plugin developers only have to conform to the plugin API and don't have to worry about
+the user-facing API or the GUI.
+
+### Plugins for the secrets daemon
+
+There is a set of default plugins that do not require the user to have special hardware
+and use standard free / open source solutions like OpenSSL and SQLCipher under the hood.
+These plugins ensure that every Sailfish OS user can benefit from the security and cryptography
+work that we are doing.
+
+We also provide some example plugins to help the developers of secure peripherals get started
+easily and with less hassle.
+
+There are quite a few different kinds of plugins which means that the API allows complete or
+partial customization of the daemon's behavior.
+
+The default plugins are:
+
+* `SqlCipherPlugin` which stores encrypted data in SQLCipher and shares code with the
+`OpenSslCryptoPlugin` for crypto operations
+* `PasswordAgentAuthPlugin` which talks to the Sailfish OS password agent to display
+system dialogs for the user
+
+Other, example plugins:
+
+* `OpenSslCryptoPlugin`: provides cryptographic operations using OpenSSL under the hood
+* `InAppAuthPlugin`: allows the application itself to perform user authentication instead of
+making the system handle it (mostly for testing purposes)
+* `SQLitePlugin`: which provides non-encrypted storage ability in SQLite
+* `OpenSslPlugin`: which provides encryption ability with OpenSSL for non-encrypted storage plugins
+* `ExampleUsbTokenPlugin`: which provides an example for plugin developers who want to add support
+for their secure peripherals
+
+### Secrets and crypto libraries
+
+#### 1. Client libraries
+
+These libraries are intended for consumption by client applications. They will take care of the
+D-Bus connection for you, so you don't have to worry about it. There is also a QML API, so
+you can utilize sailfish-secrets from QML apps.
+
+#### 2. Plugin libraries
+
+Extensibility points that can implement various functionality.
+
+Secrets:
+
+* `StoragePlugin`: non-encrypted storage abilities
+* `EncryptionPlugin`: provides encryption abilities that can be used together with non-encrypted storage plugins
+* `EncryptedStoragePlugin`: for devices that implement encryption and storage together (eg. secure peripherals)
+* `AuthenticationPlugin`: provides ways to authenticate the identity of the user towards the secrets daemon
+
+Crypto:
+
+* `CryptoPlugin`: provides all kinds of cryptographic capabilities, such as signing, encryption, etc.
+
+## Build requirements:
+
+For Sailfish OS:
 
 1. Standard MerSDK
 2. [sqlcipher](https://github.com/sailfishos/sqlcipher.git) package installed into the target
+
+For your Linux desktop:
+
+1. Qt 5.6.3 (downloadable from official Qt SDK) - yes you need this exact version, because sailfish-secrets bundles
+qtsqlcipher, which depends on Qt internals that are not compatible between versions.
+2. sqlcipher package (installed from your distro's package manager)
 
 ## Building
 
