@@ -210,6 +210,7 @@ void CommandHelper::start(const QString &command, const QStringList &args)
         Sailfish::Secrets::DeleteCollectionRequest *r = new Sailfish::Secrets::DeleteCollectionRequest;
         r->setStoragePluginName(args.value(0));
         r->setCollectionName(args.value(1));
+        r->setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
         m_secretsRequest.reset(r);
         m_secretsRequest->setManager(&m_secretManager);
         connect(m_secretsRequest.data(), &Sailfish::Secrets::Request::statusChanged,
