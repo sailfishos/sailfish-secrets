@@ -72,7 +72,7 @@ LockCodeRequestPrivate::LockCodeRequestPrivate()
  * Sailfish::Secrets::LockCodeRequest lcr;
  * lcr.setManager(&sm);
  * lcr.setLockCodeRequestType(Sailfish::Secrets::LockCodeRequest::ModifyLockCode);
- * lcr.setLockCodeTargetType(Sailfish::Secrets::LockCodeRequest::Collection);
+ * lcr.setLockCodeTargetType(Sailfish::Secrets::LockCodeRequest::ExtensionPlugin);
  * lcr.setLockCodeTarget(QLatin1String("Some custom-locked collection"));
  * lcr.setInteractionParameters(uiParams);
  * lcr.startRequest(); // status() will change to Finished when complete
