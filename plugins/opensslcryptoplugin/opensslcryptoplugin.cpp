@@ -721,6 +721,9 @@ Daemon::Plugins::OpenSslCryptoPlugin::verify(
                                         QLatin1String("TODO: signature padding other than None"));
     }
 
+    // Initialize verification status to unknown
+    *verificationStatus = CryptoManager::VerificationStatusUnknown;
+
     // Get the EVP digest function
     const EVP_MD *evpDigestFunc = getEvpDigestFunction(digestFunction);
     if (!evpDigestFunc) {
@@ -1615,6 +1618,14 @@ Daemon::Plugins::OpenSslCryptoPlugin::finalizeCipherSession(
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptySignatureError,
                                                 QLatin1String("Empty signature data specified"));
             }
+
+            if (verificationStatus == Q_NULLPTR) {
+                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginVerificationError,
+                                                QLatin1String("Verification result is nullptr"));
+            }
+
+            // Initialize verification status to unknown
+            *verificationStatus = CryptoManager::VerificationStatusUnknown;
 
             int r = EVP_DigestVerifyFinal(csd->evp_md_ctx,
                                           reinterpret_cast<const unsigned char *>(data.constData()),
