@@ -29,9 +29,9 @@ public:
     QString m_applicationId;
     Sailfish::Secrets::InteractionParameters::Operation m_operation = Sailfish::Secrets::InteractionParameters::UnknownOperation;
     QString m_authenticationPluginName;
-    QString m_promptText;
+    Sailfish::Secrets::InteractionParameters::PromptText m_promptText;
     Sailfish::Secrets::InteractionParameters::InputType m_inputType = Sailfish::Secrets::InteractionParameters::UnknownInput;
-    Sailfish::Secrets::InteractionParameters::EchoMode m_echoMode = Sailfish::Secrets::InteractionParameters::PasswordEchoOnEdit;
+    Sailfish::Secrets::InteractionParameters::EchoMode m_echoMode = Sailfish::Secrets::InteractionParameters::PasswordEcho;
 };
 
 } // Secrets

@@ -12,6 +12,7 @@
 
 #include <QtCore/QString>
 #include <QtCore/QSharedDataPointer>
+#include <QtCore/QMap>
 #include <QtCore/QMetaType>
 
 namespace Sailfish {
@@ -27,7 +28,7 @@ class SAILFISH_CRYPTO_API InteractionParameters {
     Q_PROPERTY(QString applicationId READ applicationId WRITE setApplicationId)
     Q_PROPERTY(Operation operation READ operation WRITE setOperation)
     Q_PROPERTY(QString authenticationPluginName READ authenticationPluginName WRITE setAuthenticationPluginName)
-    Q_PROPERTY(QString promptText READ promptText WRITE setPromptText)
+    Q_PROPERTY(Sailfish::Crypto::InteractionParameters::PromptText promptText READ promptText WRITE setPromptText)
     Q_PROPERTY(InputType inputType READ inputType WRITE setInputType)
     Q_PROPERTY(EchoMode echoMode READ echoMode WRITE setEchoMode)
 
@@ -52,7 +53,6 @@ public:
         NormalEcho,
         PasswordEcho,
         NoEcho,
-        PasswordEchoOnEdit,
         // reserved
         LastEchoMode = 63
     };
@@ -100,6 +100,17 @@ public:
     Q_ENUM(Operation)
     Q_DECLARE_FLAGS(Operations, Operation)
 
+    enum Prompt {
+        Message,
+        Instruction                 = 0x10,
+        NewInstruction,
+        RepeatInstruction,
+        Accept                      = 0x20,
+        Cancel                      = 0x30,
+    };
+    Q_ENUM(Prompt)
+
+    class PromptText;
     InteractionParameters();
     InteractionParameters(const InteractionParameters &other);
     ~InteractionParameters();
@@ -128,8 +139,9 @@ public:
     QString authenticationPluginName() const;
     void setAuthenticationPluginName(const QString &pluginName);
 
-    QString promptText() const;
-    void setPromptText(const QString &prompt);
+    PromptText promptText() const;
+    void setPromptText(const PromptText &prompt);
+    void setPromptText(const QString &message);
 
     InputType inputType() const;
     void setInputType(InputType type);
@@ -142,9 +154,63 @@ private:
     friend class InteractionParametersPrivate;
 };
 
+class SAILFISH_CRYPTO_API InteractionParameters::PromptText : private QMap<InteractionParameters::Prompt, QString>
+{
+    Q_GADGET
+    Q_PROPERTY(QString message READ message WRITE setMessage)
+    Q_PROPERTY(QString instruction READ instruction WRITE setInstruction)
+    Q_PROPERTY(QString newInstruction READ newInstruction WRITE setNewInstruction)
+    Q_PROPERTY(QString repeatInstruction READ repeatInstruction WRITE setRepeatInstruction)
+    Q_PROPERTY(QString accept READ accept WRITE setAccept)
+    Q_PROPERTY(QString cancel READ cancel WRITE setCancel)
+public:
+    PromptText() = default;
+    PromptText(const PromptText &) = default;
+    PromptText(std::initializer_list<std::pair<InteractionParameters::Prompt, QString> > list) : QMap(list) {}
+    ~PromptText() = default;
+
+    QString message() const { return value(Message); }
+    void setMessage(const QString &message) { set(Message, message); }
+
+    QString instruction() const { return value(Instruction); }
+    void setInstruction(const QString &instruction) { return set(Instruction, instruction); }
+
+    QString newInstruction() const { return value(NewInstruction); }
+    void setNewInstruction(const QString &instruction) { set(NewInstruction, instruction); }
+
+    QString repeatInstruction() const { return value(RepeatInstruction); }
+    void setRepeatInstruction(const QString &instruction) { set(RepeatInstruction, instruction); }
+
+    QString accept() const { return value(Accept); }
+    void setAccept(const QString &label) { set(Accept, label); }
+
+    QString cancel() const { return value(Cancel); }
+    void setCancel(const QString &label) { set(Cancel, label); }
+
+    PromptText &operator =(const PromptText &promptText) { QMap::operator =(promptText); return *this; }
+    bool operator == (const PromptText &promptText) const { return QMap::operator ==(promptText); }
+    bool operator != (const PromptText &promptText) const { return QMap::operator !=(promptText); }
+
+    using QMap::operator [];
+
+    using QMap::insert;
+    using QMap::contains;
+    using QMap::keys;
+    using QMap::values;
+    using QMap::begin;
+    using QMap::end;
+    using QMap::constBegin;
+    using QMap::constEnd;
+
+private:
+    void set(InteractionParameters::Prompt prompt, const QString &text) {
+        if (text.isEmpty()) { remove(prompt); } else { insert(prompt, text); } }
+};
+
 bool operator==(const Sailfish::Crypto::InteractionParameters &lhs, const Sailfish::Crypto::InteractionParameters &rhs) SAILFISH_CRYPTO_API;
 bool operator!=(const Sailfish::Crypto::InteractionParameters &lhs, const Sailfish::Crypto::InteractionParameters &rhs) SAILFISH_CRYPTO_API;
 bool operator<(const Sailfish::Crypto::InteractionParameters &lhs, const Sailfish::Crypto::InteractionParameters &rhs) SAILFISH_CRYPTO_API;
+bool operator<(const Sailfish::Crypto::InteractionParameters::PromptText &lhs, const Sailfish::Crypto::InteractionParameters::PromptText &rhs) SAILFISH_CRYPTO_API;
 
 } // Crypto
 
@@ -155,6 +221,8 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::InteractionParameters::Operation
 Q_DECLARE_METATYPE(Sailfish::Crypto::InteractionParameters::InputType);
 Q_DECLARE_METATYPE(Sailfish::Crypto::InteractionParameters::EchoMode);
 Q_DECLARE_METATYPE(Sailfish::Crypto::InteractionParameters::Operation);
+Q_DECLARE_METATYPE(Sailfish::Crypto::InteractionParameters::Prompt);
+Q_DECLARE_METATYPE(Sailfish::Crypto::InteractionParameters::PromptText);
 Q_DECLARE_METATYPE(Sailfish::Crypto::InteractionParameters);
 Q_DECLARE_TYPEINFO(Sailfish::Crypto::InteractionParameters, Q_MOVABLE_TYPE);
 

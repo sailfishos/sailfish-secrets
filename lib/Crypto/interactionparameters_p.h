@@ -29,9 +29,9 @@ public:
     QString m_applicationId;
     Sailfish::Crypto::InteractionParameters::Operation m_operation = Sailfish::Crypto::InteractionParameters::UnknownOperation;
     QString m_authenticationPluginName;
-    QString m_promptText;
+    Sailfish::Crypto::InteractionParameters::PromptText m_promptText;
     Sailfish::Crypto::InteractionParameters::InputType m_inputType = Sailfish::Crypto::InteractionParameters::UnknownInput;
-    Sailfish::Crypto::InteractionParameters::EchoMode m_echoMode = Sailfish::Crypto::InteractionParameters::PasswordEchoOnEdit;
+    Sailfish::Crypto::InteractionParameters::EchoMode m_echoMode = Sailfish::Crypto::InteractionParameters::PasswordEcho;
 };
 
 } // Crypto

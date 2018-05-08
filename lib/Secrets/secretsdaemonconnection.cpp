@@ -172,6 +172,7 @@ void Sailfish::Secrets::SecretsDaemonConnection::registerDBusTypes()
     qRegisterMetaType<Sailfish::Secrets::InteractionParameters::InputType>("Sailfish::Secrets::InteractionParameters::InputType");
     qRegisterMetaType<Sailfish::Secrets::InteractionParameters::EchoMode>("Sailfish::Secrets::InteractionParameters::EchoMode");
     qRegisterMetaType<Sailfish::Secrets::InteractionParameters::Operation>("Sailfish::Secrets::InteractionParameters::Operation");
+    qRegisterMetaType<Sailfish::Secrets::InteractionParameters::PromptText>("Sailfish::Secrets::InteractionParameters::PromptText");
     qRegisterMetaType<Sailfish::Secrets::InteractionResponse>("Sailfish::Secrets::InteractionResponse");
     qRegisterMetaType<Sailfish::Secrets::LockCodeRequest::LockCodeTargetType>("Sailfish::Secrets::LockCodeRequest::LockCodeTargetType");
 
@@ -191,6 +192,7 @@ void Sailfish::Secrets::SecretsDaemonConnection::registerDBusTypes()
     qDBusRegisterMetaType<Sailfish::Secrets::InteractionParameters::InputType>();
     qDBusRegisterMetaType<Sailfish::Secrets::InteractionParameters::EchoMode>();
     qDBusRegisterMetaType<Sailfish::Secrets::InteractionParameters::Operation>();
+    qDBusRegisterMetaType<Sailfish::Secrets::InteractionParameters::PromptText>();
     qDBusRegisterMetaType<Sailfish::Secrets::InteractionParameters>();
     qDBusRegisterMetaType<Sailfish::Secrets::InteractionResponse>();
     qDBusRegisterMetaType<Sailfish::Secrets::LockCodeRequest::LockCodeTargetType>();

@@ -23,6 +23,7 @@ void Sailfish::Secrets::Plugin::SecretsPlugin::registerTypes(const char *uri)
     qRegisterMetaType<Sailfish::Secrets::InteractionParameters::Operation>("InteractionParameters::Operation");
     QMetaType::registerComparators<Sailfish::Secrets::InteractionParameters>();
     qmlRegisterUncreatableType<Sailfish::Secrets::InteractionParameters>(uri, 1, 0, "InteractionParameters", QStringLiteral("InteractionParameters objects cannot be constructed directly in QML"));
+    qmlRegisterUncreatableType<Sailfish::Secrets::InteractionParameters::PromptText>(uri, 1, 0, "PromptText", QStringLiteral("Can't construct PromptText in QML"));
 
     qRegisterMetaType<Sailfish::Secrets::InteractionResponse>("InteractionResponse");
     QMetaType::registerComparators<Sailfish::Secrets::InteractionResponse>();

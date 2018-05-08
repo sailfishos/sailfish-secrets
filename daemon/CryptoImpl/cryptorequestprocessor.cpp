@@ -59,6 +59,17 @@ namespace {
             key->setSecretKey(QByteArray());
         }
     }
+
+    class SecretsPromptText : public Sailfish::Secrets::InteractionParameters::PromptText
+    {
+    public:
+        SecretsPromptText(const Sailfish::Crypto::InteractionParameters::PromptText &promptText)
+        {
+            for (auto it = promptText.begin(); it != promptText.end(); ++it) {
+                insert(static_cast<Sailfish::Secrets::InteractionParameters::Prompt>(it.key()), it.value());
+            }
+        }
+    };
 }
 
 using namespace Sailfish::Crypto;
@@ -469,12 +480,18 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_afterPreCheck(
             promptParams.setPluginName(keyTemplate.identifier().storagePluginName());
             promptParams.setOperation(Sailfish::Secrets::InteractionParameters::DeriveKey);
             promptParams.setAuthenticationPluginName(uiParams.authenticationPluginName());
-            //: This will be displayed to the user, prompting them to enter a passphrase from which a key will be derived. %1 is the key name, %2 is the collection name, %3 is the plugin name.
-            //% "An application wants to store a new key named %1 within collection %2 in plugin %3. Enter a passphrase from which the key will be derived."
-            promptParams.setPromptText(qtTrId("sailfish_crypto-generate_stored_key-la-enter_key_passphrase")
-                                       .arg(keyTemplate.identifier().name(),
-                                            keyTemplate.identifier().collectionName(),
-                                            m_requestQueue->controller()->displayNameForPlugin(keyTemplate.identifier().storagePluginName())));
+            promptParams.setPromptText({
+                //: This will be displayed to the user, prompting them to enter a passphrase from which a key will be derived. %1 is the key name, %2 is the collection name, %3 is the plugin name.
+                //% "An application wants to store a new key named %1 within collection %2 in plugin %3."
+                { Secrets::InteractionParameters::Message, qtTrId("sailfish_crypto-generate_stored_key-la-message")
+                            .arg(keyTemplate.identifier().name(),
+                                    keyTemplate.identifier().collectionName(),
+                                    m_requestQueue->controller()->displayNameForPlugin(keyTemplate.identifier().storagePluginName())) },
+                //% "Enter a passphrase from which the key will be derived."
+                { Secrets::InteractionParameters::NewInstruction, qtTrId("sailfish_crypto-generate_stored_key-la-enter_key_passphrase") },
+                //% "Repeat the passphrase from which the key will be derived."
+                { Secrets::InteractionParameters::RepeatInstruction, qtTrId("sailfish_crypto-generate_stored_key-la-repeat_key_passphrase") }
+            });
             promptParams.setInputType(static_cast<Sailfish::Secrets::InteractionParameters::InputType>(uiParams.inputType()));
             promptParams.setEchoMode(static_cast<Sailfish::Secrets::InteractionParameters::EchoMode>(uiParams.echoMode()));
             result = transformSecretsResult(m_secrets->userInput(
@@ -682,21 +699,29 @@ Result Daemon::ApiImpl::RequestProcessor::promptForKeyPassphrase(
         promptParams.setCollectionName(key.identifier().collectionName());
         promptParams.setOperation(Sailfish::Secrets::InteractionParameters::ImportKey);
         promptParams.setAuthenticationPluginName(uiParams.authenticationPluginName());
-        //: This will be displayed to the user, prompting them to enter a passphrase to import a stored key. %1 is the key name, %2 is the collection name, %3 is the plugin name.
-        //% "A passphrase is required in order to import the key %1 into collection %2 in plugin %2. Enter the key import passphrase."
-        promptParams.setPromptText(qtTrId("sailfish_crypto-import_key-la-enter_import_passphrase")
-                                   .arg(key.identifier().name(),
-                                        key.identifier().collectionName(),
-                                        m_requestQueue->controller()->displayNameForPlugin(key.identifier().storagePluginName())));
+        promptParams.setPromptText({
+            //: This will be displayed to the user, prompting them to enter a passphrase to import a key. %1 is the key name, %2 is the collection name, %3 is the plugin name.
+            //% "A passphrase is required in order to import the key %1 into collection %2 in plugin %3."
+            { Secrets::InteractionParameters::Message, qtTrId("sailfish_crypto-import_key-la-message")
+                        .arg(key.identifier().name(),
+                                key.identifier().collectionName(),
+                                m_requestQueue->controller()->displayNameForPlugin(key.identifier().storagePluginName())) },
+            //% "Enter the key import passphrase."
+            { Secrets::InteractionParameters::Instruction, qtTrId("sailfish_crypto-import_key-la-enter_import_passphrase") }
+        });
         promptParams.setInputType(static_cast<Sailfish::Secrets::InteractionParameters::InputType>(uiParams.inputType()));
         promptParams.setEchoMode(static_cast<Sailfish::Secrets::InteractionParameters::EchoMode>(uiParams.echoMode()));
     } else {
         promptParams.setAuthenticationPluginName(uiParams.authenticationPluginName());
         promptParams.setOperation(Sailfish::Secrets::InteractionParameters::ImportKey);
-        //: This will be displayed to the user, prompting them to enter a passphrase to import a key which will then be returned to the application.  %1 is the plugin name.
-        //% "A passphrase is required in order to import a key with plugin %1 which will then be returned to the application"
-        promptParams.setPromptText(qtTrId("sailfish_crypto-import_key-la-enter_application_import_passphrase")
-                                   .arg(m_requestQueue->controller()->displayNameForPlugin(key.identifier().storagePluginName())));
+        promptParams.setPromptText({
+            //: This will be displayed to the user, prompting them to enter a passphrase to import a key which will then be returned to the application.  %1 is the plugin name.
+            //% "A passphrase is required in order to import a key with plugin %1 which will then be returned to the application"
+            { Secrets::InteractionParameters::Message, qtTrId("sailfish_crypto-import_key-la-enter_application_import_passphrase")
+                        .arg(m_requestQueue->controller()->displayNameForPlugin(key.identifier().storagePluginName())) },
+            //% "Enter the key import passphrase."
+            { Secrets::InteractionParameters::Instruction, qtTrId("sailfish_crypto-import_key-la-enter_import_passphrase") }
+        });
         promptParams.setInputType(static_cast<Sailfish::Secrets::InteractionParameters::InputType>(uiParams.inputType()));
         promptParams.setEchoMode(static_cast<Sailfish::Secrets::InteractionParameters::EchoMode>(uiParams.echoMode()));
     }
@@ -2116,7 +2141,7 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCode(
     uiParams.setPluginName(lockCodeTarget);
     uiParams.setOperation(Sailfish::Secrets::InteractionParameters::ModifyLockPlugin);
     uiParams.setAuthenticationPluginName(interactionParameters.authenticationPluginName());
-    uiParams.setPromptText(interactionParameters.promptText());
+    uiParams.setPromptText(SecretsPromptText(interactionParameters.promptText()));
     uiParams.setInputType(static_cast<Sailfish::Secrets::InteractionParameters::InputType>(interactionParameters.inputType()));
     uiParams.setEchoMode(static_cast<Sailfish::Secrets::InteractionParameters::EchoMode>(interactionParameters.echoMode()));
     Result retn = transformSecretsResult(m_secrets->modifyCryptoPluginLockCode(callerPid, requestId, lockCodeTarget, uiParams));
@@ -2158,7 +2183,7 @@ Daemon::ApiImpl::RequestProcessor::provideLockCode(
     uiParams.setPluginName(lockCodeTarget);
     uiParams.setOperation(Sailfish::Secrets::InteractionParameters::UnlockPlugin);
     uiParams.setAuthenticationPluginName(interactionParameters.authenticationPluginName());
-    uiParams.setPromptText(interactionParameters.promptText());
+    uiParams.setPromptText(SecretsPromptText(interactionParameters.promptText()));
     uiParams.setInputType(static_cast<Sailfish::Secrets::InteractionParameters::InputType>(interactionParameters.inputType()));
     uiParams.setEchoMode(static_cast<Sailfish::Secrets::InteractionParameters::EchoMode>(interactionParameters.echoMode()));
     Result retn = transformSecretsResult(m_secrets->provideCryptoPluginLockCode(callerPid, requestId, lockCodeTarget, uiParams));
@@ -2200,7 +2225,7 @@ Daemon::ApiImpl::RequestProcessor::forgetLockCode(
     uiParams.setPluginName(lockCodeTarget);
     uiParams.setOperation(Sailfish::Secrets::InteractionParameters::LockPlugin);
     uiParams.setAuthenticationPluginName(interactionParameters.authenticationPluginName());
-    uiParams.setPromptText(interactionParameters.promptText());
+    uiParams.setPromptText(SecretsPromptText(interactionParameters.promptText()));
     uiParams.setInputType(static_cast<Sailfish::Secrets::InteractionParameters::InputType>(interactionParameters.inputType()));
     uiParams.setEchoMode(static_cast<Sailfish::Secrets::InteractionParameters::EchoMode>(interactionParameters.echoMode()));
     Result retn = transformSecretsResult(m_secrets->forgetCryptoPluginLockCode(callerPid, requestId, lockCodeTarget, uiParams));
