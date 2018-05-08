@@ -189,16 +189,49 @@ void CommandHelper::start(const QString &command, const QStringList &args)
         m_secretsRequest->startRequest();
     } else if (command == QStringLiteral("--create-collection")) {
         Sailfish::Secrets::CreateCollectionRequest *r = new Sailfish::Secrets::CreateCollectionRequest;
-        r->setStoragePluginName(args.value(0));
-        r->setCollectionName(args.value(1));
-        r->setEncryptionPluginName(args.size() == 3
-                                   ? args.value(2)
-                                   : m_encryptedStoragePlugins.contains(args.value(0))
-                                        ? args.value(0)
-                                        : (Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName + (m_autotestMode ? QStringLiteral(".test") : QString())));
+        bool devicelock = false;
+        if (args.size() == 4
+                || (args.size() == 3 && args.value(0) == QStringLiteral("--devicelock"))) {
+            if (args.value(0) != QStringLiteral("--devicelock")) {
+                qInfo() << "Invalid lock mode specified!";
+                emitFinished(EXITCODE_FAILED);
+            } else {
+                devicelock = true;
+            }
+        }
+        QString encryptionPluginName;
+        if (args.size() == 4) {
+            encryptionPluginName = args.value(3);
+        } else if (args.size() == 3) {
+            if (!devicelock) {
+                encryptionPluginName = args.value(2);
+            } else {
+                if (m_encryptedStoragePlugins.contains(args.value(1))) {
+                    encryptionPluginName = args.value(1);
+                } else {
+                    encryptionPluginName = Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName
+                                         + (m_autotestMode ? QStringLiteral(".test") : QString());
+                }
+            }
+        } else {
+            if (m_encryptedStoragePlugins.contains(args.value(0))) {
+                encryptionPluginName = args.value(0);
+            } else {
+                encryptionPluginName = Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName
+                                     + (m_autotestMode ? QStringLiteral(".test") : QString());
+            }
+        }
+        r->setStoragePluginName(devicelock ? args.value(1) : args.value(0));
+        r->setCollectionName(devicelock ? args.value(2) : args.value(1));
+        r->setEncryptionPluginName(encryptionPluginName);
         r->setAuthenticationPluginName(Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName + (m_autotestMode ? QStringLiteral(".test") : QString()));
-        r->setCollectionLockType(Sailfish::Secrets::CreateCollectionRequest::CustomLock);
-        r->setCustomLockUnlockSemantic(Sailfish::Secrets::SecretManager::CustomLockAccessRelock);
+        if (devicelock) {
+            r->setCollectionLockType(Sailfish::Secrets::CreateCollectionRequest::DeviceLock);
+            r->setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockVerifyLock);
+        } else {
+            r->setCollectionLockType(Sailfish::Secrets::CreateCollectionRequest::CustomLock);
+            r->setCustomLockUnlockSemantic(Sailfish::Secrets::SecretManager::CustomLockAccessRelock);
+        }
         r->setAccessControlMode(Sailfish::Secrets::SecretManager::NoAccessControlMode);
         r->setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
         m_secretsRequest.reset(r);
@@ -220,16 +253,53 @@ void CommandHelper::start(const QString &command, const QStringList &args)
         qInfo() << "This command is not yet implemented";
         emitFinished(EXITCODE_FAILED);
     } else if (command == QStringLiteral("--store-standalone-secret")) {
+        bool devicelock = false;
+        if (args.size() == 5
+                || (args.size() == 4 && args.value(0) == QStringLiteral("--devicelock"))) {
+            if (args.value(0) != QStringLiteral("--devicelock")) {
+                qInfo() << "Invalid lock mode specified!";
+                emitFinished(EXITCODE_FAILED);
+            } else {
+                devicelock = true;
+            }
+        }
+        QString storagePluginName;
+        QString encryptionPluginName;
+        QString secretName;
+        if (args.size() == 5) {
+            storagePluginName = args.value(1);
+            encryptionPluginName = args.value(2);
+            secretName = args.value(3);
+        } else if (args.size() == 4) {
+            if (devicelock) {
+                storagePluginName = args.value(1);
+                encryptionPluginName = args.value(2);
+                secretName = args.value(3);
+            } else {
+                storagePluginName = args.value(0);
+                encryptionPluginName = args.value(1);
+                secretName = args.value(2);
+            }
+        } else {
+            storagePluginName = args.value(0);
+            encryptionPluginName = args.value(1);
+            secretName = args.value(2);
+        }
         Sailfish::Secrets::InteractionParameters uiParams;
         uiParams.setInputType(Sailfish::Secrets::InteractionParameters::AlphaNumericInput);
         uiParams.setEchoMode(Sailfish::Secrets::InteractionParameters::NormalEcho);
-        Sailfish::Secrets::Secret secret(args.value(2), QString(), args.value(0));
+        Sailfish::Secrets::Secret secret(secretName, QString(), storagePluginName);
         Sailfish::Secrets::StoreSecretRequest *r = new Sailfish::Secrets::StoreSecretRequest;
-        r->setSecretStorageType(Sailfish::Secrets::StoreSecretRequest::StandaloneCustomLockSecret);
-        r->setEncryptionPluginName(args.value(1));
+        r->setEncryptionPluginName(encryptionPluginName);
         r->setAuthenticationPluginName(Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName + (m_autotestMode ? QStringLiteral(".test") : QString()));
         r->setSecret(secret);
-        r->setCustomLockUnlockSemantic(Sailfish::Secrets::SecretManager::CustomLockAccessRelock);
+        if (devicelock) {
+            r->setSecretStorageType(Sailfish::Secrets::StoreSecretRequest::StandaloneDeviceLockSecret);
+            r->setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockVerifyLock);
+        } else {
+            r->setSecretStorageType(Sailfish::Secrets::StoreSecretRequest::StandaloneCustomLockSecret);
+            r->setCustomLockUnlockSemantic(Sailfish::Secrets::SecretManager::CustomLockAccessRelock);
+        }
         r->setAccessControlMode(Sailfish::Secrets::SecretManager::NoAccessControlMode);
         r->setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
         r->setInteractionParameters(uiParams);
