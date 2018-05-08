@@ -497,11 +497,11 @@ CryptoPlugin::~CryptoPlugin()
  */
 
 /*!
- * \fn CryptoPlugin::verify(const QByteArray &signature, const QByteArray &data, const Sailfish::Crypto::Key &key, Sailfish::Crypto::CryptoManager::SignaturePadding padding, Sailfish::Crypto::CryptoManager::DigestFunction digestFunction, const QVariantMap &customParameters, bool *verified)
+ * \fn CryptoPlugin::verify(const QByteArray &signature, const QByteArray &data, const Sailfish::Crypto::Key &key, Sailfish::Crypto::CryptoManager::SignaturePadding padding, Sailfish::Crypto::CryptoManager::DigestFunction digestFunction, const QVariantMap &customParameters, int *verificationStatus)
  * \brief Attempts to verify that the given \a signature was generated from the
  *        input \a data after being padded according to the \a padding, using
  *        the specified \a digestFunction and signing key \a key, and writes
- *        verification state to the out-parameter \a verified.
+ *        verification state to the out-parameter \a verificationStatus.
  *
  * If the plugin itself is locked, this function should return a
  * Sailfish::Crypto::Result with the result code set to
@@ -532,16 +532,16 @@ CryptoPlugin::~CryptoPlugin()
  *
  * If the plugin was able to successfully determine that the given \a signature
  * was generated from the input \a data with the specified \a key then it
- * should write the value \c true to the \a verified out-parameter and return a
- * Sailfish::Crypto::Result with the result code set to
- * Sailfish::Crypto::Result::Succeeded.
+ * should write Sailfish::Crypto::CryptoManager::VerificationSucceeded to the
+ * \a verificationStatus out-parameter and return a Sailfish::Crypto::Result with the
+ * result code set to Sailfish::Crypto::Result::Succeeded.
  *
  * If the plugin was able to determine that the given \a signature was not
  * generated from the input \a data with the specified \a key then it
- * should write the value \c false to the \a verified out-parameter and return
- * a Sailfish::Crypto::Result with the result code set to
- * Sailfish::Crypto::Result::Succeeded (as it was successfully able to
- * determine that the signature was not correct).
+ * should write the appropriate Sailfish::Crypto::CryptoManager::VerificationStatus
+ * value to the \a verificationStatus out-parameter and return a Sailfish::Crypto::Result
+ * with the result code set to Sailfish::Crypto::Result::Succeeded (as it was
+ * successfully able to determine that the signature was not correct).
  */
 
 /*!
@@ -574,7 +574,7 @@ CryptoPlugin::~CryptoPlugin()
  */
 
 /*!
- * \fn CryptoPlugin::decrypt(const QByteArray &data, const QByteArray &iv, const Sailfish::Crypto::Key &key, Sailfish::Crypto::CryptoManager::BlockMode blockMode, Sailfish::Crypto::CryptoManager::EncryptionPadding padding, const QByteArray &authenticationData, const QByteArray &authenticationTag, const QVariantMap &customParameters, QByteArray *decrypted, bool *verified)
+ * \fn CryptoPlugin::decrypt(const QByteArray &data, const QByteArray &iv, const Sailfish::Crypto::Key &key, Sailfish::Crypto::CryptoManager::BlockMode blockMode, Sailfish::Crypto::CryptoManager::EncryptionPadding padding, const QByteArray &authenticationData, const QByteArray &authenticationTag, const QVariantMap &customParameters, QByteArray *decrypted, Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus)
  * \brief Decrypt the input \a data given an initialization vector \a iv using
  *        the specified \a key and (if applicable) \a blockMode and \a padding,
  *        and write the decrypted data to the out-parameter \a decrypted.
@@ -594,10 +594,10 @@ CryptoPlugin::~CryptoPlugin()
  * successfully decrypting the input \a data the plugin should also calculate
  * the authentication tag and compare it to the given \a authenticationTag to
  * see if it matches, and should write the comparison result to the
- * \a verified out-parameter.  Note that if the decryption succeeded but the
+ * \a verificationStatus out-parameter.  Note that if the decryption succeeded but the
  * authentication tag comparison failed, the result of the operation should
  * still be Sailfish::Crypto::Result::Succeeded, but clients are required to
- * explicitly check the value of the \a verified out-parameter to determine
+ * explicitly check the value of the \a verificationStatus out-parameter to determine
  * whether the input data had been tampered with by an attacker.
  *
  * The \a key may be either a full key (that is, containing private or secret
@@ -684,14 +684,14 @@ CryptoPlugin::~CryptoPlugin()
  */
 
 /*!
- * \fn CryptoPlugin::finalizeCipherSession(quint64 clientId, const QByteArray &data, const QVariantMap &customParameters, quint32 cipherSessionToken, QByteArray *generatedData, bool *verified)
+ * \fn CryptoPlugin::finalizeCipherSession(quint64 clientId, const QByteArray &data, const QVariantMap &customParameters, quint32 cipherSessionToken, QByteArray *generatedData, Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus)
  * \brief Finalizes the cipher session identified by the specified
  *        \a cipherSessionToken for the client identified by the given
  *        \a clientId, with the specified finalization \a data,
  *        and writes any generated data (e.g. ciphertext, plaintext
  *        or signature data) to the out-parameter \a generatedData,
  *        and the result of any verification to the out-parameter
- *        \a verified.
+ *        \a verificationStatus.
  *
  * If the plugin itself is locked, this function should return a
  * Sailfish::Crypto::Result with the result code set to
@@ -709,7 +709,7 @@ CryptoPlugin::~CryptoPlugin()
  * If the cipher session operation is decryption with a symmetric algorithm
  * and the block mode is GCM, or if the cipher session operation is
  * verification of a signature, then the result of the verification should
- * be written to the \a verified out-parameter, otherwise that out-parameter
+ * be written to the \a verificationStatus out-parameter, otherwise that out-parameter
  * can be ignored.
  *
  * Note that if the cipher session operation is decryption with a symmetric
@@ -719,6 +719,6 @@ CryptoPlugin::~CryptoPlugin()
  * Sailfish::Crypto::Result::Succeeded (as it was successfully able to
  * decrypt the input data, and determine that the input data had been
  * tampered with).  In that case, the client must check the value of the
- * \a verified out-parameter to ascertain whether or not the decrypted
+ * \a verificationStatus out-parameter to ascertain whether or not the decrypted
  * data can be trusted.
  */

@@ -263,7 +263,7 @@ void tst_crypto::generateKeyEncryptDecrypt()
     QCOMPARE(authenticationTag.isEmpty(), authData.isEmpty());
 
     // test decrypting the ciphertext, and ensure that the roundtrip works.
-    QDBusPendingReply<Result, QByteArray, bool> decryptReply = cm.decrypt(
+    QDBusPendingReply<Result, QByteArray, CryptoManager::VerificationStatus> decryptReply = cm.decrypt(
             encrypted,
             initVector,
             fullKey,
@@ -278,10 +278,10 @@ void tst_crypto::generateKeyEncryptDecrypt()
     QCOMPARE(decryptReply.argumentAt<0>().errorMessage(), QString());
     QCOMPARE(decryptReply.argumentAt<0>().code(), Result::Succeeded);
     QByteArray decrypted = decryptReply.argumentAt<1>();
-    bool verified = decryptReply.argumentAt<2>();
+    CryptoManager::VerificationStatus verificationStatus = decryptReply.argumentAt<2>();
     QVERIFY(!decrypted.isEmpty());
     QCOMPARE(decrypted, plaintext);
-    QCOMPARE(verified, !authenticationTag.isEmpty());
+    QCOMPARE(verificationStatus == CryptoManager::VerificationSucceeded, !authenticationTag.isEmpty());
 }
 
 #include "tst_crypto.moc"

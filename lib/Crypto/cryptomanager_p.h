@@ -126,7 +126,7 @@ public:
             const QVariantMap &customParameters,
             const QString &cryptosystemProviderName);
 
-    QDBusPendingReply<Sailfish::Crypto::Result, bool> verify(
+    QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::CryptoManager::VerificationStatus> verify(
             const QByteArray &signature,
             const QByteArray &data,
             const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
@@ -145,7 +145,7 @@ public:
             const QVariantMap &customParameters,
             const QString &cryptosystemProviderName);
 
-    QDBusPendingReply<Result, QByteArray, bool> decrypt(
+    QDBusPendingReply<Result, QByteArray, Sailfish::Crypto::CryptoManager::VerificationStatus> decrypt(
             const QByteArray &data,
             const QByteArray &iv,
             const Key &key, // or keyreference, i.e. Key(keyName)
@@ -179,7 +179,7 @@ public:
             const QString &cryptosystemProviderName,
             quint32 cipherSessionToken);
 
-    QDBusPendingReply<Sailfish::Crypto::Result, QByteArray, bool> finalizeCipherSession(
+    QDBusPendingReply<Result, QByteArray, CryptoManager::VerificationStatus> finalizeCipherSession(
             const QByteArray &data,
             const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,

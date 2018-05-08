@@ -202,7 +202,7 @@ public:
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QVariantMap &customParameters,
-            bool *verified) Q_DECL_OVERRIDE;
+            Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result encrypt(
             const QByteArray &data,
@@ -225,7 +225,7 @@ public:
             const QByteArray &authenticationTag,
             const QVariantMap &customParameters,
             QByteArray *decrypted,
-            bool *verified);
+            Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus);
 
     Sailfish::Crypto::Result initializeCipherSession(
             quint64 clientId,
@@ -258,7 +258,7 @@ public:
             const QVariantMap &customParameters,
             quint32 cipherSessionToken,
             QByteArray *generatedData,
-            bool *verified) Q_DECL_OVERRIDE;
+            Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus) Q_DECL_OVERRIDE;
 
 private:
     Sailfish::Crypto::Key readDefaultKeyFromUsbToken() const;

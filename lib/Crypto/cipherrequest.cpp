@@ -24,7 +24,7 @@ CipherRequestPrivate::CipherRequestPrivate()
     , m_signaturePadding(CryptoManager::SignaturePaddingNone)
     , m_digestFunction(CryptoManager::DigestSha256)
     , m_cipherSessionToken(0)
-    , m_verified(false)
+    , m_verificationStatus(Sailfish::Crypto::CryptoManager::VerificationStatusUnknown)
     , m_status(Request::Inactive)
 {
 }
@@ -155,7 +155,7 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * \endcode
  *
  * and when decrypting, the authentication tag should be provided for finalization
- * and the verified flag should be checked carefully:
+ * and the verificationStatus flag should be checked carefully:
  *
  * \code
  * // Finalize the GCM decryption cipher session.
@@ -163,7 +163,7 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * cr.setData(gcmTag);
  * cr.startRequest();
  * cr.waitForFinished();
- * bool trustworthy = cr.verified();
+ * Sailfish::Crypto::CryptoManager::VerificationStatus status = cr.verificationStatus();
  * \endcode
  *
  * If \a mode is either CipherRequest::UpdateCipher or
@@ -171,8 +171,8 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
  * the generatedData() should contain the block of data which
  * was generated based upon the input data (that is, it will be
  * encrypted, decrypted, or signature data) or alternatively
- * verified() should contain whether the signature data was
- * verified or if authenticated decryption succeeded, if the
+ * verificationStatus() should contain whether the signature data was
+ * verificationStatus or if authenticated decryption succeeded, if the
  * operation() was CryptoManager::OperationEncrypt, CryptoManager::OperationDecrypt,
  * CryptoManager::Sign, or CryptoManager::Verify or CryptoManager::OperationDecrypt
  * with BlockModeGcm respectively.
@@ -443,16 +443,16 @@ QByteArray CipherRequest::generatedData() const
 }
 
 /*!
- * \brief Returns the true if the verify operation succeeded
+ * \brief Returns the result of the verify operation.
  *
  * Note: this value is only valid if the status of the request is Request::Finished
  * and the cipher session has been finalized and the operation() was
  * CryptoManager::OperationVerify.
  */
-bool CipherRequest::verified() const
+Sailfish::Crypto::CryptoManager::VerificationStatus CipherRequest::verificationStatus() const
 {
     Q_D(const CipherRequest);
-    return d->m_verified;
+    return d->m_verificationStatus;
 }
 
 Request::Status CipherRequest::status() const
@@ -683,7 +683,7 @@ void CipherRequest::startRequest()
             if (d->m_cipherSessionToken == 0) {
                 qWarning() << "Ignoring attempt to finalize uninitialized cipher session!";
             } else {
-                QDBusPendingReply<Result, QByteArray, bool> reply =
+                QDBusPendingReply<Result, QByteArray, CryptoManager::VerificationStatus> reply =
                         d->m_manager->d_ptr->finalizeCipherSession(
                                 d->m_data,
                                 d->m_customParameters,
@@ -706,9 +706,9 @@ void CipherRequest::startRequest()
                         d->m_generatedData = reply.argumentAt<1>();
                     }
                     bool needsVfEmit = false;
-                    if (d->m_verified != reply.argumentAt<2>()) {
+                    if (d->m_verificationStatus != reply.argumentAt<2>()) {
                         needsVfEmit = true;
-                        d->m_verified = reply.argumentAt<2>();
+                        d->m_verificationStatus = reply.argumentAt<2>();
                     }
                     emit statusChanged();
                     emit resultChanged();
@@ -716,7 +716,7 @@ void CipherRequest::startRequest()
                         emit generatedDataChanged();
                     }
                     if (needsVfEmit) {
-                        emit verifiedChanged();
+                        emit verificationStatusChanged();
                     }
                 } else {
                     QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(reply);
@@ -724,7 +724,7 @@ void CipherRequest::startRequest()
                     connect(watcher, &QDBusPendingCallWatcher::finished,
                             [this] {
                         QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcherQueue.dequeue();
-                        QDBusPendingReply<Result, QByteArray, bool> reply = *watcher;
+                        QDBusPendingReply<Result, QByteArray, CryptoManager::VerificationStatus> reply = *watcher;
                         bool needsStEmit = false;
                         if (this->d_ptr->m_watcherQueue.isEmpty() && this->d_ptr->m_status != Request::Finished) {
                             needsStEmit = true;
@@ -736,9 +736,9 @@ void CipherRequest::startRequest()
                         }
                         this->d_ptr->m_generatedData = reply.argumentAt<1>();
                         bool needsVfEmit = false;
-                        if (this->d_ptr->m_verified != reply.argumentAt<2>()) {
+                        if (this->d_ptr->m_verificationStatus != reply.argumentAt<2>()) {
                             needsVfEmit = true;
-                            this->d_ptr->m_verified = reply.argumentAt<2>();
+                            this->d_ptr->m_verificationStatus = reply.argumentAt<2>();
                         }
                         watcher->deleteLater();
                         if (needsStEmit) {
@@ -747,7 +747,7 @@ void CipherRequest::startRequest()
                         emit this->resultChanged();
                         emit this->generatedDataChanged();
                         if (needsVfEmit) {
-                            emit verifiedChanged();
+                            emit verificationStatusChanged();
                         }
                     });
                 }

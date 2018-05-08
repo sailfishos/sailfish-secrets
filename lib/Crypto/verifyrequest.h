@@ -33,7 +33,7 @@ class SAILFISH_CRYPTO_API VerifyRequest : public Sailfish::Crypto::Request
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::SignaturePadding padding READ padding WRITE setPadding NOTIFY paddingChanged)
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::DigestFunction digestFunction READ digestFunction WRITE setDigestFunction NOTIFY digestFunctionChanged)
     Q_PROPERTY(QString cryptoPluginName READ cryptoPluginName WRITE setCryptoPluginName NOTIFY cryptoPluginNameChanged)
-    Q_PROPERTY(bool verified READ verified NOTIFY verifiedChanged)
+    Q_PROPERTY(Sailfish::Crypto::CryptoManager::VerificationStatus verificationStatus READ verificationStatus NOTIFY verificationStatusChanged)
 
 public:
     VerifyRequest(QObject *parent = Q_NULLPTR);
@@ -57,7 +57,7 @@ public:
     QString cryptoPluginName() const;
     void setCryptoPluginName(const QString &pluginName);
 
-    bool verified() const;
+    Sailfish::Crypto::CryptoManager::VerificationStatus verificationStatus() const;
 
     Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result result() const Q_DECL_OVERRIDE;
@@ -78,7 +78,7 @@ Q_SIGNALS:
     void paddingChanged();
     void digestFunctionChanged();
     void cryptoPluginNameChanged();
-    void verifiedChanged();
+    void verificationStatusChanged();
 
 private:
     QScopedPointer<VerifyRequestPrivate> const d_ptr;

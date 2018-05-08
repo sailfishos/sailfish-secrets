@@ -37,7 +37,7 @@ public:
     Sailfish::Crypto::CryptoManager::SignaturePadding m_padding;
     Sailfish::Crypto::CryptoManager::DigestFunction m_digestFunction;
     QString m_cryptoPluginName;
-    bool m_verified;
+    Sailfish::Crypto::CryptoManager::VerificationStatus m_verificationStatus;
 
     QScopedPointer<QDBusPendingCallWatcher> m_watcher;
     Sailfish::Crypto::Request::Status m_status;

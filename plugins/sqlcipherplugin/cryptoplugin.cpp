@@ -363,7 +363,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::verify(
         Sailfish::Crypto::CryptoManager::SignaturePadding padding,
         Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
         const QVariantMap &customParameters,
-        bool *verified)
+        Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus)
 {
     Sailfish::Crypto::Key fullKey;
     Sailfish::Crypto::Result keyResult = getFullKey(key, &fullKey);
@@ -371,7 +371,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::verify(
         return keyResult;
     }
 
-    return m_opensslCryptoPlugin.verify(signature, data, fullKey, padding, digestFunction, customParameters, verified);
+    return m_opensslCryptoPlugin.verify(signature, data, fullKey, padding, digestFunction, customParameters, verificationStatus);
 }
 
 Sailfish::Crypto::Result
@@ -406,7 +406,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::decrypt(
         const QByteArray &authenticationTag,
         const QVariantMap &customParameters,
         QByteArray *decrypted,
-        bool *verified)
+        Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus)
 {
     Sailfish::Crypto::Key fullKey;
     Sailfish::Crypto::Result keyResult = getFullKey(key, &fullKey);
@@ -414,7 +414,7 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::decrypt(
         return keyResult;
     }
 
-    return m_opensslCryptoPlugin.decrypt(data, iv, fullKey, blockMode, padding, authenticationData, authenticationTag, customParameters, decrypted, verified);
+    return m_opensslCryptoPlugin.decrypt(data, iv, fullKey, blockMode, padding, authenticationData, authenticationTag, customParameters, decrypted, verificationStatus);
 }
 
 Sailfish::Crypto::Result
@@ -483,12 +483,12 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::finalizeCipherSession(
         const QVariantMap &customParameters,
         quint32 cipherSessionToken,
         QByteArray *generatedData,
-        bool *verified)
+        Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus)
 {
     return m_opensslCryptoPlugin.finalizeCipherSession(clientId,
                                                        data,
                                                        customParameters,
                                                        cipherSessionToken,
                                                        generatedData,
-                                                       verified);
+                                                       verificationStatus);
 }

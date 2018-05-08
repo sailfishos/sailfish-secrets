@@ -48,23 +48,23 @@ struct DataResult {
 
 struct VerifiedDataResult {
     VerifiedDataResult(const Sailfish::Crypto::Result &r = Sailfish::Crypto::Result(),
-                       const QByteArray &d = QByteArray(), bool v = false)
-        : result(r), data(d), verified(v) {}
+                       const QByteArray &d = QByteArray(), Sailfish::Crypto::CryptoManager::VerificationStatus v = Sailfish::Crypto::CryptoManager::VerificationStatusUnknown)
+        : result(r), data(d), verificationStatus(v) {}
     VerifiedDataResult(const VerifiedDataResult &other)
-        : result(other.result), data(other.data), verified(other.verified) {}
+        : result(other.result), data(other.data), verificationStatus(other.verificationStatus) {}
     Sailfish::Crypto::Result result;
     QByteArray data;
-    bool verified;
+    Sailfish::Crypto::CryptoManager::VerificationStatus verificationStatus;
 };
 
 struct ValidatedResult {
     ValidatedResult(const Sailfish::Crypto::Result &r = Sailfish::Crypto::Result(),
-                    bool v = false)
-        : result(r), validated(v) {}
+                    Sailfish::Crypto::CryptoManager::VerificationStatus v = Sailfish::Crypto::CryptoManager::VerificationStatusUnknown)
+        : result(r), verificationStatus(v) {}
     ValidatedResult(const ValidatedResult &other)
-        : result(other.result), validated(other.validated) {}
+        : result(other.result), verificationStatus(other.verificationStatus) {}
     Sailfish::Crypto::Result result;
-    bool validated;
+    Sailfish::Crypto::CryptoManager::VerificationStatus verificationStatus;
 };
 
 struct KeyResult {

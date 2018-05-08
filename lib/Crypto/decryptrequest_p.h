@@ -40,7 +40,7 @@ public:
     QByteArray m_authenticationTag;
     QString m_cryptoPluginName;
     QByteArray m_plaintext;
-    bool m_verified;
+    Sailfish::Crypto::CryptoManager::VerificationStatus m_verificationStatus;
 
     QScopedPointer<QDBusPendingCallWatcher> m_watcher;
     Sailfish::Crypto::Request::Status m_status;

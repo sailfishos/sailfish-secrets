@@ -157,6 +157,9 @@ int OpenSslEvp::pkcs5_pbkdf2_hmac(const char *pass, int passlen,
                                           int plaintext_length,
                                           unsigned char **encrypted)
 
+    Implemented according to:
+    https://wiki.openssl.org/index.php/EVP_Symmetric_Encryption_and_Decryption
+
     Encrypts the \a plaintext of the specified \a plaintext_length with the
     given symmetric encryption \a key, using the specified cipher. The result
     is stored in \a encrypted. The caller owns the content of the
@@ -322,6 +325,27 @@ int OpenSslEvp::aes_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
     return plaintext_length;
 }
 
+/*
+    int aes_auth_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
+                                   const unsigned char *init_vector,
+                                   int init_vector_length,
+                                   const unsigned char *key,
+                                   int key_length,
+                                   const unsigned char *auth,
+                                   int auth_length,
+                                   const unsigned char *plaintext,
+                                   int plaintext_length,
+                                   unsigned char **encrypted,
+                                   unsigned char **tag,
+                                   int tag_length)
+
+    Implemented according to:
+    https://wiki.openssl.org/index.php/EVP_Authenticated_Encryption_and_Decryption
+
+    Equivalent to aes_encrypt_plaintext() but with authentication added. Authentication
+    is done with the specified \a auth and \a auth_length authentication data, and
+    the specified \a tag and \a tag_length for the authentication tag.
+ */
 int OpenSslEvp::aes_auth_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
                                            const unsigned char *init_vector,
                                            int init_vector_length,
@@ -473,6 +497,28 @@ int OpenSslEvp::aes_auth_encrypt_plaintext(const EVP_CIPHER *evp_cipher,
     return ciphertext_length;
 }
 
+/*
+    int aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
+                                    const unsigned char *init_vector,
+                                    int init_vector_length,
+                                    const unsigned char *key,
+                                    int key_length,
+                                    const unsigned char *auth,
+                                    int auth_length,
+                                    unsigned char *tag,
+                                    int tag_length,
+                                    const unsigned char *ciphertext,
+                                    int ciphertext_length,
+                                    unsigned char **decrypted,
+                                    int *verified)
+
+    Implemented according to:
+    https://wiki.openssl.org/index.php/EVP_Authenticated_Encryption_and_Decryption
+
+    Equivalent to aes_decrypt_plaintext() but with authentication added. Authentication
+    is done with the specified \a auth and \a auth_length authentication data, and
+    the specified \a tag and \a tag_length for the authentication tag.
+ */
 int OpenSslEvp::aes_auth_decrypt_ciphertext(const EVP_CIPHER *evp_cipher,
                                             const unsigned char *init_vector,
                                             int init_vector_length,
