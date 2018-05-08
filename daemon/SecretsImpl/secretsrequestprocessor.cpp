@@ -379,7 +379,7 @@ Daemon::ApiImpl::RequestProcessor::createCustomLockCollection(
     promptParams.setEchoMode(InteractionParameters::PasswordEcho);
     promptParams.setPromptText({
         //: This will be displayed to the user, prompting them to enter a passphrase which will be used to encrypt a collection. %1 is the application name, %2 is the collection name, %3 is the plugin name.
-        //% "App %1 wants to create a new secrets collection %2 in plugin %3."
+        //% "%1 wants to create a new secrets collection %2 in plugin %3."
         { InteractionParameters::Message, qtTrId("sailfish_secrets-create_customlock_collection-la-message")
                     .arg(callerApplicationId, collectionName, m_requestQueue->controller()->displayNameForPlugin(storagePluginName)) },
         //% "Enter the passphrase which will be used to encrypt the collection."
@@ -672,12 +672,48 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionWithMetadata(
                     interactionServiceAddress,
                     m_autotestMode);
 
+        Sailfish::Secrets::InteractionParameters::PromptText promptText({
+             //: This will be displayed to the user, prompting them to enter a passphrase which will be used to unlock a collection for deletion. %1 is the application name, %2 is the collection name, %3 is the plugin name.
+             //% "%1 wants to delete collection %2 in plugin %3."
+             { InteractionParameters::Message, qtTrId("sailfish_secrets-delete_collection-la-message")
+                         .arg(callerApplicationId, collectionName, m_requestQueue->controller()->displayNameForPlugin(storagePluginName)) },
+            //% "Enter the passphrase which will be used to unlock the collection for deletion."
+            { InteractionParameters::Instruction, qtTrId("sailfish_secrets-delete_collection-la-enter_collection_passphrase") }
+        });
+
         if (collectionMetadata.usesDeviceLockKey) {
-            // TODO: perform a "verify" UI flow (if the user interaction mode allows)
-            //       If that succeeds, unlock the collection with the stored devicelock key and continue.
-            return Result(Result::CollectionIsLockedError,
-                          QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
-                          .arg(collectionName));
+            // Perform a "verify" UI flow (if the user interaction mode allows).
+            // If that succeeds, unlock the collection with the stored devicelock key and continue.
+            if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
+                return Result(Result::CollectionIsLockedError,
+                              QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
+                              .arg(collectionName));
+            }
+
+            // always use the system authentication plugin for device lock authentication requests.
+            const QString systemAuthenticationPlugin = m_autotestMode
+                    ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                    : SecretManager::DefaultAuthenticationPluginName;
+            Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
+                        callerPid,
+                        requestId,
+                        promptText);
+            if (result.code() == Result::Failed) {
+                return result;
+            }
+
+            // calls deleteCollectionWithEncryptionKey when finished
+            m_pendingRequests.insert(requestId,
+                                     Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                         callerPid,
+                                         requestId,
+                                         Daemon::ApiImpl::DeleteCollectionRequest,
+                                         QVariantList() << collectionName
+                                                        << storagePluginName
+                                                        << userInteractionMode
+                                                        << interactionServiceAddress
+                                                        << QVariant::fromValue<CollectionMetadata>(collectionMetadata)));
+            return result;
         } else if (userInteractionMode == SecretManager::PreventInteraction) {
             return Result(Result::OperationRequiresUserInteraction,
                           QString::fromLatin1("Authentication plugin %1 requires user interaction")
@@ -698,14 +734,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionWithMetadata(
         promptParams.setOperation(InteractionParameters::DeleteCollection);
         promptParams.setInputType(InteractionParameters::AlphaNumericInput);
         promptParams.setEchoMode(InteractionParameters::PasswordEcho);
-        promptParams.setPromptText({
-            //: This will be displayed to the user, prompting them to enter a passphrase which will be used to unlock a collection for deletion. %1 is the application name, %2 is the collection name, %3 is the plugin name.
-            //% "App %1 wants to delete collection %2 in plugin %3."
-            { InteractionParameters::Message, qtTrId("sailfish_secrets-delete_collection-la-message")
-                        .arg(callerApplicationId, collectionName, m_requestQueue->controller()->displayNameForPlugin(storagePluginName)) },
-           //% "Enter the passphrase which will be used to unlock the collection for deletion."
-           { InteractionParameters::Instruction, qtTrId("sailfish_secrets-delete_collection-la-enter_collection_passphrase") }
-        });
+        promptParams.setPromptText(promptText);
         Result result = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                     callerPid,
                     requestId,
@@ -766,6 +795,57 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionWithLockCode(
                     collectionName,
                     lockCode,
                     m_requestQueue->saltData());
+    } else {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    StoragePluginFunctionWrapper::removeCollection,
+                    m_storagePlugins[storagePluginName],
+                    collectionName);
+    }
+
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<Result>::finished, [=] {
+        watcher->deleteLater();
+        Result pluginResult = watcher->future().result();
+        if (pluginResult.code() == Result::Succeeded) {
+            const QString hashedCollectionName = calculateSecretNameHash(
+                        Secret::Identifier(QString(), collectionName, storagePluginName));
+            m_collectionEncryptionKeys.remove(hashedCollectionName);
+            if (collectionMetadata.accessControlMode == SecretManager::SystemAccessControlMode) {
+                // TODO: tell AccessControl daemon to remove this datum from its database.
+            }
+        }
+
+        QVariantList outParams;
+        outParams << QVariant::fromValue<Result>(pluginResult);
+        m_requestQueue->requestFinished(requestId, outParams);
+    });
+}
+
+void
+Daemon::ApiImpl::RequestProcessor::deleteCollectionWithEncryptionKey(
+        pid_t callerPid,
+        quint64 requestId,
+        const QString &collectionName,
+        const QString &storagePluginName,
+        SecretManager::UserInteractionMode userInteractionMode,
+        const QString &interactionServiceAddress,
+        const CollectionMetadata &collectionMetadata,
+        const QByteArray &encryptionKey)
+{
+    Q_UNUSED(callerPid);
+    Q_UNUSED(userInteractionMode);
+    Q_UNUSED(interactionServiceAddress);
+
+    QFutureWatcher<Result> *watcher = new QFutureWatcher<Result>(this);
+    QFuture<Result> future;
+    if (m_encryptedStoragePlugins.contains(storagePluginName)) {
+        future = QtConcurrent::run(
+                    m_requestQueue->secretsThreadPool().data(),
+                    EncryptedStoragePluginFunctionWrapper::unlockAndRemoveCollection,
+                    m_encryptedStoragePlugins[storagePluginName],
+                    collectionName,
+                    encryptionKey);
     } else {
         future = QtConcurrent::run(
                     m_requestQueue->secretsThreadPool().data(),
@@ -934,12 +1014,48 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithMetadata(
                     interactionServiceAddress,
                     m_autotestMode);
 
+        Sailfish::Secrets::InteractionParameters::PromptText promptText({
+            //: This will be displayed to the user, prompting them to enter a passphrase which will be used to unlock a collection to read key identifiers. %1 is the application name, %2 is the collection name, %3 is the plugin name.
+            //% "%1 wants to read key identifiers from collection %2 in plugin %3."
+            { InteractionParameters::Message, qtTrId("sailfish_secrets-unlock_collection-la-message")
+                        .arg(callerApplicationId, collectionName, m_requestQueue->controller()->displayNameForPlugin(storagePluginName)) },
+            //% "Enter the passphrase which will be used to unlock the collection."
+            { InteractionParameters::Instruction, qtTrId("sailfish_secrets-unlock_collection-la-enter_collection_passphrase") }
+        });
+
         if (collectionMetadata.usesDeviceLockKey) {
-            // TODO: perform a "verify" UI flow (if the user interaction mode allows)
-            //       If that succeeds, unlock the collection with the stored devicelock key and continue.
-            return Result(Result::CollectionIsLockedError,
-                          QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
-                          .arg(collectionName));
+            // Perform a "verify" UI flow (if the user interaction mode allows).
+            // If that succeeds, unlock the collection with the stored devicelock key and continue.
+            if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
+                return Result(Result::CollectionIsLockedError,
+                              QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
+                              .arg(collectionName));
+            }
+
+            // always use the system authentication plugin for device lock authentication requests.
+            const QString systemAuthenticationPlugin = m_autotestMode
+                    ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                    : SecretManager::DefaultAuthenticationPluginName;
+            Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
+                        callerPid,
+                        requestId,
+                        promptText);
+            if (result.code() == Result::Failed) {
+                return result;
+            }
+
+            // calls storedKeyIdentifiersWithEncryptionKey when finished
+            m_pendingRequests.insert(requestId,
+                                     Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                         callerPid,
+                                         requestId,
+                                         Daemon::ApiImpl::StoredKeyIdentifiersRequest,
+                                         QVariantList() << collectionName
+                                                        << storagePluginName
+                                                        << userInteractionMode
+                                                        << interactionServiceAddress
+                                                        << QVariant::fromValue<CollectionMetadata>(collectionMetadata)));
+            return result;
         } else if (userInteractionMode == SecretManager::PreventInteraction) {
             return Result(Result::OperationRequiresUserInteraction,
                           QString::fromLatin1("Authentication plugin %1 requires user interaction")
@@ -960,14 +1076,7 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithMetadata(
         promptParams.setOperation(InteractionParameters::UnlockCollection);
         promptParams.setInputType(InteractionParameters::AlphaNumericInput);
         promptParams.setEchoMode(InteractionParameters::PasswordEcho);
-        promptParams.setPromptText({
-            //: This will be displayed to the user, prompting them to enter a passphrase which will be used to unlock a collection to read key identifiers. %1 is the application name, %2 is the collection name, %3 is the plugin name.
-            //% "App %1 wants to read key identifiers from collection %2 in plugin %3."
-            { InteractionParameters::Message, qtTrId("sailfish_secrets-unlock_collection-la-message")
-                        .arg(callerApplicationId, collectionName, m_requestQueue->controller()->displayNameForPlugin(storagePluginName)) },
-            //% "Enter the passphrase which will be used to unlock the collection."
-            { InteractionParameters::Instruction, qtTrId("sailfish_secrets-unlock_collection-la-enter_collection_passphrase") }
-        });
+        promptParams.setPromptText(promptText);
         Result result = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                     callerPid,
                     requestId,
@@ -1298,7 +1407,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithMetadata(
     modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
     modifiedUiParams.setPromptText({
         //: This will be displayed to the user, prompting them to enter the secret data which will be stored. %1 is the application name, %2 is the secret name, %3 is the collection name, %4 is the plugin name.
-        //% "App %1 wants to store a new secret named %2 into collection %3 in plugin %4."
+        //% "%1 wants to store a new secret named %2 into collection %3 in plugin %4."
         { InteractionParameters::Message, qtTrId("sailfish_secrets-set_collection_secret-la-message")
                     .arg(callerApplicationId,
                             secret.identifier().name(),
@@ -1351,6 +1460,18 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
                 interactionServiceAddress,
                 m_autotestMode);
 
+    Sailfish::Secrets::InteractionParameters::PromptText promptText({
+        //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in which a new secret will be stored. %1 is the application name, %2 is the  secret name, %3 is the collection name, %4 is the plugin name.
+        //% "%1 wants to store a new secret named %2 into collection %3 in plugin %4."
+        { InteractionParameters::Message, qtTrId("sailfish_secrets-set_collection_secret-la-collection_message")
+                    .arg(callerApplicationId,
+                            secret.identifier().name(),
+                            secret.identifier().collectionName(),
+                            m_requestQueue->controller()->displayNameForPlugin(secret.identifier().storagePluginName())) },
+        //% "Enter the passphrase to unlock the collection."
+        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-set_collection_secret-la-enter_collection_passphrase") }
+    });
+
     if (m_encryptedStoragePlugins.contains(secret.identifier().storagePluginName())) {
         // TODO: make this asynchronous instead of blocking the main thread!
         QFuture<LockedResult> future
@@ -1379,10 +1500,37 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
         }
 
         if (collectionMetadata.usesDeviceLockKey) {
-            // TODO: perform a "verify" UI flow (if the user interaction mode allows)
-            //       If that succeeds, unlock the collection with the stored devicelock key and continue.
-            return Result(Result::CollectionIsLockedError,
-                          QString::fromLatin1("Collection %1 is locked and requires device lock authentication").arg(secret.identifier().collectionName()));
+            // Perform a "verify" UI flow (if the user interaction mode allows).
+            // If that succeeds, unlock the collection with the stored devicelock key and continue.
+            if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
+                return Result(Result::CollectionIsLockedError,
+                              QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
+                              .arg(secret.identifier().collectionName()));
+            }
+
+            // always use the system authentication plugin for device lock authentication requests.
+            const QString systemAuthenticationPlugin = m_autotestMode
+                    ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                    : SecretManager::DefaultAuthenticationPluginName;
+            Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
+                        callerPid,
+                        requestId,
+                        promptText);
+            if (result.code() == Result::Failed) {
+                return result;
+            }
+
+            // calls setCollectionSecretWithEncryptionKey when finished
+            m_pendingRequests.insert(requestId,
+                                     Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                         callerPid,
+                                         requestId,
+                                         Daemon::ApiImpl::SetCollectionSecretRequest,
+                                         QVariantList() << QVariant::fromValue<Secret>(secret)
+                                                        << userInteractionMode
+                                                        << interactionServiceAddress
+                                                        << QVariant::fromValue<CollectionMetadata>(collectionMetadata)));
+            return result;
         } else if (userInteractionMode == SecretManager::PreventInteraction) {
             return Result(Result::OperationRequiresUserInteraction,
                           QString::fromLatin1("Authentication plugin %1 requires user interaction")
@@ -1403,17 +1551,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
         promptParams.setOperation(InteractionParameters::StoreSecret);
         promptParams.setInputType(InteractionParameters::AlphaNumericInput);
         promptParams.setEchoMode(InteractionParameters::PasswordEcho);
-        promptParams.setPromptText({
-            //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in which a new secret will be stored. %1 is the application name, %2 is the  secret name, %3 is the collection name, %4 is the plugin name.
-            //% "App %1 wants to store a new secret named %2 into collection %3 in plugin %4."
-            { InteractionParameters::Message, qtTrId("sailfish_secrets-set_collection_secret-la-message")
-                        .arg(callerApplicationId,
-                                secret.identifier().name(),
-                                secret.identifier().collectionName(),
-                                m_requestQueue->controller()->displayNameForPlugin(secret.identifier().storagePluginName())) },
-            //% "Enter the passphrase to unlock the collection."
-            { InteractionParameters::Instruction, qtTrId("sailfish_secrets-set_collection_secret-la-enter_collection_passphrase") }
-        });
+        promptParams.setPromptText(promptText);
         Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                     callerPid,
                     requestId,
@@ -1450,9 +1588,37 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
     }
 
     if (collectionMetadata.usesDeviceLockKey) {
-        // TODO: perform a "verify" UI flow (if the user interaction mode allows)
-        return Result(Result::CollectionIsLockedError,
-                      QString::fromLatin1("Collection %1 is locked and requires device lock authentication").arg(secret.identifier().collectionName()));
+        // Perform a "verify" UI flow (if the user interaction mode allows).
+        // If that succeeds, unlock the collection with the stored devicelock key and continue.
+        if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
+            return Result(Result::CollectionIsLockedError,
+                          QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
+                          .arg(secret.identifier().collectionName()));
+        }
+
+        // always use the system authentication plugin for device lock authentication requests.
+        const QString systemAuthenticationPlugin = m_autotestMode
+                ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                : SecretManager::DefaultAuthenticationPluginName;
+        Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
+                    callerPid,
+                    requestId,
+                    promptText);
+        if (result.code() == Result::Failed) {
+            return result;
+        }
+
+        // calls setCollectionSecretWithEncryptionKey when finished
+        m_pendingRequests.insert(requestId,
+                                 Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                     callerPid,
+                                     requestId,
+                                     Daemon::ApiImpl::SetCollectionSecretRequest,
+                                     QVariantList() << QVariant::fromValue<Secret>(secret)
+                                                    << userInteractionMode
+                                                    << interactionServiceAddress
+                                                    << QVariant::fromValue<CollectionMetadata>(collectionMetadata)));
+        return result;
     } else if (userInteractionMode == SecretManager::PreventInteraction) {
         return Result(Result::OperationRequiresUserInteraction,
                       QString::fromLatin1("Authentication plugin %1 requires user interaction")
@@ -1474,17 +1640,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
     promptParams.setOperation(InteractionParameters::StoreSecret);
     promptParams.setInputType(InteractionParameters::AlphaNumericInput);
     promptParams.setEchoMode(InteractionParameters::PasswordEcho);
-    promptParams.setPromptText({
-        //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in which a new secret will be stored. %1 is the application name, %2 is the  secret name, %3 is the collection name, %4 is the plugin name.
-        //% "App %1 wants to store a new secret named %2 into collection %3 in plugin %4."
-        { InteractionParameters::Message, qtTrId("sailfish_secrets-set_collection_secret-la-collection_message")
-                    .arg(callerApplicationId,
-                            secret.identifier().name(),
-                            secret.identifier().collectionName(),
-                            m_requestQueue->controller()->displayNameForPlugin(secret.identifier().storagePluginName())) },
-        //% "Enter the passphrase to unlock the collection."
-        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-set_collection_secret-la-enter_collection_passphrase") }
-    });
+    promptParams.setPromptText(promptText);
     Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -1809,7 +1965,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSecretWithMetadata(
     modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
     modifiedUiParams.setPromptText({
         //: This will be displayed to the user, prompting them to enter the standalone secret data which will be stored. %1 is the application name, %2 is the secret name, %3 is the plugin name.
-        //% "App %1 wants to store a new secret named %2 into collection %3 in plugin %4."
+        //% "%1 wants to store a new secret named %2 into collection %3 in plugin %4."
         { InteractionParameters::Message, qtTrId("sailfish_secrets-set_standalone_secret-la-message")
                     .arg(newMetadata.ownerApplicationId,
                             secret.identifier().name(),
@@ -2041,7 +2197,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretWithMetadata(
     modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
     modifiedUiParams.setPromptText({
         //: This will be displayed to the user, prompting them to enter the standalone secret data which will be stored. %1 is the application name, %2 is the secret name, %3 is the plugin name.
-        //% "App %1 wants to store a new secret named %2 into collection %3 in plugin %4."
+        //% "%1 wants to store a new secret named %2 into collection %3 in plugin %4."
         { InteractionParameters::Message, qtTrId("sailfish_secrets-set_standalone_secret-la-message")
                     .arg(newMetadata.ownerApplicationId,
                             secret.identifier().name(),
@@ -2091,7 +2247,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretGetAuthenticatio
     promptParams.setEchoMode(InteractionParameters::PasswordEcho);
     promptParams.setPromptText({
         //: This will be displayed to the user, prompting them to enter the passphrase to encrypt a standalone secret. %1 is the application name, %2 is the secret name, %3 is the plugin name.
-        //% "App %1 wants to store a new standalone secret named %2 into plugin %3"
+        //% "%1 wants to store a new standalone secret named %2 into plugin %3"
         { InteractionParameters::Message, qtTrId("sailfish_secrets-set_standalone_secret-la-message")
                     .arg(secretMetadata.ownerApplicationId,
                             secret.identifier().name(),
@@ -2328,6 +2484,18 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
                       .arg(identifier.collectionName(), identifier.storagePluginName()));
     }
 
+    Sailfish::Secrets::InteractionParameters::PromptText promptText({
+        //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in order to retrieve a secret. %1 is the application name, %2 is the  secret name, %3 is the collection name, %4 is the plugin name.
+        //% "%1 wants to retrieve secret %2 from collection %3 in plugin %4."
+        { InteractionParameters::Message, qtTrId("sailfish_secrets-get_collection_secret-la-message")
+                    .arg(callerApplicationId,
+                            identifier.name(),
+                            identifier.collectionName(),
+                            m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())) },
+        //% "Enter the passphrase to unlock the collection."
+        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-get_collection_secret-la-enter_collection_passphrase") }
+    });
+
     if (identifier.storagePluginName() == collectionMetadata.encryptionPluginName
             || collectionMetadata.encryptionPluginName.isEmpty()) {
         // TODO: make this asynchronous instead of blocking the main thread!
@@ -2347,11 +2515,37 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
 
         if (locked) {
             if (collectionMetadata.usesDeviceLockKey) {
-                // TODO: if the user interaction mode allows, perform a Verification auth request
-                //       and if that succeeds, unlock the collection with the device lock key and continue.
-                return Result(Result::CollectionIsLockedError,
-                              QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
-                              .arg(identifier.collectionName()));
+                // Perform a "verify" UI flow (if the user interaction mode allows).
+                // If that succeeds, unlock the collection with the stored devicelock key and continue.
+                if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
+                    return Result(Result::CollectionIsLockedError,
+                                  QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
+                                  .arg(identifier.collectionName()));
+                }
+
+                // always use the system authentication plugin for device lock authentication requests.
+                const QString systemAuthenticationPlugin = m_autotestMode
+                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                        : SecretManager::DefaultAuthenticationPluginName;
+                Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
+                            callerPid,
+                            requestId,
+                            promptText);
+                if (result.code() == Result::Failed) {
+                    return result;
+                }
+
+                // calls getCollectionSecretWithEncryptionKey when finished
+                m_pendingRequests.insert(requestId,
+                                         Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                             callerPid,
+                                             requestId,
+                                             Daemon::ApiImpl::GetCollectionSecretRequest,
+                                             QVariantList() << QVariant::fromValue<Secret::Identifier>(identifier)
+                                                            << userInteractionMode
+                                                            << interactionServiceAddress
+                                                            << QVariant::fromValue<CollectionMetadata>(collectionMetadata)));
+                return result;
             } else {
                 if (userInteractionMode == SecretManager::PreventInteraction) {
                     return Result(Result::OperationRequiresUserInteraction,
@@ -2378,17 +2572,7 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
                 promptParams.setOperation(InteractionParameters::ReadSecret);
                 promptParams.setInputType(InteractionParameters::AlphaNumericInput);
                 promptParams.setEchoMode(InteractionParameters::PasswordEcho);
-                promptParams.setPromptText({
-                    //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in order to retrieve a secret. %1 is the application name, %2 is the  secret name, %3 is the collection name, %4 is the plugin name.
-                    //% "App %1 wants to retrieve secret %2 from collection %3 in plugin %4."
-                    { InteractionParameters::Message, qtTrId("sailfish_secrets-get_collection_secret-la-message")
-                                .arg(callerApplicationId,
-                                        identifier.name(),
-                                        identifier.collectionName(),
-                                        m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())) },
-                    //% "Enter the passphrase to unlock the collection."
-                    { InteractionParameters::Instruction, qtTrId("sailfish_secrets-get_collection_secret-la-enter_collection_passphrase") }
-                });
+                promptParams.setPromptText(promptText);
                 Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
@@ -2425,11 +2609,37 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
                     Secret::Identifier(QString(), identifier.collectionName(), identifier.storagePluginName()));
         if (!m_collectionEncryptionKeys.contains(hashedCollectionName)) {
             if (collectionMetadata.usesDeviceLockKey) {
-                // TODO: if the user interaction mode allows, perform a Verification auth request
-                //       and if that succeeds, unlock the collection with the device lock key and continue.
-                return Result(Result::CollectionIsLockedError,
-                              QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
-                              .arg(identifier.collectionName()));
+                // Perform a "verify" UI flow (if the user interaction mode allows).
+                // If that succeeds, unlock the collection with the stored devicelock key and continue.
+                if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
+                    return Result(Result::CollectionIsLockedError,
+                                  QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
+                                  .arg(identifier.collectionName()));
+                }
+
+                // always use the system authentication plugin for device lock authentication requests.
+                const QString systemAuthenticationPlugin = m_autotestMode
+                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                        : SecretManager::DefaultAuthenticationPluginName;
+                Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
+                            callerPid,
+                            requestId,
+                            promptText);
+                if (result.code() == Result::Failed) {
+                    return result;
+                }
+
+                // calls getCollectionSecretWithEncryptionKey when finished
+                m_pendingRequests.insert(requestId,
+                                         Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                             callerPid,
+                                             requestId,
+                                             Daemon::ApiImpl::GetCollectionSecretRequest,
+                                             QVariantList() << QVariant::fromValue<Secret::Identifier>(identifier)
+                                                            << userInteractionMode
+                                                            << interactionServiceAddress
+                                                            << QVariant::fromValue<CollectionMetadata>(collectionMetadata)));
+                return result;
             } else {
                 if (userInteractionMode == SecretManager::PreventInteraction) {
                     return Result(Result::OperationRequiresUserInteraction,
@@ -2456,17 +2666,7 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
                 promptParams.setOperation(InteractionParameters::ReadSecret);
                 promptParams.setInputType(InteractionParameters::AlphaNumericInput);
                 promptParams.setEchoMode(InteractionParameters::PasswordEcho);
-                promptParams.setPromptText({
-                    //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in order to retrieve a secret. %1 is the application name, %2 is the  secret name, %3 is the collection name, %4 is the plugin name.
-                    //% "App %1 wants to retrieve secret %2 from collection %3 in plugin %4."
-                    { InteractionParameters::Message, qtTrId("sailfish_secrets-get_collection_secret-la-message")
-                                .arg(callerApplicationId,
-                                        identifier.name(),
-                                        identifier.collectionName(),
-                                        m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())) },
-                    //% "Enter the passphrase to unlock the collection."
-                    { InteractionParameters::Instruction, qtTrId("sailfish_secrets-get_collection_secret-la-enter_collection_passphrase") }
-                });
+                promptParams.setPromptText(promptText);
                 Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
@@ -2735,12 +2935,50 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithMetadata(
         return Result(Result::Pending);
     }
 
+    Sailfish::Secrets::InteractionParameters::PromptText promptText({
+        //: This will be displayed to the user, prompting them to enter the passphrase to unlock the standalone secret in order to retrieve it. %1 is the application name, %2 is the standalone secret name, %3 is the plugin name.
+        //% "%1 wants to retrieve standalone secret %2 from plugin %3."
+        { InteractionParameters::Message, qtTrId("sailfish_secrets-get_standalone_secret-la-message")
+                    .arg(callerApplicationId,
+                            identifier.name(),
+                            identifier.collectionName(),
+                            m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())) },
+        //% "Enter the passphrase to unlock the secret."
+        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-get_standalone_secret-la-enter_secret_passphrase") }
+    });
+
     if (secretMetadata.usesDeviceLockKey) {
-        // TODO: if the user interaction mode allows, perform a VerifyUser auth flow
-        //       if that succeeds, unlock the collection with the device lock key and continue.
-        return Result(Result::CollectionIsLockedError,
-                      QString::fromLatin1("Secret %1 is locked and requires device lock authentication")
-                      .arg(identifier.name()));
+        // Perform a "verify" UI flow (if the user interaction mode allows).
+        // If that succeeds, unlock the collection with the stored devicelock key and continue.
+        if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
+            return Result(Result::CollectionIsLockedError,
+                          QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
+                          .arg(identifier.collectionName()));
+        }
+
+        // always use the system authentication plugin for device lock authentication requests.
+        const QString systemAuthenticationPlugin = m_autotestMode
+                ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                : SecretManager::DefaultAuthenticationPluginName;
+        Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
+                    callerPid,
+                    requestId,
+                    promptText);
+        if (result.code() == Result::Failed) {
+            return result;
+        }
+
+        // calls getStandaloneSecretWithEncryptionKey when finished
+        m_pendingRequests.insert(requestId,
+                                 Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                     callerPid,
+                                     requestId,
+                                     Daemon::ApiImpl::GetStandaloneSecretRequest,
+                                     QVariantList() << QVariant::fromValue<Secret::Identifier>(identifier)
+                                                    << userInteractionMode
+                                                    << interactionServiceAddress
+                                                    << QVariant::fromValue<SecretMetadata>(secretMetadata)));
+        return result;
     } else if (userInteractionMode == SecretManager::PreventInteraction) {
         return Result(Result::OperationRequiresUserInteraction,
                       QString::fromLatin1("Authentication plugin %1 requires user interaction")
@@ -2761,17 +2999,7 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithMetadata(
     promptParams.setOperation(InteractionParameters::ReadSecret);
     promptParams.setInputType(InteractionParameters::AlphaNumericInput);
     promptParams.setEchoMode(InteractionParameters::PasswordEcho);
-    promptParams.setPromptText({
-        //: This will be displayed to the user, prompting them to enter the passphrase to unlock the standalone secret in order to retrieve it. %1 is the application name, %2 is the standalone secret name, %3 is the plugin name.
-        //% "App %1 wants to retrieve standalone secret %2 from plugin %3."
-        { InteractionParameters::Message, qtTrId("sailfish_secrets-get_standalone_secret-la-message")
-                    .arg(callerApplicationId,
-                            identifier.name(),
-                            identifier.collectionName(),
-                            m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())) },
-        //% "Enter the passphrase to unlock the secret."
-        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-get_standalone_secret-la-enter_secret_passphrase") }
-    });
+    promptParams.setPromptText(promptText);
     Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -3045,6 +3273,17 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
                       .arg(authPluginName));
     }
 
+    Sailfish::Secrets::InteractionParameters::PromptText promptText({
+        //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in order to filter secrets within it. %1 is the application name, %2 is the collection name, %3 is the plugin name.
+        //% "%1 wants to search for secrets within collection %2 from plugin %3."
+        { InteractionParameters::Message, qtTrId("sailfish_secrets-find_collection_secrets-la-app_search")
+                         .arg(callerApplicationId,
+                              collectionName,
+                              m_requestQueue->controller()->displayNameForPlugin(storagePluginName)) },
+        //% "Enter the passphrase to unlock the collection."
+        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-find_collection_secrets-la-enter_collection_passphrase") }
+    });
+
     if (storagePluginName == collectionMetadata.encryptionPluginName
             || collectionMetadata.encryptionPluginName.isEmpty()) {
         // TODO: make this asynchronous instead of blocking the main thread!
@@ -3064,10 +3303,40 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
 
         if (locked) {
             if (collectionMetadata.usesDeviceLockKey) {
-                // TODO: if user interaction mode allows, perform a VerifyUser auth request
-                //       if that succeeds, unlock the collection with the device lock key and continue.
-                return Result(Result::CollectionIsLockedError,
-                              QString::fromLatin1("Collection %1 is locked and requires device lock authentication").arg(collectionName));
+                // Perform a "verify" UI flow (if the user interaction mode allows).
+                // If that succeeds, unlock the collection with the stored devicelock key and continue.
+                if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
+                    return Result(Result::CollectionIsLockedError,
+                                  QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
+                                  .arg(collectionName));
+                }
+
+                // always use the system authentication plugin for device lock authentication requests.
+                const QString systemAuthenticationPlugin = m_autotestMode
+                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                        : SecretManager::DefaultAuthenticationPluginName;
+                Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
+                            callerPid,
+                            requestId,
+                            promptText);
+                if (result.code() == Result::Failed) {
+                    return result;
+                }
+
+                // calls findCollectionSecretsWithEncryptionKey when finished
+                m_pendingRequests.insert(requestId,
+                                         Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                             callerPid,
+                                             requestId,
+                                             Daemon::ApiImpl::FindCollectionSecretsRequest,
+                                             QVariantList() << collectionName
+                                                            << storagePluginName
+                                                            << QVariant::fromValue<Secret::FilterData >(filter)
+                                                            << filterOperator
+                                                            << userInteractionMode
+                                                            << interactionServiceAddress
+                                                            << QVariant::fromValue<CollectionMetadata>(collectionMetadata)));
+                return result;
             } else {
                 if (userInteractionMode == SecretManager::PreventInteraction) {
                     return Result(Result::OperationRequiresUserInteraction,
@@ -3095,16 +3364,7 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
                 promptParams.setOperation(InteractionParameters::UnlockCollection);
                 promptParams.setInputType(InteractionParameters::AlphaNumericInput);
                 promptParams.setEchoMode(InteractionParameters::PasswordEcho);
-                promptParams.setPromptText({
-                        //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in order to filter secrets within it. %1 is the application name, %2 is the collection name, %3 is the plugin name.
-                        //% "App %1 wants to search for secrets within collection %2 from plugin %3."
-                        { InteractionParameters::Message, qtTrId("sailfish_secrets-find_collection_secrets-la-app_search")
-                                         .arg(callerApplicationId,
-                                              collectionName,
-                                              m_requestQueue->controller()->displayNameForPlugin(storagePluginName)) },
-                        //% "Enter the passphrase to unlock the collection."
-                        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-find_collection_secrets-la-enter_collection_passphrase") }
-                });
+                promptParams.setPromptText(promptText);
                 Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
@@ -3147,11 +3407,40 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
                     Secret::Identifier(QString(), collectionName, storagePluginName));
         if (!m_collectionEncryptionKeys.contains(hashedCollectionName)) {
             if (collectionMetadata.usesDeviceLockKey) {
-                // TODO: if the user interaction mode allows, perform a VerifyUser auth request
-                //       if that succeeds, unlock the collection with the device lock key and continue.
-                return Result(Result::CollectionIsLockedError,
-                              QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
-                              .arg(collectionName));
+                // Perform a "verify" UI flow (if the user interaction mode allows).
+                // If that succeeds, unlock the collection with the stored devicelock key and continue.
+                if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
+                    return Result(Result::CollectionIsLockedError,
+                                  QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
+                                  .arg(collectionName));
+                }
+
+                // always use the system authentication plugin for device lock authentication requests.
+                const QString systemAuthenticationPlugin = m_autotestMode
+                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                        : SecretManager::DefaultAuthenticationPluginName;
+                Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
+                            callerPid,
+                            requestId,
+                            promptText);
+                if (result.code() == Result::Failed) {
+                    return result;
+                }
+
+                // calls findCollectionSecretsWithEncryptionKey when finished
+                m_pendingRequests.insert(requestId,
+                                         Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                             callerPid,
+                                             requestId,
+                                             Daemon::ApiImpl::FindCollectionSecretsRequest,
+                                             QVariantList() << collectionName
+                                                            << storagePluginName
+                                                            << QVariant::fromValue<Secret::FilterData >(filter)
+                                                            << filterOperator
+                                                            << userInteractionMode
+                                                            << interactionServiceAddress
+                                                            << QVariant::fromValue<CollectionMetadata>(collectionMetadata)));
+                return result;
             } else {
                 if (userInteractionMode == SecretManager::PreventInteraction) {
                     return Result(Result::OperationRequiresUserInteraction,
@@ -3179,16 +3468,7 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
                 promptParams.setOperation(InteractionParameters::UnlockCollection);
                 promptParams.setInputType(InteractionParameters::AlphaNumericInput);
                 promptParams.setEchoMode(InteractionParameters::PasswordEcho);
-                promptParams.setPromptText({
-                        //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in order to filter secrets within it. %1 is the application name, %2 is the collection name, %3 is the plugin name.
-                        //% "App %1 wants to search for secrets within collection %2 from plugin %3."
-                        { InteractionParameters::Message, qtTrId("sailfish_secrets-find_collection_secrets-la-app_search")
-                                         .arg(callerApplicationId,
-                                              collectionName,
-                                              m_requestQueue->controller()->displayNameForPlugin(storagePluginName)) },
-                        //% "Enter the passphrase to unlock the collection."
-                        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-find_collection_secrets-la-enter_collection_passphrase") }
-                });
+                promptParams.setPromptText(promptText);
                 Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
@@ -3491,6 +3771,18 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
                       .arg(collectionMetadata.encryptionPluginName));
     }
 
+    Sailfish::Secrets::InteractionParameters::PromptText promptText({
+        //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in order to delete a secret within it. %1 is the application name, %2 is the secret name, %3 is the collection name, %4 is the plugin name.
+        //% "%1 wants to delete secret %2 within collection %3 in plugin %4."
+        { InteractionParameters::Message, qtTrId("sailfish_secrets-delete_collection_secret-la-message")
+                    .arg(callerApplicationId,
+                            identifier.name(),
+                            identifier.collectionName(),
+                            m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())) },
+        //% "Enter the passphrase to unlock the collection."
+        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-delete_collection_secret-la-enter_collection_passphrase") }
+    });
+
     if (identifier.storagePluginName() == collectionMetadata.encryptionPluginName
             || collectionMetadata.encryptionPluginName.isEmpty()) {
         // TODO: make this asynchronous instead of blocking the main thread!
@@ -3509,11 +3801,37 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
         }
         if (locked) {
             if (collectionMetadata.usesDeviceLockKey) {
-                // TODO: if user interaction mode allows, perform a VerifyUser authentication flow
-                //       if that succeeds, unlock the collection with the device lock key and continue
-                return Result(Result::CollectionIsLockedError,
-                              QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
-                              .arg(identifier.collectionName()));
+                // Perform a "verify" UI flow (if the user interaction mode allows).
+                // If that succeeds, unlock the collection with the stored devicelock key and continue.
+                if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
+                    return Result(Result::CollectionIsLockedError,
+                                  QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
+                                  .arg(identifier.collectionName()));
+                }
+
+                // always use the system authentication plugin for device lock authentication requests.
+                const QString systemAuthenticationPlugin = m_autotestMode
+                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                        : SecretManager::DefaultAuthenticationPluginName;
+                Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
+                            callerPid,
+                            requestId,
+                            promptText);
+                if (result.code() == Result::Failed) {
+                    return result;
+                }
+
+                // calls deleteCollectionSecretWithEncryptionKey when finished
+                m_pendingRequests.insert(requestId,
+                                         Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                             callerPid,
+                                             requestId,
+                                             Daemon::ApiImpl::DeleteCollectionSecretRequest,
+                                             QVariantList() << QVariant::fromValue<Secret::Identifier>(identifier)
+                                                            << userInteractionMode
+                                                            << interactionServiceAddress
+                                                            << QVariant::fromValue<CollectionMetadata>(collectionMetadata)));
+                return result;
             } else if (!m_authenticationPlugins.contains(authPluginName)) {
                 // TODO: stale data in metadata db?
                 return Result(Result::InvalidExtensionPluginError,
@@ -3534,17 +3852,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
             promptParams.setOperation(InteractionParameters::DeleteSecret);
             promptParams.setInputType(InteractionParameters::AlphaNumericInput);
             promptParams.setEchoMode(InteractionParameters::PasswordEcho);
-            promptParams.setPromptText({
-                //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in order to delete a secret within it. %1 is the application name, %2 is the secret name, %3 is the collection name, %4 is the plugin name.
-                //% "App %1 wants to delete secret %2 within collection %3 in plugin %4."
-                { InteractionParameters::Message, qtTrId("sailfish_secrets-delete_collection_secret-la-message")
-                            .arg(callerApplicationId,
-                                    identifier.name(),
-                                    identifier.collectionName(),
-                                    m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())) },
-                //% "Enter the passphrase to unlock the collection."
-                { InteractionParameters::Instruction, qtTrId("sailfish_secrets-delete_collection_secret-la-enter_collection_passphrase") }
-            });
+            promptParams.setPromptText(promptText);
             Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                         callerPid,
                         requestId,
@@ -3578,11 +3886,37 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
                     Secret::Identifier(QString(), identifier.collectionName(), identifier.storagePluginName()));
         if (!m_collectionEncryptionKeys.contains(hashedCollectionName)) {
             if (collectionMetadata.usesDeviceLockKey) {
-                // TODO: if user interaction mode allows, perform VerifyUser authentication flow
-                //       if that succeeds, unlock the collection with the device lock key and continue.
-                return Result(Result::CollectionIsLockedError,
-                              QStringLiteral("Collection %1 is locked and requires device lock authentication")
-                              .arg(identifier.collectionName()));
+                // Perform a "verify" UI flow (if the user interaction mode allows).
+                // If that succeeds, unlock the collection with the stored devicelock key and continue.
+                if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
+                    return Result(Result::CollectionIsLockedError,
+                                  QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
+                                  .arg(identifier.collectionName()));
+                }
+
+                // always use the system authentication plugin for device lock authentication requests.
+                const QString systemAuthenticationPlugin = m_autotestMode
+                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                        : SecretManager::DefaultAuthenticationPluginName;
+                Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
+                            callerPid,
+                            requestId,
+                            promptText);
+                if (result.code() == Result::Failed) {
+                    return result;
+                }
+
+                // calls deleteCollectionSecretWithEncryptionKey when finished
+                m_pendingRequests.insert(requestId,
+                                         Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                             callerPid,
+                                             requestId,
+                                             Daemon::ApiImpl::DeleteCollectionSecretRequest,
+                                             QVariantList() << QVariant::fromValue<Secret::Identifier>(identifier)
+                                                            << userInteractionMode
+                                                            << interactionServiceAddress
+                                                            << QVariant::fromValue<CollectionMetadata>(collectionMetadata)));
+                return result;
             } else {
                 if (userInteractionMode == SecretManager::PreventInteraction) {
                     return Result(Result::OperationRequiresUserInteraction,
@@ -3604,17 +3938,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
                 promptParams.setOperation(InteractionParameters::DeleteSecret);
                 promptParams.setInputType(InteractionParameters::AlphaNumericInput);
                 promptParams.setEchoMode(InteractionParameters::PasswordEcho);
-                promptParams.setPromptText({
-                    //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in order to delete a secret within it. %1 is the application name, %2 is the secret name, %3 is the collection name, %4 is the plugin name.
-                    //% "App %1 wants to delete secret %2 within collection %3 in plugin %4."
-                    { InteractionParameters::Message, qtTrId("sailfish_secrets-delete_collection_secret-la-message")
-                                .arg(callerApplicationId,
-                                        identifier.name(),
-                                        identifier.collectionName(),
-                                        m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())) },
-                    //% "Enter the passphrase to unlock the collection."
-                    { InteractionParameters::Instruction, qtTrId("sailfish_secrets-delete_collection_secret-la-enter_collection_passphrase") }
-                });
+                promptParams.setPromptText(promptText);
                 Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
@@ -3955,7 +4279,7 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCode(
         modifyLockRequest.setOperation(InteractionParameters::ModifyLockPlugin);
         modifyLockRequest.setPromptText({
             //: This will be displayed to the user, prompting them to enter the old passphrase to unlock the extension plugin in order to change its lock code. %1 is the application name, %2 is the plugin name.
-            //% "App %1 wants to change the lock code for plugin %2."
+            //% "%1 wants to change the lock code for plugin %2."
             { InteractionParameters::Message, qtTrId("sailfish_secrets-modify_lock_code-la-message_old_plugin")
                         .arg(callerApplicationId) },
             //% "Enter the old passphrase to unlock the plugin."
@@ -3965,7 +4289,7 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCode(
         modifyLockRequest.setOperation(InteractionParameters::ModifyLockDatabase);
         modifyLockRequest.setPromptText({
             //: This will be displayed to the user, prompting them to enter the old passphrase to unlock the secrets service in order to change the master lock code. %1 is the application name.
-            //% "App %1 wants to change the secrets service master lock code."
+            //% "%1 wants to change the secrets service master lock code."
             { InteractionParameters::Message, qtTrId("sailfish_secrets-modify_lock_code-la-message_old_master")
                         .arg(callerApplicationId) },
             //% "Enter the old master passphrase."
@@ -4031,7 +4355,7 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCode(
         modifyLockRequest.setOperation(InteractionParameters::ModifyLockPlugin);
         modifyLockRequest.setPromptText({
             //: This will be displayed to the user, prompting them to enter the new passphrase for the plugin. %1 is the application name, %2 is the plugin name.
-            //% "App %1 wants to change the lock code for plugin %2."
+            //% "%1 wants to change the lock code for plugin %2."
             { InteractionParameters::Message, qtTrId("sailfish_secrets-modify_lock_code-la-new_plugin_message")
                         .arg(callerApplicationId, m_requestQueue->controller()->displayNameForPlugin(lockCodeTarget)) },
             //% "Enter the new passphrase for the plugin."
@@ -4043,7 +4367,7 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCode(
         modifyLockRequest.setOperation(InteractionParameters::ModifyLockDatabase);
         modifyLockRequest.setPromptText({
             //: This will be displayed to the user, prompting them to enter the new master lock code for the secrets service. %1 is the application name.
-            //% "App %1 wants to change the secrets service master lock code."
+            //% "%1 wants to change the secrets service master lock code."
             { InteractionParameters::Message, qtTrId("sailfish_secrets-modify_lock_code-la-new_master_message")
                         .arg(callerApplicationId) },
             //% "Enter the new master passphrase."
@@ -4300,7 +4624,7 @@ Daemon::ApiImpl::RequestProcessor::provideLockCode(
         unlockRequest.setOperation(InteractionParameters::UnlockPlugin);
         unlockRequest.setPromptText({
             //: This will be displayed to the user, prompting them to enter the passphrase to unlock the extension plugin. %1 is the application name, %2 is the plugin name.
-            //% "App %1 wants to use plugin %2."
+            //% "%1 wants to use plugin %2."
             { InteractionParameters::Message, qtTrId("sailfish_secrets-provide_lock_code-la-message_plugin")
                         .arg(callerApplicationId, m_requestQueue->controller()->displayNameForPlugin(lockCodeTarget)) },
             //% "Enter the passphrase to unlock the plugin."
@@ -4310,7 +4634,7 @@ Daemon::ApiImpl::RequestProcessor::provideLockCode(
         unlockRequest.setOperation(InteractionParameters::UnlockDatabase);
         unlockRequest.setPromptText({
             //: This will be displayed to the user, prompting them to enter the passphrase to unlock the secrets service. %1 is the application name.
-            //% "App %1 wants to use the secrets service."
+            //% "%1 wants to use the secrets service."
             { InteractionParameters::Message, qtTrId("sailfish_secrets-provide_lock_code-la-message_master")
                         .arg(callerApplicationId) },
             //% "Enter the master passphrase to unlock the secrets service."
@@ -4612,6 +4936,18 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
                       .arg(identifier.collectionName(), identifier.storagePluginName()));
     }
 
+    Sailfish::Secrets::InteractionParameters::PromptText promptText({
+        //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection prior to key storage. %1 is the application name, %2 is the key name, %3 is the collection name, %4 is the plugin name.
+        //% "%1 wants to store a new key named %2 into collection %3 in plugin %4."
+        { InteractionParameters::Message, qtTrId("sailfish_secrets-set_collection_key_precheck-la-message")
+                    .arg(callerApplicationId,
+                            identifier.name(),
+                            identifier.collectionName(),
+                            m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())) },
+        //% "Enter the passphrase to unlock the collection."
+        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-set_collection_key_precheck-la-enter_collection_passphrase") }
+    });
+
     if (m_encryptedStoragePlugins.contains(identifier.storagePluginName())) {
         // TODO: make this asynchronous instead of blocking the main thread!
         QFuture<LockedResult> future
@@ -4638,11 +4974,36 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
         }
 
         if (collectionMetadata.usesDeviceLockKey) {
-            // TODO: perform a "verify" UI flow (if the user interaction mode allows)
-            //       If that succeeds, unlock the collection with the stored devicelock key and continue.
-            return Result(Result::CollectionIsLockedError,
-                          QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
-                          .arg(identifier.collectionName()));
+            // Perform a "verify" UI flow (if the user interaction mode allows).
+            // If that succeeds, unlock the collection with the stored devicelock key and continue.
+            if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
+                return Result(Result::CollectionIsLockedError,
+                              QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
+                              .arg(identifier.collectionName()));
+            }
+
+            // always use the system authentication plugin for device lock authentication requests.
+            const QString systemAuthenticationPlugin = m_autotestMode
+                    ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                    : SecretManager::DefaultAuthenticationPluginName;
+            Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
+                        callerPid,
+                        requestId,
+                        promptText);
+            if (result.code() == Result::Failed) {
+                return result;
+            }
+
+            // calls setCollectionKeyPreCheckWithEncryptionKey when finished
+            m_pendingRequests.insert(requestId,
+                                     Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                         callerPid,
+                                         requestId,
+                                         Daemon::ApiImpl::SetCollectionKeyPreCheckRequest,
+                                         QVariantList() << QVariant::fromValue<Secret::Identifier>(identifier)
+                                                        << userInteractionMode
+                                                        << QVariant::fromValue<CollectionMetadata>(collectionMetadata)));
+            return result;
         } else if (userInteractionMode == SecretManager::PreventInteraction) {
             return Result(Result::OperationRequiresUserInteraction,
                           QString::fromLatin1("Authentication plugin %1 requires user interaction")
@@ -4663,17 +5024,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
         promptParams.setOperation(InteractionParameters::StoreKey);
         promptParams.setInputType(InteractionParameters::AlphaNumericInput);
         promptParams.setEchoMode(InteractionParameters::PasswordEcho);
-        promptParams.setPromptText({
-            //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection prior to key storage. %1 is the application name, %2 is the key name, %3 is the collection name, %4 is the plugin name.
-            //% "App %1 wants to store a new key named %2 into collection %3 in plugin %4."
-            { InteractionParameters::Message, qtTrId("sailfish_secrets-set_collection_key_precheck-la-message")
-                        .arg(callerApplicationId,
-                                identifier.name(),
-                                identifier.collectionName(),
-                                m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())) },
-            //% "Enter the passphrase to unlock the collection."
-            { InteractionParameters::Instruction, qtTrId("sailfish_secrets-set_collection_key_precheck-la-enter_collection_passphrase") }
-        });
+        promptParams.setPromptText(promptText);
         Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                     callerPid,
                     requestId,
@@ -4707,10 +5058,36 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
     }
 
     if (collectionMetadata.usesDeviceLockKey) {
-        // TODO: perform a "verify" UI flow (if the user interaction mode allows)
-        return Result(Result::CollectionIsLockedError,
-                      QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
-                      .arg(identifier.collectionName()));
+        // Perform a "verify" UI flow (if the user interaction mode allows).
+        // If that succeeds, unlock the collection with the stored devicelock key and continue.
+        if (userInteractionMode == Sailfish::Secrets::SecretManager::PreventInteraction) {
+            return Result(Result::CollectionIsLockedError,
+                          QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
+                          .arg(identifier.collectionName()));
+        }
+
+        // always use the system authentication plugin for device lock authentication requests.
+        const QString systemAuthenticationPlugin = m_autotestMode
+                ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                : SecretManager::DefaultAuthenticationPluginName;
+        Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
+                    callerPid,
+                    requestId,
+                    promptText);
+        if (result.code() == Result::Failed) {
+            return result;
+        }
+
+        // calls setCollectionKeyPreCheckWithEncryptionKey when finished
+        m_pendingRequests.insert(requestId,
+                                 Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                     callerPid,
+                                     requestId,
+                                     Daemon::ApiImpl::SetCollectionKeyPreCheckRequest,
+                                     QVariantList() << QVariant::fromValue<Secret::Identifier>(identifier)
+                                                    << userInteractionMode
+                                                    << QVariant::fromValue<CollectionMetadata>(collectionMetadata)));
+        return result;
     } else if (userInteractionMode == SecretManager::PreventInteraction) {
         return Result(Result::OperationRequiresUserInteraction,
                       QString::fromLatin1("Authentication plugin %1 requires user interaction")
@@ -4732,17 +5109,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
     promptParams.setOperation(InteractionParameters::StoreSecret);
     promptParams.setInputType(InteractionParameters::AlphaNumericInput);
     promptParams.setEchoMode(InteractionParameters::PasswordEcho);
-    promptParams.setPromptText({
-        //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection prior to key storage. %1 is the application name, %2 is the key name, %3 is the collection name, %4 is the plugin name.
-        //% "App %1 wants to store a new key named %2 into collection %3 in plugin %4."
-        { InteractionParameters::Message, qtTrId("sailfish_secrets-set_collection_key_precheck-la-message")
-                    .arg(callerApplicationId,
-                            identifier.name(),
-                            identifier.collectionName(),
-                            m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())) },
-        //% "Enter the passphrase to unlock the collection."
-        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-set_collection_key_precheck-la-enter_collection_passphrase") }
-    });
+    promptParams.setPromptText(promptText);
     Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
@@ -5205,11 +5572,173 @@ void Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
         qint64 requestId,
         const Result &result)
 {
-    Q_UNUSED(callerPid);
-    Q_UNUSED(requestId);
-    Q_UNUSED(result);
-
     // the user has successfully authenticated themself.
-    // in the future, use this to unlock device-locked collections.
+    // we should unlock the device-locked collection and continue the operation.
+    Result returnResult = result;
+    if (result.code() == Result::Succeeded) {
+        // look up the pending request in our list
+        if (m_pendingRequests.contains(requestId)) {
+            // call the appropriate method to complete the request
+            Daemon::ApiImpl::RequestProcessor::PendingRequest pr = m_pendingRequests.take(requestId);
+            Q_ASSERT(pr.callerPid == callerPid);
+            switch (pr.requestType) {
+                case DeleteCollectionRequest: {
+                    if (pr.parameters.size() != 5) {
+                        returnResult = Result(Result::UnknownError,
+                                              QLatin1String("Internal error: incorrect parameter count!"));
+                    } else {
+                        deleteCollectionWithEncryptionKey(
+                                    pr.callerPid,
+                                    pr.requestId,
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    m_requestQueue->deviceLockKey());
+                        returnResult = Result(Result::Pending);
+                    }
+                    break;
+                }
+                case StoredKeyIdentifiersRequest: {
+                    if (pr.parameters.size() != 5) {
+                        returnResult = Result(Result::UnknownError,
+                                              QLatin1String("Internal error: incorrect parameter count!"));
+                    } else {
+                        storedKeyIdentifiersWithEncryptionKey(
+                                    pr.callerPid,
+                                    pr.requestId,
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    m_requestQueue->deviceLockKey(),
+                                    true);
+                        returnResult = Result(Result::Pending);
+                    }
+                    break;
+                }
+                case SetCollectionSecretRequest: {
+                    if (pr.parameters.size() != 4) {
+                        returnResult = Result(Result::UnknownError,
+                                              QLatin1String("Internal error: incorrect parameter count!"));
+                    } else {
+                        setCollectionSecretWithEncryptionKey(
+                                    pr.callerPid,
+                                    pr.requestId,
+                                    pr.parameters.takeFirst().value<Secret>(),
+                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    m_requestQueue->deviceLockKey());
+                        returnResult = Result(Result::Pending);
+                    }
+                    break;
+                }
+                case GetCollectionSecretRequest: {
+                    if (pr.parameters.size() != 4) {
+                        returnResult = Result(Result::UnknownError,
+                                              QLatin1String("Internal error: incorrect parameter count!"));
+                    } else {
+                        getCollectionSecretWithEncryptionKey(
+                                    pr.callerPid,
+                                    pr.requestId,
+                                    pr.parameters.takeFirst().value<Secret::Identifier>(),
+                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    m_requestQueue->deviceLockKey());
+                        returnResult = Result(Result::Pending);
+                    }
+                    break;
+                }
+                case GetStandaloneSecretRequest: {
+                    if (pr.parameters.size() != 4) {
+                        returnResult = Result(Result::UnknownError,
+                                              QLatin1String("Internal error: incorrect parameter count!"));
+                    } else {
+                        getStandaloneSecretWithEncryptionKey(
+                                    pr.callerPid,
+                                    pr.requestId,
+                                    pr.parameters.takeFirst().value<Secret::Identifier>(),
+                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<SecretMetadata>(),
+                                    m_requestQueue->deviceLockKey());
+                        returnResult = Result(Result::Pending);
+                    }
+                    break;
+                }
+                case FindCollectionSecretsRequest: {
+                    if (pr.parameters.size() != 7) {
+                        returnResult = Result(Result::UnknownError,
+                                              QLatin1String("Internal error: incorrect parameter count!"));
+                    } else {
+                        findCollectionSecretsWithEncryptionKey(
+                                    pr.callerPid,
+                                    pr.requestId,
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<Secret::FilterData>(),
+                                    static_cast<SecretManager::FilterOperator>(pr.parameters.takeFirst().value<int>()),
+                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    m_requestQueue->deviceLockKey());
+                        returnResult = Result(Result::Pending);
+                    }
+                    break;
+                }
+                case DeleteCollectionSecretRequest: {
+                    if (pr.parameters.size() != 4) {
+                        returnResult = Result(Result::UnknownError,
+                                              QLatin1String("Internal error: incorrect parameter count!"));
+                    } else {
+                        deleteCollectionSecretWithEncryptionKey(
+                                    pr.callerPid,
+                                    pr.requestId,
+                                    pr.parameters.takeFirst().value<Secret::Identifier>(),
+                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
+                                    pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    m_requestQueue->deviceLockKey());
+                        returnResult = Result(Result::Pending);
+                    }
+                    break;
+                }
+                case SetCollectionKeyPreCheckRequest: {
+                    if (pr.parameters.size() != 3) {
+                        returnResult = Result(Result::UnknownError,
+                                              QLatin1String("Internal error: incorrect parameter count!"));
+                    } else {
+                        setCollectionKeyPreCheckWithEncryptionKey(
+                                    pr.callerPid,
+                                    pr.requestId,
+                                    pr.parameters.takeFirst().value<Secret::Identifier>(),
+                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    m_requestQueue->deviceLockKey());
+                        returnResult = Result(Result::Pending);
+                    }
+                    break;
+                }
+                default: {
+                    returnResult = Result(Result::UnknownError,
+                                          QLatin1String("Internal error: unknown continuation for authenticated request!"));
+                    break;
+                }
+            }
+        } else {
+            returnResult = Result(Result::UnknownError,
+                                  QLatin1String("Internal error: failed to finish unknown pending authenticated request!"));
+        }
+    }
+
+    // finish the request unless another asynchronous request is required.
+    if (returnResult.code() != Result::Pending) {
+        QList<QVariant> outParams;
+        outParams << QVariant::fromValue<Result>(returnResult);
+        m_requestQueue->requestFinished(requestId, outParams);
+    }
 }
 

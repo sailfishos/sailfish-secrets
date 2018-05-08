@@ -297,10 +297,20 @@ private:
             quint64 requestId,
             const QString &collectionName,
             const QString &storagePluginName,
-            SecretManager::UserInteractionMode userInteractionMode,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
             const CollectionMetadata &collectionMetadata,
             const QByteArray &lockCode);
+
+    void deleteCollectionWithEncryptionKey(
+            pid_t callerPid,
+            quint64 requestId,
+            const QString &collectionName,
+            const QString &storagePluginName,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const QString &interactionServiceAddress,
+            const CollectionMetadata &collectionMetadata,
+            const QByteArray &encryptionKey);
 
     Sailfish::Secrets::Result createCustomLockCollectionWithAuthenticationCode(
             pid_t callerPid,
