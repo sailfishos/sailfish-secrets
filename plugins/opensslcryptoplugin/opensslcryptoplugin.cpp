@@ -650,32 +650,19 @@ Daemon::Plugins::OpenSslCryptoPlugin::sign(
                                         QLatin1String("Unsupported digest function chosen."));
     }
 
-    QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(BIO_new(BIO_s_mem()));
-
-    // Use BIO to write private key data
-    int r = BIO_write(bio.data(), key.privateKey().data(), key.privateKey().length());
-    if (r == 0 || r != key.privateKey().length()) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginSigningError,
-                                        QLatin1String("Failed to read private key data."));
-    }
-
     // Read the private key data into an EVP_PKEY, which SHOULD handle different formats transparently.
-    // See https://www.openssl.org/docs/man1.1.0/crypto/PEM_read_bio_PrivateKey.html
-    EVP_PKEY *pkeyPtr = Q_NULLPTR;
-    PEM_read_bio_PrivateKey(bio.data(), &pkeyPtr, Q_NULLPTR, Q_NULLPTR);
-    if (pkeyPtr == Q_NULLPTR) {
+    QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(readEvpPrivKey(key.privateKey()));
+    if (pkey.data() == Q_NULLPTR) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginSigningError,
                                         QLatin1String("Failed to read private key from PEM format."));
     }
-
-    QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(pkeyPtr);
 
     // Variables for storing the signature
     uint8_t *signatureBytes = Q_NULLPTR;
     size_t signatureLength = 0;
 
     // Create signature
-    r = OpenSslEvp::sign(evpDigestFunc, pkeyPtr, data.data(), data.length(), &signatureBytes, &signatureLength);
+    int r = OpenSslEvp::sign(evpDigestFunc, pkey.data(), data.data(), data.length(), &signatureBytes, &signatureLength);
     if (r != 1) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginSigningError,
                                         QLatin1String("Failed to sign."));
@@ -731,27 +718,15 @@ Daemon::Plugins::OpenSslCryptoPlugin::verify(
                                         QLatin1String("Unsupported digest function chosen."));
     }
 
-    QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(BIO_new(BIO_s_mem()));
-
-    // Use BIO to write public key data
-    int r = BIO_write(bio.data(), key.publicKey().data(), key.publicKey().length());
-    if (r != key.publicKey().length()) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginVerificationError,
-                                        QLatin1String("Failed to read public key data."));
-    }
-
     // Read the public key data into an EVP_PKEY
-    EVP_PKEY *pkeyPtr = Q_NULLPTR;
-    PEM_read_bio_PUBKEY(bio.data(), &pkeyPtr, Q_NULLPTR, Q_NULLPTR);
-    if (pkeyPtr == Q_NULLPTR) {
+    QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(readEvpPubKey(key.publicKey()));
+    if (pkey.data() == Q_NULLPTR) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginVerificationError,
                                         QLatin1String("Failed to read public key from PEM format."));
     }
 
-    QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(pkeyPtr);
-
     // Verify the signature
-    r = OpenSslEvp::verify(evpDigestFunc, pkeyPtr, data.data(), data.length(), (const uint8_t*) signature.data(), (size_t) signature.length());
+    int r = OpenSslEvp::verify(evpDigestFunc, pkey.data(), data.data(), data.length(), (const uint8_t*) signature.data(), (size_t) signature.length());
     if (r == 1) {
         // Verification performed without error, signature matched.
         *verificationStatus = Sailfish::Crypto::CryptoManager::VerificationSucceeded;
@@ -1296,28 +1271,14 @@ Daemon::Plugins::OpenSslCryptoPlugin::initializeCipherSession(
                                             QLatin1String("Unsupported digest function chosen."));
         }
 
-        QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(BIO_new(BIO_s_mem()));
-
-        // Use BIO to write private key data
-        int r = BIO_write(bio.data(), key.privateKey().data(), key.privateKey().length());
-        if (r == 0 || r != key.privateKey().length()) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                            QLatin1String("Failed to read private key data."));
-        }
-
-        // Read the private key data into an EVP_PKEY, which SHOULD handle different formats transparently.
-        // See https://www.openssl.org/docs/man1.1.0/crypto/PEM_read_bio_PrivateKey.html
-        EVP_PKEY *pkeyPtr = Q_NULLPTR;
-        PEM_read_bio_PrivateKey(bio.data(), &pkeyPtr, Q_NULLPTR, Q_NULLPTR);
-        if (pkeyPtr == Q_NULLPTR) {
+        // Read the private key data into an EVP_PKEY
+        QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(readEvpPrivKey(key.privateKey()));
+        if (pkey.data() == Q_NULLPTR) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                             QLatin1String("Failed to read private key from PEM format."));
         }
 
-        QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(pkeyPtr);
-
-        r = OpenSslEvp::sign_session_init(&evp_md_ctx, evpDigestFunc, pkey.data());
-
+        int r = OpenSslEvp::sign_session_init(&evp_md_ctx, evpDigestFunc, pkey.data());
         if (r != 1) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                             QLatin1String("Failed to initialize cipher session context"));
@@ -1330,27 +1291,14 @@ Daemon::Plugins::OpenSslCryptoPlugin::initializeCipherSession(
                                             QLatin1String("Unsupported digest function chosen."));
         }
 
-        QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(BIO_new(BIO_s_mem()));
-
-        // Use BIO to write public key data
-        int r = BIO_write(bio.data(), key.publicKey().data(), key.publicKey().length());
-        if (r != key.publicKey().length()) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginVerificationError,
-                                            QLatin1String("Failed to read public key data."));
-        }
-
         // Read the public key data into an EVP_PKEY
-        EVP_PKEY *pkeyPtr = Q_NULLPTR;
-        PEM_read_bio_PUBKEY(bio.data(), &pkeyPtr, Q_NULLPTR, Q_NULLPTR);
-        if (pkeyPtr == Q_NULLPTR) {
+        QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(readEvpPubKey(key.publicKey()));
+        if (pkey.data() == Q_NULLPTR) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginVerificationError,
                                             QLatin1String("Failed to read public key from PEM format."));
         }
 
-        QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(pkeyPtr);
-
-        r = OpenSslEvp::verify_session_init(&evp_md_ctx, evpDigestFunc, pkey.data());
-
+        int r = OpenSslEvp::verify_session_init(&evp_md_ctx, evpDigestFunc, pkey.data());
         if (r != 1) {
             EVP_MD_CTX_destroy(evp_md_ctx);
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,

@@ -411,3 +411,32 @@ int getEllipticCurveKeySize(Sailfish::Crypto::CryptoManager::EllipticCurve curve
     }
 }
 
+typedef EVP_PKEY *(*evpKeyReadFunc)(BIO *, EVP_PKEY **, pem_password_cb *, void *);
+
+EVP_PKEY *readEvpKey(const QByteArray &key, evpKeyReadFunc read)
+{
+    QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(BIO_new(BIO_s_mem()));
+
+    // Use BIO to write public key data
+    int r = BIO_write(bio.data(), key.data(), key.length());
+    if (r != key.length()) {
+        return Q_NULLPTR;
+    }
+
+    // Read the public key data into an EVP_PKEY
+    EVP_PKEY *pkeyPtr = Q_NULLPTR;
+    read(bio.data(), &pkeyPtr, Q_NULLPTR, Q_NULLPTR);
+
+    return pkeyPtr;
+}
+
+EVP_PKEY *readEvpPrivKey(const QByteArray privKey)
+{
+    return readEvpKey(privKey, PEM_read_bio_PrivateKey);
+}
+
+EVP_PKEY *readEvpPubKey(const QByteArray pubKey)
+{
+    return readEvpKey(pubKey, PEM_read_bio_PUBKEY);
+}
+
