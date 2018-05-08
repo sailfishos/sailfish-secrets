@@ -513,7 +513,8 @@ Result PasswordAgentPlugin::beginAuthentication(
         } else if (QDBusReply<PolkitAuthorizationResult>(*watcher).value().isAuthorized) {
             result = Result(Result::Succeeded);
         } else {
-            result = Result(Result::Failed);
+            result = Result(Result::IncorrectAuthenticationCodeError,
+                            QStringLiteral("Password Agent was unable to verify the authenticity of the user"));
         }
 
         authenticationCompleted(response->callerPid, response->requestId, result);
