@@ -1316,14 +1316,9 @@ Daemon::Plugins::OpenSslCryptoPlugin::initializeCipherSession(
 
         QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(pkeyPtr);
 
-        evp_md_ctx = EVP_MD_CTX_create();
-        if (evp_md_ctx == Q_NULLPTR) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                            QLatin1String("Failed to create cipher session context"));
-        }
+        r = OpenSslEvp::sign_session_init(&evp_md_ctx, evpDigestFunc, pkey.data());
 
-        if (EVP_DigestSignInit(evp_md_ctx, Q_NULLPTR, evpDigestFunc, Q_NULLPTR, pkey.data()) != 1) {
-            EVP_MD_CTX_destroy(evp_md_ctx);
+        if (r != 1) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                             QLatin1String("Failed to initialize cipher session context"));
         }
@@ -1502,9 +1497,8 @@ Daemon::Plugins::OpenSslCryptoPlugin::updateCipherSession(
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptyDataError,
                                             QLatin1String("Empty input data specified"));
         } else if (csd->operation == Sailfish::Crypto::CryptoManager::OperationSign) {
-            if (EVP_DigestSignUpdate(csd->evp_md_ctx,
-                                     reinterpret_cast<const unsigned char *>(data.constData()),
-                                     data.size()) != 1) {
+            int r = OpenSslEvp::sign_session_update(csd->evp_md_ctx, data.constData(), data.size());
+            if (r != 1) {
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                                 QLatin1String("Failed to update sign cipher data"));
             }
@@ -1596,21 +1590,17 @@ Daemon::Plugins::OpenSslCryptoPlugin::finalizeCipherSession(
     } else if (csd->evp_md_ctx) {
         if (csd->operation == Sailfish::Crypto::CryptoManager::OperationSign) {
             size_t signatureLength = 0;
-            if (EVP_DigestSignFinal(csd->evp_md_ctx,
-                                    Q_NULLPTR,
-                                    &signatureLength) != 1) {
+            uint8_t *signatureData;
+
+            int r = OpenSslEvp::sign_session_finalize(csd->evp_md_ctx, &signatureData, &signatureLength);
+            // Already destroyed, set to nullptr to prevent double free
+            csd->evp_md_ctx = nullptr;
+
+            if (r != 1) {
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                                 QLatin1String("Failed to finalize sign cipher"));
             }
 
-            unsigned char *signatureData = (unsigned char *)OPENSSL_malloc(signatureLength);
-            if (EVP_DigestSignFinal(csd->evp_md_ctx,
-                                    signatureData,
-                                    &signatureLength) != 1) {
-                OPENSSL_free(signatureData);
-                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                                QLatin1String("Failed to finalize sign cipher to produce signature"));
-            }
             *generatedData = QByteArray(reinterpret_cast<const char *>(signatureData), signatureLength);
             OPENSSL_free(signatureData);
         } else if (csd->operation == Sailfish::Crypto::CryptoManager::OperationVerify) {

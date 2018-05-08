@@ -100,6 +100,18 @@ int sign(const EVP_MD *digestFunc,
          uint8_t **signature,
          size_t *signatureLength);
 
+int sign_session_init(EVP_MD_CTX **ctx,
+                      const EVP_MD *digestFunc,
+                      EVP_PKEY *pkey);
+
+int sign_session_update(EVP_MD_CTX *ctx,
+                        const void *bytes,
+                        size_t bytesCount);
+
+int sign_session_finalize(EVP_MD_CTX *ctx,
+                          uint8_t **signature,
+                          size_t *signatureLength);
+
 int verify(const EVP_MD *digestFunc,
            EVP_PKEY *pkey,
            const void *bytes,
