@@ -261,7 +261,7 @@ CryptoPlugin::~CryptoPlugin()
  * If the plugin does not support storing new keys, it should return a
  * Sailfish::Crypto::Result with the result code set to
  * Sailfish::Crypto::Failed and the error code set to
- * Sailfish::Crypto::Result::UnsupportedOperation.
+ * Sailfish::Crypto::Result::OperationNotSupportedError.
  *
  * If the operation failed due to storage backend failure, the plugin should
  * return a Sailfish::Crypto::Result with the result code set to
@@ -345,7 +345,7 @@ CryptoPlugin::~CryptoPlugin()
  * If the plugin does not support storing new keys, it should return a
  * Sailfish::Crypto::Result with the result code set to
  * Sailfish::Crypto::Failed and the error code set to
- * Sailfish::Crypto::Result::UnsupportedOperation.
+ * Sailfish::Crypto::Result::OperationNotSupportedError.
  *
  * If the operation failed due to storage backend failure, the plugin should
  * return a Sailfish::Crypto::Result with the result code set to
@@ -390,7 +390,7 @@ CryptoPlugin::~CryptoPlugin()
  * If the plugin does not support retrieving key data, it should return a
  * Sailfish::Crypto::Result with the result code set to
  * Sailfish::Crypto::Failed and the error code set to
- * Sailfish::Crypto::Result::UnsupportedOperation.
+ * Sailfish::Crypto::Result::OperationNotSupportedError.
  *
  * If the operation failed due to storage backend failure, the plugin should
  * return a Sailfish::Crypto::Result with the result code set to
@@ -454,12 +454,12 @@ CryptoPlugin::~CryptoPlugin()
  * If the plugin does not support the specified \a digestFunction, it should
  * return a Sailfish::Crypto::Result with the result code set to
  * Sailfish::Crypto::Result::Failed and the error code set to
- * Sailfish::Crypto::Result::UnsupportedDigest.
+ * Sailfish::Crypto::Result::DigestNotSupportedError.
  *
  * If the plugin does not support the specified \a padding, it should return a
  * Sailfish::Crypto::Result with the result code set to
  * Sailfish::Crypto::Result::Failed and the error code set to
- * Sailfish::Crypto::Result::UnsupportedSignaturePadding.
+ * Sailfish::Crypto::Result::SignaturePaddingNotSupportedError.
  */
 
 /*!
@@ -481,12 +481,12 @@ CryptoPlugin::~CryptoPlugin()
  * If the plugin does not support the specified \a digestFunction, it should
  * return a Sailfish::Crypto::Result with the result code set to
  * Sailfish::Crypto::Result::Failed and the error code set to
- * Sailfish::Crypto::Result::UnsupportedDigest.
+ * Sailfish::Crypto::Result::DigestNotSupportedError.
  *
  * If the plugin does not support the specified \a padding, it should return a
  * Sailfish::Crypto::Result with the result code set to
  * Sailfish::Crypto::Result::Failed and the error code set to
- * Sailfish::Crypto::Result::UnsupportedSignaturePadding.
+ * Sailfish::Crypto::Result::SignaturePaddingNotSupportedError.
  *
  * The \a key may be either a full key (that is, containing private or secret
  * key data) which may be directly used to perform the data signing operation,
@@ -516,12 +516,12 @@ CryptoPlugin::~CryptoPlugin()
  * If the plugin does not support the specified \a digestFunction, it should
  * return a Sailfish::Crypto::Result with the result code set to
  * Sailfish::Crypto::Result::Failed and the error code set to
- * Sailfish::Crypto::Result::UnsupportedDigest.
+ * Sailfish::Crypto::Result::DigestNotSupportedError.
  *
  * If the plugin does not support the specified \a padding, it should return a
  * Sailfish::Crypto::Result with the result code set to
  * Sailfish::Crypto::Result::Failed and the error code set to
- * Sailfish::Crypto::Result::UnsupportedSignaturePadding.
+ * Sailfish::Crypto::Result::SignaturePaddingNotSupportedError.
  *
  * The \a key may be either a full key (that is, containing private or secret
  * key data) which may be directly used to perform the signature verification

@@ -78,7 +78,7 @@ ExampleUsbTokenPlugin::generateAndStoreKey(
         const QVariantMap & /* customParameters */,
         Key * /* keyMetadata */)
 {
-    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::OperationNotSupportedError,
                                     QLatin1String("The ExampleUsbToken plugin doesn't support generating or storing new keys"));
 }
 
@@ -91,7 +91,7 @@ ExampleUsbTokenPlugin::importAndStoreKey(
         const QVariantMap & /* customParameters */,
         Key * /* keyMetadata */)
 {
-    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::OperationNotSupportedError,
                                     QLatin1String("The ExampleUsbToken plugin doesn't support importing or storing new keys"));
 }
 
@@ -190,7 +190,7 @@ ExampleUsbTokenPlugin::generateKey(
         const QVariantMap & /* customParameters */,
         Key * /* key */)
 {
-    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::OperationNotSupportedError,
                                     QLatin1String("The ExampleUsbToken plugin doesn't support generating or storing new keys"));
 }
 
@@ -201,7 +201,7 @@ ExampleUsbTokenPlugin::importKey(
         const QVariantMap & /* customParameters */,
         Key * /* importedKey */)
 {
-    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::UnsupportedOperation,
+    return Sailfish::Crypto::Result(Sailfish::Crypto::Result::OperationNotSupportedError,
                                     QLatin1String("The ExampleUsbToken plugin doesn't support importing or storing new keys"));
 }
 
