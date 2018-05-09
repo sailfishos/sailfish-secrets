@@ -83,6 +83,8 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Inter
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::InteractionParameters::EchoMode &mode) SAILFISH_CRYPTO_API;
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::InteractionParameters::Operation &op) SAILFISH_CRYPTO_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::InteractionParameters::Operation &op) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::InteractionParameters::PromptText &prompt) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::InteractionParameters::PromptText &prompt) SAILFISH_CRYPTO_API;
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::InteractionParameters &request) SAILFISH_CRYPTO_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::InteractionParameters &request) SAILFISH_CRYPTO_API;
 

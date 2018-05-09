@@ -47,6 +47,57 @@ InteractionParametersPrivate::~InteractionParametersPrivate()
  */
 
 /*!
+ * \enum InteractionParameters::Prompt
+ * \brief Identifiers for prompt strings which will be shown to the user when requesting input.
+ *
+ * \value Message A message describing the reason for the prompt.
+ * \value Instruction An instruction asking the user to enter a passphrase.
+ * \value NewInstruction An instruction asking the user to enter a new passphrase.
+ * \value RepeatInstruction An instruction asking the user to repeat a new passphrase.
+ * \value Accept A label for the prompt accept action.
+ * \value Cancel A label for the prompt cancel action.
+ */
+
+/*!
+ * \class InteractionParameters::PromptText
+ * \brief Encapsulates a collection of labels which will be shown to the user when requesting input.
+
+ * These strings allow overriding the default display strings in user prompts. A \l message
+ * explaining the reason for the prompt is typically required but others may also be specified
+ * to better suit the context of the message.
+ */
+
+/*!
+ * \property InteractionParameters::PromptText::message
+ * \brief A message describing the reason for the prompt.
+ */
+
+/*!
+ * \property InteractionParameters::PromptText::instruction
+ * \brief An instruction asking the user to enter a passphrase.
+ */
+
+/*!
+ * \property InteractionParameters::PromptText::newInstruction
+ * \brief An instruction asking the user to enter a new passphrase.
+ */
+
+/*!
+ *\property InteractionParameters::PromptText::repeatInstruction
+ * \brief An instruction asking the user to repeat a new passphrase.
+ */
+
+/*!
+ * \property InteractionParameters::PromptText::accept
+ * \brief A label for the prompt accept action.
+ */
+
+/*!
+ * \property InteractionParameters::PromptText::cancel
+ * \brief A label for the prompt cancel action.
+ */
+
+/*!
  * \brief Constructs a new InteractionParameters instance
  */
 InteractionParameters::InteractionParameters()
@@ -215,7 +266,7 @@ void InteractionParameters::setAuthenticationPluginName(const QString &pluginNam
 /*!
  * \brief Returns the application-specified prompt text to be displayed as part of the user input flow
  */
-QString InteractionParameters::promptText() const
+InteractionParameters::PromptText InteractionParameters::promptText() const
 {
     return d_ptr->m_promptText;
 }
@@ -226,11 +277,22 @@ QString InteractionParameters::promptText() const
  * Note that this field will usually be supplied by the secrets service for system-mediated user interaction flows,
  * so any value set by client applications will have no effect.
  */
-void InteractionParameters::setPromptText(const QString &prompt)
+void InteractionParameters::setPromptText(const PromptText &prompt)
 {
     if (d_ptr->m_promptText != prompt) {
         d_ptr->m_promptText = prompt;
     }
+}
+
+/*!
+ * \brief Sets an application-specified \a message to be displayed as part of the user input flow.
+ *
+ * Note that this field will usually be supplied by the secrets service for system-mediated user interaction flows,
+ * so any value set by client applications will have no effect.
+ */
+void InteractionParameters::setPromptText(const QString &message)
+{
+    setPromptText({{ Message, message }});
 }
 
 /*!
@@ -320,4 +382,9 @@ bool Sailfish::Crypto::operator<(const InteractionParameters &lhs, const Interac
         return lhs.inputType() < rhs.inputType();
 
     return lhs.echoMode() < rhs.echoMode();
+}
+
+bool Sailfish::Crypto::operator<(const Sailfish::Crypto::InteractionParameters::PromptText &lhs, const Sailfish::Crypto::InteractionParameters::PromptText &rhs)
+{
+    return lhs.keys() != rhs.keys() ? lhs.keys() < rhs.keys() : lhs.values() < rhs.values();
 }

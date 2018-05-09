@@ -59,6 +59,8 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Inte
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionParameters::EchoMode &mode) SAILFISH_SECRETS_API;
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionParameters::Operation &op) SAILFISH_SECRETS_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionParameters::Operation &op) SAILFISH_SECRETS_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionParameters::PromptText &prompt) SAILFISH_SECRETS_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionParameters::PromptText &prompt) SAILFISH_SECRETS_API;
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionParameters &request) SAILFISH_SECRETS_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionParameters &request) SAILFISH_SECRETS_API;
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionResponse &response) SAILFISH_SECRETS_API;

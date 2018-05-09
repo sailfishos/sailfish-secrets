@@ -73,4 +73,30 @@ Item {
             }
         }
     }
+
+    Column {
+        y: Theme.paddingLarge
+        width: parent.width
+        spacing: Theme.paddingLarge
+
+        Text {
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+
+            text: adapter.interactionParameters.promptText.message
+            wrapMode: Text.Wrap
+        }
+        Text {
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            text: adapter.interactionParameters.promptText.instruction
+            wrapMode: Text.Wrap
+        }
+
+        Text {
+            width: parent.width
+            text: adapter.interactionParameters.promptText.newInstruction
+            wrapMode: Text.Wrap
+        }
+    }
 }

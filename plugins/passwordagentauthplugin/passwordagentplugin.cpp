@@ -515,6 +515,16 @@ Result PasswordAgentPlugin::beginAuthentication(uint callerPid, qint64 requestId
     return Result(Result::Pending);
 }
 
+static const QPair<InteractionParameters::Prompt, QString> promptKeys[] = {
+    { InteractionParameters::Instruction, QStringLiteral("enterCurrentPasswordText") },
+    { InteractionParameters::NewInstruction, QStringLiteral("enterNewPasswordText") },
+    { InteractionParameters::RepeatInstruction, QStringLiteral("repeatNewPasswordText") },
+    { InteractionParameters::Accept, QStringLiteral("acceptText") },
+    { InteractionParameters::Cancel, QStringLiteral("cancelText") },
+};
+
+template<typename T, int N> static constexpr int lengthOf(const T (&)[N]) { return N; }
+
 Result PasswordAgentPlugin::beginUserInputInteraction(
         uint callerPid,
         qint64 requestId,
@@ -528,6 +538,7 @@ Result PasswordAgentPlugin::beginUserInputInteraction(
     }
 
     const QString cookie = QString::number(++cookieCounter);
+    const InteractionParameters::PromptText promptText = interactionParameters.promptText();
 
     int echo = 0; // no mask
     if (interactionParameters.echoMode() == InteractionParameters::NoEcho) {
@@ -541,11 +552,20 @@ Result PasswordAgentPlugin::beginUserInputInteraction(
         allowedCharacters = 0; // numberic
     }
 
-    const QVariantMap properties = {
+    QVariantMap properties = {
         { QStringLiteral("applicationPid"), callerPid },
         { QStringLiteral("echo"), echo },
         { QStringLiteral("allowedCharacters"), allowedCharacters },
     };
+
+    for (auto it = promptText.begin(); it != promptText.end(); ++it) {
+        for (int i = 0; i < lengthOf(promptKeys); ++i) {
+            if (promptKeys[i].first == it.key()) {
+                properties.insert(promptKeys[i].second, it.value());
+                break;
+            }
+        }
+    }
 
     qCDebug(lcPasswordAgent) << "Begin password authentication"
                              << callerPid << requestId
@@ -555,9 +575,15 @@ Result PasswordAgentPlugin::beginUserInputInteraction(
                              << "in collection" << interactionParameters.collectionName()
                              << interactionServiceAddress;
 
-    QDBusPendingCall call = agent->asyncCall(QStringLiteral("QueryPassword"),  {
+    // If there's a repeat prompt call CreatePassword which will ask for the password
+    // to be repeated twice.
+    const bool newPassword = promptText.contains(InteractionParameters::RepeatInstruction);
+
+    QDBusPendingCall call = agent->asyncCall(newPassword
+                    ? QStringLiteral("CreatePassword")
+                    : QStringLiteral("QueryPassword"), {
                 QVariant::fromValue(cookie),
-                QVariant::fromValue(interactionParameters.promptText()),
+                QVariant::fromValue(promptText.message()),
                 QVariant::fromValue(properties) }, 5 * 60 * 1000);
 
     PasswordResponse * const response = new PasswordResponse(
@@ -589,6 +615,9 @@ Result PasswordAgentPlugin::beginUserInputInteraction(
             }
 
             result = Result(Result::InteractionViewError, error.message());
+        } else if (newPassword) {
+            QDBusReply<QString> reply = *response;
+            response->password = reply.value().toUtf8();
         }
 
         emit userInputInteractionCompleted(

@@ -181,6 +181,7 @@ void Sailfish::Crypto::CryptoDaemonConnection::registerDBusTypes()
     qRegisterMetaType<Sailfish::Crypto::KeyPairGenerationParameters::KeyPairType>("Sailfish::Crypto::KeyPairGenerationParameters::KeyPairType");
     qRegisterMetaType<Sailfish::Crypto::KeyDerivationParameters>("Sailfish::Crypto::KeyDerivationParameters");
     qRegisterMetaType<Sailfish::Crypto::InteractionParameters>("Sailfish::Crypto::InteractionParameters");
+    qRegisterMetaType<Sailfish::Crypto::InteractionParameters::PromptText>("Sailfish::Crypto::InteractionParameters::PromptText");
     qRegisterMetaType<Sailfish::Crypto::LockCodeRequest::LockCodeTargetType>("Sailfish::Crypto::LockCodeRequest::LockCodeTargetType");
     qRegisterMetaType<Sailfish::Crypto::PluginInfo>("Sailfish::Crypto::PluginInfo");
     qRegisterMetaType<QVector<Sailfish::Crypto::PluginInfo> >("QVector<Sailfish::Crypto::PluginInfo>");
@@ -208,6 +209,7 @@ void Sailfish::Crypto::CryptoDaemonConnection::registerDBusTypes()
     qDBusRegisterMetaType<Sailfish::Crypto::KeyPairGenerationParameters::KeyPairType>();
     qDBusRegisterMetaType<Sailfish::Crypto::KeyDerivationParameters>();
     qDBusRegisterMetaType<Sailfish::Crypto::InteractionParameters>();
+    qDBusRegisterMetaType<Sailfish::Crypto::InteractionParameters::PromptText>();
     qDBusRegisterMetaType<Sailfish::Crypto::LockCodeRequest::LockCodeTargetType>();
     qDBusRegisterMetaType<Sailfish::Crypto::PluginInfo>();
     qDBusRegisterMetaType<QVector<Sailfish::Crypto::PluginInfo> >();

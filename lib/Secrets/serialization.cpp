@@ -271,6 +271,37 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
     return argument;
 }
 
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::InteractionParameters::PromptText &promptText)
+{
+    argument.beginMap(QVariant::Int, QVariant::String);
+    for (auto it = promptText.begin(); it != promptText.end(); ++it) {
+        argument.beginMapEntry();
+        argument << static_cast<int>(it.key()) << it.value();
+        argument.endMapEntry();
+    }
+    argument.endMapEntry();
+
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::InteractionParameters::PromptText &promptText)
+{
+    int key;
+    QString value;
+
+    argument.beginMap();
+    while (!argument.atEnd()) {
+        argument.beginMapEntry();
+        argument >> key >> value;
+        argument.endMapEntry();
+
+        promptText.insert(static_cast<Sailfish::Secrets::InteractionParameters::Prompt>(key), value);
+    }
+    argument.endMapEntry();
+
+    return argument;
+}
+
 QDBusArgument &operator<<(QDBusArgument &argument, const InteractionParameters &request)
 {
     argument.beginStructure();
@@ -295,9 +326,9 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, InteractionParame
     QString applicationId;
     InteractionParameters::Operation operation = InteractionParameters::UnknownOperation;
     QString authenticationPluginName;
-    QString promptText;
+    InteractionParameters::PromptText promptText;
     InteractionParameters::InputType inputType = InteractionParameters::UnknownInput;
-    InteractionParameters::EchoMode echoMode = InteractionParameters::PasswordEchoOnEdit;
+    InteractionParameters::EchoMode echoMode = InteractionParameters::PasswordEcho;
 
     argument.beginStructure();
     argument >> secretName
