@@ -28,10 +28,12 @@ Daemon::Plugins::InAppPlugin::~InAppPlugin()
 Result
 Daemon::Plugins::InAppPlugin::beginAuthentication(
             uint callerPid,
-            qint64 requestId)
+            qint64 requestId,
+            const Sailfish::Secrets::InteractionParameters::PromptText &promptText)
 {
     Q_UNUSED(callerPid);
     Q_UNUSED(requestId);
+    Q_UNUSED(promptText);
     return Result(Result::OperationRequiresSystemUserInteraction,
                   QLatin1String("In-App plugin cannot properly authenticate the user"));
 }

@@ -429,7 +429,10 @@ InteractionParameters::InputTypes PasswordAgentPlugin::inputTypes() const
     return InteractionParameters::NumericInput | InteractionParameters::AlphaNumericInput;
 }
 
-Result PasswordAgentPlugin::beginAuthentication(uint callerPid, qint64 requestId)
+Result PasswordAgentPlugin::beginAuthentication(
+        uint callerPid,
+        qint64 requestId,
+        const Sailfish::Secrets::InteractionParameters::PromptText &promptText)
 {
     quint64 startTime = 0;
     {
@@ -471,7 +474,11 @@ Result PasswordAgentPlugin::beginAuthentication(uint callerPid, qint64 requestId
             { QStringLiteral("start-time"), QVariant::fromValue(startTime)}
         }
     };
-    const QHash<QString, QString> details;
+
+    QHash<QString, QString> details;
+    if (!promptText.message().isEmpty()) {
+        details.insert(QStringLiteral("polkit.message"), promptText.message());
+    }
 
     QDBusPendingCall call = QDBusConnection::systemBus().asyncCall(
                 createPolkitMethodCall(QStringLiteral("CheckAuthorization"), {

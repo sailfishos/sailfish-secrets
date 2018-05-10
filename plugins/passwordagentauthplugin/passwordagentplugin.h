@@ -60,7 +60,8 @@ public:
 
     Result beginAuthentication(
             uint callerPid,
-            qint64 requestId) Q_DECL_OVERRIDE;
+            qint64 requestId,
+            const Sailfish::Secrets::InteractionParameters::PromptText &promptText) Q_DECL_OVERRIDE;
 
     Result beginUserInputInteraction(
             uint callerPid,
