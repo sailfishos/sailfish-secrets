@@ -609,7 +609,7 @@ void tst_cryptorequests::generateKeyEncryptDecrypt()
     QByteArray decrypted = dr.plaintext();
     QVERIFY(!decrypted.isEmpty());
     QCOMPARE(plaintext, decrypted);
-    QCOMPARE(dr.verified(), !dr.authenticationData().isEmpty());
+    QCOMPARE(dr.verificationStatus() == CryptoManager::VerificationSucceeded, !dr.authenticationData().isEmpty());
 }
 
 void tst_cryptorequests::signVerify_data()
@@ -702,8 +702,8 @@ void tst_cryptorequests::signVerify()
     VerifyRequest vr;
     vr.setManager(&cm);
     QSignalSpy vrss(&vr, &VerifyRequest::statusChanged);
-    QSignalSpy vrvs(&vr, &VerifyRequest::verifiedChanged);
-    QCOMPARE(vr.verified(), false);
+    QSignalSpy vrvs(&vr, &VerifyRequest::verificationStatusChanged);
+    QCOMPARE(vr.verificationStatus(), CryptoManager::VerificationStatusUnknown);
     QCOMPARE(vr.status(), Request::Inactive);
     vr.setKey(fullKey);
     QCOMPARE(vr.key(), fullKey);
@@ -722,14 +722,14 @@ void tst_cryptorequests::signVerify()
     QCOMPARE(vrss.count(), 1);
     QCOMPARE(vr.status(), Request::Active);
     QCOMPARE(vr.result().code(), Result::Pending);
-    QCOMPARE(vrvs.count(), 0);
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(vr);
     QCOMPARE(vrss.count(), 2);
+    QCOMPARE(vr.result().errorMessage(), QString());
     QCOMPARE(vr.status(), Request::Finished);
 
     QCOMPARE(vr.result().code(), Result::Succeeded);
     QCOMPARE(vrvs.count(), 1);
-    QCOMPARE(vr.verified(), true);
+    QCOMPARE(vr.verificationStatus(), CryptoManager::VerificationSucceeded);
 }
 
 void tst_cryptorequests::calculateDigest_data()
@@ -941,7 +941,7 @@ void tst_cryptorequests::storedKeyRequests()
     QByteArray decrypted = dr.plaintext();
     QVERIFY(!decrypted.isEmpty());
     QCOMPARE(plaintext, decrypted);
-    QCOMPARE(dr.verified(), !dr.authenticationData().isEmpty());
+    QCOMPARE(dr.verificationStatus() == CryptoManager::VerificationSucceeded, !dr.authenticationData().isEmpty());
 
     // ensure that we can get a reference to that Key via the Secrets API
     Sailfish::Secrets::Secret::FilterData filter;
@@ -1428,7 +1428,7 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     QByteArray decrypted = dr.plaintext();
     QVERIFY(!decrypted.isEmpty());
     QCOMPARE(plaintext, decrypted);
-    QCOMPARE(dr.verified(), !dr.authenticationData().isEmpty());
+    QCOMPARE(dr.verificationStatus() == CryptoManager::VerificationSucceeded, !dr.authenticationData().isEmpty());
 
     // ensure that we can get a reference to that Key via the Secrets API
     Sailfish::Secrets::Secret::FilterData filter;
@@ -1918,7 +1918,7 @@ void tst_cryptorequests::cipherSignVerify()
     QCOMPARE(vr.status(), Request::Finished);
     QCOMPARE(vr.result().errorMessage(), QString());
     QCOMPARE(vr.result().code(), Result::Succeeded);
-    QCOMPARE(vr.verified(), true);
+    QCOMPARE(vr.verificationStatus(), CryptoManager::VerificationSucceeded);
 
     // clean up by deleting the collection in which the secret is stored.
     Sailfish::Secrets::DeleteCollectionRequest dcr;
@@ -2200,7 +2200,7 @@ void tst_cryptorequests::cipherEncryptDecrypt()
     QCOMPARE(dr.result().code(), Result::Succeeded);
     decrypted.append(dr.generatedData()); // may or may not be empty.
     QCOMPARE(plaintext, decrypted); // successful round trip!
-    QCOMPARE(dr.verified(), blockMode == CryptoManager::BlockModeGcm);
+    QCOMPARE(dr.verificationStatus() == CryptoManager::VerificationSucceeded, blockMode == CryptoManager::BlockModeGcm);
 
     // clean up by deleting the collection in which the secret is stored.
     Sailfish::Secrets::DeleteCollectionRequest dcr;
@@ -3427,14 +3427,14 @@ void tst_cryptorequests::importKey()
         WAIT_FOR_FINISHED_WITHOUT_BLOCKING(vr);
         QCOMPARE(vr.result().errorMessage(), QString());
         QCOMPARE(vr.result().code(), Sailfish::Crypto::Result::Succeeded);
-        QCOMPARE(vr.verified(), true);
+        QCOMPARE(vr.verificationStatus(), CryptoManager::VerificationSucceeded);
 
         // attempt to verify some other random data, and ensure that it fails.
         const QByteArray randomDataToVerify("abcdef1234567890987654321fedcba");
         vr.setData(randomDataToVerify);
         vr.startRequest();
         WAIT_FOR_FINISHED_WITHOUT_BLOCKING(vr);
-        QCOMPARE(vr.verified(), false);
+        QCOMPARE(vr.verificationStatus(), CryptoManager::VerificationFailed);
     }
 }
 
@@ -3557,14 +3557,14 @@ void tst_cryptorequests::importKeyAndStore()
         WAIT_FOR_FINISHED_WITHOUT_BLOCKING(vr);
         QCOMPARE(vr.result().errorMessage(), QString());
         QCOMPARE(vr.result().code(), Sailfish::Crypto::Result::Succeeded);
-        QCOMPARE(vr.verified(), true);
+        QCOMPARE(vr.verificationStatus(), CryptoManager::VerificationSucceeded);
 
         // attempt to verify some other random data, and ensure that it fails.
         const QByteArray randomDataToVerify("abcdef1234567890987654321fedcba");
         vr.setData(randomDataToVerify);
         vr.startRequest();
         WAIT_FOR_FINISHED_WITHOUT_BLOCKING(vr);
-        QCOMPARE(vr.verified(), false);
+        QCOMPARE(vr.verificationStatus(), CryptoManager::VerificationFailed);
     }
 }
 
@@ -3659,14 +3659,14 @@ void tst_cryptorequests::exampleUsbTokenPlugin()
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(vr);
     QCOMPARE(vr.result().errorMessage(), QString());
     QCOMPARE(vr.result().code(), Sailfish::Crypto::Result::Succeeded);
-    QCOMPARE(vr.verified(), true);
+    QCOMPARE(vr.verificationStatus(), CryptoManager::VerificationSucceeded);
 
     // sixth, attempt to verify some other random data, and ensure that it fails.
     const QByteArray randomDataToVerify("abcdef1234567890987654321fedcba");
     vr.setData(randomDataToVerify);
     vr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(vr);
-    QCOMPARE(vr.verified(), false);
+    QCOMPARE(vr.verificationStatus(), CryptoManager::VerificationFailed);
 
     // finally, re-lock the plugin.
     lcr.setLockCodeRequestType(Sailfish::Crypto::LockCodeRequest::ForgetLockCode);

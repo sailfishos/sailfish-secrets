@@ -699,11 +699,11 @@ Daemon::Plugins::OpenSslCryptoPlugin::verify(
         Sailfish::Crypto::CryptoManager::SignaturePadding padding,
         Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
         const QVariantMap & /* customParameters */,
-        bool *verified)
+        Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus)
 {
-    if (verified == Q_NULLPTR) {
+    if (verificationStatus == Q_NULLPTR) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginVerificationError,
-                                        QLatin1String("Given output argument 'verified' was nullptr."));
+                                        QLatin1String("Given output argument 'verificationStatus' was nullptr."));
     }
 
     if (signature.length() == 0) {
@@ -751,11 +751,11 @@ Daemon::Plugins::OpenSslCryptoPlugin::verify(
     r = OpenSslEvp::verify(evpDigestFunc, pkeyPtr, data.data(), data.length(), (const uint8_t*) signature.data(), (size_t) signature.length());
     if (r == 1) {
         // Verification performed without error, signature matched.
-        *verified = true;
+        *verificationStatus = Sailfish::Crypto::CryptoManager::VerificationSucceeded;
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
     } else if (r == 0) {
         // Verification performed without error, but signature didn't match.
-        *verified = false;
+        *verificationStatus = Sailfish::Crypto::CryptoManager::VerificationFailed;
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
     } else {
         // Verification had errors.
@@ -967,10 +967,10 @@ Daemon::Plugins::OpenSslCryptoPlugin::decrypt(
         const QByteArray &authenticationTag,
         const QVariantMap & /* customParameters */,
         QByteArray *decrypted,
-        bool *verified)
+        Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus)
 {
     if (key.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
-        return this->decryptAes(data, iv, key, blockMode, padding, authenticationData, authenticationTag, decrypted, verified);
+        return this->decryptAes(data, iv, key, blockMode, padding, authenticationData, authenticationTag, decrypted, verificationStatus);
     } else if (key.algorithm() >= Sailfish::Crypto::CryptoManager::FirstAsymmetricAlgorithm
                && key.algorithm() <= Sailfish::Crypto::CryptoManager::LastAsymmetricAlgorithm) {
         return this->decryptAsymmetric(data, iv, key, blockMode, padding, decrypted);
@@ -1069,7 +1069,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::decryptAes(
         const QByteArray &authenticationData,
         const QByteArray &authenticationTag,
         QByteArray *decrypted,
-        bool *verified)
+        Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus)
 {
     if (key.secretKey().isEmpty()) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptySecretKey,
@@ -1117,11 +1117,13 @@ Daemon::Plugins::OpenSslCryptoPlugin::decryptAes(
 
     // decrypt ciphertext
     QByteArray plaintext;
-    bool verifiedResult = false;
+    Sailfish::Crypto::CryptoManager::VerificationStatus verificationStatusResult = Sailfish::Crypto::CryptoManager::VerificationFailed;
     if (!authenticationData.isEmpty()) {
         QPair<QByteArray, bool> authDecryptResult = aes_auth_decrypt_ciphertext(blockMode, data, key.secretKey(), iv, authenticationData, authenticationTag);
         plaintext = authDecryptResult.first;
-        verifiedResult = authDecryptResult.second;
+        verificationStatusResult = authDecryptResult.second
+                ? Sailfish::Crypto::CryptoManager::VerificationSucceeded
+                : Sailfish::Crypto::CryptoManager::VerificationFailed;
     } else {
         plaintext = aes_decrypt_ciphertext(blockMode, data, key.secretKey(), iv);
     }
@@ -1132,7 +1134,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::decryptAes(
 
     // return result
     *decrypted = plaintext;
-    *verified = verifiedResult;
+    *verificationStatus = verificationStatusResult;
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);
 }
 
@@ -1524,7 +1526,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::finalizeCipherSession(
         const QVariantMap & /* customParameters */,
         quint32 cipherSessionToken,
         QByteArray *generatedData,
-        bool *verified)
+        Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus)
 {
     if (!m_cipherSessions.contains(clientId)
             || !m_cipherSessions[clientId].contains(cipherSessionToken)) {
@@ -1577,7 +1579,9 @@ Daemon::Plugins::OpenSslCryptoPlugin::finalizeCipherSession(
                                                     QLatin1String("Unable to set the GCM authenticationTag to finalize the cipher"));
                 }
                 int evpRet = EVP_DecryptFinal_ex(csd->evp_cipher_ctx, generatedDataBuf.data(), &generatedDataSize);
-                *verified = evpRet > 0;
+                *verificationStatus = evpRet > 0
+                        ? Sailfish::Crypto::CryptoManager::VerificationSucceeded
+                        : Sailfish::Crypto::CryptoManager::VerificationFailed;
             } else {
                 if (EVP_DecryptFinal_ex(csd->evp_cipher_ctx, generatedDataBuf.data(), &generatedDataSize) != 1) {
                     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
@@ -1617,10 +1621,10 @@ Daemon::Plugins::OpenSslCryptoPlugin::finalizeCipherSession(
                                           data.size());
             if (r == 1) {
                 // Verification performed without error, signature matched.
-                *verified = true;
+                *verificationStatus = Sailfish::Crypto::CryptoManager::VerificationSucceeded;
             } else if (r == 0) {
                 // Verification performed without error, but signature didn't match.
-                *verified = false;
+                *verificationStatus = Sailfish::Crypto::CryptoManager::VerificationFailed;
             } else {
                 // Verification had errors.
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,

@@ -36,7 +36,7 @@ class SAILFISH_CRYPTO_API DecryptRequest : public Sailfish::Crypto::Request
     Q_PROPERTY(QByteArray authenticationTag READ authenticationTag WRITE setAuthenticationTag NOTIFY authenticationTagChanged)
     Q_PROPERTY(QString cryptoPluginName READ cryptoPluginName WRITE setCryptoPluginName NOTIFY cryptoPluginNameChanged)
     Q_PROPERTY(QByteArray plaintext READ plaintext NOTIFY plaintextChanged)
-    Q_PROPERTY(bool verified READ verified NOTIFY verifiedChanged)
+    Q_PROPERTY(Sailfish::Crypto::CryptoManager::VerificationStatus verificationStatus READ verificationStatus NOTIFY verificationStatusChanged)
 
 public:
     DecryptRequest(QObject *parent = Q_NULLPTR);
@@ -67,7 +67,7 @@ public:
     void setCryptoPluginName(const QString &pluginName);
 
     QByteArray plaintext() const;
-    bool verified() const;
+    Sailfish::Crypto::CryptoManager::VerificationStatus verificationStatus() const;
 
     Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result result() const Q_DECL_OVERRIDE;
@@ -91,7 +91,7 @@ Q_SIGNALS:
     void authenticationTagChanged();
     void cryptoPluginNameChanged();
     void plaintextChanged();
-    void verifiedChanged();
+    void verificationStatusChanged();
 
 private:
     QScopedPointer<DecryptRequestPrivate> const d_ptr;

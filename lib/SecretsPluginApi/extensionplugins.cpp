@@ -1291,7 +1291,7 @@ EncryptedStoragePlugin::~EncryptedStoragePlugin()
  * \fn AuthenticationPlugin::authenticationTypes() const
  * \brief Return the types of authentication which are supported by this plugin
  *
- * These are the ways in which the user's identity may be verified.
+ * These are the ways in which the user's identity may be verificationStatus.
  */
 
 /*!
@@ -1330,7 +1330,7 @@ AuthenticationPlugin::~AuthenticationPlugin()
  *
  * When complete, the plugin should emit the authenticationCompleted()
  * signal, with the result parameter having the appropriate result code
- * set depending on whether the user successfully verified their identity
+ * set depending on whether the user successfully verificationStatus their identity
  * or not.
  *
  * If the plugin itself is locked, this function should return a

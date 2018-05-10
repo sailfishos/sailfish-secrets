@@ -20,7 +20,7 @@ using namespace Sailfish::Crypto;
 VerifyRequestPrivate::VerifyRequestPrivate()
     : m_padding(CryptoManager::SignaturePaddingUnknown)
     , m_digestFunction(CryptoManager::DigestUnknown)
-    , m_verified(false)
+    , m_verificationStatus(Sailfish::Crypto::CryptoManager::VerificationStatusUnknown)
     , m_status(Request::Inactive)
 {
 }
@@ -63,9 +63,9 @@ void VerifyRequest::setSignature(const QByteArray &sig)
     Q_D(VerifyRequest);
     if (d->m_status != Request::Active && d->m_signature != sig) {
         d->m_signature = sig;
-        if (d->m_verified) {
-            d->m_verified = false;
-            emit verifiedChanged();
+        if (d->m_verificationStatus != Sailfish::Crypto::CryptoManager::VerificationStatusUnknown) {
+            d->m_verificationStatus = Sailfish::Crypto::CryptoManager::VerificationStatusUnknown;
+            emit verificationStatusChanged();
         }
         if (d->m_status == Request::Finished) {
             d->m_status = Request::Inactive;
@@ -92,9 +92,9 @@ void VerifyRequest::setData(const QByteArray &data)
     Q_D(VerifyRequest);
     if (d->m_status != Request::Active && d->m_data != data) {
         d->m_data = data;
-        if (d->m_verified) {
-            d->m_verified = false;
-            emit verifiedChanged();
+        if (d->m_verificationStatus != Sailfish::Crypto::CryptoManager::VerificationStatusUnknown) {
+            d->m_verificationStatus = Sailfish::Crypto::CryptoManager::VerificationStatusUnknown;
+            emit verificationStatusChanged();
         }
         if (d->m_status == Request::Finished) {
             d->m_status = Request::Inactive;
@@ -121,9 +121,9 @@ void VerifyRequest::setKey(const Key &key)
     Q_D(VerifyRequest);
     if (d->m_status != Request::Active && d->m_key != key) {
         d->m_key = key;
-        if (d->m_verified) {
-            d->m_verified = false;
-            emit verifiedChanged();
+        if (d->m_verificationStatus != Sailfish::Crypto::CryptoManager::VerificationStatusUnknown) {
+            d->m_verificationStatus = Sailfish::Crypto::CryptoManager::VerificationStatusUnknown;
+            emit verificationStatusChanged();
         }
         if (d->m_status == Request::Finished) {
             d->m_status = Request::Inactive;
@@ -150,9 +150,9 @@ void VerifyRequest::setPadding(Sailfish::Crypto::CryptoManager::SignaturePadding
     Q_D(VerifyRequest);
     if (d->m_status != Request::Active && d->m_padding != padding) {
         d->m_padding = padding;
-        if (d->m_verified) {
-            d->m_verified = false;
-            emit verifiedChanged();
+        if (d->m_verificationStatus != Sailfish::Crypto::CryptoManager::VerificationStatusUnknown) {
+            d->m_verificationStatus = Sailfish::Crypto::CryptoManager::VerificationStatusUnknown;
+            emit verificationStatusChanged();
         }
         if (d->m_status == Request::Finished) {
             d->m_status = Request::Inactive;
@@ -179,9 +179,9 @@ void VerifyRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFun
     Q_D(VerifyRequest);
     if (d->m_status != Request::Active && d->m_digestFunction != digestFn) {
         d->m_digestFunction = digestFn;
-        if (d->m_verified) {
-            d->m_verified = false;
-            emit verifiedChanged();
+        if (d->m_verificationStatus != Sailfish::Crypto::CryptoManager::VerificationStatusUnknown) {
+            d->m_verificationStatus = Sailfish::Crypto::CryptoManager::VerificationStatusUnknown;
+            emit verificationStatusChanged();
         }
         if (d->m_status == Request::Finished) {
             d->m_status = Request::Inactive;
@@ -208,9 +208,9 @@ void VerifyRequest::setCryptoPluginName(const QString &pluginName)
     Q_D(VerifyRequest);
     if (d->m_status != Request::Active && d->m_cryptoPluginName != pluginName) {
         d->m_cryptoPluginName = pluginName;
-        if (d->m_verified) {
-            d->m_verified = false;
-            emit verifiedChanged();
+        if (d->m_verificationStatus != Sailfish::Crypto::CryptoManager::VerificationStatusUnknown) {
+            d->m_verificationStatus = Sailfish::Crypto::CryptoManager::VerificationStatusUnknown;
+            emit verificationStatusChanged();
         }
         if (d->m_status == Request::Finished) {
             d->m_status = Request::Inactive;
@@ -225,10 +225,10 @@ void VerifyRequest::setCryptoPluginName(const QString &pluginName)
  *
  * Note: this value is only valid if the status of the request is Request::Finished.
  */
-bool VerifyRequest::verified() const
+Sailfish::Crypto::CryptoManager::VerificationStatus VerifyRequest::verificationStatus() const
 {
     Q_D(const VerifyRequest);
-    return d->m_verified;
+    return d->m_verificationStatus;
 }
 
 Request::Status VerifyRequest::status() const
@@ -288,7 +288,7 @@ void VerifyRequest::startRequest()
             emit resultChanged();
         }
 
-        QDBusPendingReply<Result, bool> reply =
+        QDBusPendingReply<Result, Sailfish::Crypto::CryptoManager::VerificationStatus> reply =
                 d->m_manager->d_ptr->verify(d->m_signature,
                                             d->m_data,
                                             d->m_key,
@@ -307,23 +307,23 @@ void VerifyRequest::startRequest()
                 && reply.argumentAt<0>().code() != Sailfish::Crypto::Result::Succeeded) {
             d->m_status = Request::Finished;
             d->m_result = reply.argumentAt<0>();
-            d->m_verified = reply.argumentAt<1>();
+            d->m_verificationStatus = reply.argumentAt<1>();
             emit statusChanged();
             emit resultChanged();
-            emit verifiedChanged();
+            emit verificationStatusChanged();
         } else {
             d->m_watcher.reset(new QDBusPendingCallWatcher(reply));
             connect(d->m_watcher.data(), &QDBusPendingCallWatcher::finished,
                     [this] {
                 QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.take();
-                QDBusPendingReply<Result, bool> reply = *watcher;
+                QDBusPendingReply<Result, Sailfish::Crypto::CryptoManager::VerificationStatus> reply = *watcher;
                 this->d_ptr->m_status = Request::Finished;
                 this->d_ptr->m_result = reply.argumentAt<0>();
-                this->d_ptr->m_verified = reply.argumentAt<1>();
+                this->d_ptr->m_verificationStatus = reply.argumentAt<1>();
                 watcher->deleteLater();
                 emit this->statusChanged();
                 emit this->resultChanged();
-                emit this->verifiedChanged();
+                emit this->verificationStatusChanged();
             });
         }
     }

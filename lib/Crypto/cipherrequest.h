@@ -37,7 +37,7 @@ class SAILFISH_CRYPTO_API CipherRequest : public Sailfish::Crypto::Request
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::DigestFunction digestFunction READ digestFunction WRITE setDigestFunction NOTIFY digestFunctionChanged)
     Q_PROPERTY(QString cryptoPluginName READ cryptoPluginName WRITE setCryptoPluginName NOTIFY cryptoPluginNameChanged)
     Q_PROPERTY(QByteArray generatedData READ generatedData NOTIFY generatedDataChanged)
-    Q_PROPERTY(bool verified READ verified NOTIFY verifiedChanged)
+    Q_PROPERTY(Sailfish::Crypto::CryptoManager::VerificationStatus verificationStatus READ verificationStatus NOTIFY verificationStatusChanged)
 
 public:
     enum CipherMode {
@@ -82,7 +82,7 @@ public:
     void setCryptoPluginName(const QString &pluginName);
 
     QByteArray generatedData() const;
-    bool verified() const;
+    Sailfish::Crypto::CryptoManager::VerificationStatus verificationStatus() const;
 
     Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result result() const Q_DECL_OVERRIDE;
@@ -108,7 +108,7 @@ Q_SIGNALS:
     void digestFunctionChanged();
     void cryptoPluginNameChanged();
     void generatedDataChanged();
-    void verifiedChanged();
+    void verificationStatusChanged();
 
 private:
     QScopedPointer<CipherRequestPrivate> const d_ptr;

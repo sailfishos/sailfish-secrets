@@ -213,14 +213,14 @@ ValidatedResult CryptoPluginFunctionWrapper::verify(
         const Key &key,
         const SignatureOptions &options)
 {
-    bool verified = false;
+    Sailfish::Crypto::CryptoManager::VerificationStatus verificationStatus = Sailfish::Crypto::CryptoManager::VerificationStatusUnknown;
     Result result = pluginAndCustomParams.plugin->verify(
                 signature, data, key,
                 options.signaturePadding,
                 options.digestFunction,
                 pluginAndCustomParams.customParameters,
-                &verified);
-    return ValidatedResult(result, verified);
+                &verificationStatus);
+    return ValidatedResult(result, verificationStatus);
 }
 
 TagDataResult CryptoPluginFunctionWrapper::encrypt(
@@ -252,7 +252,7 @@ VerifiedDataResult CryptoPluginFunctionWrapper::decrypt(
         const AuthDataAndTag &authDataAndTag)
 {
     QByteArray plaintext;
-    bool verified = false;
+    Sailfish::Crypto::CryptoManager::VerificationStatus verificationStatus = Sailfish::Crypto::CryptoManager::VerificationStatusUnknown;
     Result result = pluginAndCustomParams.plugin->decrypt(
                 dataAndIv.data,
                 dataAndIv.initVector,
@@ -262,8 +262,8 @@ VerifiedDataResult CryptoPluginFunctionWrapper::decrypt(
                 authDataAndTag.authData,
                 authDataAndTag.tag,
                 pluginAndCustomParams.customParameters,
-                &plaintext, &verified);
-    return VerifiedDataResult(result, plaintext, verified);
+                &plaintext, &verificationStatus);
+    return VerifiedDataResult(result, plaintext, verificationStatus);
 }
 
 CipherSessionTokenResult CryptoPluginFunctionWrapper::initializeCipherSession(
@@ -321,14 +321,14 @@ VerifiedDataResult CryptoPluginFunctionWrapper::finalizeCipherSession(
         const QByteArray &data,
         quint32 cipherSessionToken)
 {
-    bool verified = false;
+    Sailfish::Crypto::CryptoManager::VerificationStatus verificationStatus = Sailfish::Crypto::CryptoManager::VerificationStatusUnknown;
     QByteArray generatedData;
     Result result = pluginAndCustomParams.plugin->finalizeCipherSession(
                 clientId, data,
                 pluginAndCustomParams.customParameters,
                 cipherSessionToken,
-                &generatedData, &verified);
-    return VerifiedDataResult(result, generatedData, verified);
+                &generatedData, &verificationStatus);
+    return VerifiedDataResult(result, generatedData, verificationStatus);
 }
 
 KeyResult CryptoPluginFunctionWrapper::generateAndStoreKey(

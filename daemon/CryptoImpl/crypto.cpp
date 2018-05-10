@@ -321,9 +321,9 @@ void Daemon::ApiImpl::CryptoDBusObject::verify(
         const QString &cryptosystemProviderName,
         const QDBusMessage &message,
         Result &result,
-        bool &verified)
+        CryptoManager::VerificationStatus &verificationStatus)
 {
-    Q_UNUSED(verified);  // outparam, set in handlePendingRequest / handleFinishedRequest
+    Q_UNUSED(verificationStatus);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(signature);
     inParams << QVariant::fromValue<QByteArray>(data);
@@ -386,11 +386,11 @@ void Daemon::ApiImpl::CryptoDBusObject::decrypt(
         const QDBusMessage &message,
         Result &result,
         QByteArray &decrypted,
-        bool &verified)
+        CryptoManager::VerificationStatus &verificationStatus)
 {
     // outparam, set in handlePendingRequest / handleFinishedRequest
     Q_UNUSED(decrypted);
-    Q_UNUSED(verified);
+    Q_UNUSED(verificationStatus);
 
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
@@ -491,10 +491,10 @@ void Daemon::ApiImpl::CryptoDBusObject::finalizeCipherSession(
         const QDBusMessage &message,
         Sailfish::Crypto::Result &result,
         QByteArray &generatedData,
-        bool &verified)
+        CryptoManager::VerificationStatus &verificationStatus)
 {
     Q_UNUSED(generatedData);  // outparam, set in handlePendingRequest / handleFinishedRequest
-    Q_UNUSED(verified);       // outparam, set in handlePendingRequest / handleFinishedRequest
+    Q_UNUSED(verificationStatus);       // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
@@ -1050,7 +1050,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
         }
         case VerifyRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling VerifyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
-            bool verified = false;
+            CryptoManager::VerificationStatus verificationStatus = CryptoManager::VerificationStatusUnknown;
             QByteArray signature = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
@@ -1068,14 +1068,14 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
                         digest,
                         customParameters,
                         cryptosystemProviderName,
-                        &verified);
+                        &verificationStatus);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
                 *completed = false;
             } else {
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                        << QVariant::fromValue<bool>(verified));
+                                                                        << QVariant::fromValue<int>(verificationStatus));
                 *completed = true;
             }
             break;
@@ -1120,7 +1120,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
         case DecryptRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling DecryptRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             QByteArray decrypted;
-            bool verified = false;
+            CryptoManager::VerificationStatus verificationStatus = CryptoManager::VerificationStatusUnknown;
             QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             QByteArray iv = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             Key key = request->inParams.size() ? request->inParams.takeFirst().value<Key>() : Key();
@@ -1143,7 +1143,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
                         customParameters,
                         cryptosystemProviderName,
                         &decrypted,
-                        &verified);
+                        &verificationStatus);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
@@ -1151,7 +1151,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             } else {
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<QByteArray>(decrypted)
-                                                                        << QVariant::fromValue<bool>(verified));
+                                                                        << QVariant::fromValue<int>(verificationStatus));
                 *completed = true;
             }
             break;
@@ -1244,7 +1244,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
         case FinalizeCipherSessionRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling FinalizeCipherSessionRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             QByteArray generatedData;
-            bool verified = false;
+            CryptoManager::VerificationStatus verificationStatus = CryptoManager::VerificationStatusUnknown;
             QByteArray data = request->inParams.size() ? request->inParams.takeFirst().value<QByteArray>() : QByteArray();
             QVariantMap customParameters = request->inParams.size() ? request->inParams.takeFirst().value<QVariantMap>() : QVariantMap();
             QString cryptosystemProviderName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
@@ -1257,7 +1257,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
                         cryptosystemProviderName,
                         cipherSessionToken,
                         &generatedData,
-                        &verified);
+                        &verificationStatus);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {
                 // waiting for asynchronous flow to complete
@@ -1265,7 +1265,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             } else {
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<QByteArray>(generatedData)
-                                                                        << QVariant::fromValue<bool>(verified));
+                                                                        << QVariant::fromValue<int>(verificationStatus));
                 *completed = true;
             }
             break;
@@ -1615,11 +1615,11 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
                 qCWarning(lcSailfishCryptoDaemon) << "VerifyRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
-                bool verified = request->outParams.size()
-                        ? request->outParams.takeFirst().toBool()
-                        : false;
+                CryptoManager::VerificationStatus verificationStatus = request->outParams.size()
+                        ? request->outParams.takeFirst().value<CryptoManager::VerificationStatus>()
+                        : CryptoManager::VerificationStatusUnknown;
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                        << QVariant::fromValue<bool>(verified));
+                                                                        << QVariant::fromValue<CryptoManager::VerificationStatus>(verificationStatus));
                 *completed = true;
             }
             break;
@@ -1660,12 +1660,12 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
                 QByteArray decrypted = request->outParams.size()
                         ? request->outParams.takeFirst().toByteArray()
                         : QByteArray();
-                bool verified = request->outParams.size()
-                        ? request->outParams.takeFirst().toBool()
-                        : false;
+                CryptoManager::VerificationStatus verificationStatus = request->outParams.size()
+                        ? request->outParams.takeFirst().value<CryptoManager::VerificationStatus>()
+                        : CryptoManager::VerificationStatusUnknown;
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<QByteArray>(decrypted)
-                                                                        << QVariant::fromValue<bool>(verified));
+                                                                        << QVariant::fromValue<CryptoManager::VerificationStatus>(verificationStatus));
                 *completed = true;
             }
             break;
@@ -1740,12 +1740,12 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
                 QByteArray generatedData = request->outParams.size()
                         ? request->outParams.takeFirst().toByteArray()
                         : QByteArray();
-                bool verified = request->outParams.size()
-                        ? request->outParams.takeFirst().toBool()
-                        : false;
+                CryptoManager::VerificationStatus verificationStatus = request->outParams.size()
+                        ? request->outParams.takeFirst().value<CryptoManager::VerificationStatus>()
+                        : CryptoManager::VerificationStatusUnknown;
                 request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
                                                                         << QVariant::fromValue<QByteArray>(generatedData)
-                                                                        << QVariant::fromValue<bool>(verified));
+                                                                        << QVariant::fromValue<CryptoManager::VerificationStatus>(verificationStatus));
                 *completed = true;
             }
             break;

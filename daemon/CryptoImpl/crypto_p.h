@@ -191,11 +191,12 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"customParameters\" type=\"a{sv}\" direction=\"in\" />\n"
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
-    "          <arg name=\"verified\" type=\"b\" direction=\"out\" />\n"
+    "          <arg name=\"verificationStatus\" type=\"(i)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::Key\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Crypto::CryptoManager::SignaturePadding\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Crypto::CryptoManager::Digest\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Crypto::CryptoManager::VerificationStatus\" />\n"
     "      </method>\n"
     "      <method name=\"encrypt\">\n"
     "          <arg name=\"data\" type=\"ay\" direction=\"in\" />\n"
@@ -226,11 +227,12 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"cryptosystemProviderName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"decrypted\" type=\"ay\" direction=\"out\" />\n"
-    "          <arg name=\"verified\" type=\"b\" direction=\"out\" />\n"
+    "          <arg name=\"verificationStatus\" type=\"(i)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In2\" value=\"Sailfish::Crypto::Key\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In3\" value=\"Sailfish::Crypto::CryptoManager::BlockMode\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In4\" value=\"Sailfish::Crypto::CryptoManager::EncryptionPadding\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Crypto::CryptoManager::VerificationStatus\" />\n"
     "      </method>\n"
     "      <method name=\"initializeCipherSession\">\n"
     "          <arg name=\"initializationVector\" type=\"ay\" direction=\"in\" />\n"
@@ -276,8 +278,9 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"cipherSessionToken\" type=\"u\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iiis)\" direction=\"out\" />\n"
     "          <arg name=\"generatedData\" type=\"ay\" direction=\"out\" />\n"
-    "          <arg name=\"verified\" type=\"b\" direction=\"out\" />\n"
+    "          <arg name=\"verificationStatus\" type=\"(i)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Crypto::CryptoManager::VerificationStatus\" />\n"
     "      </method>\n"
     "      <method name=\"modifyLockCode\">\n"
     "          <arg name=\"lockCodeTargetType\" type=\"(i)\" direction=\"in\" />\n"
@@ -437,7 +440,7 @@ public Q_SLOTS:
             const QString &cryptosystemProviderName,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
-            bool &verified);
+            Sailfish::Crypto::CryptoManager::VerificationStatus &verificationStatus);
 
     void encrypt(
             const QByteArray &data,
@@ -466,7 +469,7 @@ public Q_SLOTS:
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
             QByteArray &decrypted,
-            bool &verified);
+            Sailfish::Crypto::CryptoManager::VerificationStatus &verificationStatus);
 
     void initializeCipherSession(
             const QByteArray &initializationVector,
@@ -507,7 +510,7 @@ public Q_SLOTS:
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result,
             QByteArray &generatedData,
-            bool &verified);
+            Sailfish::Crypto::CryptoManager::VerificationStatus &verificationStatus);
 
     void modifyLockCode(
             Sailfish::Crypto::LockCodeRequest::LockCodeTargetType lockCodeTargetType,

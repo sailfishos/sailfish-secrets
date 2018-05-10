@@ -363,8 +363,7 @@ CryptoManagerPrivate::sign(
     return reply;
 }
 
-QDBusPendingReply<Result, bool>
-CryptoManagerPrivate::verify(
+QDBusPendingReply<Result, CryptoManager::VerificationStatus> CryptoManagerPrivate::verify(
         const QByteArray &signature,
         const QByteArray &data,
         const Key &key,
@@ -374,12 +373,12 @@ CryptoManagerPrivate::verify(
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
-        return QDBusPendingReply<Result, bool>(
+        return QDBusPendingReply<Result, Sailfish::Crypto::CryptoManager::VerificationStatus>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Result, bool> reply
+    QDBusPendingReply<Result, Sailfish::Crypto::CryptoManager::VerificationStatus> reply
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("verify"),
                 QVariantList() << QVariant::fromValue<QByteArray>(signature)
@@ -423,7 +422,7 @@ CryptoManagerPrivate::encrypt(
     return reply;
 }
 
-QDBusPendingReply<Result, QByteArray, bool> CryptoManagerPrivate::decrypt(
+QDBusPendingReply<Result, QByteArray, Sailfish::Crypto::CryptoManager::VerificationStatus> CryptoManagerPrivate::decrypt(
         const QByteArray &data,
         const QByteArray &iv,
         const Key &key, // or keyreference, i.e. Key(keyName)
@@ -435,12 +434,12 @@ QDBusPendingReply<Result, QByteArray, bool> CryptoManagerPrivate::decrypt(
         const QString &cryptosystemProviderName)
 {
     if (!m_interface) {
-        return QDBusPendingReply<Result, QByteArray, bool>(
+        return QDBusPendingReply<Result, QByteArray, Sailfish::Crypto::CryptoManager::VerificationStatus>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Result, QByteArray, bool> reply
+    QDBusPendingReply<Result, QByteArray, Sailfish::Crypto::CryptoManager::VerificationStatus> reply
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("decrypt"),
                 QVariantList() << QVariant::fromValue<QByteArray>(data)
@@ -534,7 +533,7 @@ CryptoManagerPrivate::updateCipherSession(
     return reply;
 }
 
-QDBusPendingReply<Sailfish::Crypto::Result, QByteArray, bool>
+QDBusPendingReply<Sailfish::Crypto::Result, QByteArray, Sailfish::Crypto::CryptoManager::VerificationStatus>
 CryptoManagerPrivate::finalizeCipherSession(
         const QByteArray &data,
         const QVariantMap &customParameters,
@@ -542,12 +541,12 @@ CryptoManagerPrivate::finalizeCipherSession(
         quint32 cipherSessionToken)
 {
     if (!m_interface) {
-        return QDBusPendingReply<Result, QByteArray, bool>(
+        return QDBusPendingReply<Result, QByteArray, Sailfish::Crypto::CryptoManager::VerificationStatus>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Result, QByteArray, bool> reply
+    QDBusPendingReply<Result, QByteArray, Sailfish::Crypto::CryptoManager::VerificationStatus> reply
             = m_interface->asyncCallWithArgumentList(
                 "finalizeCipherSession",
                 QVariantList() << QVariant::fromValue<QByteArray>(data)

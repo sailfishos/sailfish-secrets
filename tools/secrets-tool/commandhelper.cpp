@@ -664,7 +664,7 @@ void CommandHelper::cryptoRequestStatusChanged()
         stdoutFile.write(r->signature());
     } else if (m_command == QStringLiteral("--verify")) {
         Sailfish::Crypto::VerifyRequest *r = qobject_cast<Sailfish::Crypto::VerifyRequest*>(m_cryptoRequest.data());
-        if (r->verified()) {
+        if (r->verificationStatus() == Sailfish::Crypto::CryptoManager::VerificationSucceeded) {
             qInfo() << "Verification SUCCEEDED!";
         } else {
             qInfo() << "Verification FAILED!";

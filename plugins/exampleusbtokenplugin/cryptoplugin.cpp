@@ -253,7 +253,7 @@ ExampleUsbTokenPlugin::verify(
         CryptoManager::SignaturePadding padding,
         CryptoManager::DigestFunction digestFunction,
         const QVariantMap &customParameters,
-        bool *verified)
+        Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus)
 {
     Key fullKey;
     Sailfish::Crypto::Result keyResult = getFullKey(key, &fullKey);
@@ -268,7 +268,7 @@ ExampleUsbTokenPlugin::verify(
                 padding,
                 digestFunction,
                 customParameters,
-                verified);
+                verificationStatus);
 }
 
 Result
@@ -312,7 +312,7 @@ ExampleUsbTokenPlugin::decrypt(
         const QByteArray &authenticationTag,
         const QVariantMap &customParameters,
         QByteArray *decrypted,
-        bool *verified)
+        Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus)
 {
     Key fullKey;
     Sailfish::Crypto::Result keyResult = getFullKey(key, &fullKey);
@@ -330,7 +330,7 @@ ExampleUsbTokenPlugin::decrypt(
                 authenticationTag,
                 customParameters,
                 decrypted,
-                verified);
+                verificationStatus);
 }
 
 Result
@@ -402,7 +402,7 @@ ExampleUsbTokenPlugin::finalizeCipherSession(
         const QVariantMap &customParameters,
         quint32 cipherSessionToken,
         QByteArray *generatedData,
-        bool *verified)
+        Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus)
 {
     return m_usbInterface.finalizeCipherSession(
                 clientId,
@@ -410,5 +410,5 @@ ExampleUsbTokenPlugin::finalizeCipherSession(
                 customParameters,
                 cipherSessionToken,
                 generatedData,
-                verified);
+                verificationStatus);
 }

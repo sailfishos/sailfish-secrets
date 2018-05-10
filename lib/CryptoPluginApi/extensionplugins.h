@@ -133,7 +133,7 @@ public:
             Sailfish::Crypto::CryptoManager::SignaturePadding padding,
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QVariantMap &customParameters,
-            bool *verified) = 0;
+            Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus) = 0;
 
     virtual Sailfish::Crypto::Result encrypt(
             const QByteArray &data,
@@ -156,7 +156,7 @@ public:
             const QByteArray &authenticationTag,
             const QVariantMap &customParameters,
             QByteArray *decrypted,
-            bool *verified) = 0;
+            Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus) = 0;
 
     virtual Sailfish::Crypto::Result initializeCipherSession(
             quint64 clientId,
@@ -189,7 +189,7 @@ public:
             const QVariantMap &customParameters,
             quint32 cipherSessionToken,
             QByteArray *generatedData,
-            bool *verified) = 0;
+            Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus) = 0;
 };
 
 } // namespace Crypto

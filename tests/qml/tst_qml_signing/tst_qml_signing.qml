@@ -105,7 +105,7 @@ TestCase {
         verifyRequest.waitForFinished()
         compare(verifyRequest.result.code, 0, "VerifyRequest failed:" + String(verifyRequest.result))
 
-        compare(verifyRequest.verified, true, "The signature MUST be verified successfully")
+        compare(verifyRequest.verified, CryptoManager.VerificationSuccess, "The signature MUST be verified successfully")
     }
 
     SecretManager {

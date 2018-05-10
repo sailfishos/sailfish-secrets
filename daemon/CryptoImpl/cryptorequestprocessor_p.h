@@ -196,7 +196,7 @@ public:
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
-            bool *verified);
+            Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus);
 
     Sailfish::Crypto::Result encrypt(
             pid_t callerPid,
@@ -225,7 +225,7 @@ public:
             const QVariantMap &customParameters,
             const QString &cryptosystemProviderName,
             QByteArray *decrypted,
-            bool *verified);
+            Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus);
 
     Sailfish::Crypto::Result initializeCipherSession(
             pid_t callerPid,
@@ -266,7 +266,7 @@ public:
             const QString &cryptosystemProviderName,
             quint32 cipherSessionToken,
             QByteArray *generatedData,
-            bool *verified);
+            Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus);
 
     Sailfish::Crypto::Result modifyLockCode(
             pid_t callerPid,

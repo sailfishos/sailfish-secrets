@@ -277,6 +277,36 @@ QDataStream& operator<<(QDataStream& out, const CryptoManager::Operations &v)
     return out;
 }
 
+QDataStream& operator>>(QDataStream& in, CryptoManager::VerificationStatusType &v)
+{
+    quint32 temp = 0;
+    in >> temp;
+    v = static_cast<CryptoManager::VerificationStatusType>(temp);
+    return in;
+}
+
+QDataStream& operator<<(QDataStream& out, const CryptoManager::VerificationStatusType &v)
+{
+    quint32 temp = static_cast<quint32>(v);
+    out << temp;
+    return out;
+}
+
+QDataStream& operator>>(QDataStream& in, CryptoManager::VerificationStatus &v)
+{
+    quint32 temp = 0;
+    in >> temp;
+    v = static_cast<CryptoManager::VerificationStatus>(temp);
+    return in;
+}
+
+QDataStream& operator<<(QDataStream& out, const CryptoManager::VerificationStatus &v)
+{
+    quint32 temp = static_cast<quint32>(v);
+    out << temp;
+    return out;
+}
+
 QDBusArgument &operator<<(QDBusArgument &argument, const Key &key)
 {
     argument.beginStructure();
@@ -512,6 +542,42 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoManager::Op
     argument >> iv;
     argument.endStructure();
     operations = static_cast<CryptoManager::Operations>(iv);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const CryptoManager::VerificationStatus verificationStatus)
+{
+    argument.beginStructure();
+    argument << static_cast<int>(verificationStatus);
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoManager::VerificationStatus &verificationStatus)
+{
+    int data = 0;
+    argument.beginStructure();
+    argument >> data;
+    argument.endStructure();
+    verificationStatus = static_cast<CryptoManager::VerificationStatus>(data);
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const CryptoManager::VerificationStatusType verificationStatusType)
+{
+    argument.beginStructure();
+    argument << static_cast<int>(verificationStatusType);
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, CryptoManager::VerificationStatusType &verificationStatusType)
+{
+    int data = 0;
+    argument.beginStructure();
+    argument >> data;
+    argument.endStructure();
+    verificationStatusType = static_cast<CryptoManager::VerificationStatusType>(data);
     return argument;
 }
 

@@ -44,7 +44,7 @@ public:
     QString m_cryptoPluginName;
     quint32 m_cipherSessionToken;
     QByteArray m_generatedData;
-    bool m_verified;
+    Sailfish::Crypto::CryptoManager::VerificationStatus m_verificationStatus;
 
     QQueue<QDBusPendingCallWatcher*> m_watcherQueue;
     QHash<QDBusPendingCallWatcher*, bool> m_completedHash;

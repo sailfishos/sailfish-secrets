@@ -1404,10 +1404,10 @@ Daemon::ApiImpl::RequestProcessor::verify(
         CryptoManager::DigestFunction digestFunction,
         const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
-        bool *verified)
+        Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus)
 {
     // TODO: Access Control
-    Q_UNUSED(verified); // asynchronous out-param.
+    Q_UNUSED(verificationStatus); // asynchronous out-param.
 
     CryptoPlugin* cryptoPlugin = m_cryptoPlugins.value(cryptosystemProviderName);
     if (cryptoPlugin == Q_NULLPTR) {
@@ -1483,7 +1483,7 @@ Daemon::ApiImpl::RequestProcessor::verify(
         ValidatedResult vr = watcher->future().result();
         QVariantList outParams;
         outParams << QVariant::fromValue<Result>(vr.result);
-        outParams << QVariant::fromValue<bool>(vr.validated);
+        outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(vr.verificationStatus);
         m_requestQueue->requestFinished(requestId, outParams);
     });
 
@@ -1505,7 +1505,7 @@ Daemon::ApiImpl::RequestProcessor::verify2(
     if (result.code() != Result::Succeeded) {
         QList<QVariant> outParams;
         outParams << QVariant::fromValue<Result>(result);
-        outParams << QVariant::fromValue<bool>(false);
+        outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(CryptoManager::VerificationFailed);
         m_requestQueue->requestFinished(requestId, outParams);
         return;
     }
@@ -1526,7 +1526,7 @@ Daemon::ApiImpl::RequestProcessor::verify2(
         ValidatedResult vr = watcher->future().result();
         QVariantList outParams;
         outParams << QVariant::fromValue<Result>(vr.result);
-        outParams << QVariant::fromValue<bool>(vr.validated);
+        outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(vr.verificationStatus);
         m_requestQueue->requestFinished(requestId, outParams);
     });
 }
@@ -1705,11 +1705,11 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
         const QVariantMap &customParameters,
         const QString &cryptosystemProviderName,
         QByteArray *decrypted,
-        bool *verified)
+        Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus)
 {
     // TODO: Access Control
     Q_UNUSED(decrypted); // asynchronous out-param.
-    Q_UNUSED(verified); // asynchronous out-param.
+    Q_UNUSED(verificationStatus); // asynchronous out-param.
 
     CryptoPlugin* cryptoPlugin = m_cryptoPlugins.value(cryptosystemProviderName);
     if (cryptoPlugin == Q_NULLPTR) {
@@ -1790,7 +1790,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
         QVariantList outParams;
         outParams << QVariant::fromValue<Result>(dr.result);
         outParams << QVariant::fromValue<QByteArray>(dr.data);
-        outParams << QVariant::fromValue<bool>(dr.verified);
+        outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(dr.verificationStatus);
         m_requestQueue->requestFinished(requestId, outParams);
     });
 
@@ -1815,7 +1815,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt2(
         QList<QVariant> outParams;
         outParams << QVariant::fromValue<Result>(result);
         outParams << QVariant::fromValue<QByteArray>(QByteArray());
-        outParams << QVariant::fromValue<bool>(false);
+        outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(CryptoManager::VerificationFailed);
         m_requestQueue->requestFinished(requestId, outParams);
     }
 
@@ -1836,7 +1836,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt2(
         QVariantList outParams;
         outParams << QVariant::fromValue<Result>(dr.result);
         outParams << QVariant::fromValue<QByteArray>(dr.data);
-        outParams << QVariant::fromValue<bool>(dr.verified);
+        outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(dr.verificationStatus);
         m_requestQueue->requestFinished(requestId, outParams);
     });
 }
@@ -2084,11 +2084,11 @@ Daemon::ApiImpl::RequestProcessor::finalizeCipherSession(
         const QString &cryptosystemProviderName,
         quint32 cipherSessionToken,
         QByteArray *generatedData,
-        bool *verified)
+        Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus)
 {
     Q_UNUSED(requestId); // TODO: Access Control
     Q_UNUSED(generatedData); // asynchronous out-param.
-    Q_UNUSED(verified);      // asynchronous out-param.
+    Q_UNUSED(verificationStatus);      // asynchronous out-param.
 
     CryptoPlugin* cryptoPlugin = m_cryptoPlugins.value(cryptosystemProviderName);
     if (cryptoPlugin == Q_NULLPTR) {
@@ -2112,7 +2112,7 @@ Daemon::ApiImpl::RequestProcessor::finalizeCipherSession(
         QVariantList outParams;
         outParams << QVariant::fromValue<Result>(vdr.result);
         outParams << QVariant::fromValue<QByteArray>(vdr.data);
-        outParams << QVariant::fromValue<bool>(vdr.verified);
+        outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(vdr.verificationStatus);
         m_requestQueue->requestFinished(requestId, outParams);
     });
 

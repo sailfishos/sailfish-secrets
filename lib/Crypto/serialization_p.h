@@ -59,9 +59,12 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Crypt
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CryptoManager::KeyDerivationFunction &kdf) SAILFISH_CRYPTO_API;
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CryptoManager::Operation operation) SAILFISH_CRYPTO_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CryptoManager::Operation &operation) SAILFISH_CRYPTO_API;
-
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CryptoManager::Operations operations) SAILFISH_CRYPTO_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CryptoManager::Operations &operations) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CryptoManager::VerificationStatusType verificationStatusType) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CryptoManager::VerificationStatusType &verificationStatusType) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::CryptoManager::VerificationStatus verificationStatus) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::CryptoManager::VerificationStatus &verificationStatus) SAILFISH_CRYPTO_API;
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::Key::Component component) SAILFISH_CRYPTO_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::Key::Component &component) SAILFISH_CRYPTO_API;

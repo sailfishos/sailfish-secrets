@@ -313,6 +313,20 @@ public:
     Q_DECLARE_FLAGS(Operations, Operation)
     Q_FLAG(Operations)
 
+    enum VerificationStatusType {
+        VerificationStatusUnknown = 0,
+        VerificationSucceeded = 1,
+        VerificationFailed = 2,
+        VerificationSignatureInvalid = 4,
+        VerificationSignatureExpired = 8,
+        VerificationKeyExpired = 16,
+        VerificationKeyRevoked = 32,
+        VerificationKeyInvalid = 64
+    };
+    Q_ENUM(VerificationStatusType)
+    Q_DECLARE_FLAGS(VerificationStatus, VerificationStatusType)
+    Q_FLAG(VerificationStatus)
+
     CryptoManager(QObject *parent = Q_NULLPTR);
     virtual ~CryptoManager();
 
@@ -352,6 +366,9 @@ Q_DECLARE_METATYPE(Sailfish::Crypto::CryptoManager::SignaturePadding);
 Q_DECLARE_METATYPE(Sailfish::Crypto::CryptoManager::DigestFunction);
 Q_DECLARE_METATYPE(Sailfish::Crypto::CryptoManager::Operation);
 Q_DECLARE_METATYPE(Sailfish::Crypto::CryptoManager::Operations);
+Q_DECLARE_METATYPE(Sailfish::Crypto::CryptoManager::VerificationStatusType);
+Q_DECLARE_METATYPE(Sailfish::Crypto::CryptoManager::VerificationStatus);
 Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::CryptoManager::Operations);
+Q_DECLARE_OPERATORS_FOR_FLAGS(Sailfish::Crypto::CryptoManager::VerificationStatus);
 
 #endif // LIBSAILFISHCRYPTO_CRYPTOMANAGER_H
