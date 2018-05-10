@@ -1349,13 +1349,9 @@ Daemon::Plugins::OpenSslCryptoPlugin::initializeCipherSession(
 
         QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(pkeyPtr);
 
-        evp_md_ctx = EVP_MD_CTX_create();
-        if (evp_md_ctx == Q_NULLPTR) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                            QLatin1String("Failed to create cipher session context"));
-        }
+        r = OpenSslEvp::verify_session_init(&evp_md_ctx, evpDigestFunc, pkey.data());
 
-        if (EVP_DigestVerifyInit(evp_md_ctx, Q_NULLPTR, evpDigestFunc, Q_NULLPTR, pkey.data()) != 1) {
+        if (r != 1) {
             EVP_MD_CTX_destroy(evp_md_ctx);
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                             QLatin1String("Failed to initialize cipher session context"));
@@ -1503,9 +1499,8 @@ Daemon::Plugins::OpenSslCryptoPlugin::updateCipherSession(
                                                 QLatin1String("Failed to update sign cipher data"));
             }
         } else if (csd->operation == Sailfish::Crypto::CryptoManager::OperationVerify) {
-            if (EVP_DigestVerifyUpdate(csd->evp_md_ctx,
-                                       reinterpret_cast<const unsigned char *>(data.constData()),
-                                       data.size()) != 1) {
+            int r = OpenSslEvp::verify_session_update(csd->evp_md_ctx, data.constData(), data.size());
+            if (r != 1) {
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                                 QLatin1String("Failed to update verify cipher data"));
             }
@@ -1617,9 +1612,10 @@ Daemon::Plugins::OpenSslCryptoPlugin::finalizeCipherSession(
             // Initialize verification status to unknown
             *verificationStatus = CryptoManager::VerificationStatusUnknown;
 
-            int r = EVP_DigestVerifyFinal(csd->evp_md_ctx,
-                                          reinterpret_cast<const unsigned char *>(data.constData()),
-                                          data.size());
+            int r = OpenSslEvp::verify_session_finalize(csd->evp_md_ctx, reinterpret_cast<const unsigned char *>(data.constData()), data.size());
+            // Already destroyed, set to nullptr to prevent double free
+            csd->evp_md_ctx = nullptr;
+
             if (r == 1) {
                 // Verification performed without error, signature matched.
                 *verificationStatus = Sailfish::Crypto::CryptoManager::VerificationSucceeded;

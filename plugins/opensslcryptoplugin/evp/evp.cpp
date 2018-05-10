@@ -1068,22 +1068,98 @@ int OpenSslEvp::verify(const EVP_MD *digestFunc,
                        const uint8_t *signature,
                        size_t signatureLength)
 {
+    EVP_MD_CTX *mdctx = nullptr;
+    int r = verify_session_init(&mdctx, digestFunc, pkey);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "Failed to initialize verify session.", err_dontfree);
+
+    r = verify_session_update(mdctx, bytes, bytesCount);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "Failed to update verify session.", err_dontfree);
+
+    r = verify_session_finalize(mdctx, signature, signatureLength);
+    OSSLEVP_HANDLE_ERR(r < 0,, "Failed to finalize verify session.", err_dontfree);
+
+    err_dontfree:
+    return r;
+}
+
+/*
+    int verify_session_init(EVP_MD_CTX **ctx,
+                            const EVP_MD *digestFunc,
+                            EVP_PKEY *pkey);
+*/
+
+int OpenSslEvp::verify_session_init(EVP_MD_CTX **ctx,
+                        const EVP_MD *digestFunc,
+                        EVP_PKEY *pkey)
+{
+    if (ctx == nullptr) {
+        return -2;
+    }
+
+    *ctx = nullptr;
+
     int r = -1;
     EVP_MD_CTX *mdctx = EVP_MD_CTX_create();
-    OSSLEVP_HANDLE_ERR(mdctx == NULL, r = -1, "failed to allocate memory for MD context", err_dontfree);
+    OSSLEVP_HANDLE_ERR(mdctx == nullptr, r = -1, "failed to allocate memory for MD context", err_dontfree);
 
-    r = EVP_DigestVerifyInit(mdctx, NULL, digestFunc, NULL, pkey);
+    r = EVP_DigestVerifyInit(mdctx, nullptr, digestFunc, nullptr, pkey);
     OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to initialize DigestVerify", err_free_mdctx);
 
-    r = EVP_DigestVerifyUpdate(mdctx, bytes, bytesCount);
-    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to update DigestVerify", err_free_mdctx);
-
-    r = EVP_DigestVerifyFinal(mdctx, signature, signatureLength);
-    OSSLEVP_HANDLE_ERR(r < 0,, "failed to finalize DigestVerify", err_free_mdctx);
+    *ctx = mdctx;
+    return r;
 
     err_free_mdctx:
     EVP_MD_CTX_destroy(mdctx);
+    *ctx = nullptr;
     err_dontfree:
+    return r;
+}
+
+/*
+    int verify_session_update(EVP_MD_CTX *ctx,
+                              const void *bytes,
+                              size_t bytesCount);
+*/
+
+int OpenSslEvp::verify_session_update(EVP_MD_CTX *mdctx,
+                          const void *bytes,
+                          size_t bytesCount)
+{
+    if (mdctx == nullptr) {
+        return -2;
+    }
+
+    int r = EVP_DigestVerifyUpdate(mdctx, bytes, bytesCount);
+    OSSLEVP_HANDLE_ERR(r != 1, r = -1, "failed to update DigestVerify", err_free_mdctx);
+
+    return r;
+
+    err_free_mdctx:
+    EVP_MD_CTX_destroy(mdctx);
+    return r;
+}
+
+/*
+    int verify_session_finalize(EVP_MD_CTX *ctx,
+                                uint8_t **signature,
+                                size_t *signatureLength);
+*/
+
+int OpenSslEvp::verify_session_finalize(EVP_MD_CTX *mdctx,
+                            const uint8_t *signature,
+                            size_t signatureLength)
+{
+    if (mdctx == nullptr) {
+        return -2;
+    }
+
+    int r = EVP_DigestVerifyFinal(mdctx, signature, signatureLength);
+    OSSLEVP_HANDLE_ERR(r < 0,, "failed to finalize DigestVerify", err_free_mdctx);
+
+    // Intentionally fall through the error handler which will also free the mdctx
+
+    err_free_mdctx:
+    EVP_MD_CTX_destroy(mdctx);
     return r;
 }
 

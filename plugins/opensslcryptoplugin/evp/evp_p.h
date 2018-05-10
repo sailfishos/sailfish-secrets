@@ -119,6 +119,18 @@ int verify(const EVP_MD *digestFunc,
            const uint8_t *signature,
            size_t signatureLength);
 
+int verify_session_init(EVP_MD_CTX **ctx,
+                        const EVP_MD *digestFunc,
+                        EVP_PKEY *pkey);
+
+int verify_session_update(EVP_MD_CTX *ctx,
+                          const void *bytes,
+                          size_t bytesCount);
+
+int verify_session_finalize(EVP_MD_CTX *ctx,
+                            const uint8_t *signature,
+                            size_t signatureLength);
+
 int generate_ec_key(int curveNid,
                     uint8_t **publicKeyBytes,
                     size_t *publicKeySize,
