@@ -89,7 +89,7 @@ CryptoStoragePluginWrapper::prepareToStoreKey(
     }
 
     if (!m_cryptoPlugin->canStoreKeys()) {
-        return Result(Result::UnsupportedOperation,
+        return Result(Result::OperationNotSupportedError,
                       QStringLiteral("Plugin %1 cannot store keys")
                       .arg(m_encryptedStoragePlugin->name()));
     }
