@@ -430,12 +430,12 @@ EVP_PKEY *readEvpKey(const QByteArray &key, evpKeyReadFunc read)
     return pkeyPtr;
 }
 
-EVP_PKEY *readEvpPrivKey(const QByteArray privKey)
+EVP_PKEY *readEvpPrivKey(const QByteArray &privKey)
 {
     return readEvpKey(privKey, PEM_read_bio_PrivateKey);
 }
 
-EVP_PKEY *readEvpPubKey(const QByteArray pubKey)
+EVP_PKEY *readEvpPubKey(const QByteArray &pubKey)
 {
     return readEvpKey(pubKey, PEM_read_bio_PUBKEY);
 }
