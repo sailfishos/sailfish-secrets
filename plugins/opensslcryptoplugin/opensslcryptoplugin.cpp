@@ -237,7 +237,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateRsaKey(
     }
 
     QScopedPointer<RSA, LibCrypto_RSA_Deleter> rsa(RSA_new());
-    if (RSA_generate_key_ex(rsa.data(), rsakpgp.modulusLength(), pubExp.data(), NULL) != 1) {
+    if (RSA_generate_key_ex(rsa.data(), rsakpgp.modulusLength(), pubExp.data(), Q_NULLPTR) != 1) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
                                         QLatin1String("Failed to initialize RSA key pair generation"));
     }
@@ -255,7 +255,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateRsaKey(
     }
 
     QScopedPointer<BIO, LibCrypto_BIO_Deleter> privbio(BIO_new(BIO_s_mem()));
-    if (PEM_write_bio_RSAPrivateKey(privbio.data(), rsa.data(), NULL, NULL, 0, NULL, NULL) != 1) {
+    if (PEM_write_bio_RSAPrivateKey(privbio.data(), rsa.data(), Q_NULLPTR, Q_NULLPTR, 0, Q_NULLPTR, Q_NULLPTR) != 1) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyGenerationError,
                                         QLatin1String("Failed to write private key data to memory"));
     }
@@ -421,7 +421,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::generateKey(
                 skdfParams.inputData().constData(),
                 skdfParams.inputData().size(),
                 skdfParams.salt().isEmpty()
-                        ? NULL
+                        ? Q_NULLPTR
                         : reinterpret_cast<const unsigned char*>(skdfParams.salt().constData()),
                 skdfParams.salt().size(),
                 skdfParams.iterations(),
@@ -544,7 +544,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::importKey(
     QByteArray privateKey;
     if (hasPrivateKeyData) {
         QScopedPointer<BIO, LibCrypto_BIO_Deleter> privbio(BIO_new(BIO_s_mem()));
-        if (PEM_write_bio_PrivateKey(privbio.data(), pkey.data(), NULL, NULL, 0, NULL, NULL) < 1) {
+        if (PEM_write_bio_PrivateKey(privbio.data(), pkey.data(), Q_NULLPTR, Q_NULLPTR, 0, Q_NULLPTR, Q_NULLPTR) < 1) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginKeyImportError,
                                             QLatin1String("Failed to write private key data to memory"));
         }
@@ -650,32 +650,19 @@ Daemon::Plugins::OpenSslCryptoPlugin::sign(
                                         QLatin1String("Unsupported digest function chosen."));
     }
 
-    QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(BIO_new(BIO_s_mem()));
-
-    // Use BIO to write private key data
-    int r = BIO_write(bio.data(), key.privateKey().data(), key.privateKey().length());
-    if (r == 0 || r != key.privateKey().length()) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginSigningError,
-                                        QLatin1String("Failed to read private key data."));
-    }
-
     // Read the private key data into an EVP_PKEY, which SHOULD handle different formats transparently.
-    // See https://www.openssl.org/docs/man1.1.0/crypto/PEM_read_bio_PrivateKey.html
-    EVP_PKEY *pkeyPtr = Q_NULLPTR;
-    PEM_read_bio_PrivateKey(bio.data(), &pkeyPtr, Q_NULLPTR, Q_NULLPTR);
-    if (pkeyPtr == Q_NULLPTR) {
+    QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(readEvpPrivKey(key.privateKey()));
+    if (pkey.data() == Q_NULLPTR) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginSigningError,
                                         QLatin1String("Failed to read private key from PEM format."));
     }
-
-    QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(pkeyPtr);
 
     // Variables for storing the signature
     uint8_t *signatureBytes = Q_NULLPTR;
     size_t signatureLength = 0;
 
     // Create signature
-    r = OpenSslEvp::sign(evpDigestFunc, pkeyPtr, data.data(), data.length(), &signatureBytes, &signatureLength);
+    int r = OpenSslEvp::sign(evpDigestFunc, pkey.data(), data.data(), data.length(), &signatureBytes, &signatureLength);
     if (r != 1) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginSigningError,
                                         QLatin1String("Failed to sign."));
@@ -721,6 +708,9 @@ Daemon::Plugins::OpenSslCryptoPlugin::verify(
                                         QLatin1String("TODO: signature padding other than None"));
     }
 
+    // Initialize verification status to unknown
+    *verificationStatus = CryptoManager::VerificationStatusUnknown;
+
     // Get the EVP digest function
     const EVP_MD *evpDigestFunc = getEvpDigestFunction(digestFunction);
     if (!evpDigestFunc) {
@@ -728,27 +718,15 @@ Daemon::Plugins::OpenSslCryptoPlugin::verify(
                                         QLatin1String("Unsupported digest function chosen."));
     }
 
-    QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(BIO_new(BIO_s_mem()));
-
-    // Use BIO to write public key data
-    int r = BIO_write(bio.data(), key.publicKey().data(), key.publicKey().length());
-    if (r != key.publicKey().length()) {
-        return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginVerificationError,
-                                        QLatin1String("Failed to read public key data."));
-    }
-
     // Read the public key data into an EVP_PKEY
-    EVP_PKEY *pkeyPtr = Q_NULLPTR;
-    PEM_read_bio_PUBKEY(bio.data(), &pkeyPtr, Q_NULLPTR, Q_NULLPTR);
-    if (pkeyPtr == Q_NULLPTR) {
+    QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(readEvpPubKey(key.publicKey()));
+    if (pkey.data() == Q_NULLPTR) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginVerificationError,
                                         QLatin1String("Failed to read public key from PEM format."));
     }
 
-    QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(pkeyPtr);
-
     // Verify the signature
-    r = OpenSslEvp::verify(evpDigestFunc, pkeyPtr, data.data(), data.length(), (const uint8_t*) signature.data(), (size_t) signature.length());
+    int r = OpenSslEvp::verify(evpDigestFunc, pkey.data(), data.data(), data.length(), (const uint8_t*) signature.data(), (size_t) signature.length());
     if (r == 1) {
         // Verification performed without error, signature matched.
         *verificationStatus = Sailfish::Crypto::CryptoManager::VerificationSucceeded;
@@ -1212,36 +1190,36 @@ Daemon::Plugins::OpenSslCryptoPlugin::initializeCipherSession(
         }
     }
 
-    EVP_MD_CTX *evp_md_ctx = NULL;
-    EVP_CIPHER_CTX *evp_cipher_ctx = NULL;
+    EVP_MD_CTX *evp_md_ctx = Q_NULLPTR;
+    EVP_CIPHER_CTX *evp_cipher_ctx = Q_NULLPTR;
     if (operation == Sailfish::Crypto::CryptoManager::OperationEncrypt) {
         evp_cipher_ctx = EVP_CIPHER_CTX_new();
-        if (evp_cipher_ctx == NULL) {
+        if (evp_cipher_ctx == Q_NULLPTR) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                             QLatin1String("Unable to initialize cipher context for encryption"));
         }
         if (key.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
             const EVP_CIPHER *evp_cipher = getEvpCipher(blockMode, key.secretKey().size());
             // Initialize context
-            if (evp_cipher == NULL) {
+            if (evp_cipher == Q_NULLPTR) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                                 QLatin1String("Cannot create cipher for AES encryption, check key size and block mode"));
             }
-            if (EVP_EncryptInit_ex(evp_cipher_ctx, evp_cipher, NULL, NULL, NULL) != 1) {
+            if (EVP_EncryptInit_ex(evp_cipher_ctx, evp_cipher, Q_NULLPTR, Q_NULLPTR, Q_NULLPTR) != 1) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                                 QLatin1String("Unable to initialize encryption cipher context in AES 256 mode"));
             }
             // Set IV length
             if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm
-                    && EVP_CIPHER_CTX_ctrl(evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, iv.length(), NULL) != 1) {
+                    && EVP_CIPHER_CTX_ctrl(evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, iv.length(), Q_NULLPTR) != 1) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                                 QLatin1String("Unable to set encryption initialization vector length"));
             }
             // Initialize key and IV
-            if (EVP_EncryptInit_ex(evp_cipher_ctx, NULL, NULL,
+            if (EVP_EncryptInit_ex(evp_cipher_ctx, Q_NULLPTR, Q_NULLPTR,
                                    reinterpret_cast<const unsigned char*>(key.secretKey().constData()),
                                    reinterpret_cast<const unsigned char*>(iv.constData())) != 1) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
@@ -1251,33 +1229,33 @@ Daemon::Plugins::OpenSslCryptoPlugin::initializeCipherSession(
         }
     } else if (operation == Sailfish::Crypto::CryptoManager::OperationDecrypt) {
         evp_cipher_ctx = EVP_CIPHER_CTX_new();
-        if (evp_cipher_ctx == NULL) {
+        if (evp_cipher_ctx == Q_NULLPTR) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                             QLatin1String("Unable to initialize cipher context for decryption"));
         }
         if (key.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmAes) {
             const EVP_CIPHER *evp_cipher = getEvpCipher(blockMode, key.secretKey().size());
             // Initialize context
-            if (evp_cipher == NULL) {
+            if (evp_cipher == Q_NULLPTR) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                                 QLatin1String("Cannot create cipher for AES deccryption, check key size and block mode"));
             }
-            if (EVP_DecryptInit_ex(evp_cipher_ctx, evp_cipher, NULL, NULL, NULL) != 1) {
+            if (EVP_DecryptInit_ex(evp_cipher_ctx, evp_cipher, Q_NULLPTR, Q_NULLPTR, Q_NULLPTR) != 1) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                                 QLatin1String("Unable to initialize decryption cipher context in AES 256 mode"));
             }
             // Set IV length
             if (blockMode == Sailfish::Crypto::CryptoManager::BlockModeGcm
-                    && EVP_CIPHER_CTX_ctrl(evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, iv.length(), NULL) != 1) {
+                    && EVP_CIPHER_CTX_ctrl(evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, iv.length(), Q_NULLPTR) != 1) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                                 QLatin1String("Unable to set decryption initialization vector length"));
 
             }
             // Initialize key and IV
-            if (EVP_DecryptInit_ex(evp_cipher_ctx, NULL, NULL,
+            if (EVP_DecryptInit_ex(evp_cipher_ctx, Q_NULLPTR, Q_NULLPTR,
                                    reinterpret_cast<const unsigned char *>(key.secretKey().constData()),
                                    reinterpret_cast<const unsigned char *>(iv.constData())) != 1) {
                 EVP_CIPHER_CTX_free(evp_cipher_ctx);
@@ -1293,34 +1271,15 @@ Daemon::Plugins::OpenSslCryptoPlugin::initializeCipherSession(
                                             QLatin1String("Unsupported digest function chosen."));
         }
 
-        QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(BIO_new(BIO_s_mem()));
-
-        // Use BIO to write private key data
-        int r = BIO_write(bio.data(), key.privateKey().data(), key.privateKey().length());
-        if (r == 0 || r != key.privateKey().length()) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                            QLatin1String("Failed to read private key data."));
-        }
-
-        // Read the private key data into an EVP_PKEY, which SHOULD handle different formats transparently.
-        // See https://www.openssl.org/docs/man1.1.0/crypto/PEM_read_bio_PrivateKey.html
-        EVP_PKEY *pkeyPtr = Q_NULLPTR;
-        PEM_read_bio_PrivateKey(bio.data(), &pkeyPtr, Q_NULLPTR, Q_NULLPTR);
-        if (pkeyPtr == Q_NULLPTR) {
+        // Read the private key data into an EVP_PKEY
+        QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(readEvpPrivKey(key.privateKey()));
+        if (pkey.data() == Q_NULLPTR) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                             QLatin1String("Failed to read private key from PEM format."));
         }
 
-        QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(pkeyPtr);
-
-        evp_md_ctx = EVP_MD_CTX_create();
-        if (evp_md_ctx == NULL) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                            QLatin1String("Failed to create cipher session context"));
-        }
-
-        if (EVP_DigestSignInit(evp_md_ctx, NULL, evpDigestFunc, NULL, pkey.data()) != 1) {
-            EVP_MD_CTX_destroy(evp_md_ctx);
+        int r = OpenSslEvp::sign_session_init(&evp_md_ctx, evpDigestFunc, pkey.data());
+        if (r != 1) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                             QLatin1String("Failed to initialize cipher session context"));
         }
@@ -1332,32 +1291,15 @@ Daemon::Plugins::OpenSslCryptoPlugin::initializeCipherSession(
                                             QLatin1String("Unsupported digest function chosen."));
         }
 
-        QScopedPointer<BIO, LibCrypto_BIO_Deleter> bio(BIO_new(BIO_s_mem()));
-
-        // Use BIO to write public key data
-        int r = BIO_write(bio.data(), key.publicKey().data(), key.publicKey().length());
-        if (r != key.publicKey().length()) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginVerificationError,
-                                            QLatin1String("Failed to read public key data."));
-        }
-
         // Read the public key data into an EVP_PKEY
-        EVP_PKEY *pkeyPtr = Q_NULLPTR;
-        PEM_read_bio_PUBKEY(bio.data(), &pkeyPtr, Q_NULLPTR, Q_NULLPTR);
-        if (pkeyPtr == Q_NULLPTR) {
+        QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(readEvpPubKey(key.publicKey()));
+        if (pkey.data() == Q_NULLPTR) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginVerificationError,
                                             QLatin1String("Failed to read public key from PEM format."));
         }
 
-        QScopedPointer<EVP_PKEY, LibCrypto_EVP_PKEY_Deleter> pkey(pkeyPtr);
-
-        evp_md_ctx = EVP_MD_CTX_create();
-        if (evp_md_ctx == NULL) {
-            return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                            QLatin1String("Failed to create cipher session context"));
-        }
-
-        if (EVP_DigestVerifyInit(evp_md_ctx, NULL, evpDigestFunc, NULL, pkey.data()) != 1) {
+        int r = OpenSslEvp::verify_session_init(&evp_md_ctx, evpDigestFunc, pkey.data());
+        if (r != 1) {
             EVP_MD_CTX_destroy(evp_md_ctx);
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                             QLatin1String("Failed to initialize cipher session context"));
@@ -1422,7 +1364,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::updateCipherSessionAuthentication(
     if (csd->blockMode != Sailfish::Crypto::CryptoManager::BlockModeGcm) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                         QLatin1String("Block mode is not GCM, cannot update authentication data"));
-    } else if (csd->evp_cipher_ctx == NULL) {
+    } else if (csd->evp_cipher_ctx == Q_NULLPTR) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                         QLatin1String("Cipher context has not been initialized"));
     }
@@ -1430,14 +1372,14 @@ Daemon::Plugins::OpenSslCryptoPlugin::updateCipherSessionAuthentication(
     csd->timeout->start(); // restart the timeout due to activity.
     int len = 0;
     if (csd->operation == Sailfish::Crypto::CryptoManager::OperationEncrypt) {
-        if (EVP_EncryptUpdate(csd->evp_cipher_ctx, NULL, &len,
+        if (EVP_EncryptUpdate(csd->evp_cipher_ctx, Q_NULLPTR, &len,
                               reinterpret_cast<const unsigned char *>(authenticationData.constData()),
                               authenticationData.size()) != 1) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                             QLatin1String("Failed to update encryption cipher authentication data"));
         }
     } else if (csd->operation == Sailfish::Crypto::CryptoManager::OperationDecrypt) {
-        if (EVP_DecryptUpdate(csd->evp_cipher_ctx, NULL, &len,
+        if (EVP_DecryptUpdate(csd->evp_cipher_ctx, Q_NULLPTR, &len,
                               reinterpret_cast<const unsigned char *>(authenticationData.constData()),
                               authenticationData.size()) != 1) {
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
@@ -1466,7 +1408,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::updateCipherSession(
     }
 
     CipherSessionData *csd = m_cipherSessions[clientId].value(cipherSessionToken);
-    if (csd->evp_cipher_ctx == NULL && csd->evp_md_ctx == NULL) {
+    if (csd->evp_cipher_ctx == Q_NULLPTR && csd->evp_md_ctx == Q_NULLPTR) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                         QLatin1String("Cipher context has not been initialized"));
     }
@@ -1499,16 +1441,14 @@ Daemon::Plugins::OpenSslCryptoPlugin::updateCipherSession(
             return Sailfish::Crypto::Result(Sailfish::Crypto::Result::EmptyDataError,
                                             QLatin1String("Empty input data specified"));
         } else if (csd->operation == Sailfish::Crypto::CryptoManager::OperationSign) {
-            if (EVP_DigestSignUpdate(csd->evp_md_ctx,
-                                     reinterpret_cast<const unsigned char *>(data.constData()),
-                                     data.size()) != 1) {
+            int r = OpenSslEvp::sign_session_update(csd->evp_md_ctx, data.constData(), data.size());
+            if (r != 1) {
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                                 QLatin1String("Failed to update sign cipher data"));
             }
         } else if (csd->operation == Sailfish::Crypto::CryptoManager::OperationVerify) {
-            if (EVP_DigestVerifyUpdate(csd->evp_md_ctx,
-                                       reinterpret_cast<const unsigned char *>(data.constData()),
-                                       data.size()) != 1) {
+            int r = OpenSslEvp::verify_session_update(csd->evp_md_ctx, data.constData(), data.size());
+            if (r != 1) {
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                                 QLatin1String("Failed to update verify cipher data"));
             }
@@ -1535,7 +1475,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::finalizeCipherSession(
     }
 
     CipherSessionData *csd = m_cipherSessions[clientId].value(cipherSessionToken);
-    if (csd->evp_cipher_ctx == NULL && csd->evp_md_ctx == NULL) {
+    if (csd->evp_cipher_ctx == Q_NULLPTR && csd->evp_md_ctx == Q_NULLPTR) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                         QLatin1String("Cipher context has not been initialized"));
     }
@@ -1593,21 +1533,17 @@ Daemon::Plugins::OpenSslCryptoPlugin::finalizeCipherSession(
     } else if (csd->evp_md_ctx) {
         if (csd->operation == Sailfish::Crypto::CryptoManager::OperationSign) {
             size_t signatureLength = 0;
-            if (EVP_DigestSignFinal(csd->evp_md_ctx,
-                                    NULL,
-                                    &signatureLength) != 1) {
+            uint8_t *signatureData;
+
+            int r = OpenSslEvp::sign_session_finalize(csd->evp_md_ctx, &signatureData, &signatureLength);
+            // Already destroyed, set to nullptr to prevent double free
+            csd->evp_md_ctx = nullptr;
+
+            if (r != 1) {
                 return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
                                                 QLatin1String("Failed to finalize sign cipher"));
             }
 
-            unsigned char *signatureData = (unsigned char *)OPENSSL_malloc(signatureLength);
-            if (EVP_DigestSignFinal(csd->evp_md_ctx,
-                                    signatureData,
-                                    &signatureLength) != 1) {
-                OPENSSL_free(signatureData);
-                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginCipherSessionError,
-                                                QLatin1String("Failed to finalize sign cipher to produce signature"));
-            }
             *generatedData = QByteArray(reinterpret_cast<const char *>(signatureData), signatureLength);
             OPENSSL_free(signatureData);
         } else if (csd->operation == Sailfish::Crypto::CryptoManager::OperationVerify) {
@@ -1616,9 +1552,18 @@ Daemon::Plugins::OpenSslCryptoPlugin::finalizeCipherSession(
                                                 QLatin1String("Empty signature data specified"));
             }
 
-            int r = EVP_DigestVerifyFinal(csd->evp_md_ctx,
-                                          reinterpret_cast<const unsigned char *>(data.constData()),
-                                          data.size());
+            if (verificationStatus == Q_NULLPTR) {
+                return Sailfish::Crypto::Result(Sailfish::Crypto::Result::CryptoPluginVerificationError,
+                                                QLatin1String("Verification result is nullptr"));
+            }
+
+            // Initialize verification status to unknown
+            *verificationStatus = CryptoManager::VerificationStatusUnknown;
+
+            int r = OpenSslEvp::verify_session_finalize(csd->evp_md_ctx, reinterpret_cast<const unsigned char *>(data.constData()), data.size());
+            // Already destroyed, set to nullptr to prevent double free
+            csd->evp_md_ctx = nullptr;
+
             if (r == 1) {
                 // Verification performed without error, signature matched.
                 *verificationStatus = Sailfish::Crypto::CryptoManager::VerificationSucceeded;
@@ -1645,7 +1590,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::aes_encrypt_plaintext(
         const QByteArray &init_vector)
 {
     QByteArray encryptedData;
-    unsigned char *encrypted = NULL;
+    unsigned char *encrypted = Q_NULLPTR;
     int size = OpenSslEvp::aes_encrypt_plaintext(getEvpCipher(blockMode, key.size()),
                                              (const unsigned char *)init_vector.constData(),
                                              (const unsigned char *)key.constData(),
@@ -1670,7 +1615,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::aes_decrypt_ciphertext(
         const QByteArray &init_vector)
 {
     QByteArray decryptedData;
-    unsigned char *decrypted = NULL;
+    unsigned char *decrypted = Q_NULLPTR;
     int size = OpenSslEvp::aes_decrypt_ciphertext(getEvpCipher(blockMode, key.size()),
                                               (const unsigned char *)init_vector.constData(),
                                               (const unsigned char *)key.constData(),
@@ -1698,8 +1643,8 @@ Daemon::Plugins::OpenSslCryptoPlugin::aes_auth_encrypt_plaintext(
 {
     QByteArray encryptedData;
     QByteArray authenticationTagData;
-    unsigned char *encrypted = NULL;
-    unsigned char *authenticationTag = NULL;
+    unsigned char *encrypted = Q_NULLPTR;
+    unsigned char *authenticationTag = Q_NULLPTR;
 
     int encryptedSize = OpenSslEvp::aes_auth_encrypt_plaintext(getEvpCipher(blockMode, key.size()),
                                                            (const unsigned char *)init_vector.constData(),
@@ -1736,7 +1681,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::aes_auth_decrypt_ciphertext(
 {
     QByteArray decryptedData;
     int verifyResult = -1;
-    unsigned char *decrypted = NULL;
+    unsigned char *decrypted = Q_NULLPTR;
     unsigned char *authenticationTagData = (unsigned char *)authenticationTag.data();
 
     int size = OpenSslEvp::aes_auth_decrypt_ciphertext(getEvpCipher(blockMode, key.size()),
