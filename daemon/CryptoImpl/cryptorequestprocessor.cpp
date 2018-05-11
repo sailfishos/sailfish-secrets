@@ -1068,6 +1068,7 @@ Daemon::ApiImpl::RequestProcessor::storedKey(
         quint64 requestId,
         const Key::Identifier &identifier,
         Key::Components keyComponents,
+        const QVariantMap &customParameters,
         Key *key)
 {
     // TODO: access control
@@ -1087,7 +1088,8 @@ Daemon::ApiImpl::RequestProcessor::storedKey(
                     CryptoPluginFunctionWrapper::storedKey,
                     m_cryptoPlugins[identifier.storagePluginName()],
                     identifier,
-                    keyComponents);
+                    keyComponents,
+                    customParameters);
 
         watcher->setFuture(future);
         connect(watcher, &QFutureWatcher<KeyResult>::finished, [=] {
@@ -1184,11 +1186,12 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiers(
         quint64 requestId,
         const QString &storagePluginName,
         const QString &collectionName,
+        const QVariantMap &customParameters,
         QVector<Key::Identifier> *identifiers)
 {
     // TODO: access control
     Result retn = transformSecretsResult(m_secrets->storedKeyIdentifiers(
-                callerPid, requestId, collectionName, storagePluginName, identifiers));
+                callerPid, requestId, collectionName, storagePluginName, customParameters, identifiers));
 
     if (retn.code() == Result::Pending) {
         // asynchronous flow, will call back to storedKeyIdentifiers2().

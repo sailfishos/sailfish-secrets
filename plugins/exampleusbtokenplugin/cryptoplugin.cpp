@@ -99,9 +99,11 @@ Result
 ExampleUsbTokenPlugin::storedKey(
         const Key::Identifier &identifier,
         Key::Components keyComponents,
+        const QVariantMap &customParameters,
         Key *key)
 {
     Q_UNUSED(keyComponents) // we only ever return metadata and public key data, not private key data.
+    Q_UNUSED(customParameters)
     if (identifier.storagePluginName() == name()
             && identifier.collectionName() == QStringLiteral("Default")
             && identifier.name() == QStringLiteral("Default")) {
@@ -117,8 +119,10 @@ ExampleUsbTokenPlugin::storedKey(
 Result
 ExampleUsbTokenPlugin::storedKeyIdentifiers(
         const QString &collectionName,
+        const QVariantMap &customParameters,
         QVector<Key::Identifier> *identifiers)
 {
+    Q_UNUSED(customParameters)
     if (collectionName != QStringLiteral("Default")) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::InvalidKeyIdentifier,
                                         QLatin1String("The ExampleUsbToken plugin has only a single Default collection"));

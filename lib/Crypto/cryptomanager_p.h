@@ -102,14 +102,16 @@ public:
 
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> storedKey(
             const Sailfish::Crypto::Key::Identifier &identifier,
-            Key::Components keyComponents);
+            Key::Components keyComponents,
+            const QVariantMap &customParameters);
 
     QDBusPendingReply<Sailfish::Crypto::Result> deleteStoredKey(
             const Sailfish::Crypto::Key::Identifier &identifier);
 
     QDBusPendingReply<Sailfish::Crypto::Result, QVector<Sailfish::Crypto::Key::Identifier> > storedKeyIdentifiers(
             const QString &storagePluginName,
-            const QString &collectionName);
+            const QString &collectionName,
+            const QVariantMap &customParameters);
 
     QDBusPendingReply<Sailfish::Crypto::Result, QByteArray> calculateDigest(
             const QByteArray &data,

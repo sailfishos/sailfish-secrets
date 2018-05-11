@@ -259,7 +259,8 @@ CryptoManagerPrivate::importStoredKey(
 QDBusPendingReply<Result, Key>
 CryptoManagerPrivate::storedKey(
         const Key::Identifier &identifier,
-        Key::Components keyComponents)
+        Key::Components keyComponents,
+        const QVariantMap &customParameters)
 {
     if (!m_interface) {
         return QDBusPendingReply<Result, Key>(
@@ -271,7 +272,8 @@ CryptoManagerPrivate::storedKey(
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("storedKey"),
                 QVariantList() << QVariant::fromValue<Key::Identifier>(identifier)
-                               << QVariant::fromValue<Key::Components>(keyComponents));
+                               << QVariant::fromValue<Key::Components>(keyComponents)
+                               << QVariant::fromValue<QVariantMap>(customParameters));
     return reply;
 }
 
@@ -295,7 +297,8 @@ CryptoManagerPrivate::deleteStoredKey(
 QDBusPendingReply<Result, QVector<Key::Identifier> >
 CryptoManagerPrivate::storedKeyIdentifiers(
         const QString &storagePluginName,
-        const QString &collectionName)
+        const QString &collectionName,
+        const QVariantMap &customParameters)
 {
     if (!m_interface) {
         return QDBusPendingReply<Result, QVector<Key::Identifier> >(
@@ -307,7 +310,8 @@ CryptoManagerPrivate::storedKeyIdentifiers(
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("storedKeyIdentifiers"),
                 QVariantList() << QVariant::fromValue<QString>(storagePluginName)
-                               << QVariant::fromValue<QString>(collectionName));
+                               << QVariant::fromValue<QString>(collectionName)
+                               << QVariant::fromValue<QVariantMap>(customParameters));
     return reply;
 }
 

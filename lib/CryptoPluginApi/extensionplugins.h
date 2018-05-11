@@ -99,6 +99,7 @@ public:
     virtual Sailfish::Crypto::Result storedKey(
             const Sailfish::Crypto::Key::Identifier &identifier,
             Sailfish::Crypto::Key::Components keyComponents,
+            const QVariantMap &customParameters,
             Sailfish::Crypto::Key *key) = 0;
 
     // This doesn't exist - if you can store keys, then you must also
@@ -109,6 +110,7 @@ public:
 
     virtual Sailfish::Crypto::Result storedKeyIdentifiers(
             const QString &collectionName,
+            const QVariantMap &customParameters,
             QVector<Sailfish::Crypto::Key::Identifier> *identifiers) = 0;
 
     virtual Sailfish::Crypto::Result calculateDigest(

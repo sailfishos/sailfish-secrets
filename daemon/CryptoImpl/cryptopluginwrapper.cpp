@@ -29,6 +29,7 @@ CryptoStoragePluginWrapper::~CryptoStoragePluginWrapper()
 Sailfish::Secrets::Result
 CryptoStoragePluginWrapper::keyNames(
         const QString &collectionName,
+        const QVariantMap &customParameters,
         QStringList *keyNames)
 {
     QStringList knownKeys;
@@ -39,7 +40,7 @@ CryptoStoragePluginWrapper::keyNames(
 
     QVector<Key::Identifier> identifiers;
     if (m_cryptoPlugin->canStoreKeys()) {
-        Result result = m_cryptoPlugin->storedKeyIdentifiers(collectionName, &identifiers);
+        Result result = m_cryptoPlugin->storedKeyIdentifiers(collectionName, customParameters, &identifiers);
         if (result != Result::Succeeded) {
             if (result.storageErrorCode() != 0) {
                 return Sailfish::Secrets::Result(static_cast<Sailfish::Secrets::Result::ErrorCode>(result.storageErrorCode()),
@@ -65,9 +66,10 @@ CryptoStoragePluginWrapper::keyNames(
 Sailfish::Crypto::Result
 CryptoStoragePluginWrapper::storedKeyIdentifiers(
         const QString &collectionName,
+        const QVariantMap &customParameters,
         QVector<Sailfish::Crypto::Key::Identifier> *identifiers)
 {
-    return m_cryptoPlugin->storedKeyIdentifiers(collectionName, identifiers);
+    return m_cryptoPlugin->storedKeyIdentifiers(collectionName, customParameters, identifiers);
 }
 
 Result

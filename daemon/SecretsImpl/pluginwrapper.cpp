@@ -223,8 +223,10 @@ Result StoragePluginWrapper::secretNames(
 
 Result StoragePluginWrapper::keyNames(
         const QString &collectionName,
+        const QVariantMap &customParameters,
         QStringList *keyNames)
 {
+    Q_UNUSED(customParameters) // only CryptoStorage plugins support custom parameters.
     return m_metadataDb.keyNames(collectionName, keyNames);
 }
 
@@ -573,8 +575,10 @@ Result EncryptedStoragePluginWrapper::secretNames(
 
 Result EncryptedStoragePluginWrapper::keyNames(
         const QString &collectionName,
+        const QVariantMap &customParameters,
         QStringList *keyNames)
 {
+    Q_UNUSED(customParameters) // only CryptoStorage plugins support custom parameters.
     return m_metadataDb.keyNames(collectionName, keyNames);
 }
 
