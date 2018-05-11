@@ -42,6 +42,23 @@ namespace {
                              ident.name()).toUtf8(),
                     QCryptographicHash::Sha512).toBase64());
     }
+
+    QString determineAuthPlugin(const QString &ownerApplicationId,
+                                const QString &callerApplicationId,
+                                bool callerIsPlatformApplication,
+                                const QString &authPluginName,
+                                const QString &interactionServiceAddress,
+                                bool autotestMode) {
+        const QString defaultPluginName = autotestMode
+                ? Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName + QStringLiteral(".test")
+                : Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName;
+        if (authPluginName == Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName
+                && (interactionServiceAddress.isEmpty()
+                    || (ownerApplicationId != callerApplicationId && !callerIsPlatformApplication))) {
+            return defaultPluginName;
+        }
+        return authPluginName;
+    }
 }
 
 Daemon::ApiImpl::RequestProcessor::RequestProcessor(
@@ -647,6 +664,14 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionWithMetadata(
     }
 
     if (locked) {
+        const QString authPluginName = determineAuthPlugin(
+                    collectionMetadata.ownerApplicationId,
+                    callerApplicationId,
+                    applicationIsPlatformApplication,
+                    collectionMetadata.authenticationPluginName,
+                    interactionServiceAddress,
+                    m_autotestMode);
+
         if (collectionMetadata.usesDeviceLockKey) {
             // TODO: perform a "verify" UI flow (if the user interaction mode allows)
             //       If that succeeds, unlock the collection with the stored devicelock key and continue.
@@ -656,12 +681,12 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionWithMetadata(
         } else if (userInteractionMode == SecretManager::PreventInteraction) {
             return Result(Result::OperationRequiresUserInteraction,
                           QString::fromLatin1("Authentication plugin %1 requires user interaction")
-                          .arg(collectionMetadata.authenticationPluginName));
-        } else if (!m_authenticationPlugins.contains(collectionMetadata.authenticationPluginName)) {
+                          .arg(authPluginName));
+        } else if (!m_authenticationPlugins.contains(authPluginName)) {
             // TODO: stale data in metadata db?
             return Result(Result::InvalidExtensionPluginError,
                           QStringLiteral("Unknown collection authentication plugin %1")
-                          .arg(collectionMetadata.authenticationPluginName));
+                          .arg(authPluginName));
         }
 
         // perform the user input flow required to get the input key data which will be used
@@ -681,7 +706,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionWithMetadata(
            //% "Enter the passphrase which will be used to unlock the collection for deletion."
            { InteractionParameters::Instruction, qtTrId("sailfish_secrets-delete_collection-la-enter_collection_passphrase") }
         });
-        Result result = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
+        Result result = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                     callerPid,
                     requestId,
                     promptParams,
@@ -901,6 +926,14 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithMetadata(
     }
 
     if (locked) {
+        const QString authPluginName = determineAuthPlugin(
+                    collectionMetadata.ownerApplicationId,
+                    callerApplicationId,
+                    applicationIsPlatformApplication,
+                    collectionMetadata.authenticationPluginName,
+                    interactionServiceAddress,
+                    m_autotestMode);
+
         if (collectionMetadata.usesDeviceLockKey) {
             // TODO: perform a "verify" UI flow (if the user interaction mode allows)
             //       If that succeeds, unlock the collection with the stored devicelock key and continue.
@@ -910,12 +943,12 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithMetadata(
         } else if (userInteractionMode == SecretManager::PreventInteraction) {
             return Result(Result::OperationRequiresUserInteraction,
                           QString::fromLatin1("Authentication plugin %1 requires user interaction")
-                          .arg(collectionMetadata.authenticationPluginName));
-        } else if (!m_authenticationPlugins.contains(collectionMetadata.authenticationPluginName)) {
+                          .arg(authPluginName));
+        } else if (!m_authenticationPlugins.contains(authPluginName)) {
             // TODO: stale data in metadata db?
             return Result(Result::InvalidExtensionPluginError,
                           QStringLiteral("Unknown collection authentication plugin %1")
-                          .arg(collectionMetadata.authenticationPluginName));
+                          .arg(authPluginName));
         }
 
         // perform the user input flow required to get the input key data which will be used
@@ -935,7 +968,7 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithMetadata(
             //% "Enter the passphrase which will be used to unlock the collection."
             { InteractionParameters::Instruction, qtTrId("sailfish_secrets-unlock_collection-la-enter_collection_passphrase") }
         });
-        Result result = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
+        Result result = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                     callerPid,
                     requestId,
                     promptParams,
@@ -1310,6 +1343,14 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
                 ? m_appPermissions->platformApplicationId()
                 : m_appPermissions->applicationId(callerPid);
 
+    const QString authPluginName = determineAuthPlugin(
+                collectionMetadata.ownerApplicationId,
+                callerApplicationId,
+                applicationIsPlatformApplication,
+                collectionMetadata.authenticationPluginName,
+                interactionServiceAddress,
+                m_autotestMode);
+
     if (m_encryptedStoragePlugins.contains(secret.identifier().storagePluginName())) {
         // TODO: make this asynchronous instead of blocking the main thread!
         QFuture<LockedResult> future
@@ -1345,11 +1386,11 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
         } else if (userInteractionMode == SecretManager::PreventInteraction) {
             return Result(Result::OperationRequiresUserInteraction,
                           QString::fromLatin1("Authentication plugin %1 requires user interaction")
-                          .arg(collectionMetadata.authenticationPluginName));
-        } else if (!m_authenticationPlugins.contains(collectionMetadata.authenticationPluginName)) {
+                          .arg(authPluginName));
+        } else if (!m_authenticationPlugins.contains(authPluginName)) {
             return Result(Result::InvalidExtensionPluginError,
                           QStringLiteral("Unknown collection authentication plugin: %1")
-                          .arg(collectionMetadata.authenticationPluginName));
+                          .arg(authPluginName));
         }
 
         // perform the user input flow required to get the input key data which will be used
@@ -1373,7 +1414,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
             //% "Enter the passphrase to unlock the collection."
             { InteractionParameters::Instruction, qtTrId("sailfish_secrets-set_collection_secret-la-enter_collection_passphrase") }
         });
-        Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
+        Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                     callerPid,
                     requestId,
                     promptParams,
@@ -1415,12 +1456,12 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
     } else if (userInteractionMode == SecretManager::PreventInteraction) {
         return Result(Result::OperationRequiresUserInteraction,
                       QString::fromLatin1("Authentication plugin %1 requires user interaction")
-                      .arg(collectionMetadata.authenticationPluginName));
-    } else if (!m_authenticationPlugins.contains(collectionMetadata.authenticationPluginName)) {
+                      .arg(authPluginName));
+    } else if (!m_authenticationPlugins.contains(authPluginName)) {
         // TODO: stale data in metadata db?
         return Result(Result::InvalidExtensionPluginError,
                       QStringLiteral("Unknown collection authentication plugin: %1")
-                      .arg(collectionMetadata.authenticationPluginName));
+                      .arg(authPluginName));
     }
 
     // perform the user input flow required to get the input key data which will be used
@@ -1444,7 +1485,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
         //% "Enter the passphrase to unlock the collection."
         { InteractionParameters::Instruction, qtTrId("sailfish_secrets-set_collection_secret-la-enter_collection_passphrase") }
     });
-    Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
+    Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
                 promptParams,
@@ -2268,6 +2309,14 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
                 ? m_appPermissions->platformApplicationId()
                 : m_appPermissions->applicationId(callerPid);
 
+    const QString authPluginName = determineAuthPlugin(
+                collectionMetadata.ownerApplicationId,
+                callerApplicationId,
+                applicationIsPlatformApplication,
+                collectionMetadata.authenticationPluginName,
+                interactionServiceAddress,
+                m_autotestMode);
+
     if (collectionMetadata.accessControlMode == SecretManager::SystemAccessControlMode) {
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
@@ -2307,17 +2356,17 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
                 if (userInteractionMode == SecretManager::PreventInteraction) {
                     return Result(Result::OperationRequiresUserInteraction,
                                   QString::fromLatin1("Authentication plugin %1 requires user interaction")
-                                  .arg(collectionMetadata.authenticationPluginName));
-                } else if (!m_authenticationPlugins.contains(collectionMetadata.authenticationPluginName)) {
+                                  .arg(authPluginName));
+                } else if (!m_authenticationPlugins.contains(authPluginName)) {
                     // TODO: stale data in the database?
                     return Result(Result::InvalidExtensionPluginError,
                                   QString::fromLatin1("Authentication plugin %1 for collection %2 in storage plugin %3 does not exist")
-                                  .arg(collectionMetadata.authenticationPluginName, collectionMetadata.collectionName, identifier.storagePluginName()));
-                } else if (m_authenticationPlugins[collectionMetadata.authenticationPluginName]->authenticationTypes() & AuthenticationPlugin::ApplicationSpecificAuthentication
+                                  .arg(authPluginName, collectionMetadata.collectionName, identifier.storagePluginName()));
+                } else if (m_authenticationPlugins[authPluginName]->authenticationTypes() & AuthenticationPlugin::ApplicationSpecificAuthentication
                             && (userInteractionMode != SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
                     return Result(Result::OperationRequiresApplicationUserInteraction,
                                   QString::fromLatin1("Authentication plugin %1 requires in-process user interaction")
-                                  .arg(collectionMetadata.authenticationPluginName));
+                                  .arg(authPluginName));
                 }
 
                 // perform the user input flow required to get the input key data which will be used
@@ -2340,7 +2389,7 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
                     //% "Enter the passphrase to unlock the collection."
                     { InteractionParameters::Instruction, qtTrId("sailfish_secrets-get_collection_secret-la-enter_collection_passphrase") }
                 });
-                Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
+                Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
                             promptParams,
@@ -2385,17 +2434,17 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
                 if (userInteractionMode == SecretManager::PreventInteraction) {
                     return Result(Result::OperationRequiresUserInteraction,
                                   QString::fromLatin1("Authentication plugin %1 requires user interaction")
-                                  .arg(collectionMetadata.authenticationPluginName));
-                } else if (!m_authenticationPlugins.contains(collectionMetadata.authenticationPluginName)) {
+                                  .arg(authPluginName));
+                } else if (!m_authenticationPlugins.contains(authPluginName)) {
                     // TODO: stale data in the database?
                     return Result(Result::InvalidExtensionPluginError,
                                   QString::fromLatin1("Authentication plugin %1 for collection %2 in storage plugin %3 does not exist")
-                                  .arg(collectionMetadata.authenticationPluginName, collectionMetadata.collectionName, identifier.storagePluginName()));
-                } else if (m_authenticationPlugins[collectionMetadata.authenticationPluginName]->authenticationTypes() & AuthenticationPlugin::ApplicationSpecificAuthentication
+                                  .arg(authPluginName, collectionMetadata.collectionName, identifier.storagePluginName()));
+                } else if (m_authenticationPlugins[authPluginName]->authenticationTypes() & AuthenticationPlugin::ApplicationSpecificAuthentication
                            && (userInteractionMode != SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
                     return Result(Result::OperationRequiresApplicationUserInteraction,
                                   QString::fromLatin1("Authentication plugin %1 requires in-process user interaction")
-                                  .arg(collectionMetadata.authenticationPluginName));
+                                  .arg(authPluginName));
                 }
 
                 // perform the user input flow required to get the input key data which will be used
@@ -2418,7 +2467,7 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
                     //% "Enter the passphrase to unlock the collection."
                     { InteractionParameters::Instruction, qtTrId("sailfish_secrets-get_collection_secret-la-enter_collection_passphrase") }
                 });
-                Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
+                Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
                             promptParams,
@@ -2662,6 +2711,14 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithMetadata(
                 ? m_appPermissions->platformApplicationId()
                 : m_appPermissions->applicationId(callerPid);
 
+    const QString authPluginName = determineAuthPlugin(
+                secretMetadata.ownerApplicationId,
+                callerApplicationId,
+                applicationIsPlatformApplication,
+                secretMetadata.authenticationPluginName,
+                interactionServiceAddress,
+                m_autotestMode);
+
     const QString hashedSecretName = calculateSecretNameHash(
                 Secret::Identifier(identifier.name(),
                                    QStringLiteral("standalone"),
@@ -2687,11 +2744,11 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithMetadata(
     } else if (userInteractionMode == SecretManager::PreventInteraction) {
         return Result(Result::OperationRequiresUserInteraction,
                       QString::fromLatin1("Authentication plugin %1 requires user interaction")
-                      .arg(secretMetadata.authenticationPluginName));
-    } else if (!m_authenticationPlugins.contains(secretMetadata.authenticationPluginName)) {
+                      .arg(authPluginName));
+    } else if (!m_authenticationPlugins.contains(authPluginName)) {
         return Result(Result::InvalidExtensionPluginError,
                       QStringLiteral("Unknown secret authentication plugin %2")
-                      .arg(secretMetadata.authenticationPluginName));
+                      .arg(authPluginName));
     }
 
     // perform the user input flow required to get the input key data
@@ -2715,7 +2772,7 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithMetadata(
         //% "Enter the passphrase to unlock the secret."
         { InteractionParameters::Instruction, qtTrId("sailfish_secrets-get_standalone_secret-la-enter_secret_passphrase") }
     });
-    Result interactionResult = m_authenticationPlugins[secretMetadata.authenticationPluginName]->beginUserInputInteraction(
+    Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
                 promptParams,
@@ -2965,6 +3022,14 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
                 ? m_appPermissions->platformApplicationId()
                 : m_appPermissions->applicationId(callerPid);
 
+    const QString authPluginName = determineAuthPlugin(
+                collectionMetadata.ownerApplicationId,
+                callerApplicationId,
+                applicationIsPlatformApplication,
+                collectionMetadata.authenticationPluginName,
+                interactionServiceAddress,
+                m_autotestMode);
+
     if (collectionMetadata.accessControlMode == SecretManager::SystemAccessControlMode) {
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
@@ -2974,10 +3039,10 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Collection %1 is owned by a different application")
                       .arg(collectionName));
-    } else if (!m_authenticationPlugins.contains(collectionMetadata.authenticationPluginName)) {
+    } else if (!m_authenticationPlugins.contains(authPluginName)) {
         return Result(Result::InvalidExtensionPluginError,
                       QString::fromLatin1("No such authentication plugin available: %1")
-                      .arg(collectionMetadata.authenticationPluginName));
+                      .arg(authPluginName));
     }
 
     if (storagePluginName == collectionMetadata.encryptionPluginName
@@ -3007,17 +3072,17 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
                 if (userInteractionMode == SecretManager::PreventInteraction) {
                     return Result(Result::OperationRequiresUserInteraction,
                                   QString::fromLatin1("Authentication plugin %1 requires user interaction")
-                                  .arg(collectionMetadata.authenticationPluginName));
-                } else if (!m_authenticationPlugins.contains(collectionMetadata.authenticationPluginName)) {
+                                  .arg(authPluginName));
+                } else if (!m_authenticationPlugins.contains(authPluginName)) {
                     // TODO: stale data in metadata db?
                     return Result(Result::InvalidExtensionPluginError,
                                   QStringLiteral("Unknown authentication plugin for collection %1 in plugin %2")
                                   . arg(collectionName, storagePluginName));
-                } else if (m_authenticationPlugins[collectionMetadata.authenticationPluginName]->authenticationTypes() & AuthenticationPlugin::ApplicationSpecificAuthentication
+                } else if (m_authenticationPlugins[authPluginName]->authenticationTypes() & AuthenticationPlugin::ApplicationSpecificAuthentication
                             && (userInteractionMode != SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
                     return Result(Result::OperationRequiresApplicationUserInteraction,
                                   QString::fromLatin1("Authentication plugin %1 requires in-process user interaction")
-                                  .arg(collectionMetadata.authenticationPluginName));
+                                  .arg(authPluginName));
                 }
 
                 // perform the user input flow required to get the input key data which will be used
@@ -3040,7 +3105,7 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
                         //% "Enter the passphrase to unlock the collection."
                         { InteractionParameters::Instruction, qtTrId("sailfish_secrets-find_collection_secrets-la-enter_collection_passphrase") }
                 });
-                Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
+                Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
                             promptParams,
@@ -3091,17 +3156,17 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
                 if (userInteractionMode == SecretManager::PreventInteraction) {
                     return Result(Result::OperationRequiresUserInteraction,
                                   QString::fromLatin1("Authentication plugin %1 requires user interaction")
-                                  .arg(collectionMetadata.authenticationPluginName));
-                } else if (!m_authenticationPlugins.contains(collectionMetadata.authenticationPluginName)) {
+                                  .arg(authPluginName));
+                } else if (!m_authenticationPlugins.contains(authPluginName)) {
                     // TODO: stale data in metadata db?
                     return Result(Result::InvalidExtensionPluginError,
                                   QString::fromLatin1("Unknown authentication plugin %1 specified in collection metadata")
-                                  .arg(collectionMetadata.authenticationPluginName));
-                } else if (m_authenticationPlugins[collectionMetadata.authenticationPluginName]->authenticationTypes() & AuthenticationPlugin::ApplicationSpecificAuthentication
+                                  .arg(authPluginName));
+                } else if (m_authenticationPlugins[authPluginName]->authenticationTypes() & AuthenticationPlugin::ApplicationSpecificAuthentication
                            && (userInteractionMode != SecretManager::ApplicationInteraction || interactionServiceAddress.isEmpty())) {
                     return Result(Result::OperationRequiresApplicationUserInteraction,
                                   QString::fromLatin1("Authentication plugin %1 requires in-process user interaction")
-                                  .arg(collectionMetadata.authenticationPluginName));
+                                  .arg(authPluginName));
                 }
 
                 // perform the user input flow required to get the input key data which will be used
@@ -3124,7 +3189,7 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
                         //% "Enter the passphrase to unlock the collection."
                         { InteractionParameters::Instruction, qtTrId("sailfish_secrets-find_collection_secrets-la-enter_collection_passphrase") }
                 });
-                Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
+                Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
                             promptParams,
@@ -3400,6 +3465,14 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
                 ? m_appPermissions->platformApplicationId()
                 : m_appPermissions->applicationId(callerPid);
 
+    const QString authPluginName = determineAuthPlugin(
+                collectionMetadata.ownerApplicationId,
+                callerApplicationId,
+                applicationIsPlatformApplication,
+                collectionMetadata.authenticationPluginName,
+                interactionServiceAddress,
+                m_autotestMode);
+
     if (collectionMetadata.accessControlMode == SecretManager::SystemAccessControlMode) {
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
@@ -3441,14 +3514,14 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
                 return Result(Result::CollectionIsLockedError,
                               QString::fromLatin1("Collection %1 is locked and requires device lock authentication")
                               .arg(identifier.collectionName()));
-            } else if (!m_authenticationPlugins.contains(collectionMetadata.authenticationPluginName)) {
+            } else if (!m_authenticationPlugins.contains(authPluginName)) {
                 // TODO: stale data in metadata db?
                 return Result(Result::InvalidExtensionPluginError,
                               QStringLiteral("Unknown collection authentication plugin"));
             } else if (userInteractionMode == SecretManager::PreventInteraction) {
                 return Result(Result::OperationRequiresUserInteraction,
                               QString::fromLatin1("Authentication plugin %1 requires user interaction")
-                              .arg(collectionMetadata.authenticationPluginName));
+                              .arg(authPluginName));
             }
 
             // perform the user input flow required to get the input key data which will be used
@@ -3472,7 +3545,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
                 //% "Enter the passphrase to unlock the collection."
                 { InteractionParameters::Instruction, qtTrId("sailfish_secrets-delete_collection_secret-la-enter_collection_passphrase") }
             });
-            Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
+            Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                         callerPid,
                         requestId,
                         promptParams,
@@ -3514,8 +3587,8 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
                 if (userInteractionMode == SecretManager::PreventInteraction) {
                     return Result(Result::OperationRequiresUserInteraction,
                                   QString::fromLatin1("Authentication plugin %1 requires user interaction")
-                                  .arg(collectionMetadata.authenticationPluginName));
-                } else if (!m_authenticationPlugins.contains(collectionMetadata.authenticationPluginName)) {
+                                  .arg(authPluginName));
+                } else if (!m_authenticationPlugins.contains(authPluginName)) {
                     // TODO: stale metadata db data?
                     return Result(Result::InvalidExtensionPluginError,
                                   QStringLiteral("Unknown collection authentication plugin"));
@@ -3542,7 +3615,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
                     //% "Enter the passphrase to unlock the collection."
                     { InteractionParameters::Instruction, qtTrId("sailfish_secrets-delete_collection_secret-la-enter_collection_passphrase") }
                 });
-                Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
+                Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                             callerPid,
                             requestId,
                             promptParams,
@@ -4520,6 +4593,14 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
                 ? m_appPermissions->platformApplicationId()
                 : m_appPermissions->applicationId(callerPid);
 
+    const QString authPluginName = determineAuthPlugin(
+                collectionMetadata.ownerApplicationId,
+                callerApplicationId,
+                applicationIsPlatformApplication,
+                collectionMetadata.authenticationPluginName,
+                QString(),
+                m_autotestMode);
+
     if (collectionMetadata.accessControlMode == SecretManager::SystemAccessControlMode) {
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
@@ -4565,11 +4646,11 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
         } else if (userInteractionMode == SecretManager::PreventInteraction) {
             return Result(Result::OperationRequiresUserInteraction,
                           QString::fromLatin1("Authentication plugin %1 requires user interaction")
-                          .arg(collectionMetadata.authenticationPluginName));
-        } else if (!m_authenticationPlugins.contains(collectionMetadata.authenticationPluginName)) {
+                          .arg(authPluginName));
+        } else if (!m_authenticationPlugins.contains(authPluginName)) {
             return Result(Result::InvalidExtensionPluginError,
                           QStringLiteral("Unknown collection authentication plugin: %1")
-                          .arg(collectionMetadata.authenticationPluginName));
+                          .arg(authPluginName));
         }
 
         // perform the user input flow required to get the input key data which will be used
@@ -4593,7 +4674,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
             //% "Enter the passphrase to unlock the collection."
             { InteractionParameters::Instruction, qtTrId("sailfish_secrets-set_collection_key_precheck-la-enter_collection_passphrase") }
         });
-        Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
+        Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                     callerPid,
                     requestId,
                     promptParams,
@@ -4633,12 +4714,12 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
     } else if (userInteractionMode == SecretManager::PreventInteraction) {
         return Result(Result::OperationRequiresUserInteraction,
                       QString::fromLatin1("Authentication plugin %1 requires user interaction")
-                      .arg(collectionMetadata.authenticationPluginName));
-    } else if (!m_authenticationPlugins.contains(collectionMetadata.authenticationPluginName)) {
+                      .arg(authPluginName));
+    } else if (!m_authenticationPlugins.contains(authPluginName)) {
         // TODO: stale data in metadata db?
         return Result(Result::InvalidExtensionPluginError,
                       QStringLiteral("Unknown collection authentication plugin: %1")
-                      .arg(collectionMetadata.authenticationPluginName));
+                      .arg(authPluginName));
     }
 
     // perform the user input flow required to get the input key data which will be used
@@ -4662,7 +4743,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
         //% "Enter the passphrase to unlock the collection."
         { InteractionParameters::Instruction, qtTrId("sailfish_secrets-set_collection_key_precheck-la-enter_collection_passphrase") }
     });
-    Result interactionResult = m_authenticationPlugins[collectionMetadata.authenticationPluginName]->beginUserInputInteraction(
+    Result interactionResult = m_authenticationPlugins[authPluginName]->beginUserInputInteraction(
                 callerPid,
                 requestId,
                 promptParams,
