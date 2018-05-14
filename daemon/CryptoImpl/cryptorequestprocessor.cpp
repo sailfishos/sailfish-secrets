@@ -1820,6 +1820,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt2(
         outParams << QVariant::fromValue<QByteArray>(QByteArray());
         outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(CryptoManager::VerificationFailed);
         m_requestQueue->requestFinished(requestId, outParams);
+        return;
     }
 
     QFutureWatcher<VerifiedDataResult> *watcher = new QFutureWatcher<VerifiedDataResult>(this);
