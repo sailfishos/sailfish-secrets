@@ -1975,7 +1975,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSecretWithMetadata(
     modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
     modifiedUiParams.setPromptText({
         //: This will be displayed to the user, prompting them to enter the standalone secret data which will be stored. %1 is the application name, %2 is the secret name, %3 is the plugin name.
-        //% "%1 wants to store a new secret named %2 into collection %3 in plugin %4."
+        //% "%1 wants to store a new standalone secret named %2 in plugin %3."
         { InteractionParameters::Message, qtTrId("sailfish_secrets-set_standalone_secret-la-message")
                     .arg(newMetadata.ownerApplicationId,
                             secret.identifier().name(),
@@ -2207,7 +2207,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretWithMetadata(
     modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
     modifiedUiParams.setPromptText({
         //: This will be displayed to the user, prompting them to enter the standalone secret data which will be stored. %1 is the application name, %2 is the secret name, %3 is the plugin name.
-        //% "%1 wants to store a new secret named %2 into collection %3 in plugin %4."
+        //% "%1 wants to store a new standalone secret named %2 in plugin %3."
         { InteractionParameters::Message, qtTrId("sailfish_secrets-set_standalone_secret-la-message")
                     .arg(newMetadata.ownerApplicationId,
                             secret.identifier().name(),
@@ -4291,7 +4291,7 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCode(
             //: This will be displayed to the user, prompting them to enter the old passphrase to unlock the extension plugin in order to change its lock code. %1 is the application name, %2 is the plugin name.
             //% "%1 wants to change the lock code for plugin %2."
             { InteractionParameters::Message, qtTrId("sailfish_secrets-modify_lock_code-la-message_old_plugin")
-                        .arg(callerApplicationId) },
+                        .arg(callerApplicationId, m_requestQueue->controller()->displayNameForPlugin(lockCodeTarget)) },
             //% "Enter the old passphrase to unlock the plugin."
             { InteractionParameters::Instruction, qtTrId("sailfish_secrets-modify_lock_code-la-enter_old_plugin_passphrase") }
         });
