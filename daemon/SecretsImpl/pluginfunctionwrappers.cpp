@@ -1227,6 +1227,35 @@ Result EncryptedStoragePluginFunctionWrapper::unlockDeviceLockedCollectionsAndRe
     return result;
 }
 
+Result EncryptedStoragePluginFunctionWrapper::unlockAndRemoveCollection(
+        EncryptedStoragePluginWrapper *plugin,
+        const QString &collectionName,
+        const QByteArray &encryptionKey)
+{
+    bool locked = false;
+    Result result = plugin->isCollectionLocked(collectionName, &locked);
+    if (result.code() != Result::Succeeded) {
+        return result;
+    }
+
+    if (locked) {
+        result = plugin->setEncryptionKey(collectionName, encryptionKey);
+        if (result.code() != Result::Succeeded) {
+            return result;
+        }
+
+        locked = false;
+        result = plugin->isCollectionLocked(collectionName, &locked);
+        if (result.code() != Result::Succeeded) {
+            return result;
+        } else if (locked) {
+            return Result(Result::CollectionIsLockedError,
+                          QStringLiteral("Invalid lock code, unable to unlock collection to delete"));
+        }
+    }
+
+    return plugin->removeCollection(collectionName);
+}
 
 Result EncryptedStoragePluginFunctionWrapper::deriveKeyUnlockAndRemoveCollection(
         EncryptedStoragePluginWrapper *plugin,

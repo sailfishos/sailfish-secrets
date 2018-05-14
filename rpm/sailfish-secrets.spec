@@ -308,7 +308,6 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-testopenssl.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-testsqlcipher.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-testsqlite.so
-%{_datadir}/polkit-1/actions/org.sailfishos.secrets.policy
 
 %files ts-devel
 %defattr(-,root,root,-)
@@ -388,6 +387,7 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-inappauth.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-passwordagentauth.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-sqlcipher.so
+%{_datadir}/polkit-1/actions/org.sailfishos.secrets.policy
 
 %files -n %{secretsdaemon}-cryptoplugins-default
 %defattr(-,root,root,-)

@@ -171,7 +171,8 @@ public:
 
     virtual Sailfish::Secrets::Result beginAuthentication(
             uint callerPid,
-            qint64 requestId) = 0;
+            qint64 requestId,
+            const Sailfish::Secrets::InteractionParameters::PromptText &promptText) = 0;
 
     virtual Sailfish::Secrets::Result beginUserInputInteraction(
             uint callerPid,

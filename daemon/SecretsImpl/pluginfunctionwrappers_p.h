@@ -437,6 +437,11 @@ namespace EncryptedStoragePluginFunctionWrapper {
             const QByteArray &oldEncryptionKey,
             const QByteArray &newEncryptionKey);
 
+    Sailfish::Secrets::Result unlockAndRemoveCollection(
+            EncryptedStoragePluginWrapper *plugin,
+            const QString &collectionName,
+            const QByteArray &encryptionKey);
+
     Sailfish::Secrets::Result deriveKeyUnlockAndRemoveCollection(
             EncryptedStoragePluginWrapper *plugin,
             const QString &collectionName,

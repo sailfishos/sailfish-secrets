@@ -41,7 +41,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
         // There's no internal usage of the authentication option yet, load the test plugin and access it that way.
         QPluginLoader plugin(QStringLiteral("/usr/lib/Sailfish/Secrets/libsailfishsecrets-testpasswordagentauth.so"));
         if (const auto authenticator = qobject_cast<AuthenticationPlugin *>(plugin.instance())) {
-            Result result = authenticator->beginAuthentication(getpid(), 0);
+            Result result = authenticator->beginAuthentication(getpid(), 0, Sailfish::Secrets::InteractionParameters::PromptText());
 
             if (result.code() == Result::Pending) {
                 QObject::connect(

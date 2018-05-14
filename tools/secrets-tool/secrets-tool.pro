@@ -13,7 +13,7 @@ include($$PWD/../../lib/libsailfishcrypto.pri)
 
 SOURCES += $$PWD/commandhelper.cpp $$PWD/main.cpp
 HEADERS += $$PWD/commandhelper.h
-OTHER_FILES += $$PWD/manual-test.sh
+OTHER_FILES += $$PWD/manual-test.sh $$PWD/manual-test-devicelock.sh
 
 target.path = /usr/bin
 INSTALLS += target
