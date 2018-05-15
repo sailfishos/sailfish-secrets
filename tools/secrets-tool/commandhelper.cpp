@@ -22,6 +22,7 @@
 #include <Crypto/plugininforequest.h>
 #include <Crypto/storedkeyidentifiersrequest.h>
 #include <Crypto/generatestoredkeyrequest.h>
+#include <Crypto/importstoredkeyrequest.h>
 #include <Crypto/deletestoredkeyrequest.h>
 #include <Crypto/signrequest.h>
 #include <Crypto/verifyrequest.h>
@@ -466,6 +467,60 @@ void CommandHelper::start(const QString &command, const QStringList &args)
         r->setInteractionParameters(uiParams);
         r->setKeyTemplate(keyTemplate);
         r->setKeyDerivationParameters(kdp);
+
+        m_cryptoRequest.reset(r);
+        m_cryptoRequest->setManager(&m_cryptoManager);
+        connect(m_cryptoRequest.data(), &Sailfish::Crypto::Request::statusChanged,
+                this, &CommandHelper::cryptoRequestStatusChanged);
+        m_cryptoRequest->startRequest();
+    } else if (command == QStringLiteral("--import-stored-key")) {
+        const QString importDataFile = args.value(4);
+        if (importDataFile.isEmpty()
+                || !QFile::exists(importDataFile)) {
+            qInfo() << "Invalid import data file specified!";
+            emitFinished(EXITCODE_FAILED);
+            return;
+        }
+
+        QFile importFile(importDataFile);
+        if (!importFile.open(QIODevice::ReadOnly)) {
+            qInfo() << "Unable to open import data file for reading!";
+            emitFinished(EXITCODE_FAILED);
+            return;
+        }
+
+        if (importFile.size() > (1024 * 1024)) {
+            qInfo() << "Unable to import file - too large!";
+            emitFinished(EXITCODE_FAILED);
+            return;
+        }
+
+        const QByteArray importData = importFile.readAll();
+        if (importData.isEmpty()) {
+            qInfo() << "Empty file or unable to read data from import file!";
+            emitFinished(EXITCODE_FAILED);
+            return;
+        }
+
+        Sailfish::Crypto::Key keyTemplate;
+        keyTemplate.setIdentifier(Sailfish::Crypto::Key::Identifier(
+                args.value(3), args.value(2), args.value(1)));
+        keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationSign
+                                 |Sailfish::Crypto::CryptoManager::OperationVerify
+                                 |Sailfish::Crypto::CryptoManager::OperationEncrypt
+                                 |Sailfish::Crypto::CryptoManager::OperationDecrypt);
+        keyTemplate.setComponentConstraints(Sailfish::Crypto::Key::MetaData
+                                           |Sailfish::Crypto::Key::PublicKeyData);
+
+        Sailfish::Crypto::InteractionParameters uiParams;
+        uiParams.setInputType(Sailfish::Crypto::InteractionParameters::AlphaNumericInput);
+        uiParams.setEchoMode(Sailfish::Crypto::InteractionParameters::NormalEcho);
+
+        Sailfish::Crypto::ImportStoredKeyRequest *r = new Sailfish::Crypto::ImportStoredKeyRequest;
+        r->setCryptoPluginName(args.value(0));
+        r->setInteractionParameters(uiParams);
+        r->setKeyTemplate(keyTemplate);
+        r->setData(importData);
 
         m_cryptoRequest.reset(r);
         m_cryptoRequest->setManager(&m_cryptoManager);
