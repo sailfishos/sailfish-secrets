@@ -358,7 +358,7 @@ CryptoPlugin::~CryptoPlugin()
  */
 
 /*!
- * \fn CryptoPlugin::storedKey(const Sailfish::Crypto::Key::Identifier &identifier, Sailfish::Crypto::Key::Components keyComponents, Sailfish::Crypto::Key *key)
+ * \fn CryptoPlugin::storedKey(const Sailfish::Crypto::Key::Identifier &identifier, Sailfish::Crypto::Key::Components keyComponents, const QVariantMap &customParameters, Sailfish::Crypto::Key *key)
  * \brief Retrieve the key identified by the specified \a identifier limited
  *        to those components specified in \a keyComponents and write it
  *        to the out-parameter \a key.
@@ -403,7 +403,7 @@ CryptoPlugin::~CryptoPlugin()
  */
 
 /*!
- * \fn CryptoPlugin::storedKeyIdentifiers(const QString &collectionName, QVector<Sailfish::Crypto::Key::Identifier> *identifiers)
+ * \fn CryptoPlugin::storedKeyIdentifiers(const QString &collectionName, const QVariantMap &customParameters, QVector<Sailfish::Crypto::Key::Identifier> *identifiers)
  * \brief Writes the identifiers of all keys stored by the plugin in the
  *        collection identified by the given \a collectionName into the
  *        out-parameter \a identifiers.

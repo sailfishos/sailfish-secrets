@@ -532,7 +532,8 @@ void tst_cryptosecrets::cryptoStoredKey()
     // ensure that we can get a reference via a stored key request
     QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::Key> storedKeyReply = cm.storedKey(
             keyReference.identifier(),
-            Sailfish::Crypto::Key::MetaData);
+            Sailfish::Crypto::Key::MetaData,
+            QVariantMap());
     storedKeyReply.waitForFinished();
     QVERIFY(storedKeyReply.isValid());
     QCOMPARE(storedKeyReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -544,7 +545,8 @@ void tst_cryptosecrets::cryptoStoredKey()
     storedKeyReply = cm.storedKey(
                 keyReference.identifier(),
                 Sailfish::Crypto::Key::MetaData
-                    | Sailfish::Crypto::Key::PublicKeyData);
+                    | Sailfish::Crypto::Key::PublicKeyData,
+                QVariantMap());
         storedKeyReply.waitForFinished();
         QVERIFY(storedKeyReply.isValid());
         QCOMPARE(storedKeyReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -557,7 +559,8 @@ void tst_cryptosecrets::cryptoStoredKey()
                 keyReference.identifier(),
                 Sailfish::Crypto::Key::MetaData
                     | Sailfish::Crypto::Key::PublicKeyData
-                    | Sailfish::Crypto::Key::PrivateKeyData);
+                    | Sailfish::Crypto::Key::PrivateKeyData,
+                QVariantMap());
         storedKeyReply.waitForFinished();
         QVERIFY(storedKeyReply.isValid());
         QCOMPARE(storedKeyReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -789,7 +792,8 @@ void tst_cryptosecrets::cryptoStoredKey()
     // ensure that we can get a reference via a stored key request
     storedKeyReply = cm.storedKey(
             keyReference.identifier(),
-            Sailfish::Crypto::Key::MetaData);
+            Sailfish::Crypto::Key::MetaData,
+            QVariantMap());
     storedKeyReply.waitForFinished();
     QVERIFY(storedKeyReply.isValid());
     QCOMPARE(storedKeyReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -801,7 +805,8 @@ void tst_cryptosecrets::cryptoStoredKey()
     storedKeyReply = cm.storedKey(
                 keyReference.identifier(),
                 Sailfish::Crypto::Key::MetaData
-                    | Sailfish::Crypto::Key::PublicKeyData);
+                    | Sailfish::Crypto::Key::PublicKeyData,
+                QVariantMap());
     storedKeyReply.waitForFinished();
     QVERIFY(storedKeyReply.isValid());
     QCOMPARE(storedKeyReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);
@@ -814,7 +819,8 @@ void tst_cryptosecrets::cryptoStoredKey()
                 keyReference.identifier(),
                 Sailfish::Crypto::Key::MetaData
                     | Sailfish::Crypto::Key::PublicKeyData
-                    | Sailfish::Crypto::Key::PrivateKeyData);
+                    | Sailfish::Crypto::Key::PrivateKeyData,
+                QVariantMap());
     storedKeyReply.waitForFinished();
     QVERIFY(storedKeyReply.isValid());
     QCOMPARE(storedKeyReply.argumentAt<0>().code(), Sailfish::Crypto::Result::Succeeded);

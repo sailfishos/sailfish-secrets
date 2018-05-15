@@ -114,10 +114,12 @@ public:
     Sailfish::Crypto::Result storedKey(
             const Sailfish::Crypto::Key::Identifier &identifier,
             Sailfish::Crypto::Key::Components keyComponents,
+            const QVariantMap &customParameters,
             Sailfish::Crypto::Key *key) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result storedKeyIdentifiers(
             const QString &collectionName,
+            const QVariantMap &customParameters,
             QVector<Sailfish::Crypto::Key::Identifier> *identifiers) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result calculateDigest(

@@ -157,21 +157,23 @@ KeyResult CryptoPluginFunctionWrapper::generateKey(
 KeyResult CryptoPluginFunctionWrapper::storedKey(
         CryptoPlugin *plugin,
         const Key::Identifier &identifier,
-        Key::Components keyComponents)
+        Key::Components keyComponents,
+        const QVariantMap &customParameters)
 {
     Key key;
     key.setIdentifier(identifier);
     Result result = plugin->storedKey(
-                identifier, keyComponents, &key);
+                identifier, keyComponents, customParameters, &key);
     return KeyResult(result, key);
 }
 
 IdentifiersResult CryptoPluginFunctionWrapper::storedKeyIdentifiers(
         CryptoPlugin *plugin,
-        const QString &collectionName)
+        const QString &collectionName,
+        const QVariantMap &customParameters)
 {
     QVector<Key::Identifier> identifiers;
-    Result result = plugin->storedKeyIdentifiers(collectionName, &identifiers);
+    Result result = plugin->storedKeyIdentifiers(collectionName, customParameters, &identifiers);
     return IdentifiersResult(result, identifiers);
 }
 

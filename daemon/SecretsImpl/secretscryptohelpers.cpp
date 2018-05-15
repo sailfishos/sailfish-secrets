@@ -225,6 +225,7 @@ Daemon::ApiImpl::SecretsRequestQueue::storedKeyIdentifiers(
         quint64 cryptoRequestId,
         const QString &collectionName,
         const QString &storagePluginName,
+        const QVariantMap &customParameters,
         QVector<Sailfish::Crypto::Key::Identifier> *identifiers)
 {
     Q_UNUSED(identifiers) // asynchronous out-param.
@@ -233,6 +234,7 @@ Daemon::ApiImpl::SecretsRequestQueue::storedKeyIdentifiers(
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QString>(collectionName)
              << QVariant::fromValue<QString>(storagePluginName)
+             << QVariant::fromValue<QVariantMap>(customParameters)
              << QVariant::fromValue<SecretManager::UserInteractionMode>(SecretManager::SystemInteraction)
              << QVariant::fromValue<QString>(QString());
     Result enqueueResult(Result::Succeeded);

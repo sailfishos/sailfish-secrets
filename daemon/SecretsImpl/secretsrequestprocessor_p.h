@@ -261,6 +261,7 @@ public: // helper methods for crypto API bridge (secretscryptohelpers)
             quint64 requestId,
             const QString &collectionName,
             const QString &storagePluginName,
+            const QVariantMap &customParameters,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
             QVector<Secret::Identifier> *idents);
@@ -596,6 +597,7 @@ private:
             quint64 requestId,
             const QString &collectionName,
             const QString &storagePluginName,
+            const QVariantMap &customParameters,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
             const CollectionMetadata &collectionMetadata);
@@ -605,6 +607,7 @@ private:
             quint64 requestId,
             const QString &collectionName,
             const QString &storagePluginName,
+            const QVariantMap &customParameters,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
             const CollectionMetadata &collectionMetadata,
@@ -615,6 +618,7 @@ private:
             quint64 requestId,
             const QString &collectionName,
             const QString &storagePluginName,
+            const QVariantMap &customParameters,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
             const CollectionMetadata &collectionMetadata,

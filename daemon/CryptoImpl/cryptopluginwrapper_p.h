@@ -34,10 +34,13 @@ public:
                                bool autotestMode);
     ~CryptoStoragePluginWrapper();
 
-    Sailfish::Secrets::Result keyNames(const QString &collectionName, QStringList *keyNames) Q_DECL_OVERRIDE;
+    Sailfish::Secrets::Result keyNames(const QString &collectionName,
+                                       const QVariantMap &customParameters,
+                                       QStringList *keyNames) Q_DECL_OVERRIDE;
 
     Sailfish::Crypto::Result storedKeyIdentifiers(
             const QString &collectionName,
+            const QVariantMap &customParameters,
             QVector<Sailfish::Crypto::Key::Identifier> *identifiers);
 
     Sailfish::Crypto::Result generateAndStoreKey(

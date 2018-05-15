@@ -173,10 +173,10 @@ void StoredKeyIdentifiersRequest::startRequest()
             emit resultChanged();
         }
 
-        // should we pass customParameters in this case, or not?
-        // there's no "specific plugin" which is the target of the request..
         QDBusPendingReply<Result, QVector<Key::Identifier> > reply =
-                d->m_manager->d_ptr->storedKeyIdentifiers(d->m_storagePluginName, d->m_collectionName);
+                d->m_manager->d_ptr->storedKeyIdentifiers(d->m_storagePluginName,
+                                                          d->m_collectionName,
+                                                          d->m_customParameters);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;
             d->m_result = Result(Result::CryptoManagerNotInitializedError,

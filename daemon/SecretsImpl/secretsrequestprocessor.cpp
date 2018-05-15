@@ -882,6 +882,7 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiers(
         quint64 requestId,
         const QString &collectionName,
         const QString &storagePluginName,
+        const QVariantMap &customParameters,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress,
         QVector<Secret::Identifier> *identifiers)
@@ -907,7 +908,8 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiers(
                     &Daemon::ApiImpl::storedKeyIdentifiers,
                     m_storagePlugins.value(storagePluginName),
                     m_encryptedStoragePlugins.value(storagePluginName),
-                    m_cryptoStoragePlugins.value(storagePluginName));
+                    m_cryptoStoragePlugins.value(storagePluginName),
+                    customParameters);
         future.waitForFinished();
         *identifiers = future.result().identifiers;
         return future.result().result;
@@ -942,6 +944,7 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiers(
                       requestId,
                       collectionName,
                       storagePluginName,
+                      customParameters,
                       userInteractionMode,
                       interactionServiceAddress,
                       cmr.metadata);
@@ -961,6 +964,7 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithMetadata(
         quint64 requestId,
         const QString &collectionName,
         const QString &storagePluginName,
+        const QVariantMap &customParameters,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress,
         const CollectionMetadata &collectionMetadata)
@@ -1094,6 +1098,7 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithMetadata(
                                      Daemon::ApiImpl::StoredKeyIdentifiersRequest,
                                      QVariantList() << collectionName
                                                     << storagePluginName
+                                                    << customParameters
                                                     << userInteractionMode
                                                     << interactionServiceAddress
                                                     << QVariant::fromValue<CollectionMetadata>(collectionMetadata)));
@@ -1103,6 +1108,7 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithMetadata(
                     requestId,
                     collectionName,
                     storagePluginName,
+                    customParameters,
                     userInteractionMode,
                     interactionServiceAddress,
                     collectionMetadata,
@@ -1119,6 +1125,7 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithAuthenticationCode(
         quint64 requestId,
         const QString &collectionName,
         const QString &storagePluginName,
+        const QVariantMap &customParameters,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress,
         const CollectionMetadata &collectionMetadata,
@@ -1155,7 +1162,8 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithAuthenticationCode(
             m_requestQueue->requestFinished(requestId, outParams);
         } else {
             storedKeyIdentifiersWithEncryptionKey(
-                        callerPid, requestId, collectionName, storagePluginName,
+                        callerPid, requestId,
+                        collectionName, storagePluginName, customParameters,
                         userInteractionMode, interactionServiceAddress,
                         collectionMetadata, dkr.key, true);
         }
@@ -1170,6 +1178,7 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithEncryptionKey(
         quint64 requestId,
         const QString &collectionName,
         const QString &storagePluginName,
+        const QVariantMap &customParameters,
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress,
         const CollectionMetadata &collectionMetadata,
@@ -1192,7 +1201,8 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithEncryptionKey(
                 m_storagePlugins.value(storagePluginName),
                 m_encryptedStoragePlugins.value(storagePluginName),
                 m_cryptoStoragePlugins.value(storagePluginName),
-                CollectionInfo(collectionName, collectionKey, requiresRelock));
+                CollectionInfo(collectionName, collectionKey, requiresRelock),
+                customParameters);
 
     watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<IdentifiersResult>::finished, [=] {
@@ -1965,7 +1975,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSecretWithMetadata(
     modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
     modifiedUiParams.setPromptText({
         //: This will be displayed to the user, prompting them to enter the standalone secret data which will be stored. %1 is the application name, %2 is the secret name, %3 is the plugin name.
-        //% "%1 wants to store a new secret named %2 into collection %3 in plugin %4."
+        //% "%1 wants to store a new standalone secret named %2 in plugin %3."
         { InteractionParameters::Message, qtTrId("sailfish_secrets-set_standalone_secret-la-message")
                     .arg(newMetadata.ownerApplicationId,
                             secret.identifier().name(),
@@ -2197,7 +2207,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretWithMetadata(
     modifiedUiParams.setOperation(InteractionParameters::RequestUserData);
     modifiedUiParams.setPromptText({
         //: This will be displayed to the user, prompting them to enter the standalone secret data which will be stored. %1 is the application name, %2 is the secret name, %3 is the plugin name.
-        //% "%1 wants to store a new secret named %2 into collection %3 in plugin %4."
+        //% "%1 wants to store a new standalone secret named %2 in plugin %3."
         { InteractionParameters::Message, qtTrId("sailfish_secrets-set_standalone_secret-la-message")
                     .arg(newMetadata.ownerApplicationId,
                             secret.identifier().name(),
@@ -4281,7 +4291,7 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCode(
             //: This will be displayed to the user, prompting them to enter the old passphrase to unlock the extension plugin in order to change its lock code. %1 is the application name, %2 is the plugin name.
             //% "%1 wants to change the lock code for plugin %2."
             { InteractionParameters::Message, qtTrId("sailfish_secrets-modify_lock_code-la-message_old_plugin")
-                        .arg(callerApplicationId) },
+                        .arg(callerApplicationId, m_requestQueue->controller()->displayNameForPlugin(lockCodeTarget)) },
             //% "Enter the old passphrase to unlock the plugin."
             { InteractionParameters::Instruction, qtTrId("sailfish_secrets-modify_lock_code-la-enter_old_plugin_passphrase") }
         });
@@ -5526,7 +5536,7 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                     break;
                 }
                 case StoredKeyIdentifiersRequest: {
-                    if (pr.parameters.size() != 5) {
+                    if (pr.parameters.size() != 6) {
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
@@ -5535,6 +5545,7 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                                     pr.requestId,
                                     pr.parameters.takeFirst().value<QString>(),
                                     pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QVariantMap>(),
                                     static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
                                     pr.parameters.takeFirst().value<QString>(),
                                     pr.parameters.takeFirst().value<CollectionMetadata>(),
@@ -5610,6 +5621,7 @@ void Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                                     pr.requestId,
                                     pr.parameters.takeFirst().value<QString>(),
                                     pr.parameters.takeFirst().value<QString>(),
+                                    pr.parameters.takeFirst().value<QVariantMap>(),
                                     static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
                                     pr.parameters.takeFirst().value<QString>(),
                                     pr.parameters.takeFirst().value<CollectionMetadata>(),

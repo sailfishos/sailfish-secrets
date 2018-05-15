@@ -461,7 +461,7 @@ public: // Crypto API helper methods.
     Sailfish::Secrets::Result storeKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, const QByteArray &serializedKey,
                                        const QMap<QString, QString> &filterData, const QByteArray &collectionDecryptionKey);
     Sailfish::Secrets::Result storedKeyIdentifiers(pid_t callerPid, quint64 cryptoRequestId, const QString &collectionName, const QString &storagePluginName,
-                                                   QVector<Sailfish::Crypto::Key::Identifier> *identifiers);
+                                                   const QVariantMap &customParameters, QVector<Sailfish::Crypto::Key::Identifier> *identifiers);
     Sailfish::Secrets::Result deleteStoredKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier);
     Sailfish::Secrets::Result userInput(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Secrets::InteractionParameters &uiParams);
     Sailfish::Secrets::Result modifyCryptoPluginLockCode(pid_t callerPid, quint64 cryptoRequestId, const QString &cryptoPluginName, const Sailfish::Secrets::InteractionParameters &uiParams);

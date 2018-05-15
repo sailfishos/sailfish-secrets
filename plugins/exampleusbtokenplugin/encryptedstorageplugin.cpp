@@ -121,6 +121,7 @@ ExampleUsbTokenPlugin::getSecret(
     Sailfish::Crypto::Result cresult = storedKey(
                 Sailfish::Crypto::Key::Identifier(secretName, collectionName, name()),
                 Sailfish::Crypto::Key::MetaData | Sailfish::Crypto::Key::PublicKeyData,
+                QVariantMap(),
                 &key);
     if (cresult.code() != Sailfish::Crypto::Result::Succeeded) {
         return Result(Result::UnknownError, // internal error, a bug in this plugin's code
@@ -164,6 +165,7 @@ ExampleUsbTokenPlugin::findSecrets(
     Sailfish::Crypto::Result cresult = storedKey(
                 Sailfish::Crypto::Key::Identifier(QStringLiteral("Default"), collectionName, name()),
                 Sailfish::Crypto::Key::MetaData | Sailfish::Crypto::Key::PublicKeyData,
+                QVariantMap(),
                 &key);
     if (cresult.code() != Sailfish::Crypto::Result::Succeeded) {
         return Result(Result::UnknownError, // internal error, a bug in this plugin's code

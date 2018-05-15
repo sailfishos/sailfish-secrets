@@ -109,10 +109,12 @@ Result
 Daemon::Plugins::OpenSslCryptoPlugin::storedKey(
         const Key::Identifier &identifier,
         Key::Components keyComponents,
+        const QVariantMap &customParameters,
         Key *key)
 {
     Q_UNUSED(identifier);
     Q_UNUSED(keyComponents);
+    Q_UNUSED(customParameters);
     Q_UNUSED(key);
     return Result(Result::OperationNotSupportedError,
                   QLatin1String("The OpenSSL crypto plugin doesn't support storing keys"));
@@ -121,9 +123,11 @@ Daemon::Plugins::OpenSslCryptoPlugin::storedKey(
 Result
 Daemon::Plugins::OpenSslCryptoPlugin::storedKeyIdentifiers(
         const QString &collectionName,
+        const QVariantMap &customParameters,
         QVector<Key::Identifier> *identifiers)
 {
     Q_UNUSED(collectionName);
+    Q_UNUSED(customParameters);
     Q_UNUSED(identifiers);
     return Result(Result::OperationNotSupportedError,
                   QLatin1String("The OpenSSL crypto plugin doesn't support storing keys"));

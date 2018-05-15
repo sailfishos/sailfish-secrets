@@ -214,6 +214,7 @@ void Daemon::ApiImpl::CryptoDBusObject::importStoredKey(
 void Daemon::ApiImpl::CryptoDBusObject::storedKey(
         const Key::Identifier &identifier,
         Key::Components keyComponents,
+        const QVariantMap &customParameters,
         const QDBusMessage &message,
         Result &result,
         Key &key)
@@ -222,6 +223,7 @@ void Daemon::ApiImpl::CryptoDBusObject::storedKey(
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<Key::Identifier>(identifier);
     inParams << QVariant::fromValue<Key::Components>(keyComponents);
+    inParams << QVariant::fromValue<QVariantMap>(customParameters);
     m_requestQueue->handleRequest(Daemon::ApiImpl::StoredKeyRequest,
                                   inParams,
                                   connection(),
@@ -246,6 +248,7 @@ void Daemon::ApiImpl::CryptoDBusObject::deleteStoredKey(
 void Daemon::ApiImpl::CryptoDBusObject::storedKeyIdentifiers(
         const QString &storagePluginName,
         const QString &collectionName,
+        const QVariantMap &customParameters,
         const QDBusMessage &message,
         Result &result,
         QVector<Key::Identifier> &identifiers)
@@ -253,7 +256,8 @@ void Daemon::ApiImpl::CryptoDBusObject::storedKeyIdentifiers(
     Q_UNUSED(identifiers);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << storagePluginName
-             << collectionName;
+             << collectionName
+             << customParameters;
     m_requestQueue->handleRequest(Daemon::ApiImpl::StoredKeyIdentifiersRequest,
                                   inParams,
                                   connection(),
@@ -928,11 +932,15 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             Key::Components components = request->inParams.size()
                     ? request->inParams.takeFirst().value<Key::Components>()
                     : (Key::MetaData | Key::PublicKeyData);
+            QVariantMap customParameters = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QVariantMap>()
+                    : QVariantMap();
             Result result = m_requestProcessor->storedKey(
                         request->remotePid,
                         request->requestId,
                         ident,
                         components,
+                        customParameters,
                         &key);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {
@@ -972,12 +980,16 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             QString collectionName = request->inParams.size()
                     ? request->inParams.takeFirst().value<QString>()
                     : QString();
+            QVariantMap customParameters = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QVariantMap>()
+                    : QVariantMap();
             QVector<Key::Identifier> identifiers;
             Result result = m_requestProcessor->storedKeyIdentifiers(
                         request->remotePid,
                         request->requestId,
                         storagePluginName,
                         collectionName,
+                        customParameters,
                         &identifiers);
             // send the reply to the calling peer.
             if (result.code() == Result::Pending) {

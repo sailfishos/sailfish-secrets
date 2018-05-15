@@ -178,11 +178,10 @@ void StoredKeyRequest::startRequest()
             emit resultChanged();
         }
 
-        // should we pass customParameters in this case, or not?
-        // there's no "specific plugin" which is the target of the request..
         QDBusPendingReply<Result, Key> reply =
                 d->m_manager->d_ptr->storedKey(d->m_identifier,
-                                               d->m_keyComponents);
+                                               d->m_keyComponents,
+                                               d->m_customParameters);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;
             d->m_result = Result(Result::CryptoManagerNotInitializedError,

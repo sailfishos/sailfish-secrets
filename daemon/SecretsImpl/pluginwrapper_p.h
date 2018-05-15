@@ -42,7 +42,7 @@ public:
 
     virtual Sailfish::Secrets::Result collectionMetadata(const QString &collectionName, CollectionMetadata *metadata) = 0;
     virtual Sailfish::Secrets::Result secretMetadata(const QString &collectionName, const QString &secretName, SecretMetadata *metadata) = 0;
-    virtual Sailfish::Secrets::Result keyNames(const QString &collectionName, QStringList *keyNames) = 0;
+    virtual Sailfish::Secrets::Result keyNames(const QString &collectionName, const QVariantMap &customParameters, QStringList *keyNames) = 0;
     virtual Sailfish::Secrets::Result collectionNames(QStringList *names) const = 0;
     virtual Sailfish::Secrets::Result secretNames(const QString &collectionName, QStringList *secretNames) const = 0;
 
@@ -80,7 +80,7 @@ public:
     bool initialize(const QByteArray &masterLockKey = QByteArray()) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result collectionMetadata(const QString &collectionName, CollectionMetadata *metadata) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result secretMetadata(const QString &collectionName, const QString &secretName, SecretMetadata *metadata) Q_DECL_OVERRIDE;
-    Sailfish::Secrets::Result keyNames(const QString &collectionName, QStringList *keyNames) Q_DECL_OVERRIDE;
+    Sailfish::Secrets::Result keyNames(const QString &collectionName, const QVariantMap &customParameters, QStringList *keyNames) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result collectionNames(QStringList *names) const Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result secretNames(const QString &collectionName, QStringList *secretNames) const Q_DECL_OVERRIDE;
 
@@ -112,7 +112,7 @@ public:
     bool initialize(const QByteArray &masterLockKey = QByteArray()) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result collectionMetadata(const QString &collectionName, CollectionMetadata *metadata) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result secretMetadata(const QString &collectionName, const QString &secretName, SecretMetadata *metadata) Q_DECL_OVERRIDE;
-    Sailfish::Secrets::Result keyNames(const QString &collectionName, QStringList *keyNames) Q_DECL_OVERRIDE;
+    Sailfish::Secrets::Result keyNames(const QString &collectionName, const QVariantMap &customParameters, QStringList *keyNames) Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result collectionNames(QStringList *names) const Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result secretNames(const QString &collectionName, QStringList *secretNames) const Q_DECL_OVERRIDE;
 

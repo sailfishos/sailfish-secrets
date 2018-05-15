@@ -151,6 +151,7 @@ public:
             quint64 requestId,
             const Sailfish::Crypto::Key::Identifier &identifier,
             Key::Components keyComponents,
+            const QVariantMap &customParameters,
             Sailfish::Crypto::Key *key);
 
     Sailfish::Crypto::Result deleteStoredKey(
@@ -163,6 +164,7 @@ public:
             quint64 requestId,
             const QString &storagePluginName,
             const QString &collectionName,
+            const QVariantMap &customParameters,
             QVector<Sailfish::Crypto::Key::Identifier> *identifiers);
 
     Sailfish::Crypto::Result calculateDigest(

@@ -217,8 +217,10 @@ Sailfish::Crypto::Result
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::storedKey(
         const Sailfish::Crypto::Key::Identifier &identifier,
         Sailfish::Crypto::Key::Components keyComponents,
+        const QVariantMap &customParameters,
         Sailfish::Crypto::Key *key)
 {
+    Q_UNUSED(customParameters);
     Sailfish::Crypto::Key fullKey;
     Sailfish::Crypto::Result retn = storedKey_internal(
                 identifier,
@@ -231,8 +233,10 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::storedKey(
 Sailfish::Crypto::Result
 Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::storedKeyIdentifiers(
         const QString &collectionName,
+        const QVariantMap &customParameters,
         QVector<Sailfish::Crypto::Key::Identifier> *identifiers)
 {
+    Q_UNUSED(customParameters);
     bool locked = false;
     Sailfish::Secrets::Result result = isCollectionLocked(collectionName, &locked);
     if (result.code() != Result::Succeeded) {

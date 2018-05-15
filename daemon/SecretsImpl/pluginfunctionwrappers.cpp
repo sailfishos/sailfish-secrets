@@ -254,9 +254,11 @@ bool Daemon::ApiImpl::modifyMasterLockPlugins(
 IdentifiersResult Daemon::ApiImpl::storedKeyIdentifiers(
         StoragePluginWrapper *storagePlugin,
         EncryptedStoragePluginWrapper *encryptedStoragePlugin,
-        Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *cryptoStoragePlugin)
+        Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *cryptoStoragePlugin,
+        const QVariantMap &customParameters)
 {
     auto lambda = [] (PluginWrapper *p,
+                      const QVariantMap &customParameters,
                       Result *result,
                       QVector<Secret::Identifier> *idents) {
         QStringList cnames;
@@ -267,7 +269,7 @@ IdentifiersResult Daemon::ApiImpl::storedKeyIdentifiers(
         }
         for (const QString &cname : cnames) {
             knames.clear();
-            *result = p->keyNames(cname, &knames);
+            *result = p->keyNames(cname, customParameters, &knames);
             if (result->code() != Result::Succeeded
                     && result->errorCode() != Result::CollectionIsLockedError) {
                 return;
@@ -287,11 +289,11 @@ IdentifiersResult Daemon::ApiImpl::storedKeyIdentifiers(
                            QStringLiteral("No storage plugin specified"));
     QVector<Secret::Identifier> idents;
     if (storagePlugin) {
-        lambda(storagePlugin, &result, &idents);
+        lambda(storagePlugin, QVariantMap(), &result, &idents);
     } else if (cryptoStoragePlugin) { // order of check is important!
-        lambda(cryptoStoragePlugin, &result, &idents);
+        lambda(cryptoStoragePlugin, customParameters, &result, &idents);
     } else if (encryptedStoragePlugin) {
-        lambda(encryptedStoragePlugin, &result, &idents);
+        lambda(encryptedStoragePlugin, QVariantMap(), &result, &idents);
     }
     return IdentifiersResult(result, idents);
 }
@@ -300,17 +302,19 @@ IdentifiersResult Daemon::ApiImpl::storedKeyIdentifiersFromCollection(
         StoragePluginWrapper *storagePlugin,
         EncryptedStoragePluginWrapper *encryptedStoragePlugin,
         Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *cryptoStoragePlugin,
-        const CollectionInfo &collectionInfo)
+        const CollectionInfo &collectionInfo,
+        const QVariantMap &customParameters)
 {
     auto unlockLambda = [] (EncryptedStoragePluginWrapper *p,
                             const QString &cname,
+                            const QVariantMap &customParameters,
                             const QByteArray &key,
                             bool *wasLocked,
                             Result *result,
                             QVector<Secret::Identifier> *idents) {
         QStringList knames;
         *wasLocked = false;
-        *result = p->keyNames(cname, &knames);
+        *result = p->keyNames(cname, customParameters, &knames);
         if (result->code() != Result::Succeeded
                 && result->errorCode() == Result::CollectionIsLockedError) {
             *wasLocked = true;
@@ -318,7 +322,7 @@ IdentifiersResult Daemon::ApiImpl::storedKeyIdentifiersFromCollection(
             if (result->code() != Result::Succeeded) {
                 return;
             }
-            *result = p->keyNames(cname, &knames);
+            *result = p->keyNames(cname, customParameters, &knames);
         }
         if (result->code() == Result::Succeeded && idents) {
             for (const QString &kname : knames) {
@@ -346,7 +350,7 @@ IdentifiersResult Daemon::ApiImpl::storedKeyIdentifiersFromCollection(
     QVector<Secret::Identifier> idents;
     if (storagePlugin) {
         QStringList knames;
-        result = storagePlugin->keyNames(collectionInfo.collectionName, &knames);
+        result = storagePlugin->keyNames(collectionInfo.collectionName, customParameters, &knames);
         for (const QString &kname : knames) {
             idents.append(Secret::Identifier(
                     kname, collectionInfo.collectionName, storagePlugin->name()));
@@ -355,12 +359,13 @@ IdentifiersResult Daemon::ApiImpl::storedKeyIdentifiersFromCollection(
         bool wasLocked = false;
         unlockLambda(cryptoStoragePlugin,
                      collectionInfo.collectionName,
+                     customParameters,
                      collectionInfo.collectionKey,
                      &wasLocked, &result, Q_NULLPTR);
         if (result.code() == Result::Succeeded) {
             QVector<Sailfish::Crypto::Key::Identifier> cidents;
             Sailfish::Crypto::Result cresult = cryptoStoragePlugin->storedKeyIdentifiers(
-                        collectionInfo.collectionName, &cidents);
+                        collectionInfo.collectionName, customParameters, &cidents);
             if (cresult.code() == Crypto::Result::Failed) {
                 result.setCode(Result::Failed);
                 result.setErrorCode(Result::UnknownError);
@@ -380,6 +385,7 @@ IdentifiersResult Daemon::ApiImpl::storedKeyIdentifiersFromCollection(
         bool wasLocked = false;
         unlockLambda(encryptedStoragePlugin,
                      collectionInfo.collectionName,
+                     customParameters,
                      collectionInfo.collectionKey,
                      &wasLocked, &result, &idents);
         relockLambda(cryptoStoragePlugin, wasLocked,

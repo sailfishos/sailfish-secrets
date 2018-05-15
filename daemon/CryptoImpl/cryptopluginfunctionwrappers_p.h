@@ -240,11 +240,13 @@ KeyResult generateKey(
 KeyResult storedKey(
         Sailfish::Crypto::CryptoPlugin *plugin,
         const Sailfish::Crypto::Key::Identifier &identifier,
-        Sailfish::Crypto::Key::Components keyComponents);
+        Sailfish::Crypto::Key::Components keyComponents,
+        const QVariantMap &customParameters);
 
 IdentifiersResult storedKeyIdentifiers(
         Sailfish::Crypto::CryptoPlugin *plugin,
-        const QString &collectionName);
+        const QString &collectionName,
+        const QVariantMap &customParameters);
 
 DataResult calculateDigest(
         const PluginAndCustomParams &pluginAndCustomParams,

@@ -1653,6 +1653,9 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
             QString storagePluginName = request->inParams.size()
                     ? request->inParams.takeFirst().value<QString>()
                     : QString();
+            QVariantMap customParameters = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QVariantMap>()
+                    : QVariantMap();
             SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
                     ? request->inParams.takeFirst().value<SecretManager::UserInteractionMode>()
                     : SecretManager::PreventInteraction;
@@ -1668,6 +1671,7 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
                                       request->requestId,
                                       collectionName,
                                       storagePluginName,
+                                      customParameters,
                                       userInteractionMode,
                                       interactionServiceAddress,
                                       &identifiers);

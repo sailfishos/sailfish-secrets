@@ -195,13 +195,15 @@ bool modifyMasterLockPlugins(
 IdentifiersResult storedKeyIdentifiers(
         StoragePluginWrapper *storagePlugin,
         EncryptedStoragePluginWrapper *encryptedStoragePlugin,
-        Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *cryptoStoragePlugin);
+        Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *cryptoStoragePlugin,
+        const QVariantMap &customParameters);
 
 IdentifiersResult storedKeyIdentifiersFromCollection(
         StoragePluginWrapper *storagePlugin,
         EncryptedStoragePluginWrapper *encryptedStoragePlugin,
         Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *cryptoStoragePlugin,
-        const CollectionInfo &collectionInfo);
+        const CollectionInfo &collectionInfo,
+        const QVariantMap &customParameters);
 
 namespace EncryptionPluginFunctionWrapper {
     struct DataResult {
