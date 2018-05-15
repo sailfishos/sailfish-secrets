@@ -1635,6 +1635,13 @@ void tst_secretsrequests::lockCode()
     QCOMPARE(lcr.status(), Request::Finished);
     QCOMPARE(lcr.result().code(), Result::Succeeded);
 
+    lcr.setLockCodeRequestType(LockCodeRequest::QueryLockStatus);
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.status(), Request::Finished);
+    QCOMPARE(lcr.result().code(), Result::Succeeded);
+    QCOMPARE(lcr.lockStatus(), LockCodeRequest::Unlocked);
+
     // Retrieve the secrets again, make sure we can.
     gsr.setIdentifier(estestSecret.identifier());
     gsr.startRequest();
@@ -1657,6 +1664,13 @@ void tst_secretsrequests::lockCode()
     QCOMPARE(lcr.status(), Request::Finished);
     QCOMPARE(lcr.result().code(), Result::Succeeded);
 
+    lcr.setLockCodeRequestType(LockCodeRequest::QueryLockStatus);
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.status(), Request::Finished);
+    QCOMPARE(lcr.result().code(), Result::Succeeded);
+    QCOMPARE(lcr.lockStatus(), LockCodeRequest::Locked);
+
     // Ensure that attempting to read secrets will now fail
     gsr.setIdentifier(estestSecret.identifier());
     gsr.startRequest();
@@ -1677,6 +1691,13 @@ void tst_secretsrequests::lockCode()
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
     QCOMPARE(lcr.status(), Request::Finished);
     QCOMPARE(lcr.result().code(), Result::Succeeded);
+
+    lcr.setLockCodeRequestType(LockCodeRequest::QueryLockStatus);
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.status(), Request::Finished);
+    QCOMPARE(lcr.result().code(), Result::Succeeded);
+    QCOMPARE(lcr.lockStatus(), LockCodeRequest::Unlocked);
 
     // Retrieve the secrets again, make sure that it succeeds again.
     gsr.setIdentifier(estestSecret.identifier());
@@ -1768,6 +1789,15 @@ void tst_secretsrequests::lockCode()
     QCOMPARE(dcr.result().code(), Result::Succeeded);
 
     // now test plugin lock codes
+    lcr.setLockCodeRequestType(LockCodeRequest::QueryLockStatus);
+    lcr.setLockCodeTargetType(LockCodeRequest::ExtensionPlugin);
+    lcr.setLockCodeTarget(DEFAULT_TEST_STORAGE_PLUGIN);
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.status(), Request::Finished);
+    QCOMPARE(lcr.result().code(), Result::Succeeded);
+    QCOMPARE(lcr.lockStatus(), LockCodeRequest::Unsupported);
+
     uiParams.setPromptText(QLatin1String("Modify the lock code for the storage plugin"));
     lcr.setLockCodeRequestType(LockCodeRequest::ModifyLockCode);
     lcr.setLockCodeTargetType(LockCodeRequest::ExtensionPlugin);

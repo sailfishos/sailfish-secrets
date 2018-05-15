@@ -2649,6 +2649,27 @@ void tst_cryptorequests::lockCode()
 
     Sailfish::Crypto::LockCodeRequest lcr;
     lcr.setManager(&cm);
+    QCOMPARE(lcr.lockStatus(), Sailfish::Crypto::LockCodeRequest::Unknown);
+    lcr.setLockCodeRequestType(Sailfish::Crypto::LockCodeRequest::QueryLockStatus);
+    QCOMPARE(lcr.lockCodeRequestType(), Sailfish::Crypto::LockCodeRequest::QueryLockStatus);
+    lcr.setLockCodeTargetType(Sailfish::Crypto::LockCodeRequest::MetadataDatabase);
+    QCOMPARE(lcr.lockCodeTargetType(), Sailfish::Crypto::LockCodeRequest::MetadataDatabase);
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.status(), Sailfish::Crypto::Request::Finished);
+    QCOMPARE(lcr.result().code(), Sailfish::Crypto::Result::Succeeded);
+    QCOMPARE(lcr.lockStatus(), Sailfish::Crypto::LockCodeRequest::Unlocked);
+
+    lcr.setLockCodeTargetType(Sailfish::Crypto::LockCodeRequest::ExtensionPlugin);
+    QCOMPARE(lcr.lockCodeTargetType(), Sailfish::Crypto::LockCodeRequest::ExtensionPlugin);
+    lcr.setLockCodeTarget(DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+    QCOMPARE(lcr.lockCodeTarget(), DEFAULT_TEST_CRYPTO_PLUGIN_NAME);
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.status(), Sailfish::Crypto::Request::Finished);
+    QCOMPARE(lcr.result().code(), Sailfish::Crypto::Result::Succeeded);
+    QCOMPARE(lcr.lockStatus(), Sailfish::Crypto::LockCodeRequest::Unsupported);
+
     lcr.setLockCodeRequestType(Sailfish::Crypto::LockCodeRequest::ModifyLockCode);
     QCOMPARE(lcr.lockCodeRequestType(), Sailfish::Crypto::LockCodeRequest::ModifyLockCode);
     lcr.setLockCodeTargetType(Sailfish::Crypto::LockCodeRequest::ExtensionPlugin);
@@ -3599,13 +3620,27 @@ void tst_cryptorequests::exampleUsbTokenPlugin()
     // second, attempt to unlock the plugin if it is locked.
     Sailfish::Crypto::LockCodeRequest lcr;
     lcr.setManager(&cm);
-    lcr.setLockCodeRequestType(Sailfish::Crypto::LockCodeRequest::ProvideLockCode);
+    lcr.setLockCodeRequestType(Sailfish::Crypto::LockCodeRequest::QueryLockStatus);
     lcr.setLockCodeTargetType(Sailfish::Crypto::LockCodeRequest::ExtensionPlugin);
     lcr.setLockCodeTarget(TEST_USB_TOKEN_PLUGIN_NAME);
     lcr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
     QCOMPARE(lcr.result().errorMessage(), QString());
     QCOMPARE(lcr.result().code(), Sailfish::Crypto::Result::Succeeded);
+    QCOMPARE(lcr.lockStatus(), Sailfish::Crypto::LockCodeRequest::Locked);
+
+    lcr.setLockCodeRequestType(Sailfish::Crypto::LockCodeRequest::ProvideLockCode);
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.result().errorMessage(), QString());
+    QCOMPARE(lcr.result().code(), Sailfish::Crypto::Result::Succeeded);
+
+    lcr.setLockCodeRequestType(Sailfish::Crypto::LockCodeRequest::QueryLockStatus);
+    lcr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
+    QCOMPARE(lcr.result().errorMessage(), QString());
+    QCOMPARE(lcr.result().code(), Sailfish::Crypto::Result::Succeeded);
+    QCOMPARE(lcr.lockStatus(), Sailfish::Crypto::LockCodeRequest::Unlocked);
 
     // third, attempt to retrieve the identifiers of keys stored by the plugin.
     // check that it reports the "Default" key in the "Default" collection.

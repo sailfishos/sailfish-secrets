@@ -511,6 +511,24 @@ void Daemon::ApiImpl::CryptoDBusObject::finalizeCipherSession(
                                   result);
 }
 
+void Daemon::ApiImpl::CryptoDBusObject::queryLockStatus(
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
+        const QDBusMessage &message,
+        Result &result,
+        LockCodeRequest::LockStatus &lockStatus)
+{
+    Q_UNUSED(lockStatus); // outparam, set in handlePendingRequest / handleFinishedRequest
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+             << QVariant::fromValue<QString>(lockCodeTarget);
+    m_requestQueue->handleRequest(Daemon::ApiImpl::QueryLockStatusRequest,
+                                  inParams,
+                                  connection(),
+                                  message,
+                                  result);
+}
+
 void Daemon::ApiImpl::CryptoDBusObject::modifyLockCode(
         LockCodeRequest::LockCodeTargetType lockCodeTargetType,
         const QString &lockCodeTarget,
@@ -611,6 +629,12 @@ Daemon::ApiImpl::CryptoRequestQueue::plugins() const
     return m_requestProcessor->plugins();
 }
 
+LockCodeRequest::LockStatus Daemon::ApiImpl::CryptoRequestQueue::queryLockStatusPlugin(
+        const QString &pluginName)
+{
+    return m_requestProcessor->queryLockStatusPlugin(pluginName);
+}
+
 bool Daemon::ApiImpl::CryptoRequestQueue::lockPlugin(
         const QString &pluginName)
 {
@@ -656,6 +680,7 @@ QString Daemon::ApiImpl::CryptoRequestQueue::requestTypeToString(int type) const
         case UpdateCipherSessionAuthenticationRequest: return QLatin1String("UpdateCipherSessionAuthenticationRequest");
         case UpdateCipherSessionRequest:       return QLatin1String("UpdateCipherSessionRequest");
         case FinalizeCipherSessionRequest:     return QLatin1String("FinalizeCipherSessionRequest");
+        case QueryLockStatusRequest:           return QLatin1String("QueryLockStatusRequest");
         case ModifyLockCodeRequest:            return QLatin1String("ModifyLockCodeRequest");
         case ProvideLockCodeRequest:           return QLatin1String("ProvideLockCodeRequest");
         case ForgetLockCodeRequest:            return QLatin1String("ForgetLockCodeRequest");
@@ -1282,6 +1307,32 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             }
             break;
         }
+        case QueryLockStatusRequest: {
+            qCDebug(lcSailfishCryptoDaemon) << "Handling QueryLockStatusRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            LockCodeRequest::LockCodeTargetType lockCodeTargetType = request->inParams.size()
+                    ? request->inParams.takeFirst().value<LockCodeRequest::LockCodeTargetType>()
+                    : LockCodeRequest::ExtensionPlugin;
+            QString lockCodeTarget = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
+            LockCodeRequest::LockStatus lockStatus;
+            Result result = m_requestProcessor->queryLockStatus(
+                        request->remotePid,
+                        request->requestId,
+                        lockCodeTargetType,
+                        lockCodeTarget,
+                        &lockStatus);
+            // send the reply to the calling peer.
+            if (result.code() == Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<LockCodeRequest::LockStatus>(lockStatus));
+                *completed = true;
+            }
+            break;
+        }
         case ModifyLockCodeRequest: {
             qCDebug(lcSailfishCryptoDaemon) << "Handling ModifyLockCodeRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             LockCodeRequest::LockCodeTargetType lockCodeTargetType = request->inParams.size()
@@ -1759,6 +1810,24 @@ void Daemon::ApiImpl::CryptoRequestQueue::handleFinishedRequest(
                                                                         << QVariant::fromValue<QByteArray>(generatedData)
                                                                         << QVariant::fromValue<CryptoManager::VerificationStatus>(verificationStatus));
                 *completed = true;
+            }
+            break;
+        }
+        case QueryLockStatusRequest: {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of QueryLockStatusRequest request"));
+            *completed = true;
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishCryptoDaemon) << "QueryLockStatusRequest:" << request->requestId << "finished as pending!";
+            } else {
+                LockCodeRequest::LockStatus lockStatus = request->outParams.size()
+                        ? request->outParams.takeFirst().value<LockCodeRequest::LockStatus>()
+                        : LockCodeRequest::Unknown;
+                request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                        << QVariant::fromValue<LockCodeRequest::LockStatus>(lockStatus));
             }
             break;
         }

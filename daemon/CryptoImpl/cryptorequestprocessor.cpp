@@ -11,6 +11,7 @@
 #include "Secrets/result.h"
 #include "Secrets/interactionparameters.h"
 #include "Secrets/plugininfo.h"
+#include "Secrets/lockcoderequest.h"
 
 #include "Crypto/plugininfo.h"
 
@@ -96,6 +97,8 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(
             this, &Daemon::ApiImpl::RequestProcessor::secretsStoredKeyIdentifiersCompleted);
     connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::userInputCompleted,
             this, &Daemon::ApiImpl::RequestProcessor::secretsUserInputCompleted);
+    connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::cryptoPluginLockStatusRequestCompleted,
+            this, &Daemon::ApiImpl::RequestProcessor::secretsCryptoPluginLockStatusRequestCompleted);
     connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::cryptoPluginLockCodeRequestCompleted,
             this, &Daemon::ApiImpl::RequestProcessor::secretsCryptoPluginLockCodeRequestCompleted);
 
@@ -105,6 +108,24 @@ QMap<QString, CryptoPlugin*>
 Daemon::ApiImpl::RequestProcessor::plugins() const
 {
     return m_cryptoPlugins;
+}
+
+LockCodeRequest::LockStatus Daemon::ApiImpl::RequestProcessor::queryLockStatusPlugin(
+        const QString &pluginName)
+{
+    if (m_cryptoPlugins.contains(pluginName)) {
+        return LockCodeRequest::Unknown;
+    } else if (!m_cryptoPlugins.value(pluginName)->supportsLocking()) {
+        return LockCodeRequest::Unsupported;
+    }
+
+    QFuture<bool> future
+            = QtConcurrent::run(
+                    m_requestQueue->controller()->threadPoolForPlugin(pluginName).data(),
+                    CryptoPluginFunctionWrapper::isLocked,
+                    m_cryptoPlugins[pluginName]);
+    future.waitForFinished();
+    return future.result() ? LockCodeRequest::Locked : LockCodeRequest::Unlocked;
 }
 
 bool Daemon::ApiImpl::RequestProcessor::lockPlugin(
@@ -2123,6 +2144,44 @@ Daemon::ApiImpl::RequestProcessor::finalizeCipherSession(
     return Result(Result::Pending);
 }
 
+
+Result
+Daemon::ApiImpl::RequestProcessor::queryLockStatus(
+        pid_t callerPid,
+        quint64 requestId,
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
+        LockCodeRequest::LockStatus *lockStatus)
+{
+    Q_UNUSED(lockStatus); // asynchronous out-param.
+    if (lockCodeTargetType == LockCodeRequest::ExtensionPlugin
+            && !m_cryptoPlugins.contains(lockCodeTarget)) {
+        return Result(Result::InvalidCryptographicServiceProvider,
+                      QStringLiteral("Invalid crypto plugin name specified as lock code target"));
+    }
+
+    // The threaded plugin interactions are implemented on secrets side for simplicity.
+    Result retn = transformSecretsResult(m_secrets->queryCryptoPluginLockStatus(
+                                             callerPid,
+                                             requestId,
+                                             lockCodeTargetType == LockCodeRequest::ExtensionPlugin
+                                                 ? lockCodeTarget
+                                                 : QString()));
+    if (retn.code() == Result::Pending) {
+        // asynchronous flow required, will call back to secretsCryptoPluginLockStatusRequestCompleted().
+        m_pendingRequests.insert(requestId,
+                                 Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                     callerPid,
+                                     requestId,
+                                     Daemon::ApiImpl::QueryLockStatusRequest,
+                                     QVariantList() << QVariant::fromValue<pid_t>(callerPid)
+                                                    << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+                                                    << QVariant::fromValue<QString>(lockCodeTarget)));
+    }
+
+    return retn;
+}
+
 Result
 Daemon::ApiImpl::RequestProcessor::modifyLockCode(
         pid_t callerPid,
@@ -2556,6 +2615,40 @@ void Daemon::ApiImpl::RequestProcessor::secretsUserInputCompleted(
         }
     } else {
         qCWarning(lcSailfishCryptoDaemon) << "Secrets completed userInput() operation for unknown request:" << requestId;
+    }
+}
+
+// asynchronous operation (crypto plugin lock status request) has completed.
+void Daemon::ApiImpl::RequestProcessor::secretsCryptoPluginLockStatusRequestCompleted(
+        quint64 requestId,
+        const Sailfish::Secrets::Result &result,
+        Sailfish::Secrets::LockCodeRequest::LockStatus lockStatus)
+{
+    // look up the pending request in our list
+    if (m_pendingRequests.contains(requestId)) {
+        // transform the error code.
+        Result returnResult(transformSecretsResult(result));
+
+        // call the appropriate method to complete the request
+        Daemon::ApiImpl::RequestProcessor::PendingRequest pr = m_pendingRequests.take(requestId);
+        switch (pr.requestType) {
+            case QueryLockStatusRequest: {
+                // nothing more to do, return the result directly.
+                QList<QVariant> outParams;
+                outParams << QVariant::fromValue<Result>(returnResult);
+                outParams << QVariant::fromValue<LockCodeRequest::LockStatus>(
+                                 static_cast<LockCodeRequest::LockStatus>(
+                                     static_cast<int>(lockStatus)));
+                m_requestQueue->requestFinished(requestId, outParams);
+                break;
+            }
+            default: {
+                qCWarning(lcSailfishCryptoDaemon) << "Secrets completed crypto plugin lock status operation for request:" << requestId << "of invalid type:" << pr.requestType;
+                break;
+            }
+        }
+    } else {
+        qCWarning(lcSailfishCryptoDaemon) << "Secrets completed crypto plugin lock status operation for unknown request:" << requestId;
     }
 }
 

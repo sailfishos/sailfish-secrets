@@ -18,7 +18,8 @@
 using namespace Sailfish::Crypto;
 
 LockCodeRequestPrivate::LockCodeRequestPrivate()
-    : m_lockCodeRequestType(LockCodeRequest::ModifyLockCode)
+    : m_lockStatus(LockCodeRequest::Unknown)
+    , m_lockCodeRequestType(LockCodeRequest::ModifyLockCode)
     , m_lockCodeTargetType(LockCodeRequest::ExtensionPlugin)
     , m_status(Request::Inactive)
 {
@@ -37,6 +38,10 @@ LockCodeRequestPrivate::LockCodeRequestPrivate()
  * \l{lockCodeTarget()}.  Only some plugins support these operations,
  * and in some cases only privileged applications (such as the system
  * settings application) may be permitted to perform these operations.
+ *
+ * If the \l{lockCodeRequestType()} specified is \l{QueryLockStatus}
+ * then the service will return whether the specified target plugin
+ * or metadata database is locked and requires a lock code to be entered.
  *
  * If the \l{lockCodeRequestType()} specified is \l{ModifyLockCode}
  * then the user will be prompted (via a system-mediated user interaction
@@ -108,6 +113,10 @@ void LockCodeRequest::setLockCodeRequestType(LockCodeRequest::LockCodeRequestTyp
         if (d->m_status == Request::Finished) {
             d->m_status = Request::Inactive;
             emit statusChanged();
+        }
+        if (d->m_lockStatus != LockCodeRequest::Unknown) {
+            d->m_lockStatus = LockCodeRequest::Unknown;
+            emit lockStatusChanged();
         }
         emit lockCodeRequestTypeChanged();
     }
@@ -198,6 +207,18 @@ void LockCodeRequest::setLockCodeTarget(const QString &targetName)
     }
 }
 
+/*!
+ * \brief Returns the current lock status of the target plugin or metadata database
+ *
+ * The value will only be valid if the request's operation is \c{QueryLockStatus}.
+ * Per-plugin lock status information is also reported from PluginInfoRequest.
+ */
+LockCodeRequest::LockStatus LockCodeRequest::lockStatus() const
+{
+    Q_D(const LockCodeRequest);
+    return d->m_lockStatus;
+}
+
 Request::Status LockCodeRequest::status() const
 {
     Q_D(const LockCodeRequest);
@@ -255,47 +276,85 @@ void LockCodeRequest::startRequest()
             emit resultChanged();
         }
 
-        QDBusPendingReply<Result> reply;
-        // should we pass customParameters to the lock code request?
-        if (d->m_lockCodeRequestType == LockCodeRequest::ModifyLockCode) {
-            reply = d->m_manager->d_ptr->modifyLockCode(d->m_lockCodeTargetType,
-                                                        d->m_lockCodeTarget,
-                                                        d->m_interactionParameters);
-        } else if (d->m_lockCodeRequestType == LockCodeRequest::ProvideLockCode) {
-            reply = d->m_manager->d_ptr->provideLockCode(d->m_lockCodeTargetType,
-                                                         d->m_lockCodeTarget,
-                                                         d->m_interactionParameters);
-        } else { // ForgetLockCode
-            reply = d->m_manager->d_ptr->forgetLockCode(d->m_lockCodeTargetType,
-                                                        d->m_lockCodeTarget,
-                                                        d->m_interactionParameters);
-        }
-
-        if (!reply.isValid() && !reply.error().message().isEmpty()) {
-            d->m_status = Request::Finished;
-            d->m_result = Result(Result::CryptoManagerNotInitializedError,
-                                 reply.error().message());
-            emit statusChanged();
-            emit resultChanged();
-        } else if (reply.isFinished()
-                // work around a bug in QDBusAbstractInterface / QDBusConnection...
-                && reply.argumentAt<0>().code() != Sailfish::Crypto::Result::Succeeded) {
-            d->m_status = Request::Finished;
-            d->m_result = reply.argumentAt<0>();
-            emit statusChanged();
-            emit resultChanged();
+        if (d->m_lockCodeRequestType == LockCodeRequest::QueryLockStatus) {
+            QDBusPendingReply<Result, LockCodeRequest::LockStatus> reply;
+            reply = d->m_manager->d_ptr->queryLockStatus(d->m_lockCodeTargetType,
+                                                         d->m_lockCodeTarget);
+            if (!reply.isValid() && !reply.error().message().isEmpty()) {
+                d->m_status = Request::Finished;
+                d->m_result = Result(Result::CryptoManagerNotInitializedError,
+                                     reply.error().message());
+                d->m_lockStatus = LockCodeRequest::Unknown;
+                emit lockStatusChanged();
+                emit statusChanged();
+                emit resultChanged();
+            } else if (reply.isFinished()
+                    // work around a bug in QDBusAbstractInterface / QDBusConnection...
+                    && reply.argumentAt<0>().code() != Sailfish::Crypto::Result::Succeeded) {
+                d->m_status = Request::Finished;
+                d->m_result = reply.argumentAt<0>();
+                d->m_lockStatus = LockCodeRequest::Unknown;
+                emit lockStatusChanged();
+                emit statusChanged();
+                emit resultChanged();
+            } else {
+                d->m_watcher.reset(new QDBusPendingCallWatcher(reply));
+                connect(d->m_watcher.data(), &QDBusPendingCallWatcher::finished,
+                        [this] {
+                    QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.take();
+                    QDBusPendingReply<Result, LockCodeRequest::LockStatus> reply = *watcher;
+                    this->d_ptr->m_status = Request::Finished;
+                    this->d_ptr->m_result = reply.argumentAt<0>();
+                    this->d_ptr->m_lockStatus = reply.argumentAt<1>();
+                    watcher->deleteLater();
+                    emit this->lockStatusChanged();
+                    emit this->statusChanged();
+                    emit this->resultChanged();
+                });
+            }
         } else {
-            d->m_watcher.reset(new QDBusPendingCallWatcher(reply));
-            connect(d->m_watcher.data(), &QDBusPendingCallWatcher::finished,
-                    [this] {
-                QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.take();
-                QDBusPendingReply<Result> reply = *watcher;
-                this->d_ptr->m_status = Request::Finished;
-                this->d_ptr->m_result = reply.argumentAt<0>();
-                watcher->deleteLater();
-                emit this->statusChanged();
-                emit this->resultChanged();
-            });
+            QDBusPendingReply<Result> reply;
+            // should we pass customParameters to the lock code request?
+            if (d->m_lockCodeRequestType == LockCodeRequest::ModifyLockCode) {
+                reply = d->m_manager->d_ptr->modifyLockCode(d->m_lockCodeTargetType,
+                                                            d->m_lockCodeTarget,
+                                                            d->m_interactionParameters);
+            } else if (d->m_lockCodeRequestType == LockCodeRequest::ProvideLockCode) {
+                reply = d->m_manager->d_ptr->provideLockCode(d->m_lockCodeTargetType,
+                                                             d->m_lockCodeTarget,
+                                                             d->m_interactionParameters);
+            } else { // ForgetLockCode
+                reply = d->m_manager->d_ptr->forgetLockCode(d->m_lockCodeTargetType,
+                                                            d->m_lockCodeTarget,
+                                                            d->m_interactionParameters);
+            }
+
+            if (!reply.isValid() && !reply.error().message().isEmpty()) {
+                d->m_status = Request::Finished;
+                d->m_result = Result(Result::CryptoManagerNotInitializedError,
+                                     reply.error().message());
+                emit statusChanged();
+                emit resultChanged();
+            } else if (reply.isFinished()
+                    // work around a bug in QDBusAbstractInterface / QDBusConnection...
+                    && reply.argumentAt<0>().code() != Sailfish::Crypto::Result::Succeeded) {
+                d->m_status = Request::Finished;
+                d->m_result = reply.argumentAt<0>();
+                emit statusChanged();
+                emit resultChanged();
+            } else {
+                d->m_watcher.reset(new QDBusPendingCallWatcher(reply));
+                connect(d->m_watcher.data(), &QDBusPendingCallWatcher::finished,
+                        [this] {
+                    QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.take();
+                    QDBusPendingReply<Result> reply = *watcher;
+                    this->d_ptr->m_status = Request::Finished;
+                    this->d_ptr->m_result = reply.argumentAt<0>();
+                    watcher->deleteLater();
+                    emit this->statusChanged();
+                    emit this->resultChanged();
+                });
+            }
         }
     }
 }

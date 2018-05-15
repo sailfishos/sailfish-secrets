@@ -211,7 +211,15 @@ public:
             const Sailfish::Secrets::Secret::Identifier &identifier,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
-    // modify a lock code (re-key a plugin, encrypted collection or standalone secret)
+    // query the lock status of a plugin or metadata db
+    Sailfish::Secrets::Result queryLockStatus(
+            pid_t callerPid,
+            quint64 requestId,
+            Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
+            LockCodeRequest::LockStatus *lockStatus);
+
+    // modify a lock code (re-key a plugin or metadata db)
     Sailfish::Secrets::Result modifyLockCode(
             pid_t callerPid,
             quint64 requestId,
@@ -221,7 +229,7 @@ public:
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress);
 
-    // provide a lock code (unlock a plugin, encrypted collection or standalone secret)
+    // provide a lock code (unlock a plugin or metadata db)
     Sailfish::Secrets::Result provideLockCode(
             pid_t callerPid,
             quint64 requestId,
@@ -231,7 +239,7 @@ public:
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress);
 
-    // forget a lock code (lock a plugin, encrypted collection or standalone secret)
+    // forget a lock code (lock a plugin or metadata db)
     Sailfish::Secrets::Result forgetLockCode(
             pid_t callerPid,
             quint64 requestId,

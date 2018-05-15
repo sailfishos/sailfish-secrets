@@ -31,6 +31,7 @@ public:
     explicit LockCodeRequestPrivate();
 
     QPointer<Sailfish::Secrets::SecretManager> m_manager;
+    Sailfish::Secrets::LockCodeRequest::LockStatus m_lockStatus;
     Sailfish::Secrets::LockCodeRequest::LockCodeRequestType m_lockCodeRequestType;
     Sailfish::Secrets::LockCodeRequest::LockCodeTargetType m_lockCodeTargetType;
     Sailfish::Secrets::SecretManager::UserInteractionMode m_userInteractionMode;

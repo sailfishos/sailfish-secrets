@@ -4224,6 +4224,53 @@ Daemon::ApiImpl::RequestProcessor::deleteStandaloneSecretWithMetadata(
 }
 
 Result
+Daemon::ApiImpl::RequestProcessor::queryLockStatus(
+        pid_t callerPid,
+        quint64 requestId,
+        Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
+        LockCodeRequest::LockStatus *lockStatus)
+{
+    Q_UNUSED(callerPid);
+    Q_UNUSED(requestId);
+
+    if (lockCodeTargetType == LockCodeRequest::MetadataDatabase) {
+        *lockStatus = m_requestQueue->masterLocked()
+                    ? LockCodeRequest::Locked
+                    : LockCodeRequest::Unlocked;
+        return Result(Result::Succeeded);
+    }
+
+    // TODO: make this asynchronous.
+    QFuture<FoundLockStatusResult> future = QtConcurrent::run(
+                m_requestQueue->secretsThreadPool().data(),
+                &Daemon::ApiImpl::queryLockSpecificPlugin,
+                m_encryptionPlugins,
+                m_storagePlugins,
+                m_encryptedStoragePlugins,
+                lockCodeTarget);
+    future.waitForFinished();
+    FoundLockStatusResult fr = future.result();
+    if (fr.found) {
+        // if the lock target was a plugin from the encryption/storage/encryptedStorage
+        // maps, then return the lock result from the threaded plugin operation.
+        *lockStatus = fr.lockStatus;
+        return fr.result;
+    } else if (AuthenticationPlugin *p = m_authenticationPlugins.value(lockCodeTarget)) {
+        if (!p->supportsLocking()) {
+            *lockStatus = LockCodeRequest::Unsupported;
+        } else {
+            *lockStatus = p->isLocked()
+                        ? LockCodeRequest::Locked
+                        : LockCodeRequest::Unlocked;
+        }
+        return Result(Result::Succeeded);
+    }
+
+    return m_requestQueue->queryLockStatusCryptoPlugin(lockCodeTarget, lockStatus);
+}
+
+Result
 Daemon::ApiImpl::RequestProcessor::modifyLockCode(
         pid_t callerPid,
         quint64 requestId,

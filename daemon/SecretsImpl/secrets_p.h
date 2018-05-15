@@ -190,6 +190,15 @@ class SecretsDBusObject : public QObject, protected QDBusContext
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In1\" value=\"Sailfish::Secrets::SecretManager::UserInteractionMode\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
     "      </method>\n"
+    "      <method name=\"queryLockStatus\">\n"
+    "          <arg name=\"lockCodeTargetType\" type=\"(i)\" direction=\"in\" />\n"
+    "          <arg name=\"lockCodeTarget\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
+    "          <arg name=\"lockStatus\" type=\"(i)\" direction=\"in\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Secrets::LockCodeRequest::LockCodeTargetType\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Secrets::LockCodeRequest::LockStatus\" />\n"
+    "      </method>\n"
     "      <method name=\"modifyLockCode\">\n"
     "          <arg name=\"lockCodeTargetType\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"lockCodeTarget\" type=\"s\" direction=\"in\" />\n"
@@ -351,7 +360,15 @@ public Q_SLOTS:
             const QDBusMessage &message,
             Sailfish::Secrets::Result &result);
 
-    // modify a lock code (re-key a plugin, encrypted collection or standalone secret)
+    // query lock status of a plugin or metadata db
+    void queryLockStatus(
+            Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
+            const QDBusMessage &message,
+            Sailfish::Secrets::Result &result,
+            Sailfish::Secrets::LockCodeRequest::LockStatus &lockStatus);
+
+    // modify a lock code (re-key a plugin or metadata db)
     void modifyLockCode(
             Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
             const QString &lockCodeTarget,
@@ -361,7 +378,7 @@ public Q_SLOTS:
             const QDBusMessage &message,
             Sailfish::Secrets::Result &result);
 
-    // provide a lock code (unlock a plugin, encrypted collection or standalone secret)
+    // provide a lock code (unlock a plugin or metadata db)
     void provideLockCode(
             Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
             const QString &lockCodeTarget,
@@ -371,7 +388,7 @@ public Q_SLOTS:
             const QDBusMessage &message,
             Sailfish::Secrets::Result &result);
 
-    // forget a lock code (lock a plugin, encrypted collection or standalone secret)
+    // forget a lock code (lock a plugin or metadata db)
     void forgetLockCode(
             Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
             const QString &lockCodeTarget,
@@ -445,6 +462,7 @@ public: // For use by the secrets request processor to handle device-locked coll
     const QByteArray bkdbLockKey() const;
     const QByteArray deviceLockKey() const;
 
+    Sailfish::Secrets::Result queryLockStatusCryptoPlugin(const QString &pluginName, Sailfish::Secrets::LockCodeRequest::LockStatus *lockStatus);
     Sailfish::Secrets::Result lockCryptoPlugin(const QString &pluginName);
     Sailfish::Secrets::Result unlockCryptoPlugin(const QString &pluginName, const QByteArray &lockCode);
     Sailfish::Secrets::Result setLockCodeCryptoPlugin(const QString &pluginName, const QByteArray &oldCode, const QByteArray &newCode);
@@ -464,6 +482,7 @@ public: // Crypto API helper methods.
                                                    const QVariantMap &customParameters, QVector<Sailfish::Crypto::Key::Identifier> *identifiers);
     Sailfish::Secrets::Result deleteStoredKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier);
     Sailfish::Secrets::Result userInput(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Secrets::InteractionParameters &uiParams);
+    Sailfish::Secrets::Result queryCryptoPluginLockStatus(pid_t callerPid, quint64 cryptoRequestId, const QString &cryptoPluginName);
     Sailfish::Secrets::Result modifyCryptoPluginLockCode(pid_t callerPid, quint64 cryptoRequestId, const QString &cryptoPluginName, const Sailfish::Secrets::InteractionParameters &uiParams);
     Sailfish::Secrets::Result provideCryptoPluginLockCode(pid_t callerPid, quint64 cryptoRequestId, const QString &cryptoPluginName, const Sailfish::Secrets::InteractionParameters &uiParams);
     Sailfish::Secrets::Result forgetCryptoPluginLockCode(pid_t callerPid, quint64 cryptoRequestId, const QString &cryptoPluginName, const Sailfish::Secrets::InteractionParameters &uiParams);
@@ -475,6 +494,7 @@ Q_SIGNALS:
     void deleteStoredKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
     void storedKeyIdentifiersCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QVector<Sailfish::Secrets::Secret::Identifier> &idents);
     void userInputCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &userInput);
+    void cryptoPluginLockStatusRequestCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, Sailfish::Secrets::LockCodeRequest::LockStatus lockStatus);
     void cryptoPluginLockCodeRequestCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
 private:
     enum CryptoApiHelperRequestType {
@@ -486,6 +506,7 @@ private:
         StoreKeyPreCheckCryptoApiHelperRequest,
         StoreKeyCryptoApiHelperRequest,
         UserInputCryptoApiHelperRequest,
+        QueryLockStatusCryptoApiHelperRequest,
         ModifyLockCodeCryptoApiHelperRequest,
         ProvideLockCodeCryptoApiHelperRequest,
         ForgetLockCodeCryptoApiHelperRequest
@@ -510,6 +531,7 @@ enum RequestType {
     FindStandaloneSecretsRequest,
     DeleteCollectionSecretRequest,
     DeleteStandaloneSecretRequest,
+    QueryLockStatusRequest,
     ModifyLockCodeRequest,
     ProvideLockCodeRequest,
     ForgetLockCodeRequest,

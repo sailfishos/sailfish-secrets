@@ -560,6 +560,24 @@ CryptoManagerPrivate::finalizeCipherSession(
     return reply;
 }
 
+QDBusPendingReply<Result, LockCodeRequest::LockStatus>
+CryptoManagerPrivate::queryLockStatus(
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget)
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Result, LockCodeRequest::LockStatus>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Result, LockCodeRequest::LockStatus> reply
+            = m_interface->asyncCallWithArgumentList(
+                "queryLockStatus",
+                QVariantList() << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+                               << QVariant::fromValue<QString>(lockCodeTarget));
+    return reply;
+}
 
 QDBusPendingReply<Result>
 CryptoManagerPrivate::modifyLockCode(
