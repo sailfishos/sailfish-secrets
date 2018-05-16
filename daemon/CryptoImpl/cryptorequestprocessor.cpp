@@ -87,6 +87,8 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(
 
     connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storedKeyCompleted,
             this, &Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted);
+    connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::useKeyPreCheckCompleted,
+            this, &Daemon::ApiImpl::RequestProcessor::secretsUseKeyPreCheckCompleted);
     connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storeKeyPreCheckCompleted,
             this, &Daemon::ApiImpl::RequestProcessor::secretsStoreKeyPreCheckCompleted);
     connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::storeKeyCompleted,
@@ -101,7 +103,6 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(
             this, &Daemon::ApiImpl::RequestProcessor::secretsCryptoPluginLockStatusRequestCompleted);
     connect(m_secrets, &Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::cryptoPluginLockCodeRequestCompleted,
             this, &Daemon::ApiImpl::RequestProcessor::secretsCryptoPluginLockCodeRequestCompleted);
-
 }
 
 QMap<QString, CryptoPlugin*>
@@ -684,11 +685,12 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_inCryptoPlugin(
     Q_UNUSED(callerPid);
     Q_UNUSED(requestId);
 
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper(m_secrets->cryptoStoragePluginWrapper(cryptosystemProviderName));
     QFutureWatcher<KeyResult> *watcher = new QFutureWatcher<KeyResult>(this);
     QFuture<KeyResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginFunctionWrapper::generateAndStoreKey,
-                PluginWrapperAndCustomParams(m_secrets->cryptoStoragePluginWrapper(cryptosystemProviderName), customParameters),
+                PluginWrapperAndCustomParams(wrapper->cryptoPlugin(), wrapper, customParameters),
                 keyTemplate,
                 kpgParams,
                 skdfParams,
@@ -963,11 +965,13 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey_withPassphrase(
     }
 
     if (cryptosystemProviderName == keyTemplate.identifier().storagePluginName()) {
+        Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper(m_secrets->cryptoStoragePluginWrapper(cryptosystemProviderName));
         QFutureWatcher<KeyResult> *watcher = new QFutureWatcher<KeyResult>(this);
         QFuture<KeyResult> future = QtConcurrent::run(
                     m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                     CryptoPluginFunctionWrapper::importAndStoreKey,
-                    PluginWrapperAndCustomParams(m_secrets->cryptoStoragePluginWrapper(cryptosystemProviderName),
+                    PluginWrapperAndCustomParams(wrapper->cryptoPlugin(),
+                                                 wrapper,
                                                  customParameters),
                     data,
                     keyTemplate,
@@ -1325,8 +1329,31 @@ Daemon::ApiImpl::RequestProcessor::sign(
         // find out if the key is stored in the crypto plugin.
         // if so, we don't need to pull it into the daemon process address space.
         if (key.identifier().storagePluginName() == cryptosystemProviderName) {
-            // yes, it is stored in the crypto plugin.
-            fullKey = key; // not a full key, but a reference to a key that the plugin stores.
+            // yes, it is stored in the plugin.
+            // it may be that the collection the key is stored in is locked,
+            // and if so, we need to retrieve the collection key to unlock it.
+            Result retn = transformSecretsResult(m_secrets->useKeyPreCheck(callerPid,
+                                                                           requestId,
+                                                                           key.identifier(),
+                                                                           CryptoManager::OperationSign,
+                                                                           cryptosystemProviderName));
+            if (retn.code() == Result::Failed) {
+                return retn;
+            }
+
+            // asynchronous flow required, will call back to sign_withCollectionKey().
+            m_pendingRequests.insert(requestId,
+                                     Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                         callerPid,
+                                         requestId,
+                                         Daemon::ApiImpl::SignRequest,
+                                         QVariantList() << QVariant::fromValue<QByteArray>(data)
+                                                        << QVariant::fromValue<Key>(key)
+                                                        << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
+                                                        << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction)
+                                                        << QVariant::fromValue<QVariantMap>(customParameters)
+                                                        << QVariant::fromValue<QString>(cryptosystemProviderName)));
+            return retn;
         } else {
             // no, it is stored in some other plugin
             QByteArray serializedKey;
@@ -1335,7 +1362,7 @@ Daemon::ApiImpl::RequestProcessor::sign(
             if (retn.code() == Result::Failed) {
                 return retn;
             } else if (retn.code() == Result::Pending) {
-                // asynchronous flow required, will call back to sign2().
+                // asynchronous flow required, will call back to sign_withKey().
                 m_pendingRequests.insert(requestId,
                                          Daemon::ApiImpl::RequestProcessor::PendingRequest(
                                              callerPid,
@@ -1355,13 +1382,14 @@ Daemon::ApiImpl::RequestProcessor::sign(
         fullKey = key;
     }
 
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper(m_secrets->cryptoStoragePluginWrapper(cryptosystemProviderName));
     QFutureWatcher<DataResult> *watcher = new QFutureWatcher<DataResult>(this);
     QFuture<DataResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginFunctionWrapper::sign,
-                PluginAndCustomParams(cryptoPlugin, customParameters),
+                PluginWrapperAndCustomParams(cryptoPlugin, wrapper, customParameters),
                 data,
-                fullKey,
+                KeyAndCollectionKey(fullKey, QByteArray()),
                 SignatureOptions(padding, digestFunction));
 
     watcher->setFuture(future);
@@ -1378,7 +1406,7 @@ Daemon::ApiImpl::RequestProcessor::sign(
 }
 
 void
-Daemon::ApiImpl::RequestProcessor::sign2(
+Daemon::ApiImpl::RequestProcessor::sign_withKey(
         quint64 requestId,
         const Result &result,
         const QByteArray &serializedKey,
@@ -1390,20 +1418,61 @@ Daemon::ApiImpl::RequestProcessor::sign2(
 {
     if (result.code() != Result::Succeeded) {
         QList<QVariant> outParams;
-        QByteArray signature;
         outParams << QVariant::fromValue<Result>(result);
-        outParams << QVariant::fromValue<QByteArray>(signature);
+        outParams << QVariant::fromValue<QByteArray>(QByteArray());
         m_requestQueue->requestFinished(requestId, outParams);
         return;
     }
 
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper(m_secrets->cryptoStoragePluginWrapper(cryptoPluginName));
     QFutureWatcher<DataResult> *watcher = new QFutureWatcher<DataResult>(this);
     QFuture<DataResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptoPluginName).data(),
                 CryptoPluginFunctionWrapper::sign,
-                PluginAndCustomParams(m_cryptoPlugins[cryptoPluginName], customParameters),
+                PluginWrapperAndCustomParams(m_cryptoPlugins[cryptoPluginName], wrapper, customParameters),
                 data,
-                Key::deserialize(serializedKey),
+                KeyAndCollectionKey(Key::deserialize(serializedKey), QByteArray()),
+                SignatureOptions(padding, digestFunction));
+
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<DataResult>::finished, [=] {
+        watcher->deleteLater();
+        DataResult dr = watcher->future().result();
+        QVariantList outParams;
+        outParams << QVariant::fromValue<Result>(dr.result);
+        outParams << QVariant::fromValue<QByteArray>(dr.data);
+        m_requestQueue->requestFinished(requestId, outParams);
+    });
+}
+
+void
+Daemon::ApiImpl::RequestProcessor::sign_withCollectionKey(
+        quint64 requestId,
+        const QByteArray &data,
+        const Key &key,
+        CryptoManager::SignaturePadding padding,
+        CryptoManager::DigestFunction digestFunction,
+        const QVariantMap &customParameters,
+        const QString &cryptoPluginName,
+        const Result &result,
+        const QByteArray &collectionKey)
+{
+    if (result.code() != Result::Succeeded) {
+        QList<QVariant> outParams;
+        outParams << QVariant::fromValue<Result>(result);
+        outParams << QVariant::fromValue<QByteArray>(QByteArray());
+        m_requestQueue->requestFinished(requestId, outParams);
+        return;
+    }
+
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper(m_secrets->cryptoStoragePluginWrapper(cryptoPluginName));
+    QFutureWatcher<DataResult> *watcher = new QFutureWatcher<DataResult>(this);
+    QFuture<DataResult> future = QtConcurrent::run(
+                m_requestQueue->controller()->threadPoolForPlugin(cryptoPluginName).data(),
+                CryptoPluginFunctionWrapper::sign,
+                PluginWrapperAndCustomParams(m_cryptoPlugins[cryptoPluginName], wrapper, customParameters),
+                data,
+                KeyAndCollectionKey(key, collectionKey),
                 SignatureOptions(padding, digestFunction));
 
     watcher->setFuture(future);
@@ -1461,7 +1530,31 @@ Daemon::ApiImpl::RequestProcessor::verify(
         // if so, we don't need to pull it into the daemon process address space.
         if (key.identifier().storagePluginName() == cryptosystemProviderName) {
             // yes, it is stored in the plugin.
-            fullKey = key; // not a full key, but a reference to a key that the plugin stores.
+            // it may be that the collection the key is stored in is locked,
+            // and if so, we need to retrieve the collection key to unlock it.
+            Result retn = transformSecretsResult(m_secrets->useKeyPreCheck(callerPid,
+                                                                           requestId,
+                                                                           key.identifier(),
+                                                                           CryptoManager::OperationVerify,
+                                                                           cryptosystemProviderName));
+            if (retn.code() == Result::Failed) {
+                return retn;
+            }
+
+            // asynchronous flow required, will call back to verify_withCollectionKey().
+            m_pendingRequests.insert(requestId,
+                                     Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                         callerPid,
+                                         requestId,
+                                         Daemon::ApiImpl::VerifyRequest,
+                                         QVariantList() << QVariant::fromValue<QByteArray>(signature)
+                                                        << QVariant::fromValue<QByteArray>(data)
+                                                        << QVariant::fromValue<Key>(key)
+                                                        << QVariant::fromValue<CryptoManager::SignaturePadding>(padding)
+                                                        << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction)
+                                                        << QVariant::fromValue<QVariantMap>(customParameters)
+                                                        << QVariant::fromValue<QString>(cryptosystemProviderName)));
+            return retn;
         } else {
             // no, it is stored in some other plugin
             QByteArray serializedKey;
@@ -1470,7 +1563,7 @@ Daemon::ApiImpl::RequestProcessor::verify(
             if (retn.code() == Result::Failed) {
                 return retn;
             } else if (retn.code() == Result::Pending) {
-                // asynchronous flow required, will call back to verify2().
+                // asynchronous flow required, will call back to verify_withKey().
                 m_pendingRequests.insert(requestId,
                                          Daemon::ApiImpl::RequestProcessor::PendingRequest(
                                              callerPid,
@@ -1491,14 +1584,15 @@ Daemon::ApiImpl::RequestProcessor::verify(
         fullKey = key;
     }
 
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper(m_secrets->cryptoStoragePluginWrapper(cryptosystemProviderName));
     QFutureWatcher<ValidatedResult> *watcher = new QFutureWatcher<ValidatedResult>(this);
     QFuture<ValidatedResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginFunctionWrapper::verify,
-                PluginAndCustomParams(cryptoPlugin, customParameters),
+                PluginWrapperAndCustomParams(cryptoPlugin, wrapper, customParameters),
                 signature,
                 data,
-                fullKey,
+                KeyAndCollectionKey(fullKey, QByteArray()),
                 SignatureOptions(padding, digestFunction));
 
     watcher->setFuture(future);
@@ -1515,7 +1609,7 @@ Daemon::ApiImpl::RequestProcessor::verify(
 }
 
 void
-Daemon::ApiImpl::RequestProcessor::verify2(
+Daemon::ApiImpl::RequestProcessor::verify_withKey(
         quint64 requestId,
         const Result &result,
         const QByteArray &serializedKey,
@@ -1534,14 +1628,58 @@ Daemon::ApiImpl::RequestProcessor::verify2(
         return;
     }
 
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper(m_secrets->cryptoStoragePluginWrapper(cryptoPluginName));
     QFutureWatcher<ValidatedResult> *watcher = new QFutureWatcher<ValidatedResult>(this);
     QFuture<ValidatedResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptoPluginName).data(),
                 CryptoPluginFunctionWrapper::verify,
-                PluginAndCustomParams(m_cryptoPlugins[cryptoPluginName], customParameters),
+                PluginWrapperAndCustomParams(m_cryptoPlugins[cryptoPluginName], wrapper, customParameters),
                 signature,
                 data,
-                Key::deserialize(serializedKey),
+                KeyAndCollectionKey(Key::deserialize(serializedKey), QByteArray()),
+                SignatureOptions(padding, digestFunction));
+
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<ValidatedResult>::finished, [=] {
+        watcher->deleteLater();
+        ValidatedResult vr = watcher->future().result();
+        QVariantList outParams;
+        outParams << QVariant::fromValue<Result>(vr.result);
+        outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(vr.verificationStatus);
+        m_requestQueue->requestFinished(requestId, outParams);
+    });
+}
+
+void
+Daemon::ApiImpl::RequestProcessor::verify_withCollectionKey(
+        quint64 requestId,
+        const QByteArray &signature,
+        const QByteArray &data,
+        const Key &key,
+        CryptoManager::SignaturePadding padding,
+        CryptoManager::DigestFunction digestFunction,
+        const QVariantMap &customParameters,
+        const QString &cryptoPluginName,
+        const Result &result,
+        const QByteArray &collectionKey)
+{
+    if (result.code() != Result::Succeeded) {
+        QList<QVariant> outParams;
+        outParams << QVariant::fromValue<Result>(result);
+        outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(CryptoManager::VerificationFailed);
+        m_requestQueue->requestFinished(requestId, outParams);
+        return;
+    }
+
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper(m_secrets->cryptoStoragePluginWrapper(cryptoPluginName));
+    QFutureWatcher<ValidatedResult> *watcher = new QFutureWatcher<ValidatedResult>(this);
+    QFuture<ValidatedResult> future = QtConcurrent::run(
+                m_requestQueue->controller()->threadPoolForPlugin(cryptoPluginName).data(),
+                CryptoPluginFunctionWrapper::verify,
+                PluginWrapperAndCustomParams(m_cryptoPlugins[cryptoPluginName], wrapper, customParameters),
+                signature,
+                data,
+                KeyAndCollectionKey(key, collectionKey),
                 SignatureOptions(padding, digestFunction));
 
     watcher->setFuture(future);
@@ -1602,7 +1740,32 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
         // if so, we don't need to pull it into the daemon process address space.
         if (key.identifier().storagePluginName() == cryptosystemProviderName) {
             // yes, it is stored in the plugin.
-            fullKey = key; // not a full key, but a reference to a key that the plugin stores.
+            // it may be that the collection the key is stored in is locked,
+            // and if so, we need to retrieve the collection key to unlock it.
+            Result retn = transformSecretsResult(m_secrets->useKeyPreCheck(callerPid,
+                                                                           requestId,
+                                                                           key.identifier(),
+                                                                           CryptoManager::OperationEncrypt,
+                                                                           cryptosystemProviderName));
+            if (retn.code() == Result::Failed) {
+                return retn;
+            }
+
+            // asynchronous flow required, will call back to encrypt_withCollectionKey().
+            m_pendingRequests.insert(requestId,
+                                     Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                         callerPid,
+                                         requestId,
+                                         Daemon::ApiImpl::EncryptRequest,
+                                         QVariantList() << QVariant::fromValue<QByteArray>(data)
+                                                        << QVariant::fromValue<QByteArray>(iv)
+                                                        << QVariant::fromValue<Key>(key)
+                                                        << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
+                                                        << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding)
+                                                        << QVariant::fromValue<QByteArray>(authenticationData)
+                                                        << QVariant::fromValue<QVariantMap>(customParameters)
+                                                        << QVariant::fromValue<QString>(cryptosystemProviderName)));
+            return retn;
         } else {
             // no, it is stored in some other plugin
             QByteArray serializedKey;
@@ -1611,7 +1774,7 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
             if (retn.code() == Result::Failed) {
                 return retn;
             } else if (retn.code() == Result::Pending) {
-                // asynchronous flow required, will call back to encrypt2().
+                // asynchronous flow required, will call back to encrypt_withKey().
                 QVariantList args;
                 args << QVariant::fromValue<QByteArray>(data)
                                << QVariant::fromValue<QByteArray>(iv)
@@ -1635,13 +1798,14 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
         fullKey = key;
     }
 
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper(m_secrets->cryptoStoragePluginWrapper(cryptosystemProviderName));
     QFutureWatcher<TagDataResult> *watcher = new QFutureWatcher<TagDataResult>(this);
     QFuture<TagDataResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginFunctionWrapper::encrypt,
-                PluginAndCustomParams(cryptoPlugin, customParameters),
+                PluginWrapperAndCustomParams(cryptoPlugin, wrapper, customParameters),
                 DataAndIV(data, iv),
-                fullKey,
+                KeyAndCollectionKey(fullKey, QByteArray()),
                 EncryptionOptions(blockMode, padding),
                 authenticationData);
 
@@ -1660,7 +1824,7 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
 }
 
 void
-Daemon::ApiImpl::RequestProcessor::encrypt2(
+Daemon::ApiImpl::RequestProcessor::encrypt_withKey(
         quint64 requestId,
         const Result &result,
         const QByteArray &serializedKey,
@@ -1693,13 +1857,61 @@ Daemon::ApiImpl::RequestProcessor::encrypt2(
         return;
     }
 
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper(m_secrets->cryptoStoragePluginWrapper(cryptoPluginName));
     QFutureWatcher<TagDataResult> *watcher = new QFutureWatcher<TagDataResult>(this);
     QFuture<TagDataResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptoPluginName).data(),
                 CryptoPluginFunctionWrapper::encrypt,
-                PluginAndCustomParams(m_cryptoPlugins[cryptoPluginName], customParameters),
+                PluginWrapperAndCustomParams(m_cryptoPlugins[cryptoPluginName], wrapper, customParameters),
                 DataAndIV(data, iv),
-                fullKey,
+                KeyAndCollectionKey(fullKey, QByteArray()),
+                EncryptionOptions(blockMode, padding),
+                authenticationData);
+
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<TagDataResult>::finished, [=] {
+        watcher->deleteLater();
+        TagDataResult dr = watcher->future().result();
+        QVariantList outParams;
+        outParams << QVariant::fromValue<Result>(dr.result);
+        outParams << QVariant::fromValue<QByteArray>(dr.data);
+        outParams << QVariant::fromValue<QByteArray>(dr.tag);
+        m_requestQueue->requestFinished(requestId, outParams);
+    });
+}
+
+
+void
+Daemon::ApiImpl::RequestProcessor::encrypt_withCollectionKey(
+        quint64 requestId,
+        const QByteArray &data,
+        const QByteArray &iv,
+        const Key &key,
+        CryptoManager::BlockMode blockMode,
+        CryptoManager::EncryptionPadding padding,
+        const QByteArray &authenticationData,
+        const QVariantMap &customParameters,
+        const QString &cryptoPluginName,
+        const Result &result,
+        const QByteArray &collectionKey)
+{
+    if (result.code() != Result::Succeeded) {
+        QList<QVariant> outParams;
+        outParams << QVariant::fromValue<Result>(result);
+        outParams << QVariant::fromValue<QByteArray>(QByteArray());
+        outParams << QVariant::fromValue<QByteArray>(QByteArray());
+        m_requestQueue->requestFinished(requestId, outParams);
+        return;
+    }
+
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper(m_secrets->cryptoStoragePluginWrapper(cryptoPluginName));
+    QFutureWatcher<TagDataResult> *watcher = new QFutureWatcher<TagDataResult>(this);
+    QFuture<TagDataResult> future = QtConcurrent::run(
+                m_requestQueue->controller()->threadPoolForPlugin(cryptoPluginName).data(),
+                CryptoPluginFunctionWrapper::encrypt,
+                PluginWrapperAndCustomParams(m_cryptoPlugins[cryptoPluginName], wrapper, customParameters),
+                DataAndIV(data, iv),
+                KeyAndCollectionKey(key, collectionKey),
                 EncryptionOptions(blockMode, padding),
                 authenticationData);
 
@@ -1763,7 +1975,33 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
         // if so, we don't need to pull it into the daemon process address space.
         if (key.identifier().storagePluginName() == cryptosystemProviderName) {
             // yes, it is stored in the plugin.
-            fullKey = key; // not a full key, but a reference to a key that the plugin stores.
+            // it may be that the collection the key is stored in is locked,
+            // and if so, we need to retrieve the collection key to unlock it.
+            Result retn = transformSecretsResult(m_secrets->useKeyPreCheck(callerPid,
+                                                                           requestId,
+                                                                           key.identifier(),
+                                                                           CryptoManager::OperationDecrypt,
+                                                                           cryptosystemProviderName));
+            if (retn.code() == Result::Failed) {
+                return retn;
+            }
+
+            // asynchronous flow required, will call back to decrypt_withCollectionKey().
+            m_pendingRequests.insert(requestId,
+                                     Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                         callerPid,
+                                         requestId,
+                                         Daemon::ApiImpl::DecryptRequest,
+                                         QVariantList() << QVariant::fromValue<QByteArray>(data)
+                                                        << QVariant::fromValue<QByteArray>(iv)
+                                                        << QVariant::fromValue<Key>(key)
+                                                        << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
+                                                        << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding)
+                                                        << QVariant::fromValue<QByteArray>(authenticationData)
+                                                        << QVariant::fromValue<QByteArray>(authenticationTag)
+                                                        << QVariant::fromValue<QVariantMap>(customParameters)
+                                                        << QVariant::fromValue<QString>(cryptosystemProviderName)));
+            return retn;
         } else {
             // no, it is stored in some other plugin
             QByteArray serializedKey;
@@ -1772,7 +2010,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
             if (retn.code() == Result::Failed) {
                 return retn;
             } else if (retn.code() == Result::Pending) {
-                // asynchronous flow required, will call back to decrypt2().
+                // asynchronous flow required, will call back to decrypt_withKey().
                 QVariantList args;
                 args << QVariant::fromValue<QByteArray>(data)
                      << QVariant::fromValue<QByteArray>(iv)
@@ -1797,13 +2035,14 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
         fullKey = key;
     }
 
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper(m_secrets->cryptoStoragePluginWrapper(cryptosystemProviderName));
     QFutureWatcher<VerifiedDataResult> *watcher = new QFutureWatcher<VerifiedDataResult>(this);
     QFuture<VerifiedDataResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginFunctionWrapper::decrypt,
-                PluginAndCustomParams(cryptoPlugin, customParameters),
+                PluginWrapperAndCustomParams(cryptoPlugin, wrapper, customParameters),
                 DataAndIV(data, iv),
-                fullKey,
+                KeyAndCollectionKey(fullKey, QByteArray()),
                 EncryptionOptions(blockMode, padding),
                 AuthDataAndTag(authenticationData, authenticationTag));
 
@@ -1822,7 +2061,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
 }
 
 void
-Daemon::ApiImpl::RequestProcessor::decrypt2(
+Daemon::ApiImpl::RequestProcessor::decrypt_withKey(
         quint64 requestId,
         const Result &result,
         const QByteArray &serializedKey,
@@ -1844,13 +2083,61 @@ Daemon::ApiImpl::RequestProcessor::decrypt2(
         return;
     }
 
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper(m_secrets->cryptoStoragePluginWrapper(cryptoPluginName));
     QFutureWatcher<VerifiedDataResult> *watcher = new QFutureWatcher<VerifiedDataResult>(this);
     QFuture<VerifiedDataResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptoPluginName).data(),
                 CryptoPluginFunctionWrapper::decrypt,
-                PluginAndCustomParams(m_cryptoPlugins[cryptoPluginName], customParameters),
+                PluginWrapperAndCustomParams(m_cryptoPlugins[cryptoPluginName], wrapper, customParameters),
                 DataAndIV(data, iv),
-                Key::deserialize(serializedKey),
+                KeyAndCollectionKey(Key::deserialize(serializedKey), QByteArray()),
+                EncryptionOptions(blockMode, padding),
+                AuthDataAndTag(authenticationData, authenticationTag));
+
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<VerifiedDataResult>::finished, [=] {
+        watcher->deleteLater();
+        VerifiedDataResult dr = watcher->future().result();
+        QVariantList outParams;
+        outParams << QVariant::fromValue<Result>(dr.result);
+        outParams << QVariant::fromValue<QByteArray>(dr.data);
+        outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(dr.verificationStatus);
+        m_requestQueue->requestFinished(requestId, outParams);
+    });
+}
+
+void
+Daemon::ApiImpl::RequestProcessor::decrypt_withCollectionKey(
+        quint64 requestId,
+        const QByteArray &data,
+        const QByteArray &iv,
+        const Key &key,
+        CryptoManager::BlockMode blockMode,
+        CryptoManager::EncryptionPadding padding,
+        const QByteArray &authenticationData,
+        const QByteArray &authenticationTag,
+        const QVariantMap &customParameters,
+        const QString &cryptoPluginName,
+        const Result &result,
+        const QByteArray &collectionKey)
+{
+    if (result.code() != Result::Succeeded) {
+        QList<QVariant> outParams;
+        outParams << QVariant::fromValue<Result>(result);
+        outParams << QVariant::fromValue<QByteArray>(QByteArray());
+        outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(CryptoManager::VerificationFailed);
+        m_requestQueue->requestFinished(requestId, outParams);
+        return;
+    }
+
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper(m_secrets->cryptoStoragePluginWrapper(cryptoPluginName));
+    QFutureWatcher<VerifiedDataResult> *watcher = new QFutureWatcher<VerifiedDataResult>(this);
+    QFuture<VerifiedDataResult> future = QtConcurrent::run(
+                m_requestQueue->controller()->threadPoolForPlugin(cryptoPluginName).data(),
+                CryptoPluginFunctionWrapper::decrypt,
+                PluginWrapperAndCustomParams(m_cryptoPlugins[cryptoPluginName], wrapper, customParameters),
+                DataAndIV(data, iv),
+                KeyAndCollectionKey(key, collectionKey),
                 EncryptionOptions(blockMode, padding),
                 AuthDataAndTag(authenticationData, authenticationTag));
 
@@ -1912,7 +2199,33 @@ Daemon::ApiImpl::RequestProcessor::initializeCipherSession(
         // if so, we don't need to pull it into the daemon process address space.
         if (key.identifier().storagePluginName() == cryptosystemProviderName) {
             // yes, it is stored in the plugin.
-            fullKey = key; // not a full key, but a reference to a key that the plugin stores.
+            // it may be that the collection the key is stored in is locked,
+            // and if so, we need to retrieve the collection key to unlock it.
+            Result retn = transformSecretsResult(m_secrets->useKeyPreCheck(callerPid,
+                                                                           requestId,
+                                                                           key.identifier(),
+                                                                           operation,
+                                                                           cryptosystemProviderName));
+            if (retn.code() == Result::Failed) {
+                return retn;
+            }
+
+            // asynchronous flow required, will call back to initializeCipherSession_withCollectionKey().
+            m_pendingRequests.insert(requestId,
+                                     Daemon::ApiImpl::RequestProcessor::PendingRequest(
+                                         callerPid,
+                                         requestId,
+                                         Daemon::ApiImpl::InitializeCipherSessionRequest,
+                                         QVariantList() << QVariant::fromValue<QByteArray>(iv)
+                                                        << QVariant::fromValue<Key>(key)
+                                                        << QVariant::fromValue<CryptoManager::Operation>(operation)
+                                                        << QVariant::fromValue<CryptoManager::BlockMode>(blockMode)
+                                                        << QVariant::fromValue<CryptoManager::EncryptionPadding>(encryptionPadding)
+                                                        << QVariant::fromValue<CryptoManager::SignaturePadding>(signaturePadding)
+                                                        << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction)
+                                                        << QVariant::fromValue<QVariantMap>(customParameters)
+                                                        << QVariant::fromValue<QString>(cryptosystemProviderName)));
+            return retn;
         } else {
             // no, it is stored in some other plugin
             QByteArray serializedKey;
@@ -1921,7 +2234,7 @@ Daemon::ApiImpl::RequestProcessor::initializeCipherSession(
             if (retn.code() == Result::Failed) {
                 return retn;
             } else if (retn.code() == Result::Pending) {
-                // asynchronous flow required, will call back to initializeCipherSession2().
+                // asynchronous flow required, will call back to initializeCipherSession_withKey().
                 m_pendingRequests.insert(requestId,
                                          Daemon::ApiImpl::RequestProcessor::PendingRequest(
                                              callerPid,
@@ -1945,14 +2258,15 @@ Daemon::ApiImpl::RequestProcessor::initializeCipherSession(
         fullKey = key;
     }
 
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper(m_secrets->cryptoStoragePluginWrapper(cryptosystemProviderName));
     QFutureWatcher<CipherSessionTokenResult> *watcher = new QFutureWatcher<CipherSessionTokenResult>(this);
     QFuture<CipherSessionTokenResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptosystemProviderName).data(),
                 CryptoPluginFunctionWrapper::initializeCipherSession,
-                PluginAndCustomParams(cryptoPlugin, customParameters),
+                PluginWrapperAndCustomParams(cryptoPlugin, wrapper, customParameters),
                 callerPid,
                 iv,
-                fullKey,
+                KeyAndCollectionKey(fullKey, QByteArray()),
                 CipherSessionOptions(
                     operation,
                     blockMode,
@@ -1974,7 +2288,7 @@ Daemon::ApiImpl::RequestProcessor::initializeCipherSession(
 }
 
 void
-Daemon::ApiImpl::RequestProcessor::initializeCipherSession2(
+Daemon::ApiImpl::RequestProcessor::initializeCipherSession_withKey(
         quint64 requestId,
         const Result &result,
         const QByteArray &serializedKey,
@@ -1996,14 +2310,66 @@ Daemon::ApiImpl::RequestProcessor::initializeCipherSession2(
         return;
     }
 
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper(m_secrets->cryptoStoragePluginWrapper(cryptoPluginName));
     QFutureWatcher<CipherSessionTokenResult> *watcher = new QFutureWatcher<CipherSessionTokenResult>(this);
     QFuture<CipherSessionTokenResult> future = QtConcurrent::run(
                 m_requestQueue->controller()->threadPoolForPlugin(cryptoPluginName).data(),
                 CryptoPluginFunctionWrapper::initializeCipherSession,
-                PluginAndCustomParams(m_cryptoPlugins[cryptoPluginName], customParameters),
+                PluginWrapperAndCustomParams(m_cryptoPlugins[cryptoPluginName], wrapper, customParameters),
                 callerPid,
                 iv,
-                Key::deserialize(serializedKey),
+                KeyAndCollectionKey(Key::deserialize(serializedKey), QByteArray()),
+                CipherSessionOptions(
+                    operation,
+                    blockMode,
+                    encryptionPadding,
+                    signaturePadding,
+                    digestFunction));
+
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<CipherSessionTokenResult>::finished, [=] {
+        watcher->deleteLater();
+        CipherSessionTokenResult dr = watcher->future().result();
+        QVariantList outParams;
+        outParams << QVariant::fromValue<Result>(dr.result);
+        outParams << QVariant::fromValue<quint32>(dr.cipherSessionToken);
+        m_requestQueue->requestFinished(requestId, outParams);
+    });
+}
+
+void
+Daemon::ApiImpl::RequestProcessor::initializeCipherSession_withCollectionKey(
+        quint64 requestId,
+        pid_t callerPid,
+        const QByteArray &iv,
+        const Key &key,
+        CryptoManager::Operation operation,
+        CryptoManager::BlockMode blockMode,
+        CryptoManager::EncryptionPadding encryptionPadding,
+        CryptoManager::SignaturePadding signaturePadding,
+        CryptoManager::DigestFunction digestFunction,
+        const QVariantMap &customParameters,
+        const QString &cryptoPluginName,
+        const Result &result,
+        const QByteArray &collectionKey)
+{
+    if (result.code() != Result::Succeeded) {
+        QList<QVariant> outParams;
+        outParams << QVariant::fromValue<Result>(result);
+        outParams << QVariant::fromValue<quint32>(0);
+        m_requestQueue->requestFinished(requestId, outParams);
+        return;
+    }
+
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper(m_secrets->cryptoStoragePluginWrapper(cryptoPluginName));
+    QFutureWatcher<CipherSessionTokenResult> *watcher = new QFutureWatcher<CipherSessionTokenResult>(this);
+    QFuture<CipherSessionTokenResult> future = QtConcurrent::run(
+                m_requestQueue->controller()->threadPoolForPlugin(cryptoPluginName).data(),
+                CryptoPluginFunctionWrapper::initializeCipherSession,
+                PluginWrapperAndCustomParams(m_cryptoPlugins[cryptoPluginName], wrapper, customParameters),
+                callerPid,
+                iv,
+                KeyAndCollectionKey(key, collectionKey),
                 CipherSessionOptions(
                     operation,
                     blockMode,
@@ -2335,7 +2701,7 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 CryptoManager::DigestFunction digestFunction = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
                 QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                sign2(requestId, returnResult, serializedKey, data, padding, digestFunction, customParameters, cryptoPluginName);
+                sign_withKey(requestId, returnResult, serializedKey, data, padding, digestFunction, customParameters, cryptoPluginName);
                 break;
             }
             case VerifyRequest: {
@@ -2345,7 +2711,7 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 CryptoManager::DigestFunction digestFunction = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
                 QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                verify2(requestId, returnResult, serializedKey, signature, data, padding, digestFunction, customParameters, cryptoPluginName);
+                verify_withKey(requestId, returnResult, serializedKey, signature, data, padding, digestFunction, customParameters, cryptoPluginName);
                 break;
             }
             case EncryptRequest: {
@@ -2356,7 +2722,7 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 QByteArray authenticationData = pr.parameters.takeFirst().value<QByteArray>();
                 QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                encrypt2(requestId, returnResult, serializedKey, data, iv, blockMode, padding, authenticationData, customParameters, cryptoPluginName);
+                encrypt_withKey(requestId, returnResult, serializedKey, data, iv, blockMode, padding, authenticationData, customParameters, cryptoPluginName);
                 break;
             }
             case DecryptRequest: {
@@ -2368,7 +2734,7 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 QByteArray authenticationTag = pr.parameters.takeFirst().value<QByteArray>();
                 QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                decrypt2(requestId, returnResult, serializedKey, data, iv, blockMode, padding, authenticationData, authenticationTag, customParameters, cryptoPluginName);
+                decrypt_withKey(requestId, returnResult, serializedKey, data, iv, blockMode, padding, authenticationData, authenticationTag, customParameters, cryptoPluginName);
                 break;
             }
             case InitializeCipherSessionRequest: {
@@ -2381,10 +2747,10 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
                 CryptoManager::DigestFunction digestFunction = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
                 QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
                 QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
-                initializeCipherSession2(requestId, returnResult, serializedKey,
-                                         callerPid, iv, operation, blockMode,
-                                         encryptionPadding, signaturePadding,
-                                         digestFunction, customParameters, cryptoPluginName);
+                initializeCipherSession_withKey(requestId, returnResult, serializedKey,
+                                                callerPid, iv, operation, blockMode,
+                                                encryptionPadding, signaturePadding,
+                                                digestFunction, customParameters, cryptoPluginName);
                 break;
             }
             default: {
@@ -2394,6 +2760,139 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoredKeyCompleted(
         }
     } else {
         qCWarning(lcSailfishCryptoDaemon) << "Secrets completed storedKey() operation for unknown request:" << requestId;
+    }
+}
+
+// asynchronous operation (use key pre-check) has completed.
+void Daemon::ApiImpl::RequestProcessor::secretsUseKeyPreCheckCompleted(
+        quint64 requestId,
+        const Sailfish::Secrets::Result &result,
+        const QByteArray &collectionDecryptionKey)
+{
+    // look up the pending request in our list
+    if (m_pendingRequests.contains(requestId)) {
+        // transform the error code.
+        Result returnResult(transformSecretsResult(result));
+
+        // call the appropriate method to complete the request
+        Daemon::ApiImpl::RequestProcessor::PendingRequest pr = m_pendingRequests.take(requestId);
+        switch (pr.requestType) {
+            case SignRequest: {
+                QByteArray data = pr.parameters.takeFirst().value<QByteArray>();
+                Key key = pr.parameters.takeFirst().value<Key>();
+                CryptoManager::SignaturePadding padding = pr.parameters.takeFirst().value<CryptoManager::SignaturePadding>();
+                CryptoManager::DigestFunction digestFunction = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
+                QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
+                QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
+                sign_withCollectionKey(requestId,
+                                       data,
+                                       key,
+                                       padding,
+                                       digestFunction,
+                                       customParameters,
+                                       cryptosystemProviderName,
+                                       returnResult,
+                                       collectionDecryptionKey);
+                break;
+            }
+            case VerifyRequest: {
+                QByteArray signature = pr.parameters.takeFirst().value<QByteArray>();
+                QByteArray data = pr.parameters.takeFirst().value<QByteArray>();
+                Key key = pr.parameters.takeFirst().value<Key>();
+                CryptoManager::SignaturePadding padding = pr.parameters.takeFirst().value<CryptoManager::SignaturePadding>();
+                CryptoManager::DigestFunction digestFunction = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
+                QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
+                QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
+                verify_withCollectionKey(requestId,
+                                         signature,
+                                         data,
+                                         key,
+                                         padding,
+                                         digestFunction,
+                                         customParameters,
+                                         cryptosystemProviderName,
+                                         returnResult,
+                                         collectionDecryptionKey);
+                break;
+            }
+            case EncryptRequest: {
+                QByteArray data = pr.parameters.takeFirst().value<QByteArray>();
+                QByteArray iv = pr.parameters.takeFirst().value<QByteArray>();
+                Key key = pr.parameters.takeFirst().value<Key>();
+                CryptoManager::BlockMode blockMode = pr.parameters.takeFirst().value<CryptoManager::BlockMode>();
+                CryptoManager::EncryptionPadding padding = pr.parameters.takeFirst().value<CryptoManager::EncryptionPadding>();
+                QByteArray authenticationData = pr.parameters.takeFirst().value<QByteArray>();
+                QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
+                QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
+                encrypt_withCollectionKey(requestId,
+                                          data,
+                                          iv,
+                                          key,
+                                          blockMode,
+                                          padding,
+                                          authenticationData,
+                                          customParameters,
+                                          cryptosystemProviderName,
+                                          returnResult,
+                                          collectionDecryptionKey);
+                break;
+            }
+            case DecryptRequest: {
+                QByteArray data = pr.parameters.takeFirst().value<QByteArray>();
+                QByteArray iv = pr.parameters.takeFirst().value<QByteArray>();
+                Key key = pr.parameters.takeFirst().value<Key>();
+                CryptoManager::BlockMode blockMode = pr.parameters.takeFirst().value<CryptoManager::BlockMode>();
+                CryptoManager::EncryptionPadding padding = pr.parameters.takeFirst().value<CryptoManager::EncryptionPadding>();
+                QByteArray authenticationData = pr.parameters.takeFirst().value<QByteArray>();
+                QByteArray authenticationTag = pr.parameters.takeFirst().value<QByteArray>();
+                QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
+                QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
+                decrypt_withCollectionKey(requestId,
+                                          data,
+                                          iv,
+                                          key,
+                                          blockMode,
+                                          padding,
+                                          authenticationData,
+                                          authenticationTag,
+                                          customParameters,
+                                          cryptosystemProviderName,
+                                          returnResult,
+                                          collectionDecryptionKey);
+                break;
+            }
+            case InitializeCipherSessionRequest: {
+                QByteArray iv = pr.parameters.takeFirst().value<QByteArray>();
+                Key key = pr.parameters.takeFirst().value<Key>();
+                CryptoManager::Operation operation = pr.parameters.takeFirst().value<CryptoManager::Operation>();
+                CryptoManager::BlockMode blockMode = pr.parameters.takeFirst().value<CryptoManager::BlockMode>();
+                CryptoManager::EncryptionPadding encryptionPadding = pr.parameters.takeFirst().value<CryptoManager::EncryptionPadding>();
+                CryptoManager::SignaturePadding signaturePadding = pr.parameters.takeFirst().value<CryptoManager::SignaturePadding>();
+                CryptoManager::DigestFunction digestFunction = pr.parameters.takeFirst().value<CryptoManager::DigestFunction>();
+                QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
+                QString cryptosystemProviderName = pr.parameters.takeFirst().value<QString>();
+                initializeCipherSession_withCollectionKey(requestId,
+                                                          pr.callerPid,
+                                                          iv,
+                                                          key,
+                                                          operation,
+                                                          blockMode,
+                                                          encryptionPadding,
+                                                          signaturePadding,
+                                                          digestFunction,
+                                                          customParameters,
+                                                          cryptosystemProviderName,
+                                                          returnResult,
+                                                          collectionDecryptionKey);
+                break;
+            }
+            default: {
+                qCWarning(lcSailfishCryptoDaemon) << "Secrets completed useKeyPreCheck() operation for request:" << requestId << "of invalid type:" << pr.requestType;
+                break;
+            }
+        }
+    } else {
+        qCWarning(lcSailfishCryptoDaemon) << "Secrets completed useKeyPreCheck() operation for unknown request:" << requestId;
     }
 }
 
@@ -2448,12 +2947,12 @@ void Daemon::ApiImpl::RequestProcessor::secretsStoreKeyPreCheckCompleted(
                 break;
             }
             default: {
-                qCWarning(lcSailfishCryptoDaemon) << "Secrets completed storeKey() operation for request:" << requestId << "of invalid type:" << pr.requestType;
+                qCWarning(lcSailfishCryptoDaemon) << "Secrets completed storeKeyPreCheck() operation for request:" << requestId << "of invalid type:" << pr.requestType;
                 break;
             }
         }
     } else {
-        qCWarning(lcSailfishCryptoDaemon) << "Secrets completed storeKey() operation for unknown request:" << requestId;
+        qCWarning(lcSailfishCryptoDaemon) << "Secrets completed storeKeyPreCheck() operation for unknown request:" << requestId;
     }
 }
 

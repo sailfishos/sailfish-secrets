@@ -750,7 +750,8 @@ Result
 StoragePluginFunctionWrapper::collectionSecretPreCheck(
         StoragePluginWrapper *plugin,
         const QString &collectionName,
-        const QString &secretName)
+        const QString &secretName,
+        bool newSecret)
 {
     QStringList cnames;
     Result result = plugin->collectionNames(&cnames);
@@ -767,12 +768,24 @@ StoragePluginFunctionWrapper::collectionSecretPreCheck(
     SecretMetadata metadata;
     result = plugin->secretMetadata(collectionName, secretName, &metadata);
     if (result.code() == Result::Succeeded) {
-        // this is bad, since it means that the secret already exists.
-        return Result(Result::SecretAlreadyExistsError,
-                      QStringLiteral("A secret with that name in this collection already exists"));
+        if (newSecret) {
+            // this is bad, since it means that the secret already exists.
+            return Result(Result::SecretAlreadyExistsError,
+                          QStringLiteral("A secret with that name in this collection already exists"));
+        } else {
+            // this is good, the secret we want to use does exist.
+            return Result(Result::Succeeded);
+        }
     } else if (result.errorCode() == Result::InvalidSecretError) {
-        // this is good, the secret does not exist.
-        return Result(Result::Succeeded);
+        if (newSecret) {
+            // this is good, the secret does not exist.
+            return Result(Result::Succeeded);
+        } else {
+            // This is bad, since it means that the secret does not exist.
+            // However, we can let the plugin report an error in that case,
+            // so return success just in case it's a "hidden" key.
+            return Result(Result::Succeeded);
+        }
     } else {
         // some database error occurred.
         return result;
@@ -1333,10 +1346,9 @@ Result EncryptedStoragePluginFunctionWrapper::deriveKeyUnlockAndRemoveCollection
 
 Result EncryptedStoragePluginFunctionWrapper::collectionSecretPreCheck(
         EncryptedStoragePluginWrapper *plugin,
-        const QString &collectionName,
+        const CollectionInfo &collectionInfo,
         const QString &secretName,
-        const QByteArray &collectionKey,
-        bool requiresRelock)
+        bool newSecret)
 {
     QStringList cnames;
     Result result = plugin->collectionNames(&cnames);
@@ -1344,28 +1356,28 @@ Result EncryptedStoragePluginFunctionWrapper::collectionSecretPreCheck(
         return result;
     }
 
-    if (!cnames.contains(collectionName)) {
+    if (!cnames.contains(collectionInfo.collectionName)) {
         return Result(Result::InvalidCollectionError,
                       QStringLiteral("No such collection %1 exists in plugin %2")
-                      .arg(collectionName, plugin->name()));
+                      .arg(collectionInfo.collectionName, plugin->name()));
     }
 
     bool originallyLocked = false;
     bool locked = false;
-    result = plugin->isCollectionLocked(collectionName, &locked);
+    result = plugin->isCollectionLocked(collectionInfo.collectionName, &locked);
     if (result.code() != Result::Succeeded) {
         return result;
     }
 
     originallyLocked = locked;
     if (locked) {
-        result = plugin->setEncryptionKey(collectionName, collectionKey);
+        result = plugin->setEncryptionKey(collectionInfo.collectionName, collectionInfo.collectionKey);
         if (result.code() != Result::Succeeded) {
             return result;
         }
 
         locked = false;
-        result = plugin->isCollectionLocked(collectionName, &locked);
+        result = plugin->isCollectionLocked(collectionInfo.collectionName, &locked);
         if (result.code() != Result::Succeeded) {
             return result;
         } else if (locked) {
@@ -1375,24 +1387,36 @@ Result EncryptedStoragePluginFunctionWrapper::collectionSecretPreCheck(
     }
 
     SecretMetadata metadata;
-    result = plugin->secretMetadata(collectionName, secretName, &metadata);
+    result = plugin->secretMetadata(collectionInfo.collectionName, secretName, &metadata);
 
     // relock if required.
-    if (originallyLocked && requiresRelock) {
-        Result relockResult = plugin->setEncryptionKey(collectionName, QByteArray());
+    if (originallyLocked && collectionInfo.relockRequired) {
+        Result relockResult = plugin->setEncryptionKey(collectionInfo.collectionName, QByteArray());
         if (relockResult.code() != Result::Succeeded) {
-            qCWarning(lcSailfishSecretsDaemon) << "Error relocking collection:" << collectionName
+            qCWarning(lcSailfishSecretsDaemon) << "Error relocking collection:" << collectionInfo.collectionName
                                                << relockResult.errorMessage();
         }
     }
 
     if (result.code() == Result::Succeeded) {
-        // this is bad, since it means that the secret already exists.
-        return Result(Result::SecretAlreadyExistsError,
-                      QStringLiteral("A secret with that name in this collection already exists"));
+        if (newSecret) {
+            // this is bad, since it means that the secret already exists.
+            return Result(Result::SecretAlreadyExistsError,
+                          QStringLiteral("A secret with that name in this collection already exists"));
+        } else {
+            // this is good, the secret we want to use does exist.
+            return Result(Result::Succeeded);
+        }
     } else if (result.errorCode() == Result::InvalidSecretError) {
-        // this is good, the secret does not exist.
-        return Result(Result::Succeeded);
+        if (newSecret) {
+            // this is good, the secret does not exist.
+            return Result(Result::Succeeded);
+        } else {
+            // This is bad, since it means that the secret does not exist.
+            // However, we can let the plugin report an error in that case,
+            // so return success just in case it's a "hidden" key.
+            return Result(Result::Succeeded);
+        }
     } else {
         // some database error occurred.
         return result;

@@ -14,6 +14,41 @@ using namespace Sailfish::Crypto;
 using namespace Sailfish::Crypto::Daemon::ApiImpl;
 using namespace Sailfish::Secrets::Daemon::Util;
 
+namespace {
+    Sailfish::Secrets::Result unlockCollection(CryptoStoragePluginWrapper *w,
+                                               const QString &collectionName,
+                                               const QByteArray &collectionKey,
+                                               bool *wasLocked) {
+        Sailfish::Secrets::Result lockedResult;
+        bool locked = false;
+        lockedResult = w->isCollectionLocked(
+                    collectionName,
+                    &locked);
+        if (lockedResult.code() == Sailfish::Secrets::Result::Succeeded) {
+            *wasLocked = locked;
+            if (locked) {
+                lockedResult = w->setEncryptionKey(
+                            collectionName,
+                            collectionKey);
+                if (lockedResult.code() == Sailfish::Secrets::Result::Succeeded) {
+                    lockedResult = w->isCollectionLocked(
+                                collectionName,
+                                &locked);
+                    if (lockedResult.code() == Sailfish::Secrets::Result::Succeeded) {
+                        if (locked) {
+                            // still locked, unable to unlock.  return an error.
+                            lockedResult = Sailfish::Secrets::Result(Sailfish::Secrets::Result::IncorrectAuthenticationCodeError,
+                                          QString::fromLatin1("The authentication code entered for collection %1 was incorrect")
+                                                         .arg(collectionName));
+                        }
+                    }
+                }
+            }
+        }
+        return lockedResult;
+    }
+}
+
 /* These methods are to be called via QtConcurrent */
 
 bool CryptoPluginFunctionWrapper::isLocked(
@@ -109,7 +144,7 @@ KeyResult CryptoPluginFunctionWrapper::importAndStoreKey(
         const QByteArray &collectionDecryptionKey)
 {
     Sailfish::Secrets::Daemon::ApiImpl::CollectionMetadata collectionMetadata;
-    Sailfish::Secrets::Result sresult = pluginAndCustomParams.plugin->collectionMetadata(
+    Sailfish::Secrets::Result sresult = pluginAndCustomParams.wrapper->collectionMetadata(
                 keyTemplate.identifier().collectionName(),
                 &collectionMetadata);
     if (sresult.code() != Sailfish::Secrets::Result::Succeeded) {
@@ -129,7 +164,7 @@ KeyResult CryptoPluginFunctionWrapper::importAndStoreKey(
     metadata.cryptoPluginName = pluginAndCustomParams.plugin->name();
 
     Key keyReference(keyTemplate);
-    Result result = pluginAndCustomParams.plugin->importAndStoreKey(
+    Result result = pluginAndCustomParams.wrapper->importAndStoreKey(
                 metadata,
                 keyData,
                 keyTemplate,
@@ -193,100 +228,323 @@ DataResult CryptoPluginFunctionWrapper::calculateDigest(
 }
 
 DataResult CryptoPluginFunctionWrapper::sign(
-        const PluginAndCustomParams &pluginAndCustomParams,
+        const PluginWrapperAndCustomParams &pluginAndCustomParams,
         const QByteArray &data,
-        const Key &key,
+        const KeyAndCollectionKey &keyAndCollectionKey,
         const SignatureOptions &options)
 {
     QByteArray signature;
-    Result result = pluginAndCustomParams.plugin->sign(
-                data, key,
-                options.signaturePadding,
-                options.digestFunction,
-                pluginAndCustomParams.customParameters,
-                &signature);
+    Result result(Result::Succeeded);
+
+    if (CryptoStoragePluginWrapper *w = pluginAndCustomParams.wrapper) {
+        const QString collectionName = keyAndCollectionKey.key.identifier().collectionName();
+        const QByteArray collectionKey = keyAndCollectionKey.collectionKey;
+        bool wasLocked = false;
+
+        // check to see if we need to unlock the collection in order to access the key.
+        // we don't need to do this if the given key has the appropriate components already.
+        if (keyAndCollectionKey.key.privateKey().isEmpty()
+                && keyAndCollectionKey.key.secretKey().isEmpty()) {
+            Sailfish::Secrets::Result lockedResult = unlockCollection(
+                        w, collectionName, collectionKey, &wasLocked);
+            if (lockedResult.code() == Sailfish::Secrets::Result::Failed) {
+                result = transformSecretsResult(lockedResult);
+            }
+        }
+
+        if (result.code() == Result::Succeeded) {
+            result = w->cryptoPlugin()->sign(
+                        data, keyAndCollectionKey.key,
+                        options.signaturePadding,
+                        options.digestFunction,
+                        pluginAndCustomParams.customParameters,
+                        &signature);
+        }
+
+        if (wasLocked) {
+            // relock.
+            Sailfish::Secrets::Result r = w->setEncryptionKey(
+                        collectionName,
+                        QByteArray());
+            Q_UNUSED(r);
+        }
+    } else if (pluginAndCustomParams.plugin) {
+        result = pluginAndCustomParams.plugin->sign(
+                    data, keyAndCollectionKey.key,
+                    options.signaturePadding,
+                    options.digestFunction,
+                    pluginAndCustomParams.customParameters,
+                    &signature);
+    } else {
+        result = Result(Result::InvalidCryptographicServiceProvider,
+                        QLatin1String("Internal error: wrapper and plugin null"));
+    }
+
     return DataResult(result, signature);
 }
 
 ValidatedResult CryptoPluginFunctionWrapper::verify(
-        const PluginAndCustomParams &pluginAndCustomParams,
+        const PluginWrapperAndCustomParams &pluginAndCustomParams,
         const QByteArray &signature,
         const QByteArray &data,
-        const Key &key,
+        const KeyAndCollectionKey &keyAndCollectionKey,
         const SignatureOptions &options)
 {
     Sailfish::Crypto::CryptoManager::VerificationStatus verificationStatus = Sailfish::Crypto::CryptoManager::VerificationStatusUnknown;
-    Result result = pluginAndCustomParams.plugin->verify(
-                signature, data, key,
+    Result result(Result::Succeeded);
+
+    if (CryptoStoragePluginWrapper *w = pluginAndCustomParams.wrapper) {
+        const QString collectionName = keyAndCollectionKey.key.identifier().collectionName();
+        const QByteArray collectionKey = keyAndCollectionKey.collectionKey;
+        bool wasLocked = false;
+
+        // check to see if we need to unlock the collection in order to access the key.
+        // we don't need to do this if the given key has the appropriate components already.
+        if (keyAndCollectionKey.key.publicKey().isEmpty()
+                && keyAndCollectionKey.key.privateKey().isEmpty()
+                && keyAndCollectionKey.key.secretKey().isEmpty()) {
+            Sailfish::Secrets::Result lockedResult = unlockCollection(
+                        w, collectionName, collectionKey, &wasLocked);
+
+            if (lockedResult.code() == Sailfish::Secrets::Result::Failed) {
+                result = transformSecretsResult(lockedResult);
+            }
+        }
+
+        if (result.code() == Result::Succeeded) {
+            result = w->cryptoPlugin()->verify(
+                        signature, data, keyAndCollectionKey.key,
+                        options.signaturePadding,
+                        options.digestFunction,
+                        pluginAndCustomParams.customParameters,
+                        &verificationStatus);
+        }
+
+        if (wasLocked) {
+            // relock.
+            Sailfish::Secrets::Result r = w->setEncryptionKey(
+                        collectionName,
+                        QByteArray());
+            Q_UNUSED(r);
+        }
+    } else if (pluginAndCustomParams.plugin) {
+        result = pluginAndCustomParams.plugin->verify(
+                signature, data, keyAndCollectionKey.key,
                 options.signaturePadding,
                 options.digestFunction,
                 pluginAndCustomParams.customParameters,
                 &verificationStatus);
+    } else {
+        result = Result(Result::InvalidCryptographicServiceProvider,
+                        QLatin1String("Internal error: wrapper and plugin null"));
+    }
+
     return ValidatedResult(result, verificationStatus);
 }
 
 TagDataResult CryptoPluginFunctionWrapper::encrypt(
-        const PluginAndCustomParams &pluginAndCustomParams,
+        const PluginWrapperAndCustomParams &pluginAndCustomParams,
         const DataAndIV &dataAndIv,
-        const Sailfish::Crypto::Key &key,
+        const KeyAndCollectionKey &keyAndCollectionKey,
         const EncryptionOptions &options,
         const QByteArray &authenticationData)
 {
     QByteArray ciphertext;
     QByteArray authenticationTag;
-    Result result = pluginAndCustomParams.plugin->encrypt(
-                dataAndIv.data,
-                dataAndIv.initVector,
-                key,
-                options.blockMode,
-                options.encryptionPadding,
-                authenticationData,
-                pluginAndCustomParams.customParameters,
-                &ciphertext, &authenticationTag);
+    Result result(Result::Succeeded);
+
+    if (CryptoStoragePluginWrapper *w = pluginAndCustomParams.wrapper) {
+        const QString collectionName = keyAndCollectionKey.key.identifier().collectionName();
+        const QByteArray collectionKey = keyAndCollectionKey.collectionKey;
+        bool wasLocked = false;
+
+        // check to see if we need to unlock the collection in order to access the key.
+        // we don't need to do this if the given key has the appropriate components already.
+        if (keyAndCollectionKey.key.publicKey().isEmpty()
+                && keyAndCollectionKey.key.privateKey().isEmpty()
+                && keyAndCollectionKey.key.secretKey().isEmpty()) {
+            Sailfish::Secrets::Result lockedResult = unlockCollection(
+                        w, collectionName, collectionKey, &wasLocked);
+
+            if (lockedResult.code() == Sailfish::Secrets::Result::Failed) {
+                result = transformSecretsResult(lockedResult);
+            }
+        }
+
+        if (result.code() == Result::Succeeded) {
+            result = w->cryptoPlugin()->encrypt(
+                        dataAndIv.data,
+                        dataAndIv.initVector,
+                        keyAndCollectionKey.key,
+                        options.blockMode,
+                        options.encryptionPadding,
+                        authenticationData,
+                        pluginAndCustomParams.customParameters,
+                        &ciphertext, &authenticationTag);
+        }
+
+        if (wasLocked) {
+            // relock.
+            Sailfish::Secrets::Result r = w->setEncryptionKey(
+                        collectionName,
+                        QByteArray());
+            Q_UNUSED(r);
+        }
+    } else if (pluginAndCustomParams.plugin) {
+        result = pluginAndCustomParams.plugin->encrypt(
+                    dataAndIv.data,
+                    dataAndIv.initVector,
+                    keyAndCollectionKey.key,
+                    options.blockMode,
+                    options.encryptionPadding,
+                    authenticationData,
+                    pluginAndCustomParams.customParameters,
+                    &ciphertext, &authenticationTag);
+    } else {
+        result = Result(Result::InvalidCryptographicServiceProvider,
+                        QLatin1String("Internal error: wrapper and plugin null"));
+    }
+
     return TagDataResult(result, ciphertext, authenticationTag);
 }
 
 VerifiedDataResult CryptoPluginFunctionWrapper::decrypt(
-        const PluginAndCustomParams &pluginAndCustomParams,
+        const PluginWrapperAndCustomParams &pluginAndCustomParams,
         const DataAndIV &dataAndIv,
-        const Key &key, // or keyreference, i.e. Key(keyName)
+        const KeyAndCollectionKey &keyAndCollectionKey,
         const EncryptionOptions &options,
         const AuthDataAndTag &authDataAndTag)
 {
     QByteArray plaintext;
     Sailfish::Crypto::CryptoManager::VerificationStatus verificationStatus = Sailfish::Crypto::CryptoManager::VerificationStatusUnknown;
-    Result result = pluginAndCustomParams.plugin->decrypt(
-                dataAndIv.data,
-                dataAndIv.initVector,
-                key,
-                options.blockMode,
-                options.encryptionPadding,
-                authDataAndTag.authData,
-                authDataAndTag.tag,
-                pluginAndCustomParams.customParameters,
-                &plaintext, &verificationStatus);
+    Result result(Result::Succeeded);
+
+    if (CryptoStoragePluginWrapper *w = pluginAndCustomParams.wrapper) {
+        const QString collectionName = keyAndCollectionKey.key.identifier().collectionName();
+        const QByteArray collectionKey = keyAndCollectionKey.collectionKey;
+        bool wasLocked = false;
+
+        // check to see if we need to unlock the collection in order to access the key.
+        // we don't need to do this if the given key has the appropriate components already.
+        if (keyAndCollectionKey.key.privateKey().isEmpty()
+                && keyAndCollectionKey.key.secretKey().isEmpty()) {
+            Sailfish::Secrets::Result lockedResult = unlockCollection(
+                        w, collectionName, collectionKey, &wasLocked);
+            if (lockedResult.code() == Sailfish::Secrets::Result::Failed) {
+                result = transformSecretsResult(lockedResult);
+            }
+        }
+
+        if (result.code() == Result::Succeeded) {
+            result = w->cryptoPlugin()->decrypt(
+                        dataAndIv.data,
+                        dataAndIv.initVector,
+                        keyAndCollectionKey.key,
+                        options.blockMode,
+                        options.encryptionPadding,
+                        authDataAndTag.authData,
+                        authDataAndTag.tag,
+                        pluginAndCustomParams.customParameters,
+                        &plaintext, &verificationStatus);
+        }
+
+        if (wasLocked) {
+            // relock.
+            Sailfish::Secrets::Result r = w->setEncryptionKey(
+                        collectionName,
+                        QByteArray());
+            Q_UNUSED(r);
+        }
+    } else if (pluginAndCustomParams.plugin) {
+        result = pluginAndCustomParams.plugin->decrypt(
+                    dataAndIv.data,
+                    dataAndIv.initVector,
+                    keyAndCollectionKey.key,
+                    options.blockMode,
+                    options.encryptionPadding,
+                    authDataAndTag.authData,
+                    authDataAndTag.tag,
+                    pluginAndCustomParams.customParameters,
+                    &plaintext, &verificationStatus);
+    } else {
+        result = Result(Result::InvalidCryptographicServiceProvider,
+                        QLatin1String("Internal error: wrapper and plugin null"));
+    }
+
     return VerifiedDataResult(result, plaintext, verificationStatus);
 }
 
 CipherSessionTokenResult CryptoPluginFunctionWrapper::initializeCipherSession(
-        const PluginAndCustomParams &pluginAndCustomParams,
+        const PluginWrapperAndCustomParams &pluginAndCustomParams,
         quint64 clientId,
         const QByteArray &iv,
-        const Key &key, // or keyreference, i.e. Key(keyName)
+        const KeyAndCollectionKey &keyAndCollectionKey,
         const CipherSessionOptions &options)
 {
     quint32 cipherSessionToken = 0;
-    Result result = pluginAndCustomParams.plugin->initializeCipherSession(
-                clientId,
-                iv,
-                key,
-                options.operation,
-                options.blockMode,
-                options.encryptionPadding,
-                options.signaturePadding,
-                options.digestFunction,
-                pluginAndCustomParams.customParameters,
-                &cipherSessionToken);
+    Result result(Result::Succeeded);
+
+    if (CryptoStoragePluginWrapper *w = pluginAndCustomParams.wrapper) {
+        const QString collectionName = keyAndCollectionKey.key.identifier().collectionName();
+        const QByteArray collectionKey = keyAndCollectionKey.collectionKey;
+        bool wasLocked = false;
+
+        // check to see if we need to unlock the collection in order to access the key.
+        // we don't need to do this if the given key has the appropriate components already.
+        if (((options.operation == CryptoManager::OperationSign
+             || options.operation == CryptoManager::OperationDecrypt)
+                    && keyAndCollectionKey.key.privateKey().isEmpty()
+                    && keyAndCollectionKey.key.secretKey().isEmpty())
+         || ((options.operation == CryptoManager::OperationVerify
+             || options.operation == CryptoManager::OperationEncrypt)
+                    && keyAndCollectionKey.key.publicKey().isEmpty()
+                    && keyAndCollectionKey.key.privateKey().isEmpty()
+                    && keyAndCollectionKey.key.secretKey().isEmpty())) {
+            Sailfish::Secrets::Result lockedResult = unlockCollection(
+                        w, collectionName, collectionKey, &wasLocked);
+            if (lockedResult.code() == Sailfish::Secrets::Result::Failed) {
+                result = transformSecretsResult(lockedResult);
+            }
+        }
+
+        if (result.code() == Result::Succeeded) {
+            result = w->cryptoPlugin()->initializeCipherSession(
+                        clientId,
+                        iv,
+                        keyAndCollectionKey.key,
+                        options.operation,
+                        options.blockMode,
+                        options.encryptionPadding,
+                        options.signaturePadding,
+                        options.digestFunction,
+                        pluginAndCustomParams.customParameters,
+                        &cipherSessionToken);
+        }
+
+        if (wasLocked) {
+            // relock.
+            Sailfish::Secrets::Result r = w->setEncryptionKey(
+                        collectionName,
+                        QByteArray());
+            Q_UNUSED(r);
+        }
+    } else if (pluginAndCustomParams.plugin) {
+        result = pluginAndCustomParams.plugin->initializeCipherSession(
+                    clientId,
+                    iv,
+                    keyAndCollectionKey.key,
+                    options.operation,
+                    options.blockMode,
+                    options.encryptionPadding,
+                    options.signaturePadding,
+                    options.digestFunction,
+                    pluginAndCustomParams.customParameters,
+                    &cipherSessionToken);
+    } else {
+        result = Result(Result::InvalidCryptographicServiceProvider,
+                        QLatin1String("Internal error: wrapper and plugin null"));
+    }
+
     return CipherSessionTokenResult(result, cipherSessionToken);
 }
 
@@ -341,7 +599,7 @@ KeyResult CryptoPluginFunctionWrapper::generateAndStoreKey(
         const QByteArray &collectionUnlockCode)
 {
     Sailfish::Secrets::Daemon::ApiImpl::CollectionMetadata collectionMetadata;
-    Sailfish::Secrets::Result sresult = pluginAndCustomParams.plugin->collectionMetadata(
+    Sailfish::Secrets::Result sresult = pluginAndCustomParams.wrapper->collectionMetadata(
                 keyTemplate.identifier().collectionName(),
                 &collectionMetadata);
     if (sresult.code() != Sailfish::Secrets::Result::Succeeded) {
@@ -361,7 +619,7 @@ KeyResult CryptoPluginFunctionWrapper::generateAndStoreKey(
     metadata.cryptoPluginName = pluginAndCustomParams.plugin->name();
 
     Key keyReference(keyTemplate);
-    Result result = pluginAndCustomParams.plugin->generateAndStoreKey(
+    Result result = pluginAndCustomParams.wrapper->generateAndStoreKey(
                 metadata,
                 keyTemplate,
                 kpgParams,

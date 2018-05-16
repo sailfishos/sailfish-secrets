@@ -16,6 +16,7 @@
 #include "Secrets/secretsdaemonconnection_p.h"
 #include "Secrets/serialization_p.h"
 
+#include "Crypto/cryptomanager.h"
 #include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/keyderivationparameters.h"
 #include "Crypto/plugininfo.h"
@@ -955,6 +956,7 @@ QString Daemon::ApiImpl::SecretsRequestQueue::requestTypeToString(int type) cons
         case ModifyLockCodeRequest:                 return QLatin1String("ModifyLockCodeRequest");
         case ProvideLockCodeRequest:                return QLatin1String("ProvideLockCodeRequest");
         case ForgetLockCodeRequest:                 return QLatin1String("ForgetLockCodeRequest");
+        case UseCollectionKeyPreCheckRequest:       return QLatin1String("UseCollectionKeyPreCheckRequest");
         case SetCollectionKeyPreCheckRequest:       return QLatin1String("SetCollectionKeyPreCheckRequest");
         case SetCollectionKeyRequest:               return QLatin1String("SetCollectionKeyRequest");
         case StoredKeyIdentifiersRequest:           return QLatin1String("StoredKeyIdentifiersRequest");
@@ -1668,6 +1670,43 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
             }
             break;
         }
+        case UseCollectionKeyPreCheckRequest: {
+            qCDebug(lcSailfishSecretsDaemon) << "Handling UseCollectionKeyPreCheckRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            Secret::Identifier identifier = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Secret::Identifier>()
+                    : Secret::Identifier();
+            Sailfish::Crypto::CryptoManager::Operation operation = request->inParams.size()
+                    ? request->inParams.takeFirst().value<Sailfish::Crypto::CryptoManager::Operation>()
+                    : Sailfish::Crypto::CryptoManager::OperationUnknown;
+            QString cryptoPluginName = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
+            SecretManager::UserInteractionMode userInteractionMode = request->inParams.size()
+                    ? request->inParams.takeFirst().value<SecretManager::UserInteractionMode>()
+                    : SecretManager::PreventInteraction;
+            QByteArray collectionDecryptionKey;
+            Result result = masterLocked()
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->useCollectionKeyPreCheck(
+                                      request->remotePid,
+                                      request->requestId,
+                                      identifier,
+                                      operation,
+                                      cryptoPluginName,
+                                      userInteractionMode,
+                                      &collectionDecryptionKey);
+            // send the reply to the calling peer.
+            if (result.code() == Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                // This request type exists solely to implement Crypto API functionality.
+                asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << collectionDecryptionKey);
+                *completed = true;
+            }
+            break;
+        }
         case SetCollectionKeyPreCheckRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling SetCollectionKeyPreCheckRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             Secret::Identifier identifier = request->inParams.size()
@@ -2220,6 +2259,29 @@ void Daemon::ApiImpl::SecretsRequestQueue::handleFinishedRequest(
                 }
                 *completed = true;
             }
+            break;
+        }
+        case UseCollectionKeyPreCheckRequest: {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of UseCollectionKeyPreCheckRequest request"));
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishSecretsDaemon) << "UseCollectionKeyPreCheckRequest:" << request->requestId << "finished as pending!";
+            } else {
+                QByteArray collectionDecryptionKey = request->outParams.size()
+                        ? request->outParams.takeFirst().value<QByteArray>()
+                        : QByteArray();
+                if (request->isSecretsCryptoRequest) {
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result,
+                                                       QVariantList() << QVariant::fromValue<QByteArray>(collectionDecryptionKey));
+                } else {
+                    // shouldn't happen!
+                    qCWarning(lcSailfishSecretsDaemon) << "UseCollectionKeyPreCheckRequest:" << request->requestId << "finished as non-crypto request!";
+                }
+            }
+            *completed = true;
             break;
         }
         case SetCollectionKeyPreCheckRequest: {
