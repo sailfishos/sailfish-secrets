@@ -23,6 +23,7 @@
 #include "Secrets/storedsecretrequest.h"
 #include "Secrets/findsecretsrequest.h"
 #include "Secrets/deletesecretrequest.h"
+#include "Secrets/lockcoderequest.h"
 
 #include <QQmlExtensionPlugin>
 #include <QQmlParserStatus>

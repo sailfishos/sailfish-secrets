@@ -4725,7 +4725,7 @@ Daemon::ApiImpl::RequestProcessor::provideLockCodeWithLockCode(
 
     // otherwise, the client is attempting to provide the "master" lock for the metadata (bookkeeping) databases.
     if (!m_requestQueue->testLockCode(lockCode)) {
-        return Result(Result::SecretsDaemonLockedError,
+        return Result(Result::IncorrectAuthenticationCodeError,
                       QLatin1String("The given lock code was incorrect"));
     }
     if (!m_requestQueue->initialize(
