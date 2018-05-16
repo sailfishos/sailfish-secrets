@@ -49,6 +49,7 @@ void Sailfish::Secrets::Plugin::SecretsPlugin::registerTypes(const char *uri)
     qmlRegisterType<Sailfish::Secrets::FindSecretsRequest>(uri, 1, 0, "FindSecretsRequest");
     qmlRegisterType<Sailfish::Secrets::DeleteSecretRequest>(uri, 1, 0, "DeleteSecretRequest");
     qmlRegisterType<Sailfish::Secrets::InteractionRequest>(uri, 1, 0, "InteractionRequest");
+    qmlRegisterType<Sailfish::Secrets::LockCodeRequest>(uri, 1, 0, "LockCodeRequest");
 
     qmlRegisterType<Sailfish::Secrets::Plugin::ApplicationInteractionView>(uri, 1, 0, "ApplicationInteractionView");
     qmlRegisterType<Sailfish::Secrets::Plugin::SecretManager>(uri, 1, 0, "SecretManager");
