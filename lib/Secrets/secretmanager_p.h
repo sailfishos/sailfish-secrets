@@ -136,21 +136,26 @@ public:
             const Sailfish::Secrets::Secret::Identifier &identifier,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
-    // modify the passphrase used to encrypt a collection or standalone secret
+    // query the lock status of a plugin or the metadata db
+    QDBusPendingReply<Sailfish::Secrets::Result, Sailfish::Secrets::LockCodeRequest::LockStatus> queryLockStatus(
+            Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget);
+
+    // modify the passphrase used to lock/unlock a plugin or the metadata db
     QDBusPendingReply<Sailfish::Secrets::Result> modifyLockCode(
             Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
             const QString &lockCodeTarget,
             const Sailfish::Secrets::InteractionParameters &interactionParameters,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
-    // provide the passphrase to unlock a collection or standalone secret
+    // provide the passphrase to lock/unlock a plugin or the metadata db
     QDBusPendingReply<Sailfish::Secrets::Result> provideLockCode(
             Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
             const QString &lockCodeTarget,
             const Sailfish::Secrets::InteractionParameters &interactionParameters,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode);
 
-    // forget the passphrase and relock a collection or standalone secret
+    // forget the passphrase and relock a plugin or the metadata db
     QDBusPendingReply<Sailfish::Secrets::Result> forgetLockCode(
             Sailfish::Secrets::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
             const QString &lockCodeTarget,

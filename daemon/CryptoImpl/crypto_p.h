@@ -284,6 +284,15 @@ class CryptoDBusObject : public QObject, protected QDBusContext
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Crypto::CryptoManager::VerificationStatus\" />\n"
     "      </method>\n"
+    "      <method name=\"queryLockStatus\">\n"
+    "          <arg name=\"lockCodeTargetType\" type=\"(i)\" direction=\"in\" />\n"
+    "          <arg name=\"lockCodeTarget\" type=\"s\" direction=\"in\" />\n"
+    "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
+    "          <arg name=\"lockStatus\" type=\"(i)\" direction=\"in\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Crypto::LockCodeRequest::LockCodeTargetType\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Crypto::Result\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Crypto::LockCodeRequest::LockStatus\" />\n"
+    "      </method>\n"
     "      <method name=\"modifyLockCode\">\n"
     "          <arg name=\"lockCodeTargetType\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"lockCodeTarget\" type=\"s\" direction=\"in\" />\n"
@@ -516,6 +525,13 @@ public Q_SLOTS:
             QByteArray &generatedData,
             Sailfish::Crypto::CryptoManager::VerificationStatus &verificationStatus);
 
+    void queryLockStatus(
+            Sailfish::Crypto::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
+            const QDBusMessage &message,
+            Sailfish::Crypto::Result &result,
+            Sailfish::Crypto::LockCodeRequest::LockStatus &lockStatus);
+
     void modifyLockCode(
             Sailfish::Crypto::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
             const QString &lockCodeTarget,
@@ -556,6 +572,7 @@ public:
     QWeakPointer<QThreadPool> cryptoThreadPool();
     QMap<QString, Sailfish::Crypto::CryptoPlugin*> plugins() const;
 
+    Sailfish::Crypto::LockCodeRequest::LockStatus queryLockStatusPlugin(const QString &pluginName);
     bool lockPlugin(const QString &pluginName);
     bool unlockPlugin(const QString &pluginName, const QByteArray &lockCode);
     bool setLockCodePlugin(const QString &pluginName, const QByteArray &oldCode, const QByteArray &newCode);
@@ -592,6 +609,7 @@ enum RequestType {
     UpdateCipherSessionAuthenticationRequest,
     UpdateCipherSessionRequest,
     FinalizeCipherSessionRequest,
+    QueryLockStatusRequest,
     ModifyLockCodeRequest,
     ProvideLockCodeRequest,
     ForgetLockCodeRequest

@@ -333,7 +333,26 @@ void Daemon::ApiImpl::SecretsDBusObject::deleteSecret(
                                   result);
 }
 
-// modify a lock code (re-key a plugin, encrypted collection or standalone secret)
+// query lock status of a plugin or metadata db
+void Daemon::ApiImpl::SecretsDBusObject::queryLockStatus(
+        LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+        const QString &lockCodeTarget,
+        const QDBusMessage &message,
+        Result &result,
+        LockCodeRequest::LockStatus &lockStatus)
+{
+    Q_UNUSED(lockStatus); // outparam, set in handlePendingRequest / handleFinishedRequest
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
+             << QVariant::fromValue<QString>(lockCodeTarget);
+    m_requestQueue->handleRequest(Daemon::ApiImpl::QueryLockStatusRequest,
+                                  inParams,
+                                  connection(),
+                                  message,
+                                  result);
+}
+
+// modify a lock code (re-key a plugin or metadata db)
 void Daemon::ApiImpl::SecretsDBusObject::modifyLockCode(
         LockCodeRequest::LockCodeTargetType lockCodeTargetType,
         const QString &lockCodeTarget,
@@ -356,7 +375,7 @@ void Daemon::ApiImpl::SecretsDBusObject::modifyLockCode(
                                   result);
 }
 
-// provide a lock code (unlock a plugin, encrypted collection or standalone secret)
+// provide a lock code (unlock a plugin or metadata db)
 void Daemon::ApiImpl::SecretsDBusObject::provideLockCode(
         LockCodeRequest::LockCodeTargetType lockCodeTargetType,
         const QString &lockCodeTarget,
@@ -379,7 +398,7 @@ void Daemon::ApiImpl::SecretsDBusObject::provideLockCode(
                                   result);
 }
 
-// forget a lock code (lock a plugin, encrypted collection or standalone secret)
+// forget a lock code (lock a plugin or metadata db)
 void Daemon::ApiImpl::SecretsDBusObject::forgetLockCode(
         LockCodeRequest::LockCodeTargetType lockCodeTargetType,
         const QString &lockCodeTarget,
@@ -849,6 +868,37 @@ Result Daemon::ApiImpl::SecretsRequestQueue::unlockCryptoPlugin(
     return Result(Result::Succeeded);
 }
 
+Result Daemon::ApiImpl::SecretsRequestQueue::queryLockStatusCryptoPlugin(
+        const QString &pluginName,
+        LockCodeRequest::LockStatus *lockStatus)
+{
+    QMap<QString, Sailfish::Crypto::CryptoPlugin*> cryptoPlugins
+            = m_controller && m_controller->crypto()
+            ? m_controller->crypto()->plugins()
+            : QMap<QString, Sailfish::Crypto::CryptoPlugin*>();
+    Sailfish::Crypto::CryptoPlugin *cryptoPlugin = cryptoPlugins.value(pluginName);
+    if (!cryptoPlugin) {
+        *lockStatus = LockCodeRequest::Unknown;
+        return Result(Result::InvalidExtensionPluginError,
+                      QStringLiteral("No such extension plugin exists: %1").arg(pluginName));
+    }
+    if (!cryptoPlugin->supportsLocking()) {
+        *lockStatus = LockCodeRequest::Unsupported;
+        return Result(Result::Succeeded);
+    }
+
+    if (!m_controller || !m_controller->crypto()) {
+        *lockStatus = LockCodeRequest::Unknown;
+        return Result(Result::UnknownError,
+                      QStringLiteral("Unable to query lock code for crypto plugin"));
+    }
+
+    *lockStatus = static_cast<LockCodeRequest::LockStatus>(
+                    static_cast<int>(
+                        m_controller->crypto()->queryLockStatusPlugin(pluginName)));
+    return Result(Result::Succeeded);
+}
+
 Result Daemon::ApiImpl::SecretsRequestQueue::setLockCodeCryptoPlugin(
         const QString &pluginName,
         const QByteArray &oldCode,
@@ -901,6 +951,7 @@ QString Daemon::ApiImpl::SecretsRequestQueue::requestTypeToString(int type) cons
         case FindStandaloneSecretsRequest:          return QLatin1String("FindStandaloneSecretsRequest");
         case DeleteCollectionSecretRequest:         return QLatin1String("DeleteCollectionSecretRequest");
         case DeleteStandaloneSecretRequest:         return QLatin1String("DeleteStandaloneSecretRequest");
+        case QueryLockStatusRequest:                return QLatin1String("QueryLockStatusRequest");
         case ModifyLockCodeRequest:                 return QLatin1String("ModifyLockCodeRequest");
         case ProvideLockCodeRequest:                return QLatin1String("ProvideLockCodeRequest");
         case ForgetLockCodeRequest:                 return QLatin1String("ForgetLockCodeRequest");
@@ -1452,6 +1503,40 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
                     asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList());
                 } else {
                     request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result));
+                }
+                *completed = true;
+            }
+            break;
+        }
+        case QueryLockStatusRequest: {
+            qCDebug(lcSailfishSecretsDaemon) << "Handling QueryLockStatusRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            LockCodeRequest::LockCodeTargetType lockCodeTargetType = request->inParams.size()
+                    ? request->inParams.takeFirst().value<LockCodeRequest::LockCodeTargetType>()
+                    : LockCodeRequest::MetadataDatabase;
+            QString lockCodeTarget = request->inParams.size()
+                    ? request->inParams.takeFirst().value<QString>()
+                    : QString();
+            LockCodeRequest::LockStatus lockStatus;
+            Result result = masterLocked() && lockCodeTargetType != LockCodeRequest::MetadataDatabase
+                    ? Result(Result::SecretsDaemonLockedError,
+                             QLatin1String("The secrets database is locked"))
+                    : m_requestProcessor->queryLockStatus(
+                                      request->remotePid,
+                                      request->requestId,
+                                      lockCodeTargetType,
+                                      lockCodeTarget,
+                                      &lockStatus);
+            // send the reply to the calling peer.
+            if (result.code() == Result::Pending) {
+                // waiting for asynchronous flow to complete
+                *completed = false;
+            } else {
+                if (request->isSecretsCryptoRequest) {
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result,
+                                                       QVariantList() << QVariant::fromValue<LockCodeRequest::LockStatus>(lockStatus));
+                } else {
+                    request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                            << QVariant::fromValue<LockCodeRequest::LockStatus>(lockStatus));
                 }
                 *completed = true;
             }
@@ -2031,6 +2116,29 @@ void Daemon::ApiImpl::SecretsRequestQueue::handleFinishedRequest(
                     request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result));
                 }
                 *completed = true;
+            }
+            break;
+        }
+        case QueryLockStatusRequest: {
+            Result result = request->outParams.size()
+                    ? request->outParams.takeFirst().value<Result>()
+                    : Result(Result::UnknownError,
+                             QLatin1String("Unable to determine result of QueryLockStatusRequest request"));
+            *completed = true;
+            if (result.code() == Result::Pending) {
+                // shouldn't happen!
+                qCWarning(lcSailfishSecretsDaemon) << "QueryLockStatusRequest:" << request->requestId << "finished as pending!";
+            } else {
+                LockCodeRequest::LockStatus lockStatus = request->outParams.size()
+                        ? request->outParams.takeFirst().value<LockCodeRequest::LockStatus>()
+                        : LockCodeRequest::Unknown;
+                if (request->isSecretsCryptoRequest) {
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result,
+                                                       QVariantList() << QVariant::fromValue<LockCodeRequest::LockStatus>(lockStatus));
+                } else {
+                    request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                            << QVariant::fromValue<LockCodeRequest::LockStatus>(lockStatus));
+                }
             }
             break;
         }

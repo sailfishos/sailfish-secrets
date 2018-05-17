@@ -18,6 +18,7 @@
 #include "Secrets/interactionparameters.h"
 #include "Secrets/secretmanager.h"
 #include "Secrets/result.h"
+#include "Secrets/lockcoderequest.h"
 
 #include <QtCore/QString>
 #include <QtCore/QByteArray>
@@ -99,6 +100,18 @@ struct FoundResult {
     Sailfish::Secrets::Result result;
 };
 
+struct FoundLockStatusResult {
+    FoundLockStatusResult(bool f = false,
+                          Sailfish::Secrets::LockCodeRequest::LockStatus s = Sailfish::Secrets::LockCodeRequest::Unknown,
+                          const Sailfish::Secrets::Result &r = Sailfish::Secrets::Result())
+        : found(f), lockStatus(s), result(r) {}
+    FoundLockStatusResult(const FoundLockStatusResult &other)
+        : found(other.found), lockStatus(other.lockStatus), result(other.result) {}
+    bool found;
+    Sailfish::Secrets::LockCodeRequest::LockStatus lockStatus;
+    Sailfish::Secrets::Result result;
+};
+
 struct LockedResult {
     LockedResult(const Sailfish::Secrets::Result &r = Sailfish::Secrets::Result(),
                  bool l = false)
@@ -156,6 +169,12 @@ struct PluginState {
 };
 
 PluginState pluginState(PluginBase *plugin);
+
+FoundLockStatusResult queryLockSpecificPlugin(
+        const QMap<QString, Sailfish::Secrets::EncryptionPlugin*> &encryptionPlugins,
+        const QMap<QString, StoragePluginWrapper*> &storagePlugins,
+        const QMap<QString, EncryptedStoragePluginWrapper*> &encryptedStoragePlugins,
+        const QString &lockCodeTarget);
 
 FoundResult lockSpecificPlugin(
         const QMap<QString, Sailfish::Secrets::EncryptionPlugin*> &encryptionPlugins,

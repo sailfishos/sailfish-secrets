@@ -187,6 +187,10 @@ public:
             const QString &cryptosystemProviderName,
             quint32 cipherSessionToken);
 
+    QDBusPendingReply<Sailfish::Crypto::Result, Sailfish::Crypto::LockCodeRequest::LockStatus> queryLockStatus(
+            Sailfish::Crypto::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget);
+
     QDBusPendingReply<Sailfish::Crypto::Result> modifyLockCode(
             Sailfish::Crypto::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
             const QString &lockCodeTarget,

@@ -18,6 +18,37 @@ PluginState Daemon::ApiImpl::pluginState(PluginBase *plugin)
     return PluginState(plugin->isAvailable(), plugin->isLocked());
 }
 
+FoundLockStatusResult Daemon::ApiImpl::queryLockSpecificPlugin(
+        const QMap<QString, Sailfish::Secrets::EncryptionPlugin*> &encryptionPlugins,
+        const QMap<QString, StoragePluginWrapper*> &storagePlugins,
+        const QMap<QString, EncryptedStoragePluginWrapper*> &encryptedStoragePlugins,
+        const QString &lockCodeTarget)
+{
+    bool found = true;
+    Sailfish::Secrets::LockCodeRequest::LockStatus lockStatus = Sailfish::Secrets::LockCodeRequest::Unknown;
+    Result result(Result::Succeeded);
+    PluginBase *p = storagePlugins.value(lockCodeTarget);
+    if (!p) {
+        p = encryptedStoragePlugins.value(lockCodeTarget);
+    }
+    if (!p) {
+        encryptionPlugins.value(lockCodeTarget);
+    }
+    if (!p) {
+        found = false;
+    } else {
+        if (!p->supportsLocking()) {
+            lockStatus = Sailfish::Secrets::LockCodeRequest::Unsupported;
+        } else {
+            lockStatus = p->isLocked()
+                       ? Sailfish::Secrets::LockCodeRequest::Locked
+                       : Sailfish::Secrets::LockCodeRequest::Unlocked;
+        }
+    }
+
+    return FoundLockStatusResult(found, lockStatus, result);
+}
+
 FoundResult Daemon::ApiImpl::lockSpecificPlugin(
         const QMap<QString, EncryptionPlugin*> &encryptionPlugins,
         const QMap<QString, StoragePluginWrapper*> &storagePlugins,

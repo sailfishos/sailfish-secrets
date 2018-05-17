@@ -29,10 +29,12 @@ class SAILFISH_CRYPTO_API LockCodeRequest : public Sailfish::Crypto::Request
     Q_PROPERTY(LockCodeTargetType lockCodeTargetType READ lockCodeTargetType WRITE setLockCodeTargetType NOTIFY lockCodeTargetTypeChanged)
     Q_PROPERTY(QString lockCodeTarget READ lockCodeTarget WRITE setLockCodeTarget NOTIFY lockCodeTargetChanged)
     Q_PROPERTY(Sailfish::Crypto::InteractionParameters interactionParameters READ interactionParameters WRITE setInteractionParameters NOTIFY interactionParametersChanged)
+    Q_PROPERTY(LockStatus lockStatus READ lockStatus NOTIFY lockStatusChanged)
 
 public:
     enum LockCodeRequestType {
-        ModifyLockCode = 0,
+        QueryLockStatus = 0,
+        ModifyLockCode,
         ProvideLockCode,
         ForgetLockCode
     };
@@ -43,6 +45,14 @@ public:
         ExtensionPlugin,
     };
     Q_ENUM(LockCodeTargetType)
+
+    enum LockStatus {
+        Unknown = 0,
+        Unsupported,
+        Unlocked,
+        Locked,
+    };
+    Q_ENUM(LockStatus)
 
     LockCodeRequest(QObject *parent = Q_NULLPTR);
     ~LockCodeRequest();
@@ -58,6 +68,8 @@ public:
 
     InteractionParameters interactionParameters() const;
     void setInteractionParameters(const InteractionParameters &params);
+
+    LockStatus lockStatus() const;
 
     Sailfish::Crypto::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result result() const Q_DECL_OVERRIDE;
@@ -76,6 +88,7 @@ Q_SIGNALS:
     void lockCodeTargetTypeChanged();
     void lockCodeTargetChanged();
     void interactionParametersChanged();
+    void lockStatusChanged();
 
 private:
     QScopedPointer<LockCodeRequestPrivate> const d_ptr;

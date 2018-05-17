@@ -307,6 +307,33 @@ Daemon::ApiImpl::SecretsRequestQueue::userInput(
 }
 
 Result
+Daemon::ApiImpl::SecretsRequestQueue::queryCryptoPluginLockStatus(
+        pid_t callerPid,
+        quint64 cryptoRequestId,
+        const QString &cryptoPluginName)
+{
+    // perform the "query lock status" request, as a secrets-for-crypto request.
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<Sailfish::Secrets::LockCodeRequest::LockCodeTargetType>(
+                    cryptoPluginName.isEmpty()
+                            ? Sailfish::Secrets::LockCodeRequest::MetadataDatabase
+                            : Sailfish::Secrets::LockCodeRequest::ExtensionPlugin)
+             << QVariant::fromValue<QString>(cryptoPluginName);
+    Result enqueueResult(Result::Succeeded);
+    handleRequest(
+                callerPid,
+                cryptoRequestId,
+                Daemon::ApiImpl::QueryLockStatusRequest,
+                inParams,
+                enqueueResult);
+    if (enqueueResult.code() == Result::Failed) {
+        return enqueueResult;
+    }
+    m_cryptoApiHelperRequests.insert(cryptoRequestId, Daemon::ApiImpl::SecretsRequestQueue::QueryLockStatusCryptoApiHelperRequest);
+    return Result(Result::Pending);
+}
+
+Result
 Daemon::ApiImpl::SecretsRequestQueue::modifyCryptoPluginLockCode(
         pid_t callerPid,
         quint64 cryptoRequestId,
@@ -431,6 +458,11 @@ Daemon::ApiImpl::SecretsRequestQueue::asynchronousCryptoRequestCompleted(
         case UserInputCryptoApiHelperRequest: {
             QByteArray input = parameters.size() ? parameters.first().value<QByteArray>() : QByteArray();
             emit userInputCompleted(cryptoRequestId, result, input);
+            break;
+        }
+        case QueryLockStatusCryptoApiHelperRequest: {
+            LockCodeRequest::LockStatus lockStatus = parameters.size() ? parameters.first().value<LockCodeRequest::LockStatus>() : LockCodeRequest::Unknown;
+            emit cryptoPluginLockStatusRequestCompleted(cryptoRequestId, result, lockStatus);
             break;
         }
         case ModifyLockCodeCryptoApiHelperRequest:   // flow on

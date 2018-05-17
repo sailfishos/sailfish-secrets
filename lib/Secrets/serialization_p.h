@@ -68,6 +68,8 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::LockCodeRequest::LockCodeTargetType &type) SAILFISH_SECRETS_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::LockCodeRequest::LockCodeTargetType &type) SAILFISH_SECRETS_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::LockCodeRequest::LockStatus &status) SAILFISH_SECRETS_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::LockCodeRequest::LockStatus &status) SAILFISH_SECRETS_API;
 
 } // namespace Secrets
 

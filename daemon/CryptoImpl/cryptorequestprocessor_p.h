@@ -22,6 +22,9 @@
 
 #include "CryptoImpl/crypto_p.h"
 
+#include "Secrets/secret.h"
+#include "Secrets/lockcoderequest.h"
+
 #include "requestqueue_p.h"
 
 #include <QtCore/QObject>
@@ -67,6 +70,7 @@ public:
                      Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *parent = Q_NULLPTR);
 
     QMap<QString, Sailfish::Crypto::CryptoPlugin*> plugins() const;
+    Sailfish::Crypto::LockCodeRequest::LockStatus queryLockStatusPlugin(const QString &pluginName);
     bool lockPlugin(const QString &pluginName);
     bool unlockPlugin(const QString &pluginName, const QByteArray &lockCode);
     bool setLockCodePlugin(const QString &pluginName, const QByteArray &oldCode, const QByteArray &newCode);
@@ -270,6 +274,13 @@ public:
             QByteArray *generatedData,
             Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus);
 
+    Sailfish::Crypto::Result queryLockStatus(
+            pid_t callerPid,
+            quint64 requestId,
+            Sailfish::Crypto::LockCodeRequest::LockCodeTargetType lockCodeTargetType,
+            const QString &lockCodeTarget,
+            Sailfish::Crypto::LockCodeRequest::LockStatus *lockStatus);
+
     Sailfish::Crypto::Result modifyLockCode(
             pid_t callerPid,
             quint64 requestId,
@@ -320,6 +331,11 @@ public Q_SLOTS:
             quint64 requestId,
             const Sailfish::Secrets::Result &result,
             const QByteArray &userInput);
+
+    void secretsCryptoPluginLockStatusRequestCompleted(
+            quint64 requestId,
+            const Sailfish::Secrets::Result &result,
+            Sailfish::Secrets::LockCodeRequest::LockStatus lockStatus);
 
     void secretsCryptoPluginLockCodeRequestCompleted(
             quint64 requestId,

@@ -31,10 +31,12 @@ class SAILFISH_SECRETS_API LockCodeRequest : public Sailfish::Secrets::Request
     Q_PROPERTY(QString lockCodeTarget READ lockCodeTarget WRITE setLockCodeTarget NOTIFY lockCodeTargetChanged)
     Q_PROPERTY(Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode READ userInteractionMode WRITE setUserInteractionMode NOTIFY userInteractionModeChanged)
     Q_PROPERTY(Sailfish::Secrets::InteractionParameters interactionParameters READ interactionParameters WRITE setInteractionParameters NOTIFY interactionParametersChanged)
+    Q_PROPERTY(LockStatus lockStatus READ lockStatus NOTIFY lockStatusChanged)
 
 public:
     enum LockCodeRequestType {
-        ModifyLockCode = 0,
+        QueryLockStatus = 0,
+        ModifyLockCode,
         ProvideLockCode,
         ForgetLockCode
     };
@@ -45,6 +47,14 @@ public:
         ExtensionPlugin
     };
     Q_ENUM(LockCodeTargetType)
+
+    enum LockStatus {
+        Unknown = 0,
+        Unsupported,
+        Unlocked,
+        Locked,
+    };
+    Q_ENUM(LockStatus)
 
     LockCodeRequest(QObject *parent = Q_NULLPTR);
     ~LockCodeRequest();
@@ -64,6 +74,8 @@ public:
     InteractionParameters interactionParameters() const;
     void setInteractionParameters(const InteractionParameters &params);
 
+    LockStatus lockStatus() const;
+
     Sailfish::Secrets::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result result() const Q_DECL_OVERRIDE;
 
@@ -79,6 +91,7 @@ Q_SIGNALS:
     void lockCodeTargetChanged();
     void userInteractionModeChanged();
     void interactionParametersChanged();
+    void lockStatusChanged();
 
 private:
     QScopedPointer<LockCodeRequestPrivate> const d_ptr;

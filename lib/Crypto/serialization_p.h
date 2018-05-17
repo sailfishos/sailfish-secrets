@@ -102,6 +102,8 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto:
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::LockCodeRequest::LockCodeTargetType &type) SAILFISH_CRYPTO_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::LockCodeRequest::LockCodeTargetType &type) SAILFISH_CRYPTO_API;
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Crypto::LockCodeRequest::LockStatus &status) SAILFISH_CRYPTO_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Crypto::LockCodeRequest::LockStatus &status) SAILFISH_CRYPTO_API;
 
 } // Crypto
 
