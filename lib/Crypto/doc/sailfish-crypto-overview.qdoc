@@ -66,6 +66,8 @@ classes which provide this functionality:
 \li \l{Sailfish::Crypto::GenerateInitializationVectorRequest} to generate an initialization vector for use in encryption or decryption
 \li \l{Sailfish::Crypto::GenerateKeyRequest} to generate a \l{Key}
 \li \l{Sailfish::Crypto::GenerateStoredKeyRequest} to generate a securely-stored \l{Key}
+\li \l{Sailfish::Crypto::ImportKeyRequest} to import a \l{Key} from a data file
+\li \l{Sailfish::Crypto::ImportStoredKeyRequest} to import a \l{Key} from a data file and store it securely
 \li \l{Sailfish::Crypto::StoredKeyRequest} to retrieve a securely-stored \l{Key}
 \li \l{Sailfish::Crypto::StoredKeyIdentifiersRequest} to retrieve the identifiers of securely-stored \l{Key}{Keys}
 \li \l{Sailfish::Crypto::DeleteStoredKeyRequest} to delete a securely-stored \l{Key}

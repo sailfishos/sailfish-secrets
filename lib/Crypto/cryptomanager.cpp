@@ -657,6 +657,8 @@ CryptoManagerPrivate::forgetLockCode(
   \li \l{GenerateRandomDataRequest} to generate random data
   \li \l{GenerateKeyRequest} to generate a \l{Key}
   \li \l{GenerateStoredKeyRequest} to generate a securely-stored \l{Key}
+  \li \l{ImportKeyRequest} to import a \l{Key} from a data file
+  \li \l{ImportStoredKeyRequest} to import a \l{Key} from a data file and store it securely
   \li \l{StoredKeyRequest} to retrieve a securely-stored \l{Key}
   \li \l{StoredKeyIdentifiersRequest} to retrieve the identifiers of securely-stored \l{Key}{Keys}
   \li \l{DeleteStoredKeyRequest} to delete a securely-stored \l{Key}
