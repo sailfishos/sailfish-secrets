@@ -5521,7 +5521,6 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
                                          requestId,
                                          Daemon::ApiImpl::SetCollectionKeyPreCheckRequest,
                                          QVariantList() << QVariant::fromValue<Secret::Identifier>(identifier)
-                                                        << userInteractionMode
                                                         << QVariant::fromValue<CollectionMetadata>(collectionMetadata)));
             return result;
         } else if (userInteractionMode == SecretManager::PreventInteraction) {
@@ -5605,7 +5604,6 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
                                      requestId,
                                      Daemon::ApiImpl::SetCollectionKeyPreCheckRequest,
                                      QVariantList() << QVariant::fromValue<Secret::Identifier>(identifier)
-                                                    << userInteractionMode
                                                     << QVariant::fromValue<CollectionMetadata>(collectionMetadata)));
         return result;
     } else if (userInteractionMode == SecretManager::PreventInteraction) {
@@ -6264,7 +6262,7 @@ void Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                     break;
                 }
                 case SetCollectionKeyPreCheckRequest: {
-                    if (pr.parameters.size() != 3) {
+                    if (pr.parameters.size() != 2) {
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
