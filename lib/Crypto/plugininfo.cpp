@@ -91,14 +91,6 @@ PluginInfo& PluginInfo::operator=(const PluginInfo &other)
 }
 
 /*!
- * \brief Sets the display name reported for the plugin to \a dispName
- */
-void PluginInfo::setDisplayName(const QString &dispName)
-{
-    d_ptr->m_displayName = dispName;
-}
-
-/*!
  * \brief Returns the display name of the plugin
  *
  * This is the user-friendly, human-readable name reported by the
@@ -107,14 +99,6 @@ void PluginInfo::setDisplayName(const QString &dispName)
 QString PluginInfo::displayName() const
 {
     return d_ptr->m_displayName;
-}
-
-/*!
- * \brief Sets the name reported for the plugin to \a name
- */
-void PluginInfo::setName(const QString &name)
-{
-    d_ptr->m_name = name;
 }
 
 /*!
@@ -129,27 +113,11 @@ QString PluginInfo::name() const
 }
 
 /*!
- * \brief Sets the version of the plugin to \a version
- */
-void PluginInfo::setVersion(int version)
-{
-    d_ptr->m_version = version;
-}
-
-/*!
  * \brief Returns the version of the plugin
  */
 int PluginInfo::version() const
 {
     return d_ptr->m_version;
-}
-
-/*!
- * \brief Sets the status flags of the plugin to \a status
- */
-void PluginInfo::setStatusFlags(PluginInfo::StatusFlags status)
-{
-    d_ptr->m_statusFlags = status;
 }
 
 /*!

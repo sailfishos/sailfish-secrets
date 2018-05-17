@@ -207,10 +207,7 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, PluginInfo &info)
     argument.beginStructure();
     argument >> displayName >> name >> version >> iStatusFlags;
     argument.endStructure();
-    info.setDisplayName(displayName);
-    info.setName(name);
-    info.setVersion(version);
-    info.setStatusFlags(static_cast<PluginInfo::StatusFlags>(iStatusFlags));
+    info = PluginInfo(displayName, name, version, static_cast<PluginInfo::StatusFlags>(iStatusFlags));
     return argument;
 }
 

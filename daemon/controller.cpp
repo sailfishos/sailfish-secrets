@@ -146,13 +146,8 @@ Sailfish::Secrets::Daemon::Controller::pluginInfoForPlugins(
 {
     QMap<QString, Sailfish::Secrets::PluginInfo> infos;
     for (Sailfish::Secrets::PluginBase *plugin : plugins) {
-        Sailfish::Secrets::PluginInfo info;
-
         // metadata reporting occurs in main thread
         Sailfish::Secrets::PluginInfo::StatusFlags flags = Sailfish::Secrets::PluginInfo::Unknown;
-        info.setDisplayName(plugin->displayName());
-        info.setName(plugin->name());
-        info.setVersion(plugin->version());
         if (plugin->supportsLocking()) {
             flags |= Sailfish::Secrets::PluginInfo::PluginSupportsLocking;
         }
@@ -167,7 +162,7 @@ Sailfish::Secrets::Daemon::Controller::pluginInfoForPlugins(
         // TODO: make this asynchronous instead of blocking the main thread!
         QFuture<Sailfish::Secrets::Daemon::ApiImpl::PluginState> future
                 = QtConcurrent::run(
-                        threadPoolForPlugin(info.name()).data(),
+                        threadPoolForPlugin(plugin->name()).data(),
                         &Sailfish::Secrets::Daemon::ApiImpl::pluginState,
                         plugin);
         future.waitForFinished();
@@ -179,8 +174,11 @@ Sailfish::Secrets::Daemon::Controller::pluginInfoForPlugins(
             flags |= Sailfish::Secrets::PluginInfo::PluginUnlocked;
         }
 
-        info.setStatusFlags(flags);
-        infos.insert(info.name(), info);
+        infos.insert(plugin->name(),
+                     Sailfish::Secrets::PluginInfo(plugin->displayName(),
+                                                   plugin->name(),
+                                                   plugin->version(),
+                                                   flags));
     }
 
     return infos;

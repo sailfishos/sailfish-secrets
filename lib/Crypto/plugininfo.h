@@ -22,10 +22,10 @@ class PluginInfoPrivate;
 class SAILFISH_CRYPTO_API PluginInfo
 {
     Q_GADGET
-    Q_PROPERTY(QString displayName READ displayName WRITE setDisplayName)
-    Q_PROPERTY(QString name READ name WRITE setName)
-    Q_PROPERTY(int version READ version WRITE setVersion)
-    Q_PROPERTY(StatusFlags statusFlags READ statusFlags WRITE setStatusFlags)
+    Q_PROPERTY(QString displayName READ displayName CONSTANT)
+    Q_PROPERTY(QString name READ name CONSTANT)
+    Q_PROPERTY(int version READ version CONSTANT)
+    Q_PROPERTY(StatusFlags statusFlags READ statusFlags CONSTANT)
 
 public:
     enum Status {
@@ -49,17 +49,13 @@ public:
 
     PluginInfo &operator=(const Sailfish::Crypto::PluginInfo &other);
 
-    void setDisplayName(const QString &dispName);
     QString displayName() const;
 
-    void setName(const QString &name);
     QString name() const;
 
-    void setVersion(int version);
     int version() const;
 
     StatusFlags statusFlags() const;
-    void setStatusFlags(StatusFlags status);
 
 private:
     QSharedDataPointer<PluginInfoPrivate> d_ptr;
