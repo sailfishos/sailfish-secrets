@@ -189,49 +189,71 @@ void CommandHelper::start(const QString &command, const QStringList &args)
                 this, &CommandHelper::secretsRequestStatusChanged);
         m_secretsRequest->startRequest();
     } else if (command == QStringLiteral("--create-collection")) {
-        Sailfish::Secrets::CreateCollectionRequest *r = new Sailfish::Secrets::CreateCollectionRequest;
         bool devicelock = false;
-        if (args.size() == 4
-                || (args.size() == 3 && args.value(0) == QStringLiteral("--devicelock"))) {
-            if (args.value(0) != QStringLiteral("--devicelock")) {
-                qInfo() << "Invalid lock mode specified!";
+        bool keepUnlocked = false;
+        QStringList ccArgs(args);
+        if (ccArgs.first() == QStringLiteral("--devicelock")) {
+            ccArgs.removeFirst();
+            devicelock = true;
+        }
+        if (ccArgs.first() == QStringLiteral("--keep-unlocked")) {
+            ccArgs.removeFirst();
+            keepUnlocked = true;
+        }
+
+        if (ccArgs.size() < 2) {
+            qInfo() << "Missing: storage plugin name or collection name";
+            emitFinished(EXITCODE_FAILED);
+            return;
+        }
+
+        const QString storagePluginName = ccArgs.value(0);
+        bool isEncryptedStoragePlugin = false;
+        if (!m_storagePlugins.contains(storagePluginName)) {
+            if (!m_encryptedStoragePlugins.contains(storagePluginName)) {
+                qInfo() << "Invalid storage plugin name specified";
                 emitFinished(EXITCODE_FAILED);
+                return;
             } else {
-                devicelock = true;
+                isEncryptedStoragePlugin = true;
             }
         }
-        QString encryptionPluginName;
-        if (args.size() == 4) {
-            encryptionPluginName = args.value(3);
-        } else if (args.size() == 3) {
-            if (!devicelock) {
-                encryptionPluginName = args.value(2);
-            } else {
-                if (m_encryptedStoragePlugins.contains(args.value(1))) {
-                    encryptionPluginName = args.value(1);
-                } else {
-                    encryptionPluginName = Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName
-                                         + (m_autotestMode ? QStringLiteral(".test") : QString());
-                }
-            }
-        } else {
-            if (m_encryptedStoragePlugins.contains(args.value(0))) {
-                encryptionPluginName = args.value(0);
-            } else {
-                encryptionPluginName = Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName
-                                     + (m_autotestMode ? QStringLiteral(".test") : QString());
-            }
+
+        const QString collectionName = ccArgs.value(1);
+
+        const QString encryptionPluginName = (ccArgs.size() == 3)
+                ? ccArgs.value(2)
+                : isEncryptedStoragePlugin
+                    ? storagePluginName
+                    : (Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName
+                       + (m_autotestMode ? QStringLiteral(".test") : QString()));
+
+        if ((isEncryptedStoragePlugin && encryptionPluginName != storagePluginName)
+                || (!isEncryptedStoragePlugin && !m_encryptionPlugins.contains(encryptionPluginName))) {
+            qInfo() << "Invalid encryption plugin specified";
+            emitFinished(EXITCODE_FAILED);
+            return;
         }
-        r->setStoragePluginName(devicelock ? args.value(1) : args.value(0));
-        r->setCollectionName(devicelock ? args.value(2) : args.value(1));
+
+        Sailfish::Secrets::CreateCollectionRequest *r = new Sailfish::Secrets::CreateCollectionRequest;
+        r->setStoragePluginName(storagePluginName);
+        r->setCollectionName(collectionName);
         r->setEncryptionPluginName(encryptionPluginName);
         r->setAuthenticationPluginName(Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName + (m_autotestMode ? QStringLiteral(".test") : QString()));
         if (devicelock) {
             r->setCollectionLockType(Sailfish::Secrets::CreateCollectionRequest::DeviceLock);
-            r->setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockVerifyLock);
+            if (keepUnlocked) {
+                r->setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked);
+            } else {
+                r->setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockVerifyLock);
+            }
         } else {
             r->setCollectionLockType(Sailfish::Secrets::CreateCollectionRequest::CustomLock);
-            r->setCustomLockUnlockSemantic(Sailfish::Secrets::SecretManager::CustomLockAccessRelock);
+            if (keepUnlocked) {
+                r->setCustomLockUnlockSemantic(Sailfish::Secrets::SecretManager::CustomLockKeepUnlocked);
+            } else {
+                r->setCustomLockUnlockSemantic(Sailfish::Secrets::SecretManager::CustomLockAccessRelock);
+            }
         }
         r->setAccessControlMode(Sailfish::Secrets::SecretManager::NoAccessControlMode);
         r->setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
@@ -255,71 +277,102 @@ void CommandHelper::start(const QString &command, const QStringList &args)
         emitFinished(EXITCODE_FAILED);
     } else if (command == QStringLiteral("--store-standalone-secret")) {
         bool devicelock = false;
-        if (args.size() == 5
-                || (args.size() == 4 && args.value(0) == QStringLiteral("--devicelock"))) {
-            if (args.value(0) != QStringLiteral("--devicelock")) {
-                qInfo() << "Invalid lock mode specified!";
+        bool keepUnlocked = false;
+        QStringList ccArgs(args);
+        if (ccArgs.first() == QStringLiteral("--devicelock")) {
+            ccArgs.removeFirst();
+            devicelock = true;
+        }
+        if (ccArgs.first() == QStringLiteral("--keep-unlocked")) {
+            ccArgs.removeFirst();
+            keepUnlocked = true;
+        }
+
+        if (ccArgs.size() < 3) {
+            qInfo() << "Missing: storage plugin name, encryption plugin name, or secret name";
+            emitFinished(EXITCODE_FAILED);
+            return;
+        }
+
+        const QString storagePluginName = ccArgs.value(0);
+        bool isEncryptedStoragePlugin = false;
+        if (!m_storagePlugins.contains(storagePluginName)) {
+            if (!m_encryptedStoragePlugins.contains(storagePluginName)) {
+                qInfo() << "Invalid storage plugin name specified";
                 emitFinished(EXITCODE_FAILED);
+                return;
             } else {
-                devicelock = true;
+                isEncryptedStoragePlugin = true;
             }
         }
-        QString storagePluginName;
-        QString encryptionPluginName;
-        QString secretName;
-        if (args.size() == 5) {
-            storagePluginName = args.value(1);
-            encryptionPluginName = args.value(2);
-            secretName = args.value(3);
-        } else if (args.size() == 4) {
-            if (devicelock) {
-                storagePluginName = args.value(1);
-                encryptionPluginName = args.value(2);
-                secretName = args.value(3);
-            } else {
-                storagePluginName = args.value(0);
-                encryptionPluginName = args.value(1);
-                secretName = args.value(2);
-            }
-        } else {
-            storagePluginName = args.value(0);
-            encryptionPluginName = args.value(1);
-            secretName = args.value(2);
+
+        const QString encryptionPluginName = ccArgs.value(1);
+        if ((isEncryptedStoragePlugin && encryptionPluginName != storagePluginName)
+                || (!isEncryptedStoragePlugin && !m_encryptionPlugins.contains(encryptionPluginName))) {
+            qInfo() << "Invalid encryption plugin specified";
+            emitFinished(EXITCODE_FAILED);
+            return;
         }
-        Sailfish::Secrets::InteractionParameters uiParams;
-        uiParams.setInputType(Sailfish::Secrets::InteractionParameters::AlphaNumericInput);
-        uiParams.setEchoMode(Sailfish::Secrets::InteractionParameters::NormalEcho);
+
+        const QString secretName = ccArgs.value(2);
+
+        const QByteArray secretData = ccArgs.value(3, QString()).toUtf8();
         Sailfish::Secrets::Secret secret(secretName, QString(), storagePluginName);
+        if (secretData.size()) {
+            secret.setData(secretData);
+            secret.setType(Sailfish::Secrets::Secret::TypeBlob);
+        }
+
         Sailfish::Secrets::StoreSecretRequest *r = new Sailfish::Secrets::StoreSecretRequest;
         r->setEncryptionPluginName(encryptionPluginName);
         r->setAuthenticationPluginName(Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName + (m_autotestMode ? QStringLiteral(".test") : QString()));
         r->setSecret(secret);
         if (devicelock) {
             r->setSecretStorageType(Sailfish::Secrets::StoreSecretRequest::StandaloneDeviceLockSecret);
-            r->setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockVerifyLock);
+            if (keepUnlocked) {
+                r->setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked);
+            } else {
+                r->setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockVerifyLock);
+            }
         } else {
             r->setSecretStorageType(Sailfish::Secrets::StoreSecretRequest::StandaloneCustomLockSecret);
-            r->setCustomLockUnlockSemantic(Sailfish::Secrets::SecretManager::CustomLockAccessRelock);
+            if (keepUnlocked) {
+                r->setCustomLockUnlockSemantic(Sailfish::Secrets::SecretManager::CustomLockKeepUnlocked);
+            } else {
+                r->setCustomLockUnlockSemantic(Sailfish::Secrets::SecretManager::CustomLockAccessRelock);
+            }
         }
         r->setAccessControlMode(Sailfish::Secrets::SecretManager::NoAccessControlMode);
         r->setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
-        r->setInteractionParameters(uiParams);
+        if (!secretData.size()) {
+            Sailfish::Secrets::InteractionParameters uiParams;
+            uiParams.setInputType(Sailfish::Secrets::InteractionParameters::AlphaNumericInput);
+            uiParams.setEchoMode(Sailfish::Secrets::InteractionParameters::NormalEcho);
+            r->setInteractionParameters(uiParams);
+        }
         m_secretsRequest.reset(r);
         m_secretsRequest->setManager(&m_secretManager);
         connect(m_secretsRequest.data(), &Sailfish::Secrets::Request::statusChanged,
                 this, &CommandHelper::secretsRequestStatusChanged);
         m_secretsRequest->startRequest();
     } else if (command == QStringLiteral("--store-collection-secret")) {
-        Sailfish::Secrets::InteractionParameters uiParams;
-        uiParams.setInputType(Sailfish::Secrets::InteractionParameters::AlphaNumericInput);
-        uiParams.setEchoMode(Sailfish::Secrets::InteractionParameters::NormalEcho);
         Sailfish::Secrets::Secret secret(args.value(2), args.value(1), args.value(0));
+        const QByteArray secretData = args.value(3, QString()).toUtf8();
+        if (secretData.size()) {
+            secret.setData(secretData);
+            secret.setType(Sailfish::Secrets::Secret::TypeBlob);
+        }
         Sailfish::Secrets::StoreSecretRequest *r = new Sailfish::Secrets::StoreSecretRequest;
         r->setSecretStorageType(Sailfish::Secrets::StoreSecretRequest::CollectionSecret);
         r->setAuthenticationPluginName(Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName + (m_autotestMode ? QStringLiteral(".test") : QString()));
         r->setSecret(secret);
         r->setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
-        r->setInteractionParameters(uiParams);
+        if (!secretData.size()) {
+            Sailfish::Secrets::InteractionParameters uiParams;
+            uiParams.setInputType(Sailfish::Secrets::InteractionParameters::AlphaNumericInput);
+            uiParams.setEchoMode(Sailfish::Secrets::InteractionParameters::NormalEcho);
+            r->setInteractionParameters(uiParams);
+        }
         m_secretsRequest.reset(r);
         m_secretsRequest->setManager(&m_secretManager);
         connect(m_secretsRequest.data(), &Sailfish::Secrets::Request::statusChanged,
