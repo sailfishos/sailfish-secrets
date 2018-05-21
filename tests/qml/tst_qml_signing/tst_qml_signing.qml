@@ -115,6 +115,7 @@ TestCase {
     CollectionNamesRequest {
         id: collectionNamesRequest
         manager: secretManager
+        storagePluginName: cryptoManager.defaultCryptoStoragePluginName + ".test"
     }
 
     CreateCollectionRequest {
@@ -140,19 +141,20 @@ TestCase {
     StoredKeyIdentifiersRequest {
         id: storedKeyIdentifiersRequest
         manager: cryptoManager
+        storagePluginName: cryptoManager.defaultCryptoStoragePluginName + ".test"
     }
 
     GenerateStoredKeyRequest {
         id: generateStoredKeyRequest
         manager: cryptoManager
         cryptoPluginName: cryptoManager.defaultCryptoStoragePluginName + ".test"
-        storagePluginName: cryptoManager.defaultCryptoStoragePluginName + ".test"
         keyTemplate {
             size: 4096
             origin: Key.OriginDevice
             algorithm: CryptoManager.AlgorithmRsa
             name: testKeyName
             collectionName: testCaseCollectionName
+            storagePluginName: cryptoManager.defaultCryptoStoragePluginName + ".test"
         }
         keyPairGenerationParameters: cryptoManager.constructRsaKeygenParams()
     }
@@ -165,6 +167,7 @@ TestCase {
             algorithm: CryptoManager.AlgorithmRsa
             name: testKeyName
             collectionName: testCaseCollectionName
+            storagePluginName: cryptoManager.defaultCryptoStoragePluginName + ".test"
         }
         digestFunction: CryptoManager.DigestSha512
         padding: CryptoManager.SignaturePaddingNone
@@ -178,6 +181,7 @@ TestCase {
             algorithm: CryptoManager.AlgorithmRsa
             name: testKeyName
             collectionName: testCaseCollectionName
+            storagePluginName: cryptoManager.defaultCryptoStoragePluginName + ".test"
         }
         digestFunction: CryptoManager.DigestSha512
         padding: CryptoManager.SignaturePaddingNone

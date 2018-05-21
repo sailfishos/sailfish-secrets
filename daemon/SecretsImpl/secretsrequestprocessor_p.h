@@ -39,6 +39,8 @@
 
 #include "requestqueue_p.h"
 
+#include "Crypto/cryptomanager.h"
+
 namespace Sailfish {
 
 namespace Crypto {
@@ -248,6 +250,16 @@ public:
             const Sailfish::Secrets::InteractionParameters &interactionParams,
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress);
+
+    // use a crypto key pre-check (crypto api bridge)
+    Sailfish::Secrets::Result useCollectionKeyPreCheck(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Secrets::Secret::Identifier &identifier,
+            Sailfish::Crypto::CryptoManager::Operation operation,
+            const QString &cryptoPluginName,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            QByteArray *collectionDecryptionKey);
 
     // store a crypto key pre-check (crypto api bridge)
     Sailfish::Secrets::Result setCollectionKeyPreCheck(
@@ -577,6 +589,32 @@ private:
             Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
             const QString &interactionServiceAddress,
             const QByteArray &lockCode);
+
+    Sailfish::Secrets::Result useCollectionKeyPreCheckWithMetadata(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Secrets::Secret::Identifier &identifier,
+            Sailfish::Crypto::CryptoManager::Operation operation,
+            const QString &cryptoPluginName,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const CollectionMetadata &collectionMetadata);
+
+    Sailfish::Secrets::Result useCollectionKeyPreCheckWithAuthenticationCode(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Secrets::Secret::Identifier &identifier,
+            Sailfish::Crypto::CryptoManager::Operation operation,
+            const QString &cryptoPluginName,
+            Sailfish::Secrets::SecretManager::UserInteractionMode userInteractionMode,
+            const CollectionMetadata &collectionMetadata,
+            const QByteArray &authenticationCode);
+
+    void useCollectionKeyPreCheckWithEncryptionKey(
+            pid_t callerPid,
+            quint64 requestId,
+            const Sailfish::Secrets::Secret::Identifier &identifier,
+            const CollectionMetadata &collectionMetadata,
+            const QByteArray &collectionDecryptionKey);
 
     Sailfish::Secrets::Result setCollectionKeyPreCheckWithMetadata(
             pid_t callerPid,

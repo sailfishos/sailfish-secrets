@@ -474,6 +474,7 @@ public: // Crypto API helper methods.
     // the first methods are synchronous:
     Sailfish::Secrets::Result storagePluginInfo(pid_t callerPid, quint64 cryptoRequestId, QVector<Sailfish::Secrets::PluginInfo> *info) const;
     // the others are asynchronous methods:
+    Sailfish::Secrets::Result useKeyPreCheck(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, Sailfish::Crypto::CryptoManager::Operation operation, const QString &cryptoPluginName);
     Sailfish::Secrets::Result storedKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, QByteArray *serializedKey, QMap<QString, QString> *filterData);
     Sailfish::Secrets::Result storeKeyPreCheck(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier);
     Sailfish::Secrets::Result storeKey(pid_t callerPid, quint64 cryptoRequestId, const Sailfish::Crypto::Key::Identifier &identifier, const QByteArray &serializedKey,
@@ -488,6 +489,7 @@ public: // Crypto API helper methods.
     Sailfish::Secrets::Result forgetCryptoPluginLockCode(pid_t callerPid, quint64 cryptoRequestId, const QString &cryptoPluginName, const Sailfish::Secrets::InteractionParameters &uiParams);
 
 Q_SIGNALS:
+    void useKeyPreCheckCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &collectionDecryptionKey);
     void storedKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &serializedKey, const QMap<QString,QString> &filterData);
     void storeKeyPreCheckCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &collectionDecryptionKey);
     void storeKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result);
@@ -503,6 +505,7 @@ private:
         StoredKeyCryptoApiHelperRequest,
         StoredKeyIdentifiersCryptoApiHelperRequest,
         DeleteStoredKeyCryptoApiHelperRequest,
+        UseKeyPreCheckCryptoApiHelperRequest,
         StoreKeyPreCheckCryptoApiHelperRequest,
         StoreKeyCryptoApiHelperRequest,
         UserInputCryptoApiHelperRequest,
@@ -540,6 +543,7 @@ enum RequestType {
     SetStandaloneDeviceLockUserInputSecretRequest,
     SetStandaloneCustomLockUserInputSecretRequest,
     // Crypto API helper request types:
+    UseCollectionKeyPreCheckRequest,
     SetCollectionKeyPreCheckRequest,
     SetCollectionKeyRequest,
     StoredKeyIdentifiersRequest

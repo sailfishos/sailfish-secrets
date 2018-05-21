@@ -252,6 +252,36 @@ Daemon::ApiImpl::SecretsRequestQueue::storedKeyIdentifiers(
 }
 
 Result
+Daemon::ApiImpl::SecretsRequestQueue::useKeyPreCheck(
+        pid_t callerPid,
+        quint64 cryptoRequestId,
+        const Sailfish::Crypto::Key::Identifier &identifier,
+        Sailfish::Crypto::CryptoManager::Operation operation,
+        const QString &cryptoPluginName)
+{
+    QList<QVariant> inParams;
+    inParams << QVariant::fromValue<Secret::Identifier>(
+                    Secret::Identifier(identifier.name(),
+                                       identifier.collectionName(),
+                                       identifier.storagePluginName()))
+             << QVariant::fromValue<Sailfish::Crypto::CryptoManager::Operation>(operation)
+             << QVariant::fromValue<QString>(cryptoPluginName)
+             << QVariant::fromValue<SecretManager::UserInteractionMode>(SecretManager::SystemInteraction);
+    Result enqueueResult(Result::Succeeded);
+    handleRequest(
+                callerPid,
+                cryptoRequestId,
+                Daemon::ApiImpl::UseCollectionKeyPreCheckRequest,
+                inParams,
+                enqueueResult);
+    if (enqueueResult.code() == Result::Failed) {
+        return enqueueResult;
+    }
+    m_cryptoApiHelperRequests.insert(cryptoRequestId, Daemon::ApiImpl::SecretsRequestQueue::UseKeyPreCheckCryptoApiHelperRequest);
+    return Result(Result::Pending);
+}
+
+Result
 Daemon::ApiImpl::SecretsRequestQueue::storedKey(
         pid_t callerPid,
         quint64 cryptoRequestId,
@@ -444,6 +474,11 @@ Daemon::ApiImpl::SecretsRequestQueue::asynchronousCryptoRequestCompleted(
         }
         case DeleteStoredKeyCryptoApiHelperRequest: {
             emit deleteStoredKeyCompleted(cryptoRequestId, result);
+            break;
+        }
+        case UseKeyPreCheckCryptoApiHelperRequest: {
+            QByteArray collectionDecryptionKey = parameters.size() ? parameters.first().value<QByteArray>() : QByteArray();
+            emit useKeyPreCheckCompleted(cryptoRequestId, result, collectionDecryptionKey);
             break;
         }
         case StoreKeyPreCheckCryptoApiHelperRequest: {

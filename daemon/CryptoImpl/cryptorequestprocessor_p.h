@@ -303,6 +303,11 @@ public:
             const Sailfish::Crypto::InteractionParameters &interactionParameters);
 
 public Q_SLOTS:
+    void secretsUseKeyPreCheckCompleted(
+            quint64 requestId,
+            const Sailfish::Secrets::Result &result,
+            const QByteArray &collectionDecryptionKey);
+
     void secretsStoreKeyPreCheckCompleted(
             quint64 requestId,
             const Sailfish::Secrets::Result &result,
@@ -470,7 +475,7 @@ private:
             const Sailfish::Crypto::Result &result,
             const QVector<Sailfish::Crypto::Key::Identifier> &identifiers);
 
-    void sign2(
+    void sign_withKey(
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
             const QByteArray &serializedKey,
@@ -480,7 +485,18 @@ private:
             const QVariantMap &customParameters,
             const QString &cryptoPluginName);
 
-    void verify2(
+    void sign_withCollectionKey(
+            quint64 requestId,
+            const QByteArray &data,
+            const Sailfish::Crypto::Key &key,
+            Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QVariantMap &customParameters,
+            const QString &cryptosystemProviderName,
+            const Sailfish::Crypto::Result &result,
+            const QByteArray &collectionKey);
+
+    void verify_withKey(
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
             const QByteArray &serializedKey,
@@ -491,7 +507,19 @@ private:
             const QVariantMap &customParameters,
             const QString &cryptoPluginName);
 
-    void encrypt2(
+    void verify_withCollectionKey(
+            quint64 requestId,
+            const QByteArray &signature,
+            const QByteArray &data,
+            const Sailfish::Crypto::Key &key,
+            Sailfish::Crypto::CryptoManager::SignaturePadding padding,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QVariantMap &customParameters,
+            const QString &cryptosystemProviderName,
+            const Sailfish::Crypto::Result &result,
+            const QByteArray &collectionKey);
+
+    void encrypt_withKey(
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
             const QByteArray &serializedKey,
@@ -503,7 +531,20 @@ private:
             const QVariantMap &customParameters,
             const QString &cryptoPluginName);
 
-    void decrypt2(
+    void encrypt_withCollectionKey(
+            quint64 requestId,
+            const QByteArray &data,
+            const QByteArray &iv,
+            const Sailfish::Crypto::Key &key,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+            const QByteArray &authenticationData,
+            const QVariantMap &customParameters,
+            const QString &cryptoPluginName,
+            const Sailfish::Crypto::Result &result,
+            const QByteArray &collectionKey);
+
+    void decrypt_withKey(
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
             const QByteArray &serializedKey,
@@ -516,7 +557,21 @@ private:
             const QVariantMap &customParameters,
             const QString &cryptoPluginName);
 
-    void initializeCipherSession2(
+    void decrypt_withCollectionKey(
+            quint64 requestId,
+            const QByteArray &data,
+            const QByteArray &iv,
+            const Sailfish::Crypto::Key &key,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding padding,
+            const QByteArray &authenticationData,
+            const QByteArray &authenticationTag,
+            const QVariantMap &customParameters,
+            const QString &cryptoPluginName,
+            const Sailfish::Crypto::Result &result,
+            const QByteArray &collectionKey);
+
+    void initializeCipherSession_withKey(
             quint64 requestId,
             const Sailfish::Crypto::Result &result,
             const QByteArray &serializedKey,
@@ -529,6 +584,21 @@ private:
             Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
             const QVariantMap &customParameters,
             const QString &cryptoPluginName);
+
+    void initializeCipherSession_withCollectionKey(
+            quint64 requestId,
+            pid_t callerPid,
+            const QByteArray &iv,
+            const Sailfish::Crypto::Key &key,
+            Sailfish::Crypto::CryptoManager::Operation operation,
+            Sailfish::Crypto::CryptoManager::BlockMode blockMode,
+            Sailfish::Crypto::CryptoManager::EncryptionPadding encryptionPadding,
+            Sailfish::Crypto::CryptoManager::SignaturePadding signaturePadding,
+            Sailfish::Crypto::CryptoManager::DigestFunction digestFunction,
+            const QVariantMap &customParameters,
+            const QString &cryptoPluginName,
+            const Sailfish::Crypto::Result &result,
+            const QByteArray &collectionKey);
 
 private:
     Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *m_requestQueue;

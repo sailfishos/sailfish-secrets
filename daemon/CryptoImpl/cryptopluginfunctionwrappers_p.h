@@ -151,6 +151,15 @@ struct DataAndIV {
     QByteArray initVector;
 };
 
+struct KeyAndCollectionKey {
+    KeyAndCollectionKey(const Sailfish::Crypto::Key &k, const QByteArray &ck)
+        : key(k), collectionKey(ck) {}
+    KeyAndCollectionKey(const KeyAndCollectionKey &other)
+        : key(other.key), collectionKey(other.collectionKey) {}
+    Sailfish::Crypto::Key key;
+    QByteArray collectionKey;
+};
+
 struct AuthDataAndTag {
     AuthDataAndTag(const QByteArray &ad = QByteArray(),
                    const QByteArray &t = QByteArray())
@@ -174,13 +183,16 @@ struct PluginAndCustomParams {
 };
 
 struct PluginWrapperAndCustomParams {
-    PluginWrapperAndCustomParams(Daemon::ApiImpl::CryptoStoragePluginWrapper *p = Q_NULLPTR,
+    PluginWrapperAndCustomParams(CryptoPlugin *p = Q_NULLPTR,
+                                 Daemon::ApiImpl::CryptoStoragePluginWrapper *w = Q_NULLPTR,
                                  const QVariantMap &cp = QVariantMap())
-        : plugin(p), customParameters(cp) {}
+        : plugin(p), wrapper(w), customParameters(cp) {}
     PluginWrapperAndCustomParams(const PluginWrapperAndCustomParams &other)
         : plugin(other.plugin)
+        , wrapper(other.wrapper)
         , customParameters(other.customParameters) {}
-    Daemon::ApiImpl::CryptoStoragePluginWrapper *plugin;
+    CryptoPlugin *plugin;
+    Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper;
     QVariantMap customParameters;
 };
 
@@ -254,37 +266,37 @@ DataResult calculateDigest(
         const SignatureOptions &options);
 
 DataResult sign(
-        const PluginAndCustomParams &pluginAndCustomParams,
+        const PluginWrapperAndCustomParams &pluginAndCustomParams,
         const QByteArray &data,
-        const Sailfish::Crypto::Key &key,
+        const KeyAndCollectionKey &keyAndCollectionKey,
         const SignatureOptions &options);
 
 ValidatedResult verify(
-        const PluginAndCustomParams &pluginAndCustomParams,
+        const PluginWrapperAndCustomParams &pluginAndCustomParams,
         const QByteArray &signature,
         const QByteArray &data,
-        const Sailfish::Crypto::Key &key,
+        const KeyAndCollectionKey &keyAndCollectionKey,
         const SignatureOptions &options);
 
 TagDataResult encrypt(
-        const PluginAndCustomParams &pluginAndCustomParams,
+        const PluginWrapperAndCustomParams &pluginAndCustomParams,
         const DataAndIV &dataAndIv,
-        const Sailfish::Crypto::Key &key,
+        const KeyAndCollectionKey &keyAndCollectionKey,
         const EncryptionOptions &options,
         const QByteArray &authenticationData);
 
 VerifiedDataResult decrypt(
-        const PluginAndCustomParams &pluginAndCustomParams,
+        const PluginWrapperAndCustomParams &pluginAndCustomParams,
         const DataAndIV &dataAndIv,
-        const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
+        const KeyAndCollectionKey &keyAndCollectionKey,
         const EncryptionOptions &options,
         const AuthDataAndTag &authDataAndTag);
 
 CipherSessionTokenResult initializeCipherSession(
-        const PluginAndCustomParams &pluginAndCustomParams,
+        const PluginWrapperAndCustomParams &pluginAndCustomParams,
         quint64 clientId,
         const QByteArray &iv,
-        const Sailfish::Crypto::Key &key, // or keyreference, i.e. Key(keyName)
+        const KeyAndCollectionKey &keyAndCollectionKey,
         const CipherSessionOptions &options);
 
 Sailfish::Crypto::Result updateCipherSessionAuthentication(

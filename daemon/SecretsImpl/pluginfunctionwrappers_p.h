@@ -345,7 +345,8 @@ namespace StoragePluginFunctionWrapper {
     Sailfish::Secrets::Result collectionSecretPreCheck(
             StoragePluginWrapper *plugin,
             const QString &collectionName,
-            const QString &secretName);
+            const QString &secretName,
+            bool newSecret);
 
 } // StoragePluginWrapper
 
@@ -471,10 +472,9 @@ namespace EncryptedStoragePluginFunctionWrapper {
 
     Sailfish::Secrets::Result collectionSecretPreCheck(
             EncryptedStoragePluginWrapper *plugin,
-            const QString &collectionName,
+            const CollectionInfo &collectionInfo,
             const QString &secretName,
-            const QByteArray &collectionKey,
-            bool requiresRelock);
+            bool newSecret);
 }
 
 } // ApiImpl

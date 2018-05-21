@@ -13,6 +13,8 @@
 #include "SecretsImpl/pluginwrapper_p.h"
 #include "SecretsImpl/metadatadb_p.h"
 
+#include "Secrets/result.h"
+
 #include "CryptoPluginApi/extensionplugins.h"
 
 #include <QtCore/QString>
@@ -60,6 +62,8 @@ public:
             const QVariantMap &customParameters,
             const QByteArray &collectionUnlockKey,
             Sailfish::Crypto::Key *keyReference);
+
+    Sailfish::Crypto::CryptoPlugin *cryptoPlugin() const { return m_cryptoPlugin; }
 
 protected:
     Sailfish::Crypto::CryptoPlugin *m_cryptoPlugin;
