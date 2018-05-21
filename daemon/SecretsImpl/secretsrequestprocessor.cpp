@@ -4509,7 +4509,7 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCodes(
 
     // otherwise, we are modifying the "master" lock code for the bookkeeping database.
     if (!m_requestQueue->testLockCode(oldLockCode)) {
-        return Result(Result::SecretsDaemonLockedError,
+        return Result(Result::IncorrectAuthenticationCodeError,
                       QLatin1String("The given old lock code was incorrect"));
     }
 
