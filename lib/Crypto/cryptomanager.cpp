@@ -643,6 +643,14 @@ CryptoManagerPrivate::forgetLockCode(
 }
 
 /*!
+ * \internal
+ */
+CryptoManagerPrivate *CryptoManager::pimpl() const
+{
+    return d_ptr.data();
+}
+
+/*!
   \class CryptoManager
   \brief Allows clients to make requests of the system crypto service.
 
