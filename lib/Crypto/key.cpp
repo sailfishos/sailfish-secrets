@@ -517,7 +517,7 @@ QByteArray Key::secretKey() const
 }
 
 /*!
- * \breif Sets the secret key data associated with this key to \a key
+ * \brief Sets the secret key data associated with this key to \a key
  *
  * This field will be ignored if the algorithm specified for the key
  * is that of an asymmetric cryptosystem.
