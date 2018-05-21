@@ -85,6 +85,7 @@ public:
         InteractionViewParentError,
         InteractionViewChildError,
         InteractionViewError,
+        InteractionViewUserCanceledError,
 
         NetworkError = 98,
         NetworkSslError = 99,

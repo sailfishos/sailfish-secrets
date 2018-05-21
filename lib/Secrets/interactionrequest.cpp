@@ -36,7 +36,7 @@ InteractionRequestPrivate::InteractionRequestPrivate()
  * input directly that way, however some daemon services without any
  * UI capability may need to use this request type to retrieve
  * non-sensitive or transient data from the user.
- * *
+ *
  * An example of retrieving user input follows:
  *
  * \code
@@ -55,6 +55,10 @@ InteractionRequestPrivate::InteractionRequestPrivate()
  * ir.waitForFinished(); // or better: connect to statusChanged()
  * QByteArray userInput = ir.userInput();
  * \endcode
+ *
+ * Note that if the user canceled the user input (or authentication
+ * or confirmation) dialog the result will contain the
+ * \c{Result::InteractionViewUserCanceledError} error code.
  */
 
 /*!
