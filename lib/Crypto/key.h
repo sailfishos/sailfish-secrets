@@ -30,6 +30,7 @@ class SAILFISH_CRYPTO_API Key
     Q_GADGET
     Q_PROPERTY(QString name READ name WRITE setName)
     Q_PROPERTY(QString collectionName READ collectionName WRITE setCollectionName)
+    Q_PROPERTY(QString storagePluginName READ storagePluginName WRITE setStoragePluginName)
     Q_PROPERTY(Origin origin READ origin WRITE setOrigin)
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::Algorithm algorithm READ algorithm WRITE setAlgorithm)
     Q_PROPERTY(Sailfish::Crypto::CryptoManager::Operations operations READ operations WRITE setOperations)
