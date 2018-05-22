@@ -513,8 +513,15 @@ Result PasswordAgentPlugin::beginAuthentication(
         } else if (QDBusReply<PolkitAuthorizationResult>(*watcher).value().isAuthorized) {
             result = Result(Result::Succeeded);
         } else {
-            result = Result(Result::IncorrectAuthenticationCodeError,
-                            QStringLiteral("Password Agent was unable to verify the authenticity of the user"));
+            if (QDBusReply<PolkitAuthorizationResult>(*watcher).value()
+                    .details.value(QStringLiteral("polkit.dismissed"))
+                    .compare(QStringLiteral("true"), Qt::CaseInsensitive) == 0) {
+                result = Result(Result::InteractionViewUserCanceledError,
+                                QLatin1String("The user canceled the authentication dialog"));
+            } else {
+                result = Result(Result::IncorrectAuthenticationCodeError,
+                                QStringLiteral("Password Agent was unable to verify the authenticity of the user"));
+            }
         }
 
         authenticationCompleted(response->callerPid, response->requestId, result);
@@ -622,7 +629,12 @@ Result PasswordAgentPlugin::beginUserInputInteraction(
                 break;
             }
 
-            result = Result(Result::InteractionViewError, error.message());
+            if (error.type() == QDBusError::Other && error.message().isEmpty()) {
+                result = Result(Result::InteractionViewUserCanceledError,
+                                QLatin1String("The user canceled the input dialog"));
+            } else {
+                result = Result(Result::InteractionViewError, error.message());
+            }
         } else if (newPassword) {
             QDBusReply<QString> reply = *response;
             response->password = reply.value().toUtf8();
