@@ -673,12 +673,12 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionWithMetadata(
                     m_autotestMode);
 
         Sailfish::Secrets::InteractionParameters::PromptText promptText({
-             //: This will be displayed to the user, prompting them to enter a passphrase which will be used to unlock a collection for deletion. %1 is the application name, %2 is the collection name, %3 is the plugin name.
+             //: This will be displayed to the user, prompting them to enter a lock code which will be used to unlock a collection for deletion. %1 is the application name, %2 is the collection name, %3 is the plugin name.
              //% "%1 wants to delete collection %2 in plugin %3."
              { InteractionParameters::Message, qtTrId("sailfish_secrets-delete_collection-la-message")
                          .arg(callerApplicationId, collectionName, m_requestQueue->controller()->displayNameForPlugin(storagePluginName)) },
-            //% "Enter the passphrase which will be used to unlock the collection for deletion."
-            { InteractionParameters::Instruction, qtTrId("sailfish_secrets-delete_collection-la-enter_collection_passphrase") }
+            //% "Enter the lock code which will be used to unlock the collection for deletion."
+            { InteractionParameters::Instruction, qtTrId("sailfish_secrets-delete_collection-la-enter_collection_lock_code") }
         });
 
         if (collectionMetadata.usesDeviceLockKey) {
@@ -1019,12 +1019,12 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithMetadata(
                     m_autotestMode);
 
         Sailfish::Secrets::InteractionParameters::PromptText promptText({
-            //: This will be displayed to the user, prompting them to enter a passphrase which will be used to unlock a collection to read key identifiers. %1 is the application name, %2 is the collection name, %3 is the plugin name.
+            //: This will be displayed to the user, prompting them to enter a lock code which will be used to unlock a collection to read key identifiers. %1 is the application name, %2 is the collection name, %3 is the plugin name.
             //% "%1 wants to read key identifiers from collection %2 in plugin %3."
             { InteractionParameters::Message, qtTrId("sailfish_secrets-unlock_collection-la-message")
                         .arg(callerApplicationId, collectionName, m_requestQueue->controller()->displayNameForPlugin(storagePluginName)) },
-            //% "Enter the passphrase which will be used to unlock the collection."
-            { InteractionParameters::Instruction, qtTrId("sailfish_secrets-unlock_collection-la-enter_collection_passphrase") }
+            //% "Enter the lock code which will be used to unlock the collection."
+            { InteractionParameters::Instruction, qtTrId("sailfish_secrets-unlock_collection-la-enter_collection_lock_code") }
         });
 
         if (collectionMetadata.usesDeviceLockKey) {
@@ -1471,15 +1471,15 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
                 m_autotestMode);
 
     Sailfish::Secrets::InteractionParameters::PromptText promptText({
-        //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in which a new secret will be stored. %1 is the application name, %2 is the  secret name, %3 is the collection name, %4 is the plugin name.
+        //: This will be displayed to the user, prompting them to enter the lock code to unlock the collection in which a new secret will be stored. %1 is the application name, %2 is the  secret name, %3 is the collection name, %4 is the plugin name.
         //% "%1 wants to store a new secret named %2 into collection %3 in plugin %4."
         { InteractionParameters::Message, qtTrId("sailfish_secrets-set_collection_secret-la-collection_message")
                     .arg(callerApplicationId,
                             secret.identifier().name(),
                             secret.identifier().collectionName(),
                             m_requestQueue->controller()->displayNameForPlugin(secret.identifier().storagePluginName())) },
-        //% "Enter the passphrase to unlock the collection."
-        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-set_collection_secret-la-enter_collection_passphrase") }
+        //% "Enter the collection lock code to unlock the collection."
+        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-la-enter_collection_lock_code") }
     });
 
     if (m_encryptedStoragePlugins.contains(secret.identifier().storagePluginName())) {
@@ -2495,15 +2495,15 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
     }
 
     Sailfish::Secrets::InteractionParameters::PromptText promptText({
-        //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in order to retrieve a secret. %1 is the application name, %2 is the  secret name, %3 is the collection name, %4 is the plugin name.
+        //: This will be displayed to the user, prompting them to enter the lock code to unlock the collection in order to retrieve a secret. %1 is the application name, %2 is the  secret name, %3 is the collection name, %4 is the plugin name.
         //% "%1 wants to retrieve secret %2 from collection %3 in plugin %4."
         { InteractionParameters::Message, qtTrId("sailfish_secrets-get_collection_secret-la-message")
                     .arg(callerApplicationId,
                             identifier.name(),
                             identifier.collectionName(),
                             m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())) },
-        //% "Enter the passphrase to unlock the collection."
-        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-get_collection_secret-la-enter_collection_passphrase") }
+        //% "Enter the collection lock code to unlock the collection."
+        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-la-enter_collection_lock_code") }
     });
 
     if (identifier.storagePluginName() == collectionMetadata.encryptionPluginName
@@ -3284,14 +3284,14 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
     }
 
     Sailfish::Secrets::InteractionParameters::PromptText promptText({
-        //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in order to filter secrets within it. %1 is the application name, %2 is the collection name, %3 is the plugin name.
+        //: This will be displayed to the user, prompting them to enter the lock code to unlock the collection in order to filter secrets within it. %1 is the application name, %2 is the collection name, %3 is the plugin name.
         //% "%1 wants to search for secrets within collection %2 from plugin %3."
         { InteractionParameters::Message, qtTrId("sailfish_secrets-find_collection_secrets-la-app_search")
                          .arg(callerApplicationId,
                               collectionName,
                               m_requestQueue->controller()->displayNameForPlugin(storagePluginName)) },
-        //% "Enter the passphrase to unlock the collection."
-        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-find_collection_secrets-la-enter_collection_passphrase") }
+        //% "Enter the collection lock code to unlock the collection."
+        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-la-enter_collection_lock_code") }
     });
 
     if (storagePluginName == collectionMetadata.encryptionPluginName
@@ -3782,15 +3782,15 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
     }
 
     Sailfish::Secrets::InteractionParameters::PromptText promptText({
-        //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection in order to delete a secret within it. %1 is the application name, %2 is the secret name, %3 is the collection name, %4 is the plugin name.
+        //: This will be displayed to the user, prompting them to enter the lock code to unlock the collection in order to delete a secret within it. %1 is the application name, %2 is the secret name, %3 is the collection name, %4 is the plugin name.
         //% "%1 wants to delete secret %2 within collection %3 in plugin %4."
         { InteractionParameters::Message, qtTrId("sailfish_secrets-delete_collection_secret-la-message")
                     .arg(callerApplicationId,
                             identifier.name(),
                             identifier.collectionName(),
                             m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())) },
-        //% "Enter the passphrase to unlock the collection."
-        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-delete_collection_secret-la-enter_collection_passphrase") }
+        //% "Enter the collection lock code to unlock the collection."
+        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-la-enter_collection_lock_code") }
     });
 
     if (identifier.storagePluginName() == collectionMetadata.encryptionPluginName
@@ -4335,22 +4335,22 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCode(
     if (lockCodeTargetType == LockCodeRequest::ExtensionPlugin) {
         modifyLockRequest.setOperation(InteractionParameters::ModifyLockPlugin);
         modifyLockRequest.setPromptText({
-            //: This will be displayed to the user, prompting them to enter the old passphrase to unlock the extension plugin in order to change its lock code. %1 is the application name, %2 is the plugin name.
+            //: This will be displayed to the user, prompting them to enter the old lock code to unlock the extension plugin in order to change its lock code. %1 is the application name, %2 is the plugin name.
             //% "%1 wants to change the lock code for plugin %2."
             { InteractionParameters::Message, qtTrId("sailfish_secrets-modify_lock_code-la-message_old_plugin")
                         .arg(callerApplicationId, m_requestQueue->controller()->displayNameForPlugin(lockCodeTarget)) },
-            //% "Enter the old passphrase to unlock the plugin."
-            { InteractionParameters::Instruction, qtTrId("sailfish_secrets-modify_lock_code-la-enter_old_plugin_passphrase") }
+            //% "Enter the old lock code to unlock the plugin."
+            { InteractionParameters::Instruction, qtTrId("sailfish_secrets-modify_lock_code-la-enter_old_plugin_lock_code") }
         });
     } else {
         modifyLockRequest.setOperation(InteractionParameters::ModifyLockDatabase);
         modifyLockRequest.setPromptText({
-            //: This will be displayed to the user, prompting them to enter the old passphrase to unlock the secrets service in order to change the master lock code. %1 is the application name.
+            //: This will be displayed to the user, prompting them to enter the old lock code to unlock the secrets service in order to change the master lock code. %1 is the application name.
             //% "%1 wants to change the secrets service master lock code."
             { InteractionParameters::Message, qtTrId("sailfish_secrets-modify_lock_code-la-message_old_master")
                         .arg(callerApplicationId) },
-            //% "Enter the old master passphrase."
-            { InteractionParameters::Instruction, qtTrId("sailfish_secrets-modify_lock_code-la-enter_old_master_passphrase") }
+            //% "Enter the old master lock code."
+            { InteractionParameters::Instruction, qtTrId("sailfish_secrets-modify_lock_code-la-enter_old_master_lock_code") }
         });
     }
 
@@ -4411,14 +4411,14 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCode(
     if (lockCodeTargetType == LockCodeRequest::ExtensionPlugin) {
         modifyLockRequest.setOperation(InteractionParameters::ModifyLockPlugin);
         modifyLockRequest.setPromptText({
-            //: This will be displayed to the user, prompting them to enter the new passphrase for the plugin. %1 is the application name, %2 is the plugin name.
+            //: This will be displayed to the user, prompting them to enter the new lock code for the plugin. %1 is the application name, %2 is the plugin name.
             //% "%1 wants to change the lock code for plugin %2."
             { InteractionParameters::Message, qtTrId("sailfish_secrets-modify_lock_code-la-new_plugin_message")
                         .arg(callerApplicationId, m_requestQueue->controller()->displayNameForPlugin(lockCodeTarget)) },
-            //% "Enter the new passphrase for the plugin."
-            { InteractionParameters::NewInstruction, qtTrId("sailfish_secrets-modify_lock_code-la-enter_new_plugin_passphrase") },
-            //% "Repeat the new passphrase for the plugin."
-            { InteractionParameters::RepeatInstruction, qtTrId("sailfish_secrets-modify_lock_code-la-repeat_new_plugin_passphrase") }
+            //% "Enter the new lock code for the plugin."
+            { InteractionParameters::NewInstruction, qtTrId("sailfish_secrets-modify_lock_code-la-enter_new_plugin_lock_code") },
+            //% "Repeat the new lock code for the plugin."
+            { InteractionParameters::RepeatInstruction, qtTrId("sailfish_secrets-modify_lock_code-la-repeat_new_plugin_lock_code") }
         });
     } else {
         modifyLockRequest.setOperation(InteractionParameters::ModifyLockDatabase);
@@ -4427,10 +4427,10 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCode(
             //% "%1 wants to change the secrets service master lock code."
             { InteractionParameters::Message, qtTrId("sailfish_secrets-modify_lock_code-la-new_master_message")
                         .arg(callerApplicationId) },
-            //% "Enter the new master passphrase."
-            { InteractionParameters::NewInstruction, qtTrId("sailfish_secrets-modify_lock_code-la-enter_new_master_passphrase") },
-            //% "Repeat the new master passphrase."
-            { InteractionParameters::RepeatInstruction, qtTrId("sailfish_secrets-modify_lock_code-la-repeat_new_master_passphrase") }
+            //% "Enter the new master lock code."
+            { InteractionParameters::NewInstruction, qtTrId("sailfish_secrets-modify_lock_code-la-enter_new_master_lock_code") },
+            //% "Repeat the new master lock code."
+            { InteractionParameters::RepeatInstruction, qtTrId("sailfish_secrets-modify_lock_code-la-repeat_new_master_lock_code") }
         });
     }
 
@@ -4680,22 +4680,22 @@ Daemon::ApiImpl::RequestProcessor::provideLockCode(
     if (lockCodeTargetType == LockCodeRequest::ExtensionPlugin) {
         unlockRequest.setOperation(InteractionParameters::UnlockPlugin);
         unlockRequest.setPromptText({
-            //: This will be displayed to the user, prompting them to enter the passphrase to unlock the extension plugin. %1 is the application name, %2 is the plugin name.
+            //: This will be displayed to the user, prompting them to enter the lock code to unlock the extension plugin. %1 is the application name, %2 is the plugin name.
             //% "%1 wants to use plugin %2."
             { InteractionParameters::Message, qtTrId("sailfish_secrets-provide_lock_code-la-message_plugin")
                         .arg(callerApplicationId, m_requestQueue->controller()->displayNameForPlugin(lockCodeTarget)) },
-            //% "Enter the passphrase to unlock the plugin."
-            { InteractionParameters::Instruction, qtTrId("sailfish_secrets-provide_lock_code-la-enter_plugin_passphrase") }
+            //% "Enter the lock code to unlock the plugin."
+            { InteractionParameters::Instruction, qtTrId("sailfish_secrets-provide_lock_code-la-enter_plugin_lock_code") }
         });
     } else {
         unlockRequest.setOperation(InteractionParameters::UnlockDatabase);
         unlockRequest.setPromptText({
-            //: This will be displayed to the user, prompting them to enter the passphrase to unlock the secrets service. %1 is the application name.
+            //: This will be displayed to the user, prompting them to enter the lock code to unlock the secrets service. %1 is the application name.
             //% "%1 wants to use the secrets service."
             { InteractionParameters::Message, qtTrId("sailfish_secrets-provide_lock_code-la-message_master")
                         .arg(callerApplicationId) },
-            //% "Enter the master passphrase to unlock the secrets service."
-            { InteractionParameters::Instruction, qtTrId("sailfish_secrets-provide_lock_code-la-enter_master_passphrase") }
+            //% "Enter the master lock code to unlock the secrets service."
+            { InteractionParameters::Instruction, qtTrId("sailfish_secrets-provide_lock_code-la-enter_master_lock_code") }
         });
     }
 
@@ -5045,8 +5045,8 @@ Daemon::ApiImpl::RequestProcessor::useCollectionKeyPreCheckWithMetadata(
 
     Sailfish::Secrets::InteractionParameters::PromptText promptText({
         { InteractionParameters::Message, message },
-        //% "Enter the passphrase to unlock the collection."
-        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-use_collection_key_precheck-la-enter_collection_passphrase") }
+        //% "Enter the collection lock code to unlock the collection."
+        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-la-enter_collection_lock_code") }
     });
 
     if (m_encryptedStoragePlugins.contains(identifier.storagePluginName())) {
@@ -5457,15 +5457,15 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
     }
 
     Sailfish::Secrets::InteractionParameters::PromptText promptText({
-        //: This will be displayed to the user, prompting them to enter the passphrase to unlock the collection prior to key storage. %1 is the application name, %2 is the key name, %3 is the collection name, %4 is the plugin name.
+        //: This will be displayed to the user, prompting them to enter the lock code to unlock the collection prior to key storage. %1 is the application name, %2 is the key name, %3 is the collection name, %4 is the plugin name.
         //% "%1 wants to store a new key named %2 into collection %3 in plugin %4."
         { InteractionParameters::Message, qtTrId("sailfish_secrets-set_collection_key_precheck-la-message")
                     .arg(callerApplicationId,
                             identifier.name(),
                             identifier.collectionName(),
                             m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())) },
-        //% "Enter the passphrase to unlock the collection."
-        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-set_collection_key_precheck-la-enter_collection_passphrase") }
+        //% "Enter the collection lock code to unlock the collection."
+        { InteractionParameters::Instruction, qtTrId("sailfish_secrets-la-enter_collection_lock_code") }
     });
 
     if (m_encryptedStoragePlugins.contains(identifier.storagePluginName())) {

@@ -1293,7 +1293,7 @@ void tst_cryptorequests::storedDerivedKeyRequests()
     uiParams.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
     uiParams.setInputType(Sailfish::Crypto::InteractionParameters::AlphaNumericInput);
     uiParams.setEchoMode(Sailfish::Crypto::InteractionParameters::NormalEcho);
-    uiParams.setPromptText(QLatin1String("Enter the passphrase for the unit test"));
+    uiParams.setPromptText(QLatin1String("Enter the lock code for the unit test"));
 
     // first, create the collection via the Secrets API.
     Sailfish::Secrets::CreateCollectionRequest ccr;

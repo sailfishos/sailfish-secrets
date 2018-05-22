@@ -1359,7 +1359,7 @@ void tst_secretsrequests::requestUserInput()
     InteractionParameters uiParams;
     uiParams.setInputType(InteractionParameters::AlphaNumericInput);
     uiParams.setEchoMode(InteractionParameters::NormalEcho);
-    uiParams.setPromptText(QLatin1String("Enter the passphrase for the unit test"));
+    uiParams.setPromptText(QLatin1String("Enter the lock code for the unit test"));
     uiParams.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
 
     // request input from the user
@@ -1377,7 +1377,7 @@ void tst_secretsrequests::requestUserInput()
     QCOMPARE(irss.count(), 2);
     QCOMPARE(ir.status(), Request::Finished);
     QCOMPARE(ir.result().code(), Result::Succeeded);
-    QCOMPARE(ir.userInput(), QByteArray("example passphrase for unit test"));
+    QCOMPARE(ir.userInput(), QByteArray("example lock code for the unit test"));
 }
 
 void tst_secretsrequests::accessControl()

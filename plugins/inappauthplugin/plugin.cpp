@@ -48,17 +48,17 @@ Daemon::Plugins::InAppPlugin::beginUserInputInteraction(
 #ifdef SAILFISHSECRETS_TESTPLUGIN
     if (interactionServiceAddress.isEmpty()
             && interactionParameters.promptText().message().endsWith(
-                QLatin1String("Enter the passphrase for the unit test"))) {
+                QLatin1String("Enter the lock code for the unit test"))) {
         QMetaObject::invokeMethod(this, "userInputInteractionCompleted", Qt::QueuedConnection,
                                   Q_ARG(uint, callerPid),
                                   Q_ARG(qint64, requestId),
                                   Q_ARG(Sailfish::Secrets::InteractionParameters, interactionParameters),
                                   Q_ARG(QString, interactionServiceAddress),
                                   Q_ARG(Sailfish::Secrets::Result, Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded)),
-                                  Q_ARG(QByteArray, QByteArray("example passphrase for unit test")));
+                                  Q_ARG(QByteArray, QByteArray("example lock code for the unit test")));
         return Result(Result::Pending);
     } else if (interactionParameters.promptText().instruction().endsWith(
-                   QLatin1String("Enter the old master passphrase."))) {
+                   QLatin1String("Enter the old master lock code."))) {
         static int oldLockCount = 0;
         oldLockCount += 1;
         QMetaObject::invokeMethod(this, "userInputInteractionCompleted", Qt::QueuedConnection,
@@ -70,7 +70,7 @@ Daemon::Plugins::InAppPlugin::beginUserInputInteraction(
                                   Q_ARG(QByteArray, oldLockCount % 2 == 1 ? QByteArray() : QByteArray("masterlock")));
         return Result(Result::Pending);
     } else if (interactionParameters.promptText().newInstruction().endsWith(
-                   QLatin1String("Enter the new master passphrase."))) {
+                   QLatin1String("Enter the new master lock code."))) {
         static int newLockCount = 0;
         newLockCount += 1;
         QMetaObject::invokeMethod(this, "userInputInteractionCompleted", Qt::QueuedConnection,
@@ -82,7 +82,7 @@ Daemon::Plugins::InAppPlugin::beginUserInputInteraction(
                                   Q_ARG(QByteArray, newLockCount % 2 == 1 ? QByteArray("masterlock") : QByteArray()));
         return Result(Result::Pending);
     } else if (interactionParameters.promptText().instruction().endsWith(
-                   QLatin1String("Enter the master passphrase to unlock the secrets service."))) {
+                   QLatin1String("Enter the master lock code to unlock the secrets service."))) {
         QMetaObject::invokeMethod(this, "userInputInteractionCompleted", Qt::QueuedConnection,
                                   Q_ARG(uint, callerPid),
                                   Q_ARG(qint64, requestId),
@@ -92,7 +92,7 @@ Daemon::Plugins::InAppPlugin::beginUserInputInteraction(
                                   Q_ARG(QByteArray, QByteArray("masterlock")));
         return Result(Result::Pending);
     } else if (interactionParameters.promptText().instruction().endsWith(
-                   QLatin1String("Enter the old passphrase to unlock the plugin."))) {
+                   QLatin1String("Enter the old lock code to unlock the plugin."))) {
         QMetaObject::invokeMethod(this, "userInputInteractionCompleted", Qt::QueuedConnection,
                                   Q_ARG(uint, callerPid),
                                   Q_ARG(qint64, requestId),
@@ -102,7 +102,7 @@ Daemon::Plugins::InAppPlugin::beginUserInputInteraction(
                                   Q_ARG(QByteArray, QByteArray()));
         return Result(Result::Pending);
     } else if (interactionParameters.promptText().newInstruction().endsWith(
-                   QLatin1String("Enter the new passphrase for the plugin."))) {
+                   QLatin1String("Enter the new lock code for the plugin."))) {
         QMetaObject::invokeMethod(this, "userInputInteractionCompleted", Qt::QueuedConnection,
                                   Q_ARG(uint, callerPid),
                                   Q_ARG(qint64, requestId),
@@ -112,7 +112,7 @@ Daemon::Plugins::InAppPlugin::beginUserInputInteraction(
                                   Q_ARG(QByteArray, QByteArray("pluginlock")));
         return Result(Result::Pending);
     } else if (interactionParameters.promptText().instruction().endsWith(
-                   QLatin1String("Enter the passphrase to unlock the plugin."))) {
+                   QLatin1String("Enter the lock code to unlock the plugin."))) {
         QMetaObject::invokeMethod(this, "userInputInteractionCompleted", Qt::QueuedConnection,
                                   Q_ARG(uint, callerPid),
                                   Q_ARG(qint64, requestId),
