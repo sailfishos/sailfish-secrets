@@ -87,12 +87,27 @@ void CollectionNamesRequest::setStoragePluginName(const QString &pluginName)
 }
 
 /*!
- * \brief Returns the names of the collection which are managed by the secrets service
+ * \brief Returns the names of the collections stored by the specified storage plugin
  */
 QStringList CollectionNamesRequest::collectionNames() const
 {
     Q_D(const CollectionNamesRequest);
-    return d->m_collectionNames;
+    return d->m_collectionNames.keys();
+}
+
+/*!
+ * \brief Returns true if the collection with the specified \a collectionName was locked
+ *        when this request was performed.
+ *
+ * Note that the value reported by this method will not automatically update if a
+ * collection is subsequently unlocked (e.g. by performing a StoredKeyIdentifiersRequest
+ * with the collection name set to the given collection); instead, the user must
+ * start this request again, and then the updated value will be reported appropriately.
+ */
+bool CollectionNamesRequest::isCollectionLocked(const QString &collectionName) const
+{
+    Q_D(const CollectionNamesRequest);
+    return d->m_collectionNames.value(collectionName);
 }
 
 Request::Status CollectionNamesRequest::status() const
@@ -133,7 +148,7 @@ void CollectionNamesRequest::startRequest()
             emit resultChanged();
         }
 
-        QDBusPendingReply<Result, QStringList> reply = d->m_manager->d_ptr->collectionNames(
+        QDBusPendingReply<Result, QVariantMap> reply = d->m_manager->d_ptr->collectionNames(
                     d->m_storagePluginName);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;
@@ -153,10 +168,14 @@ void CollectionNamesRequest::startRequest()
             connect(d->m_watcher.data(), &QDBusPendingCallWatcher::finished,
                     [this] {
                 QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.take();
-                QDBusPendingReply<Result, QStringList> reply = *watcher;
+                QDBusPendingReply<Result, QVariantMap> reply = *watcher;
                 this->d_ptr->m_status = Request::Finished;
                 this->d_ptr->m_result = reply.argumentAt<0>();
-                this->d_ptr->m_collectionNames = reply.argumentAt<1>();
+                const QVariantMap collections = reply.argumentAt<1>();
+                this->d_ptr->m_collectionNames.clear();
+                for (const QString &collectionName : collections.keys()) {
+                    this->d_ptr->m_collectionNames.insert(collectionName, collections.value(collectionName).toBool());
+                }
                 watcher->deleteLater();
                 emit this->statusChanged();
                 emit this->resultChanged();

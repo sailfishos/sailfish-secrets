@@ -36,6 +36,8 @@ public:
 
     QStringList collectionNames() const;
 
+    Q_INVOKABLE bool isCollectionLocked(const QString &collectionName) const;
+
     Sailfish::Secrets::Request::Status status() const Q_DECL_OVERRIDE;
     Sailfish::Secrets::Result result() const Q_DECL_OVERRIDE;
 

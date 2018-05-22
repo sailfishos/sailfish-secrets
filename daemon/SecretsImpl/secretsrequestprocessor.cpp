@@ -191,7 +191,7 @@ Daemon::ApiImpl::RequestProcessor::collectionNames(
         pid_t callerPid,
         quint64 requestId,
         const QString &storagePluginName,
-        QStringList *names)
+        QVariantMap *names)
 {
     Q_UNUSED(names); // asynchronous out-parameter.
 
@@ -232,7 +232,7 @@ Daemon::ApiImpl::RequestProcessor::collectionNames(
         CollectionNamesResult cnr = watcher->future().result();
         QVariantList outParams;
         outParams << QVariant::fromValue<Result>(cnr.result);
-        outParams << QVariant::fromValue<QStringList>(cnr.collectionNames);
+        outParams << QVariant::fromValue<QVariantMap>(cnr.collectionNames);
         m_requestQueue->requestFinished(requestId, outParams);
     });
 

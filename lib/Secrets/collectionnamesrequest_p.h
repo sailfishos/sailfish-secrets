@@ -30,7 +30,7 @@ public:
 
     QPointer<Sailfish::Secrets::SecretManager> m_manager;
     QString m_storagePluginName;
-    QStringList m_collectionNames;
+    QMap<QString, bool> m_collectionNames; // name,isLocked
 
     QScopedPointer<QDBusPendingCallWatcher> m_watcher;
     Sailfish::Secrets::Request::Status m_status;

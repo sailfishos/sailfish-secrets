@@ -72,6 +72,8 @@ private slots:
 
     void lockCode();
 
+    void collectionLocks();
+
     void pluginThreading();
 
 private:
@@ -1829,6 +1831,113 @@ void tst_secretsrequests::lockCode()
     QCOMPARE(lcr.result().code(), Result::Failed);
     QCOMPARE(lcr.result().errorMessage(), QStringLiteral("storage plugin %1 does not support locking")
                                                     .arg(DEFAULT_TEST_STORAGE_PLUGIN));
+}
+
+void tst_secretsrequests::collectionLocks()
+{
+    // create two new collections, one with KeepUnlocked and one with AccessRelock
+    CreateCollectionRequest ccr;
+    ccr.setManager(&sm);
+    ccr.setCollectionLockType(CreateCollectionRequest::CustomLock);
+    QCOMPARE(ccr.collectionLockType(), CreateCollectionRequest::CustomLock);
+    ccr.setCollectionName(QLatin1String("testcollectionone"));
+    QCOMPARE(ccr.collectionName(), QLatin1String("testcollectionone"));
+    ccr.setStoragePluginName(DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN);
+    QCOMPARE(ccr.storagePluginName(), DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN);
+    ccr.setEncryptionPluginName(DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN);
+    QCOMPARE(ccr.encryptionPluginName(), DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN);
+    ccr.setCustomLockUnlockSemantic(SecretManager::CustomLockKeepUnlocked);
+    QCOMPARE(ccr.customLockUnlockSemantic(), SecretManager::CustomLockKeepUnlocked);
+    ccr.setAccessControlMode(SecretManager::OwnerOnlyMode);
+    QCOMPARE(ccr.accessControlMode(), SecretManager::OwnerOnlyMode);
+    ccr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+    QCOMPARE(ccr.userInteractionMode(), SecretManager::ApplicationInteraction);
+    ccr.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
+    QCOMPARE(ccr.authenticationPluginName(), IN_APP_TEST_AUTHENTICATION_PLUGIN);
+    QCOMPARE(ccr.status(), Request::Inactive);
+    ccr.startRequest();
+    QCOMPARE(ccr.status(), Request::Active);
+    QCOMPARE(ccr.result().code(), Result::Pending);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ccr);
+    QCOMPARE(ccr.status(), Request::Finished);
+    QCOMPARE(ccr.result().code(), Result::Succeeded);
+
+    ccr.setCollectionLockType(CreateCollectionRequest::CustomLock);
+    QCOMPARE(ccr.collectionLockType(), CreateCollectionRequest::CustomLock);
+    ccr.setCollectionName(QLatin1String("testcollectiontwo"));
+    QCOMPARE(ccr.collectionName(), QLatin1String("testcollectiontwo"));
+    ccr.setStoragePluginName(DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN);
+    QCOMPARE(ccr.storagePluginName(), DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN);
+    ccr.setEncryptionPluginName(DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN);
+    QCOMPARE(ccr.encryptionPluginName(), DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN);
+    ccr.setCustomLockUnlockSemantic(SecretManager::CustomLockAccessRelock);
+    QCOMPARE(ccr.customLockUnlockSemantic(), SecretManager::CustomLockAccessRelock);
+    ccr.setAccessControlMode(SecretManager::OwnerOnlyMode);
+    QCOMPARE(ccr.accessControlMode(), SecretManager::OwnerOnlyMode);
+    ccr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+    QCOMPARE(ccr.userInteractionMode(), SecretManager::ApplicationInteraction);
+    ccr.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
+    QCOMPARE(ccr.authenticationPluginName(), IN_APP_TEST_AUTHENTICATION_PLUGIN);
+    QCOMPARE(ccr.status(), Request::Inactive);
+    ccr.startRequest();
+    QCOMPARE(ccr.status(), Request::Active);
+    QCOMPARE(ccr.result().code(), Result::Pending);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(ccr);
+    QCOMPARE(ccr.status(), Request::Finished);
+    QCOMPARE(ccr.result().code(), Result::Succeeded);
+
+    // ensure that the names of the collections are returned from a CollectionNamesRequest
+    CollectionNamesRequest cnr;
+    cnr.setManager(&sm);
+    cnr.setStoragePluginName(DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN);
+    QCOMPARE(cnr.status(), Request::Inactive);
+    cnr.startRequest();
+    QCOMPARE(cnr.status(), Request::Active);
+    QCOMPARE(cnr.result().code(), Result::Pending);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(cnr);
+    QCOMPARE(cnr.status(), Request::Finished);
+    QCOMPARE(cnr.result().code(), Result::Succeeded);
+    QCOMPARE(cnr.collectionNames(), QStringList() << QLatin1String("testcollectionone") << QLatin1String("testcollectiontwo"));
+
+    // ensure that the lock states are reported correctly
+    QCOMPARE(cnr.isCollectionLocked(QLatin1String("testcollectionone")), false); // KeepUnlocked semantic.
+    QCOMPARE(cnr.isCollectionLocked(QLatin1String("testcollectiontwo")), true);  // AccessRelock semantic.
+
+    // delete the collections
+    DeleteCollectionRequest dcr;
+    dcr.setManager(&sm);
+    dcr.setCollectionName(QLatin1String("testcollectionone"));
+    QCOMPARE(dcr.collectionName(), QLatin1String("testcollectionone"));
+    dcr.setStoragePluginName(DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN);
+    QCOMPARE(dcr.storagePluginName(), DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN);
+    dcr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+    QCOMPARE(dcr.userInteractionMode(), SecretManager::ApplicationInteraction);
+    QCOMPARE(dcr.status(), Request::Inactive);
+    dcr.startRequest();
+    QCOMPARE(dcr.status(), Request::Active);
+    QCOMPARE(dcr.result().code(), Result::Pending);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
+    QCOMPARE(dcr.status(), Request::Finished);
+    QCOMPARE(dcr.result().code(), Result::Succeeded);
+
+    dcr.setCollectionName(QLatin1String("testcollectiontwo"));
+    QCOMPARE(dcr.collectionName(), QLatin1String("testcollectiontwo"));
+    dcr.setStoragePluginName(DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN);
+    QCOMPARE(dcr.storagePluginName(), DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN);
+    dcr.setUserInteractionMode(SecretManager::ApplicationInteraction);
+    QCOMPARE(dcr.userInteractionMode(), SecretManager::ApplicationInteraction);
+    QCOMPARE(dcr.status(), Request::Inactive);
+    dcr.startRequest();
+    QCOMPARE(dcr.status(), Request::Active);
+    QCOMPARE(dcr.result().code(), Result::Pending);
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dcr);
+    QCOMPARE(dcr.status(), Request::Finished);
+    QCOMPARE(dcr.result().code(), Result::Succeeded);
+
+    // ensure that the collections are no longer returned.
+    cnr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(cnr);
+    QVERIFY(cnr.collectionNames().isEmpty());
 }
 
 void tst_secretsrequests::pluginThreading()

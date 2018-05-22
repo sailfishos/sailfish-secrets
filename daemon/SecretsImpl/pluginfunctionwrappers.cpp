@@ -292,9 +292,11 @@ IdentifiersResult Daemon::ApiImpl::storedKeyIdentifiers(
                       const QVariantMap &customParameters,
                       Result *result,
                       QVector<Secret::Identifier> *idents) {
+        QVariantMap cnamesMap;
         QStringList cnames;
         QStringList knames;
-        *result = p->collectionNames(&cnames);
+        *result = p->collectionNames(&cnamesMap);
+        cnames = cnamesMap.keys();
         if (result->code() != Result::Succeeded) {
             return;
         }
@@ -529,9 +531,9 @@ SecretMetadataResult StoragePluginFunctionWrapper::secretMetadata(
 CollectionNamesResult StoragePluginFunctionWrapper::collectionNames(
         StoragePluginWrapper *plugin)
 {
-    QStringList cnames;
-    Result result = plugin->collectionNames(&cnames);
-    return CollectionNamesResult(result, cnames);
+    QVariantMap cnamesMap;
+    Result result = plugin->collectionNames(&cnamesMap);
+    return CollectionNamesResult(result, cnamesMap);
 }
 
 Result StoragePluginFunctionWrapper::createCollection(
@@ -671,7 +673,9 @@ StoragePluginFunctionWrapper::reencryptDeviceLockedCollectionsAndSecrets(
     // foreach collection, get metadata
     // if usesDeviceLockKey, re-encrypt
     QStringList cnames;
-    Result result = plugin->collectionNames(&cnames);
+    QVariantMap cnamesMap;
+    Result result = plugin->collectionNames(&cnamesMap);
+    cnames = cnamesMap.keys();
     if (result.code() != Result::Succeeded) {
         return result;
     }
@@ -754,7 +758,9 @@ StoragePluginFunctionWrapper::collectionSecretPreCheck(
         bool newSecret)
 {
     QStringList cnames;
-    Result result = plugin->collectionNames(&cnames);
+    QVariantMap cnamesMap;
+    Result result = plugin->collectionNames(&cnamesMap);
+    cnames = cnamesMap.keys();
     if (result.code() != Result::Succeeded) {
         return result;
     }
@@ -842,9 +848,9 @@ SecretMetadataResult EncryptedStoragePluginFunctionWrapper::secretMetadata(
 CollectionNamesResult EncryptedStoragePluginFunctionWrapper::collectionNames(
         EncryptedStoragePluginWrapper *plugin)
 {
-    QStringList cnames;
-    Result result = plugin->collectionNames(&cnames);
-    return CollectionNamesResult(result, cnames);
+    QVariantMap cnamesMap;
+    Result result = plugin->collectionNames(&cnamesMap);
+    return CollectionNamesResult(result, cnamesMap);
 }
 
 Result EncryptedStoragePluginFunctionWrapper::createCollection(
@@ -1231,7 +1237,9 @@ Result EncryptedStoragePluginFunctionWrapper::unlockDeviceLockedCollectionsAndRe
 {
     // find out which collections are device-locked
     QStringList cnames;
-    Result result = plugin->collectionNames(&cnames);
+    QVariantMap cnamesMap;
+    Result result = plugin->collectionNames(&cnamesMap);
+    cnames = cnamesMap.keys();
     if (result.code() != Result::Succeeded) {
         return result;
     }
@@ -1351,7 +1359,9 @@ Result EncryptedStoragePluginFunctionWrapper::collectionSecretPreCheck(
         bool newSecret)
 {
     QStringList cnames;
-    Result result = plugin->collectionNames(&cnames);
+    QVariantMap cnamesMap;
+    Result result = plugin->collectionNames(&cnamesMap);
+    cnames = cnamesMap.keys();
     if (result.code() != Result::Succeeded) {
         return result;
     }

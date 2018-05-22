@@ -97,7 +97,7 @@ void Daemon::ApiImpl::SecretsDBusObject::collectionNames(
         const QString &storagePluginName,
         const QDBusMessage &message,
         Sailfish::Secrets::Result &result,
-        QStringList &names)
+        QVariantMap &names)
 {
     Q_UNUSED(names); // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
@@ -1004,7 +1004,7 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
         case CollectionNamesRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling CollectionNamesRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             QString storagePluginName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            QStringList names;
+            QVariantMap names;
             Result result = masterLocked()
                     ? Result(Result::SecretsDaemonLockedError,
                              QLatin1String("The secrets database is locked"))
@@ -1019,10 +1019,10 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
                 *completed = false;
             } else {
                 if (request->isSecretsCryptoRequest) {
-                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << QVariant::fromValue<QStringList>(names));
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << QVariant::fromValue<QVariantMap>(names));
                 } else {
                     request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                            << QVariant::fromValue<QStringList>(names));
+                                                                            << QVariant::fromValue<QVariantMap>(names));
                 }
                 *completed = true;
             }
@@ -1901,14 +1901,14 @@ void Daemon::ApiImpl::SecretsRequestQueue::handleFinishedRequest(
                 qCWarning(lcSailfishSecretsDaemon) << "CollectionNamesRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
-                QStringList names = request->outParams.size()
-                                  ? request->outParams.takeFirst().value<QStringList>()
-                                  : QStringList();
+                QVariantMap names = request->outParams.size()
+                                  ? request->outParams.takeFirst().value<QVariantMap>()
+                                  : QVariantMap();
                 if (request->isSecretsCryptoRequest) {
                     asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << names);
                 } else {
                     request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                            << QVariant::fromValue<QStringList>(names));
+                                                                            << QVariant::fromValue<QVariantMap>(names));
                 }
                 *completed = true;
             }
