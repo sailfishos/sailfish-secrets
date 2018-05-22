@@ -99,7 +99,7 @@ QString Daemon::ApiImpl::MetadataDatabase::databaseFileName() const
 
 bool Daemon::ApiImpl::MetadataDatabase::openDatabase(const QByteArray &hexKey)
 {
-    const QByteArray setupKeyStatement = QString::fromLatin1(setupEncryptionKey).arg(QLatin1String(hexKey)).toLatin1();
+    const QByteArray setupKeyStatement = QString::fromLatin1(setupEncryptionKey).arg(QString::fromLatin1(hexKey)).toLatin1();
     const char *setupKeyStatementData = setupKeyStatement.constData();
     const char *setupStatements[] = {
         setupKeyStatementData,
@@ -220,7 +220,7 @@ Daemon::ApiImpl::MetadataDatabase::unlock(
                               QStringLiteral("Unable to initialize the bookkeeping database with the given key"));
             }
         } else {
-            const QString setupKeyStatement = QString::fromLatin1(setupEncryptionKey).arg(QLatin1String(hexKey));
+            const QString setupKeyStatement = QString::fromLatin1(setupEncryptionKey).arg(QString::fromLatin1(hexKey));
             QString errorText;
             Daemon::Sqlite::Database::Query kq = m_db.prepare(setupKeyStatement, &errorText);
             if (!errorText.isEmpty()) {
@@ -270,7 +270,7 @@ Daemon::ApiImpl::MetadataDatabase::reencrypt(
                       QLatin1String("The new bookkeeping key is not a 256 bit key"));
     }
 
-    const QString setupReKeyStatement = QString::fromLatin1(setupReEncryptionKey).arg(QLatin1String(newHexKey));
+    const QString setupReKeyStatement = QString::fromLatin1(setupReEncryptionKey).arg(QString::fromLatin1(newHexKey));
     QString errorText;
     Daemon::Sqlite::Database::Query kq = m_db.prepare(setupReKeyStatement, &errorText);
     if (!errorText.isEmpty()) {
