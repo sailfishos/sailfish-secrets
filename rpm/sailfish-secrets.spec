@@ -299,6 +299,7 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 %defattr(-,root,root,-)
 /opt/tests/Sailfish/Secrets/authentication-client
 /opt/tests/Sailfish/Secrets/tst_secrets
+/opt/tests/Sailfish/Secrets/tst_dataprotection
 /opt/tests/Sailfish/Secrets/tst_secrets.qml
 /opt/tests/Sailfish/Secrets/tst_secretsrequests
 /opt/tests/Sailfish/Secrets/tst_secretsrequests.qml
