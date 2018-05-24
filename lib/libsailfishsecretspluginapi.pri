@@ -1,2 +1,2 @@
 include($$PWD/libsailfishsecrets.pri)
-LIBS += -L$$shadowed($$PWD/SecretsPluginApi) -lsailfishsecretspluginapi
+LIBS += -L$$shadowed($$PWD/Secrets/Plugins) -lsailfishsecretspluginapi

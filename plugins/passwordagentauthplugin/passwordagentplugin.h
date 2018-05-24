@@ -8,7 +8,7 @@
 #ifndef SAILFISHSECRETS_PLUGIN_AUTHENTICATION_PASSWORDAGENT_H
 #define SAILFISHSECRETS_PLUGIN_AUTHENTICATION_PASSWORDAGENT_H
 
-#include "SecretsPluginApi/extensionplugins.h"
+#include "Secrets/Plugins/extensionplugins.h"
 
 #include "Secrets/interactionparameters.h"
 

@@ -8,7 +8,7 @@
 #ifndef LIBSAILFISHCRYPTO_PLUGINAPI_EXTENSIONPLUGINS_H
 #define LIBSAILFISHCRYPTO_PLUGINAPI_EXTENSIONPLUGINS_H
 
-#include <SecretsPluginApi/extensionplugins.h>
+#include <Secrets/Plugins/extensionplugins.h>
 
 #include <Crypto/cryptoglobal.h>
 #include <Crypto/key.h>

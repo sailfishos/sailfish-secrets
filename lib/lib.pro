@@ -1,7 +1,20 @@
 TEMPLATE = subdirs
+
 SUBDIRS += \
-    Secrets SecretsPluginApi $$PWD/Secrets/doc \
-    Crypto CryptoPluginApi $$PWD/Crypto/doc
+    Secrets \
+    SecretsPluginApi \
+    SecretsDocs \
+    Crypto \
+    CryptoPluginApi \
+    CryptoDocs
+
+Secrets.subdir = $$PWD/Secrets
+SecretsPluginApi.subdir = $$PWD/Secrets/Plugins
+SecretsDocs.subdir = $$PWD/Secrets/doc
+
+Crypto.subdir = $$PWD/Crypto
+CryptoPluginApi.subdir = $$PWD/Crypto/Plugins
+CryptoDocs.subdir = $$PWD/Crypto/doc
 
 SecretsPluginApi.depends = Secrets
 CryptoPluginApi.depends = Crypto

@@ -8,7 +8,7 @@
 #ifndef SAILFISHCRYPTO_APIIMPL_REQUESTPROCESSOR_P_H
 #define SAILFISHCRYPTO_APIIMPL_REQUESTPROCESSOR_P_H
 
-#include "CryptoPluginApi/extensionplugins.h"
+#include "Crypto/Plugins/extensionplugins.h"
 
 #include "Crypto/result.h"
 #include "Crypto/cryptomanager.h"

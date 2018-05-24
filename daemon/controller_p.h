@@ -19,7 +19,7 @@
 #include <QtCore/QThreadPool>
 #include <QtCore/QSharedPointer>
 
-#include <SecretsPluginApi/extensionplugins.h>
+#include <Secrets/Plugins/extensionplugins.h>
 #include <Secrets/plugininfo.h>
 
 namespace Sailfish {

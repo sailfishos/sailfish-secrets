@@ -1,3 +1,3 @@
 include($$PWD/libsailfishsecretspluginapi.pri)
 include($$PWD/libsailfishcrypto.pri)
-LIBS += -L$$shadowed($$PWD/CryptoPluginApi) -lsailfishcryptopluginapi
+LIBS += -L$$shadowed($$PWD/Crypto/Plugins) -lsailfishcryptopluginapi

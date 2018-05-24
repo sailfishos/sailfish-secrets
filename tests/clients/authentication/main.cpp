@@ -10,7 +10,7 @@
 #include <QtCore/QPluginLoader>
 #include <QtCore/QVarLengthArray>
 
-#include "SecretsPluginApi/extensionplugins.h"
+#include "Secrets/Plugins/extensionplugins.h"
 
 #include <unistd.h>
 

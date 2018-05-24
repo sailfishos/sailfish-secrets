@@ -23,7 +23,7 @@
 
 #include <sys/types.h>
 
-#include "SecretsPluginApi/extensionplugins.h"
+#include "Secrets/Plugins/extensionplugins.h"
 
 #include "Secrets/result.h"
 #include "Secrets/interactionparameters.h"

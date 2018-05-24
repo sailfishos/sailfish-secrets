@@ -10,7 +10,7 @@
 
 #include "CryptoImpl/cryptopluginwrapper_p.h"
 
-#include "CryptoPluginApi/extensionplugins.h"
+#include "Crypto/Plugins/extensionplugins.h"
 
 #include "Crypto/key.h"
 #include "Crypto/cryptomanager.h"

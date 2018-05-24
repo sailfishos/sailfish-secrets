@@ -10,7 +10,7 @@
 
 #include "database_p.h"
 
-#include "SecretsPluginApi/extensionplugins.h"
+#include "Secrets/Plugins/extensionplugins.h"
 
 #include "Secrets/result.h"
 
