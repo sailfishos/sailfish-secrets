@@ -52,6 +52,12 @@ using namespace Sailfish::Crypto;
   base class, and the sailfishcryptopluginapi pkgconfig file will entail
   a dependency upon sailfishsecretspluginapi and sailfishsecrets, as
   well as sailfishcrypto.
+
+  An example (skeleton) Crypto plugin without key storage capability may be
+  found at: https://github.com/sailfishos/sailfish-secrets/tree/master/examples/plugins/examplecryptoplugin/
+
+  An example (skeleton) Crypto Storage plugin may be found at:
+  https://github.com/sailfishos/sailfish-secrets/tree/master/examples/plugins/examplecryptostorageplugin/
  */
 
 /*!

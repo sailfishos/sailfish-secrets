@@ -57,6 +57,10 @@ using namespace Sailfish::Secrets;
   CONFIG += link_pkgconfig
   PKGCONFIG += sailfishsecretspluginapi
   \endcode
+
+  An example (skeleton) Encrypted Storage plugin (which also implements the
+  \c{CryptoPlugin} interface) may be found at:
+  https://github.com/sailfishos/sailfish-secrets/tree/master/examples/plugins/examplecryptostorageplugin/
  */
 
 /*!
