@@ -8,7 +8,7 @@
 #ifndef SAILFISHCRYPTO_PLUGIN_CRYPTO_OPENSSL_H
 #define SAILFISHCRYPTO_PLUGIN_CRYPTO_OPENSSL_H
 
-#include "CryptoPluginApi/extensionplugins.h"
+#include "Crypto/Plugins/extensionplugins.h"
 
 #include <QObject>
 #include <QByteArray>

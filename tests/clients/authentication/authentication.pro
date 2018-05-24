@@ -8,8 +8,8 @@ PKGCONFIG += qt5-boostable
 
 SOURCES += main.cpp
 
-SOURCES += $$PWD/../../../lib/SecretsPluginApi/extensionplugins.cpp
-HEADERS += $$PWD/../../../lib/SecretsPluginApi/extensionplugins.h
+SOURCES += $$PWD/../../../lib/Secrets/Plugins/extensionplugins.cpp
+HEADERS += $$PWD/../../../lib/Secrets/Plugins/extensionplugins.h
 
 target.path = /opt/tests/Sailfish/Secrets/
 

@@ -288,7 +288,7 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 %defattr(-,root,root,-)
 %{_libdir}/libsailfishsecrets.so
 %{_libdir}/pkgconfig/sailfishsecrets.pc
-%exclude %{_includedir}/Sailfish/Secrets/extensionplugins.h
+%exclude %{_includedir}/Sailfish/Secrets/Plugins/extensionplugins.h
 %{_includedir}/Sailfish/Secrets/*
 
 %files -n libsailfishsecrets-doc
@@ -321,7 +321,7 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 %defattr(-,root,root,-)
 %{_libdir}/libsailfishsecretspluginapi.so
 %{_libdir}/pkgconfig/sailfishsecretspluginapi.pc
-%{_includedir}/Sailfish/Secrets/extensionplugins.h
+%{_includedir}/Sailfish/Secrets/Plugins/extensionplugins.h
 
 %files -n libsailfishsecretsplugin
 %defattr(-,root,root,-)
@@ -337,7 +337,7 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 %defattr(-,root,root,-)
 %{_libdir}/libsailfishcrypto.so
 %{_libdir}/pkgconfig/sailfishcrypto.pc
-%exclude %{_includedir}/Sailfish/Crypto/extensionplugins.h
+%exclude %{_includedir}/Sailfish/Crypto/Plugins/extensionplugins.h
 %{_includedir}/Sailfish/Crypto/*
 
 %files -n libsailfishcrypto-doc
@@ -362,7 +362,7 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 %defattr(-,root,root,-)
 %{_libdir}/libsailfishcryptopluginapi.so
 %{_libdir}/pkgconfig/sailfishcryptopluginapi.pc
-%{_includedir}/Sailfish/Crypto/extensionplugins.h
+%{_includedir}/Sailfish/Crypto/Plugins/extensionplugins.h
 
 %files -n libsailfishcryptoplugin
 %defattr(-,root,root,-)

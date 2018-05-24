@@ -8,7 +8,7 @@
 #ifndef SAILFISHSECRETS_PLUGIN_ENCRYPTION_OPENSSL_H
 #define SAILFISHSECRETS_PLUGIN_ENCRYPTION_OPENSSL_H
 
-#include "SecretsPluginApi/extensionplugins.h"
+#include "Secrets/Plugins/extensionplugins.h"
 
 #include <QObject>
 #include <QByteArray>

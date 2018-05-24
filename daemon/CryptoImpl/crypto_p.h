@@ -12,7 +12,7 @@
 #include "requestqueue_p.h"
 #include "applicationpermissions_p.h"
 
-#include "CryptoPluginApi/extensionplugins.h"
+#include "Crypto/Plugins/extensionplugins.h"
 
 #include "Crypto/key.h"
 #include "Crypto/plugininfo.h"

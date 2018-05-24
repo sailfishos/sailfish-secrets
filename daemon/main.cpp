@@ -14,8 +14,8 @@
 #include "logging_p.h"
 #include "plugin_p.h"
 
-#include "CryptoPluginApi/extensionplugins.h"
-#include "SecretsPluginApi/extensionplugins.h"
+#include "Crypto/Plugins/extensionplugins.h"
+#include "Secrets/Plugins/extensionplugins.h"
 
 Q_LOGGING_CATEGORY(lcSailfishSecretsDaemon, "org.sailfishos.secrets.daemon", QtWarningMsg)
 Q_LOGGING_CATEGORY(lcSailfishSecretsDaemonDBus, "org.sailfishos.secrets.daemon.dbus", QtWarningMsg)

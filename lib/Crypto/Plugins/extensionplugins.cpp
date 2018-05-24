@@ -5,7 +5,7 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#include "CryptoPluginApi/extensionplugins.h"
+#include "Crypto/Plugins/extensionplugins.h"
 
 #include <Crypto/key.h>
 

@@ -12,7 +12,7 @@
 #include "SecretsImpl/pluginwrapper_p.h"
 #include "SecretsImpl/metadatadb_p.h"
 
-#include "SecretsPluginApi/extensionplugins.h"
+#include "Secrets/Plugins/extensionplugins.h"
 
 #include "Secrets/secret.h"
 #include "Secrets/interactionparameters.h"

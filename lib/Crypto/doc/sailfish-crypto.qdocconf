@@ -4,8 +4,8 @@ versionsym      =
 version         = 0.0.1
 url             = https://github.com/sailfishos/sailfish-secrets/
 
-sourcedirs += $$PWD/../ $$PWD/../doc $$PWD/../../../doc $$PWD/../../CryptoPluginApi/
-headerdirs += $$PWD/../ $$PWD/../../CryptoPluginApi/
+sourcedirs += $$PWD/../ $$PWD/../doc $$PWD/../../../doc $$PWD/../../Crypto/Plugins/
+headerdirs += $$PWD/../ $$PWD/../../Crypto/Plugins/
 
 outputformats = HTML
 outputdir = $$PWD/../doc/html

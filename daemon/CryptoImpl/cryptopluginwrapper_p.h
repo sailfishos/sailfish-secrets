@@ -15,7 +15,7 @@
 
 #include "Secrets/result.h"
 
-#include "CryptoPluginApi/extensionplugins.h"
+#include "Crypto/Plugins/extensionplugins.h"
 
 #include <QtCore/QString>
 #include <QtCore/QByteArray>

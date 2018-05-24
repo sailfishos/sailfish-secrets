@@ -8,12 +8,12 @@
 #ifndef SAILFISHSECRETS_PLUGIN_ENCRYPTEDSTORAGE_SQLCIPHER_H
 #define SAILFISHSECRETS_PLUGIN_ENCRYPTEDSTORAGE_SQLCIPHER_H
 
-#include "SecretsPluginApi/extensionplugins.h"
+#include "Secrets/Plugins/extensionplugins.h"
 
 #include "Secrets/secret.h"
 #include "Secrets/result.h"
 
-#include "CryptoPluginApi/extensionplugins.h"
+#include "Crypto/Plugins/extensionplugins.h"
 
 #include "Crypto/key.h"
 #include "Crypto/result.h"
