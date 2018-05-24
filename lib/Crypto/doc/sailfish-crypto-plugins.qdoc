@@ -90,4 +90,15 @@ if (generateRequest.result().code() == Sailfish::Crypto::Result::Failed) {
 Note that this example assumes that the "ExampleCollection" had already
 been created, via a Sailfish::Secrets::CreateCollectionRequest.
 
+\section1 Implementing your own plugin
+
+Please see the documentation for \l{Sailfish::Crypto::CryptoPlugin} for more
+information about implementing your own custom plugin.
+
+An example (skeleton) Crypto plugin without key storage capability may be
+found at: https://github.com/sailfishos/sailfish-secrets/tree/master/examples/plugins/examplecryptoplugin/
+
+An example (skeleton) Crypto Storage plugin may be found at:
+https://github.com/sailfishos/sailfish-secrets/tree/master/examples/plugins/examplecryptostorageplugin/
+
 */
