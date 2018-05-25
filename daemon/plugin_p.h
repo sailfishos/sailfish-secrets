@@ -69,6 +69,16 @@ inline typename std::enable_if<sizeof...(TOtherPlugins), PluginInfo>::type match
     return matchAllPlugins<TOtherPlugins...>(obj);
 }
 
+template <typename TPlugin>
+inline PluginBase* matchAnyPluginType(QObject *obj) {
+    return qobject_cast<TPlugin*>(obj);
+}
+
+template <typename TPlugin, typename ... TOtherPlugins>
+inline typename std::enable_if<sizeof...(TOtherPlugins), PluginBase*>::type matchAnyPluginType(QObject *obj) {
+    auto match = qobject_cast<TPlugin*>(obj);
+    return match ? match : matchAnyPluginType<TOtherPlugins...>(obj);
+}
 
 
 } // namespace PluginHelpers
@@ -81,7 +91,7 @@ private:
 
     explicit PluginManager();
     QVector<QPluginLoader *> loadPluginFiles();
-    void addPlugin(QPluginLoader *loader, const PluginHelpers::PluginInfo &info, QObject *obj);
+    bool addPlugin(QPluginLoader *loader, const PluginHelpers::PluginInfo &info, QObject *obj);
 
 public:
     static PluginManager *instance();
@@ -93,7 +103,12 @@ public:
             auto *obj = loader->instance();
             auto info = PluginHelpers::matchAnyPlugin<TPlugins...>(obj);
 
-            addPlugin(loader, info, obj);
+            if (addPlugin(loader, info, obj)) {
+                auto plugin = PluginHelpers::matchAnyPluginType<TPlugins...>(obj);
+                if (plugin) {
+                    plugin->initialize();
+                }
+            }
         }
     }
 

@@ -79,7 +79,7 @@ QVector<QPluginLoader*> Daemon::ApiImpl::PluginManager::loadPluginFiles()
     return result;
 }
 
-void Daemon::ApiImpl::PluginManager::addPlugin(QPluginLoader *loader, const PluginHelpers::PluginInfo &info, QObject *obj)
+bool Daemon::ApiImpl::PluginManager::addPlugin(QPluginLoader *loader, const PluginHelpers::PluginInfo &info, QObject *obj)
 {
     bool use = true;
 
@@ -102,11 +102,11 @@ void Daemon::ApiImpl::PluginManager::addPlugin(QPluginLoader *loader, const Plug
         if (!loader->unload()) {
             qCWarning(lcSailfishSecretsPlugins) << "Could not unload plugin:" << loader->fileName();
         }
-        delete loader;
-        return;
+    } else {
+        qCDebug(lcSailfishSecretsPlugins) << "Adding plugin:" << info.name << "from:" << loader->fileName();
+        m_plugins.insert(info.name, obj);
     }
 
-    qCDebug(lcSailfishSecretsPlugins) << "Adding plugin:" << info.name << "from:" << loader->fileName();
-    m_plugins.insert(info.name, obj);
     delete loader;
+    return use;
 }

@@ -55,6 +55,8 @@ public:
     }
     int version() const Q_DECL_OVERRIDE { return 1; }
 
+    void initialize() Q_DECL_OVERRIDE;
+
     AuthenticationPlugin::AuthenticationTypes authenticationTypes() const Q_DECL_OVERRIDE;
     InteractionParameters::InputTypes inputTypes() const Q_DECL_OVERRIDE;
 
@@ -86,7 +88,7 @@ private:
     class PolkitResponse;
 
     QScopedPointer<Agent> m_sessionAgent;
-    QDBusServer m_server;
+    QScopedPointer<QDBusServer> m_server;
     QHash<QString, PolkitResponse *> m_polkitResponses;
 
     inline void destroyAgent(Agent *agent);
