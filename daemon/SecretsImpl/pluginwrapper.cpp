@@ -172,7 +172,9 @@ bool StoragePluginWrapper::initialize(const QByteArray &masterLockKey)
     }
 
     QStringList cnames;
-    Result result = collectionNames(&cnames);
+    QVariantMap cnamesMap;
+    Result result = collectionNames(&cnamesMap);
+    cnames = cnamesMap.keys();
     if (result.code() != Result::Succeeded) {
         return false;
     }
@@ -209,9 +211,15 @@ StoragePlugin::StorageType StoragePluginWrapper::storageType() const
 }
 
 Result StoragePluginWrapper::collectionNames(
-        QStringList *names) const
+        QVariantMap *names) const
 {
-    return m_storagePlugin->collectionNames(names);
+    QStringList cnames;
+    Result result = m_storagePlugin->collectionNames(&cnames);
+    for (const QString &cname : cnames) {
+        // not locked, only encrypted storage plugins support collection locks
+        names->insert(cname, false);
+    }
+    return result;
 }
 
 Result StoragePluginWrapper::secretNames(
@@ -506,7 +514,9 @@ bool EncryptedStoragePluginWrapper::initialize(const QByteArray &masterLockKey)
     // we can only do this if it is not locked.
     if (!m_encryptedStoragePlugin->isLocked()) {
         QStringList cnames, lockedCollections;
-        Result result = collectionNames(&cnames);
+        QVariantMap cnamesMap;
+        Result result = collectionNames(&cnamesMap);
+        cnames = cnamesMap.keys();
         if (result.code() != Result::Succeeded) {
             return false;
         }
@@ -561,9 +571,22 @@ EncryptionPlugin::EncryptionAlgorithm EncryptedStoragePluginWrapper::encryptionA
 }
 
 Result EncryptedStoragePluginWrapper::collectionNames(
-        QStringList *names) const
+        QVariantMap *names) const
 {
-    return m_encryptedStoragePlugin->collectionNames(names);
+    QStringList cnames;
+    Result result = m_encryptedStoragePlugin->collectionNames(&cnames);
+    if (result.code() == Result::Succeeded) {
+        for (const QString &cname : cnames) {
+            bool locked = false;
+            Result lockedResult = m_encryptedStoragePlugin->isCollectionLocked(cname, &locked);
+            if (lockedResult.code() != Result::Succeeded) {
+                // assume locked, otherwise ignore the error.
+                locked = true;
+            }
+            names->insert(cname, locked);
+        }
+    }
+    return result;
 }
 
 Result EncryptedStoragePluginWrapper::secretNames(

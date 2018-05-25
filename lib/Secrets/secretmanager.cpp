@@ -128,17 +128,17 @@ SecretManagerPrivate::userInput(
 }
 
 
-QDBusPendingReply<Result, QStringList>
+QDBusPendingReply<Result, QVariantMap>
 SecretManagerPrivate::collectionNames(
         const QString &storagePluginName)
 {
     if (!m_interface) {
-        return QDBusPendingReply<Result, QStringList>(
+        return QDBusPendingReply<Result, QVariantMap>(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
 
-    QDBusPendingReply<Result, QStringList> reply
+    QDBusPendingReply<Result, QVariantMap> reply
             = m_interface->asyncCallWithArgumentList(
                 QStringLiteral("collectionNames"),
                 QVariantList() << QVariant::fromValue<QString>(storagePluginName));

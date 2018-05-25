@@ -63,12 +63,12 @@ struct CollectionMetadataResult {
 
 struct CollectionNamesResult {
     CollectionNamesResult(const Sailfish::Secrets::Result &r = Sailfish::Secrets::Result(),
-                      const QStringList &cns = QStringList())
+                      const QVariantMap &cns = QVariantMap())
         : result(r), collectionNames(cns) {}
     CollectionNamesResult(const CollectionNamesResult &other)
         : result(other.result), collectionNames(other.collectionNames) {}
     Sailfish::Secrets::Result result;
-    QStringList collectionNames;
+    QVariantMap collectionNames;
 };
 
 struct IdentifiersResult {

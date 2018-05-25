@@ -58,8 +58,8 @@ public:
     QDBusPendingReply<Sailfish::Secrets::Result, QByteArray> userInput(
             const Sailfish::Secrets::InteractionParameters &uiParams);
 
-    // retrieve the names of collections
-    QDBusPendingReply<Sailfish::Secrets::Result, QStringList> collectionNames(
+    // retrieve the names of collections (map<name,isLocked>)
+    QDBusPendingReply<Sailfish::Secrets::Result, QVariantMap> collectionNames(
             const QString &storagePluginName);
 
     // create a DeviceLock-protected collection

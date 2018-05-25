@@ -89,7 +89,7 @@ public:
             pid_t callerPid,
             quint64 requestId,
             const QString &storagePluginName,
-            QStringList *names);
+            QVariantMap *names);
 
     // create a DeviceLock-protected collection
     Sailfish::Secrets::Result createDeviceLockCollection(
