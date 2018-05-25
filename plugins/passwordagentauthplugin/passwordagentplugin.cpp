@@ -384,14 +384,19 @@ struct PasswordAgentPlugin::Agent
 
 PasswordAgentPlugin::PasswordAgentPlugin(QObject *parent)
     : AuthenticationPlugin(parent)
-    , m_server(QStringLiteral("unix:path=%1/sailfishsecretsd-p2pSocket-agent").arg(
-                QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation)))
 {
+}
+
+void PasswordAgentPlugin::initialize()
+{
+    m_server.reset(new QDBusServer(QStringLiteral("unix:path=%1/sailfishsecretsd-p2pSocket-agent").arg(
+                QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation))));
+
     qDBusRegisterMetaType<PolkitSubject>();
     qDBusRegisterMetaType<PolkitAuthorizationResult>();
     qDBusRegisterMetaType<QHash<QString, QString>>();
 
-    connect(&m_server, &QDBusServer::newConnection, this, [this](const QDBusConnection &connection) {
+    connect(m_server.data(), &QDBusServer::newConnection, this, [this](const QDBusConnection &connection) {
         if (!QDBusConnection(connection).connect(
                     QString(),
                     QStringLiteral("/org/freedesktop/DBus/Local"),

@@ -114,6 +114,21 @@ PluginBase::~PluginBase()
 }
 
 /*!
+ * \brief Initialize the plugin
+ *
+ * Derived types should override this method in order to perform
+ * initialization rather than doing so in the constructor, as this
+ * method will be called once the loaded plugin is accepted for
+ * use by the daemon.
+ *
+ * This allows the creation of e.g. socket files or other such
+ * system side effects to be meaningful and non-interfering.
+ */
+void PluginBase::initialize()
+{
+}
+
+/*!
  * \brief Returns true if the plugin supports locking semantics.
  *
  * The default implementation returns false.  This method should
