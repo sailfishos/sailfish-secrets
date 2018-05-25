@@ -650,19 +650,19 @@ bool Daemon::ApiImpl::SecretsRequestQueue::writeTestCipherText(
         return false;
     }
 
-    const QString lockCodeCheckFileName = m_autotestMode
+    const QString lockCodeCheckDirName = m_autotestMode
             ? QLatin1String("lockcodecheck-test")
             : QLatin1String("lockcodecheck");
-    const QString lockCodeCheckPath = secretsDir.absoluteFilePath(lockCodeCheckFileName);
+    const QString lockCodeCheckDirPath = secretsDir.absoluteFilePath(lockCodeCheckDirName);
 
-    QFile lockCodeCheckFile(lockCodeCheckPath);
-    if (!lockCodeCheckFile.open(QIODevice::WriteOnly)) {
-        qCWarning(lcSailfishSecretsDaemon) << "Unable to write ciphertext data to lock code check file";
-        return false;
+    DataProtector dataProtector(lockCodeCheckDirPath);
+    DataProtector::Status s = dataProtector.putData(testCipherText);
+    bool ok = (s == DataProtector::Success);
+    if (!ok) {
+        qCWarning(lcSailfishSecretsDaemon) << "Can't write lock code data. DataProtector returned:" << s;
     }
-    lockCodeCheckFile.write(testCipherText);
-    lockCodeCheckFile.close();
-    return true;
+
+    return ok;
 }
 
 bool Daemon::ApiImpl::SecretsRequestQueue::compareTestCipherText(
@@ -682,26 +682,33 @@ bool Daemon::ApiImpl::SecretsRequestQueue::compareTestCipherText(
         return false;
     }
 
-    const QString lockCodeCheckFileName = m_autotestMode
+    const QString lockCodeCheckDirName = m_autotestMode
             ? QLatin1String("lockcodecheck-test")
             : QLatin1String("lockcodecheck");
-    const QString lockCodeCheckPath = secretsDir.absoluteFilePath(lockCodeCheckFileName);
-    if (!QFile::exists(lockCodeCheckPath)) {
+    const QString lockCodeCheckDirPath = secretsDir.absoluteFilePath(lockCodeCheckDirName);
+
+    QByteArray previousData;
+    DataProtector dataProtector(lockCodeCheckDirPath);
+    DataProtector::Status s = dataProtector.getData(&previousData);
+
+    if (s != DataProtector::Success) {
+        qCWarning(lcSailfishSecretsDaemon) << "Can't read lock code data, assuming it's corrupted. DataProtector returned:" << s;
+        qCWarning(lcSailfishSecretsDaemon) << "NOTE: If you are running a pre-release sailfish-secrets version, you need to delete all old data before proceeding";
+
+        // TODO: find an appropriate solution for dealing with data corruption.
+        abort();
+    }
+
+    if (previousData.isEmpty()) {
         if (writeIfNotExists) {
             // first time, write the file.
-            return writeTestCipherText(testCipherText);
+            s = dataProtector.putData(testCipherText);
+            return s == DataProtector::Success;
         } else {
             qCWarning(lcSailfishSecretsDaemon) << "Unable to read ciphertext data from nonexistent lock code check file";
             return false;
         }
     } else {
-        QFile lockCodeCheckFile(lockCodeCheckPath);
-        if (!lockCodeCheckFile.open(QIODevice::ReadOnly)) {
-            qCWarning(lcSailfishSecretsDaemon) << "Unable to read ciphertext data from lock code check file";
-            return false;
-        }
-        QByteArray previousData = lockCodeCheckFile.readAll();
-        lockCodeCheckFile.close();
         if (previousData != testCipherText) {
             return false;
         }
