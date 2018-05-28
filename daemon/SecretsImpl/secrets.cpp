@@ -15,6 +15,7 @@
 #include "Secrets/secretmanager.h"
 #include "Secrets/secretsdaemonconnection_p.h"
 #include "Secrets/serialization_p.h"
+#include "dataprotector_p.h"
 
 #include "Crypto/cryptomanager.h"
 #include "Crypto/keypairgenerationparameters.h"
@@ -649,19 +650,19 @@ bool Daemon::ApiImpl::SecretsRequestQueue::writeTestCipherText(
         return false;
     }
 
-    const QString lockCodeCheckFileName = m_autotestMode
+    const QString lockCodeCheckDirName = m_autotestMode
             ? QLatin1String("lockcodecheck-test")
             : QLatin1String("lockcodecheck");
-    const QString lockCodeCheckPath = secretsDir.absoluteFilePath(lockCodeCheckFileName);
+    const QString lockCodeCheckDirPath = secretsDir.absoluteFilePath(lockCodeCheckDirName);
 
-    QFile lockCodeCheckFile(lockCodeCheckPath);
-    if (!lockCodeCheckFile.open(QIODevice::WriteOnly)) {
-        qCWarning(lcSailfishSecretsDaemon) << "Unable to write ciphertext data to lock code check file";
-        return false;
+    DataProtector dataProtector(lockCodeCheckDirPath);
+    DataProtector::Status s = dataProtector.putData(testCipherText);
+    bool ok = (s == DataProtector::Success);
+    if (!ok) {
+        qCWarning(lcSailfishSecretsDaemon) << "Can't write lock code data. DataProtector returned:" << s;
     }
-    lockCodeCheckFile.write(testCipherText);
-    lockCodeCheckFile.close();
-    return true;
+
+    return ok;
 }
 
 bool Daemon::ApiImpl::SecretsRequestQueue::compareTestCipherText(
@@ -681,26 +682,33 @@ bool Daemon::ApiImpl::SecretsRequestQueue::compareTestCipherText(
         return false;
     }
 
-    const QString lockCodeCheckFileName = m_autotestMode
+    const QString lockCodeCheckDirName = m_autotestMode
             ? QLatin1String("lockcodecheck-test")
             : QLatin1String("lockcodecheck");
-    const QString lockCodeCheckPath = secretsDir.absoluteFilePath(lockCodeCheckFileName);
-    if (!QFile::exists(lockCodeCheckPath)) {
+    const QString lockCodeCheckDirPath = secretsDir.absoluteFilePath(lockCodeCheckDirName);
+
+    QByteArray previousData;
+    DataProtector dataProtector(lockCodeCheckDirPath);
+    DataProtector::Status s = dataProtector.getData(&previousData);
+
+    if (s != DataProtector::Success) {
+        qCWarning(lcSailfishSecretsDaemon) << "Can't read lock code data, assuming it's corrupted. DataProtector returned:" << s;
+        qCWarning(lcSailfishSecretsDaemon) << "NOTE: If you are running a pre-release sailfish-secrets version, you need to delete all old data before proceeding";
+
+        // TODO: find an appropriate solution for dealing with data corruption.
+        abort();
+    }
+
+    if (previousData.isEmpty()) {
         if (writeIfNotExists) {
             // first time, write the file.
-            return writeTestCipherText(testCipherText);
+            s = dataProtector.putData(testCipherText);
+            return s == DataProtector::Success;
         } else {
             qCWarning(lcSailfishSecretsDaemon) << "Unable to read ciphertext data from nonexistent lock code check file";
             return false;
         }
     } else {
-        QFile lockCodeCheckFile(lockCodeCheckPath);
-        if (!lockCodeCheckFile.open(QIODevice::ReadOnly)) {
-            qCWarning(lcSailfishSecretsDaemon) << "Unable to read ciphertext data from lock code check file";
-            return false;
-        }
-        QByteArray previousData = lockCodeCheckFile.readAll();
-        lockCodeCheckFile.close();
         if (previousData != testCipherText) {
             return false;
         }
@@ -736,8 +744,6 @@ QByteArray Daemon::ApiImpl::SecretsRequestQueue::saltData() const
         return m_saltData;
     }
 
-    QByteArray saltData;
-
     const QString systemDataDirPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/system/");
     const QString privilegedDataDirPath(systemDataDirPath + QLatin1String("privileged") + "/");
     const QString secretsDirPath(privilegedDataDirPath + QLatin1String("Secrets"));
@@ -747,12 +753,23 @@ QByteArray Daemon::ApiImpl::SecretsRequestQueue::saltData() const
         return QByteArray();
     }
 
-    const QString saltFileName = m_autotestMode
+    const QString saltDirName = m_autotestMode
             ? QLatin1String("initialsalt-test")
             : QLatin1String("initialsalt");
-    const QString saltPath = secretsDir.absoluteFilePath(saltFileName);
-    if (!QFile::exists(saltPath)) {
-        // first run, need to write the initial salt data file.
+    const QString saltDirPath = secretsDir.absoluteFilePath(saltDirName);
+
+    DataProtector dataProtector(saltDirPath);
+    QByteArray saltData;
+    DataProtector::Status s = dataProtector.getData(&saltData);
+    if (s != DataProtector::Success) {
+        qCWarning(lcSailfishSecretsDaemon) << "Can't read salt data, assuming it's corrupted. DataProtector returned:" << s;
+        qCWarning(lcSailfishSecretsDaemon) << "NOTE: If you are running a pre-release sailfish-secrets version, you need to delete all old data before proceeding";
+
+        // TODO: find an appropriate solution for dealing with data corruption.
+        abort();
+    }
+    if (saltData.isEmpty()) {
+        // First run, need to write the initial salt data.
         QByteArray dateData = QDateTime::currentDateTime().toString(Qt::ISODate).toUtf8();
         QFile urandom(QLatin1String("/dev/urandom"));
         if (!urandom.open(QIODevice::ReadOnly)) {
@@ -765,21 +782,14 @@ QByteArray Daemon::ApiImpl::SecretsRequestQueue::saltData() const
             saltData[i] = saltData[i] ^ dateData[i];
         }
 
-        QFile saltFile(saltPath);
-        if (!saltFile.open(QIODevice::WriteOnly)) {
-            qCWarning(lcSailfishSecretsDaemon) << "Unable to write salt data to salt file";
-            return QByteArray();
+        s = dataProtector.putData(saltData);
+
+        if (s != DataProtector::Success) {
+            qCWarning(lcSailfishSecretsDaemon) << "Can't write salt data, assuming it's corrupted. DataProtector returned:" << s;
+
+            // TODO: find an appropriate solution for dealing with data corruption.
+            abort();
         }
-        saltFile.write(saltData);
-        saltFile.close();
-    } else {
-        QFile saltFile(saltPath);
-        if (!saltFile.open(QIODevice::ReadOnly)) {
-            qCWarning(lcSailfishSecretsDaemon) << "Unable to read salt data from salt file";
-            return QByteArray();
-        }
-        saltData = saltFile.readAll();
-        saltFile.close();
     }
 
     m_saltData = saltData;

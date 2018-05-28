@@ -9,7 +9,8 @@ HEADERS += \
     $$PWD/pluginwrapper_p.h \
     $$PWD/secrets_p.h \
     $$PWD/secretsrequestprocessor_p.h \
-    $$PWD/applicationpermissions_p.h
+    $$PWD/applicationpermissions_p.h \
+    $$PWD/dataprotector_p.h
 
 SOURCES += \
     $$PWD/metadatadb.cpp \
@@ -17,7 +18,8 @@ SOURCES += \
     $$PWD/pluginwrapper.cpp \
     $$PWD/secrets.cpp \
     $$PWD/secretsrequestprocessor.cpp \
-    $$PWD/applicationpermissions.cpp
+    $$PWD/applicationpermissions.cpp \
+    $$PWD/dataprotector.cpp
 
 SOURCES += \
     $$PWD/secretscryptohelpers.cpp
