@@ -65,6 +65,39 @@ static Sailfish::Crypto::CryptoManager::DigestFunction digestEnum(const QString 
     return Sailfish::Crypto::CryptoManager::DigestSha512;
 }
 
+static QVariantMap toCustomParameters(const QStringList &options)
+{
+    QVariantMap customs;
+    for (QList<QString>::ConstIterator it = options.constBegin(); it != options.constEnd(); it++) {
+        int iEqual = it->indexOf('=');
+        if (iEqual > 0 && iEqual < it->length() - 1) {
+            const QString key = it->left(iEqual);
+            const QString value = it->mid(iEqual + 1);
+            bool ok;
+            QVariant vd(value.toDouble(&ok));
+            if (ok) {
+                customs.insert(key, vd);
+            } else {
+                QVariant vi(value.toInt(&ok));
+                if (ok) {
+                    customs.insert(key, vi);
+                } else {
+                    if (value.compare("true", Qt::CaseInsensitive) == 0) {
+                        customs.insert(key, QVariant(true));
+                    } else if (value.compare("false", Qt::CaseInsensitive) == 0) {
+                        customs.insert(key, QVariant(false));
+                    } else {
+                        customs.insert(key, QVariant(value));
+                    }
+                }
+            }
+        } else {
+            qWarning() << "unrecognized option:" << *it;
+        }
+    }
+    return customs;
+}
+
 CommandHelper::CommandHelper(bool autotestMode, QObject *parent)
     : QObject(parent), m_step(0), m_exitCode(0), m_autotestMode(autotestMode)
 {
@@ -125,10 +158,11 @@ void CommandHelper::emitFinished(int exitCode)
     QMetaObject::invokeMethod(this, "finished", Qt::QueuedConnection);
 }
 
-void CommandHelper::start(const QString &command, const QStringList &args)
+void CommandHelper::start(const QString &command, const QStringList &args, const QStringList &options)
 {
     m_command = command;
 
+    const QVariantMap customs(toCustomParameters(options));
     if (command == QStringLiteral("--list-algorithms")) {
         const QStringList algorithms {
             "RSA",
@@ -421,6 +455,7 @@ void CommandHelper::start(const QString &command, const QStringList &args)
     } else if (command == QStringLiteral("--list-keys")) {
         Sailfish::Crypto::StoredKeyIdentifiersRequest *r = new Sailfish::Crypto::StoredKeyIdentifiersRequest;
         r->setStoragePluginName(args.value(0));
+        r->setCustomParameters(customs);
         if (args.size() > 1 && args.value(1).size()) {
             r->setProperty("collectionName", args.value(1));
         }
@@ -463,6 +498,7 @@ void CommandHelper::start(const QString &command, const QStringList &args)
         r->setCryptoPluginName(args.value(0));
         r->setInteractionParameters(uiParams);
         r->setKeyTemplate(keyTemplate);
+        r->setCustomParameters(customs);
         if (keyTemplate.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmRsa) {
             r->setKeyPairGenerationParameters(rsakpg);
         } else if (keyTemplate.algorithm() == Sailfish::Crypto::CryptoManager::AlgorithmEc) {
@@ -520,6 +556,7 @@ void CommandHelper::start(const QString &command, const QStringList &args)
         r->setInteractionParameters(uiParams);
         r->setKeyTemplate(keyTemplate);
         r->setKeyDerivationParameters(kdp);
+        r->setCustomParameters(customs);
 
         m_cryptoRequest.reset(r);
         m_cryptoRequest->setManager(&m_cryptoManager);
@@ -574,6 +611,7 @@ void CommandHelper::start(const QString &command, const QStringList &args)
         r->setInteractionParameters(uiParams);
         r->setKeyTemplate(keyTemplate);
         r->setData(importData);
+        r->setCustomParameters(customs);
 
         m_cryptoRequest.reset(r);
         m_cryptoRequest->setManager(&m_cryptoManager);
@@ -584,6 +622,7 @@ void CommandHelper::start(const QString &command, const QStringList &args)
         Sailfish::Crypto::DeleteStoredKeyRequest *r = new Sailfish::Crypto::DeleteStoredKeyRequest;
         r->setIdentifier(Sailfish::Crypto::Key::Identifier(
                 args.value(2), args.value(1), args.value(0)));
+        r->setCustomParameters(customs);
         m_cryptoRequest.reset(r);
         m_cryptoRequest->setManager(&m_cryptoManager);
         connect(m_cryptoRequest.data(), &Sailfish::Crypto::Request::statusChanged,
@@ -619,6 +658,7 @@ void CommandHelper::start(const QString &command, const QStringList &args)
         r->setPadding(Sailfish::Crypto::CryptoManager::SignaturePaddingNone);
         r->setDigestFunction(digestEnum(args.value(4)));
         r->setData(signData);
+        r->setCustomParameters(customs);
         m_cryptoRequest.reset(r);
         m_cryptoRequest->setManager(&m_cryptoManager);
         connect(m_cryptoRequest.data(), &Sailfish::Crypto::Request::statusChanged,
@@ -676,6 +716,7 @@ void CommandHelper::start(const QString &command, const QStringList &args)
         r->setDigestFunction(digestEnum(args.value(4)));
         r->setData(verifyData);
         r->setSignature(signatureData);
+        r->setCustomParameters(customs);
         m_cryptoRequest.reset(r);
         m_cryptoRequest->setManager(&m_cryptoManager);
         connect(m_cryptoRequest.data(), &Sailfish::Crypto::Request::statusChanged,
@@ -714,6 +755,7 @@ void CommandHelper::start(const QString &command, const QStringList &args)
         ivr.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
         ivr.setCryptoPluginName(args.value(0));
         ivr.setKeySize(256); // for AES the IV size is 16 bytes, independent of key size.
+        ivr.setCustomParameters(customs);
         ivr.startRequest();
         ivr.waitForFinished();
 
@@ -725,6 +767,7 @@ void CommandHelper::start(const QString &command, const QStringList &args)
         r->setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
         r->setData(encryptData);
         r->setInitializationVector(ivr.generatedInitializationVector());
+        r->setCustomParameters(customs);
         m_cryptoRequest.reset(r);
         m_cryptoRequest->setManager(&m_cryptoManager);
         connect(m_cryptoRequest.data(), &Sailfish::Crypto::Request::statusChanged,
@@ -774,6 +817,7 @@ void CommandHelper::start(const QString &command, const QStringList &args)
         r->setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
         r->setData(decryptData);
         r->setInitializationVector(iv);
+        r->setCustomParameters(customs);
         m_cryptoRequest.reset(r);
         m_cryptoRequest->setManager(&m_cryptoManager);
         connect(m_cryptoRequest.data(), &Sailfish::Crypto::Request::statusChanged,

@@ -224,6 +224,22 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     }
 
     const QString command = args.takeFirst();
+    QStringList options;
+    bool isOption = false;
+    for (QList<QString>::Iterator it = args.begin(); it != args.end();) {
+        if (isOption) {
+            options << *it;
+            isOption = false;
+            it = args.erase(it);
+        } else {
+            if (it->startsWith("-o")) {
+                isOption = true;
+                it = args.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
     if (args.size() < paramOptionsMin.value(command)
             || args.size() > paramOptionsMax.value(command)) {
         qInfo() << "  Usage:" << appName << command << paramOptions.value(command);
@@ -234,7 +250,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     CommandHelper helper(autotestMode);
     QObject::connect(&helper, &CommandHelper::finished,
                      &app, &QCoreApplication::quit);
-    helper.start(command, args);
+    helper.start(command, args, options);
     app.exec();
     return helper.exitCode();
 }
