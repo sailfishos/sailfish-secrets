@@ -40,33 +40,33 @@ bool Sailfish::Crypto::CryptoDaemonConnectionPrivate::connect()
     }
 
     // Step one: query the crypto daemon's "discovery" SessionBusObject for the PeerToPeer address.
+    QString address(QStringLiteral("unix:path=/run/user/100000/sailfishsecretsd-p2pSocket"));
     QDBusInterface iface("org.sailfishos.crypto.daemon.discovery",
                          "/Sailfish/Crypto/Discovery",
                          "org.sailfishos.crypto.daemon.discovery",
                          QDBusConnection::sessionBus());
-    if (!iface.isValid()) {
-        qCWarning(lcSailfishCryptoDaemonConnection) << "Unable to connect to the crypto daemon discovery service!";
-        return false;
-    }
-
-    QDBusReply<QString> reply = iface.call("peerToPeerAddress");
-    if (!reply.isValid()) {
-        qCWarning(lcSailfishCryptoDaemonConnection) << "Unable to query the peer to peer socket address from the crypto daemon!";
-        return false;
+    if (iface.isValid()) {
+        QDBusReply<QString> reply = iface.call("peerToPeerAddress");
+        if (reply.isValid()) {
+            address = reply.value();
+        } else {
+            qCDebug(lcSailfishCryptoDaemonConnection) << "Unable to query the peer to peer socket address from the crypto daemon!  Using fallback address.";
+        }
+    } else {
+        qCDebug(lcSailfishCryptoDaemonConnection) << "Unable to connect to the crypto daemon discovery service!  Using fallback address.";
     }
 
     // Step two: connect to the PeerToPeer address.
     static int connectionCount = 0;
-    const QString address = reply.value();
     const QString name = QString::fromLatin1("sailfishcryptod-connection-%1").arg(connectionCount++);
 
     qCDebug(lcSailfishCryptoDaemonConnection) << "Connecting to crypto daemon via p2p address:" << address
-                                               << "with connection name:" << name;
+                                              << "with connection name:" << name;
 
     QDBusConnection p2pc = QDBusConnection::connectToPeer(address, name);
     if (!p2pc.isConnected()) {
         qCWarning(lcSailfishCryptoDaemonConnection) << "Unable to connect to crypto daemon:" << p2pc.lastError()
-                                                     << p2pc.lastError().type() << p2pc.lastError().name();
+                                                    << p2pc.lastError().type() << p2pc.lastError().name();
         return false;
     }
 
