@@ -15,6 +15,7 @@
 #include <Secrets/storesecretrequest.h>
 #include <Secrets/storedsecretrequest.h>
 #include <Secrets/deletesecretrequest.h>
+#include <Secrets/interactionrequest.h>
 
 #include <Crypto/interactionparameters.h>
 #include <Crypto/keypairgenerationparameters.h>
@@ -779,6 +780,21 @@ void CommandHelper::start(const QString &command, const QStringList &args)
         connect(m_cryptoRequest.data(), &Sailfish::Crypto::Request::statusChanged,
                 this, &CommandHelper::cryptoRequestStatusChanged);
         m_cryptoRequest->startRequest();
+    } else if (command == QStringLiteral("--get-user-input")) {
+        Sailfish::Secrets::InteractionRequest *r = new Sailfish::Secrets::InteractionRequest;
+        Sailfish::Secrets::InteractionParameters uiParams;
+        uiParams.setAuthenticationPluginName(m_autotestMode
+                                             ? (Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName + QStringLiteral(".test"))
+                                             : Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName);
+        uiParams.setInputType(Sailfish::Secrets::InteractionParameters::AlphaNumericInput);
+        uiParams.setEchoMode(Sailfish::Secrets::InteractionParameters::NormalEcho);
+        uiParams.setPromptText(QStringLiteral("Please enter some data!"));
+        r->setInteractionParameters(uiParams);
+        m_secretsRequest.reset(r);
+        m_secretsRequest->setManager(&m_secretManager);
+        connect(m_secretsRequest.data(), &Sailfish::Secrets::Request::statusChanged,
+                this, &CommandHelper::secretsRequestStatusChanged);
+        m_secretsRequest->startRequest();
     } else {
         qInfo() << "Unknown command:" << command;
         emitFinished(EXITCODE_FAILED);
@@ -809,6 +825,10 @@ void CommandHelper::secretsRequestStatusChanged()
         Sailfish::Secrets::StoredSecretRequest *r = qobject_cast<Sailfish::Secrets::StoredSecretRequest*>(m_secretsRequest.data());
         qInfo() << "Got collection secret data:";
         qInfo() << "\t" << r->secret().data();
+    } else if (m_command == QStringLiteral("--get-user-input")) {
+        Sailfish::Secrets::InteractionRequest *r = qobject_cast<Sailfish::Secrets::InteractionRequest*>(m_secretsRequest.data());
+        qInfo() << "Got user input:";
+        qInfo() << "\t" << r->userInput();
     }
 
     emitFinished(EXITCODE_SUCCESS);
