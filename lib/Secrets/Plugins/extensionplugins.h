@@ -19,11 +19,14 @@
 #include <QtCore/QMap>
 #include <QtCore/QByteArray>
 #include <QtCore/QVector>
+#include <QtCore/QLoggingCategory>
 
 #define Sailfish_Secrets_StoragePlugin_IID "org.sailfishos.secrets.StoragePlugin/1.0"
 #define Sailfish_Secrets_EncryptionPlugin_IID "org.sailfishos.secrets.EncryptionPlugin/1.0"
 #define Sailfish_Secrets_EncryptedStoragePlugin_IID "org.sailfishos.secrets.EncryptedStoragePlugin/1.0"
 #define Sailfish_Secrets_AuthenticationPlugin_IID "org.sailfishos.secrets.AuthenticationPlugin/1.0"
+
+SAILFISH_SECRETS_API Q_DECLARE_LOGGING_CATEGORY(lcSailfishSecretsPlugin)
 
 namespace Sailfish {
 

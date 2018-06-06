@@ -13,6 +13,8 @@
 #include <QtCore/QVector>
 #include <QtCore/QString>
 
+SAILFISH_CRYPTO_API Q_LOGGING_CATEGORY(lcSailfishCryptoPlugin, "org.sailfishos.crypto.daemon.plugin", QtWarningMsg)
+
 using namespace Sailfish::Crypto;
 
 /*!

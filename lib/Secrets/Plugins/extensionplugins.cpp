@@ -11,6 +11,8 @@
 #include <QString>
 #include <QSharedData>
 
+SAILFISH_SECRETS_API Q_LOGGING_CATEGORY(lcSailfishSecretsPlugin, "org.sailfishos.secrets.daemon.plugin", QtWarningMsg)
+
 using namespace Sailfish::Secrets;
 
 /*!
