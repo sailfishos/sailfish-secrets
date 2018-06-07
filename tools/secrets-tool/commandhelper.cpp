@@ -58,8 +58,12 @@ static Sailfish::Crypto::CryptoManager::DigestFunction digestEnum(const QString 
         return Sailfish::Crypto::CryptoManager::DigestSha256;
     } else if (dg == QStringLiteral("SHA512")) {
         return Sailfish::Crypto::CryptoManager::DigestSha512;
-    } else if (dg == QStringLiteral("GOST")) {
-        return Sailfish::Crypto::CryptoManager::DigestGost;
+    } else if (dg == QStringLiteral("GOST_94")) {
+        return Sailfish::Crypto::CryptoManager::DigestGost_94;
+    } else if (dg == QStringLiteral("GOST_2012_256")) {
+        return Sailfish::Crypto::CryptoManager::DigestGost_2012_256;
+    } else if (dg == QStringLiteral("GOST_2012_512")) {
+        return Sailfish::Crypto::CryptoManager::DigestGost_2012_512;
     }
 
     return Sailfish::Crypto::CryptoManager::DigestSha512;
