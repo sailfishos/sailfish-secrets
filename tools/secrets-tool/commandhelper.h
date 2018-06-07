@@ -25,7 +25,7 @@ class CommandHelper : public QObject
 
 public:
     CommandHelper(bool autotestMode, QObject *parent = Q_NULLPTR);
-    void start(const QString &command, const QStringList &args);
+    void start(const QString &command, const QStringList &args, const QStringList &options);
     int exitCode() const;
 
 public Q_SLOTS:
