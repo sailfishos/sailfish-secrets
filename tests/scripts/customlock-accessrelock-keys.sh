@@ -31,6 +31,15 @@ secrets-tool --test --encrypt org.sailfishos.secrets.plugin.encryptedstorage.sql
 echo "Decrypting ciphertext with AES key..."
 secrets-tool --test --decrypt org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test MyCollection MyAesKey document.txt.enc
 
+# Import an EC key, and test encrypt/decrypt
+echo "Generating a SECG curve over a 256 bit prime field..."
+openssl ecparam -name secp256k1 -genkey -noout -out secp256k1-key.pem
+secrets-tool --test --import-stored-key org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test MyCollection MyImportedEcKey secp256k1-key.pem
+echo "Signing test document with imported EC key..."
+secrets-tool --test --sign org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test MyCollection MyImportedEcKey SHA256 document.txt > document.txt.sig2
+echo "Verifying signature with imported EC key..."
+secrets-tool --test --verify org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test MyCollection MyImportedEcKey SHA256 document.txt document.txt.sig2
+
 # Import an RSA key, and test sign/verify
 echo "Using ssh-keygen to generate RSA key to import..."
 ssh-keygen -t rsa -b 2048 -N abcde -f importfile.pem
