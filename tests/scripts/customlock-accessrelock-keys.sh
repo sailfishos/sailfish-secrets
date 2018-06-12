@@ -34,11 +34,21 @@ secrets-tool --test --decrypt org.sailfishos.secrets.plugin.encryptedstorage.sql
 # Import an EC key, and test encrypt/decrypt
 echo "Generating a SECG curve over a 256 bit prime field..."
 openssl ecparam -name secp256k1 -genkey -noout -out secp256k1-key.pem
+openssl ec -in secp256k1-key.pem -pubout -out secp256k1-key.pem.public
 secrets-tool --test --import-stored-key org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test MyCollection MyImportedEcKey secp256k1-key.pem
 echo "Signing test document with imported EC key..."
 secrets-tool --test --sign org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test MyCollection MyImportedEcKey SHA256 document.txt > document.txt.sig2
-echo "Verifying signature with imported EC key..."
+echo "Signing test document with openssl CLI tool..."
+openssl dgst -sha256 -sign secp256k1-key.pem -out document.txt.sha256 document.txt
+
+echo "Verifying secrets-tool generated signature with imported EC key..."
 secrets-tool --test --verify org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test MyCollection MyImportedEcKey SHA256 document.txt document.txt.sig2
+echo "Verifying openssl generated signature with imported EC key..."
+secrets-tool --test --verify org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test MyCollection MyImportedEcKey SHA256 document.txt document.txt.sha256
+echo "Verifying openssl generated signature with openssl..."
+openssl dgst -sha256 -verify secp256k1-key.pem.public -signature document.txt.sha256 document.txt
+echo "Verifying secrets-tool generated signature with openssl..."
+openssl dgst -sha256 -verify secp256k1-key.pem.public -signature document.txt.sig2 document.txt
 
 # Import an RSA key, and test sign/verify
 echo "Using ssh-keygen to generate RSA key to import..."
@@ -46,9 +56,9 @@ ssh-keygen -t rsa -b 2048 -N abcde -f importfile.pem
 echo "Importing generated RSA key from file..."
 secrets-tool --test --import-stored-key org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test MyCollection MyImportedKey importfile.pem
 echo "Signing test document with imported RSA key..."
-secrets-tool --test --sign org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test MyCollection MyImportedKey SHA256 document.txt > document.txt.sig2
+secrets-tool --test --sign org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test MyCollection MyImportedKey SHA256 document.txt > document.txt.sig3
 echo "Verifying signature with imported RSA key..."
-secrets-tool --test --verify org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test MyCollection MyImportedKey SHA256 document.txt document.txt.sig2
+secrets-tool --test --verify org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test MyCollection MyImportedKey SHA256 document.txt document.txt.sig3
 
 # Clean up by deleting the collection
 echo "Cleaning up - deleting MyCollection..."
