@@ -264,7 +264,9 @@ Database::Database()
 
 Database::~Database()
 {
-    m_database.close();
+    if (m_database.isValid() && m_database.isOpen()) {
+        m_database.close();
+    }
 }
 
 QMutex *Database::accessMutex() const

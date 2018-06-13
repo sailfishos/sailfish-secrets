@@ -31,7 +31,28 @@
 // explanation: https://www.openssl.org/blog/blog/2017/02/21/threads/
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 
-static QVector<QMutex*> s_mutexes;
+struct LockingMutexes
+{
+    LockingMutexes()
+    {
+    }
+    ~LockingMutexes()
+    {
+        qDeleteAll(m_mutexes);
+    }
+    void init(int num_locks)
+    {
+        while (m_mutexes.size() < num_locks) {
+            m_mutexes.append(new QMutex);
+        }
+    }
+    QMutex* value(int type)
+    {
+        return m_mutexes.value(type);
+    }
+    QVector<QMutex*> m_mutexes;
+};
+static LockingMutexes s_mutexes;
 
 extern "C" {
 
@@ -87,9 +108,7 @@ int OpenSslEvp::init()
 #pragma GCC diagnostic pop
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-        while (s_mutexes.size() < CRYPTO_num_locks()) {
-            s_mutexes.append(new QMutex);
-        }
+        s_mutexes.init(CRYPTO_num_locks());
         CRYPTO_set_id_callback(qthreads_thread_id);
         CRYPTO_set_locking_callback(qthreads_locking_callback);
 #endif
@@ -106,12 +125,8 @@ int OpenSslEvp::init()
  */
 void OpenSslEvp::cleanup()
 {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-    CRYPTO_set_id_callback(NULL);
-    CRYPTO_set_locking_callback(NULL);
-    qDeleteAll(s_mutexes);
-    s_mutexes.clear();
-#endif
+    // s_mutexes will be deleted when coming out of scope,
+    // see https://stackoverflow.com/questions/2204608/does-c-call-destructors-for-global-and-class-static-variables
 }
 
 /*
