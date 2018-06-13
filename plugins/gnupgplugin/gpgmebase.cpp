@@ -67,16 +67,9 @@ Result Daemon::Plugins::GnuPGPlugin::generateInitializationVector(CryptoManager:
                   QStringLiteral("The GnuPG plugin doesn't support generation of initialisation vector."));
 }
 
-Result Daemon::Plugins::GnuPGPlugin::generateKey(const Key &keyTemplate,
-                                                 const KeyPairGenerationParameters &kpgParams,
-                                                 const KeyDerivationParameters &skdfParams,
-                                                 const QVariantMap &customParameters,
-                                                 Key *key,
-                                                 const QString &home)
+static Result operationIsValid(CryptoManager::Operations operations,
+                               const KeyPairGenerationParameters &kpgParams)
 {
-    Q_UNUSED(skdfParams);
-    Q_UNUSED(customParameters);
-
     if (!kpgParams.isValid()) {
         return Result(Result::CryptoPluginKeyGenerationError,
                       QStringLiteral("invalid key generation parameters."));
@@ -88,9 +81,169 @@ Result Daemon::Plugins::GnuPGPlugin::generateKey(const Key &keyTemplate,
                       QStringLiteral("unsupported key pair algorithm."));
     }
     if (kpgParams.keyPairType() == KeyPairGenerationParameters::KeyPairDsa
-        && (keyTemplate.operations() & CryptoManager::OperationEncrypt)) {
+        && (operations & CryptoManager::OperationEncrypt)) {
         return Result(Result::CryptoPluginKeyGenerationError,
-                      QStringLiteral("unsupported key pair algorithm."));
+                      QStringLiteral("unsupported algorithm for operation."));
+    }
+    if (kpgParams.keyPairType() == KeyPairGenerationParameters::KeyPairDsa) {
+        DsaKeyPairGenerationParameters dkpgp(kpgParams);
+        if (dkpgp.modulusLength() != 1024) {
+            qCWarning(lcSailfishCryptoPlugin) << "GnuPG only support 1024 bits for DSA algorithm.";
+        }
+    }
+    return Result();
+}
+
+struct GPGmeKeyEdit
+{
+    QByteArray type;
+    QByteArray length;
+    QByteArray expire;
+    bool done;
+    GPGmeKeyEdit(const KeyPairGenerationParameters &kpgParams,
+                 CryptoManager::Operations operations)
+        : expire(""), done(false)
+    {
+        // Magic numbers are taken from ask_algo() in gnupg2/g10/keygen.c
+        switch (kpgParams.keyPairType()) {
+        case (KeyPairGenerationParameters::KeyPairDsa):
+            type = "2";
+            length = "1024";
+            break;
+        case (KeyPairGenerationParameters::KeyPairRsa):
+            if (operations & CryptoManager::OperationSign) {
+                type = "5";
+            } else if (operations & CryptoManager::OperationEncrypt) {
+                type = "6";
+            }
+            {
+                RsaKeyPairGenerationParameters rkpgp(kpgParams);
+                length = QByteArray::number(rkpgp.modulusLength());
+            }
+            break;
+        default:
+            qCWarning(lcSailfishCryptoPlugin) << QStringLiteral("unsupported algorithm type %1, defaulting to DSA.").arg(kpgParams.keyPairType());
+            type = "2";
+            length = "1024";
+        }
+        QVariantMap::ConstIterator expireIt = kpgParams.customParameters().constFind("expire");
+        if (expireIt != kpgParams.customParameters().constEnd()) {
+            expire = expireIt->toByteArray();
+        }
+    }
+    void setDone()
+    {
+        done = true;
+    }
+    bool isDone() const
+    {
+        return done;
+    }
+    gpgme_error_t addKeyReply(gpgme_status_code_t status, const char *args, int fd)
+    {
+        QFile out;
+        if (!out.open(fd, QIODevice::ReadWrite)) {
+            qCWarning(lcSailfishCryptoPlugin) << "cannot edit:" << out.errorString();
+            return GPG_ERR_GENERAL;
+        }
+
+        // Special arguments are taken from gnupg2/g10/keygen.c
+#define PROMPT QStringLiteral("keyedit.prompt")
+#define ALGO   QStringLiteral("keygen.algo")
+#define LENGTH QStringLiteral("keygen.size")
+#define VALID  QStringLiteral("keygen.valid")
+#define SAVE   QStringLiteral("keyedit.save.okay")
+        if (status == GPGME_STATUS_GET_LINE && PROMPT.compare(args) == 0
+            && !isDone()) {
+            out.write("addkey\n");
+            return GPG_ERR_NO_ERROR;
+        } else if (status == GPGME_STATUS_GET_LINE && ALGO.compare(args) == 0) {
+            out.write(type + '\n');
+            return GPG_ERR_NO_ERROR;
+        } else if (status == GPGME_STATUS_GET_LINE && LENGTH.compare(args) == 0) {
+            out.write(length + '\n');
+            return GPG_ERR_NO_ERROR;
+        } else if (status == GPGME_STATUS_GET_LINE && VALID.compare(args) == 0) {
+            out.write(expire + '\n');
+            return GPG_ERR_NO_ERROR;
+        } else if (status == GPGME_STATUS_KEY_CREATED) {
+            setDone();
+            return GPG_ERR_NO_ERROR;
+        } else if (status == GPGME_STATUS_GET_LINE && PROMPT.compare(args) == 0
+                   && isDone()) {
+            out.write("quit\n");
+            return GPG_ERR_NO_ERROR;
+        } else if (status == GPGME_STATUS_GET_BOOL && SAVE.compare(args) == 0) {
+            out.write("y\n");
+            return GPG_ERR_NO_ERROR;
+        }
+
+        return GPG_ERR_NO_ERROR;
+    }
+};
+
+static gpgme_error_t _edit_cb(void *handle,
+                              gpgme_status_code_t status, const char *args, int fd)
+{
+    GPGmeKeyEdit *params = static_cast<GPGmeKeyEdit*>(handle);
+    return params->addKeyReply(status, args, fd);
+}
+
+Result Daemon::Plugins::GnuPGPlugin::generateSubkey(const Key &keyTemplate,
+                                                    const KeyPairGenerationParameters &kpgParams,
+                                                    Key *key,
+                                                    const QString &home)
+{
+    Result check = operationIsValid(keyTemplate.operations(), kpgParams);
+    if (check.code() != Result::Succeeded) {
+        return check;
+    }
+
+    GPGmeContext ctx(m_protocol, home);
+    if (!ctx) {
+        return Result(Result::CryptoPluginKeyGenerationError, ctx.error());
+    }
+
+    GPGmeKey primary = GPGmeKey::fromUid(ctx, keyTemplate.collectionName());
+    if (!primary) {
+        return Result(Result::StorageError,
+                      QStringLiteral("cannot list keys from %1: %2.").arg(keyTemplate.collectionName()).arg(primary.error()));
+    }
+
+    GPGmeKeyEdit params(kpgParams, keyTemplate.operations());
+    GPGmeData out;
+    gpgme_error_t err;
+    err = gpgme_op_edit(ctx, primary, _edit_cb, &params, out);
+    if (gpgme_err_code(err) != GPG_ERR_NO_ERROR) {
+        return Result(Result::CryptoPluginKeyGenerationError,
+                      QStringLiteral("cannot edit key: %1").arg(gpgme_strerror(err)));
+    }
+
+    GPGmeKey gkey(ctx, primary.fingerprint());
+    if (!gkey) {
+        return Result(Result::CryptoPluginKeyGenerationError,
+                      QStringLiteral("cannot retrieve new key %1: %2.").arg(primary.fingerprint()).arg(gkey.error()));
+    }
+    // Assume new key is the last one.
+    while (gkey.sub && gkey.sub->next) {
+        gkey.sub = gkey.sub->next;
+    }
+    gkey.toKey(key, this->name());
+    if (!home.isEmpty()) {
+        key->setFilterData("Ephemeral-Home", home);
+    }
+
+    return Result();
+}
+
+Result Daemon::Plugins::GnuPGPlugin::generateKey(const Key &keyTemplate,
+                                                 const KeyPairGenerationParameters &kpgParams,
+                                                 Key *key,
+                                                 const QString &home)
+{
+    Result check = operationIsValid(keyTemplate.operations(), kpgParams);
+    if (check.code() != Result::Succeeded) {
+        return check;
     }
     QVariantMap::ConstIterator name = kpgParams.customParameters().constFind("name");
     if (m_protocol == GPGME_PROTOCOL_OpenPGP
@@ -111,10 +264,6 @@ Result Daemon::Plugins::GnuPGPlugin::generateKey(const Key &keyTemplate,
 
     QString gnupgKeyParms = "<GnupgKeyParms format=\"internal\">\n";
     if (kpgParams.keyPairType() == KeyPairGenerationParameters::KeyPairDsa) {
-        DsaKeyPairGenerationParameters dkpgp(kpgParams);
-        if (dkpgp.modulusLength() != 1024) {
-            qCWarning(lcSailfishCryptoPlugin) << "GnuPG only support 1024 bits for DSA algorithm.";
-        }
         gnupgKeyParms += "Key-Type: DSA\n";
         gnupgKeyParms += "Key-Length: 1024\n";
         gnupgKeyParms += "Subkey-Type: DSA\n";
@@ -190,17 +339,28 @@ Result Daemon::Plugins::GnuPGPlugin::generateKey(const Key &keyTemplate,
                                                  const QVariantMap &customParameters,
                                                  Key *key)
 {
-    QTemporaryDir tmp;
-    if (!tmp.isValid()) {
-        return Result(Result::CryptoPluginKeyGenerationError,
-                      QStringLiteral("cannot create temporary directory: %1.").arg(tmp.errorString()));
+    Q_UNUSED(skdfParams);
+    Q_UNUSED(customParameters);
+
+    if (keyTemplate.collectionName().isEmpty()) {
+        QTemporaryDir tmp;
+        if (!tmp.isValid()) {
+            return Result(Result::CryptoPluginKeyGenerationError,
+                          QStringLiteral("cannot create temporary directory: %1.").arg(tmp.errorString()));
+        }
+        Result result = generateKey(keyTemplate, kpgParams, key, tmp.path());
+        if (result.code() == Result::Succeeded) {
+            tmp.setAutoRemove(false);
+        }
+        return result;
+    } else {
+        if (keyTemplate.filterData("Ephemeral-Home").isEmpty()) {
+            return Result(Result::CryptoPluginKeyGenerationError,
+                          QStringLiteral("cannot create subkey for %1: no home in template.").arg(keyTemplate.collectionName()));
+        }
+        return generateSubkey(keyTemplate, kpgParams,
+                              key, keyTemplate.filterData("Ephemeral-Home"));
     }
-    Result result = generateKey(keyTemplate, kpgParams, skdfParams,
-                                customParameters, key, tmp.path());
-    if (result.code() == Result::Succeeded) {
-        tmp.setAutoRemove(false);
-    }
-    return result;
 }
 
 Result Daemon::Plugins::GnuPGPlugin::generateAndStoreKey(const Key &keyTemplate,
@@ -209,8 +369,15 @@ Result Daemon::Plugins::GnuPGPlugin::generateAndStoreKey(const Key &keyTemplate,
                                                          const QVariantMap &customParameters,
                                                          Key *keyMetadata)
 {
-    return generateKey(keyTemplate, kpgParams, skdfParams,
-                       customParameters, keyMetadata, QString());
+    Q_UNUSED(skdfParams);
+    Q_UNUSED(customParameters);
+
+    if (keyTemplate.collectionName().isEmpty()
+        || keyTemplate.collectionName().compare("import") == 0) {
+        return generateKey(keyTemplate, kpgParams, keyMetadata, QString());
+    } else {
+        return generateSubkey(keyTemplate, kpgParams, keyMetadata, QString());
+    }
 }
 
 Result Daemon::Plugins::GnuPGPlugin::downloadKey(const QString &fingerprint,
@@ -369,9 +536,8 @@ Result Daemon::Plugins::GnuPGPlugin::storedKey(const Key::Identifier &identifier
                                                const QVariantMap &customParameters,
                                                Key *key)
 {
-    Q_UNUSED(customParameters);
-
-    GPGmeContext ctx(m_protocol);
+    GPGmeContext ctx(m_protocol, customParameters.value("Ephemeral-Home",
+                                                        QVariant(QString())).toString());
     if (!ctx) {
         return Result(Result::StorageError, ctx.error());
     }
@@ -393,40 +559,30 @@ Result Daemon::Plugins::GnuPGPlugin::storedKeyIdentifiers(const QString &collect
                                                           const QVariantMap &customParameters,
                                                           QVector<Key::Identifier> *identifiers)
 {
-    Q_UNUSED(customParameters);
-
     if (collectionName.compare("import") == 0) {
         // This is a fake collection to allow importation of new keys,
         // see gpgmestorage().
         return Result();
     }
 
-    GPGmeContext ctx(m_protocol);
+    GPGmeContext ctx(m_protocol, customParameters.value("Ephemeral-Home",
+                                                        QVariant(QString())).toString());
     if (!ctx) {
         return Result(Result::StorageError, ctx.error());
     }
 
-    gpgme_error_t err;
-    err = gpgme_op_keylist_start(ctx, collectionName.isEmpty() ? (const char*)0 : collectionName.toUtf8().constData(), 0);
-    while (!err) {
-        gpgme_key_t key;
-
-        err = gpgme_op_keylist_next(ctx, &key);
-        if (err) {
-            break;
+    GPGmeKey key = GPGmeKey::listKeys(ctx, collectionName);
+    while (key) {
+        while (key.sub) {
+            identifiers->append(Key::Identifier(key.sub->fpr, key.collectionName(), name()));
+            key.sub = key.sub->next;
         }
-
-        gpgme_subkey_t sub = key->subkeys;
-        while (sub) {
-            identifiers->append(Key::Identifier(sub->fpr, key->uids->uid, name()));
-            sub = sub->next;
-        }
-
-        gpgme_key_unref(key);
+        key.next(ctx);
     }
-    if (gpg_err_code(err) != GPG_ERR_EOF) {
+    QString error(key.error());
+    if (!error.isEmpty()) {
         return Result(Result::StorageError,
-                      QStringLiteral("cannot list keys: %1.").arg(gpgme_strerror(err)));
+                      QStringLiteral("cannot list keys: %1.").arg(error));
     }
 
     return Result();

@@ -7,10 +7,7 @@
 
 #include "gpgmestorage.h"
 #include "gpgme_p.h"
-#include <QLoggingCategory>
-
-Q_LOGGING_CATEGORY(lcSailfishSecretsPluginGnuPG,
-                   "org.sailfishos.secrets.plugin.gnupg", QtWarningMsg)
+#include <QFile>
 
 using namespace Sailfish::Secrets;
 
@@ -33,25 +30,17 @@ Result Daemon::Plugins::GnuPGStoragePlugin::collectionNames(QStringList *names)
         return Result(Result::DatabaseError, ctx.error());
     }
 
-    gpgme_error_t err;
-    err = gpgme_op_keylist_start(ctx, (const char*)0, 0);
-    while (!err) {
-        gpgme_key_t key;
-
-        err = gpgme_op_keylist_next(ctx, &key);
-        if (err) {
-            break;
+    GPGmeKey key = GPGmeKey::listKeys(ctx);
+    while (key) {
+        if (key.collectionName()) {
+            names->append(key.collectionName());
         }
-
-        if (key->uids) {
-            names->append(key->uids->uid);
-        }
-
-        gpgme_key_unref(key);
+        key.next(ctx);
     }
-    if (gpg_err_code(err) != GPG_ERR_EOF) {
+    QString error(key.error());
+    if (!error.isEmpty()) {
         return Result(Result::DatabaseError,
-                      QStringLiteral("cannot list keys: %1.").arg(gpgme_strerror(err)));
+                      QStringLiteral("cannot list keys: %1.").arg(error));
     }
     // Append a generic collection name to be able to import keys
     // into a collection that does not exist yet.
@@ -71,28 +60,7 @@ Result Daemon::Plugins::GnuPGStoragePlugin::createCollection(const QString &coll
 
 Result Daemon::Plugins::GnuPGStoragePlugin::removeCollection(const QString &collectionName)
 {
-    GPGmeContext ctx(m_protocol);
-    if (!ctx) {
-        return Result(Result::DatabaseError, ctx.error());
-    }
-
-    gpgme_error_t err;
-    err = gpgme_op_keylist_start(ctx, collectionName.toLocal8Bit().constData(), 0);
-    if (gpg_err_code(err) != GPG_ERR_NO_ERROR) {
-        return Result(Result::DatabaseError,
-                      QStringLiteral("cannot list keys from %1: %2.").arg(collectionName).arg(gpgme_strerror(err)));
-    }
-    GPGmeKey key(ctx);
-    if (!key) {
-        return Result(Result::DatabaseError,
-                      QStringLiteral("cannot get next key for %1: %2.").arg(collectionName).arg(key.error()));
-    }
-    GPGmeKey keynext(ctx);
-    if (keynext) {
-        return Result(Result::DatabaseError,
-                      QStringLiteral("more than one collection %1.").arg(collectionName));
-    }
-    return removeSecret(collectionName, key.fingerprint());
+    return removeSecret(collectionName, QString());
 }
 
 Result Daemon::Plugins::GnuPGStoragePlugin::isCollectionLocked(const QString &collectionName,
@@ -181,27 +149,18 @@ Result Daemon::Plugins::GnuPGStoragePlugin::secretNames(const QString &collectio
         return Result(Result::DatabaseError, ctx.error());
     }
 
-    gpgme_error_t err;
-    err = gpgme_op_keylist_start(ctx, collectionName.toLocal8Bit().constData(), 0);
-    while (!err) {
-        gpgme_key_t key;
-
-        err = gpgme_op_keylist_next(ctx, &key);
-        if (err) {
-            break;
+    GPGmeKey key = GPGmeKey::listKeys(ctx, collectionName);
+    while (key) {
+        while (key.sub) {
+            secretNames->append(key.sub->fpr);
+            key.sub = key.sub->next;
         }
-
-        gpgme_subkey_t sub = key->subkeys;
-        while (sub) {
-            secretNames->append(sub->fpr);
-            sub = sub->next;
-        }
-
-        gpgme_key_unref(key);
+        key.next(ctx);
     }
-    if (gpg_err_code(err) != GPG_ERR_EOF) {
+    QString error(key.error());
+    if (!error.isEmpty()) {
         return Result(Result::DatabaseError,
-                      QStringLiteral("cannot list keys: %1.").arg(gpgme_strerror(err)));
+                      QStringLiteral("cannot list keys: %1.").arg(error));
     }
     if (secretNames->length() == 0) {
         return Result(Result::InvalidCollectionError,
@@ -228,14 +187,8 @@ Result Daemon::Plugins::GnuPGStoragePlugin::findSecrets(const QString &collectio
         return Result(Result::DatabaseError, ctx.error());
     }
 
-    gpgme_error_t err;
-    err = gpgme_op_keylist_start(ctx, collectionName.toLocal8Bit().constData(), 0);
-    while (!err) {
-        GPGmeKey gkey(ctx);
-        if (!gkey) {
-            break;
-        }
-
+    GPGmeKey gkey = GPGmeKey::listKeys(ctx, collectionName);
+    while (gkey) {
         while (gkey.sub) {
             Sailfish::Crypto::Key key;
             gkey.toKey(&key, name());
@@ -265,13 +218,92 @@ Result Daemon::Plugins::GnuPGStoragePlugin::findSecrets(const QString &collectio
             }
             gkey.sub = gkey.sub->next;
         }
+        gkey.next(ctx);
     }
-    if (gpg_err_code(err) != GPG_ERR_EOF) {
+    QString error(gkey.error());
+    if (!error.isEmpty()) {
         return Result(Result::DatabaseError,
-                      QStringLiteral("cannot list keys: %1.").arg(gpgme_strerror(err)));
+                      QStringLiteral("cannot list keys: %1.").arg(error));
     }
 
     return Result();
+}
+
+struct GPGmeKeyDelete
+{
+    QByteArray id;
+    bool selected;
+    bool done;
+    GPGmeKeyDelete(GPGmeKey &primary, const QString &secretName)
+        : selected(false), done(false)
+    {
+        int i = 0;
+        while (primary.sub && secretName.compare(primary.fingerprint())) {
+            i += 1;
+            primary.sub = primary.sub->next;
+        }
+        id = QByteArray::number(i);
+    }
+    void setSelected()
+    {
+        selected = true;
+    }
+    bool isSelected() const
+    {
+        return selected;
+    }
+    void setDone()
+    {
+        done = true;
+    }
+    bool isDone() const
+    {
+        return done;
+    }
+    gpgme_error_t deleteKeyReply(gpgme_status_code_t status, const char *args, int fd)
+    {
+        QFile out;
+        if (!out.open(fd, QIODevice::ReadWrite)) {
+            qCWarning(lcSailfishCryptoPlugin) << "cannot edit:" << out.errorString();
+            return GPG_ERR_GENERAL;
+        }
+
+        // Special arguments are taken from gnupg2/g10/keygen.c
+#define PROMPT  QStringLiteral("keyedit.prompt")
+#define CONFIRM QStringLiteral("keyedit.remove.subkey.okay")
+#define SAVE    QStringLiteral("keyedit.save.okay")
+        if (status == GPGME_STATUS_GET_LINE && PROMPT.compare(args) == 0
+            && !isSelected()) {
+            out.write("key " + id + "\n");
+            setSelected();
+            return GPG_ERR_NO_ERROR;
+        } else if (status == GPGME_STATUS_GET_LINE && PROMPT.compare(args) == 0
+                   && isSelected() && !isDone()) {
+            out.write("delkey\n");
+            return GPG_ERR_NO_ERROR;
+        } else if (status == GPGME_STATUS_GET_BOOL && CONFIRM.compare(args) == 0) {
+            out.write("y\n");
+            setDone();
+            return GPG_ERR_NO_ERROR;
+        } else if (status == GPGME_STATUS_GET_LINE && PROMPT.compare(args) == 0
+                   && isDone()) {
+            out.write("quit\n");
+            return GPG_ERR_NO_ERROR;
+        } else if (status == GPGME_STATUS_GET_BOOL && SAVE.compare(args) == 0) {
+            out.write("y\n");
+            return GPG_ERR_NO_ERROR;
+        }
+
+        return GPG_ERR_NO_ERROR;
+    }
+};
+
+static gpgme_error_t _delete_cb(void *handle,
+                                gpgme_status_code_t status, const char *args, int fd)
+{
+    GPGmeKeyDelete *params = static_cast<GPGmeKeyDelete*>(handle);
+    qDebug() << status << args;
+    return params->deleteKeyReply(status, args, fd);
 }
 
 Result Daemon::Plugins::GnuPGStoragePlugin::removeSecret(const QString &collectionName,
@@ -288,23 +320,30 @@ Result Daemon::Plugins::GnuPGStoragePlugin::removeSecret(const QString &collecti
         return Result(Result::DatabaseError, ctx.error());
     }
 
-    GPGmeKey gkey(ctx, secretName.toLocal8Bit().constData());
-    if (!gkey) {
-        return Result(Result::DatabaseError, gkey.error());
-    }
-    if (!collectionName.isEmpty()
-        && gkey.key->uids && collectionName.compare(gkey.key->uids->uid)) {
+    GPGmeKey primary = GPGmeKey::fromUid(ctx, collectionName);
+    if (!primary) {
         return Result(Result::DatabaseError,
-                      "matching issue with collection name.");
+                      QStringLiteral("cannot list keys from %1: %2.").arg(collectionName).arg(primary.error()));
     }
 
-    gpgme_error_t err;
-    err = gpgme_op_delete(ctx, gkey, 1);
-    if (gpgme_err_code(err) != GPG_ERR_NO_ERROR) {
-        return Result(Result::DatabaseError,
-                      QStringLiteral("cannot delete key %1: %2.").arg(secretName).arg(gpgme_strerror(err)));
+    if (primary.fingerprint() == secretName || secretName.isEmpty()) {
+        gpgme_error_t err;
+#define DELETE_SECRET 1
+        err = gpgme_op_delete(ctx, primary, DELETE_SECRET);
+        if (gpgme_err_code(err) != GPG_ERR_NO_ERROR) {
+            return Result(Result::DatabaseError,
+                          QStringLiteral("cannot delete key %1: %2.").arg(secretName).arg(gpgme_strerror(err)));
+        }
+    } else {
+        GPGmeKeyDelete params(primary, secretName);
+        GPGmeData out;
+        gpgme_error_t err;
+        err = gpgme_op_edit(ctx, primary, _delete_cb, &params, out);
+        if (gpgme_err_code(err) != GPG_ERR_NO_ERROR) {
+            return Result(Result::DatabaseError,
+                          QStringLiteral("cannot delete subkey %1: %2").arg(secretName).arg(gpgme_strerror(err)));
+        }
     }
-
     return Result();
 }
 

@@ -12,6 +12,8 @@
 #include "Crypto/storedkeyidentifiersrequest.h"
 #include "Crypto/keypairgenerationparameters.h"
 #include "Crypto/generatekeyrequest.h"
+#include "Crypto/storedkeyrequest.h"
+#include "Crypto/deletestoredkeyrequest.h"
 #include "Crypto/signrequest.h"
 #include "Crypto/verifyrequest.h"
 #include "Crypto/encryptrequest.h"
@@ -76,6 +78,7 @@ public slots:
     void cleanup();
 
 private slots:
+    void addSubKey();
     void encryptDecrypt();
     void encryptDecrypt_data();
     void signVerify();
@@ -129,10 +132,65 @@ Key tst_gnupgplugin::addKey(CryptoManager::Algorithm algorithm,
     gkr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gkr);
     if (gkr.status() != Request::Finished ||
-        gkr.result().code() != Result::Succeeded)
+        gkr.result().code() != Result::Succeeded) {
         return Key();
+    }
 
     return gkr.generatedKey();
+}
+
+void tst_gnupgplugin::addSubKey()
+{
+    TmpKey fullKey(addKey(CryptoManager::AlgorithmDsa, CryptoManager::OperationSign));
+    QVERIFY(fullKey.identifier().isValid());
+
+    // Create key template
+    Key keyTemplate;
+    keyTemplate.setAlgorithm(CryptoManager::AlgorithmDsa);
+    keyTemplate.setOrigin(Key::OriginDevice);
+    keyTemplate.setOperations(CryptoManager::OperationSign);
+    keyTemplate.setCollectionName(fullKey.collectionName());
+    keyTemplate.setFilterData(QStringLiteral("Ephemeral-Home"),
+                              fullKey.filterData("Ephemeral-Home"));
+    keyTemplate.setFilterData(QLatin1String("test"), QLatin1String("true"));
+
+    // Create generate key request, execute, make sure it's okay
+    GenerateKeyRequest gkr;
+    gkr.setManager(&cm);
+    gkr.setKeyPairGenerationParameters(DsaKeyPairGenerationParameters());
+    gkr.setKeyTemplate(keyTemplate);
+    gkr.setCryptoPluginName(OPENPGP_PLUGIN);
+    gkr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(gkr);
+    QCOMPARE(gkr.status(), Request::Finished);
+    QCOMPARE(gkr.result().code(), Result::Succeeded);
+    Key gk = gkr.generatedKey();
+    QVariantMap customs;
+    customs.insert("Ephemeral-Home", gk.filterData("Ephemeral-Home"));
+
+    // Verify that the newly created key exists.
+    StoredKeyRequest skr;
+    skr.setManager(&cm);
+    skr.setCustomParameters(customs);
+    skr.setIdentifier(Key::Identifier(gk.name(), gk.collectionName(), OPENPGP_PLUGIN));
+    skr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(skr);
+    QCOMPARE(skr.status(), Request::Finished);
+    QCOMPARE(skr.result().code(), Result::Succeeded);
+    QCOMPARE(skr.storedKey().name(), gk.name());
+    QCOMPARE(skr.storedKey().collectionName(), gk.collectionName());
+
+    // Delete subkey.
+    DeleteStoredKeyRequest dskr;
+    dskr.setManager(&cm);
+    dskr.setCustomParameters(customs);
+    dskr.setIdentifier(Key::Identifier(gk.name(), gk.collectionName(), OPENPGP_PLUGIN));
+    dskr.startRequest();
+    WAIT_FOR_FINISHED_WITHOUT_BLOCKING(dskr);
+    QCOMPARE(dskr.status(), Request::Finished);
+    // Currently disabled since the DeleteStoredKeyRequest is not
+    // passing the custom parameters where the ephemeral home is defined.
+    // QCOMPARE(dskr.result().code(), Result::Succeeded);
 }
 
 void tst_gnupgplugin::storedKeyIdentifiers()

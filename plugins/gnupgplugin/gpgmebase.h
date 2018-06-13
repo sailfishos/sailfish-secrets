@@ -184,10 +184,13 @@ public:
             Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus) Q_DECL_OVERRIDE;
 
 private:
+    Sailfish::Crypto::Result generateSubkey(const Key &keyTemplate,
+                                            const KeyPairGenerationParameters &kpgParams,
+                                            Sailfish::Crypto::Key *key,
+                                            const QString &home);
+
     Sailfish::Crypto::Result generateKey(const Key &keyTemplate,
                                          const KeyPairGenerationParameters &kpgParams,
-                                         const KeyDerivationParameters &skdfParams,
-                                         const QVariantMap &customParameters,
                                          Sailfish::Crypto::Key *key,
                                          const QString &home);
 

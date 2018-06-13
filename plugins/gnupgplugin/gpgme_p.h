@@ -188,17 +188,44 @@ struct GPGmeKey {
     GPGmeKey(const gpgme_ctx_t ctx)
         : key(0), sub(0), err(0)
     {
-        err = gpgme_op_keylist_next(ctx, &key);
-        if (gpg_err_code(err) == GPG_ERR_NO_ERROR) {
-            sub = key->subkeys;
-        } else {
-            key = 0;
-        }
+        next(ctx);
+    }
+    GPGmeKey(gpgme_error_t err)
+        : key(0), sub(0), err(err)
+    {
+    }
+    GPGmeKey(const GPGmeKey &other)
+        : key(other.key), sub(other.sub), err(other.err)
+    {
+        if (key)
+            gpgme_key_ref(key);
     }
     ~GPGmeKey()
     {
         if (key) {
             gpgme_key_unref(key);
+        }
+    }
+    static GPGmeKey fromUid(const gpgme_ctx_t ctx, const QString &uid)
+    {
+        GPGmeKey key = listKeys(ctx, uid);
+        GPGmeKey nextKey(ctx);
+        if (nextKey) {
+            return GPGmeKey(GPG_ERR_DUP_KEY);
+        }
+        return key;
+    }
+    static GPGmeKey listKeys(const gpgme_ctx_t ctx, const QString &filter = QString(), Level level = Public)
+    {
+        gpgme_error_t err;
+        err = gpgme_op_keylist_start(ctx, filter.isEmpty()
+                                     ? (const char*)0
+                                     : filter.toLocal8Bit().constData(),
+                                     level == Secret ? 1 : 0);
+        if (gpg_err_code(err) == GPG_ERR_NO_ERROR) {
+            return GPGmeKey(ctx);
+        } else {
+            return GPGmeKey(err);
         }
     }
     operator gpgme_key_t() const
@@ -236,6 +263,10 @@ struct GPGmeKey {
     const char* fingerprint() const
     {
         return sub ? sub->fpr : (const char*)0;
+    }
+    const char* collectionName() const
+    {
+        return key && key->uids ? key->uids->uid : (const char*)0;
     }
     void toKey(Sailfish::Crypto::Key *output, const QString &pluginName) const
     {
@@ -295,6 +326,21 @@ struct GPGmeKey {
         output->setOperations(op);
 
         output->setPrivateKey("GnuPG");
+    }
+    void next(const gpgme_ctx_t ctx)
+    {
+        if (key) {
+            gpgme_key_unref(key);
+        }
+        err = gpgme_op_keylist_next(ctx, &key);
+        if (gpg_err_code(err) == GPG_ERR_NO_ERROR) {
+            sub = key->subkeys;
+        } else {
+            key = 0;
+            if (gpg_err_code(err) == GPG_ERR_EOF) {
+                err = 0;
+            }
+        }
     }
 };
 
