@@ -2851,7 +2851,7 @@ void tst_cryptorequests::requestInterleaving()
     ccr.setCollectionName(QLatin1String("testinterleavingcollection"));
     ccr.setStoragePluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     ccr.setEncryptionPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-    ccr.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
+    ccr.setAuthenticationPluginName(PASSWORD_AGENT_TEST_AUTH_PLUGIN);
     ccr.setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked);
     ccr.setAccessControlMode(Sailfish::Secrets::SecretManager::OwnerOnlyMode);
     ccr.startRequest();
