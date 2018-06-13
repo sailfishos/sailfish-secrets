@@ -40,24 +40,24 @@ bool Sailfish::Secrets::SecretsDaemonConnectionPrivate::connect()
     }
 
     // Step one: query the secret daemon's "discovery" SessionBusObject for the PeerToPeer address.
+    QString address(QStringLiteral("unix:path=/run/user/100000/sailfishsecretsd-p2pSocket"));
     QDBusInterface iface("org.sailfishos.secrets.daemon.discovery",
                          "/Sailfish/Secrets/Discovery",
                          "org.sailfishos.secrets.daemon.discovery",
                          QDBusConnection::sessionBus());
-    if (!iface.isValid()) {
-        qCWarning(lcSailfishSecretsDaemonConnection) << "Unable to connect to the secrets daemon discovery service!";
-        return false;
-    }
-
-    QDBusReply<QString> reply = iface.call("peerToPeerAddress");
-    if (!reply.isValid()) {
-        qCWarning(lcSailfishSecretsDaemonConnection) << "Unable to query the peer to peer socket address from the secrets daemon!";
-        return false;
+    if (iface.isValid()) {
+        QDBusReply<QString> reply = iface.call("peerToPeerAddress");
+        if (reply.isValid()) {
+            address = reply.value();
+        } else {
+            qCDebug(lcSailfishSecretsDaemonConnection) << "Unable to query the peer to peer socket address from the secrets daemon!  Using fallback address.";
+        }
+    } else {
+        qCDebug(lcSailfishSecretsDaemonConnection) << "Unable to connect to the secrets daemon discovery service!  Using fallback address.";
     }
 
     // Step two: connect to the PeerToPeer address.
     static int connectionCount = 0;
-    const QString address = reply.value();
     const QString name = QString::fromLatin1("sailfishsecretsd-connection-%1").arg(connectionCount++);
 
     qCDebug(lcSailfishSecretsDaemonConnection) << "Connecting to secrets daemon via p2p address:" << address

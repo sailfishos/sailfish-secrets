@@ -72,6 +72,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
         {"--verify", "Verify that a particular signature file contains a valid signature with the specified key for the given input file" },
         {"--encrypt", "Encrypt a particular file with the specified key, output to stdout" },
         {"--decrypt", "Decrypt a particular file with the specified key, output to stdout" },
+        {"--get-user-input", "Request user input via system dialog" },
     };
 
     const QMap<QString, QString> paramOptions {
@@ -94,6 +95,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
         {"--verify", "<cryptoPlugin> <storagePlugin> <collectionName> <keyName> <digest> <fileName> <signatureFileName>" },
         {"--encrypt", "<cryptoPlugin> <storagePlugin> <collectionName> <keyName> <fileName>" },
         {"--decrypt", "<cryptoPlugin> <storagePlugin> <collectionName> <keyName> <fileName>" },
+        {"--get-user-input", "" },
     };
 
     const QMap<QString, int> paramOptionsMin {
@@ -119,6 +121,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
         {"--verify", 7 },
         {"--encrypt", 5 },
         {"--decrypt", 5 },
+        {"--get-user-input", 0 },
     };
 
     const QMap<QString, int> paramOptionsMax {
@@ -144,6 +147,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
         {"--verify", 7 },
         {"--encrypt", 5 },
         {"--decrypt", 5 },
+        {"--get-user-input", 0 },
     };
 
     const QMap<QString, QString> paramExamples {
@@ -169,6 +173,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
         {"--verify", "org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher MyCollection MyRsaKey SHA256 document.txt document.txt.sig" },
         {"--encrypt", "org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher MyCollection MyAesKey document.txt > document.txt.enc" },
         {"--decrypt", "org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher MyCollection MyAesKey document.txt.enc > document.txt.dec" },
+        {"--get-user-input", "" },
     };
 
     bool autotestMode = false;
