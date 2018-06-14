@@ -2016,7 +2016,8 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
                 if (request->isSecretsCryptoRequest) {
                     asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList());
                 } else {
-                    request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result));
+                    request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                            << QVariant::fromValue<QByteArray>(QByteArray()));
                 }
                 *completed = true;
             }
