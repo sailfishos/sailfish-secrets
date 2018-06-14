@@ -10,6 +10,7 @@
 #include "logging_p.h"
 
 #include "../CryptoImpl/crypto_p.h"
+#include "../CryptoImpl/cryptopluginfunctionwrappers_p.h"
 
 #include "Secrets/result.h"
 #include "Secrets/secretmanager.h"
@@ -29,6 +30,8 @@
 #include <QtCore/QFile>
 #include <QtCore/QDir>
 #include <QtCore/QCryptographicHash>
+
+#include <QtConcurrent>
 
 #include <sys/mman.h>
 
@@ -461,7 +464,7 @@ Daemon::ApiImpl::SecretsRequestQueue::~SecretsRequestQueue()
     free(m_bkdbLockKeyData);
 }
 
-Sailfish::Secrets::Daemon::Controller *Daemon::ApiImpl::SecretsRequestQueue::controller()
+Sailfish::Secrets::Daemon::Controller *Daemon::ApiImpl::SecretsRequestQueue::controller() const
 {
     return m_controller;
 }
@@ -473,9 +476,11 @@ QWeakPointer<QThreadPool> Daemon::ApiImpl::SecretsRequestQueue::secretsThreadPoo
 
 bool Daemon::ApiImpl::SecretsRequestQueue::generateKeyData(
         const QByteArray &lockCode,
+        const QString &cipherPluginName,
         QByteArray *bkdbKey,
         QByteArray *deviceLockKey,
-        QByteArray *testCipherText) const
+        QByteArray *testCipherText,
+        QString *usedCipherPluginName) const
 {
     QByteArray salt = saltData();
     if (salt.isEmpty()) {
@@ -499,69 +504,149 @@ bool Daemon::ApiImpl::SecretsRequestQueue::generateKeyData(
     kdfParams.setSalt(salt);
     kdfParams.setOutputKeySize(256);
 
-    Sailfish::Crypto::CryptoPlugin *cplugin = m_autotestMode
-            ? m_controller->crypto()->plugins().value(Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"))
-            : m_controller->crypto()->plugins().value(Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName);
+    // attempt to find the crypto plugin to use to perform key derivation.
+    const QMap<QString, Sailfish::Crypto::CryptoPlugin*> cplugins = m_controller->crypto()->plugins();
+    Sailfish::Crypto::CryptoPlugin *cplugin = cipherPluginName.isEmpty() ? Q_NULLPTR : cplugins.value(cipherPluginName);
+    if (cplugin == Q_NULLPTR && !cipherPluginName.isEmpty()) {
+        qCWarning(lcSailfishSecretsDaemon) << "Unable to find parameter cipher plugin to generate keys:" << cipherPluginName;
+        return false;
+    }
+
+    // attempt to use the plugin specified in the environment variable
+    const QString envCPluginName = QString::fromLocal8Bit(qgetenv(ENV_MASTERLOCK_CRYPTOPLUGIN));
+    if (!envCPluginName.isEmpty()) {
+        cplugin = m_controller->crypto()->plugins().value(envCPluginName);
+        if (cplugin == Q_NULLPTR && m_autotestMode) {
+            cplugin = m_controller->crypto()->plugins().value(envCPluginName + QLatin1String(".test"));
+        }
+        if (cplugin == Q_NULLPTR) {
+            qCWarning(lcSailfishSecretsDaemon) << "Unable to find env-specified cipher plugin to generate keys:" << envCPluginName;
+            return false;
+        }
+    }
+
+    // if no plugin was specified in the environment variable, attempt to use the default plugin
+    if (cplugin == Q_NULLPTR) {
+        cplugin = m_autotestMode
+                ? m_controller->crypto()->plugins().value(Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"))
+                : m_controller->crypto()->plugins().value(Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName);
+    }
+
+    // otherwise, select the first available crypto plugin which can generate the key.
+    if (cplugin == Q_NULLPTR) {
+        for (auto it = cplugins.constBegin(); it != cplugins.constEnd(); ++it) {
+            const QString &currPluginName = it.key();
+            // attempt to generate the bookkeeping db key
+            QFuture<Sailfish::Crypto::KeyResult> future = QtConcurrent::run(
+                    controller()->threadPoolForPlugin(currPluginName).data(),
+                    Sailfish::Crypto::Daemon::ApiImpl::CryptoPluginFunctionWrapper::generateKey,
+                    Sailfish::Crypto::PluginAndCustomParams(it.value(), QVariantMap()),
+                    keyTemplate,
+                    Sailfish::Crypto::KeyPairGenerationParameters(),
+                    kdfParams);
+            future.waitForFinished();
+            Sailfish::Crypto::KeyResult kr = future.result();
+            if (kr.result.code() == Sailfish::Crypto::Result::Succeeded) {
+                Sailfish::Crypto::Key tempKey = kr.key;
+                // attempt to generate the devicelock key
+                kdfParams.setIterations(16000);
+                future = QtConcurrent::run(
+                    controller()->threadPoolForPlugin(currPluginName).data(),
+                    Sailfish::Crypto::Daemon::ApiImpl::CryptoPluginFunctionWrapper::generateKey,
+                    Sailfish::Crypto::PluginAndCustomParams(it.value(), QVariantMap()),
+                    keyTemplate,
+                    Sailfish::Crypto::KeyPairGenerationParameters(),
+                    kdfParams);
+                future.waitForFinished();
+                kr = future.result();
+                if (kr.result.code() == Sailfish::Crypto::Result::Succeeded) {
+                    // successfully found a plugin to generate both keys.
+                    cplugin = it.value();
+                    bookkeepingdbKey = tempKey;
+                    devicelockKey = kr.key;
+                    break;
+                }
+            }
+        }
+    } else {
+        // attempt to generate the bookkeeping db key
+        QFuture<Sailfish::Crypto::KeyResult> future = QtConcurrent::run(
+                controller()->threadPoolForPlugin(cplugin->name()).data(),
+                Sailfish::Crypto::Daemon::ApiImpl::CryptoPluginFunctionWrapper::generateKey,
+                Sailfish::Crypto::PluginAndCustomParams(cplugin, QVariantMap()),
+                keyTemplate,
+                Sailfish::Crypto::KeyPairGenerationParameters(),
+                kdfParams);
+        future.waitForFinished();
+        Sailfish::Crypto::KeyResult kr = future.result();
+        if (kr.result.code() == Sailfish::Crypto::Result::Succeeded) {
+            Sailfish::Crypto::Key tempKey = kr.key;
+            // attempt to generate the devicelock key
+            kdfParams.setIterations(16000);
+            future = QtConcurrent::run(
+                controller()->threadPoolForPlugin(cplugin->name()).data(),
+                Sailfish::Crypto::Daemon::ApiImpl::CryptoPluginFunctionWrapper::generateKey,
+                Sailfish::Crypto::PluginAndCustomParams(cplugin, QVariantMap()),
+                keyTemplate,
+                Sailfish::Crypto::KeyPairGenerationParameters(),
+                kdfParams);
+            future.waitForFinished();
+            kr = future.result();
+            if (kr.result.code() == Sailfish::Crypto::Result::Succeeded) {
+                // successfully generated both keys.
+                bookkeepingdbKey = tempKey;
+                devicelockKey = kr.key;
+            } else {
+                qCWarning(lcSailfishSecretsDaemon) << "Unable to generate device lock key:" << kr.result.errorMessage();
+                return false;
+            }
+        } else {
+            qCWarning(lcSailfishSecretsDaemon) << "Unable to generate bookkeeping database key:" << kr.result.errorMessage();
+            return false;
+        }
+    }
 
     if (cplugin == Q_NULLPTR) {
-        qCWarning(lcSailfishSecretsDaemon) << "Unable to find default crypto plugin for key initialization";
-        return false;
-    }
-
-    Sailfish::Crypto::Result bkdbKeyResult = cplugin->generateKey(
-                keyTemplate,
-                Sailfish::Crypto::KeyPairGenerationParameters(),
-                kdfParams,
-                QVariantMap(),
-                &bookkeepingdbKey);
-
-    if (bkdbKeyResult.code() != Sailfish::Crypto::Result::Succeeded) {
-        qCWarning(lcSailfishSecretsDaemon) << "Unable to generate bookkeeping database key:" << bkdbKeyResult.errorMessage();
-        return false;
-    }
-
-    kdfParams.setIterations(16000);
-    Sailfish::Crypto::Result dlKeyResult = cplugin->generateKey(
-                keyTemplate,
-                Sailfish::Crypto::KeyPairGenerationParameters(),
-                kdfParams,
-                QVariantMap(),
-                &devicelockKey);
-
-    if (dlKeyResult.code() != Sailfish::Crypto::Result::Succeeded) {
-        qCWarning(lcSailfishSecretsDaemon) << "Unable to generate device lock key:" << dlKeyResult.errorMessage();
+        qCWarning(lcSailfishSecretsDaemon) << "Unable to find a valid crypto plugin for key initialization";
         return false;
     }
 
     // now generate the test cipher text with the new bkdbKey.
     // we will compare this to one stored on device, to see if
     // the given lockCode was "correct".
-    QByteArray authenticationTag;
     const QByteArray plaintext("The quick brown fox jumps over the lazy dog");
     // TODO FIXME: is using a deterministically-generated IV here bad?
     const QByteArray iv = QCryptographicHash::hash(
                 salt + bookkeepingdbKey.secretKey(),
                 QCryptographicHash::Sha512).mid(0, 16);
-    Sailfish::Crypto::Result testCipherResult = cplugin->encrypt(
-                plaintext,
-                iv,
-                bookkeepingdbKey,
-                Sailfish::Crypto::CryptoManager::BlockModeCbc,
-                Sailfish::Crypto::CryptoManager::EncryptionPaddingNone,
-                QByteArray(),
-                QVariantMap(),
-                testCipherText,
-                &authenticationTag);
-    if (testCipherResult.code() != Sailfish::Crypto::Result::Succeeded) {
+
+    Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper *wrapper(cryptoStoragePluginWrapper(cplugin->name()));
+    QFuture<Sailfish::Crypto::TagDataResult> future = QtConcurrent::run(
+            controller()->threadPoolForPlugin(cplugin->name()).data(),
+            Sailfish::Crypto::Daemon::ApiImpl::CryptoPluginFunctionWrapper::encrypt,
+            Sailfish::Crypto::PluginWrapperAndCustomParams(cplugin, wrapper, QVariantMap()),
+            Sailfish::Crypto::DataAndIV(plaintext, iv),
+            Sailfish::Crypto::KeyAndCollectionKey(bookkeepingdbKey, QByteArray()),
+            Sailfish::Crypto::EncryptionOptions(Sailfish::Crypto::CryptoManager::BlockModeCbc,
+                                                Sailfish::Crypto::CryptoManager::EncryptionPaddingNone),
+            QByteArray());
+
+    future.waitForFinished();
+    Sailfish::Crypto::TagDataResult tdr = future.result();
+    if (tdr.result.code() != Sailfish::Crypto::Result::Succeeded) {
         qCWarning(lcSailfishSecretsDaemon) << "Unable to generate key test data:"
-                                           << testCipherResult.errorMessage();
+                                           << tdr.result.errorMessage();
         return false;
     }
 
-    // we will use the first of these as the bookkeeping database lock
+    // return the cipher plugin which was used.
+    *usedCipherPluginName = cplugin->name();
+    // return the cipher text which will be used for validation.
+    *testCipherText = tdr.data;
+    // we will use the first key as the bookkeeping database lock
     // (after we hex-encode it as required by sqlcipher).
     *bkdbKey = bookkeepingdbKey.secretKey().toHex();
-    // The second one will be used as the "device lock code" for
+    // The second key will be used as the "device lock code" for
     // collections/secrets using DeviceLock semantics.
     // That one we don't hex encode, because we pass it to plugins
     // in raw form.
@@ -574,18 +659,19 @@ bool Daemon::ApiImpl::SecretsRequestQueue::initialize(
         SecretsRequestQueue::InitializationMode mode)
 {
     QByteArray bkdbKey, deviceLockKey, testCipherText;
+    QString cipherPluginName;
     // generate the keys and test cipher text
-    if (!generateKeyData(lockCode, &bkdbKey, &deviceLockKey, &testCipherText)) {
+    if (!generateKeyData(lockCode, QString(), &bkdbKey, &deviceLockKey, &testCipherText, &cipherPluginName)) {
         qCWarning(lcSailfishSecretsDaemon) << "Secrets: unable to generate keys from the lock code!";
         return false;
     }
     // test against or modify the test cipher text, depending on mode
     if (mode == SecretsRequestQueue::ModifyLockMode) {
-        if (!writeTestCipherText(testCipherText)) {
+        if (!writeTestCipherText(testCipherText, cipherPluginName)) {
             qCWarning(lcSailfishSecretsDaemon) << "Secrets: unable to write new test cipher text file!";
             return false;
         }
-    } else if (mode == SecretsRequestQueue::UnlockMode && !compareTestCipherText(testCipherText, true)) {
+    } else if (mode == SecretsRequestQueue::UnlockMode && !compareTestCipherText(testCipherText, true, cipherPluginName)) {
         qCWarning(lcSailfishSecretsDaemon) << "Secrets: the given master lock code is incorrect!";
         return false;
     }
@@ -623,11 +709,16 @@ bool Daemon::ApiImpl::SecretsRequestQueue::testLockCode(
         const QByteArray &lockCode) const
 {
     QByteArray bkdbKey, deviceLockKey, testCipherText;
-    if (!generateKeyData(lockCode, &bkdbKey, &deviceLockKey, &testCipherText)) {
+    QString cipherPluginName, usedCipherPluginName;
+    if (!determineTestCipherPlugin(&cipherPluginName)) {
+        qCWarning(lcSailfishSecretsDaemon) << "Secrets: unable to determine cipher plugin for lock code!";
+        return false;
+    }
+    if (!generateKeyData(lockCode, cipherPluginName, &bkdbKey, &deviceLockKey, &testCipherText, &usedCipherPluginName)) {
         qCWarning(lcSailfishSecretsDaemon) << "Secrets: unable to generate keys from the lock code!";
         return false;
     }
-    if (!compareTestCipherText(testCipherText, false)) {
+    if (!compareTestCipherText(testCipherText, false, cipherPluginName)) {
         qCWarning(lcSailfishSecretsDaemon) << "Secrets: the given master lock code is incorrect!";
         return false;
     }
@@ -635,7 +726,8 @@ bool Daemon::ApiImpl::SecretsRequestQueue::testLockCode(
 }
 
 bool Daemon::ApiImpl::SecretsRequestQueue::writeTestCipherText(
-        const QByteArray &testCipherText) const
+        const QByteArray &testCipherText,
+        const QString &cipherPluginName) const
 {
     // AES does not suffer from known-plaintext attacks
     // so this test should be safe.
@@ -656,7 +748,7 @@ bool Daemon::ApiImpl::SecretsRequestQueue::writeTestCipherText(
     const QString lockCodeCheckDirPath = secretsDir.absoluteFilePath(lockCodeCheckDirName);
 
     DataProtector dataProtector(lockCodeCheckDirPath);
-    DataProtector::Status s = dataProtector.putData(testCipherText);
+    DataProtector::Status s = dataProtector.putData(cipherPluginName.toUtf8() + '\n' + testCipherText);
     bool ok = (s == DataProtector::Success);
     if (!ok) {
         qCWarning(lcSailfishSecretsDaemon) << "Can't write lock code data. DataProtector returned:" << s;
@@ -665,9 +757,43 @@ bool Daemon::ApiImpl::SecretsRequestQueue::writeTestCipherText(
     return ok;
 }
 
+bool Daemon::ApiImpl::SecretsRequestQueue::determineTestCipherPlugin(
+        QString *cipherPluginName) const
+{
+    const QString systemDataDirPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/system/");
+    const QString privilegedDataDirPath(systemDataDirPath + QLatin1String("privileged") + "/");
+    const QString secretsDirPath(privilegedDataDirPath + QLatin1String("Secrets"));
+    QDir secretsDir(secretsDirPath);
+    if (!secretsDir.mkpath(secretsDirPath)) {
+        qCWarning(lcSailfishSecretsDaemon) << "Permissions error: unable to create secrets directory:" << secretsDirPath;
+        return false;
+    }
+
+    const QString lockCodeCheckDirName = m_autotestMode
+            ? QLatin1String("lockcodecheck-test")
+            : QLatin1String("lockcodecheck");
+    const QString lockCodeCheckDirPath = secretsDir.absoluteFilePath(lockCodeCheckDirName);
+
+    QByteArray previousData;
+    DataProtector dataProtector(lockCodeCheckDirPath);
+    DataProtector::Status s = dataProtector.getData(&previousData);
+
+    if (s != DataProtector::Success) {
+        qCWarning(lcSailfishSecretsDaemon) << "Can't read lock code data, assuming it's corrupted. DataProtector returned:" << s;
+        qCWarning(lcSailfishSecretsDaemon) << "NOTE: If you are running a pre-release sailfish-secrets version, you need to delete all old data before proceeding";
+        // TODO: find an appropriate solution for dealing with data corruption.
+        return false;
+    }
+
+    const QByteArray pluginNameData = previousData.mid(0, previousData.indexOf('\n'));
+    *cipherPluginName = QString::fromUtf8(pluginNameData);
+    return true;
+}
+
 bool Daemon::ApiImpl::SecretsRequestQueue::compareTestCipherText(
         const QByteArray &testCipherText,
-        bool writeIfNotExists) const
+        bool writeIfNotExists,
+        const QString &cipherPluginName) const
 {
     // AES does not suffer from known-plaintext attacks
     // so this test should be safe.
@@ -702,14 +828,15 @@ bool Daemon::ApiImpl::SecretsRequestQueue::compareTestCipherText(
     if (previousData.isEmpty()) {
         if (writeIfNotExists) {
             // first time, write the file.
-            s = dataProtector.putData(testCipherText);
+            s = dataProtector.putData(cipherPluginName.toUtf8() + '\n' + testCipherText);
             return s == DataProtector::Success;
         } else {
             qCWarning(lcSailfishSecretsDaemon) << "Unable to read ciphertext data from nonexistent lock code check file";
             return false;
         }
     } else {
-        if (previousData != testCipherText) {
+        const QByteArray previousDataExceptPluginName = previousData.mid(previousData.indexOf('\n') + 1);
+        if (previousDataExceptPluginName != testCipherText) {
             return false;
         }
     }
