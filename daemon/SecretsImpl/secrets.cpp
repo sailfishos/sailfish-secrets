@@ -35,6 +35,32 @@
 
 #include <sys/mman.h>
 
+namespace {
+    void specifyDummyMasterlockKeys(
+            const QByteArray &lockCode,
+            QByteArray *testCipherText,
+            QByteArray *bkdbKey,
+            QByteArray *deviceLockKey) {
+        const QByteArray hexEncodedLockCode = lockCode.toHex();
+        QByteArray tempBkdbKey = QByteArray(64, 'f');
+        for (int i = 0; i < hexEncodedLockCode.size() && i < 64; ++i) {
+            tempBkdbKey[i] = tempBkdbKey[i] ^ hexEncodedLockCode[i];
+        }
+        QByteArray tempDeviceLockKey = QByteArray(32, 'f');
+        for (int i = 0; i < lockCode.size() && i < 32; ++i) {
+            tempDeviceLockKey[i] = tempDeviceLockKey[i] ^ lockCode[i];
+        }
+        QByteArray tempTestCipherText = QByteArrayLiteral("The quick brown fox jumps over the lazy dog");
+        for (int i = 0; i < tempTestCipherText.size() && i < tempBkdbKey.size(); ++i) {
+            tempTestCipherText[i] = tempTestCipherText[i] ^ tempBkdbKey[i];
+        }
+
+        *testCipherText = tempTestCipherText;
+        *bkdbKey = tempBkdbKey;
+        *deviceLockKey = tempDeviceLockKey;
+    }
+}
+
 using namespace Sailfish::Secrets;
 
 Daemon::ApiImpl::SecretsDBusObject::SecretsDBusObject(
@@ -659,19 +685,37 @@ bool Daemon::ApiImpl::SecretsRequestQueue::initialize(
         SecretsRequestQueue::InitializationMode mode)
 {
     QByteArray bkdbKey, deviceLockKey, testCipherText;
-    QString cipherPluginName;
+    QString cipherPluginName, usedCipherPluginName;
+    bool firstTimeInitialization = false;
+    // check to see if we have successfully initialized keys before
+    if (!determineTestCipherPlugin(&cipherPluginName) || cipherPluginName.isEmpty()) {
+        qCDebug(lcSailfishSecretsDaemon) << "Secrets: unable to determine previous lock code key derivation plugin!";
+        // assume that this is the first time initialization has occurred.
+        firstTimeInitialization = true;
+    }
     // generate the keys and test cipher text
-    if (!generateKeyData(lockCode, QString(), &bkdbKey, &deviceLockKey, &testCipherText, &cipherPluginName)) {
-        qCWarning(lcSailfishSecretsDaemon) << "Secrets: unable to generate keys from the lock code!";
-        return false;
+    if (cipherPluginName != QStringLiteral("no-key-derivation-cipher-plugin")
+            && !generateKeyData(lockCode, cipherPluginName, &bkdbKey, &deviceLockKey, &testCipherText, &usedCipherPluginName)) {
+        qCDebug(lcSailfishSecretsDaemon) << "Secrets: unable to generate keys from the lock code!";
+        if (!firstTimeInitialization) {
+            // the plugin we used to generate the keys was removed.
+            qCWarning(lcSailfishSecretsDaemon) << "Secrets: lock code key derivation plugin doesn't exist!";
+            return false;
+        }
+        usedCipherPluginName = QStringLiteral("no-key-derivation-cipher-plugin");
+    }
+    // if there is no valid key derivation crypto plugin, specify dummy keys
+    if (cipherPluginName == QStringLiteral("no-key-derivation-cipher-plugin")
+            || usedCipherPluginName == QStringLiteral("no-key-derivation-cipher-plugin")) {
+        specifyDummyMasterlockKeys(lockCode, &testCipherText, &bkdbKey, &deviceLockKey);
     }
     // test against or modify the test cipher text, depending on mode
     if (mode == SecretsRequestQueue::ModifyLockMode) {
-        if (!writeTestCipherText(testCipherText, cipherPluginName)) {
+        if (!writeTestCipherText(testCipherText, usedCipherPluginName)) {
             qCWarning(lcSailfishSecretsDaemon) << "Secrets: unable to write new test cipher text file!";
             return false;
         }
-    } else if (mode == SecretsRequestQueue::UnlockMode && !compareTestCipherText(testCipherText, true, cipherPluginName)) {
+    } else if (mode == SecretsRequestQueue::UnlockMode && !compareTestCipherText(testCipherText, true, usedCipherPluginName)) {
         qCWarning(lcSailfishSecretsDaemon) << "Secrets: the given master lock code is incorrect!";
         return false;
     }
@@ -714,7 +758,10 @@ bool Daemon::ApiImpl::SecretsRequestQueue::testLockCode(
         qCWarning(lcSailfishSecretsDaemon) << "Secrets: unable to determine cipher plugin for lock code!";
         return false;
     }
-    if (!generateKeyData(lockCode, cipherPluginName, &bkdbKey, &deviceLockKey, &testCipherText, &usedCipherPluginName)) {
+    // if there is no valid key derivation crypto plugin, specify dummy keys, otherwise generate key data.
+    if (cipherPluginName == QStringLiteral("no-key-derivation-cipher-plugin")) {
+        specifyDummyMasterlockKeys(lockCode, &testCipherText, &bkdbKey, &deviceLockKey);
+    } else if (!generateKeyData(lockCode, cipherPluginName, &bkdbKey, &deviceLockKey, &testCipherText, &usedCipherPluginName)) {
         qCWarning(lcSailfishSecretsDaemon) << "Secrets: unable to generate keys from the lock code!";
         return false;
     }
