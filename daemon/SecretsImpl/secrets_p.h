@@ -26,6 +26,10 @@
 #include <QtCore/QSharedPointer>
 #include <QtDBus/QDBusContext>
 
+// the environment variable which can be used to specify the name
+// of the crypto plugin to use when deriving the master lock keys.
+#define ENV_MASTERLOCK_CRYPTOPLUGIN "SAILFISH_SECRETSD_MASTERLOCK_CRYPTOPLUGIN"
+
 namespace Sailfish {
 
 // forward declare the CryptoRequestQueue type
@@ -417,7 +421,7 @@ public:
     SecretsRequestQueue(Sailfish::Secrets::Daemon::Controller *parent, bool autotestMode);
     ~SecretsRequestQueue();
 
-    Sailfish::Secrets::Daemon::Controller *controller();
+    Sailfish::Secrets::Daemon::Controller *controller() const;
     QWeakPointer<QThreadPool> secretsThreadPool();
     bool initialize(const QByteArray &lockCode, InitializationMode mode);
     bool initializePlugins();
@@ -448,14 +452,15 @@ private:
     bool m_noLockCode;
     bool m_locked;
     mutable QByteArray m_saltData;
-    bool generateKeyData(const QByteArray &lockCode, QByteArray *bkdbKey, QByteArray *deviceLockKey, QByteArray *testCipherText) const;
+    bool generateKeyData(const QByteArray &lockCode, const QString &cipherPluginName, QByteArray *bkdbKey, QByteArray *deviceLockKey, QByteArray *testCipherText, QString *usedCipherPluginName) const;
     bool initializeKeyData(const QByteArray &bkdkKey, const QByteArray &deviceLockKey);
 
 public: // For use by the secrets request processor to handle device-locked collection/secret semantics
     bool masterLocked() const;
     bool testLockCode(const QByteArray &lockCode) const;
-    bool compareTestCipherText(const QByteArray &testCipherText, bool writeIfNotExists) const;
-    bool writeTestCipherText(const QByteArray &testCipherText) const; // the testCipherText file should be considered mutable.
+    bool compareTestCipherText(const QByteArray &testCipherText, bool writeIfNotExists, const QString &cipherPluginName) const;
+    bool writeTestCipherText(const QByteArray &testCipherText, const QString &cipherPluginName) const; // the testCipherText file should be considered mutable.
+    bool determineTestCipherPlugin(QString *cipherPluginName) const;
     QByteArray saltData() const;
     bool noLockCode() const;
     void setNoLockCode(bool value);
