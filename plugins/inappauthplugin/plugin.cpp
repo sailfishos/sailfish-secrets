@@ -128,7 +128,7 @@ Daemon::Plugins::InAppPlugin::beginUserInputInteraction(
                                   Q_ARG(Sailfish::Secrets::InteractionParameters, interactionParameters),
                                   Q_ARG(QString, interactionServiceAddress),
                                   Q_ARG(Sailfish::Secrets::Result, Sailfish::Secrets::Result(Sailfish::Secrets::Result::Succeeded)),
-                                  Q_ARG(QByteArray, QByteArray("testpassphrase")));
+                                  Q_ARG(QByteArray, QByteArray("sailfish"))); // passphrase for importKey unit tests
         return Result(Result::Pending);
     }
 #endif

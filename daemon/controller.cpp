@@ -139,6 +139,85 @@ QString Sailfish::Secrets::Daemon::Controller::displayNameForPlugin(const QStrin
     }
 }
 
+// If the given pluginName is a mappable identifier (like "plugin.storage.default")
+// then we return the appropriate "real" plugin name for the given mappable identifier.
+// The mapping is defined via environment variables, which can be set by
+// environment conf files: /var/lib/environment/sailfish-secretsd/*.conf
+QString Sailfish::Secrets::Daemon::Controller::mappedPluginName(const QString &pluginName) const
+{
+    static const QString testPluginSuffix(QStringLiteral(".test"));
+
+    static const QString performMapping(
+            (!QString::fromUtf8(qgetenv(ENV_PERFORM_PLUGIN_MAPPING)).isEmpty())
+                    ? QString::fromUtf8(qgetenv(ENV_PERFORM_PLUGIN_MAPPING))
+                    : QStringLiteral("true"));
+    static const QString mappedCryptoPluginName(
+            (!QString::fromUtf8(qgetenv(ENV_DEFAULT_CRYPTO_PLUGIN)).isEmpty())
+                    ? QString::fromUtf8(qgetenv(ENV_DEFAULT_CRYPTO_PLUGIN))
+                    : QStringLiteral("org.sailfishos.crypto.plugin.crypto.openssl"));
+    static const QString mappedCryptoStoragePluginName(
+            (!QString::fromUtf8(qgetenv(ENV_DEFAULT_CRYPTOSTORAGE_PLUGIN)).isEmpty())
+                    ? QString::fromUtf8(qgetenv(ENV_DEFAULT_CRYPTOSTORAGE_PLUGIN))
+                    : QStringLiteral("org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher"));
+    static const QString mappedStoragePluginName(
+            (!QString::fromUtf8(qgetenv(ENV_DEFAULT_STORAGE_PLUGIN)).isEmpty())
+                    ? QString::fromUtf8(qgetenv(ENV_DEFAULT_STORAGE_PLUGIN))
+                    : QStringLiteral("org.sailfishos.secrets.plugin.storage.sqlite"));
+    static const QString mappedEncryptionPluginName(
+            (!QString::fromUtf8(qgetenv(ENV_DEFAULT_ENCRYPTION_PLUGIN)).isEmpty())
+                    ? QString::fromUtf8(qgetenv(ENV_DEFAULT_ENCRYPTION_PLUGIN))
+                    : QStringLiteral("org.sailfishos.secrets.plugin.encryption.openssl"));
+    static const QString mappedEncryptedStoragePluginName(
+            (!QString::fromUtf8(qgetenv(ENV_DEFAULT_ENCRYPTEDSTORAGE_PLUGIN)).isEmpty())
+                    ? QString::fromUtf8(qgetenv(ENV_DEFAULT_ENCRYPTEDSTORAGE_PLUGIN))
+                    : QStringLiteral("org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher"));
+    static const QString mappedAuthenticationPluginName(
+            (!QString::fromUtf8(qgetenv(ENV_DEFAULT_AUTHENTICATION_PLUGIN)).isEmpty())
+                    ? QString::fromUtf8(qgetenv(ENV_DEFAULT_AUTHENTICATION_PLUGIN))
+                    : QStringLiteral("org.sailfishos.secrets.plugin.authentication.passwordagent"));
+    static const QString mappedInAppAuthenticationPluginName(
+            (!QString::fromUtf8(qgetenv(ENV_INAPP_AUTHENTICATION_PLUGIN)).isEmpty())
+                    ? QString::fromUtf8(qgetenv(ENV_INAPP_AUTHENTICATION_PLUGIN))
+                    : QStringLiteral("org.sailfishos.secrets.plugin.authentication.inapp"));
+
+    if (!pluginName.isEmpty()
+            && (performMapping == QStringLiteral("1")
+                || performMapping == QStringLiteral("true")
+                || performMapping == QStringLiteral("yes"))) {
+        if (pluginName.startsWith(Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName)) {
+            return pluginName.endsWith(testPluginSuffix)
+                    ? (mappedCryptoPluginName+testPluginSuffix)
+                    : mappedCryptoPluginName;
+        } else if (pluginName.startsWith(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName)) {
+            return pluginName.endsWith(testPluginSuffix)
+                    ? (mappedCryptoStoragePluginName+testPluginSuffix)
+                    : mappedCryptoStoragePluginName;
+        } else if (pluginName.startsWith(Sailfish::Secrets::SecretManager::DefaultStoragePluginName)) {
+            return pluginName.endsWith(testPluginSuffix)
+                    ? (mappedStoragePluginName+testPluginSuffix)
+                    : mappedStoragePluginName;
+        } else if (pluginName.startsWith(Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName)) {
+            return pluginName.endsWith(testPluginSuffix)
+                    ? (mappedEncryptionPluginName+testPluginSuffix)
+                    : mappedEncryptionPluginName;
+        } else if (pluginName.startsWith(Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName)) {
+            return pluginName.endsWith(testPluginSuffix)
+                    ? (mappedEncryptedStoragePluginName+testPluginSuffix)
+                    : mappedEncryptedStoragePluginName;
+        } else if (pluginName.startsWith(Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName)) {
+            return pluginName.endsWith(testPluginSuffix)
+                    ? (mappedAuthenticationPluginName+testPluginSuffix)
+                    : mappedAuthenticationPluginName;
+        } else if (pluginName.startsWith(Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName)) {
+            return pluginName.endsWith(testPluginSuffix)
+                    ? (mappedInAppAuthenticationPluginName+testPluginSuffix)
+                    : mappedInAppAuthenticationPluginName;
+        }
+    }
+
+    return pluginName;
+}
+
 QMap<QString, Sailfish::Secrets::PluginInfo>
 Sailfish::Secrets::Daemon::Controller::pluginInfoForPlugins(
         QList<Sailfish::Secrets::PluginBase*> plugins,

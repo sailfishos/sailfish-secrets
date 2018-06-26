@@ -287,7 +287,7 @@ void tst_cryptorequests::getPluginInfo()
     bool foundTestCryptoStoragePluginInS = false;
     bool foundTestUsbPlugin = false;
     for (auto p : r.cryptoPlugins()) {
-        if (p.name() == DEFAULT_TEST_CRYPTO_PLUGIN_NAME) {
+        if (p.name() == QStringLiteral("org.sailfishos.crypto.plugin.crypto.openssl.test")) {
             foundTestCryptoPlugin = true;
             QCOMPARE(p.displayName(), QStringLiteral("OpenSSL Crypto"));
             QCOMPARE(p.statusFlags() & PluginInfo::Available, PluginInfo::Available);
@@ -295,7 +295,7 @@ void tst_cryptorequests::getPluginInfo()
             QCOMPARE(p.statusFlags() & PluginInfo::PluginUnlocked, PluginInfo::PluginUnlocked);
             QCOMPARE(p.statusFlags() & PluginInfo::PluginSupportsLocking, 0);
             QCOMPARE(p.statusFlags() & PluginInfo::PluginSupportsSetLockCode, 0);
-        } else if (p.name() == DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME) {
+        } else if (p.name() == QStringLiteral("org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test")) {
             foundTestCryptoStoragePluginInC = true;
             QCOMPARE(p.displayName(), QStringLiteral("SQLCipher"));
             QCOMPARE(p.statusFlags() & PluginInfo::Available, PluginInfo::Available);
@@ -303,7 +303,7 @@ void tst_cryptorequests::getPluginInfo()
             QCOMPARE(p.statusFlags() & PluginInfo::PluginUnlocked, PluginInfo::PluginUnlocked);
             QCOMPARE(p.statusFlags() & PluginInfo::PluginSupportsLocking, 0);
             QCOMPARE(p.statusFlags() & PluginInfo::PluginSupportsSetLockCode, 0);
-        } else if (p.name() == TEST_USB_TOKEN_PLUGIN_NAME) {
+        } else if (p.name() == QStringLiteral("org.sailfishos.secrets.plugin.cryptostorage.exampleusbtoken.test")) {
             foundTestUsbPlugin = true;
             QCOMPARE(p.statusFlags() & PluginInfo::Available, PluginInfo::Available);
             QCOMPARE(p.statusFlags() & PluginInfo::MasterUnlocked, PluginInfo::MasterUnlocked);
@@ -313,7 +313,7 @@ void tst_cryptorequests::getPluginInfo()
         }
     }
     for (auto p : r.storagePlugins()) {
-        if (p.name() == DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME) {
+        if (p.name() == QStringLiteral("org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test")) {
             foundTestCryptoStoragePluginInS = true;
             QCOMPARE(p.displayName(), QStringLiteral("SQLCipher"));
             QCOMPARE(p.statusFlags() & PluginInfo::Available, PluginInfo::Available);
@@ -2682,8 +2682,8 @@ void tst_cryptorequests::lockCode()
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
     QCOMPARE(lcr.status(), Sailfish::Crypto::Request::Finished);
     QCOMPARE(lcr.result().code(), Sailfish::Crypto::Result::Failed);
-    QCOMPARE(lcr.result().errorMessage(), QStringLiteral("Crypto plugin %1 does not support locking")
-                                                    .arg(DEFAULT_TEST_CRYPTO_PLUGIN_NAME));
+    QVERIFY(lcr.result().errorMessage().startsWith(QStringLiteral("Crypto plugin"))
+         && lcr.result().errorMessage().endsWith(QStringLiteral("does not support locking")));
 
     uiParams.setPromptText(QLatin1String("Provide the lock code for the crypto plugin"));
     uiParams.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
@@ -2693,16 +2693,16 @@ void tst_cryptorequests::lockCode()
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
     QCOMPARE(lcr.status(), Sailfish::Crypto::Request::Finished);
     QCOMPARE(lcr.result().code(), Sailfish::Crypto::Result::Failed);
-    QCOMPARE(lcr.result().errorMessage(), QStringLiteral("Crypto plugin %1 does not support locking")
-                                                    .arg(DEFAULT_TEST_CRYPTO_PLUGIN_NAME));
+    QVERIFY(lcr.result().errorMessage().startsWith(QStringLiteral("Crypto plugin"))
+         && lcr.result().errorMessage().endsWith(QStringLiteral("does not support locking")));
 
     lcr.setLockCodeRequestType(Sailfish::Crypto::LockCodeRequest::ForgetLockCode);
     lcr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
     QCOMPARE(lcr.status(), Sailfish::Crypto::Request::Finished);
     QCOMPARE(lcr.result().code(), Sailfish::Crypto::Result::Failed);
-    QCOMPARE(lcr.result().errorMessage(), QStringLiteral("Crypto plugin %1 does not support locking")
-                                                    .arg(DEFAULT_TEST_CRYPTO_PLUGIN_NAME));
+    QVERIFY(lcr.result().errorMessage().startsWith(QStringLiteral("Crypto plugin"))
+         && lcr.result().errorMessage().endsWith(QStringLiteral("does not support locking")));
 }
 
 void tst_cryptorequests::pluginThreading()
@@ -3234,10 +3234,10 @@ void tst_cryptorequests::importKey_data()
     promptForSailfishPassphrase.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
     promptForSailfishPassphrase.setInputType(Sailfish::Crypto::InteractionParameters::AlphaNumericInput);
     promptForSailfishPassphrase.setEchoMode(Sailfish::Crypto::InteractionParameters::NormalEcho);
-    promptForSailfishPassphrase.setPromptText(QLatin1String("Enter the passphrase 'Sailfish'"));
+    promptForSailfishPassphrase.setPromptText(QLatin1String("Enter the passphrase 'sailfish'"));
 
     InteractionParameters promptToCancel;
-    promptToCancel.setAuthenticationPluginName(IN_APP_TEST_AUTHENTICATION_PLUGIN);
+    promptToCancel.setAuthenticationPluginName(PASSWORD_AGENT_TEST_AUTH_PLUGIN);
     promptToCancel.setInputType(Sailfish::Crypto::InteractionParameters::AlphaNumericInput);
     promptToCancel.setEchoMode(Sailfish::Crypto::InteractionParameters::NormalEcho);
     promptToCancel.setPromptText(QLatin1String("Cancel input"));
@@ -3361,17 +3361,19 @@ void tst_cryptorequests::importKey_data()
             << 0
             << Key::OriginUnknown
             << CryptoManager::AlgorithmUnknown;
-    QTest::newRow("Private RSA 2048 - passphrase, canceled")
-            << test_key_rsa_2048_sailfish_in
-            << createPrivateKey(keyIdentifier)
-            << promptToCancel
-            << Result::Failed
-            << Result::CryptoPluginKeyImportError
-            << QByteArray()
-            << QByteArray()
-            << 0
-            << Key::OriginUnknown
-            << CryptoManager::AlgorithmUnknown;
+
+    // this test should be enabled for manual testing only, user has to cancel the dialog.
+    //Test::newRow("Private RSA 2048 - passphrase, canceled")
+    //      << test_key_rsa_2048_sailfish_in
+    //      << createPrivateKey(keyIdentifier)
+    //      << promptToCancel
+    //      << Result::Failed
+    //      << Result::StorageError // storageErrorCode() == Sailfish::Secrets::Result::InteractionViewUserCanceledError
+    //      << QByteArray()
+    //      << QByteArray()
+    //      << 0
+    //      << Key::OriginUnknown
+    //      << CryptoManager::AlgorithmUnknown;
 }
 
 void tst_cryptorequests::importKey()
@@ -3394,13 +3396,10 @@ void tst_cryptorequests::importKey()
 
     request.setCryptoPluginName(DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
     QCOMPARE(request.cryptoPluginName(), DEFAULT_TEST_CRYPTO_STORAGE_PLUGIN_NAME);
-
     request.setData(data);
     QCOMPARE(request.data(), data);
-
-    if (interactionParameters.isValid()) {
-        QSKIP("Invalid interaction service address for in-app authentication");
-    }
+    request.setInteractionParameters(interactionParameters);
+    QCOMPARE(request.interactionParameters(), interactionParameters);
 
     request.startRequest();
 
@@ -3408,7 +3407,6 @@ void tst_cryptorequests::importKey()
 
     const Sailfish::Crypto::Result result = request.result();
     const Sailfish::Crypto::Key importedKey = request.importedKey();
-
     QCOMPARE(result.code(), resultCode);
     QCOMPARE(result.errorCode(), errorCode);
 
@@ -3489,10 +3487,6 @@ void tst_cryptorequests::importKeyAndStore()
     QFETCH(Sailfish::Crypto::Key::Origin, origin);
     QFETCH(Sailfish::Crypto::CryptoManager::Algorithm, algorithm);
 
-    if (interactionParameters.isValid()) {
-        QSKIP("Invalid interaction service address for in-app authentication");
-    }
-
     if (!keyTemplate.collectionName().isEmpty()) {
         // first, create the collection via the Secrets API.
         Sailfish::Secrets::CreateCollectionRequest ccr;
@@ -3524,13 +3518,14 @@ void tst_cryptorequests::importKeyAndStore()
     QCOMPARE(request.data(), data);
     request.setKeyTemplate(keyTemplate);
     QCOMPARE(request.keyTemplate(), keyTemplate);
+    request.setInteractionParameters(interactionParameters);
+    QCOMPARE(request.interactionParameters(), interactionParameters);
 
     request.startRequest();
 
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(request);
 
     const Sailfish::Crypto::Result result = request.result();
-
     QCOMPARE(result.code(), resultCode);
     QCOMPARE(result.errorCode(), errorCode);
 
@@ -3542,7 +3537,10 @@ void tst_cryptorequests::importKeyAndStore()
         // but, when we successfully store an imported key, we always
         // return a key reference which contains no private key data.
         QCOMPARE(importedKey.privateKey(), QByteArray());
-        QCOMPARE(importedKey.identifier(), keyTemplate.identifier());
+        QCOMPARE(importedKey.identifier().name(), keyTemplate.identifier().name());
+        QCOMPARE(importedKey.identifier().collectionName(), keyTemplate.identifier().collectionName());
+        QCOMPARE(importedKey.identifier().storagePluginName().isEmpty(), keyTemplate.identifier().storagePluginName().isEmpty());
+        // note that the storage plugin name may have been mapped from default placeholder to real name.
     }
     QCOMPARE(importedKey.size(), size);
     QCOMPARE(importedKey.origin(), origin);

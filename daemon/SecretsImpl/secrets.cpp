@@ -35,6 +35,8 @@
 
 #include <sys/mman.h>
 
+#define MAP_PLUGIN_NAMES(variable) ::mapPluginNames(m_requestQueue->controller(), variable)
+
 namespace {
     void specifyDummyMasterlockKeys(
             const QByteArray &lockCode,
@@ -58,6 +60,37 @@ namespace {
         *testCipherText = tempTestCipherText;
         *bkdbKey = tempBkdbKey;
         *deviceLockKey = tempDeviceLockKey;
+    }
+
+    Sailfish::Secrets::Secret mapPluginNames(
+            Sailfish::Secrets::Daemon::Controller *controller,
+            const Sailfish::Secrets::Secret &secret) {
+        Sailfish::Secrets::Secret retn(secret);
+        retn.setStoragePluginName(controller->mappedPluginName(secret.storagePluginName()));
+        return retn;
+    }
+
+    Sailfish::Secrets::Secret::Identifier mapPluginNames(
+            Sailfish::Secrets::Daemon::Controller *controller,
+            const Sailfish::Secrets::Secret::Identifier &ident) {
+        Sailfish::Secrets::Secret::Identifier retn(ident);
+        retn.setStoragePluginName(controller->mappedPluginName(ident.storagePluginName()));
+        return retn;
+    }
+
+    Sailfish::Secrets::InteractionParameters mapPluginNames(
+            Sailfish::Secrets::Daemon::Controller *controller,
+            const Sailfish::Secrets::InteractionParameters &uiParams) {
+        Sailfish::Secrets::InteractionParameters retn(uiParams);
+        retn.setPluginName(controller->mappedPluginName(uiParams.pluginName()));
+        retn.setAuthenticationPluginName(controller->mappedPluginName(uiParams.authenticationPluginName()));
+        return retn;
+    }
+
+    QString mapPluginNames(
+            Sailfish::Secrets::Daemon::Controller *controller,
+            const QString &pluginName) {
+        return controller->mappedPluginName(pluginName);
     }
 }
 
@@ -111,6 +144,7 @@ void Daemon::ApiImpl::SecretsDBusObject::userInput(
     modifiedParams.setPluginName(QString());
     modifiedParams.setCollectionName(QString());
     modifiedParams.setSecretName(QString());
+    modifiedParams.setAuthenticationPluginName(MAP_PLUGIN_NAMES(uiParams.authenticationPluginName()));
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<InteractionParameters>(modifiedParams);
     m_requestQueue->handleRequest(Daemon::ApiImpl::UserInputRequest,
@@ -131,7 +165,7 @@ void Daemon::ApiImpl::SecretsDBusObject::collectionNames(
 {
     Q_UNUSED(names); // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
-    inParams << storagePluginName;
+    inParams << MAP_PLUGIN_NAMES(storagePluginName);
     m_requestQueue->handleRequest(Daemon::ApiImpl::CollectionNamesRequest,
                                   inParams,
                                   connection(),
@@ -151,8 +185,8 @@ void Daemon::ApiImpl::SecretsDBusObject::createCollection(
 {
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QString>(collectionName)
-             << QVariant::fromValue<QString>(storagePluginName)
-             << QVariant::fromValue<QString>(encryptionPluginName)
+             << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(storagePluginName))
+             << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(encryptionPluginName))
              << QVariant::fromValue<SecretManager::DeviceLockUnlockSemantic>(unlockSemantic)
              << QVariant::fromValue<SecretManager::AccessControlMode>(accessControlMode);
     m_requestQueue->handleRequest(Daemon::ApiImpl::CreateDeviceLockCollectionRequest,
@@ -177,9 +211,9 @@ void Daemon::ApiImpl::SecretsDBusObject::createCollection(
 {
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QString>(collectionName)
-             << QVariant::fromValue<QString>(storagePluginName)
-             << QVariant::fromValue<QString>(encryptionPluginName)
-             << QVariant::fromValue<QString>(authenticationPluginName)
+             << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(storagePluginName))
+             << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(encryptionPluginName))
+             << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(authenticationPluginName))
              << QVariant::fromValue<SecretManager::CustomLockUnlockSemantic>(unlockSemantic)
              << QVariant::fromValue<SecretManager::AccessControlMode>(accessControlMode)
              << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
@@ -202,7 +236,7 @@ void Daemon::ApiImpl::SecretsDBusObject::deleteCollection(
 {
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QString>(collectionName)
-             << QVariant::fromValue<QString>(storagePluginName)
+             << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(storagePluginName))
              << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
              << QVariant::fromValue<QString>(interactionServiceAddress);
     m_requestQueue->handleRequest(Daemon::ApiImpl::DeleteCollectionRequest,
@@ -222,7 +256,7 @@ void Daemon::ApiImpl::SecretsDBusObject::setSecret(
         Result &result)
 {
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<Secret>(secret)
+    inParams << QVariant::fromValue<Secret>(MAP_PLUGIN_NAMES(secret))
              << QVariant::fromValue<InteractionParameters>(uiParams)
              << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
              << QVariant::fromValue<QString>(interactionServiceAddress);
@@ -246,9 +280,9 @@ void Daemon::ApiImpl::SecretsDBusObject::setSecret(
         Result &result)
 {
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<Secret>(secret)
-             << QVariant::fromValue<QString>(encryptionPluginName)
-             << QVariant::fromValue<InteractionParameters>(uiParams)
+    inParams << QVariant::fromValue<Secret>(MAP_PLUGIN_NAMES(secret))
+             << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(encryptionPluginName))
+             << QVariant::fromValue<InteractionParameters>(MAP_PLUGIN_NAMES(uiParams))
              << QVariant::fromValue<SecretManager::DeviceLockUnlockSemantic>(unlockSemantic)
              << QVariant::fromValue<SecretManager::AccessControlMode>(accessControlMode)
              << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
@@ -274,10 +308,10 @@ void Daemon::ApiImpl::SecretsDBusObject::setSecret(
         Result &result)
 {
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<Secret>(secret)
-             << QVariant::fromValue<QString>(encryptionPluginName)
-             << QVariant::fromValue<QString>(authenticationPluginName)
-             << QVariant::fromValue<InteractionParameters>(uiParams)
+    inParams << QVariant::fromValue<Secret>(MAP_PLUGIN_NAMES(secret))
+             << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(encryptionPluginName))
+             << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(authenticationPluginName))
+             << QVariant::fromValue<InteractionParameters>(MAP_PLUGIN_NAMES(uiParams))
              << QVariant::fromValue<SecretManager::CustomLockUnlockSemantic>(unlockSemantic)
              << QVariant::fromValue<SecretManager::AccessControlMode>(accessControlMode)
              << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
@@ -300,7 +334,7 @@ void Daemon::ApiImpl::SecretsDBusObject::getSecret(
 {
     Q_UNUSED(secret); // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<Secret::Identifier>(identifier)
+    inParams << QVariant::fromValue<Secret::Identifier>(MAP_PLUGIN_NAMES(identifier))
              << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
              << QVariant::fromValue<QString>(interactionServiceAddress);
     m_requestQueue->handleRequest(identifier.identifiesStandaloneSecret()
@@ -329,7 +363,7 @@ void Daemon::ApiImpl::SecretsDBusObject::findSecrets(
     if (!collectionName.isEmpty()) {
         inParams << QVariant::fromValue<QString>(collectionName);
     }
-    inParams << storagePluginName
+    inParams << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(storagePluginName))
              << QVariant::fromValue<Secret::FilterData>(filter)
              << QVariant::fromValue<SecretManager::FilterOperator>(filterOperator)
              << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
@@ -352,7 +386,7 @@ void Daemon::ApiImpl::SecretsDBusObject::deleteSecret(
         Result &result)
 {
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<Secret::Identifier>(identifier)
+    inParams << QVariant::fromValue<Secret::Identifier>(MAP_PLUGIN_NAMES(identifier))
              << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
              << QVariant::fromValue<QString>(interactionServiceAddress);
     m_requestQueue->handleRequest(identifier.identifiesStandaloneSecret()
@@ -375,7 +409,7 @@ void Daemon::ApiImpl::SecretsDBusObject::queryLockStatus(
     Q_UNUSED(lockStatus); // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
-             << QVariant::fromValue<QString>(lockCodeTarget);
+             << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(lockCodeTarget));
     m_requestQueue->handleRequest(Daemon::ApiImpl::QueryLockStatusRequest,
                                   inParams,
                                   connection(),
@@ -395,8 +429,8 @@ void Daemon::ApiImpl::SecretsDBusObject::modifyLockCode(
 {
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
-             << QVariant::fromValue<QString>(lockCodeTarget)
-             << QVariant::fromValue<InteractionParameters>(interactionParameters)
+             << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(lockCodeTarget))
+             << QVariant::fromValue<InteractionParameters>(MAP_PLUGIN_NAMES(interactionParameters))
              << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
              << QVariant::fromValue<QString>(interactionServiceAddress);
     m_requestQueue->handleRequest(Daemon::ApiImpl::ModifyLockCodeRequest,
@@ -418,8 +452,8 @@ void Daemon::ApiImpl::SecretsDBusObject::provideLockCode(
 {
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
-             << QVariant::fromValue<QString>(lockCodeTarget)
-             << QVariant::fromValue<InteractionParameters>(interactionParameters)
+             << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(lockCodeTarget))
+             << QVariant::fromValue<InteractionParameters>(MAP_PLUGIN_NAMES(interactionParameters))
              << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
              << QVariant::fromValue<QString>(interactionServiceAddress);
     m_requestQueue->handleRequest(Daemon::ApiImpl::ProvideLockCodeRequest,
@@ -441,8 +475,8 @@ void Daemon::ApiImpl::SecretsDBusObject::forgetLockCode(
 {
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
-             << QVariant::fromValue<QString>(lockCodeTarget)
-             << QVariant::fromValue<InteractionParameters>(interactionParameters)
+             << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(lockCodeTarget))
+             << QVariant::fromValue<InteractionParameters>(MAP_PLUGIN_NAMES(interactionParameters))
              << QVariant::fromValue<SecretManager::UserInteractionMode>(userInteractionMode)
              << QVariant::fromValue<QString>(interactionServiceAddress);
     m_requestQueue->handleRequest(Daemon::ApiImpl::ForgetLockCodeRequest,
@@ -554,8 +588,12 @@ bool Daemon::ApiImpl::SecretsRequestQueue::generateKeyData(
     // if no plugin was specified in the environment variable, attempt to use the default plugin
     if (cplugin == Q_NULLPTR) {
         cplugin = m_autotestMode
-                ? m_controller->crypto()->plugins().value(Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test"))
-                : m_controller->crypto()->plugins().value(Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName);
+                ? m_controller->crypto()->plugins().value(
+                        m_controller->mappedPluginName(
+                                Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test")))
+                : m_controller->crypto()->plugins().value(
+                        m_controller->mappedPluginName(
+                                Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName));
     }
 
     // otherwise, select the first available crypto plugin which can generate the key.

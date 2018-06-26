@@ -31,7 +31,9 @@ namespace ApiImpl {
 class CryptoStoragePluginWrapper : public Sailfish::Secrets::Daemon::ApiImpl::EncryptedStoragePluginWrapper
 {
 public:
-    CryptoStoragePluginWrapper(Sailfish::Crypto::CryptoPlugin *cryptoPlugin,
+    CryptoStoragePluginWrapper(const QString &defaultEncryptionPluginName,
+                               const QString &defaultAuthPluginName,
+                               Sailfish::Crypto::CryptoPlugin *cryptoPlugin,
                                Sailfish::Secrets::EncryptedStoragePlugin *plugin,
                                bool autotestMode);
     ~CryptoStoragePluginWrapper();

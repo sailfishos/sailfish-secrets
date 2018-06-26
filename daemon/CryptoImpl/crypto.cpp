@@ -7,6 +7,7 @@
 
 #include "crypto_p.h"
 #include "cryptorequestprocessor_p.h"
+#include "controller_p.h"
 #include "logging_p.h"
 
 #include "Crypto/serialization_p.h"
@@ -19,6 +20,41 @@
 #include <QtCore/QString>
 #include <QtCore/QVector>
 #include <QtCore/QByteArray>
+
+#define MAP_PLUGIN_NAMES(variable) ::mapPluginNames(m_requestQueue->controller(), variable)
+
+namespace {
+    Sailfish::Crypto::Key mapPluginNames(
+            Sailfish::Secrets::Daemon::Controller *controller,
+            const Sailfish::Crypto::Key &key) {
+        Sailfish::Crypto::Key retn(key);
+        retn.setStoragePluginName(controller->mappedPluginName(key.storagePluginName()));
+        return retn;
+    }
+
+    Sailfish::Crypto::Key::Identifier mapPluginNames(
+            Sailfish::Secrets::Daemon::Controller *controller,
+            const Sailfish::Crypto::Key::Identifier &ident) {
+        Sailfish::Crypto::Key::Identifier retn(ident);
+        retn.setStoragePluginName(controller->mappedPluginName(ident.storagePluginName()));
+        return retn;
+    }
+
+    Sailfish::Crypto::InteractionParameters mapPluginNames(
+            Sailfish::Secrets::Daemon::Controller *controller,
+            const Sailfish::Crypto::InteractionParameters &uiParams) {
+        Sailfish::Crypto::InteractionParameters retn(uiParams);
+        retn.setPluginName(controller->mappedPluginName(uiParams.pluginName()));
+        retn.setAuthenticationPluginName(controller->mappedPluginName(uiParams.authenticationPluginName()));
+        return retn;
+    }
+
+    QString mapPluginNames(
+            Sailfish::Secrets::Daemon::Controller *controller,
+            const QString &pluginName) {
+        return controller->mappedPluginName(pluginName);
+    }
+}
 
 using namespace Sailfish::Crypto;
 
@@ -60,7 +96,7 @@ void Daemon::ApiImpl::CryptoDBusObject::generateRandomData(
     inParams << QVariant::fromValue<quint64>(numberBytes);
     inParams << QVariant::fromValue<QString>(csprngEngineName);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
-    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    inParams << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(cryptosystemProviderName));
     m_requestQueue->handleRequest(Daemon::ApiImpl::GenerateRandomDataRequest,
                                   inParams,
                                   connection(),
@@ -82,7 +118,7 @@ void Daemon::ApiImpl::CryptoDBusObject::seedRandomDataGenerator(
     inParams << QVariant::fromValue<double>(entropyEstimate);
     inParams << QVariant::fromValue<QString>(csprngEngineName);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
-    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    inParams << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(cryptosystemProviderName));
     m_requestQueue->handleRequest(Daemon::ApiImpl::SeedRandomDataGeneratorRequest,
                                   inParams,
                                   connection(),
@@ -107,7 +143,7 @@ void Daemon::ApiImpl::CryptoDBusObject::generateInitializationVector(
     inParams << QVariant::fromValue<Sailfish::Crypto::CryptoManager::BlockMode>(blockMode);
     inParams << QVariant::fromValue<int>(keySize);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
-    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    inParams << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(cryptosystemProviderName));
     m_requestQueue->handleRequest(Daemon::ApiImpl::GenerateInitializationVectorRequest,
                                   inParams,
                                   connection(),
@@ -127,11 +163,11 @@ void Daemon::ApiImpl::CryptoDBusObject::generateKey(
 {
     Q_UNUSED(key);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<Key>(keyTemplate);
+    inParams << QVariant::fromValue<Key>(MAP_PLUGIN_NAMES(keyTemplate));
     inParams << QVariant::fromValue<KeyPairGenerationParameters>(kpgParams);
     inParams << QVariant::fromValue<KeyDerivationParameters>(skdfParams);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
-    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    inParams << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(cryptosystemProviderName));
     m_requestQueue->handleRequest(Daemon::ApiImpl::GenerateKeyRequest,
                                   inParams,
                                   connection(),
@@ -152,12 +188,12 @@ void Daemon::ApiImpl::CryptoDBusObject::generateStoredKey(
 {
     Q_UNUSED(key);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<Key>(keyTemplate);
+    inParams << QVariant::fromValue<Key>(MAP_PLUGIN_NAMES(keyTemplate));
     inParams << QVariant::fromValue<KeyPairGenerationParameters>(kpgParams);
     inParams << QVariant::fromValue<KeyDerivationParameters>(skdfParams);
     inParams << QVariant::fromValue<InteractionParameters>(uiParams);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
-    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    inParams << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(cryptosystemProviderName));
     m_requestQueue->handleRequest(Daemon::ApiImpl::GenerateStoredKeyRequest,
                                   inParams,
                                   connection(),
@@ -177,9 +213,9 @@ void Daemon::ApiImpl::CryptoDBusObject::importKey(
     Q_UNUSED(importedKey);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
-    inParams << QVariant::fromValue<InteractionParameters>(uiParams);
+    inParams << QVariant::fromValue<InteractionParameters>(MAP_PLUGIN_NAMES(uiParams));
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
-    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    inParams << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(cryptosystemProviderName));
     m_requestQueue->handleRequest(Daemon::ApiImpl::ImportKeyRequest,
                                   inParams,
                                   connection(),
@@ -200,10 +236,10 @@ void Daemon::ApiImpl::CryptoDBusObject::importStoredKey(
     Q_UNUSED(importedKey);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
-    inParams << QVariant::fromValue<Key>(keyTemplate);
-    inParams << QVariant::fromValue<InteractionParameters>(uiParams);
+    inParams << QVariant::fromValue<Key>(MAP_PLUGIN_NAMES(keyTemplate));
+    inParams << QVariant::fromValue<InteractionParameters>(MAP_PLUGIN_NAMES(uiParams));
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
-    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    inParams << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(cryptosystemProviderName));
     m_requestQueue->handleRequest(Daemon::ApiImpl::ImportStoredKeyRequest,
                                   inParams,
                                   connection(),
@@ -221,7 +257,7 @@ void Daemon::ApiImpl::CryptoDBusObject::storedKey(
 {
     Q_UNUSED(key);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<Key::Identifier>(identifier);
+    inParams << QVariant::fromValue<Key::Identifier>(MAP_PLUGIN_NAMES(identifier));
     inParams << QVariant::fromValue<Key::Components>(keyComponents);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
     m_requestQueue->handleRequest(Daemon::ApiImpl::StoredKeyRequest,
@@ -237,7 +273,7 @@ void Daemon::ApiImpl::CryptoDBusObject::deleteStoredKey(
         Result &result)
 {
     QList<QVariant> inParams;
-    inParams << QVariant::fromValue<Key::Identifier>(identifier);
+    inParams << QVariant::fromValue<Key::Identifier>(MAP_PLUGIN_NAMES(identifier));
     m_requestQueue->handleRequest(Daemon::ApiImpl::DeleteStoredKeyRequest,
                                   inParams,
                                   connection(),
@@ -255,7 +291,7 @@ void Daemon::ApiImpl::CryptoDBusObject::storedKeyIdentifiers(
 {
     Q_UNUSED(identifiers);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
-    inParams << storagePluginName
+    inParams << MAP_PLUGIN_NAMES(storagePluginName)
              << collectionName
              << customParameters;
     m_requestQueue->handleRequest(Daemon::ApiImpl::StoredKeyIdentifiersRequest,
@@ -281,7 +317,7 @@ void Daemon::ApiImpl::CryptoDBusObject::calculateDigest(
     inParams << QVariant::fromValue<CryptoManager::SignaturePadding>(padding);
     inParams << QVariant::fromValue<CryptoManager::DigestFunction>(digestFunction);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
-    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    inParams << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(cryptosystemProviderName));
     m_requestQueue->handleRequest(Daemon::ApiImpl::CalculateDigestRequest,
                                   inParams,
                                   connection(),
@@ -303,11 +339,11 @@ void Daemon::ApiImpl::CryptoDBusObject::sign(
     Q_UNUSED(signature);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
-    inParams << QVariant::fromValue<Key>(key);
+    inParams << QVariant::fromValue<Key>(MAP_PLUGIN_NAMES(key));
     inParams << QVariant::fromValue<CryptoManager::SignaturePadding>(padding);
     inParams << QVariant::fromValue<CryptoManager::DigestFunction>(digest);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
-    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    inParams << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(cryptosystemProviderName));
     m_requestQueue->handleRequest(Daemon::ApiImpl::SignRequest,
                                   inParams,
                                   connection(),
@@ -331,11 +367,11 @@ void Daemon::ApiImpl::CryptoDBusObject::verify(
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(signature);
     inParams << QVariant::fromValue<QByteArray>(data);
-    inParams << QVariant::fromValue<Key>(key);
+    inParams << QVariant::fromValue<Key>(MAP_PLUGIN_NAMES(key));
     inParams << QVariant::fromValue<CryptoManager::SignaturePadding>(padding);
     inParams << QVariant::fromValue<CryptoManager::DigestFunction>(digest);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
-    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    inParams << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(cryptosystemProviderName));
     m_requestQueue->handleRequest(Daemon::ApiImpl::VerifyRequest,
                                   inParams,
                                   connection(),
@@ -364,12 +400,12 @@ void Daemon::ApiImpl::CryptoDBusObject::encrypt(
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
     inParams << QVariant::fromValue<QByteArray>(iv);
-    inParams << QVariant::fromValue<Key>(key);
+    inParams << QVariant::fromValue<Key>(MAP_PLUGIN_NAMES(key));
     inParams << QVariant::fromValue<CryptoManager::BlockMode>(blockMode);
     inParams << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding);
     inParams << QVariant::fromValue<QByteArray>(authenticationData);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
-    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    inParams << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(cryptosystemProviderName));
     m_requestQueue->handleRequest(Daemon::ApiImpl::EncryptRequest,
                                   inParams,
                                   connection(),
@@ -399,13 +435,13 @@ void Daemon::ApiImpl::CryptoDBusObject::decrypt(
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
     inParams << QVariant::fromValue<QByteArray>(iv);
-    inParams << QVariant::fromValue<Key>(key);
+    inParams << QVariant::fromValue<Key>(MAP_PLUGIN_NAMES(key));
     inParams << QVariant::fromValue<CryptoManager::BlockMode>(blockMode);
     inParams << QVariant::fromValue<CryptoManager::EncryptionPadding>(padding);
     inParams << QVariant::fromValue<QByteArray>(authenticationData);
     inParams << QVariant::fromValue<QByteArray>(authenticationTag);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
-    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    inParams << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(cryptosystemProviderName));
     m_requestQueue->handleRequest(Daemon::ApiImpl::DecryptRequest,
                                   inParams,
                                   connection(),
@@ -430,14 +466,14 @@ void Daemon::ApiImpl::CryptoDBusObject::initializeCipherSession(
     Q_UNUSED(cipherSessionToken);  // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(initializationVector);
-    inParams << QVariant::fromValue<Key>(key);
+    inParams << QVariant::fromValue<Key>(MAP_PLUGIN_NAMES(key));
     inParams << QVariant::fromValue<CryptoManager::Operation>(operation);
     inParams << QVariant::fromValue<CryptoManager::BlockMode>(blockMode);
     inParams << QVariant::fromValue<CryptoManager::EncryptionPadding>(encryptionPadding);
     inParams << QVariant::fromValue<CryptoManager::SignaturePadding>(signaturePadding);
     inParams << QVariant::fromValue<CryptoManager::DigestFunction>(digest);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
-    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    inParams << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(cryptosystemProviderName));
     m_requestQueue->handleRequest(Daemon::ApiImpl::InitializeCipherSessionRequest,
                                   inParams,
                                   connection(),
@@ -456,7 +492,7 @@ void Daemon::ApiImpl::CryptoDBusObject::updateCipherSessionAuthentication(
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(authenticationData);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
-    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    inParams << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(cryptosystemProviderName));
     inParams << QVariant::fromValue<quint32>(cipherSessionToken);
     m_requestQueue->handleRequest(Daemon::ApiImpl::UpdateCipherSessionAuthenticationRequest,
                                   inParams,
@@ -478,7 +514,7 @@ void Daemon::ApiImpl::CryptoDBusObject::updateCipherSession(
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
-    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    inParams << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(cryptosystemProviderName));
     inParams << QVariant::fromValue<quint32>(cipherSessionToken);
     m_requestQueue->handleRequest(Daemon::ApiImpl::UpdateCipherSessionRequest,
                                   inParams,
@@ -502,7 +538,7 @@ void Daemon::ApiImpl::CryptoDBusObject::finalizeCipherSession(
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<QByteArray>(data);
     inParams << QVariant::fromValue<QVariantMap>(customParameters);
-    inParams << QVariant::fromValue<QString>(cryptosystemProviderName);
+    inParams << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(cryptosystemProviderName));
     inParams << QVariant::fromValue<quint32>(cipherSessionToken);
     m_requestQueue->handleRequest(Daemon::ApiImpl::FinalizeCipherSessionRequest,
                                   inParams,
@@ -521,7 +557,7 @@ void Daemon::ApiImpl::CryptoDBusObject::queryLockStatus(
     Q_UNUSED(lockStatus); // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
-             << QVariant::fromValue<QString>(lockCodeTarget);
+             << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(lockCodeTarget));
     m_requestQueue->handleRequest(Daemon::ApiImpl::QueryLockStatusRequest,
                                   inParams,
                                   connection(),
@@ -538,8 +574,8 @@ void Daemon::ApiImpl::CryptoDBusObject::modifyLockCode(
 {
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
-             << QVariant::fromValue<QString>(lockCodeTarget)
-             << QVariant::fromValue<InteractionParameters>(interactionParameters);
+             << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(lockCodeTarget))
+             << QVariant::fromValue<InteractionParameters>(MAP_PLUGIN_NAMES(interactionParameters));
     m_requestQueue->handleRequest(Daemon::ApiImpl::ModifyLockCodeRequest,
                                   inParams,
                                   connection(),
@@ -556,8 +592,8 @@ void Daemon::ApiImpl::CryptoDBusObject::provideLockCode(
 {
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
-             << QVariant::fromValue<QString>(lockCodeTarget)
-             << QVariant::fromValue<InteractionParameters>(interactionParameters);
+             << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(lockCodeTarget))
+             << QVariant::fromValue<InteractionParameters>(MAP_PLUGIN_NAMES(interactionParameters));
     m_requestQueue->handleRequest(Daemon::ApiImpl::ProvideLockCodeRequest,
                                   inParams,
                                   connection(),
@@ -574,8 +610,8 @@ void Daemon::ApiImpl::CryptoDBusObject::forgetLockCode(
 {
     QList<QVariant> inParams;
     inParams << QVariant::fromValue<LockCodeRequest::LockCodeTargetType>(lockCodeTargetType)
-             << QVariant::fromValue<QString>(lockCodeTarget)
-             << QVariant::fromValue<InteractionParameters>(interactionParameters);
+             << QVariant::fromValue<QString>(MAP_PLUGIN_NAMES(lockCodeTarget))
+             << QVariant::fromValue<InteractionParameters>(MAP_PLUGIN_NAMES(interactionParameters));
     m_requestQueue->handleRequest(Daemon::ApiImpl::ForgetLockCodeRequest,
                                   inParams,
                                   connection(),

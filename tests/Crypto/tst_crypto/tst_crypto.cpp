@@ -143,7 +143,6 @@ void tst_crypto::getPluginInfo()
         cryptoPluginNames.append(p.name());
     }
     QVERIFY(cryptoPluginNames.size());
-    QVERIFY(cryptoPluginNames.contains(CryptoManager::DefaultCryptoPluginName + QLatin1String(".test")));
 }
 
 void tst_crypto::randomData()

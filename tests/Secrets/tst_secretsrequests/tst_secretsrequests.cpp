@@ -116,28 +116,28 @@ void tst_secretsrequests::getPluginInfo()
     for (auto p : r.storagePlugins()) {
         storagePluginNames.append(p.name());
     }
-    QVERIFY(storagePluginNames.contains(DEFAULT_TEST_STORAGE_PLUGIN));
+    QVERIFY(storagePluginNames.contains(QStringLiteral("org.sailfishos.secrets.plugin.storage.sqlite.test")));
 
     QVERIFY(r.encryptionPlugins().size());
     QStringList encryptionPluginNames;
     for (auto p : r.encryptionPlugins()) {
         encryptionPluginNames.append(p.name());
     }
-    QVERIFY(encryptionPluginNames.contains(DEFAULT_TEST_ENCRYPTION_PLUGIN));
+    QVERIFY(encryptionPluginNames.contains(QStringLiteral("org.sailfishos.secrets.plugin.encryption.openssl.test")));
 
     QVERIFY(r.encryptedStoragePlugins().size());
     QStringList encryptedStoragePluginNames;
     for (auto p : r.encryptedStoragePlugins()) {
         encryptedStoragePluginNames.append(p.name());
     }
-    QVERIFY(encryptedStoragePluginNames.contains(DEFAULT_TEST_ENCRYPTEDSTORAGE_PLUGIN));
+    QVERIFY(encryptedStoragePluginNames.contains(QStringLiteral("org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test")));
 
     QVERIFY(r.authenticationPlugins().size());
     QStringList authenticationPluginNames;
     for (auto p : r.authenticationPlugins()) {
         authenticationPluginNames.append(p.name());
     }
-    QVERIFY(authenticationPluginNames.contains(IN_APP_TEST_AUTHENTICATION_PLUGIN));
+    QVERIFY(authenticationPluginNames.contains(QStringLiteral("org.sailfishos.secrets.plugin.authentication.inapp.test")));
 }
 
 void tst_secretsrequests::devicelockCollection()
@@ -1810,8 +1810,8 @@ void tst_secretsrequests::lockCode()
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
     QCOMPARE(lcr.status(), Request::Finished);
     QCOMPARE(lcr.result().code(), Result::Failed);
-    QCOMPARE(lcr.result().errorMessage(), QStringLiteral("storage plugin %1 does not support locking")
-                                                    .arg(DEFAULT_TEST_STORAGE_PLUGIN));
+    QVERIFY(lcr.result().errorMessage().startsWith(QStringLiteral("storage plugin"))
+         && lcr.result().errorMessage().endsWith(QStringLiteral("does not support locking")));
 
     uiParams.setPromptText(QLatin1String("Provide the lock code for the storage plugin"));
     lcr.setLockCodeRequestType(LockCodeRequest::ProvideLockCode);
@@ -1821,16 +1821,16 @@ void tst_secretsrequests::lockCode()
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
     QCOMPARE(lcr.status(), Request::Finished);
     QCOMPARE(lcr.result().code(), Result::Failed);
-    QCOMPARE(lcr.result().errorMessage(), QStringLiteral("storage plugin %1 does not support locking")
-                                                    .arg(DEFAULT_TEST_STORAGE_PLUGIN));
+    QVERIFY(lcr.result().errorMessage().startsWith(QStringLiteral("storage plugin"))
+         && lcr.result().errorMessage().endsWith(QStringLiteral("does not support locking")));
 
     lcr.setLockCodeRequestType(LockCodeRequest::ForgetLockCode);
     lcr.startRequest();
     WAIT_FOR_FINISHED_WITHOUT_BLOCKING(lcr);
     QCOMPARE(lcr.status(), Request::Finished);
     QCOMPARE(lcr.result().code(), Result::Failed);
-    QCOMPARE(lcr.result().errorMessage(), QStringLiteral("storage plugin %1 does not support locking")
-                                                    .arg(DEFAULT_TEST_STORAGE_PLUGIN));
+    QVERIFY(lcr.result().errorMessage().startsWith(QStringLiteral("storage plugin"))
+         && lcr.result().errorMessage().endsWith(QStringLiteral("does not support locking")));
 }
 
 void tst_secretsrequests::collectionLocks()

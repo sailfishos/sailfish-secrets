@@ -22,6 +22,18 @@
 #include <Secrets/Plugins/extensionplugins.h>
 #include <Secrets/plugininfo.h>
 
+// The environment variables which can be used to specify the name
+// of the default Crypto and Secrets plugins.
+// See Controller::mappedPluginName() for more information.
+#define ENV_PERFORM_PLUGIN_MAPPING "SAILFISH_SECRETSD_PERFORM_PLUGIN_MAPPING"
+#define ENV_DEFAULT_CRYPTO_PLUGIN "SAILFISH_SECRETSD_DEFAULT_CRYPTO_PLUGIN"
+#define ENV_DEFAULT_CRYPTOSTORAGE_PLUGIN "SAILFISH_SECRETSD_DEFAULT_CRYPTOSTORAGE_PLUGIN"
+#define ENV_DEFAULT_STORAGE_PLUGIN "SAILFISH_SECRETSD_DEFAULT_STORAGE_PLUGIN"
+#define ENV_DEFAULT_ENCRYPTION_PLUGIN "SAILFISH_SECRETSD_DEFAULT_ENCRYPTION_PLUGIN"
+#define ENV_DEFAULT_ENCRYPTEDSTORAGE_PLUGIN "SAILFISH_SECRETSD_DEFAULT_ENCRYPTEDSTORAGE_PLUGIN"
+#define ENV_DEFAULT_AUTHENTICATION_PLUGIN "SAILFISH_SECRETSD_DEFAULT_AUTHENTICATION_PLUGIN"
+#define ENV_INAPP_AUTHENTICATION_PLUGIN "SAILFISH_SECRETSD_INAPP_AUTHENTICATION_PLUGIN"
+
 namespace Sailfish {
 
 namespace Crypto {
@@ -54,6 +66,7 @@ public:
 
     Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *secrets() const;
     Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *crypto() const;
+    QString mappedPluginName(const QString &pluginName) const;
     QWeakPointer<QThreadPool> threadPoolForPlugin(const QString &pluginName) const;
     QString displayNameForPlugin(const QString &pluginName) const;
     QMap<QString, Sailfish::Secrets::PluginInfo> pluginInfoForPlugins(

@@ -35,11 +35,11 @@ const QString Secret::TypeCryptoKey = QStringLiteral("CryptoKey"); // Do not cha
 const QString Secret::TypeCryptoCertificate = QStringLiteral("CryptoCertificate");
 const QString Secret::TypeUsernamePassword = QStringLiteral("UsernamePassword");
 
-const QString SecretManager::InAppAuthenticationPluginName = QStringLiteral("org.sailfishos.secrets.plugin.authentication.inapp");
-const QString SecretManager::DefaultAuthenticationPluginName = QStringLiteral("org.sailfishos.secrets.plugin.authentication.passwordagent");
-const QString SecretManager::DefaultStoragePluginName = QStringLiteral("org.sailfishos.secrets.plugin.storage.sqlite");
-const QString SecretManager::DefaultEncryptionPluginName = QStringLiteral("org.sailfishos.secrets.plugin.encryption.openssl");
-const QString SecretManager::DefaultEncryptedStoragePluginName = QStringLiteral("org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher");
+const QString SecretManager::InAppAuthenticationPluginName = QStringLiteral("plugin.authentication.inapp");
+const QString SecretManager::DefaultAuthenticationPluginName = QStringLiteral("plugin.authentication.default");
+const QString SecretManager::DefaultStoragePluginName = QStringLiteral("plugin.storage.default");
+const QString SecretManager::DefaultEncryptionPluginName = QStringLiteral("plugin.encryption.default");
+const QString SecretManager::DefaultEncryptedStoragePluginName = QStringLiteral("plugin.encryptedstorage.default");
 
 /*!
  * \class SecretManagerPrivate

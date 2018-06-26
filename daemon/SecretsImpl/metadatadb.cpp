@@ -6,6 +6,7 @@
  */
 
 #include "metadatadb_p.h"
+#include "controller_p.h"
 
 using namespace Sailfish::Secrets;
 
@@ -74,10 +75,14 @@ static Daemon::Sqlite::UpgradeOperation upgradeVersions[] = {
 static const int currentSchemaVersion = 1;
 
 Daemon::ApiImpl::MetadataDatabase::MetadataDatabase(
+        const QString &defaultEncryptionPluginName,
+        const QString &defaultAuthenticationPluginName,
         const QString &storagePluginName,
         bool pluginIsEncryptedStorage,
         bool autotestMode)
-    : m_storagePluginName(storagePluginName)
+    : m_defaultEncryptionPluginName(defaultEncryptionPluginName)
+    , m_defaultAuthenticationPluginName(defaultAuthenticationPluginName)
+    , m_storagePluginName(storagePluginName)
     , m_pluginIsEncryptedStorage(pluginIsEncryptedStorage)
     , m_autotestMode(autotestMode)
 {
@@ -800,8 +805,8 @@ bool Daemon::ApiImpl::MetadataDatabase::initializeCollectionsFromPluginData(
             defaultMetadata.usesDeviceLockKey = false;
             defaultMetadata.encryptionPluginName = m_pluginIsEncryptedStorage
                                                  ? m_storagePluginName
-                                                 : SecretManager::DefaultEncryptionPluginName;
-            defaultMetadata.authenticationPluginName = SecretManager::DefaultAuthenticationPluginName;
+                                                 : m_defaultEncryptionPluginName;
+            defaultMetadata.authenticationPluginName = m_defaultAuthenticationPluginName;
             defaultMetadata.unlockSemantic = SecretManager::CustomLockKeepUnlocked;
             defaultMetadata.accessControlMode = SecretManager::NoAccessControlMode;
             if (insertCollectionMetadata(defaultMetadata).code() != Result::Succeeded) {
@@ -875,8 +880,8 @@ bool Daemon::ApiImpl::MetadataDatabase::initializeSecretsFromPluginData(
                 defaultMetadata.usesDeviceLockKey = false;
                 defaultMetadata.encryptionPluginName = m_pluginIsEncryptedStorage
                                                      ? m_storagePluginName
-                                                     : SecretManager::DefaultEncryptionPluginName;
-                defaultMetadata.authenticationPluginName = SecretManager::DefaultAuthenticationPluginName;
+                                                     : m_defaultEncryptionPluginName;
+                defaultMetadata.authenticationPluginName = m_defaultAuthenticationPluginName;
                 defaultMetadata.unlockSemantic = SecretManager::CustomLockKeepUnlocked;
                 defaultMetadata.accessControlMode = SecretManager::NoAccessControlMode;
                 if (insertSecretMetadata(defaultMetadata).code() != Result::Succeeded) {

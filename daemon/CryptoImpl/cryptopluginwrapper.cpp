@@ -14,10 +14,15 @@ using namespace Sailfish::Crypto::Daemon::ApiImpl;
 using namespace Sailfish::Secrets::Daemon::Util;
 
 CryptoStoragePluginWrapper::CryptoStoragePluginWrapper(
+        const QString &defaultEncryptionPluginName,
+        const QString &defaultAuthPluginName,
         Sailfish::Crypto::CryptoPlugin *cryptoPlugin,
         Sailfish::Secrets::EncryptedStoragePlugin *plugin,
         bool autotestMode)
-    : Sailfish::Secrets::Daemon::ApiImpl::EncryptedStoragePluginWrapper(plugin, autotestMode)
+    : Sailfish::Secrets::Daemon::ApiImpl::EncryptedStoragePluginWrapper(
+            defaultEncryptionPluginName,
+            defaultAuthPluginName,
+            plugin, autotestMode)
     , m_cryptoPlugin(cryptoPlugin)
 {
 }
