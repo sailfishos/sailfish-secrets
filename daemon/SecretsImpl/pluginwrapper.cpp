@@ -11,10 +11,16 @@
 using namespace Sailfish::Secrets;
 using namespace Sailfish::Secrets::Daemon::ApiImpl;
 
-PluginWrapper::PluginWrapper(Sailfish::Secrets::PluginBase *plugin,
+PluginWrapper::PluginWrapper(const QString &defaultEncryptionPluginName,
+                             const QString &defaultAuthPluginName,
+                             Sailfish::Secrets::PluginBase *plugin,
                              bool pluginIsEncryptedStorage,
                              bool autotestMode)
-    : m_metadataDb(plugin->name(), pluginIsEncryptedStorage, autotestMode)
+    : m_metadataDb(defaultEncryptionPluginName,
+                   defaultAuthPluginName,
+                   plugin->name(),
+                   pluginIsEncryptedStorage,
+                   autotestMode)
     , m_initialized(false)
     , m_plugin(plugin)
 {
@@ -142,9 +148,13 @@ Sailfish::Secrets::PluginInfo::StatusFlags PluginWrapper::status() const
 // ---------------------------------------------------------------------------
 
 StoragePluginWrapper::StoragePluginWrapper(
+        const QString &defaultEncryptionPluginName,
+        const QString &defaultAuthPluginName,
         Sailfish::Secrets::StoragePlugin *plugin,
         bool autotestMode)
-    : PluginWrapper(plugin, false, autotestMode)
+    : PluginWrapper(defaultEncryptionPluginName,
+                    defaultAuthPluginName,
+                    plugin, false, autotestMode)
     , m_storagePlugin(plugin)
 {
 }
@@ -487,8 +497,12 @@ Result StoragePluginWrapper::removeSecret(
 // ---------------------------------------------------------------------------
 
 EncryptedStoragePluginWrapper::EncryptedStoragePluginWrapper(
+        const QString &defaultEncryptionPluginName,
+        const QString &defaultAuthPluginName,
         Sailfish::Secrets::EncryptedStoragePlugin *plugin, bool autotestMode)
-    : PluginWrapper(plugin, true, autotestMode)
+    : PluginWrapper(defaultEncryptionPluginName,
+                    defaultAuthPluginName,
+                    plugin, true, autotestMode)
     , m_encryptedStoragePlugin(plugin)
 {
 }

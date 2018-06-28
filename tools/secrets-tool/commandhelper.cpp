@@ -248,8 +248,11 @@ void CommandHelper::start(const QString &command, const QStringList &args, const
 
         const QString storagePluginName = ccArgs.value(0);
         bool isEncryptedStoragePlugin = false;
-        if (!m_storagePlugins.contains(storagePluginName)) {
-            if (!m_encryptedStoragePlugins.contains(storagePluginName)) {
+        if (storagePluginName != Sailfish::Secrets::SecretManager::DefaultStoragePluginName
+                && !m_storagePlugins.contains(storagePluginName)) {
+            if (storagePluginName != Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName
+                    && storagePluginName != Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName
+                    && !m_encryptedStoragePlugins.contains(storagePluginName)) {
                 qInfo() << "Invalid storage plugin name specified";
                 emitFinished(EXITCODE_FAILED);
                 return;
@@ -268,7 +271,9 @@ void CommandHelper::start(const QString &command, const QStringList &args, const
                        + (m_autotestMode ? QStringLiteral(".test") : QString()));
 
         if ((isEncryptedStoragePlugin && encryptionPluginName != storagePluginName)
-                || (!isEncryptedStoragePlugin && !m_encryptionPlugins.contains(encryptionPluginName))) {
+                || (!isEncryptedStoragePlugin
+                    && encryptionPluginName != Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName
+                    && !m_encryptionPlugins.contains(encryptionPluginName))) {
             qInfo() << "Invalid encryption plugin specified";
             emitFinished(EXITCODE_FAILED);
             return;
@@ -335,8 +340,11 @@ void CommandHelper::start(const QString &command, const QStringList &args, const
 
         const QString storagePluginName = ccArgs.value(0);
         bool isEncryptedStoragePlugin = false;
-        if (!m_storagePlugins.contains(storagePluginName)) {
-            if (!m_encryptedStoragePlugins.contains(storagePluginName)) {
+        if (storagePluginName != Sailfish::Secrets::SecretManager::DefaultStoragePluginName
+                && !m_storagePlugins.contains(storagePluginName)) {
+            if (storagePluginName != Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName
+                    && storagePluginName != Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName
+                    && !m_encryptedStoragePlugins.contains(storagePluginName)) {
                 qInfo() << "Invalid storage plugin name specified";
                 emitFinished(EXITCODE_FAILED);
                 return;
@@ -347,7 +355,9 @@ void CommandHelper::start(const QString &command, const QStringList &args, const
 
         const QString encryptionPluginName = ccArgs.value(1);
         if ((isEncryptedStoragePlugin && encryptionPluginName != storagePluginName)
-                || (!isEncryptedStoragePlugin && !m_encryptionPlugins.contains(encryptionPluginName))) {
+                || (!isEncryptedStoragePlugin
+                    && encryptionPluginName != Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName
+                    && !m_encryptionPlugins.contains(encryptionPluginName))) {
             qInfo() << "Invalid encryption plugin specified";
             emitFinished(EXITCODE_FAILED);
             return;

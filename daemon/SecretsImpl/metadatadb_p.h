@@ -27,6 +27,8 @@ namespace Secrets {
 
 namespace Daemon {
 
+class Controller;
+
 namespace ApiImpl {
 
 class CollectionMetadata
@@ -59,7 +61,9 @@ public:
 class MetadataDatabase
 {
 public:
-    MetadataDatabase(const QString &storagePluginName,
+    MetadataDatabase(const QString &defaultEncryptionPluginName,
+                     const QString &defaultAuthenticationPluginName,
+                     const QString &storagePluginName,
                      bool pluginIsEncryptedStorage,
                      bool autotestMode);
     ~MetadataDatabase();
@@ -142,7 +146,10 @@ public:
             const QStringList &lockedCollectionNames);
 
 private:
+    Sailfish::Secrets::Daemon::Controller *m_controller;
     Sailfish::Secrets::Daemon::Sqlite::Database m_db;
+    QString m_defaultEncryptionPluginName;
+    QString m_defaultAuthenticationPluginName;
     QString m_storagePluginName;
     bool m_pluginIsEncryptedStorage;
     bool m_autotestMode;

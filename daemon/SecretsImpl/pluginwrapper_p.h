@@ -33,7 +33,11 @@ namespace ApiImpl {
 class PluginWrapper : public Sailfish::Secrets::PluginBase
 {
 public:
-    PluginWrapper(Sailfish::Secrets::PluginBase *plugin, bool pluginIsEncryptedStorage, bool autotestMode);
+    PluginWrapper(const QString &defaultEncryptionPluginName,
+                  const QString &defaultAuthPluginName,
+                  Sailfish::Secrets::PluginBase *plugin,
+                  bool pluginIsEncryptedStorage,
+                  bool autotestMode);
     virtual ~PluginWrapper();
 
     bool isInitialized() const;
@@ -74,7 +78,10 @@ private:
 class StoragePluginWrapper : public PluginWrapper
 {
 public:
-    StoragePluginWrapper(Sailfish::Secrets::StoragePlugin *plugin, bool autotestMode);
+    StoragePluginWrapper(const QString &defaultEncryptionPluginName,
+                         const QString &defaultAuthPluginName,
+                         Sailfish::Secrets::StoragePlugin *plugin,
+                         bool autotestMode);
     ~StoragePluginWrapper();
 
     bool initialize(const QByteArray &masterLockKey = QByteArray()) Q_DECL_OVERRIDE;
@@ -106,7 +113,10 @@ private:
 class EncryptedStoragePluginWrapper : public PluginWrapper
 {
 public:
-    EncryptedStoragePluginWrapper(Sailfish::Secrets::EncryptedStoragePlugin *plugin, bool autotestMode);
+    EncryptedStoragePluginWrapper(const QString &defaultEncryptionPluginName,
+                                  const QString &defaultAuthPluginName,
+                                  Sailfish::Secrets::EncryptedStoragePlugin *plugin,
+                                  bool autotestMode);
     ~EncryptedStoragePluginWrapper();
 
     bool initialize(const QByteArray &masterLockKey = QByteArray()) Q_DECL_OVERRIDE;

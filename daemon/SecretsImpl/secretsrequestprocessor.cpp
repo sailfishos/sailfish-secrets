@@ -43,20 +43,41 @@ namespace {
                     QCryptographicHash::Sha512).toBase64());
     }
 
-    QString determineAuthPlugin(const QString &ownerApplicationId,
+    QString determineAuthPlugin(Sailfish::Secrets::Daemon::Controller *controller,
+                                const QString &ownerApplicationId,
                                 const QString &callerApplicationId,
                                 bool callerIsPlatformApplication,
                                 const QString &authPluginName,
                                 const QString &interactionServiceAddress,
                                 bool autotestMode) {
-        const QString defaultPluginName = autotestMode
-                ? Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName + QStringLiteral(".test")
+        static const QString testSuffix(QStringLiteral(".test"));
+        static const QString defaultPluginName = autotestMode
+                ? Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName + testSuffix
                 : Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName;
+        static const QString inappPluginName = autotestMode
+                ? Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName + testSuffix
+                : Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName;
+        const QString mappedPluginName = controller->mappedPluginName(defaultPluginName);
+        const QString mappedInAppPluginName = controller->mappedPluginName(inappPluginName);
         if (authPluginName == Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName
-                && (interactionServiceAddress.isEmpty()
-                    || (ownerApplicationId != callerApplicationId && !callerIsPlatformApplication))) {
-            return defaultPluginName;
+                || authPluginName == (Sailfish::Secrets::SecretManager::InAppAuthenticationPluginName + testSuffix)
+                || authPluginName == mappedInAppPluginName) {
+            if (interactionServiceAddress.isEmpty()
+                    || (ownerApplicationId != callerApplicationId && !callerIsPlatformApplication)) {
+                // cannot use in-app authentication.
+                // not permitted or no in-process interaction service address given.
+                // use the system default authentication plugin instead.
+                return mappedPluginName;
+            }
+            // can use in-app authentication.
+            return mappedInAppPluginName;
+        } else if (authPluginName == Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName
+                || authPluginName == (Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName + testSuffix)
+                || authPluginName == mappedPluginName) {
+            // use the system default authentication plugin.
+            return mappedPluginName;
         }
+        // use whichever authentication plugin the client has specified.
         return authPluginName;
     }
 }
@@ -90,10 +111,18 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(
 
     // construct the appropriate wrappers for storage plugins.
     // these wrappers ensure metadata is updated transactionally with plugin-stored data.
+    const QString mappedEncryptionPluginName = m_requestQueue->controller()->mappedPluginName(
+            autotestMode ? (Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName + QLatin1String(".test"))
+                         : Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName);
+    const QString mappedAuthenticationPluginName = m_requestQueue->controller()->mappedPluginName(
+            autotestMode ? (Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                         : Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName);
     for (const QString &spn : storagePlugins.keys()) {
         m_storagePlugins.insert(
                     spn,
                     new StoragePluginWrapper(
+                        mappedEncryptionPluginName,
+                        mappedAuthenticationPluginName,
                         storagePlugins.value(spn),
                         autotestMode));
     }
@@ -102,6 +131,8 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(
         m_cryptoStoragePlugins.insert(
                     cspn,
                     new Sailfish::Crypto::Daemon::ApiImpl::CryptoStoragePluginWrapper(
+                        mappedEncryptionPluginName,
+                        mappedAuthenticationPluginName,
                         qobject_cast<Sailfish::Crypto::CryptoPlugin*>(m_potentialCryptoStoragePlugins.value(cspn)),
                         encryptedStoragePlugins.value(cspn),
                         autotestMode));
@@ -114,6 +145,8 @@ Daemon::ApiImpl::RequestProcessor::RequestProcessor(
             m_encryptedStoragePlugins.insert(
                         espn,
                         new EncryptedStoragePluginWrapper(
+                            mappedEncryptionPluginName,
+                            mappedAuthenticationPluginName,
                             encryptedStoragePlugins.value(espn),
                             autotestMode));
         }
@@ -277,9 +310,9 @@ Daemon::ApiImpl::RequestProcessor::createDeviceLockCollection(
     metadata.ownerApplicationId = callerApplicationId;
     metadata.usesDeviceLockKey = true;
     metadata.encryptionPluginName = encryptionPluginName;
-    metadata.authenticationPluginName = m_autotestMode
-            ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
-            : SecretManager::DefaultAuthenticationPluginName;
+    metadata.authenticationPluginName = m_requestQueue->controller()->mappedPluginName(
+            m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                           : SecretManager::DefaultAuthenticationPluginName);
     metadata.unlockSemantic = static_cast<int>(unlockSemantic);
     metadata.accessControlMode = accessControlMode;
 
@@ -665,6 +698,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionWithMetadata(
 
     if (locked) {
         const QString authPluginName = determineAuthPlugin(
+                    m_requestQueue->controller(),
                     collectionMetadata.ownerApplicationId,
                     callerApplicationId,
                     applicationIsPlatformApplication,
@@ -691,9 +725,9 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionWithMetadata(
             }
 
             // always use the system authentication plugin for device lock authentication requests.
-            const QString systemAuthenticationPlugin = m_autotestMode
-                    ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
-                    : SecretManager::DefaultAuthenticationPluginName;
+            const QString systemAuthenticationPlugin = m_requestQueue->controller()->mappedPluginName(
+                    m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                                   : SecretManager::DefaultAuthenticationPluginName);
             Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
                         callerPid,
                         requestId,
@@ -1011,6 +1045,7 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithMetadata(
 
     if (locked) {
         const QString authPluginName = determineAuthPlugin(
+                    m_requestQueue->controller(),
                     collectionMetadata.ownerApplicationId,
                     callerApplicationId,
                     applicationIsPlatformApplication,
@@ -1037,9 +1072,9 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithMetadata(
             }
 
             // always use the system authentication plugin for device lock authentication requests.
-            const QString systemAuthenticationPlugin = m_autotestMode
-                    ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
-                    : SecretManager::DefaultAuthenticationPluginName;
+            const QString systemAuthenticationPlugin = m_requestQueue->controller()->mappedPluginName(
+                    m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                                   : SecretManager::DefaultAuthenticationPluginName);
             Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
                         callerPid,
                         requestId,
@@ -1239,11 +1274,11 @@ Daemon::ApiImpl::RequestProcessor::userInput(
     QString userInputPlugin = uiParams.authenticationPluginName();
     if (uiParams.authenticationPluginName().isEmpty()) {
         // TODO: depending on type, choose the appropriate authentication plugin
-        userInputPlugin = SecretManager::DefaultAuthenticationPluginName;
-        if (m_autotestMode) {
-            userInputPlugin.append(QLatin1String(".test"));
-        }
+        userInputPlugin = m_autotestMode
+                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                        : SecretManager::DefaultAuthenticationPluginName;
     }
+    userInputPlugin = m_requestQueue->controller()->mappedPluginName(userInputPlugin);
     if (!m_authenticationPlugins.contains(userInputPlugin)) {
         return Result(Result::InvalidExtensionPluginError,
                       QString::fromLatin1("Cannot get user input from invalid authentication plugin: %1")
@@ -1398,11 +1433,11 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithMetadata(
     QString userInputPlugin = uiParams.authenticationPluginName();
     if (uiParams.authenticationPluginName().isEmpty()) {
         // TODO: depending on type, choose the appropriate authentication plugin
-        userInputPlugin = SecretManager::DefaultAuthenticationPluginName;
-        if (m_autotestMode) {
-            userInputPlugin.append(QLatin1String(".test"));
-        }
+        userInputPlugin = m_autotestMode
+                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                        : SecretManager::DefaultAuthenticationPluginName;
     }
+    userInputPlugin = m_requestQueue->controller()->mappedPluginName(userInputPlugin);
     if (!m_authenticationPlugins.contains(userInputPlugin)) {
         return Result(Result::InvalidExtensionPluginError,
                       QString::fromLatin1("Cannot get user input from invalid authentication plugin: %1")
@@ -1463,6 +1498,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
                 : m_appPermissions->applicationId(callerPid);
 
     const QString authPluginName = determineAuthPlugin(
+                m_requestQueue->controller(),
                 collectionMetadata.ownerApplicationId,
                 callerApplicationId,
                 applicationIsPlatformApplication,
@@ -1519,9 +1555,9 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
             }
 
             // always use the system authentication plugin for device lock authentication requests.
-            const QString systemAuthenticationPlugin = m_autotestMode
-                    ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
-                    : SecretManager::DefaultAuthenticationPluginName;
+            const QString systemAuthenticationPlugin = m_requestQueue->controller()->mappedPluginName(
+                    m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                                   : SecretManager::DefaultAuthenticationPluginName);
             Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
                         callerPid,
                         requestId,
@@ -1607,9 +1643,9 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretGetAuthenticationCode(
         }
 
         // always use the system authentication plugin for device lock authentication requests.
-        const QString systemAuthenticationPlugin = m_autotestMode
-                ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
-                : SecretManager::DefaultAuthenticationPluginName;
+        const QString systemAuthenticationPlugin = m_requestQueue->controller()->mappedPluginName(
+                m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                               : SecretManager::DefaultAuthenticationPluginName);
         Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
                     callerPid,
                     requestId,
@@ -1869,9 +1905,9 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSecret(
     secretMetadata.ownerApplicationId = callerApplicationId;
     secretMetadata.usesDeviceLockKey = true;
     secretMetadata.encryptionPluginName = encryptionPluginName;
-    secretMetadata.authenticationPluginName = m_autotestMode
-            ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
-            : SecretManager::DefaultAuthenticationPluginName;
+    secretMetadata.authenticationPluginName = m_requestQueue->controller()->mappedPluginName(
+            m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                           : SecretManager::DefaultAuthenticationPluginName);
     secretMetadata.unlockSemantic = unlockSemantic;
     secretMetadata.accessControlMode = accessControlMode;
     secretMetadata.secretType = secret.type();
@@ -1955,11 +1991,11 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSecretWithMetadata(
     QString userInputPlugin = uiParams.authenticationPluginName();
     if (uiParams.authenticationPluginName().isEmpty()) {
         // TODO: depending on type, choose the appropriate authentication plugin
-        userInputPlugin = SecretManager::DefaultAuthenticationPluginName;
-        if (m_autotestMode) {
-            userInputPlugin.append(QLatin1String(".test"));
-        }
+        userInputPlugin = m_autotestMode
+                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                        : SecretManager::DefaultAuthenticationPluginName;
     }
+    userInputPlugin = m_requestQueue->controller()->mappedPluginName(userInputPlugin);
     if (!m_authenticationPlugins.contains(userInputPlugin)) {
         return Result(Result::InvalidExtensionPluginError,
                       QString::fromLatin1("Cannot get user input from invalid authentication plugin: %1")
@@ -2187,11 +2223,11 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretWithMetadata(
     QString userInputPlugin = uiParams.authenticationPluginName();
     if (uiParams.authenticationPluginName().isEmpty()) {
         // TODO: depending on type, choose the appropriate authentication plugin
-        userInputPlugin = SecretManager::DefaultAuthenticationPluginName;
-        if (m_autotestMode) {
-            userInputPlugin.append(QLatin1String(".test"));
-        }
+        userInputPlugin = m_autotestMode
+                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                        : SecretManager::DefaultAuthenticationPluginName;
     }
+    userInputPlugin = m_requestQueue->controller()->mappedPluginName(userInputPlugin);
     if (!m_authenticationPlugins.contains(userInputPlugin)) {
         return Result(Result::InvalidExtensionPluginError,
                       QString::fromLatin1("Cannot get user input from invalid authentication plugin: %1")
@@ -2476,6 +2512,7 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
                 : m_appPermissions->applicationId(callerPid);
 
     const QString authPluginName = determineAuthPlugin(
+                m_requestQueue->controller(),
                 collectionMetadata.ownerApplicationId,
                 callerApplicationId,
                 applicationIsPlatformApplication,
@@ -2534,9 +2571,9 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
                 }
 
                 // always use the system authentication plugin for device lock authentication requests.
-                const QString systemAuthenticationPlugin = m_autotestMode
-                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
-                        : SecretManager::DefaultAuthenticationPluginName;
+                const QString systemAuthenticationPlugin = m_requestQueue->controller()->mappedPluginName(
+                        m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                                       : SecretManager::DefaultAuthenticationPluginName);
                 Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
                             callerPid,
                             requestId,
@@ -2628,9 +2665,9 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
                 }
 
                 // always use the system authentication plugin for device lock authentication requests.
-                const QString systemAuthenticationPlugin = m_autotestMode
-                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
-                        : SecretManager::DefaultAuthenticationPluginName;
+                const QString systemAuthenticationPlugin = m_requestQueue->controller()->mappedPluginName(
+                    m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                                   : SecretManager::DefaultAuthenticationPluginName);
                 Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
                             callerPid,
                             requestId,
@@ -2922,6 +2959,7 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithMetadata(
                 : m_appPermissions->applicationId(callerPid);
 
     const QString authPluginName = determineAuthPlugin(
+                m_requestQueue->controller(),
                 secretMetadata.ownerApplicationId,
                 callerApplicationId,
                 applicationIsPlatformApplication,
@@ -2967,9 +3005,9 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithMetadata(
         }
 
         // always use the system authentication plugin for device lock authentication requests.
-        const QString systemAuthenticationPlugin = m_autotestMode
-                ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
-                : SecretManager::DefaultAuthenticationPluginName;
+        const QString systemAuthenticationPlugin = m_requestQueue->controller()->mappedPluginName(
+                m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                               : SecretManager::DefaultAuthenticationPluginName);
         Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
                     callerPid,
                     requestId,
@@ -3261,6 +3299,7 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
                 : m_appPermissions->applicationId(callerPid);
 
     const QString authPluginName = determineAuthPlugin(
+                m_requestQueue->controller(),
                 collectionMetadata.ownerApplicationId,
                 callerApplicationId,
                 applicationIsPlatformApplication,
@@ -3322,9 +3361,9 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
                 }
 
                 // always use the system authentication plugin for device lock authentication requests.
-                const QString systemAuthenticationPlugin = m_autotestMode
-                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
-                        : SecretManager::DefaultAuthenticationPluginName;
+                const QString systemAuthenticationPlugin = m_requestQueue->controller()->mappedPluginName(
+                        m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                                       : SecretManager::DefaultAuthenticationPluginName);
                 Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
                             callerPid,
                             requestId,
@@ -3426,9 +3465,9 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
                 }
 
                 // always use the system authentication plugin for device lock authentication requests.
-                const QString systemAuthenticationPlugin = m_autotestMode
-                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
-                        : SecretManager::DefaultAuthenticationPluginName;
+                const QString systemAuthenticationPlugin = m_requestQueue->controller()->mappedPluginName(
+                        m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                                       : SecretManager::DefaultAuthenticationPluginName);
                 Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
                             callerPid,
                             requestId,
@@ -3756,6 +3795,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
                 : m_appPermissions->applicationId(callerPid);
 
     const QString authPluginName = determineAuthPlugin(
+                m_requestQueue->controller(),
                 collectionMetadata.ownerApplicationId,
                 callerApplicationId,
                 applicationIsPlatformApplication,
@@ -3820,9 +3860,9 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
                 }
 
                 // always use the system authentication plugin for device lock authentication requests.
-                const QString systemAuthenticationPlugin = m_autotestMode
-                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
-                        : SecretManager::DefaultAuthenticationPluginName;
+                const QString systemAuthenticationPlugin = m_requestQueue->controller()->mappedPluginName(
+                        m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                                       : SecretManager::DefaultAuthenticationPluginName);
                 Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
                             callerPid,
                             requestId,
@@ -3905,9 +3945,9 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
                 }
 
                 // always use the system authentication plugin for device lock authentication requests.
-                const QString systemAuthenticationPlugin = m_autotestMode
-                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
-                        : SecretManager::DefaultAuthenticationPluginName;
+                const QString systemAuthenticationPlugin = m_requestQueue->controller()->mappedPluginName(
+                        m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                                       : SecretManager::DefaultAuthenticationPluginName);
                 Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
                             callerPid,
                             requestId,
@@ -4318,11 +4358,11 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCode(
     QString userInputPlugin = interactionParams.authenticationPluginName();
     if (interactionParams.authenticationPluginName().isEmpty()) {
         // TODO: depending on type, choose the appropriate authentication plugin
-        userInputPlugin = SecretManager::DefaultAuthenticationPluginName;
-        if (m_autotestMode) {
-            userInputPlugin.append(QLatin1String(".test"));
-        }
+        userInputPlugin = m_autotestMode
+                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                        : SecretManager::DefaultAuthenticationPluginName;
     }
+    userInputPlugin = m_requestQueue->controller()->mappedPluginName(userInputPlugin);
     if (!m_authenticationPlugins.contains(userInputPlugin)) {
         return Result(Result::InvalidExtensionPluginError,
                       QString::fromLatin1("Cannot get user input from invalid authentication plugin: %1")
@@ -4331,6 +4371,7 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCode(
 
     InteractionParameters modifyLockRequest(interactionParams);
     modifyLockRequest.setApplicationId(callerApplicationId);
+    modifyLockRequest.setAuthenticationPluginName(userInputPlugin);
 
     if (lockCodeTargetType == LockCodeRequest::ExtensionPlugin) {
         modifyLockRequest.setOperation(InteractionParameters::ModifyLockPlugin);
@@ -4396,11 +4437,11 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCode(
     QString userInputPlugin = interactionParams.authenticationPluginName();
     if (interactionParams.authenticationPluginName().isEmpty()) {
         // TODO: depending on type, choose the appropriate authentication plugin
-        userInputPlugin = SecretManager::DefaultAuthenticationPluginName;
-        if (m_autotestMode) {
-            userInputPlugin.append(QLatin1String(".test"));
-        }
+        userInputPlugin = m_autotestMode
+                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                        : SecretManager::DefaultAuthenticationPluginName;
     }
+    userInputPlugin = m_requestQueue->controller()->mappedPluginName(userInputPlugin);
     if (!m_authenticationPlugins.contains(userInputPlugin)) {
         return Result(Result::InvalidExtensionPluginError,
                       QString::fromLatin1("Cannot get user input from invalid authentication plugin: %1")
@@ -4408,6 +4449,7 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCode(
     }
 
     InteractionParameters modifyLockRequest(interactionParams);
+    modifyLockRequest.setAuthenticationPluginName(userInputPlugin);
     if (lockCodeTargetType == LockCodeRequest::ExtensionPlugin) {
         modifyLockRequest.setOperation(InteractionParameters::ModifyLockPlugin);
         modifyLockRequest.setPromptText({
@@ -4663,11 +4705,11 @@ Daemon::ApiImpl::RequestProcessor::provideLockCode(
     QString userInputPlugin = interactionParams.authenticationPluginName();
     if (interactionParams.authenticationPluginName().isEmpty()) {
         // TODO: depending on type, choose the appropriate authentication plugin
-        userInputPlugin = SecretManager::DefaultAuthenticationPluginName;
-        if (m_autotestMode) {
-            userInputPlugin.append(QLatin1String(".test"));
-        }
+        userInputPlugin = m_autotestMode
+                        ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                        : SecretManager::DefaultAuthenticationPluginName;
     }
+    userInputPlugin = m_requestQueue->controller()->mappedPluginName(userInputPlugin);
     if (!m_authenticationPlugins.contains(userInputPlugin)) {
         return Result(Result::InvalidExtensionPluginError,
                       QString::fromLatin1("Cannot get user input from invalid authentication plugin: %1")
@@ -4676,6 +4718,7 @@ Daemon::ApiImpl::RequestProcessor::provideLockCode(
 
     InteractionParameters unlockRequest(interactionParams);
     unlockRequest.setApplicationId(callerApplicationId);
+    unlockRequest.setAuthenticationPluginName(userInputPlugin);
 
     if (lockCodeTargetType == LockCodeRequest::ExtensionPlugin) {
         unlockRequest.setOperation(InteractionParameters::UnlockPlugin);
@@ -4981,6 +5024,7 @@ Daemon::ApiImpl::RequestProcessor::useCollectionKeyPreCheckWithMetadata(
                 : m_appPermissions->applicationId(callerPid);
 
     const QString authPluginName = determineAuthPlugin(
+                m_requestQueue->controller(),
                 collectionMetadata.ownerApplicationId,
                 callerApplicationId,
                 applicationIsPlatformApplication,
@@ -5084,9 +5128,9 @@ Daemon::ApiImpl::RequestProcessor::useCollectionKeyPreCheckWithMetadata(
             }
 
             // always use the system authentication plugin for device lock authentication requests.
-            const QString systemAuthenticationPlugin = m_autotestMode
-                    ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
-                    : SecretManager::DefaultAuthenticationPluginName;
+            const QString systemAuthenticationPlugin = m_requestQueue->controller()->mappedPluginName(
+                    m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                                   : SecretManager::DefaultAuthenticationPluginName);
             Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
                         callerPid,
                         requestId,
@@ -5170,9 +5214,9 @@ Daemon::ApiImpl::RequestProcessor::useCollectionKeyPreCheckWithMetadata(
         }
 
         // always use the system authentication plugin for device lock authentication requests.
-        const QString systemAuthenticationPlugin = m_autotestMode
-                ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
-                : SecretManager::DefaultAuthenticationPluginName;
+        const QString systemAuthenticationPlugin = m_requestQueue->controller()->mappedPluginName(
+                m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                               : SecretManager::DefaultAuthenticationPluginName);
         Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
                     callerPid,
                     requestId,
@@ -5438,6 +5482,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
                 : m_appPermissions->applicationId(callerPid);
 
     const QString authPluginName = determineAuthPlugin(
+                m_requestQueue->controller(),
                 collectionMetadata.ownerApplicationId,
                 callerApplicationId,
                 applicationIsPlatformApplication,
@@ -5503,9 +5548,9 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
             }
 
             // always use the system authentication plugin for device lock authentication requests.
-            const QString systemAuthenticationPlugin = m_autotestMode
-                    ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
-                    : SecretManager::DefaultAuthenticationPluginName;
+            const QString systemAuthenticationPlugin = m_requestQueue->controller()->mappedPluginName(
+                    m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                                   : SecretManager::DefaultAuthenticationPluginName);
             Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
                         callerPid,
                         requestId,
@@ -5586,9 +5631,9 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
         }
 
         // always use the system authentication plugin for device lock authentication requests.
-        const QString systemAuthenticationPlugin = m_autotestMode
-                ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
-                : SecretManager::DefaultAuthenticationPluginName;
+        const QString systemAuthenticationPlugin = m_requestQueue->controller()->mappedPluginName(
+                m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                               : SecretManager::DefaultAuthenticationPluginName);
         Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
                     callerPid,
                     requestId,

@@ -154,8 +154,6 @@ void tst_cryptosecrets::getPluginInfo()
         cryptoPluginNames.append(p.name());
     }
     QVERIFY(cryptoPluginNames.size());
-    QVERIFY(cryptoPluginNames.contains(Sailfish::Crypto::CryptoManager::DefaultCryptoPluginName + QLatin1String(".test")));
-    QVERIFY(cryptoPluginNames.contains(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName + QLatin1String(".test")));
 
     QVector<Sailfish::Crypto::PluginInfo> storagePlugins = reply.argumentAt<2>();
     QStringList storagePluginNames;
@@ -163,7 +161,6 @@ void tst_cryptosecrets::getPluginInfo()
         storagePluginNames.append(p.name());
     }
     QVERIFY(storagePluginNames.size());
-    QVERIFY(storagePluginNames.contains(Sailfish::Secrets::SecretManager::DefaultStoragePluginName + QLatin1String(".test")));
 }
 
 void tst_cryptosecrets::secretsStoredKey_data()
