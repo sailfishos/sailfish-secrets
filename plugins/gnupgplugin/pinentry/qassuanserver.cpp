@@ -266,6 +266,7 @@ static gpg_error_t register_commands(assuan_context_t ctx)
 QAssuanServer::QAssuanServer(QObject *parent)
     : QThread(parent)
     , secretManager()
+    , m_useCache(new MGConfItem("/desktop/sailfish/secrets/storeGnuPGPassphrases", this))
     , m_connected(false)
     , m_request_stop(false)
 {
@@ -355,7 +356,8 @@ Sailfish::Secrets::Result QAssuanServer::requestPassphrase(QByteArray *passphras
 {
     passphrase->clear();
 
-    if (cacheId.isValid()) {
+    bool useCache = m_useCache->value(QVariant(true)).toBool();
+    if (useCache && cacheId.isValid()) {
         Sailfish::Secrets::StoredSecretRequest request;
         qCDebug(lcSailfishPinentry) << "Starting cache request for" << cacheId.name();
         request.setManager(&secretManager);
@@ -364,6 +366,7 @@ Sailfish::Secrets::Result QAssuanServer::requestPassphrase(QByteArray *passphras
         request.startRequest();
         request.waitForFinished();
         qCDebug(lcSailfishPinentry) << "-> return code" << request.result().code();
+        qCDebug(lcSailfishPinentry) << request.result().errorMessage();
         if (request.result().code() == Sailfish::Secrets::Result::Succeeded) {
             qCDebug(lcSailfishPinentry) << "found cached secret";
             *passphrase = request.secret().data();
@@ -386,7 +389,7 @@ Sailfish::Secrets::Result QAssuanServer::requestPassphrase(QByteArray *passphras
     qCDebug(lcSailfishPinentry) << "-> return code" << request.result().code();
     if (request.result().code() == Sailfish::Secrets::Result::Succeeded) {
         *passphrase = request.userInput();
-        if (cacheId.isValid() && ensureCacheCollection()) {
+        if (useCache && cacheId.isValid() && ensureCacheCollection()) {
             Sailfish::Secrets::StoreSecretRequest store;
             // store.setInteractionParameters(uiParams);
 
