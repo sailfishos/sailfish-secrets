@@ -33,6 +33,8 @@ void Sailfish::Crypto::Plugin::CryptoPlugin::registerTypes(const char *uri)
     qmlRegisterType<Sailfish::Crypto::GenerateRandomDataRequest>(uri, 1, 0, "GenerateRandomDataRequest");
     qmlRegisterType<Sailfish::Crypto::GenerateKeyRequest>(uri, 1, 0, "GenerateKeyRequest");
     qmlRegisterType<Sailfish::Crypto::GenerateStoredKeyRequest>(uri, 1, 0, "GenerateStoredKeyRequest");
+    qmlRegisterType<Sailfish::Crypto::ImportKeyRequest>(uri, 1, 0, "ImportKeyRequest");
+    qmlRegisterType<Sailfish::Crypto::ImportStoredKeyRequest>(uri, 1, 0, "ImportStoredKeyRequest");
     qmlRegisterType<Sailfish::Crypto::StoredKeyRequest>(uri, 1, 0, "StoredKeyRequest");
     qmlRegisterType<Sailfish::Crypto::Plugin::StoredKeyIdentifiersRequestWrapper>(uri, 1, 0, "StoredKeyIdentifiersRequest");
     qmlRegisterType<Sailfish::Crypto::DeleteStoredKeyRequest>(uri, 1, 0, "DeleteStoredKeyRequest");
@@ -72,6 +74,11 @@ Sailfish::Crypto::Result Sailfish::Crypto::Plugin::CryptoManager::constructResul
 Sailfish::Crypto::Key Sailfish::Crypto::Plugin::CryptoManager::constructKey() const
 {
     return Sailfish::Crypto::Key();
+}
+
+Sailfish::Crypto::Key Sailfish::Crypto::Plugin::CryptoManager::constructKey(const QString &name, const QString &collectionName, const QString &storagePluginName) const
+{
+    return Sailfish::Crypto::Key(name, collectionName, storagePluginName);
 }
 
 QVariant Sailfish::Crypto::Plugin::CryptoManager::constructRsaKeygenParams() const

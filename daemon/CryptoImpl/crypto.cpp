@@ -912,7 +912,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             break;
         }
         case ImportKeyRequest: {
-            qCDebug(lcSailfishCryptoDaemon) << "Handling GenerateKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            qCDebug(lcSailfishCryptoDaemon) << "Handling ImportKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             Key importedKey;
             QByteArray data = request->inParams.size()
                     ? request->inParams.takeFirst().value<QByteArray>()
@@ -947,7 +947,7 @@ void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
             break;
         }
         case ImportStoredKeyRequest: {
-            qCDebug(lcSailfishCryptoDaemon) << "Handling GenerateStoredKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+            qCDebug(lcSailfishCryptoDaemon) << "Handling ImportStoredKeyRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             Key importedKey;
             QByteArray data = request->inParams.size()
                     ? request->inParams.takeFirst().value<QByteArray>()
