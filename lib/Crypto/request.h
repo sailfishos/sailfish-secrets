@@ -24,7 +24,7 @@ class SAILFISH_CRYPTO_API Request : public QObject
     Q_OBJECT
     Q_PROPERTY(Sailfish::Crypto::CryptoManager* manager READ manager WRITE setManager NOTIFY managerChanged)
     Q_PROPERTY(QVariantMap customParameters READ customParameters WRITE setCustomParameters NOTIFY customParametersChanged)
-    Q_PROPERTY(Request::Status status READ status NOTIFY statusChanged)
+    Q_PROPERTY(Sailfish::Crypto::Request::Status status READ status NOTIFY statusChanged)
     Q_PROPERTY(Sailfish::Crypto::Result result READ result NOTIFY resultChanged)
 
 public:
