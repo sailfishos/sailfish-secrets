@@ -92,6 +92,10 @@ private:
     QHash<QString, PolkitResponse *> m_polkitResponses;
 
     inline void destroyAgent(Agent *agent);
+    void startDeviceLockAuthentication(
+            uint callerPid,
+            qint64 requestId,
+            const Sailfish::Secrets::InteractionParameters::PromptText &promptText);
 };
 
 } // namespace Plugins

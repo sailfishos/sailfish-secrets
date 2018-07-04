@@ -45,10 +45,12 @@ Summary:    Unit tests for the Sailfish OS Secrets Library
 Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5QuickTest)
 BuildRequires:  pkgconfig(libcrypto)
-Requires: qt5-qtdeclarative-import-qttest
-Requires: qt5-qtdeclarative-devel-tools
-Requires: openssl
+BuildRequires:  pkgconfig(nemodevicelock)
+Requires:   qt5-qtdeclarative-import-qttest
+Requires:   qt5-qtdeclarative-devel-tools
 Requires:   libsailfishsecrets = %{version}-%{release}
+Requires:   openssl
+Requires:   nemo-qml-plugin-devicelock
 
 %description -n libsailfishsecrets-tests
 %{summary}.
@@ -207,10 +209,12 @@ Summary:    Sailfish OS secrets plugins that are mandatory for all platforms
 Group:      Applications/System
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
+BuildRequires:  pkgconfig(nemodevicelock)
 Requires:  qt5-plugin-sqldriver-sqlite
 Requires:  qt5-plugin-sqldriver-sqlcipher
 Requires:  libsailfishsecretspluginapi = %{version}-%{release}
 Requires:  %{secretsdaemon} = %{version}-%{release}
+Requires:  nemo-qml-plugin-devicelock
 
 %description -n %{secretsdaemon}-secretsplugin-common
 %{summary}.

@@ -41,6 +41,7 @@ public:
 
         PermissionsError = 10,
         IncorrectAuthenticationCodeError,
+        AuthenticationTimeoutError,
         OperationNotSupportedError,
         OperationRequiresUserInteraction,
         OperationRequiresApplicationUserInteraction,
