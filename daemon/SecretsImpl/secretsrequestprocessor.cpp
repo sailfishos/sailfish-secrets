@@ -1091,6 +1091,7 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithMetadata(
                                          Daemon::ApiImpl::StoredKeyIdentifiersRequest,
                                          QVariantList() << collectionName
                                                         << storagePluginName
+                                                        << customParameters
                                                         << userInteractionMode
                                                         << interactionServiceAddress
                                                         << QVariant::fromValue<CollectionMetadata>(collectionMetadata)));
@@ -6184,7 +6185,7 @@ void Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                     break;
                 }
                 case StoredKeyIdentifiersRequest: {
-                    if (pr.parameters.size() != 5) {
+                    if (pr.parameters.size() != 6) {
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
