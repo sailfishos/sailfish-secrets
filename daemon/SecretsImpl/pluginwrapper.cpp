@@ -172,12 +172,16 @@ bool StoragePluginWrapper::initialize(const QByteArray &masterLockKey)
     // step one: open the metadata database.
     if (!m_metadataDb.isOpen()) {
         if (!m_metadataDb.openDatabase(masterLockKey)) {
+            qCWarning(lcSailfishSecretsDaemon) << "cannot open metadata database:"
+                                               << m_metadataDb.errorMessage();
             return false;
         }
     }
 
     // step two: read current data from the plugin.
     if (m_storagePlugin->isLocked()) {
+        qCWarning(lcSailfishSecretsDaemon)
+            << "cannot read data from plugin: plugin is locked.";
         return false;
     }
 
@@ -186,6 +190,9 @@ bool StoragePluginWrapper::initialize(const QByteArray &masterLockKey)
     Result result = collectionNames(&cnamesMap);
     cnames = cnamesMap.keys();
     if (result.code() != Result::Succeeded) {
+        qCWarning(lcSailfishSecretsDaemon) << "cannot get collection names:"
+                                           << result.errorMessage()
+                                           << "(" << result.code() << ")";
         return false;
     }
 
@@ -194,6 +201,10 @@ bool StoragePluginWrapper::initialize(const QByteArray &masterLockKey)
         QStringList snames;
         result = secretNames(cname, &snames);
         if (result.code() != Result::Succeeded) {
+            qCWarning(lcSailfishSecretsDaemon) << "cannot get secret names for"
+                                               << cname << ":"
+                                               << result.errorMessage()
+                                               << "(" << result.code() << ")";
             return false;
         }
         for (const QString &sname : snames) {
@@ -204,13 +215,19 @@ bool StoragePluginWrapper::initialize(const QByteArray &masterLockKey)
     // step three: initialize the metadata db based on plugin data.
     // this ensures our data is in sync.
     if (!m_metadataDb.beginTransaction()) {
+        qCWarning(lcSailfishSecretsDaemon) << "cannot initiate transaction:"
+                                           << m_metadataDb.errorMessage();
         return false;
     }
 
     bool initCollections = m_metadataDb.initializeCollectionsFromPluginData(cnames);
     bool initSecrets = m_metadataDb.initializeSecretsFromPluginData(identifiers, QStringList());
 
-    m_metadataDb.commitTransaction();
+    if (!m_metadataDb.commitTransaction()) {
+        qCWarning(lcSailfishSecretsDaemon) << "cannot commit changes:"
+                                           << m_metadataDb.errorMessage();
+    }
+
     m_initialized = initCollections && initSecrets;
     return true;
 }
@@ -520,6 +537,8 @@ bool EncryptedStoragePluginWrapper::initialize(const QByteArray &masterLockKey)
     // step one: open the metadata database.
     if (!m_metadataDb.isOpen()) {
         if (!m_metadataDb.openDatabase(masterLockKey)) {
+            qCWarning(lcSailfishSecretsDaemon) << "cannot open metadata database:"
+                                               << m_metadataDb.errorMessage();
             return false;
         }
     }
@@ -532,6 +551,9 @@ bool EncryptedStoragePluginWrapper::initialize(const QByteArray &masterLockKey)
         Result result = collectionNames(&cnamesMap);
         cnames = cnamesMap.keys();
         if (result.code() != Result::Succeeded) {
+            qCWarning(lcSailfishSecretsDaemon) << "cannot get collection names:"
+                                               << result.errorMessage()
+                                               << "(" << result.code() << ")";
             return false;
         }
 
@@ -545,6 +567,10 @@ bool EncryptedStoragePluginWrapper::initialize(const QByteArray &masterLockKey)
                 QStringList snames;
                 result = secretNames(cname, &snames);
                 if (result.code() != Result::Succeeded) {
+                    qCWarning(lcSailfishSecretsDaemon) << "cannot get secret names for"
+                                                       << cname << ":"
+                                                       << result.errorMessage()
+                                                       << "(" << result.code() << ")";
                     return false;
                 }
                 for (const QString &sname : snames) {
@@ -556,13 +582,18 @@ bool EncryptedStoragePluginWrapper::initialize(const QByteArray &masterLockKey)
         // step three: initialize the metadata db based on plugin data.
         // this ensures our data is in sync.
         if (!m_metadataDb.beginTransaction()) {
+            qCWarning(lcSailfishSecretsDaemon) << "cannot initiate transaction:"
+                                               << m_metadataDb.errorMessage();
             return false;
         }
 
         bool initCollections = m_metadataDb.initializeCollectionsFromPluginData(cnames);
         bool initSecrets = m_metadataDb.initializeSecretsFromPluginData(identifiers, lockedCollections);
 
-        m_metadataDb.commitTransaction();
+        if (!m_metadataDb.commitTransaction()) {
+            qCWarning(lcSailfishSecretsDaemon) << "cannot commit changes:"
+                                               << m_metadataDb.errorMessage();
+        }
         m_initialized = initCollections && initSecrets && lockedCollections.isEmpty();
     }
 

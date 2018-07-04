@@ -150,6 +150,11 @@ bool Daemon::ApiImpl::MetadataDatabase::openDatabase(const QByteArray &hexKey)
     return success;
 }
 
+QString Daemon::ApiImpl::MetadataDatabase::errorMessage() const
+{
+    return m_db.lastError().text();
+}
+
 bool Daemon::ApiImpl::MetadataDatabase::isOpen() const
 {
     return m_db.isOpen();

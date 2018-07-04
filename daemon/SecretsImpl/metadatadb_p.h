@@ -70,6 +70,7 @@ public:
 
     bool isOpen() const;
     bool openDatabase(const QByteArray &hexKey);
+    QString errorMessage() const;
 
     bool beginTransaction();
     bool commitTransaction();

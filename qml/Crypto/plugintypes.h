@@ -17,6 +17,8 @@
 #include "Crypto/generaterandomdatarequest.h"
 #include "Crypto/generatekeyrequest.h"
 #include "Crypto/generatestoredkeyrequest.h"
+#include "Crypto/importkeyrequest.h"
+#include "Crypto/importstoredkeyrequest.h"
 #include "Crypto/storedkeyrequest.h"
 #include "Crypto/deletestoredkeyrequest.h"
 #include "Crypto/storedkeyidentifiersrequest.h"
@@ -64,6 +66,9 @@ public:
     // QML API - allow clients to construct "uncreatable" value types
     Q_INVOKABLE Result constructResult() const;
     Q_INVOKABLE Key constructKey() const;
+    Q_INVOKABLE Key constructKey(const QString &name,
+                                 const QString &collectionName,
+                                 const QString &storagePluginName) const;
     Q_INVOKABLE QVariant constructRsaKeygenParams() const;
     Q_INVOKABLE QVariant constructEcKeygenParams() const;
     Q_INVOKABLE QVariant constructDsaKeygenParams() const;
