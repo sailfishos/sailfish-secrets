@@ -836,7 +836,7 @@ bool Daemon::ApiImpl::SecretsRequestQueue::writeTestCipherText(
     DataProtector::Status s = dataProtector.putData(cipherPluginName.toUtf8() + '\n' + testCipherText);
     bool ok = (s == DataProtector::Success);
     if (!ok) {
-        qCWarning(lcSailfishSecretsDaemon) << "Can't write lock code data. DataProtector returned:" << s;
+        qCWarning(lcSailfishSecretsDaemon) << "writeTestCipherText: Can't write lock code data. DataProtector returned:" << s;
     }
 
     return ok;
@@ -863,10 +863,12 @@ bool Daemon::ApiImpl::SecretsRequestQueue::determineTestCipherPlugin(
     DataProtector dataProtector(lockCodeCheckDirPath);
     DataProtector::Status s = dataProtector.getData(&previousData);
 
-    if (s != DataProtector::Success) {
-        qCWarning(lcSailfishSecretsDaemon) << "Can't read lock code data, assuming it's corrupted. DataProtector returned:" << s;
-        qCWarning(lcSailfishSecretsDaemon) << "NOTE: If you are running a pre-release sailfish-secrets version, you need to delete all old data before proceeding";
+    if (s == DataProtector::Irretrievable) {
+        qCWarning(lcSailfishSecretsDaemon) << "determineTestCipherPlugin: lock code data is irretrievably corrupted.";
         // TODO: find an appropriate solution for dealing with data corruption.
+        abort();
+    } else if (s != DataProtector::Success) {
+        qCWarning(lcSailfishSecretsDaemon) << "determineTestCipherPlugin: Can't read lock code data. DataProtector returned:" << s;
         return false;
     }
 
@@ -902,19 +904,24 @@ bool Daemon::ApiImpl::SecretsRequestQueue::compareTestCipherText(
     DataProtector dataProtector(lockCodeCheckDirPath);
     DataProtector::Status s = dataProtector.getData(&previousData);
 
-    if (s != DataProtector::Success) {
-        qCWarning(lcSailfishSecretsDaemon) << "Can't read lock code data, assuming it's corrupted. DataProtector returned:" << s;
-        qCWarning(lcSailfishSecretsDaemon) << "NOTE: If you are running a pre-release sailfish-secrets version, you need to delete all old data before proceeding";
-
+    if (s == DataProtector::Irretrievable) {
+        qCWarning(lcSailfishSecretsDaemon) << "compareTestCipherText: lock code data is irretrievably corrupted.";
         // TODO: find an appropriate solution for dealing with data corruption.
         abort();
+    } else if (s != DataProtector::Success) {
+        qCWarning(lcSailfishSecretsDaemon) << "compareTestCipherText: can't read lock code data. DataProtector returned:" << s;
+        return false;
     }
 
     if (previousData.isEmpty()) {
         if (writeIfNotExists) {
             // first time, write the file.
             s = dataProtector.putData(cipherPluginName.toUtf8() + '\n' + testCipherText);
-            return s == DataProtector::Success;
+            bool ok = (s == DataProtector::Success);
+            if (!ok) {
+                qCWarning(lcSailfishSecretsDaemon) << "compareTestCipherText: can't write lock code data. DataProtector returned:" << s;
+            }
+            return ok;
         } else {
             qCWarning(lcSailfishSecretsDaemon) << "Unable to read ciphertext data from nonexistent lock code check file";
             return false;
@@ -973,13 +980,17 @@ QByteArray Daemon::ApiImpl::SecretsRequestQueue::saltData() const
     DataProtector dataProtector(saltDirPath);
     QByteArray saltData;
     DataProtector::Status s = dataProtector.getData(&saltData);
-    if (s != DataProtector::Success) {
-        qCWarning(lcSailfishSecretsDaemon) << "Can't read salt data, assuming it's corrupted. DataProtector returned:" << s;
-        qCWarning(lcSailfishSecretsDaemon) << "NOTE: If you are running a pre-release sailfish-secrets version, you need to delete all old data before proceeding";
 
+    if (s == DataProtector::Irretrievable) {
+        qCWarning(lcSailfishSecretsDaemon) << "saltData: salt data is irretrievably corrupted.";
         // TODO: find an appropriate solution for dealing with data corruption.
         abort();
+    } else if (s != DataProtector::Success) {
+        qCWarning(lcSailfishSecretsDaemon) << "saltData: can't read salt data. DataProtector returned:" << s;
+        // TODO: what should we do here? The data is not corrupted, but we can't access it.
+        abort();
     }
+
     if (saltData.isEmpty()) {
         // First run, need to write the initial salt data.
         QByteArray dateData = QDateTime::currentDateTime().toString(Qt::ISODate).toUtf8();
@@ -997,9 +1008,9 @@ QByteArray Daemon::ApiImpl::SecretsRequestQueue::saltData() const
         s = dataProtector.putData(saltData);
 
         if (s != DataProtector::Success) {
-            qCWarning(lcSailfishSecretsDaemon) << "Can't write salt data, assuming it's corrupted. DataProtector returned:" << s;
+            qCWarning(lcSailfishSecretsDaemon) << "saltData: Can't write salt data. DataProtector returned:" << s;
 
-            // TODO: find an appropriate solution for dealing with data corruption.
+            // TODO: what should we do here? The data is not corrupted, but we can't write it to disk.
             abort();
         }
     }
