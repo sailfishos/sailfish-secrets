@@ -865,8 +865,8 @@ bool Daemon::ApiImpl::SecretsRequestQueue::determineTestCipherPlugin(
 
     if (s == DataProtector::Irretrievable) {
         qCWarning(lcSailfishSecretsDaemon) << "determineTestCipherPlugin: lock code data is irretrievably corrupted.";
-        // TODO: find an appropriate solution for dealing with data corruption.
-        abort();
+        dealWithDataCorruption();
+        return false;
     } else if (s != DataProtector::Success) {
         qCWarning(lcSailfishSecretsDaemon) << "determineTestCipherPlugin: Can't read lock code data. DataProtector returned:" << s;
         return false;
@@ -906,8 +906,8 @@ bool Daemon::ApiImpl::SecretsRequestQueue::compareTestCipherText(
 
     if (s == DataProtector::Irretrievable) {
         qCWarning(lcSailfishSecretsDaemon) << "compareTestCipherText: lock code data is irretrievably corrupted.";
-        // TODO: find an appropriate solution for dealing with data corruption.
-        abort();
+        dealWithDataCorruption();
+        return false;
     } else if (s != DataProtector::Success) {
         qCWarning(lcSailfishSecretsDaemon) << "compareTestCipherText: can't read lock code data. DataProtector returned:" << s;
         return false;
@@ -983,12 +983,11 @@ QByteArray Daemon::ApiImpl::SecretsRequestQueue::saltData() const
 
     if (s == DataProtector::Irretrievable) {
         qCWarning(lcSailfishSecretsDaemon) << "saltData: salt data is irretrievably corrupted.";
-        // TODO: find an appropriate solution for dealing with data corruption.
-        abort();
+        dealWithDataCorruption();
+        return QByteArray();
     } else if (s != DataProtector::Success) {
         qCWarning(lcSailfishSecretsDaemon) << "saltData: can't read salt data. DataProtector returned:" << s;
-        // TODO: what should we do here? The data is not corrupted, but we can't access it.
-        abort();
+        return QByteArray();
     }
 
     if (saltData.isEmpty()) {
@@ -1009,9 +1008,7 @@ QByteArray Daemon::ApiImpl::SecretsRequestQueue::saltData() const
 
         if (s != DataProtector::Success) {
             qCWarning(lcSailfishSecretsDaemon) << "saltData: Can't write salt data. DataProtector returned:" << s;
-
-            // TODO: what should we do here? The data is not corrupted, but we can't write it to disk.
-            abort();
+            return QByteArray();
         }
     }
 
@@ -2597,3 +2594,23 @@ void Daemon::ApiImpl::SecretsRequestQueue::handleFinishedRequest(
     }
 }
 
+void Daemon::ApiImpl::SecretsRequestQueue::dealWithDataCorruption() const
+{
+    // NOTE: Right now we just delete all corrupted data.
+    //       In the future if only the masterlock is broken we could just ask
+    //       the user to set a new master lock (without clearing all data).
+
+    // Find secrets directory
+    const static QString systemDataDirPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/system/");
+    const static QString privilegedDataDirPath(systemDataDirPath + QLatin1String("privileged") + "/");
+    const static QString secretsDirPath(privilegedDataDirPath + QLatin1String("Secrets"));
+
+    // Remove entire secrets directory
+    QDir secretsDir(secretsDirPath);
+    bool removed = secretsDir.removeRecursively();
+    if (!removed) {
+        qCWarning(lcSailfishSecretsDaemon) << "Could not remove the secrets directory. It needs to be removed because the data in it is corrupted and unusable.";
+    }
+
+    // TODO: send notification
+}

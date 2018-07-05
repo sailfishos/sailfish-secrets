@@ -454,6 +454,7 @@ private:
     mutable QByteArray m_saltData;
     bool generateKeyData(const QByteArray &lockCode, const QString &cipherPluginName, QByteArray *bkdbKey, QByteArray *deviceLockKey, QByteArray *testCipherText, QString *usedCipherPluginName) const;
     bool initializeKeyData(const QByteArray &bkdkKey, const QByteArray &deviceLockKey);
+    void dealWithDataCorruption() const;
 
 public: // For use by the secrets request processor to handle device-locked collection/secret semantics
     bool masterLocked() const;
