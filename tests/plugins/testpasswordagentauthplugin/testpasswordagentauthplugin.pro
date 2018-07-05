@@ -1,7 +1,8 @@
 TEMPLATE = lib
-CONFIG += plugin hide_symbols
+CONFIG += plugin hide_symbols link_pkgconfig
 TARGET = sailfishsecrets-testpasswordagentauth
 TARGET = $$qtLibraryTarget($$TARGET)
+PKGCONFIG += nemodevicelock
 
 include($$PWD/../../../common.pri)
 include($$PWD/../../../lib/libsailfishsecrets.pri)

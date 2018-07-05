@@ -258,8 +258,16 @@ Sailfish::Secrets::Daemon::Plugins::SqlCipherPlugin::storedKeyIdentifiers(
     }
 
     for (const QString &sname : snames) {
-        identifiers->append(Sailfish::Crypto::Key::Identifier(
-                                sname, collectionName, name()));
+        // only return this secret name if it identifies a key.
+        const Sailfish::Crypto::Key::Identifier keyIdent(
+                sname, collectionName, name());
+        Sailfish::Crypto::Key fullKey;
+        Sailfish::Crypto::Result keyResult = storedKey_internal(
+                keyIdent,
+                &fullKey);
+        if (keyResult.code() == Sailfish::Crypto::Result::Succeeded) {
+            identifiers->append(keyIdent);
+        }
     }
 
     return Sailfish::Crypto::Result(Sailfish::Crypto::Result::Succeeded);

@@ -7,6 +7,8 @@
 
 #include "passwordagentplugin.h"
 
+#include <nemo-devicelock/authenticator.h>
+
 #include <QtDBus/QDBusAbstractAdaptor>
 #include <QtDBus/QDBusConnection>
 #include <QtDBus/QDBusMessage>
@@ -17,6 +19,7 @@
 
 #include <QtCore/QFile>
 #include <QtCore/QLoggingCategory>
+#include <QtCore/QTimer>
 
 #include <QStandardPaths>
 
@@ -523,9 +526,16 @@ Result PasswordAgentPlugin::beginAuthentication(
                     .compare(QStringLiteral("true"), Qt::CaseInsensitive) == 0) {
                 result = Result(Result::InteractionViewUserCanceledError,
                                 QLatin1String("The user canceled the authentication dialog"));
-            } else {
+            } else if (!QDBusReply<PolkitAuthorizationResult>(*watcher).value().details.keys().isEmpty()) {
                 result = Result(Result::IncorrectAuthenticationCodeError,
                                 QStringLiteral("Password Agent was unable to verify the authenticity of the user"));
+            } else {
+                // The calling application was not started by the lipstick user session
+                // so polkit cannot work for it (as the lipstick-security-ui is for that session).
+                // Instead, use devicelock API directly.
+                qCDebug(lcPasswordAgent) << "No polkit agent available for caller's session, falling back to device-lock";
+                this->startDeviceLockAuthentication(callerPid, requestId, promptText);
+                return;
             }
         }
 
@@ -533,6 +543,49 @@ Result PasswordAgentPlugin::beginAuthentication(
     });
 
     return Result(Result::Pending);
+}
+
+void PasswordAgentPlugin::startDeviceLockAuthentication(
+        uint callerPid,
+        qint64 requestId,
+        const Sailfish::Secrets::InteractionParameters::PromptText &promptText)
+{
+    QTimer *timeout = new QTimer(this);
+    timeout->setInterval(120000); // 2 minutes
+    timeout->setSingleShot(true);
+    connect(timeout, &QTimer::timeout, timeout, [this, timeout, callerPid, requestId] {
+        authenticationCompleted(callerPid, requestId,
+                                Result(Result::AuthenticationTimeoutError,
+                                       QStringLiteral("Device lock authentication timed out")));
+        timeout->deleteLater();
+    });
+    timeout->start();
+
+    NemoDeviceLock::Authenticator::Methods methods = NemoDeviceLock::Authenticator::Methods()
+                                                   | NemoDeviceLock::Authenticator::Confirmation;
+    NemoDeviceLock::Authenticator *authenticator = new NemoDeviceLock::Authenticator(timeout);
+
+    // the authenticator is ready.  connect to its signals and request permission.
+    connect(authenticator, &NemoDeviceLock::Authenticator::permissionGranted,
+            authenticator, [this, timeout, authenticator, callerPid, requestId]
+                           (NemoDeviceLock::Authenticator::Method) {
+        this->authenticationCompleted(callerPid, requestId,
+                                      Result(Result::Succeeded));
+        timeout->deleteLater();
+    });
+
+    connect(authenticator, &NemoDeviceLock::Authenticator::aborted,
+            authenticator, [this, timeout, authenticator, callerPid, requestId] {
+        this->authenticationCompleted(callerPid, requestId,
+                                      Result(Result::InteractionViewUserCanceledError,
+                                             QLatin1String("The user canceled the authentication dialog")));
+        timeout->deleteLater();
+    });
+
+    authenticator->requestPermission(
+            promptText.message(),
+            { { QStringLiteral("authenticatingPid"), QVariant::fromValue(callerPid) } },
+            methods);
 }
 
 static const QPair<InteractionParameters::Prompt, QString> promptKeys[] = {
