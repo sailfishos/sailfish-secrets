@@ -38,6 +38,11 @@
 #define MAP_PLUGIN_NAMES(variable) ::mapPluginNames(m_requestQueue->controller(), variable)
 
 namespace {
+
+    const QString systemDataDirPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + QStringLiteral("/system"));
+    const QString privilegedDataDirPath(systemDataDirPath + QStringLiteral("/privileged"));
+    const QString secretsDirPath(privilegedDataDirPath + QStringLiteral("/Secrets"));
+
     void specifyDummyMasterlockKeys(
             const QByteArray &lockCode,
             QByteArray *testCipherText,
@@ -818,9 +823,7 @@ bool Daemon::ApiImpl::SecretsRequestQueue::writeTestCipherText(
     // so this test should be safe.
     // TODO: check with crypto expert!
     // TODO: Should I just store a hash of the key instead?
-    const QString systemDataDirPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/system/");
-    const QString privilegedDataDirPath(systemDataDirPath + QLatin1String("privileged") + "/");
-    const QString secretsDirPath(privilegedDataDirPath + QLatin1String("Secrets"));
+
     QDir secretsDir(secretsDirPath);
     if (!secretsDir.mkpath(secretsDirPath)) {
         qCWarning(lcSailfishSecretsDaemon) << "Permissions error: unable to create secrets directory:" << secretsDirPath;
@@ -845,9 +848,6 @@ bool Daemon::ApiImpl::SecretsRequestQueue::writeTestCipherText(
 bool Daemon::ApiImpl::SecretsRequestQueue::determineTestCipherPlugin(
         QString *cipherPluginName) const
 {
-    const QString systemDataDirPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/system/");
-    const QString privilegedDataDirPath(systemDataDirPath + QLatin1String("privileged") + "/");
-    const QString secretsDirPath(privilegedDataDirPath + QLatin1String("Secrets"));
     QDir secretsDir(secretsDirPath);
     if (!secretsDir.mkpath(secretsDirPath)) {
         qCWarning(lcSailfishSecretsDaemon) << "Permissions error: unable to create secrets directory:" << secretsDirPath;
@@ -886,9 +886,7 @@ bool Daemon::ApiImpl::SecretsRequestQueue::compareTestCipherText(
     // so this test should be safe.
     // TODO: check with crypto expert!
     // TODO: Should I just store a hash of the key instead?
-    const QString systemDataDirPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/system/");
-    const QString privilegedDataDirPath(systemDataDirPath + QLatin1String("privileged") + "/");
-    const QString secretsDirPath(privilegedDataDirPath + QLatin1String("Secrets"));
+
     QDir secretsDir(secretsDirPath);
     if (!secretsDir.mkpath(secretsDirPath)) {
         qCWarning(lcSailfishSecretsDaemon) << "Permissions error: unable to create secrets directory:" << secretsDirPath;
@@ -963,9 +961,6 @@ QByteArray Daemon::ApiImpl::SecretsRequestQueue::saltData() const
         return m_saltData;
     }
 
-    const QString systemDataDirPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/system/");
-    const QString privilegedDataDirPath(systemDataDirPath + QLatin1String("privileged") + "/");
-    const QString secretsDirPath(privilegedDataDirPath + QLatin1String("Secrets"));
     QDir secretsDir(secretsDirPath);
     if (!secretsDir.mkpath(secretsDirPath)) {
         qCWarning(lcSailfishSecretsDaemon) << "Permissions error: unable to create secrets directory:" << secretsDirPath;
@@ -2599,11 +2594,6 @@ void Daemon::ApiImpl::SecretsRequestQueue::dealWithDataCorruption() const
     // NOTE: Right now we just delete all corrupted data.
     //       In the future if only the masterlock is broken we could just ask
     //       the user to set a new master lock (without clearing all data).
-
-    // Find secrets directory
-    const static QString systemDataDirPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/system/");
-    const static QString privilegedDataDirPath(systemDataDirPath + QLatin1String("privileged") + "/");
-    const static QString secretsDirPath(privilegedDataDirPath + QLatin1String("Secrets"));
 
     // Remove entire secrets directory
     QDir secretsDir(secretsDirPath);
