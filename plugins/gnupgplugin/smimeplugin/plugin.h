@@ -5,8 +5,8 @@
  * BSD 3-Clause License, see LICENSE.
  */
 
-#ifndef OPENPGP_H
-#define OPENPGP_H
+#ifndef SMIME_H
+#define SMIME_H
 
 #include "gpgmebase.h"
 #include "gpgmestorage.h"
@@ -19,7 +19,7 @@ namespace Daemon {
 
 namespace Plugins {
 
-class Q_DECL_EXPORT OpenPGPPlugin : public QObject
+class Q_DECL_EXPORT SMimePlugin : public QObject
     , public Sailfish::Crypto::Daemon::Plugins::GnuPGPlugin
     , public Sailfish::Secrets::Daemon::Plugins::GnuPGStoragePlugin
 {
@@ -28,26 +28,26 @@ class Q_DECL_EXPORT OpenPGPPlugin : public QObject
     Q_INTERFACES(Sailfish::Crypto::CryptoPlugin Sailfish::Secrets::EncryptedStoragePlugin)
 
 public:
-    OpenPGPPlugin(QObject *parent = Q_NULLPTR);
-    ~OpenPGPPlugin();
+    SMimePlugin(QObject *parent = Q_NULLPTR);
+    ~SMimePlugin();
 
     QString name() const Q_DECL_OVERRIDE {
 #ifdef SAILFISHSECRETS_TESTPLUGIN
-        return QLatin1String("org.sailfishos.crypto.plugin.gnupg.openpgp.test");
+        return QLatin1String("org.sailfishos.crypto.plugin.gnupg.smime.test");
 #else
-        return QLatin1String("org.sailfishos.crypto.plugin.gnupg.openpgp");
+        return QLatin1String("org.sailfishos.crypto.plugin.gnupg.smime");
 #endif
     }
 
     QString displayName() const Q_DECL_OVERRIDE {
-        return QStringLiteral("GnuPG PGP");
+        return QStringLiteral("GnuPG S/MIME");
     }
 
     int version() const Q_DECL_OVERRIDE {
         return 000001;
     }
 };
-
+ 
 } // namespace Plugins
 
 } // namespace Daemon
@@ -56,4 +56,4 @@ public:
 
 } // namespace Sailfish
 
-#endif // OPENPGP_H
+#endif // SMIME_H

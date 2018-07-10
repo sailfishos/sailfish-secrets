@@ -418,6 +418,7 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 %files -n %{secretsdaemon}-cryptoplugins-gnupg
 %defattr(-,root,root,-)
 %{_libdir}/Sailfish/Crypto/libsailfishcrypto-openpgp.so
+%{_libdir}/Sailfish/Crypto/libsailfishcrypto-smime.so
 %{_bindir}/pinentry
 
 %files -n sailfishsecrets-tool
