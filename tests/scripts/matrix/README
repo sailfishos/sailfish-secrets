@@ -1,0 +1,60 @@
+Meanings:
+- Test Number: numeric identifier for the testcase
+- Secret Type: whether we are testing a Key or a Secret, and whether that is Standalone or in a Collection (note: keys must be in a collection).
+- Operations: the sequence of operation(s) being tested
+- Lock Type: whether the data is encrypted with device-lock or custom-lock
+- Lock Semantic: whether the data is stored with Access-Relock semantic or Keep-Unlocked semantic
+- Access Semantic: whether the data is stored with Owner-Only access control semantic or No-Access-Control semantic
+- Store Process: whether the process doing the store operation is privileged or non-privileged
+- Access Process: whether the process doing the access operation (e.g. query/encrypt/decrypt/sign/verify) is privileged or non-privileged
+- Access Time: whether the process doing the access operation does so after the secrets daemon has been restarted (e.g. forcing relock of Keep-Unlocked collections) or not
+- Result: whether the test has passed or failed (according to expectation).  If you get a result and you're not sure if it's expected/correct, please ask me.
+
+Valid values:
+- Secret Type: Standalone Secret (S), Collection Secret (C), or Key (K)
+- Operations: Store (T), Generate (G), Import (I), Query/Read (Q), Encrypt (E), Decrypt (D), Sign (S), Verify (V), Remove/Delete (R)
+- Lock Type: Device Lock (D) or Custom Lock (C)
+- Lock Semantic: Access Relock (R) or Keep Unlocked (U)
+- Access Semantic: Owner Only (O) or No Access Constraint (A)
+- Store Process: Privileged Process (P) or Non-privileged Process (N)
+- Access Process: Privileged Process (P) or Non-privileged Process (N) or not-applicable (-)
+- Access Time: Immediately After Store (I), After Restart of Secretsd After Store (R)
+- Result: Pass (P), Fail (F)
+
+The following matrix shows the current status of the tests.  Please update this as you add tests and have run the tests on device!
+
++=============+=============+============+===========+===============+=================+===============+================+=============+========+
+| Test Number | Secret Type | Operations | Lock Type | Lock Semantic | Access Semantic | Store Process | Access Process | Access Time | Result |
+|             |    S/C/K    | TGIQEDSVR  |    D/C    |      R/U      |        O/A      |      P/N      |       P/N      |      I/R    |   P/F  |
++=============+=============+============+===========+===============+=================+===============+================+=============+========+
+|           1 |      K      |   G,S,V,R  |     C     |       R       |         A       |       N       |        N       |       I     |        |
++-------------+-------------+------------+-----------+---------------+-----------------+---------------+----------------+-------------+--------+
+|           2 |      K      |   G,S,V,R  |     D     |       R       |         A       |       N       |        N       |       I     |        |
++-------------+-------------+------------+-----------+---------------+-----------------+---------------+----------------+-------------+--------+
+|           3 |      K      |   G,S,V,R  |     C     |       U       |         A       |       N       |        N       |       I     |        |
++-------------+-------------+------------+-----------+---------------+-----------------+---------------+----------------+-------------+--------+
+|           4 |      K      |   G,S,V,R  |     D     |       U       |         A       |       N       |        N       |       I     |        |
++-------------+-------------+------------+-----------+---------------+-----------------+---------------+----------------+-------------+--------+
+|           5 |      K      |   G,S,V,R  |     C     |       R       |         A       |       P       |        P       |       I     |        |
++-------------+-------------+------------+-----------+---------------+-----------------+---------------+----------------+-------------+--------+
+|           6 |      K      |   G,S,V,R  |     D     |       R       |         A       |       P       |        P       |       I     |        |
++-------------+-------------+------------+-----------+---------------+-----------------+---------------+----------------+-------------+--------+
+|           7 |      K      |   G,S,V,R  |     C     |       U       |         A       |       P       |        P       |       I     |        |
++-------------+-------------+------------+-----------+---------------+-----------------+---------------+----------------+-------------+--------+
+|           8 |      K      |   G,S,V,R  |     D     |       U       |         A       |       P       |        P       |       I     |        |
++-------------+-------------+------------+-----------+---------------+-----------------+---------------+----------------+-------------+--------+
+|           9 |      K      |   G,S,V,R  |     C     |       R       |         A       |       N       |        P       |       I     |        |
++-------------+-------------+------------+-----------+---------------+-----------------+---------------+----------------+-------------+--------+
+|          10 |      K      |   G,S,V,R  |     D     |       R       |         A       |       N       |        P       |       I     |        |
++-------------+-------------+------------+-----------+---------------+-----------------+---------------+----------------+-------------+--------+
+|          11 |      K      |   G,S,V,R  |     C     |       U       |         A       |       N       |        P       |       I     |        |
++-------------+-------------+------------+-----------+---------------+-----------------+---------------+----------------+-------------+--------+
+|          12 |      K      |   G,S,V,R  |     D     |       U       |         A       |       N       |        P       |       I     |        |
++-------------+-------------+------------+-----------+---------------+-----------------+---------------+----------------+-------------+--------+
+|          13 |      K      |   G,S,V,R  |     C     |       R       |         A       |       N       |        N       |       R     |        |
++-------------+-------------+------------+-----------+---------------+-----------------+---------------+----------------+-------------+--------+
+|          14 |      K      |   G,S,V,R  |     D     |       R       |         A       |       N       |        N       |       R     |        |
++-------------+-------------+------------+-----------+---------------+-----------------+---------------+----------------+-------------+--------+
+|          15 |      K      |   G,S,V,R  |     D     |       R       |         A       |       P       |        N       |       R     |        |
++-------------+-------------+------------+-----------+---------------+-----------------+---------------+----------------+-------------+--------+
+
