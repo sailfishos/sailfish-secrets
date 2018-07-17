@@ -69,6 +69,10 @@ public:
     Q_INVOKABLE Key constructKey(const QString &name,
                                  const QString &collectionName,
                                  const QString &storagePluginName) const;
+    Q_INVOKABLE Sailfish::Crypto::Key::Identifier
+        constructIdentifier(const QString &name,
+                            const QString &collectionName,
+                            const QString &storagePluginName) const;
     Q_INVOKABLE QVariant constructRsaKeygenParams() const;
     Q_INVOKABLE QVariant constructEcKeygenParams() const;
     Q_INVOKABLE QVariant constructDsaKeygenParams() const;
