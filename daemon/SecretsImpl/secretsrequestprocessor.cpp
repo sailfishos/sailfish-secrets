@@ -6293,7 +6293,7 @@ void Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                     break;
                 }
                 case UseCollectionKeyPreCheckRequest: {
-                    if (pr.parameters.size() != 3) {
+                    if (pr.parameters.size() != 2) {
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
