@@ -21,6 +21,10 @@ testcases=('n /opt/tests/Sailfish/Crypto/matrix/001.sh'
            'p /opt/tests/Sailfish/Crypto/matrix/006.sh'
            'p /opt/tests/Sailfish/Crypto/matrix/007.sh'
            'p /opt/tests/Sailfish/Crypto/matrix/008.sh'
+           'n /opt/tests/Sailfish/Crypto/matrix/009.a.sh;p /opt/tests/Sailfish/Crypto/matrix/009.b.sh;n /opt/tests/Sailfish/Crypto/matrix/009.c.sh'
+           'n /opt/tests/Sailfish/Crypto/matrix/010.a.sh;p /opt/tests/Sailfish/Crypto/matrix/010.b.sh;n /opt/tests/Sailfish/Crypto/matrix/010.c.sh'
+           'n /opt/tests/Sailfish/Crypto/matrix/011.a.sh;p /opt/tests/Sailfish/Crypto/matrix/011.b.sh;n /opt/tests/Sailfish/Crypto/matrix/011.c.sh'
+           'n /opt/tests/Sailfish/Crypto/matrix/012.a.sh;p /opt/tests/Sailfish/Crypto/matrix/012.b.sh;n /opt/tests/Sailfish/Crypto/matrix/012.c.sh'
            'p /opt/tests/Sailfish/Crypto/matrix/015.a.sh;r;n /opt/tests/Sailfish/Crypto/matrix/015.b.sh;p /opt/tests/Sailfish/Crypto/matrix/015.c.sh')
 
 scriptresult=0
@@ -94,7 +98,7 @@ for testcase in "${testcases[@]}" ; do
     fi
 done
 
-echo "\nPASS\n"
+echo "PASS"
 kill -9 $sailfishsecretsdaemonpid
 sleep 1s
 killall sailfishsecretsd
