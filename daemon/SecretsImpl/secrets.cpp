@@ -35,6 +35,10 @@
 
 #include <sys/mman.h>
 
+#if defined(HAS_NEMO_NOTIFICATIONS)
+#include <notification.h>
+#endif
+
 #define MAP_PLUGIN_NAMES(variable) ::mapPluginNames(m_requestQueue->controller(), variable)
 
 namespace {
@@ -2595,12 +2599,48 @@ void Daemon::ApiImpl::SecretsRequestQueue::dealWithDataCorruption() const
     //       In the future if only the masterlock is broken we could just ask
     //       the user to set a new master lock (without clearing all data).
 
+#if defined(HAS_NEMO_NOTIFICATIONS)
+    // In this case the Nemo notifications library is present and we assume that
+    // secrets-ui is also present on the user's system. So we just send a notification
+    // that he needs to reset the secrets data on the Settings page of secrets-ui.
+
+    qCDebug(lcSailfishSecretsDaemon) << "Creating notification about data corruption.";
+
+    Notification n;
+
+    n.setCategory(QStringLiteral("x-sailfish.secrets.error"));
+    n.setRemoteDBusCallServiceName(QStringLiteral("com.jolla.settings"));
+    n.setRemoteDBusCallObjectPath(QStringLiteral("/com/jolla/settings/ui"));
+    n.setRemoteDBusCallInterface(QStringLiteral("com.jolla.settings.ui"));
+    n.setRemoteDBusCallMethodName(QStringLiteral("showPage"));
+    n.setRemoteDBusCallArguments(QVariantList() << QStringLiteral("system_settings/security/keys"));
+
+    //: Notification summary text that tells the user that their secrets data is corrupted and needs to be reset.
+    //% "Corrupted secrets data"
+    n.setSummary(qtTrId("sailfish_secrets-no-datacorruption_summary"));
+    n.setPreviewSummary(n.summary());
+
+    //: Notification body text that tells the user that their secrets data is corrupted and needs to be reset.
+    //% "Data corruption detected. Please reset your secrets data."
+    n.setBody(qtTrId("sailfish_secrets-no-datacorruption_body"));
+    n.setPreviewBody(n.body());
+
+    //: Notification application name for the data corruption notification
+    //% "Sailfish OS"
+    n.setAppName(qtTrId("sailfish_secrets-no-datacorruption_appname"));
+
+    n.publish();
+#else
+    // In this case we have no way of notifying the user about the problem, se we
+    // just solve it by resetting all the data here.
+
+    qCDebug(lcSailfishSecretsDaemon) << "Notification support is not present, resetting secrets data by deleting it all.";
+
     // Remove entire secrets directory
     QDir secretsDir(secretsDirPath);
     bool removed = secretsDir.removeRecursively();
     if (!removed) {
         qCWarning(lcSailfishSecretsDaemon) << "Could not remove the secrets directory. It needs to be removed because the data in it is corrupted and unusable.";
     }
-
-    // TODO: send notification
+#endif
 }
