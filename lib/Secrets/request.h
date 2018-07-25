@@ -22,7 +22,7 @@ class SAILFISH_SECRETS_API Request : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(Sailfish::Secrets::SecretManager* manager READ manager WRITE setManager NOTIFY managerChanged)
-    Q_PROPERTY(Request::Status status READ status NOTIFY statusChanged)
+    Q_PROPERTY(Sailfish::Secrets::Request::Status status READ status NOTIFY statusChanged)
     Q_PROPERTY(Sailfish::Secrets::Result result READ result NOTIFY resultChanged)
 
 public:
