@@ -108,3 +108,16 @@ Sailfish::Secrets::InteractionResponse Sailfish::Secrets::Plugin::SecretManager:
 {
     return Sailfish::Secrets::InteractionResponse();
 }
+
+Sailfish::Secrets::Secret::FilterData Sailfish::Secrets::Plugin::SecretManager::constructFilterData(const QVariantMap &v) const
+{
+    Sailfish::Secrets::Secret::FilterData filter;
+    for (QVariantMap::ConstIterator it = v.constBegin();
+         it != v.constEnd(); it++) {
+        const QString &value = it->toString();
+        if (!value.isEmpty()) {
+            filter.insert(it.key(), value);
+        }
+    }
+    return filter;
+}
