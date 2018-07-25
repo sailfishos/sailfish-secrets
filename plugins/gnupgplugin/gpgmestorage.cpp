@@ -170,24 +170,41 @@ Result Daemon::Plugins::GnuPGStoragePlugin::secretNames(const QString &collectio
     return Result();
 }
 
+static bool matchRule(const Sailfish::Crypto::Key::FilterData &keyData,
+                      Sailfish::Crypto::CryptoManager::Algorithm algorithm,
+                      const QString &filter, const QString &value)
+{
+    if (filter.compare("email") == 0) {
+        return keyData.contains("User-Emails")
+            && keyData.value("User-Emails").split(',', QString::SkipEmptyParts).contains(value);
+    } else if (filter.compare("canSign") == 0) {
+        return true;
+    } else if (filter.compare("canEncrypt") == 0) {
+        return algorithm == Sailfish::Crypto::CryptoManager::AlgorithmUnknown;
+    } else {
+        return keyData.contains(filter)
+            && (keyData.value(filter).compare(value) == 0);
+    }
+}
+
 Result Daemon::Plugins::GnuPGStoragePlugin::findSecrets(const QString &collectionName,
                                                         const Secret::FilterData &filter,
                                                         StoragePlugin::FilterOperator filterOperator,
                                                         QVector<Secret::Identifier> *identifiers)
 {
+    qCDebug(lcSailfishCryptoPlugin) << "findSecrets request" << collectionName;
     identifiers->clear();
-    if (collectionName.compare("import") == 0) {
-        // This is a fake collection to allow importation of new keys,
-        // see collectionNames().
-        return Result();
-    }
 
     GPGmeContext ctx(m_protocol);
     if (!ctx) {
         return Result(Result::DatabaseError, ctx.error());
     }
 
-    GPGmeKey gkey = GPGmeKey::listKeys(ctx, collectionName);
+    // Import is a fake collection name to allow to search in every collections.
+    GPGmeKey::Level level = (filter.contains("canSign")
+                             || filter.contains("canEncrypt"))
+        ? GPGmeKey::Secret : GPGmeKey::Public;
+    GPGmeKey gkey = GPGmeKey::listKeys(ctx, collectionName.compare("import") ? collectionName : QString(), level);
     while (gkey) {
         while (gkey.sub) {
             Sailfish::Crypto::Key key;
@@ -199,22 +216,20 @@ Result Daemon::Plugins::GnuPGStoragePlugin::findSecrets(const QString &collectio
                 match = false;
                 for (Secret::FilterData::ConstIterator it = filter.constBegin();
                      it != filter.constEnd() && !match; it++) {
-                    match = keyData.contains(it.key())
-                        && (keyData.value(it.key()).compare(it.value()) == 0);
+                    match = matchRule(keyData, key.algorithm(), it.key(), it.value());
                 }
                 break;
             case SecretManager::OperatorAnd:
                 match = true;
                 for (Secret::FilterData::ConstIterator it = filter.constBegin();
                      it != filter.constEnd() && match; it++) {
-                    match = keyData.contains(it.key())
-                        && (keyData.value(it.key()).compare(it.value()) == 0);
+                    match = matchRule(keyData, key.algorithm(), it.key(), it.value());
                 }
                 break;
             }
             if (match) {
                 identifiers->append(Secret::Identifier(key.name(),
-                                                       collectionName, name()));
+                                                       key.collectionName(), name()));
             }
             gkey.sub = gkey.sub->next;
         }
