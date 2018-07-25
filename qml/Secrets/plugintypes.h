@@ -70,6 +70,7 @@ public:
     Q_INVOKABLE Secret constructSecret() const;
     Q_INVOKABLE InteractionParameters constructInteractionParameters() const;
     Q_INVOKABLE InteractionResponse constructInteractionResponse() const;
+    Q_INVOKABLE Sailfish::Secrets::Secret::FilterData constructFilterData(const QVariantMap &v) const;
 };
 
 }

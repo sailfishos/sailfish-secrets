@@ -11,11 +11,13 @@ QT += qml quick gui core
 HEADERS += \
     $$PWD/plugintypes.h \
     $$PWD/applicationinteractionview.h \
-    $$PWD/applicationinteractionview_p.h
+    $$PWD/applicationinteractionview_p.h \
+    $$PWD/findsecretsrequestwrapper.h
 
 SOURCES += \
     $$PWD/main.cpp \
-    $$PWD/applicationinteractionview.cpp
+    $$PWD/applicationinteractionview.cpp \
+    $$PWD/findsecretsrequestwrapper.cpp
 
 OTHER_FILES += \
     $$PWD/defaultInteractionView.qml \
