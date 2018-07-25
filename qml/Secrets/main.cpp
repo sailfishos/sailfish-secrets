@@ -7,6 +7,7 @@
 
 #include "plugintypes.h"
 #include "applicationinteractionview.h"
+#include "findsecretsrequestwrapper.h"
 
 #include <QtQml/QQmlEngine>
 #include <QtQml>
@@ -46,7 +47,7 @@ void Sailfish::Secrets::Plugin::SecretsPlugin::registerTypes(const char *uri)
     qmlRegisterType<Sailfish::Secrets::DeleteCollectionRequest>(uri, 1, 0, "DeleteCollectionRequest");
     qmlRegisterType<Sailfish::Secrets::StoreSecretRequest>(uri, 1, 0, "StoreSecretRequest");
     qmlRegisterType<Sailfish::Secrets::StoredSecretRequest>(uri, 1, 0, "StoredSecretRequest");
-    qmlRegisterType<Sailfish::Secrets::FindSecretsRequest>(uri, 1, 0, "FindSecretsRequest");
+    qmlRegisterType<Sailfish::Secrets::Plugin::FindSecretsRequestWrapper>(uri, 1, 0, "FindSecretsRequest");
     qmlRegisterType<Sailfish::Secrets::DeleteSecretRequest>(uri, 1, 0, "DeleteSecretRequest");
     qmlRegisterType<Sailfish::Secrets::InteractionRequest>(uri, 1, 0, "InteractionRequest");
     qmlRegisterType<Sailfish::Secrets::LockCodeRequest>(uri, 1, 0, "LockCodeRequest");
