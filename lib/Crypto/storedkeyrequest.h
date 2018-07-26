@@ -25,7 +25,7 @@ class StoredKeyRequestPrivate;
 class SAILFISH_CRYPTO_API StoredKeyRequest : public Sailfish::Crypto::Request
 {
     Q_OBJECT
-    Q_PROPERTY(Sailfish::Crypto::Key::Identifier identifier READ identifier NOTIFY identifierChanged)
+    Q_PROPERTY(Sailfish::Crypto::Key::Identifier identifier READ identifier WRITE setIdentifier NOTIFY identifierChanged)
     Q_PROPERTY(Sailfish::Crypto::Key::Components keyComponents READ keyComponents WRITE setKeyComponents NOTIFY keyComponentsChanged)
     Q_PROPERTY(Sailfish::Crypto::Key storedKey READ storedKey NOTIFY storedKeyChanged)
 

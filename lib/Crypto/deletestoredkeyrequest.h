@@ -25,7 +25,7 @@ class DeleteStoredKeyRequestPrivate;
 class SAILFISH_CRYPTO_API DeleteStoredKeyRequest : public Sailfish::Crypto::Request
 {
     Q_OBJECT
-    Q_PROPERTY(Sailfish::Crypto::Key::Identifier identifier READ identifier NOTIFY identifierChanged)
+    Q_PROPERTY(Sailfish::Crypto::Key::Identifier identifier READ identifier WRITE setIdentifier NOTIFY identifierChanged)
 
 public:
     DeleteStoredKeyRequest(QObject *parent = Q_NULLPTR);

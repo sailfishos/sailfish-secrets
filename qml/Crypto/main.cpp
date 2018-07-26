@@ -81,6 +81,11 @@ Sailfish::Crypto::Key Sailfish::Crypto::Plugin::CryptoManager::constructKey(cons
     return Sailfish::Crypto::Key(name, collectionName, storagePluginName);
 }
 
+Sailfish::Crypto::Key::Identifier Sailfish::Crypto::Plugin::CryptoManager::constructIdentifier(const QString &name, const QString &collectionName, const QString &storagePluginName) const
+{
+    return Sailfish::Crypto::Key::Identifier(name, collectionName, storagePluginName);
+}
+
 QVariant Sailfish::Crypto::Plugin::CryptoManager::constructRsaKeygenParams() const
 {
     return QVariant::fromValue<KeyPairGenerationParameters>(RsaKeyPairGenerationParameters());
