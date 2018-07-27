@@ -42,6 +42,7 @@ void Sailfish::Secrets::Plugin::SecretsPlugin::registerTypes(const char *uri)
     qRegisterMetaType<Sailfish::Secrets::Request::Status>("SecretsRequestStatus");
     qmlRegisterUncreatableType<Sailfish::Secrets::PluginInfo>(uri, 1, 0, "PluginInfo", QStringLiteral("PluginInfo objects cannot be constructed directly in QML"));
     qmlRegisterType<Sailfish::Secrets::PluginInfoRequest>(uri, 1, 0, "PluginInfoRequest");
+    qmlRegisterType<Sailfish::Secrets::HealthCheckRequest>(uri, 1, 0, "HealthCheckRequest");
     qmlRegisterType<Sailfish::Secrets::CollectionNamesRequest>(uri, 1, 0, "CollectionNamesRequest");
     qmlRegisterType<Sailfish::Secrets::CreateCollectionRequest>(uri, 1, 0, "CreateCollectionRequest");
     qmlRegisterType<Sailfish::Secrets::DeleteCollectionRequest>(uri, 1, 0, "DeleteCollectionRequest");

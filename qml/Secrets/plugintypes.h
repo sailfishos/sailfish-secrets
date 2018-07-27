@@ -15,6 +15,7 @@
 #include "Secrets/secretmanager.h"
 
 #include "Secrets/plugininforequest.h"
+#include "Secrets/healthcheckrequest.h"
 #include "Secrets/interactionrequest.h"
 #include "Secrets/collectionnamesrequest.h"
 #include "Secrets/createcollectionrequest.h"

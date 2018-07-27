@@ -70,4 +70,6 @@ private:
 
 } // namespace Sailfish
 
+Q_DECLARE_METATYPE(::Sailfish::Secrets::HealthCheckRequest::Health);
+
 #endif // LIBSAILFISHSECRETS_HEATHCHECKREQUEST_H
