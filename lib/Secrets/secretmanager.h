@@ -104,6 +104,7 @@ private:
     friend class InteractionRequest;
     friend class LockCodeRequest;
     friend class PluginInfoRequest;
+    friend class HealthCheckRequest;
     friend class StoredSecretRequest;
     friend class StoreSecretRequest;
 };

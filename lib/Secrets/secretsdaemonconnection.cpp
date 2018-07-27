@@ -12,6 +12,7 @@
 #include "Secrets/secretmanager.h"
 #include "Secrets/interactionparameters.h"
 #include "Secrets/plugininfo.h"
+#include "Secrets/healthcheckrequest.h"
 #include "Secrets/result.h"
 #include "Secrets/secret.h"
 #include "Secrets/interactionparameters.h"
@@ -176,6 +177,7 @@ void Sailfish::Secrets::SecretsDaemonConnection::registerDBusTypes()
     qRegisterMetaType<Sailfish::Secrets::InteractionResponse>("Sailfish::Secrets::InteractionResponse");
     qRegisterMetaType<Sailfish::Secrets::LockCodeRequest::LockCodeTargetType>("Sailfish::Secrets::LockCodeRequest::LockCodeTargetType");
     qRegisterMetaType<Sailfish::Secrets::LockCodeRequest::LockStatus>("Sailfish::Secrets::LockCodeRequest::LockStatus");
+    qRegisterMetaType<Sailfish::Secrets::HealthCheckRequest::Health>("Sailfish::Secrets::HealthCheckRequest::Health");
 
     qDBusRegisterMetaType<Sailfish::Secrets::SecretManager::UserInteractionMode>();
     qDBusRegisterMetaType<Sailfish::Secrets::SecretManager::AccessControlMode>();
@@ -198,4 +200,5 @@ void Sailfish::Secrets::SecretsDaemonConnection::registerDBusTypes()
     qDBusRegisterMetaType<Sailfish::Secrets::InteractionResponse>();
     qDBusRegisterMetaType<Sailfish::Secrets::LockCodeRequest::LockCodeTargetType>();
     qDBusRegisterMetaType<Sailfish::Secrets::LockCodeRequest::LockStatus>();
+    qDBusRegisterMetaType<Sailfish::Secrets::HealthCheckRequest::Health>();
 }

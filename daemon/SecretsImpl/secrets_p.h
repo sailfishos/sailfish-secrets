@@ -14,6 +14,7 @@
 #include "Secrets/secret.h"
 #include "Secrets/interactionparameters.h"
 #include "Secrets/plugininfo.h"
+#include "Secrets/healthcheckrequest.h"
 #include "Secrets/secretmanager.h"
 #include "Secrets/result.h"
 #include "Secrets/lockcoderequest.h"
@@ -66,6 +67,14 @@ class SecretsDBusObject : public QObject, protected QDBusContext
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out2\" value=\"QVector<Sailfish::Secrets::PluginInfo>\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out3\" value=\"QVector<Sailfish::Secrets::PluginInfo>\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out4\" value=\"QVector<Sailfish::Secrets::PluginInfo>\" />\n"
+    "      </method>\n"
+    "      <method name=\"getHealthInfo\">\n"
+    "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
+    "          <arg name=\"saltDataHealth\" type=\"(i)\" direction=\"out\" />\n"
+    "          <arg name=\"masterlockHealth\" type=\"(i)\" direction=\"out\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Secrets::HealthCheckRequest::Health\" />\n"
+    "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out2\" value=\"Sailfish::Secrets::HealthCheckRequest::Health\" />\n"
     "      </method>\n"
     "      <method name=\"userInput\">\n"
     "          <arg name=\"uiParams\" type=\"(sss(i)sss(i)(i))\" direction=\"in\" />\n"
@@ -254,6 +263,13 @@ public Q_SLOTS:
             QVector<Sailfish::Secrets::PluginInfo> &encryptionPlugins,
             QVector<Sailfish::Secrets::PluginInfo> &encryptedStoragePlugins,
             QVector<Sailfish::Secrets::PluginInfo> &authenticationPlugins);
+
+    // retrieve information about secrets health
+    void getHealthInfo(
+            const QDBusMessage &message,
+            Sailfish::Secrets::Result &result,
+            Sailfish::Secrets::HealthCheckRequest::Health &saltDataHealth,
+            Sailfish::Secrets::HealthCheckRequest::Health &masterlockHealth);
 
     // retrieve user input for the client (daemon)
     void userInput(
@@ -526,6 +542,7 @@ private:
 enum RequestType {
     InvalidRequest = 0,
     GetPluginInfoRequest,
+    GetHealthInfoRequest,
     UserInputRequest,
     CollectionNamesRequest,
     CreateDeviceLockCollectionRequest,

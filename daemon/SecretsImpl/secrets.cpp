@@ -101,6 +101,7 @@ namespace {
             const QString &pluginName) {
         return controller->mappedPluginName(pluginName);
     }
+
 }
 
 using namespace Sailfish::Secrets;
@@ -127,6 +128,23 @@ void Daemon::ApiImpl::SecretsDBusObject::getPluginInfo(
     Q_UNUSED(authenticationPlugins);    // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     m_requestQueue->handleRequest(Daemon::ApiImpl::GetPluginInfoRequest,
+                                  inParams,
+                                  connection(),
+                                  message,
+                                  result);
+}
+
+// retrieve information about secrets health
+void Daemon::ApiImpl::SecretsDBusObject::getHealthInfo(
+        const QDBusMessage &message,
+        Result &result,
+        HealthCheckRequest::Health &saltDataHealth,
+        HealthCheckRequest::Health &masterlockHealth)
+{
+    Q_UNUSED(saltDataHealth);           // outparam, set in handlePendingRequest / handleFinishedRequest
+    Q_UNUSED(masterlockHealth);         // outparam, set in handlePendingRequest / handleFinishedRequest
+    QList<QVariant> inParams;
+    m_requestQueue->handleRequest(Daemon::ApiImpl::GetHealthInfoRequest,
                                   inParams,
                                   connection(),
                                   message,
@@ -1167,6 +1185,7 @@ QString Daemon::ApiImpl::SecretsRequestQueue::requestTypeToString(int type) cons
     switch (type) {
         case InvalidRequest:                        return QLatin1String("InvalidRequest");
         case GetPluginInfoRequest:                  return QLatin1String("GetPluginInfoRequest");
+        case GetHealthInfoRequest:                  return QLatin1String("GetHealthInfoRequest");
         case UserInputRequest:                      return QLatin1String("UserInputRequest");
         case CollectionNamesRequest:                return QLatin1String("CollectionNamesRequest");
         case CreateDeviceLockCollectionRequest:     return QLatin1String("CreateDeviceLockCollectionRequest");
@@ -1229,6 +1248,25 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
                 *completed = true;
             }
             break;
+        }
+        case GetHealthInfoRequest: {
+            qCDebug(lcSailfishSecretsDaemon) << "Handling GetHealthInfoRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+
+            HealthCheckRequest::Health saltDataHealth;
+            HealthCheckRequest::Health masterlockHealth;
+            Result result = m_requestProcessor->getHealthInfo(
+                        request->remotePid,
+                        request->requestId,
+                        secretsDirPath,
+                        &saltDataHealth,
+                        &masterlockHealth);
+
+            request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                    << QVariant::fromValue<HealthCheckRequest::Health>(saltDataHealth)
+                                                                    << QVariant::fromValue<HealthCheckRequest::Health>(masterlockHealth));
+            *completed = true;
+            break;
+
         }
         case CollectionNamesRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling CollectionNamesRequest from client:" << request->remotePid << ", request number:" << request->requestId;
@@ -2119,6 +2157,11 @@ void Daemon::ApiImpl::SecretsRequestQueue::handleFinishedRequest(
                 }
                 *completed = true;
             }
+            break;
+        }
+        case GetHealthInfoRequest: {
+            // The implementation in handlePendingRequest() for the GetHealthInfoRequest is purely synchronous
+            // and always completes, so we do not need to handle this request here.
             break;
         }
         case CollectionNamesRequest: {

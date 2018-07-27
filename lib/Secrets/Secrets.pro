@@ -23,6 +23,7 @@ PUBLIC_HEADERS += \
     $$PWD/lockcoderequest.h \
     $$PWD/plugininfo.h \
     $$PWD/plugininforequest.h \
+    $$PWD/healthcheckrequest.h \
     $$PWD/request.h \
     $$PWD/result.h \
     $$PWD/secret.h \
@@ -49,6 +50,7 @@ PRIVATE_HEADERS += \
     $$PWD/lockcoderequest_p.h \
     $$PWD/plugininfo_p.h \
     $$PWD/plugininforequest_p.h \
+    $$PWD/healthcheckrequest_p.h \
     $$PWD/result_p.h \
     $$PWD/secret_p.h \
     $$PWD/secretsdaemonconnection_p_p.h \
@@ -74,6 +76,7 @@ SOURCES += \
     $$PWD/lockcoderequest.cpp \
     $$PWD/plugininfo.cpp \
     $$PWD/plugininforequest.cpp \
+    $$PWD/healthcheckrequest.cpp \
     $$PWD/request.cpp \
     $$PWD/result.cpp \
     $$PWD/secret.cpp \
