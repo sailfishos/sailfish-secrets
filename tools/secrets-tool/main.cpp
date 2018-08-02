@@ -73,6 +73,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
         {"--encrypt", "Encrypt a particular file with the specified key, output to stdout" },
         {"--decrypt", "Decrypt a particular file with the specified key, output to stdout" },
         {"--get-user-input", "Request user input via system dialog" },
+        {"--health-check", "Check the health of secrets daemon data" },
     };
 
     const QMap<QString, QString> paramOptions {
@@ -96,6 +97,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
         {"--encrypt", "<cryptoPlugin> <storagePlugin> <collectionName> <keyName> <fileName>" },
         {"--decrypt", "<cryptoPlugin> <storagePlugin> <collectionName> <keyName> <fileName>" },
         {"--get-user-input", "" },
+        {"--health-check", "" },
     };
 
     const QMap<QString, int> paramOptionsMin {
@@ -122,6 +124,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
         {"--encrypt", 5 },
         {"--decrypt", 5 },
         {"--get-user-input", 0 },
+        {"--health-check", 0 },
     };
 
     const QMap<QString, int> paramOptionsMax {
@@ -148,6 +151,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
         {"--encrypt", 5 },
         {"--decrypt", 5 },
         {"--get-user-input", 0 },
+        {"--health-check", 0 },
     };
 
     const QMap<QString, QString> paramExamples {
@@ -174,6 +178,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
         {"--encrypt", "org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher MyCollection MyAesKey document.txt > document.txt.enc" },
         {"--decrypt", "org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher MyCollection MyAesKey document.txt.enc > document.txt.dec" },
         {"--get-user-input", "" },
+        {"--health-check", "" },
     };
 
     bool autotestMode = false;
