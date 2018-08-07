@@ -32,7 +32,9 @@ void Sailfish::Secrets::Plugin::SecretsPlugin::registerTypes(const char *uri)
 
     qRegisterMetaType<Sailfish::Secrets::Result>("SecretsResult");
     QMetaType::registerComparators<Sailfish::Secrets::Result>();
-    qmlRegisterUncreatableType<Sailfish::Secrets::Result>(uri, 1, 0, "Result", QStringLiteral("Result objects cannot be constructed directly in QML"));
+    qmlRegisterUncreatableType<Sailfish::Secrets::Result>(uri, 1, 0, "SecretsResult", QStringLiteral("Result objects cannot be constructed directly in QML"));
+    qRegisterMetaType<Sailfish::Secrets::Result::ResultCode>("SecretsResultCode");
+    qRegisterMetaType<Sailfish::Secrets::Result::ErrorCode>("SecretsErrorCode");
 
     qRegisterMetaType<Sailfish::Secrets::Secret>("Secret");
     QMetaType::registerComparators<Sailfish::Secrets::Secret>();
