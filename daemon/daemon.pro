@@ -19,6 +19,13 @@ QT += sql dbus concurrent
 CONFIG += link_pkgconfig hide_symbols
 PKGCONFIG += dbus-1 Qt5Concurrent Qt5DBus Qt5Core
 
+packagesExist(nemonotifications-qt5) {
+    PKGCONFIG += nemonotifications-qt5
+    DEFINES += HAS_NEMO_NOTIFICATIONS
+} else {
+    warning("package nemonotifications-qt5 is not present, building without notification support")
+}
+
 HEADERS += \
     $$PWD/controller_p.h \
     $$PWD/discoveryobject_p.h \

@@ -31,6 +31,7 @@
 #include "Secrets/secret.h"
 #include "Secrets/interactionparameters.h"
 #include "Secrets/lockcoderequest.h"
+#include "Secrets/healthcheckrequest.h"
 
 #include "SecretsImpl/secrets_p.h"
 #include "SecretsImpl/pluginwrapper_p.h"
@@ -83,6 +84,14 @@ public:
             QVector<Sailfish::Secrets::PluginInfo> *encryptionPlugins,
             QVector<Sailfish::Secrets::PluginInfo> *encryptedStoragePlugins,
             QVector<Sailfish::Secrets::PluginInfo> *authenticationPlugins);
+
+    // retrieve information about secrets health
+    Sailfish::Secrets::Result getHealthInfo(
+            pid_t callerPid,
+            quint64 requestId,
+            const QString &secretsDir,
+            Sailfish::Secrets::HealthCheckRequest::Health *saltDataHealth,
+            Sailfish::Secrets::HealthCheckRequest::Health *masterlockHealth);
 
     // retrieve the names of collections
     Sailfish::Secrets::Result collectionNames(

@@ -11,6 +11,7 @@
 #include "logging_p.h"
 #include "util_p.h"
 #include "plugin_p.h"
+#include "dataprotector_p.h"
 
 #include "Secrets/result.h"
 #include "Secrets/secretmanager.h"
@@ -33,7 +34,9 @@
 using namespace Sailfish::Secrets;
 
 namespace {
-    QString calculateSecretNameHash(const Secret::Identifier &ident) {
+
+    QString calculateSecretNameHash(const Secret::Identifier &ident)
+    {
         return QString::fromLatin1(
                 QCryptographicHash::hash(
                     QStringLiteral("%1%2%3")
@@ -49,7 +52,8 @@ namespace {
                                 bool callerIsPlatformApplication,
                                 const QString &authPluginName,
                                 const QString &interactionServiceAddress,
-                                bool autotestMode) {
+                                bool autotestMode)
+    {
         static const QString testSuffix(QStringLiteral(".test"));
         static const QString defaultPluginName = autotestMode
                 ? Sailfish::Secrets::SecretManager::DefaultAuthenticationPluginName + testSuffix
@@ -80,6 +84,19 @@ namespace {
         // use whichever authentication plugin the client has specified.
         return authPluginName;
     }
+
+    inline HealthCheckRequest::Health dataProtectorStatusToHealth(::Sailfish::Secrets::Daemon::ApiImpl::DataProtector::Status status)
+    {
+        switch (status) {
+            case ::Sailfish::Secrets::Daemon::ApiImpl::DataProtector::Success:
+                return ::Sailfish::Secrets::HealthCheckRequest::HealthOK;
+            case ::Sailfish::Secrets::Daemon::ApiImpl::DataProtector::Irretrievable:
+                return ::Sailfish::Secrets::HealthCheckRequest::HealthCorrupted;
+            default:
+                return ::Sailfish::Secrets::HealthCheckRequest::HealthOtherError;
+        }
+    }
+
 }
 
 Daemon::ApiImpl::RequestProcessor::RequestProcessor(
@@ -214,6 +231,41 @@ Daemon::ApiImpl::RequestProcessor::getPluginInfo(
     for (const QString &pluginName : m_authenticationPlugins.keys()) {
         authenticationPlugins->append(pluginInfos.value(pluginName));
     }
+
+    return Result(Result::Succeeded);
+}
+
+Result
+Daemon::ApiImpl::RequestProcessor::getHealthInfo(
+        pid_t callerPid,
+        quint64 requestId,
+        const QString &secretsDirPath,
+        Sailfish::Secrets::HealthCheckRequest::Health *saltDataHealth,
+        Sailfish::Secrets::HealthCheckRequest::Health *masterlockHealth)
+{
+    Q_UNUSED(callerPid); // TODO: perform access control request to see if the application has permission to read secure storage metadata.
+    Q_UNUSED(requestId); // The request is synchronous, so don't need the requestId.
+
+    QDir secretsDir(secretsDirPath);
+    QByteArray dummy;
+
+    // Check salt data health
+    const QString saltDirName = m_autotestMode
+            ? QLatin1String("initialsalt-test")
+            : QLatin1String("initialsalt");
+    const QString saltDirPath = secretsDir.absoluteFilePath(saltDirName);
+    DataProtector saltDataProtector(saltDirPath);
+    DataProtector::Status saltDataStatus = saltDataProtector.getData(&dummy);
+    *saltDataHealth = dataProtectorStatusToHealth(saltDataStatus);
+
+    // Check masterlock data health
+    const QString lockCodeCheckDirName = m_autotestMode
+            ? QLatin1String("lockcodecheck-test")
+            : QLatin1String("lockcodecheck");
+    const QString lockCodeCheckDirPath = secretsDir.absoluteFilePath(lockCodeCheckDirName);
+    DataProtector masterlockDataProtector(lockCodeCheckDirPath);
+    DataProtector::Status masterlockDataStatus = masterlockDataProtector.getData(&dummy);
+    *masterlockHealth = dataProtectorStatusToHealth(masterlockDataStatus);
 
     return Result(Result::Succeeded);
 }

@@ -412,6 +412,25 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, LockCodeRequest::
     return argument;
 }
 
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::HealthCheckRequest::Health &h)
+{
+    int i = static_cast<int>(h);
+    argument.beginStructure();
+    argument << i;
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::HealthCheckRequest::Health &h)
+{
+    int i = 0;
+    argument.beginStructure();
+    argument >> i;
+    argument.endStructure();
+    h = static_cast<Sailfish::Secrets::HealthCheckRequest::Health>(i);
+    return argument;
+}
+
 } // namespace Secrets
 
 } // namespace Sailfish

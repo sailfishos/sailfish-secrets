@@ -13,6 +13,7 @@
 #include "Secrets/interactionparameters.h"
 #include "Secrets/secretsdaemonconnection_p.h"
 #include "Secrets/plugininfo.h"
+#include "Secrets/healthcheckrequest.h"
 #include "Secrets/interactionview.h"
 #include "Secrets/interactionservice_p.h"
 #include "Secrets/lockcoderequest.h"
@@ -53,6 +54,11 @@ public:
                       QVector<Sailfish::Secrets::PluginInfo>,
                       QVector<Sailfish::Secrets::PluginInfo>,
                       QVector<Sailfish::Secrets::PluginInfo> > getPluginInfo();
+
+    // retrieve information about health
+    QDBusPendingReply<Sailfish::Secrets::Result,
+                      HealthCheckRequest::Health,
+                      HealthCheckRequest::Health> getHealthInfo();
 
     // retrieve user input data
     QDBusPendingReply<Sailfish::Secrets::Result, QByteArray> userInput(

@@ -35,9 +35,18 @@
 
 #include <sys/mman.h>
 
+#if defined(HAS_NEMO_NOTIFICATIONS)
+#include <notification.h>
+#endif
+
 #define MAP_PLUGIN_NAMES(variable) ::mapPluginNames(m_requestQueue->controller(), variable)
 
 namespace {
+
+    const QString systemDataDirPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + QStringLiteral("/system"));
+    const QString privilegedDataDirPath(systemDataDirPath + QStringLiteral("/privileged"));
+    const QString secretsDirPath(privilegedDataDirPath + QStringLiteral("/Secrets"));
+
     void specifyDummyMasterlockKeys(
             const QByteArray &lockCode,
             QByteArray *testCipherText,
@@ -92,6 +101,7 @@ namespace {
             const QString &pluginName) {
         return controller->mappedPluginName(pluginName);
     }
+
 }
 
 using namespace Sailfish::Secrets;
@@ -118,6 +128,23 @@ void Daemon::ApiImpl::SecretsDBusObject::getPluginInfo(
     Q_UNUSED(authenticationPlugins);    // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
     m_requestQueue->handleRequest(Daemon::ApiImpl::GetPluginInfoRequest,
+                                  inParams,
+                                  connection(),
+                                  message,
+                                  result);
+}
+
+// retrieve information about secrets health
+void Daemon::ApiImpl::SecretsDBusObject::getHealthInfo(
+        const QDBusMessage &message,
+        Result &result,
+        HealthCheckRequest::Health &saltDataHealth,
+        HealthCheckRequest::Health &masterlockHealth)
+{
+    Q_UNUSED(saltDataHealth);           // outparam, set in handlePendingRequest / handleFinishedRequest
+    Q_UNUSED(masterlockHealth);         // outparam, set in handlePendingRequest / handleFinishedRequest
+    QList<QVariant> inParams;
+    m_requestQueue->handleRequest(Daemon::ApiImpl::GetHealthInfoRequest,
                                   inParams,
                                   connection(),
                                   message,
@@ -818,9 +845,7 @@ bool Daemon::ApiImpl::SecretsRequestQueue::writeTestCipherText(
     // so this test should be safe.
     // TODO: check with crypto expert!
     // TODO: Should I just store a hash of the key instead?
-    const QString systemDataDirPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/system/");
-    const QString privilegedDataDirPath(systemDataDirPath + QLatin1String("privileged") + "/");
-    const QString secretsDirPath(privilegedDataDirPath + QLatin1String("Secrets"));
+
     QDir secretsDir(secretsDirPath);
     if (!secretsDir.mkpath(secretsDirPath)) {
         qCWarning(lcSailfishSecretsDaemon) << "Permissions error: unable to create secrets directory:" << secretsDirPath;
@@ -836,7 +861,7 @@ bool Daemon::ApiImpl::SecretsRequestQueue::writeTestCipherText(
     DataProtector::Status s = dataProtector.putData(cipherPluginName.toUtf8() + '\n' + testCipherText);
     bool ok = (s == DataProtector::Success);
     if (!ok) {
-        qCWarning(lcSailfishSecretsDaemon) << "Can't write lock code data. DataProtector returned:" << s;
+        qCWarning(lcSailfishSecretsDaemon) << "writeTestCipherText: Can't write lock code data. DataProtector returned:" << s;
     }
 
     return ok;
@@ -845,9 +870,6 @@ bool Daemon::ApiImpl::SecretsRequestQueue::writeTestCipherText(
 bool Daemon::ApiImpl::SecretsRequestQueue::determineTestCipherPlugin(
         QString *cipherPluginName) const
 {
-    const QString systemDataDirPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/system/");
-    const QString privilegedDataDirPath(systemDataDirPath + QLatin1String("privileged") + "/");
-    const QString secretsDirPath(privilegedDataDirPath + QLatin1String("Secrets"));
     QDir secretsDir(secretsDirPath);
     if (!secretsDir.mkpath(secretsDirPath)) {
         qCWarning(lcSailfishSecretsDaemon) << "Permissions error: unable to create secrets directory:" << secretsDirPath;
@@ -863,10 +885,12 @@ bool Daemon::ApiImpl::SecretsRequestQueue::determineTestCipherPlugin(
     DataProtector dataProtector(lockCodeCheckDirPath);
     DataProtector::Status s = dataProtector.getData(&previousData);
 
-    if (s != DataProtector::Success) {
-        qCWarning(lcSailfishSecretsDaemon) << "Can't read lock code data, assuming it's corrupted. DataProtector returned:" << s;
-        qCWarning(lcSailfishSecretsDaemon) << "NOTE: If you are running a pre-release sailfish-secrets version, you need to delete all old data before proceeding";
-        // TODO: find an appropriate solution for dealing with data corruption.
+    if (s == DataProtector::Irretrievable) {
+        qCWarning(lcSailfishSecretsDaemon) << "determineTestCipherPlugin: lock code data is irretrievably corrupted.";
+        dealWithDataCorruption();
+        return false;
+    } else if (s != DataProtector::Success) {
+        qCWarning(lcSailfishSecretsDaemon) << "determineTestCipherPlugin: Can't read lock code data. DataProtector returned:" << s;
         return false;
     }
 
@@ -884,9 +908,7 @@ bool Daemon::ApiImpl::SecretsRequestQueue::compareTestCipherText(
     // so this test should be safe.
     // TODO: check with crypto expert!
     // TODO: Should I just store a hash of the key instead?
-    const QString systemDataDirPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/system/");
-    const QString privilegedDataDirPath(systemDataDirPath + QLatin1String("privileged") + "/");
-    const QString secretsDirPath(privilegedDataDirPath + QLatin1String("Secrets"));
+
     QDir secretsDir(secretsDirPath);
     if (!secretsDir.mkpath(secretsDirPath)) {
         qCWarning(lcSailfishSecretsDaemon) << "Permissions error: unable to create secrets directory:" << secretsDirPath;
@@ -902,19 +924,24 @@ bool Daemon::ApiImpl::SecretsRequestQueue::compareTestCipherText(
     DataProtector dataProtector(lockCodeCheckDirPath);
     DataProtector::Status s = dataProtector.getData(&previousData);
 
-    if (s != DataProtector::Success) {
-        qCWarning(lcSailfishSecretsDaemon) << "Can't read lock code data, assuming it's corrupted. DataProtector returned:" << s;
-        qCWarning(lcSailfishSecretsDaemon) << "NOTE: If you are running a pre-release sailfish-secrets version, you need to delete all old data before proceeding";
-
-        // TODO: find an appropriate solution for dealing with data corruption.
-        abort();
+    if (s == DataProtector::Irretrievable) {
+        qCWarning(lcSailfishSecretsDaemon) << "compareTestCipherText: lock code data is irretrievably corrupted.";
+        dealWithDataCorruption();
+        return false;
+    } else if (s != DataProtector::Success) {
+        qCWarning(lcSailfishSecretsDaemon) << "compareTestCipherText: can't read lock code data. DataProtector returned:" << s;
+        return false;
     }
 
     if (previousData.isEmpty()) {
         if (writeIfNotExists) {
             // first time, write the file.
             s = dataProtector.putData(cipherPluginName.toUtf8() + '\n' + testCipherText);
-            return s == DataProtector::Success;
+            bool ok = (s == DataProtector::Success);
+            if (!ok) {
+                qCWarning(lcSailfishSecretsDaemon) << "compareTestCipherText: can't write lock code data. DataProtector returned:" << s;
+            }
+            return ok;
         } else {
             qCWarning(lcSailfishSecretsDaemon) << "Unable to read ciphertext data from nonexistent lock code check file";
             return false;
@@ -956,9 +983,6 @@ QByteArray Daemon::ApiImpl::SecretsRequestQueue::saltData() const
         return m_saltData;
     }
 
-    const QString systemDataDirPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/system/");
-    const QString privilegedDataDirPath(systemDataDirPath + QLatin1String("privileged") + "/");
-    const QString secretsDirPath(privilegedDataDirPath + QLatin1String("Secrets"));
     QDir secretsDir(secretsDirPath);
     if (!secretsDir.mkpath(secretsDirPath)) {
         qCWarning(lcSailfishSecretsDaemon) << "Permissions error: unable to create secrets directory:" << secretsDirPath;
@@ -973,13 +997,16 @@ QByteArray Daemon::ApiImpl::SecretsRequestQueue::saltData() const
     DataProtector dataProtector(saltDirPath);
     QByteArray saltData;
     DataProtector::Status s = dataProtector.getData(&saltData);
-    if (s != DataProtector::Success) {
-        qCWarning(lcSailfishSecretsDaemon) << "Can't read salt data, assuming it's corrupted. DataProtector returned:" << s;
-        qCWarning(lcSailfishSecretsDaemon) << "NOTE: If you are running a pre-release sailfish-secrets version, you need to delete all old data before proceeding";
 
-        // TODO: find an appropriate solution for dealing with data corruption.
-        abort();
+    if (s == DataProtector::Irretrievable) {
+        qCWarning(lcSailfishSecretsDaemon) << "saltData: salt data is irretrievably corrupted.";
+        dealWithDataCorruption();
+        return QByteArray();
+    } else if (s != DataProtector::Success) {
+        qCWarning(lcSailfishSecretsDaemon) << "saltData: can't read salt data. DataProtector returned:" << s;
+        return QByteArray();
     }
+
     if (saltData.isEmpty()) {
         // First run, need to write the initial salt data.
         QByteArray dateData = QDateTime::currentDateTime().toString(Qt::ISODate).toUtf8();
@@ -997,10 +1024,8 @@ QByteArray Daemon::ApiImpl::SecretsRequestQueue::saltData() const
         s = dataProtector.putData(saltData);
 
         if (s != DataProtector::Success) {
-            qCWarning(lcSailfishSecretsDaemon) << "Can't write salt data, assuming it's corrupted. DataProtector returned:" << s;
-
-            // TODO: find an appropriate solution for dealing with data corruption.
-            abort();
+            qCWarning(lcSailfishSecretsDaemon) << "saltData: Can't write salt data. DataProtector returned:" << s;
+            return QByteArray();
         }
     }
 
@@ -1160,6 +1185,7 @@ QString Daemon::ApiImpl::SecretsRequestQueue::requestTypeToString(int type) cons
     switch (type) {
         case InvalidRequest:                        return QLatin1String("InvalidRequest");
         case GetPluginInfoRequest:                  return QLatin1String("GetPluginInfoRequest");
+        case GetHealthInfoRequest:                  return QLatin1String("GetHealthInfoRequest");
         case UserInputRequest:                      return QLatin1String("UserInputRequest");
         case CollectionNamesRequest:                return QLatin1String("CollectionNamesRequest");
         case CreateDeviceLockCollectionRequest:     return QLatin1String("CreateDeviceLockCollectionRequest");
@@ -1222,6 +1248,25 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
                 *completed = true;
             }
             break;
+        }
+        case GetHealthInfoRequest: {
+            qCDebug(lcSailfishSecretsDaemon) << "Handling GetHealthInfoRequest from client:" << request->remotePid << ", request number:" << request->requestId;
+
+            HealthCheckRequest::Health saltDataHealth;
+            HealthCheckRequest::Health masterlockHealth;
+            Result result = m_requestProcessor->getHealthInfo(
+                        request->remotePid,
+                        request->requestId,
+                        secretsDirPath,
+                        &saltDataHealth,
+                        &masterlockHealth);
+
+            request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
+                                                                    << QVariant::fromValue<HealthCheckRequest::Health>(saltDataHealth)
+                                                                    << QVariant::fromValue<HealthCheckRequest::Health>(masterlockHealth));
+            *completed = true;
+            break;
+
         }
         case CollectionNamesRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling CollectionNamesRequest from client:" << request->remotePid << ", request number:" << request->requestId;
@@ -2114,6 +2159,11 @@ void Daemon::ApiImpl::SecretsRequestQueue::handleFinishedRequest(
             }
             break;
         }
+        case GetHealthInfoRequest: {
+            // The implementation in handlePendingRequest() for the GetHealthInfoRequest is purely synchronous
+            // and always completes, so we do not need to handle this request here.
+            break;
+        }
         case CollectionNamesRequest: {
             Result result = request->outParams.size()
                     ? request->outParams.takeFirst().value<Result>()
@@ -2586,3 +2636,54 @@ void Daemon::ApiImpl::SecretsRequestQueue::handleFinishedRequest(
     }
 }
 
+void Daemon::ApiImpl::SecretsRequestQueue::dealWithDataCorruption() const
+{
+    // NOTE: Right now we just delete all corrupted data.
+    //       In the future if only the masterlock is broken we could just ask
+    //       the user to set a new master lock (without clearing all data).
+
+#if defined(HAS_NEMO_NOTIFICATIONS)
+    // In this case the Nemo notifications library is present and we assume that
+    // secrets-ui is also present on the user's system. So we just send a notification
+    // that he needs to reset the secrets data on the Settings page of secrets-ui.
+
+    qCDebug(lcSailfishSecretsDaemon) << "Creating notification about data corruption.";
+
+    Notification n;
+
+    n.setCategory(QStringLiteral("x-sailfish.secrets.error"));
+    n.setRemoteDBusCallServiceName(QStringLiteral("com.jolla.settings"));
+    n.setRemoteDBusCallObjectPath(QStringLiteral("/com/jolla/settings/ui"));
+    n.setRemoteDBusCallInterface(QStringLiteral("com.jolla.settings.ui"));
+    n.setRemoteDBusCallMethodName(QStringLiteral("showPage"));
+    n.setRemoteDBusCallArguments(QVariantList() << QStringLiteral("system_settings/security/keys"));
+
+    //: Notification summary text that tells the user that their secrets data is corrupted and needs to be reset.
+    //% "Corrupted secrets data"
+    n.setSummary(qtTrId("sailfish_secrets-no-datacorruption_summary"));
+    n.setPreviewSummary(n.summary());
+
+    //: Notification body text that tells the user that their secrets data is corrupted and needs to be reset.
+    //% "Data corruption detected. Please reset your secrets data."
+    n.setBody(qtTrId("sailfish_secrets-no-datacorruption_body"));
+    n.setPreviewBody(n.body());
+
+    //: Notification application name for the data corruption notification
+    //% "Sailfish OS"
+    n.setAppName(qtTrId("sailfish_secrets-no-datacorruption_appname"));
+
+    n.publish();
+#else
+    // In this case we have no way of notifying the user about the problem, se we
+    // just solve it by resetting all the data here.
+
+    qCDebug(lcSailfishSecretsDaemon) << "Notification support is not present, resetting secrets data by deleting it all.";
+
+    // Remove entire secrets directory
+    QDir secretsDir(secretsDirPath);
+    bool removed = secretsDir.removeRecursively();
+    if (!removed) {
+        qCWarning(lcSailfishSecretsDaemon) << "Could not remove the secrets directory. It needs to be removed because the data in it is corrupted and unusable.";
+    }
+#endif
+}

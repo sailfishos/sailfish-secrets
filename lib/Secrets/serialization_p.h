@@ -18,6 +18,7 @@
 #include "Secrets/secret.h"
 #include "Secrets/interactionparameters.h"
 #include "Secrets/plugininfo.h"
+#include "Secrets/healthcheckrequest.h"
 #include "Secrets/secretmanager.h"
 #include "Secrets/interactionparameters.h"
 #include "Secrets/interactionresponse.h"
@@ -70,6 +71,9 @@ QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::Lock
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::LockCodeRequest::LockCodeTargetType &type) SAILFISH_SECRETS_API;
 QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::LockCodeRequest::LockStatus &status) SAILFISH_SECRETS_API;
 const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::LockCodeRequest::LockStatus &status) SAILFISH_SECRETS_API;
+
+QDBusArgument &operator<<(QDBusArgument &argument, const Sailfish::Secrets::HealthCheckRequest::Health &h) SAILFISH_SECRETS_API;
+const QDBusArgument &operator>>(const QDBusArgument &argument, Sailfish::Secrets::HealthCheckRequest::Health &h) SAILFISH_SECRETS_API;
 
 } // namespace Secrets
 

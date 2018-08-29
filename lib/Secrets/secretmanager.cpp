@@ -96,7 +96,11 @@ QDBusPendingReply<Result,
 SecretManagerPrivate::getPluginInfo()
 {
     if (!m_interface) {
-        return QDBusPendingReply<Result>(
+        return QDBusPendingReply<Result,
+                                 QVector<PluginInfo>,
+                                 QVector<PluginInfo>,
+                                 QVector<PluginInfo>,
+                                 QVector<PluginInfo> >(
                     QDBusMessage::createError(QDBusError::Other,
                                               QStringLiteral("Not connected to daemon")));
     }
@@ -107,6 +111,27 @@ SecretManagerPrivate::getPluginInfo()
                       QVector<PluginInfo>,
                       QVector<PluginInfo> > reply
             = m_interface->asyncCall(QStringLiteral("getPluginInfo"));
+    return reply;
+}
+
+
+QDBusPendingReply<Sailfish::Secrets::Result,
+                  HealthCheckRequest::Health,
+                  HealthCheckRequest::Health>
+SecretManagerPrivate::getHealthInfo()
+{
+    if (!m_interface) {
+        return QDBusPendingReply<Sailfish::Secrets::Result,
+                                 HealthCheckRequest::Health,
+                                 HealthCheckRequest::Health>(
+                    QDBusMessage::createError(QDBusError::Other,
+                                              QStringLiteral("Not connected to daemon")));
+    }
+
+    QDBusPendingReply<Sailfish::Secrets::Result,
+                      HealthCheckRequest::Health,
+                      HealthCheckRequest::Health> reply
+            = m_interface->asyncCall(QStringLiteral("getHealthInfo"));
     return reply;
 }
 

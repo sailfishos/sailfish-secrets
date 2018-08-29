@@ -16,6 +16,7 @@
 #include <Secrets/storedsecretrequest.h>
 #include <Secrets/deletesecretrequest.h>
 #include <Secrets/interactionrequest.h>
+#include <Secrets/healthcheckrequest.h>
 
 #include <Crypto/interactionparameters.h>
 #include <Crypto/keypairgenerationparameters.h>
@@ -853,6 +854,13 @@ void CommandHelper::start(const QString &command, const QStringList &args, const
         connect(m_secretsRequest.data(), &Sailfish::Secrets::Request::statusChanged,
                 this, &CommandHelper::secretsRequestStatusChanged);
         m_secretsRequest->startRequest();
+    } else if (command == QStringLiteral("--health-check")) {
+        Sailfish::Secrets::HealthCheckRequest *r = new Sailfish::Secrets::HealthCheckRequest;
+        m_secretsRequest.reset(r);
+        m_secretsRequest->setManager(&m_secretManager);
+        connect(m_secretsRequest.data(), &Sailfish::Secrets::Request::statusChanged,
+                this, &CommandHelper::secretsRequestStatusChanged);
+        m_secretsRequest->startRequest();
     } else {
         qInfo() << "Unknown command:" << command;
         emitFinished(EXITCODE_FAILED);
@@ -887,6 +895,10 @@ void CommandHelper::secretsRequestStatusChanged()
         Sailfish::Secrets::InteractionRequest *r = qobject_cast<Sailfish::Secrets::InteractionRequest*>(m_secretsRequest.data());
         qInfo() << "Got user input:";
         qInfo() << "\t" << r->userInput();
+    } else if (m_command == QStringLiteral("--health-check")) {
+        Sailfish::Secrets::HealthCheckRequest *r = qobject_cast<Sailfish::Secrets::HealthCheckRequest*>(m_secretsRequest.data());
+        qInfo() << "Salt data health:" << r->saltDataHealth();
+        qInfo() << "Masterlock health:" << r->masterlockHealth();
     }
 
     emitFinished(EXITCODE_SUCCESS);
