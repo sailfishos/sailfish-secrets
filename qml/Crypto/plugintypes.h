@@ -74,9 +74,16 @@ public:
                             const QString &collectionName,
                             const QString &storagePluginName) const;
     Q_INVOKABLE QVariant constructRsaKeygenParams() const;
+    Q_INVOKABLE QVariant constructRsaKeygenParams(const QVariantMap &args) const;
+
     Q_INVOKABLE QVariant constructEcKeygenParams() const;
+    Q_INVOKABLE QVariant constructEcKeygenParams(const QVariantMap &args) const;
+
     Q_INVOKABLE QVariant constructDsaKeygenParams() const;
+    Q_INVOKABLE QVariant constructDsaKeygenParams(const QVariantMap &args) const;
+
     Q_INVOKABLE QVariant constructDhKeygenParams() const;
+    Q_INVOKABLE QVariant constructDhKeygenParams(const QVariantMap &args) const;
 };
 
 } // Plugin

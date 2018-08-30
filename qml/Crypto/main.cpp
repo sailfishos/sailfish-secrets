@@ -91,9 +91,35 @@ QVariant Sailfish::Crypto::Plugin::CryptoManager::constructRsaKeygenParams() con
     return QVariant::fromValue<KeyPairGenerationParameters>(RsaKeyPairGenerationParameters());
 }
 
+QVariant Sailfish::Crypto::Plugin::CryptoManager::constructRsaKeygenParams(const QVariantMap &args) const
+{
+    QVariantMap customParams;
+    RsaKeyPairGenerationParameters params;
+    for (QVariantMap::ConstIterator it = args.constBegin(); it != args.constEnd(); it++) {
+        if (it.key().compare("modulusLength") == 0) {
+            params.setModulusLength(it->toInt());
+        } else if (it.key().compare("numberPrimes") == 0) {
+            params.setNumberPrimes(it->toInt());
+        } else if (it.key().compare("publicExponent") == 0) {
+            params.setPublicExponent(it->value<quint64>());
+        } else {
+            customParams.insert(it.key(), it.value());
+        }
+    }
+    params.setCustomParameters(customParams);
+    return QVariant::fromValue<KeyPairGenerationParameters>(params);
+}
+
 QVariant Sailfish::Crypto::Plugin::CryptoManager::constructEcKeygenParams() const
 {
     return QVariant::fromValue<KeyPairGenerationParameters>(EcKeyPairGenerationParameters());
+}
+
+QVariant Sailfish::Crypto::Plugin::CryptoManager::constructEcKeygenParams(const QVariantMap &args) const
+{
+    EcKeyPairGenerationParameters params;
+    params.setCustomParameters(args);
+    return QVariant::fromValue<KeyPairGenerationParameters>(params);
 }
 
 QVariant Sailfish::Crypto::Plugin::CryptoManager::constructDsaKeygenParams() const
@@ -101,7 +127,55 @@ QVariant Sailfish::Crypto::Plugin::CryptoManager::constructDsaKeygenParams() con
     return QVariant::fromValue<KeyPairGenerationParameters>(DsaKeyPairGenerationParameters());
 }
 
+QVariant Sailfish::Crypto::Plugin::CryptoManager::constructDsaKeygenParams(const QVariantMap &args) const
+{
+    QVariantMap customParams;
+    DsaKeyPairGenerationParameters params;
+    for (QVariantMap::ConstIterator it = args.constBegin(); it != args.constEnd(); it++) {
+        if (it.key().compare("modulusLength") == 0) {
+            params.setModulusLength(it->toInt());
+        } else if (it.key().compare("primeFactorLength") == 0) {
+            params.setPrimeFactorLength(it->toInt());
+        } else if (it.key().compare("base") == 0) {
+            params.setBase(it->toByteArray());
+        } else if (it.key().compare("modulus") == 0) {
+            params.setModulus(it->toByteArray());
+        } else if (it.key().compare("generateFamilyParameters") == 0) {
+            params.setGenerateFamilyParameters(it->toBool());
+        } else if (it.key().compare("primeFactor") == 0) {
+            params.setPrimeFactor(it->toByteArray());
+        } else {
+            customParams.insert(it.key(), it.value());
+        }
+    }
+    params.setCustomParameters(customParams);
+    return QVariant::fromValue<KeyPairGenerationParameters>(params);
+}
+
 QVariant Sailfish::Crypto::Plugin::CryptoManager::constructDhKeygenParams() const
 {
     return QVariant::fromValue<KeyPairGenerationParameters>(DhKeyPairGenerationParameters());
+}
+
+QVariant Sailfish::Crypto::Plugin::CryptoManager::constructDhKeygenParams(const QVariantMap &args) const
+{
+    QVariantMap customParams;
+    DhKeyPairGenerationParameters params;
+    for (QVariantMap::ConstIterator it = args.constBegin(); it != args.constEnd(); it++) {
+        if (it.key().compare("modulusLength") == 0) {
+            params.setModulusLength(it->toInt());
+        } else if (it.key().compare("privateExponentLength") == 0) {
+            params.setPrivateExponentLength(it->toInt());
+        } else if (it.key().compare("base") == 0) {
+            params.setBase(it->toByteArray());
+        } else if (it.key().compare("modulus") == 0) {
+            params.setModulus(it->toByteArray());
+        } else if (it.key().compare("generateFamilyParameters") == 0) {
+            params.setGenerateFamilyParameters(it->toBool());
+        } else {
+            customParams.insert(it.key(), it.value());
+        }
+    }
+    params.setCustomParameters(customParams);
+    return QVariant::fromValue<KeyPairGenerationParameters>(params);
 }
