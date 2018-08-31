@@ -18,6 +18,7 @@
 #include <QString>
 #include <QDebug>
 #include <QDateTime>
+#include <QFile>
 
 struct GPGmeContext {
     gpgme_ctx_t ctx;
@@ -106,8 +107,9 @@ struct GPGmeContext {
 struct GPGmeData {
     gpgme_data_t data;
     gpgme_error_t err;
+    QFile *source;
     GPGmeData()
-        : data(0), err(0)
+        : data(0), err(0), source(0)
     {
         err = gpgme_data_new(&data);
         if (gpgme_err_code(err) != GPG_ERR_NO_ERROR) {
@@ -117,11 +119,17 @@ struct GPGmeData {
     // The data hold by origin are not copied. origin should be valid
     // for the whole life of the created structure.
     GPGmeData(const QByteArray &origin)
-        : data(0), err(0)
+        : data(0), err(0), source(0)
     {
+        if (origin.startsWith("file://")) {
+            source = new QFile(origin.mid(7));
+            source->open(QIODevice::ReadOnly);
+            err = gpgme_data_new_from_fd(&data, source->handle());
+        } else {
 #define NO_COPY 0
-        err = gpgme_data_new_from_mem(&data, origin.constData(),
-                                      origin.length(), NO_COPY);
+            err = gpgme_data_new_from_mem(&data, origin.constData(),
+                                          origin.length(), NO_COPY);
+        }
         if (gpgme_err_code(err) != GPG_ERR_NO_ERROR) {
             data = 0;
         }
@@ -130,6 +138,10 @@ struct GPGmeData {
     {
         if (data) {
             gpgme_data_release(data);
+        }
+        if (source) {
+            source->close();
+            delete source;
         }
     }
     operator gpgme_data_t() const
