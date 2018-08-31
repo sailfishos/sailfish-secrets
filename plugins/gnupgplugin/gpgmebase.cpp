@@ -9,6 +9,7 @@
 #include "gpgme_p.h"
 #include <QTemporaryDir>
 #include <QProcess>
+#include <Secrets/interactionrequest.h>
 
 using namespace Sailfish::Crypto;
 
@@ -256,6 +257,38 @@ Result Daemon::Plugins::GnuPGPlugin::generateKey(const Key &keyTemplate,
         return Result(Result::CryptoPluginKeyGenerationError,
                       QStringLiteral("missing email custom parameter."));
     }
+    QVariantMap::ConstIterator pass = kpgParams.customParameters().constFind("passphrase");
+    QString passphrase;
+    if (pass != kpgParams.customParameters().constEnd()) {
+        passphrase = pass->toString();
+    } else {
+        // If no password is given, either ask
+        // or check that empty passphrase is request
+        QVariantMap::ConstIterator empty = kpgParams.customParameters().constFind("emptyPassphrase");
+        if (empty == kpgParams.customParameters().constEnd()) {
+            Sailfish::Secrets::SecretManager secretManager;
+            Sailfish::Secrets::InteractionParameters uiParams;
+            Sailfish::Secrets::InteractionParameters::PromptText prompt;
+            //% "Repeat password"
+            prompt.setRepeatInstruction(qtTrId("gnupg_plugin-repeat_passphrase"));
+            uiParams.setPromptText(prompt);
+            uiParams.setInputType(Sailfish::Secrets::InteractionParameters::AlphaNumericInput);
+            uiParams.setEchoMode(Sailfish::Secrets::InteractionParameters::PasswordEcho);
+
+            Sailfish::Secrets::InteractionRequest request;
+            request.setInteractionParameters(uiParams);
+            request.setManager(&secretManager);
+
+            request.startRequest();
+            request.waitForFinished();
+            if (request.result().code() == Sailfish::Secrets::Result::Succeeded) {
+                passphrase = request.userInput();
+            } else {
+                return Result(Result::CryptoPluginKeyGenerationError,
+                              request.result().errorMessage());
+            }
+        }
+    }
 
     GPGmeContext ctx(m_protocol, home);
     if (!ctx) {
@@ -283,10 +316,6 @@ Result Daemon::Plugins::GnuPGPlugin::generateKey(const Key &keyTemplate,
     else if (keyTemplate.operations() & CryptoManager::OperationEncrypt) {
         gnupgKeyParms += "Key-Usage: encrypt\n";
     }
-    QVariantMap::ConstIterator passphrase = kpgParams.customParameters().constFind("passphrase");
-    if (passphrase != kpgParams.customParameters().constEnd()) {
-        gnupgKeyParms += QStringLiteral("Passphrase: %1\n").arg(passphrase->toString());
-    }
     if (m_protocol == GPGME_PROTOCOL_OpenPGP) {
         gnupgKeyParms += QStringLiteral("Name-Real: %1\n").arg(name->toString());
         QVariantMap::ConstIterator comment = kpgParams.customParameters().constFind("comment");
@@ -297,6 +326,9 @@ Result Daemon::Plugins::GnuPGPlugin::generateKey(const Key &keyTemplate,
     QVariantMap::ConstIterator expire = kpgParams.customParameters().constFind("expire");
     if (expire != kpgParams.customParameters().constEnd()) {
         gnupgKeyParms += QStringLiteral("Expire-Date: %1\n").arg(expire->toString());
+    }
+    if (!passphrase.isEmpty()) {
+        gnupgKeyParms += QStringLiteral("Passphrase: %1\n").arg(passphrase);
     }
     gnupgKeyParms += QStringLiteral("</GnupgKeyParms>");
 

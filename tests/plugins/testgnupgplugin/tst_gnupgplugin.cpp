@@ -110,6 +110,7 @@ Key tst_gnupgplugin::addKey(CryptoManager::Algorithm algorithm,
     QVariantMap customs;
     customs.insert("name", "John Doe");
     customs.insert("email", "john.doe@example.com");
+    customs.insert("emptyPassphrase", true);
     //customs.insert("passphrase", "abc");
     keyPairGenParams.setCustomParameters(customs);
 
