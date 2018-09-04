@@ -37,13 +37,13 @@ testcases=('n /opt/tests/Sailfish/Crypto/matrix/001.sh'
            'p /opt/tests/Sailfish/Crypto/matrix/030.a.sh;p /opt/tests/Sailfish/Crypto/matrix/030.b.sh;p /opt/tests/Sailfish/Crypto/matrix/030.c.sh'
            'p /opt/tests/Sailfish/Crypto/matrix/031.a.sh;p /opt/tests/Sailfish/Crypto/matrix/031.b.sh;p /opt/tests/Sailfish/Crypto/matrix/031.c.sh'
            'p /opt/tests/Sailfish/Crypto/matrix/032.a.sh;p /opt/tests/Sailfish/Crypto/matrix/032.b.sh;p /opt/tests/Sailfish/Crypto/matrix/032.c.sh'
-	   'p /opt/tests/Sailfish/Crypto/matrix/033.a.sh;p /opt/tests/Sailfish/Crypto/matrix/033.b.sh;p /opt/tests/Sailfish/Crypto/matrix/033.c.sh'
-	   'p /opt/tests/Sailfish/Crypto/matrix/034.a.sh;p /opt/tests/Sailfish/Crypto/matrix/034.b.sh;p /opt/tests/Sailfish/Crypto/matrix/034.c.sh'
-	   'p /opt/tests/Sailfish/Crypto/matrix/035.a.sh;p /opt/tests/Sailfish/Crypto/matrix/035.b.sh;p /opt/tests/Sailfish/Crypto/matrix/035.c.sh'
-	   'p /opt/tests/Sailfish/Crypto/matrix/036.a.sh;p /opt/tests/Sailfish/Crypto/matrix/036.b.sh;p /opt/tests/Sailfish/Crypto/matrix/036.c.sh'
-	   'n /opt/tests/Sailfish/Crypto/matrix/037.a.sh;r;n /opt/tests/Sailfish/Crypto/matrix/037.b.sh;n /opt/tests/Sailfish/Crypto/matrix/037.c.sh'
-	   'n /opt/tests/Sailfish/Crypto/matrix/038.a.sh;r;n /opt/tests/Sailfish/Crypto/matrix/038.b.sh;n /opt/tests/Sailfish/Crypto/matrix/038.c.sh'
-	  'p /opt/tests/Sailfish/Crypto/matrix/039.a.sh;r;n /opt/tests/Sailfish/Crypto/matrix/039.b.sh;p /opt/tests/Sailfish/Crypto/matrix/039.c.sh')
+           'p /opt/tests/Sailfish/Crypto/matrix/033.a.sh;p /opt/tests/Sailfish/Crypto/matrix/033.b.sh;p /opt/tests/Sailfish/Crypto/matrix/033.c.sh'
+           'p /opt/tests/Sailfish/Crypto/matrix/034.a.sh;p /opt/tests/Sailfish/Crypto/matrix/034.b.sh;p /opt/tests/Sailfish/Crypto/matrix/034.c.sh'
+           'p /opt/tests/Sailfish/Crypto/matrix/035.a.sh;p /opt/tests/Sailfish/Crypto/matrix/035.b.sh;p /opt/tests/Sailfish/Crypto/matrix/035.c.sh'
+           'p /opt/tests/Sailfish/Crypto/matrix/036.a.sh;p /opt/tests/Sailfish/Crypto/matrix/036.b.sh;p /opt/tests/Sailfish/Crypto/matrix/036.c.sh'
+           'n /opt/tests/Sailfish/Crypto/matrix/037.a.sh;r;n /opt/tests/Sailfish/Crypto/matrix/037.b.sh;n /opt/tests/Sailfish/Crypto/matrix/037.c.sh'
+           'n /opt/tests/Sailfish/Crypto/matrix/038.a.sh;r;n /opt/tests/Sailfish/Crypto/matrix/038.b.sh;n /opt/tests/Sailfish/Crypto/matrix/038.c.sh'
+           'p /opt/tests/Sailfish/Crypto/matrix/039.a.sh;r;n /opt/tests/Sailfish/Crypto/matrix/039.b.sh;p /opt/tests/Sailfish/Crypto/matrix/039.c.sh')
 
 scriptresult=0
 runscript() {
