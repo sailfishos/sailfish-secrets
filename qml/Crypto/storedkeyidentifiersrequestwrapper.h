@@ -12,6 +12,7 @@
 #include "Crypto/key.h"
 
 #include "Crypto/storedkeyidentifiersrequest.h"
+#include "Crypto/plugininforequest.h"
 
 #include <QtCore/QVariant>
 #include <QtCore/QVariantList>
@@ -48,6 +49,21 @@ public:
 
 Q_SIGNALS:
     void identifiersChanged();
+};
+
+class PluginInfoRequestWrapper : public Sailfish::Crypto::PluginInfoRequest {
+    Q_OBJECT
+    Q_PROPERTY(QVariantList cryptoPlugins READ cryptoPlugins NOTIFY cryptoPluginsChanged)
+    Q_PROPERTY(QVariantList storagePlugins READ storagePlugins NOTIFY storagePluginsChanged)
+
+public:
+    PluginInfoRequestWrapper(QObject *parent = Q_NULLPTR);
+    QVariantList cryptoPlugins() const;
+    QVariantList storagePlugins() const;
+
+Q_SIGNALS:
+    void cryptoPluginsChanged();
+    void storagePluginsChanged();
 };
 
 } // Plugin
