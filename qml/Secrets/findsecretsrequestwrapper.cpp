@@ -41,3 +41,59 @@ QVariantList Sailfish::Secrets::Plugin::FindSecretsRequestWrapper::identifiers()
 
     return results;
 }
+
+Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::PluginInfoRequestWrapper(QObject *parent) : Sailfish::Secrets::PluginInfoRequest(parent)
+{
+    connect(this, &Sailfish::Secrets::PluginInfoRequest::storagePluginsChanged, this, &Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::storagePluginsChanged);
+    connect(this, &Sailfish::Secrets::PluginInfoRequest::encryptionPluginsChanged, this, &Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::encryptionPluginsChanged);
+    connect(this, &Sailfish::Secrets::PluginInfoRequest::encryptedStoragePluginsChanged, this, &Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::encryptedStoragePluginsChanged);
+    connect(this, &Sailfish::Secrets::PluginInfoRequest::authenticationPluginsChanged, this, &Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::authenticationPluginsChanged);
+}
+
+QVariantList Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::storagePlugins() const
+{
+    auto resultsFromBase = Sailfish::Secrets::PluginInfoRequest::storagePlugins();
+    QVariantList results;
+
+    for (auto i : resultsFromBase) {
+        results.append(QVariant::fromValue(i));
+    }
+
+    return results;
+}
+
+QVariantList Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::encryptionPlugins() const
+{
+    auto resultsFromBase = Sailfish::Secrets::PluginInfoRequest::encryptionPlugins();
+    QVariantList results;
+
+    for (auto i : resultsFromBase) {
+        results.append(QVariant::fromValue(i));
+    }
+
+    return results;
+}
+
+QVariantList Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::encryptedStoragePlugins() const
+{
+    auto resultsFromBase = Sailfish::Secrets::PluginInfoRequest::encryptedStoragePlugins();
+    QVariantList results;
+
+    for (auto i : resultsFromBase) {
+        results.append(QVariant::fromValue(i));
+    }
+
+    return results;
+}
+
+QVariantList Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::authenticationPlugins() const
+{
+    auto resultsFromBase = Sailfish::Secrets::PluginInfoRequest::authenticationPlugins();
+    QVariantList results;
+
+    for (auto i : resultsFromBase) {
+        results.append(QVariant::fromValue(i));
+    }
+
+    return results;
+}

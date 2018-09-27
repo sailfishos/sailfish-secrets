@@ -12,6 +12,7 @@
 #include "Secrets/secret.h"
 
 #include "Secrets/findsecretsrequest.h"
+#include "Secrets/plugininforequest.h"
 
 #include <QtCore/QVariant>
 #include <QtCore/QVariantList>
@@ -48,6 +49,27 @@ public:
 
 Q_SIGNALS:
     void identifiersChanged();
+};
+
+class PluginInfoRequestWrapper : public Sailfish::Secrets::PluginInfoRequest {
+    Q_OBJECT
+    Q_PROPERTY(QVariantList storagePlugins READ storagePlugins NOTIFY storagePluginsChanged)
+    Q_PROPERTY(QVariantList encryptionPlugins READ encryptionPlugins NOTIFY encryptionPluginsChanged)
+    Q_PROPERTY(QVariantList encryptedStoragePlugins READ encryptedStoragePlugins NOTIFY encryptedStoragePluginsChanged)
+    Q_PROPERTY(QVariantList authenticationPlugins READ authenticationPlugins NOTIFY authenticationPluginsChanged)
+
+public:
+    PluginInfoRequestWrapper(QObject *parent = Q_NULLPTR);
+    QVariantList storagePlugins() const;
+    QVariantList encryptionPlugins() const;
+    QVariantList encryptedStoragePlugins() const;
+    QVariantList authenticationPlugins() const;
+
+Q_SIGNALS:
+    void storagePluginsChanged();
+    void encryptionPluginsChanged();
+    void encryptedStoragePluginsChanged();
+    void authenticationPluginsChanged();
 };
 
 } // Plugin

@@ -41,3 +41,33 @@ QVariantList Sailfish::Crypto::Plugin::StoredKeyIdentifiersRequestWrapper::ident
 
     return results;
 }
+
+Sailfish::Crypto::Plugin::PluginInfoRequestWrapper::PluginInfoRequestWrapper(QObject *parent) : Sailfish::Crypto::PluginInfoRequest(parent)
+{
+    connect(this, &Sailfish::Crypto::PluginInfoRequest::cryptoPluginsChanged, this, &Sailfish::Crypto::Plugin::PluginInfoRequestWrapper::cryptoPluginsChanged);
+    connect(this, &Sailfish::Crypto::PluginInfoRequest::storagePluginsChanged, this, &Sailfish::Crypto::Plugin::PluginInfoRequestWrapper::storagePluginsChanged);
+}
+
+QVariantList Sailfish::Crypto::Plugin::PluginInfoRequestWrapper::cryptoPlugins() const
+{
+    auto resultsFromBase = Sailfish::Crypto::PluginInfoRequest::cryptoPlugins();
+    QVariantList results;
+
+    for (auto i : resultsFromBase) {
+        results.append(QVariant::fromValue(i));
+    }
+
+    return results;
+}
+
+QVariantList Sailfish::Crypto::Plugin::PluginInfoRequestWrapper::storagePlugins() const
+{
+    auto resultsFromBase = Sailfish::Crypto::PluginInfoRequest::storagePlugins();
+    QVariantList results;
+
+    for (auto i : resultsFromBase) {
+        results.append(QVariant::fromValue(i));
+    }
+
+    return results;
+}
