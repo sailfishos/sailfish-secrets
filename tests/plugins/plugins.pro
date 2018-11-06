@@ -7,4 +7,5 @@ SUBDIRS += \
     $$PWD/testsqlcipherplugin \
     $$PWD/testopensslcryptoplugin \
     $$PWD/testexampleusbtokenplugin \
-    $$PWD/testgnupgplugin
+    $$PWD/testgnupgplugin \
+    $$PWD/testopenpgpplugin

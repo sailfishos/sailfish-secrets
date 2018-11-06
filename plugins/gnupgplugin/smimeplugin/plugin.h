@@ -32,7 +32,7 @@ public:
     ~SMimePlugin();
 
     QString name() const Q_DECL_OVERRIDE {
-#ifdef SAILFISHSECRETS_TESTPLUGIN
+#ifdef SAILFISHCRYPTO_TESTPLUGIN
         return QLatin1String("org.sailfishos.crypto.plugin.gnupg.smime.test");
 #else
         return QLatin1String("org.sailfishos.crypto.plugin.gnupg.smime");
