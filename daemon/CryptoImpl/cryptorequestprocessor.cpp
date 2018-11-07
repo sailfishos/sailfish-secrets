@@ -248,7 +248,6 @@ Daemon::ApiImpl::RequestProcessor::generateRandomData(
                 csprngEngineName,
                 numberBytes);
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DataResult>::finished, [=] {
         watcher->deleteLater();
         DataResult dr = watcher->future().result();
@@ -257,6 +256,7 @@ Daemon::ApiImpl::RequestProcessor::generateRandomData(
         outParams << QVariant::fromValue<QByteArray>(dr.data);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -289,13 +289,13 @@ Daemon::ApiImpl::RequestProcessor::seedRandomDataGenerator(
                 seedData,
                 entropyEstimate);
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<Result>::finished, [=] {
         watcher->deleteLater();
         QVariantList outParams;
         outParams << QVariant::fromValue<Result>(watcher->future().result());
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -329,7 +329,6 @@ Daemon::ApiImpl::RequestProcessor::generateInitializationVector(
                 blockMode,
                 keySize);
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DataResult>::finished, [=] {
         watcher->deleteLater();
         DataResult vr = watcher->future().result();
@@ -338,6 +337,7 @@ Daemon::ApiImpl::RequestProcessor::generateInitializationVector(
         outParams << QVariant::fromValue<QByteArray>(vr.data);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -380,7 +380,6 @@ Daemon::ApiImpl::RequestProcessor::generateKey(
                 kpgParams,
                 skdfParams);
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<KeyResult>::finished, [=] {
         watcher->deleteLater();
         KeyResult kr = watcher->future().result();
@@ -389,6 +388,7 @@ Daemon::ApiImpl::RequestProcessor::generateKey(
         outParams << QVariant::fromValue<Key>(kr.key);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -615,7 +615,6 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_withKdfData(
                     kpgParams,
                     skdfParams);
 
-        watcher->setFuture(future);
         connect(watcher, &QFutureWatcher<KeyResult>::finished, [=] {
             watcher->deleteLater();
             KeyResult kr = watcher->future().result();
@@ -647,6 +646,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_withKdfData(
                 }
             }
         });
+        watcher->setFuture(future);
     }
 
     return Result(Result::Pending);
@@ -696,7 +696,6 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_inCryptoPlugin(
                 skdfParams,
                 collectionDecryptionKey);
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<KeyResult>::finished, [=] {
         watcher->deleteLater();
         KeyResult kr = watcher->future().result();
@@ -708,6 +707,7 @@ Daemon::ApiImpl::RequestProcessor::generateStoredKey_inCryptoPlugin(
         outParams << QVariant::fromValue<Key>(partialKey);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 Result Daemon::ApiImpl::RequestProcessor::promptForKeyPassphrase(
@@ -782,7 +782,6 @@ Daemon::ApiImpl::RequestProcessor::importKey(
                 data,
                 passphrase);
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<KeyResult>::finished, [=] {
         watcher->deleteLater();
         KeyResult kr = watcher->future().result();
@@ -814,6 +813,7 @@ Daemon::ApiImpl::RequestProcessor::importKey(
             m_requestQueue->requestFinished(requestId, outParams);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -978,7 +978,6 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey_withPassphrase(
                     passphrase,
                     collectionDecryptionKey);
 
-        watcher->setFuture(future);
         connect(watcher, &QFutureWatcher<KeyResult>::finished, [=] {
             watcher->deleteLater();
             KeyResult kr = watcher->future().result();
@@ -1008,6 +1007,7 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey_withPassphrase(
                 m_requestQueue->requestFinished(requestId, outParams);
             }
         });
+        watcher->setFuture(future);
     } else {
         QFutureWatcher<KeyResult> *watcher = new QFutureWatcher<KeyResult>(this);
         QFuture<KeyResult> future = QtConcurrent::run(
@@ -1018,7 +1018,6 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey_withPassphrase(
                     data,
                     passphrase);
 
-        watcher->setFuture(future);
         connect(watcher, &QFutureWatcher<KeyResult>::finished, [=] {
             watcher->deleteLater();
             KeyResult kr = watcher->future().result();
@@ -1065,6 +1064,7 @@ Daemon::ApiImpl::RequestProcessor::importStoredKey_withPassphrase(
                 m_requestQueue->requestFinished(requestId, outParams);
             }
         });
+        watcher->setFuture(future);
     }
 }
 
@@ -1116,7 +1116,6 @@ Daemon::ApiImpl::RequestProcessor::storedKey(
                     keyComponents,
                     customParameters);
 
-        watcher->setFuture(future);
         connect(watcher, &QFutureWatcher<KeyResult>::finished, [=] {
             watcher->deleteLater();
             KeyResult kr = watcher->future().result();
@@ -1125,6 +1124,7 @@ Daemon::ApiImpl::RequestProcessor::storedKey(
             outParams << QVariant::fromValue<Key>(kr.key);
             m_requestQueue->requestFinished(requestId, outParams);
         });
+        watcher->setFuture(future);
 
         return Result(Result::Pending);
     }
@@ -1274,7 +1274,6 @@ Daemon::ApiImpl::RequestProcessor::calculateDigest(
                 data,
                 SignatureOptions(padding, digestFunction));
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DataResult>::finished, [=] {
         watcher->deleteLater();
         DataResult dr = watcher->future().result();
@@ -1283,6 +1282,7 @@ Daemon::ApiImpl::RequestProcessor::calculateDigest(
         outParams << QVariant::fromValue<QByteArray>(dr.data);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -1392,7 +1392,6 @@ Daemon::ApiImpl::RequestProcessor::sign(
                 KeyAndCollectionKey(fullKey, QByteArray()),
                 SignatureOptions(padding, digestFunction));
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DataResult>::finished, [=] {
         watcher->deleteLater();
         DataResult dr = watcher->future().result();
@@ -1401,6 +1400,7 @@ Daemon::ApiImpl::RequestProcessor::sign(
         outParams << QVariant::fromValue<QByteArray>(dr.data);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -1434,7 +1434,6 @@ Daemon::ApiImpl::RequestProcessor::sign_withKey(
                 KeyAndCollectionKey(Key::deserialize(serializedKey), QByteArray()),
                 SignatureOptions(padding, digestFunction));
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DataResult>::finished, [=] {
         watcher->deleteLater();
         DataResult dr = watcher->future().result();
@@ -1443,6 +1442,7 @@ Daemon::ApiImpl::RequestProcessor::sign_withKey(
         outParams << QVariant::fromValue<QByteArray>(dr.data);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 void
@@ -1475,7 +1475,6 @@ Daemon::ApiImpl::RequestProcessor::sign_withCollectionKey(
                 KeyAndCollectionKey(key, collectionKey),
                 SignatureOptions(padding, digestFunction));
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DataResult>::finished, [=] {
         watcher->deleteLater();
         DataResult dr = watcher->future().result();
@@ -1484,6 +1483,7 @@ Daemon::ApiImpl::RequestProcessor::sign_withCollectionKey(
         outParams << QVariant::fromValue<QByteArray>(dr.data);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 Result
@@ -1595,7 +1595,6 @@ Daemon::ApiImpl::RequestProcessor::verify(
                 KeyAndCollectionKey(fullKey, QByteArray()),
                 SignatureOptions(padding, digestFunction));
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<ValidatedResult>::finished, [=] {
         watcher->deleteLater();
         ValidatedResult vr = watcher->future().result();
@@ -1604,6 +1603,7 @@ Daemon::ApiImpl::RequestProcessor::verify(
         outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(vr.verificationStatus);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -1639,7 +1639,6 @@ Daemon::ApiImpl::RequestProcessor::verify_withKey(
                 KeyAndCollectionKey(Key::deserialize(serializedKey), QByteArray()),
                 SignatureOptions(padding, digestFunction));
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<ValidatedResult>::finished, [=] {
         watcher->deleteLater();
         ValidatedResult vr = watcher->future().result();
@@ -1648,6 +1647,7 @@ Daemon::ApiImpl::RequestProcessor::verify_withKey(
         outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(vr.verificationStatus);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 void
@@ -1682,7 +1682,6 @@ Daemon::ApiImpl::RequestProcessor::verify_withCollectionKey(
                 KeyAndCollectionKey(key, collectionKey),
                 SignatureOptions(padding, digestFunction));
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<ValidatedResult>::finished, [=] {
         watcher->deleteLater();
         ValidatedResult vr = watcher->future().result();
@@ -1691,6 +1690,7 @@ Daemon::ApiImpl::RequestProcessor::verify_withCollectionKey(
         outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(vr.verificationStatus);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 Result
@@ -1809,7 +1809,6 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
                 EncryptionOptions(blockMode, padding),
                 authenticationData);
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<TagDataResult>::finished, [=] {
         watcher->deleteLater();
         TagDataResult dr = watcher->future().result();
@@ -1819,6 +1818,7 @@ Daemon::ApiImpl::RequestProcessor::encrypt(
         outParams << QVariant::fromValue<QByteArray>(dr.tag);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -1868,7 +1868,6 @@ Daemon::ApiImpl::RequestProcessor::encrypt_withKey(
                 EncryptionOptions(blockMode, padding),
                 authenticationData);
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<TagDataResult>::finished, [=] {
         watcher->deleteLater();
         TagDataResult dr = watcher->future().result();
@@ -1878,6 +1877,7 @@ Daemon::ApiImpl::RequestProcessor::encrypt_withKey(
         outParams << QVariant::fromValue<QByteArray>(dr.tag);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 
@@ -1915,7 +1915,6 @@ Daemon::ApiImpl::RequestProcessor::encrypt_withCollectionKey(
                 EncryptionOptions(blockMode, padding),
                 authenticationData);
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<TagDataResult>::finished, [=] {
         watcher->deleteLater();
         TagDataResult dr = watcher->future().result();
@@ -1925,6 +1924,7 @@ Daemon::ApiImpl::RequestProcessor::encrypt_withCollectionKey(
         outParams << QVariant::fromValue<QByteArray>(dr.tag);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 Sailfish::Crypto::Result
@@ -2046,7 +2046,6 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
                 EncryptionOptions(blockMode, padding),
                 AuthDataAndTag(authenticationData, authenticationTag));
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<VerifiedDataResult>::finished, [=] {
         watcher->deleteLater();
         VerifiedDataResult dr = watcher->future().result();
@@ -2056,6 +2055,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt(
         outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(dr.verificationStatus);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -2094,7 +2094,6 @@ Daemon::ApiImpl::RequestProcessor::decrypt_withKey(
                 EncryptionOptions(blockMode, padding),
                 AuthDataAndTag(authenticationData, authenticationTag));
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<VerifiedDataResult>::finished, [=] {
         watcher->deleteLater();
         VerifiedDataResult dr = watcher->future().result();
@@ -2104,6 +2103,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt_withKey(
         outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(dr.verificationStatus);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 void
@@ -2141,7 +2141,6 @@ Daemon::ApiImpl::RequestProcessor::decrypt_withCollectionKey(
                 EncryptionOptions(blockMode, padding),
                 AuthDataAndTag(authenticationData, authenticationTag));
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<VerifiedDataResult>::finished, [=] {
         watcher->deleteLater();
         VerifiedDataResult dr = watcher->future().result();
@@ -2151,6 +2150,7 @@ Daemon::ApiImpl::RequestProcessor::decrypt_withCollectionKey(
         outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(dr.verificationStatus);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 Result
@@ -2274,7 +2274,6 @@ Daemon::ApiImpl::RequestProcessor::initializeCipherSession(
                     signaturePadding,
                     digestFunction));
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<CipherSessionTokenResult>::finished, [=] {
         watcher->deleteLater();
         CipherSessionTokenResult dr = watcher->future().result();
@@ -2283,6 +2282,7 @@ Daemon::ApiImpl::RequestProcessor::initializeCipherSession(
         outParams << QVariant::fromValue<quint32>(dr.cipherSessionToken);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -2326,7 +2326,6 @@ Daemon::ApiImpl::RequestProcessor::initializeCipherSession_withKey(
                     signaturePadding,
                     digestFunction));
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<CipherSessionTokenResult>::finished, [=] {
         watcher->deleteLater();
         CipherSessionTokenResult dr = watcher->future().result();
@@ -2335,6 +2334,7 @@ Daemon::ApiImpl::RequestProcessor::initializeCipherSession_withKey(
         outParams << QVariant::fromValue<quint32>(dr.cipherSessionToken);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 void
@@ -2377,7 +2377,6 @@ Daemon::ApiImpl::RequestProcessor::initializeCipherSession_withCollectionKey(
                     signaturePadding,
                     digestFunction));
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<CipherSessionTokenResult>::finished, [=] {
         watcher->deleteLater();
         CipherSessionTokenResult dr = watcher->future().result();
@@ -2386,6 +2385,7 @@ Daemon::ApiImpl::RequestProcessor::initializeCipherSession_withCollectionKey(
         outParams << QVariant::fromValue<quint32>(dr.cipherSessionToken);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 Result
@@ -2414,13 +2414,13 @@ Daemon::ApiImpl::RequestProcessor::updateCipherSessionAuthentication(
                 authenticationData,
                 cipherSessionToken);
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<Result>::finished, [=] {
         watcher->deleteLater();
         QVariantList outParams;
         outParams << QVariant::fromValue<Result>(watcher->future().result());
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -2453,7 +2453,6 @@ Daemon::ApiImpl::RequestProcessor::updateCipherSession(
                 data,
                 cipherSessionToken);
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DataResult>::finished, [=] {
         watcher->deleteLater();
         DataResult dr = watcher->future().result();
@@ -2462,6 +2461,7 @@ Daemon::ApiImpl::RequestProcessor::updateCipherSession(
         outParams << QVariant::fromValue<QByteArray>(dr.data);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -2496,7 +2496,6 @@ Daemon::ApiImpl::RequestProcessor::finalizeCipherSession(
                 data,
                 cipherSessionToken);
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<VerifiedDataResult>::finished, [=] {
         watcher->deleteLater();
         VerifiedDataResult vdr = watcher->future().result();
@@ -2506,6 +2505,7 @@ Daemon::ApiImpl::RequestProcessor::finalizeCipherSession(
         outParams << QVariant::fromValue<CryptoManager::VerificationStatus>(vdr.verificationStatus);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
