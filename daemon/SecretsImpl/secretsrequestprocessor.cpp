@@ -311,7 +311,6 @@ Daemon::ApiImpl::RequestProcessor::collectionNames(
                     m_storagePlugins[storagePluginName]);
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<CollectionNamesResult>::finished, [=] {
         watcher->deleteLater();
         CollectionNamesResult cnr = watcher->future().result();
@@ -320,6 +319,7 @@ Daemon::ApiImpl::RequestProcessor::collectionNames(
         outParams << QVariant::fromValue<QVariantMap>(cnr.collectionNames);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -385,7 +385,6 @@ Daemon::ApiImpl::RequestProcessor::createDeviceLockCollection(
                     metadata);
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<Result>::finished, [=] {
         watcher->deleteLater();
         Result pluginResult = watcher->future().result();
@@ -404,6 +403,7 @@ Daemon::ApiImpl::RequestProcessor::createDeviceLockCollection(
         outParams << QVariant::fromValue<Result>(pluginResult);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -530,7 +530,6 @@ Daemon::ApiImpl::RequestProcessor::createCustomLockCollectionWithAuthenticationC
                     m_requestQueue->saltData());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DerivedKeyResult>::finished, [=] {
         watcher->deleteLater();
         DerivedKeyResult dkr = watcher->future().result();
@@ -553,6 +552,7 @@ Daemon::ApiImpl::RequestProcessor::createCustomLockCollectionWithAuthenticationC
                         dkr.key);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -606,7 +606,6 @@ Daemon::ApiImpl::RequestProcessor::createCustomLockCollectionWithEncryptionKey(
                     metadata);
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<Result>::finished, [=] {
         watcher->deleteLater();
         Result pluginResult = watcher->future().result();
@@ -627,6 +626,7 @@ Daemon::ApiImpl::RequestProcessor::createCustomLockCollectionWithEncryptionKey(
         outParams << QVariant::fromValue<Result>(pluginResult);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 // delete a collection
@@ -674,7 +674,6 @@ Daemon::ApiImpl::RequestProcessor::deleteCollection(
                     collectionName);
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<CollectionMetadataResult>::finished, [=] {
         watcher->deleteLater();
         CollectionMetadataResult cmr = watcher->future().result();
@@ -694,6 +693,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollection(
             m_requestQueue->requestFinished(requestId, outParams);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -889,7 +889,6 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionWithLockCode(
                     collectionName);
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<Result>::finished, [=] {
         watcher->deleteLater();
         Result pluginResult = watcher->future().result();
@@ -906,6 +905,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionWithLockCode(
         outParams << QVariant::fromValue<Result>(pluginResult);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 void
@@ -940,7 +940,6 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionWithEncryptionKey(
                     collectionName);
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<Result>::finished, [=] {
         watcher->deleteLater();
         Result pluginResult = watcher->future().result();
@@ -957,6 +956,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionWithEncryptionKey(
         outParams << QVariant::fromValue<Result>(pluginResult);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 // this method is a helper for the crypto API.
@@ -1019,7 +1019,6 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiers(
                     collectionName);
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<CollectionMetadataResult>::finished, [=] {
         watcher->deleteLater();
         CollectionMetadataResult cmr = watcher->future().result();
@@ -1040,6 +1039,7 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiers(
             m_requestQueue->requestFinished(requestId, outParams);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -1239,7 +1239,6 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithAuthenticationCode(
                     m_requestQueue->saltData());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DerivedKeyResult>::finished, [=] {
         watcher->deleteLater();
         DerivedKeyResult dkr = watcher->future().result();
@@ -1256,6 +1255,7 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithAuthenticationCode(
                         collectionMetadata, dkr.key, true);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -1292,7 +1292,6 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithEncryptionKey(
                 CollectionInfo(collectionName, collectionKey, requiresRelock),
                 customParameters);
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<IdentifiersResult>::finished, [=] {
         watcher->deleteLater();
         IdentifiersResult identResult = watcher->future().result();
@@ -1308,6 +1307,7 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithEncryptionKey(
         outParams << QVariant::fromValue<QVector<Secret::Identifier> >(identResult.identifiers);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 // this method is a helper for the crypto API.
@@ -1417,7 +1417,6 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
                     secret.identifier().collectionName());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<CollectionMetadataResult>::finished, [=] {
         watcher->deleteLater();
         CollectionMetadataResult cmr = watcher->future().result();
@@ -1437,6 +1436,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecret(
             m_requestQueue->requestFinished(requestId, outParams);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -1806,7 +1806,6 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithAuthenticationCode(
                     m_requestQueue->saltData());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DerivedKeyResult>::finished, [=] {
         watcher->deleteLater();
         DerivedKeyResult dkr = watcher->future().result();
@@ -1821,6 +1820,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithAuthenticationCode(
                         collectionMetadata, dkr.key);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -1886,7 +1886,6 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithEncryptionKey(
                 encryptionKey);
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<Result>::finished, [=] {
         watcher->deleteLater();
         Result pluginResult = watcher->future().result();
@@ -1894,6 +1893,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithEncryptionKey(
         outParams << QVariant::fromValue<Result>(pluginResult);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 // set a standalone DeviceLock-protected secret
@@ -1985,7 +1985,6 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSecret(
                     secret.identifier().name());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<SecretMetadataResult>::finished, [=] {
         watcher->deleteLater();
         SecretMetadataResult smr = watcher->future().result();
@@ -2017,6 +2016,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSecret(
             m_requestQueue->requestFinished(requestId, outParams);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -2112,7 +2112,6 @@ Daemon::ApiImpl::RequestProcessor::writeStandaloneDeviceLockSecret(
             identifiedSecret,
             m_requestQueue->deviceLockKey());
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<Result>::finished, [=] {
         watcher->deleteLater();
         Result pluginResult = watcher->future().result();
@@ -2125,6 +2124,7 @@ Daemon::ApiImpl::RequestProcessor::writeStandaloneDeviceLockSecret(
         outParams << QVariant::fromValue<Result>(pluginResult);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -2213,7 +2213,6 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecret(
                     secret.identifier().name());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<SecretMetadataResult>::finished, [=] {
         watcher->deleteLater();
         SecretMetadataResult smr = watcher->future().result();
@@ -2246,6 +2245,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecret(
             m_requestQueue->requestFinished(requestId, outParams);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -2404,7 +2404,6 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretWithAuthenticati
                     m_requestQueue->saltData());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DerivedKeyResult>::finished, [=] {
         watcher->deleteLater();
         DerivedKeyResult dkr = watcher->future().result();
@@ -2418,6 +2417,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretWithAuthenticati
                         secretMetadata, dkr.key);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -2459,7 +2459,6 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretWithEncryptionKe
                 encryptionKey);
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<Result>::finished, [=] {
         watcher->deleteLater();
         Result pluginResult = watcher->future().result();
@@ -2477,6 +2476,7 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecretWithEncryptionKe
         outParams << QVariant::fromValue<Result>(pluginResult);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 // get a secret in a collection
@@ -2526,7 +2526,6 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
                     identifier.collectionName());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<CollectionMetadataResult>::finished, [=] {
         watcher->deleteLater();
         CollectionMetadataResult cmr = watcher->future().result();
@@ -2545,6 +2544,7 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecret(
             m_requestQueue->requestFinished(requestId, outParams);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -2847,7 +2847,6 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithAuthenticationCode(
                     m_requestQueue->saltData());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DerivedKeyResult>::finished, [=] {
         watcher->deleteLater();
         DerivedKeyResult dkr = watcher->future().result();
@@ -2862,6 +2861,7 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithAuthenticationCode(
                         collectionMetadata, dkr.key);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -2916,7 +2916,6 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithEncryptionKey(
                 encryptionKey);
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<SecretResult>::finished, [=] {
         watcher->deleteLater();
         SecretResult sr = watcher->future().result();
@@ -2925,6 +2924,7 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithEncryptionKey(
         outParams << QVariant::fromValue<Secret>(sr.secret);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 // get a standalone secret
@@ -2973,7 +2973,6 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
                     identifier.name());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<SecretMetadataResult>::finished, [=] {
         watcher->deleteLater();
         SecretMetadataResult smr = watcher->future().result();
@@ -2992,6 +2991,7 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecret(
             m_requestQueue->requestFinished(requestId, outParams);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -3168,7 +3168,6 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithAuthenticationCode(
                     m_requestQueue->saltData());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DerivedKeyResult>::finished, [=] {
         watcher->deleteLater();
         DerivedKeyResult dkr = watcher->future().result();
@@ -3183,6 +3182,7 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithAuthenticationCode(
                             secretMetadata, dkr.key);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -3214,7 +3214,6 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithEncryptionKey(
                     m_encryptedStoragePlugins[identifier.storagePluginName()],
                     identifier.name(),
                     encryptionKey);
-        watcher->setFuture(future);
         connect(watcher, &QFutureWatcher<SecretDataResult>::finished, [=] {
             watcher->deleteLater();
             SecretDataResult sdr = watcher->future().result();
@@ -3226,6 +3225,7 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithEncryptionKey(
             outParams << QVariant::fromValue<Secret>(outputSecret);
             m_requestQueue->requestFinished(requestId, outParams);
         });
+        watcher->setFuture(future);
     } else {
         const QString hashedSecretName = calculateSecretNameHash(
                     Secret::Identifier(identifier.name(), QStringLiteral("standalone"), identifier.storagePluginName()));
@@ -3244,7 +3244,6 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithEncryptionKey(
                 Secret::Identifier(identifier.name(), QStringLiteral("standalone"), identifier.storagePluginName()),
                 m_standaloneSecretEncryptionKeys.value(hashedSecretName));
 
-        watcher->setFuture(future);
         connect(watcher, &QFutureWatcher<SecretResult>::finished, [=] {
             watcher->deleteLater();
             SecretResult sr = watcher->future().result();
@@ -3254,6 +3253,7 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithEncryptionKey(
             outParams << QVariant::fromValue<Secret>(sr.secret);
             m_requestQueue->requestFinished(requestId, outParams);
         });
+        watcher->setFuture(future);
     }
 }
 
@@ -3307,7 +3307,6 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
                     collectionName);
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<CollectionMetadataResult>::finished, [=] {
         watcher->deleteLater();
         CollectionMetadataResult cmr = watcher->future().result();
@@ -3329,6 +3328,7 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecrets(
             m_requestQueue->requestFinished(requestId, outParams);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -3654,7 +3654,6 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithAuthenticationCode(
                     m_requestQueue->saltData());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DerivedKeyResult>::finished, [=] {
         watcher->deleteLater();
         DerivedKeyResult dkr = watcher->future().result();
@@ -3671,6 +3670,7 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithAuthenticationCode(
                         collectionMetadata, dkr.key);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -3728,7 +3728,6 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithEncryptionKey(
                     static_cast<StoragePlugin::FilterOperator>(filterOperator));
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<IdentifiersResult>::finished, [=] {
         watcher->deleteLater();
         IdentifiersResult ir = watcher->future().result();
@@ -3737,6 +3736,7 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithEncryptionKey(
         outParams << QVariant::fromValue<QVector<Secret::Identifier> >(ir.identifiers);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 // find standalone secrets via filter
@@ -3809,7 +3809,6 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
                     identifier.collectionName());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<CollectionMetadataResult>::finished, [=] {
         watcher->deleteLater();
         CollectionMetadataResult cmr = watcher->future().result();
@@ -3828,6 +3827,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecret(
             m_requestQueue->requestFinished(requestId, outParams);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -4116,7 +4116,6 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithAuthenticationCode(
                     m_requestQueue->saltData());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DerivedKeyResult>::finished, [=] {
         watcher->deleteLater();
         DerivedKeyResult dkr = watcher->future().result();
@@ -4131,6 +4130,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithAuthenticationCode(
                             collectionMetadata, dkr.key);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -4184,7 +4184,6 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithEncryptionKey(
                     identifier.name());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<Result>::finished, [=] {
         watcher->deleteLater();
         Result pluginResult = watcher->future().result();
@@ -4192,6 +4191,7 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithEncryptionKey(
         outParams << QVariant::fromValue<Result>(pluginResult);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 // delete a standalone secret
@@ -4222,7 +4222,6 @@ Daemon::ApiImpl::RequestProcessor::deleteStandaloneSecret(
                     identifier.name());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<SecretMetadataResult>::finished, [=] {
         watcher->deleteLater();
         SecretMetadataResult smr = watcher->future().result();
@@ -4240,6 +4239,7 @@ Daemon::ApiImpl::RequestProcessor::deleteStandaloneSecret(
             m_requestQueue->requestFinished(requestId, outParams);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -4295,7 +4295,6 @@ Daemon::ApiImpl::RequestProcessor::deleteStandaloneSecretWithMetadata(
                     identifier.name());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<Result>::finished, [=] {
         watcher->deleteLater();
         Result pluginResult = watcher->future().result();
@@ -4312,6 +4311,7 @@ Daemon::ApiImpl::RequestProcessor::deleteStandaloneSecretWithMetadata(
         outParams << QVariant::fromValue<Result>(pluginResult);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -5036,7 +5036,6 @@ Daemon::ApiImpl::RequestProcessor::useCollectionKeyPreCheck(
                     identifier.collectionName());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<CollectionMetadataResult>::finished, [=] {
         watcher->deleteLater();
         CollectionMetadataResult cmr = watcher->future().result();
@@ -5057,6 +5056,7 @@ Daemon::ApiImpl::RequestProcessor::useCollectionKeyPreCheck(
             m_requestQueue->requestFinished(requestId, outParams);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -5383,7 +5383,6 @@ Daemon::ApiImpl::RequestProcessor::useCollectionKeyPreCheckWithAuthenticationCod
                     m_requestQueue->saltData());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DerivedKeyResult>::finished, [=] {
         watcher->deleteLater();
         DerivedKeyResult dkr = watcher->future().result();
@@ -5400,6 +5399,7 @@ Daemon::ApiImpl::RequestProcessor::useCollectionKeyPreCheckWithAuthenticationCod
                         dkr.key);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -5442,7 +5442,6 @@ Daemon::ApiImpl::RequestProcessor::useCollectionKeyPreCheckWithEncryptionKey(
                     false);
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<Result>::finished, [=] {
         watcher->deleteLater();
         Result result = watcher->future().result();
@@ -5451,6 +5450,7 @@ Daemon::ApiImpl::RequestProcessor::useCollectionKeyPreCheckWithEncryptionKey(
         outParams << QVariant::fromValue<QByteArray>(collectionDecryptionKey);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 Result
@@ -5498,7 +5498,6 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheck(
                     identifier.collectionName());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<CollectionMetadataResult>::finished, [=] {
         watcher->deleteLater();
         CollectionMetadataResult cmr = watcher->future().result();
@@ -5517,6 +5516,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheck(
             m_requestQueue->requestFinished(requestId, outParams);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -5792,7 +5792,6 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithAuthenticationCod
                     m_requestQueue->saltData());
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<DerivedKeyResult>::finished, [=] {
         watcher->deleteLater();
         DerivedKeyResult dkr = watcher->future().result();
@@ -5809,6 +5808,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithAuthenticationCod
                         dkr.key);
         }
     });
+    watcher->setFuture(future);
 
     return Result(Result::Pending);
 }
@@ -5851,7 +5851,6 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithEncryptionKey(
                     true);
     }
 
-    watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<Result>::finished, [=] {
         watcher->deleteLater();
         Result result = watcher->future().result();
@@ -5860,6 +5859,7 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithEncryptionKey(
         outParams << QVariant::fromValue<QByteArray>(collectionDecryptionKey);
         m_requestQueue->requestFinished(requestId, outParams);
     });
+    watcher->setFuture(future);
 }
 
 void
