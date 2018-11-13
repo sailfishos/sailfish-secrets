@@ -203,7 +203,7 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, SecretManager::Fi
 QDBusArgument &operator<<(QDBusArgument &argument, const PluginInfo &info)
 {
     argument.beginStructure();
-    argument << info.displayName() << info.name() << info.name() << static_cast<int>(info.statusFlags());;
+    argument << info.displayName() << info.name() << static_cast<int>(info.version()) << static_cast<int>(info.statusFlags());;
     argument.endStructure();
     return argument;
 }
