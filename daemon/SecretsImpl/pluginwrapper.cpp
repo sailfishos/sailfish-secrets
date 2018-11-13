@@ -186,7 +186,7 @@ bool StoragePluginWrapper::initialize(const QByteArray &masterLockKey)
     }
 
     QStringList cnames;
-    QVariantMap cnamesMap;
+    QMap<QString, bool> cnamesMap;
     Result result = collectionNames(&cnamesMap);
     cnames = cnamesMap.keys();
     if (result.code() != Result::Succeeded) {
@@ -238,7 +238,7 @@ StoragePlugin::StorageType StoragePluginWrapper::storageType() const
 }
 
 Result StoragePluginWrapper::collectionNames(
-        QVariantMap *names) const
+        QMap<QString, bool> *names) const
 {
     QStringList cnames;
     Result result = m_storagePlugin->collectionNames(&cnames);
@@ -547,7 +547,7 @@ bool EncryptedStoragePluginWrapper::initialize(const QByteArray &masterLockKey)
     // we can only do this if it is not locked.
     if (!m_encryptedStoragePlugin->isLocked()) {
         QStringList cnames, lockedCollections;
-        QVariantMap cnamesMap;
+        QMap<QString, bool> cnamesMap;
         Result result = collectionNames(&cnamesMap);
         cnames = cnamesMap.keys();
         if (result.code() != Result::Succeeded) {
@@ -616,7 +616,7 @@ EncryptionPlugin::EncryptionAlgorithm EncryptedStoragePluginWrapper::encryptionA
 }
 
 Result EncryptedStoragePluginWrapper::collectionNames(
-        QVariantMap *names) const
+        QMap<QString, bool> *names) const
 {
     QStringList cnames;
     Result result = m_encryptedStoragePlugin->collectionNames(&cnames);

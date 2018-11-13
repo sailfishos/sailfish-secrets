@@ -316,7 +316,7 @@ Daemon::ApiImpl::RequestProcessor::collectionNames(
         CollectionNamesResult cnr = watcher->future().result();
         QVariantList outParams;
         outParams << QVariant::fromValue<Result>(cnr.result);
-        outParams << QVariant::fromValue<QVariantMap>(cnr.collectionNames);
+        outParams << QVariant::fromValue<QMap<QString, bool> >(cnr.collectionNames);
         m_requestQueue->requestFinished(requestId, outParams);
     });
     watcher->setFuture(future);

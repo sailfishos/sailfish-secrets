@@ -86,7 +86,7 @@ class SecretsDBusObject : public QObject, protected QDBusContext
     "      <method name=\"collectionNames\">\n"
     "          <arg name=\"storagePluginName\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
-    "          <arg name=\"names\" type=\"a{sv}\" direction=\"out\" />\n"
+    "          <arg name=\"names\" type=\"a{sb}\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
     "      </method>\n"
     "      <method name=\"createCollection\">\n"
