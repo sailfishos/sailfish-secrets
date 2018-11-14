@@ -121,6 +121,8 @@ For your Linux desktop:
 qtsqlcipher, which depends on Qt internals that are not compatible between versions.
 2. sqlcipher package (installed from your distro's package manager)
 
+If you wish to build the GnuPG plugin, you will need to install libgpg-error, gpgme-devel, and libassuan-devel.
+
 ## Building
 
 1. Clone the repo and go inside:
