@@ -24,8 +24,11 @@
 #include <QtCore/QHash>
 #include <QtCore/QMap>
 #include <QtCore/QSharedDataPointer>
+#include <QtCore/QLoggingCategory>
 
 #define Sailfish_Crypto_CryptoPlugin_IID "org.sailfishos.crypto.CryptoPlugin/1.0"
+
+SAILFISH_CRYPTO_API Q_DECLARE_LOGGING_CATEGORY(lcSailfishCryptoPlugin)
 
 namespace Sailfish {
 

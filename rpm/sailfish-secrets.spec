@@ -236,6 +236,22 @@ Requires:   libsailfishcryptopluginapi = %{version}-%{release}
 %description -n %{secretsdaemon}-cryptoplugins-default
 %{summary}.
 
+%package -n %{secretsdaemon}-cryptoplugins-gnupg
+Summary:    Sailfish OS crypto daemon plugins for GnuPG
+Group:      Applications/System
+BuildRequires:  pkgconfig(Qt5Core)
+BuildRequires:  pkgconfig(libcrypto)
+BuildRequires:  pkgconfig(libgpg-error)
+BuildRequires:  pkgconfig(mlite5)
+BuildRequires:  gpgme-devel
+BuildRequires:  libassuan-devel
+Requires:   %{secretsdaemon} = %{version}-%{release}
+Requires:   libsailfishcrypto = %{version}-%{release}
+Requires:   libsailfishcryptopluginapi = %{version}-%{release}
+
+%description -n %{secretsdaemon}-cryptoplugins-gnupg
+%{summary}.
+
 
 %package -n sailfishsecrets-tool
 Summary:    Command line tool to interact with the Sailfish OS Secrets and Crypto service
@@ -357,7 +373,9 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 /opt/tests/Sailfish/Crypto/tst_evp
 /opt/tests/Sailfish/Crypto/tst_qml_signing
 /opt/tests/Sailfish/Crypto/tst_qml_signing.qml
+/opt/tests/Sailfish/Crypto/tst_gnupgplugin
 %{_libdir}/Sailfish/Crypto/libsailfishcrypto-testopenssl.so
+%{_libdir}/Sailfish/Crypto/libsailfishcrypto-testopenpgp.so
 
 %files -n libsailfishcryptopluginapi
 %defattr(-,root,root,-)
@@ -397,6 +415,12 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 %files -n %{secretsdaemon}-cryptoplugins-default
 %defattr(-,root,root,-)
 %{_libdir}/Sailfish/Crypto/libsailfishcrypto-openssl.so
+
+%files -n %{secretsdaemon}-cryptoplugins-gnupg
+%defattr(-,root,root,-)
+%{_libdir}/Sailfish/Crypto/libsailfishcrypto-openpgp.so
+%{_libdir}/Sailfish/Crypto/libsailfishcrypto-smime.so
+%{_bindir}/pinentry
 
 %files -n sailfishsecrets-tool
 %defattr(-,root,root,-)
