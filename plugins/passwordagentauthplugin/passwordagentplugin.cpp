@@ -648,9 +648,11 @@ Result PasswordAgentPlugin::beginUserInputInteraction(
                              << "in collection" << interactionParameters.collectionName()
                              << interactionServiceAddress;
 
-    // If there's a repeat prompt call CreatePassword which will ask for the password
-    // to be repeated twice.
-    const bool newPassword = promptText.contains(InteractionParameters::RepeatInstruction);
+    const bool newPassword = (interactionParameters.operation()
+                              == InteractionParameters::CreatePassword
+                              /* Keep old behaviour, before CreatePassword operation
+                                 was introduced. */
+                              || promptText.contains(InteractionParameters::RepeatInstruction));
 
     QDBusPendingCall call = agent->asyncCall(newPassword
                     ? QStringLiteral("CreatePassword")
