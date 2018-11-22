@@ -1,12 +1,16 @@
 #include "sf-secrets-collection.h"
 #include "sf-secrets-manager-private.h"
+#include "sf-secrets.h"
 
 enum SfSecretCollectionProperties {
 	PROP_MANAGER = 1,
 	PROP_PLUGIN_NAME,
 	PROP_ENCRYPTION_PLUGIN_NAME,
+	PROP_AUTHENTICATION_PLUGIN_NAME,
 	PROP_NAME,
 	PROP_FLAGS,
+	PROP_ACCESS_CONTROL_MODE,
+	PROP_DEVICE_UNLOCK_SEMANTIC
 };
 
 typedef struct SfSecretsCollectionPrivate_ SfSecretsCollectionPrivate;
@@ -17,7 +21,10 @@ struct SfSecretsCollectionPrivate_
 	gchar *plugin_name;
 	gchar *encryption_plugin_name;
 	gchar *name;
+	gchar *authentication_plugin_name;
 	SfSecretsCollectionFlags flags;
+	SfSecretsAccessControlMode access_control_mode;
+	SfSecretsDeviceUnlockSemantic device_unlock_semantic;
 };
 
 static void _async_initable_iface_init (GAsyncInitableIface *async_initable_iface);
@@ -33,6 +40,69 @@ static gboolean _async_initable_init_finish (GAsyncInitable *initable,
 G_DEFINE_TYPE_WITH_CODE(SfSecretsCollection, sf_secrets_collection, G_TYPE_OBJECT,
 		G_ADD_PRIVATE(SfSecretsCollection)
 		G_IMPLEMENT_INTERFACE(G_TYPE_ASYNC_INITABLE, _async_initable_iface_init))
+
+static void _sf_secrets_collection_create_collection_ready(GObject *source_object,
+		GAsyncResult *res,
+		gpointer user_data)
+{
+	GTask *task = user_data;
+	GError *error;
+	GVariant *response = g_dbus_proxy_call_finish(G_DBUS_PROXY(source_object),
+			res, &error);
+
+	if (error) {
+		g_task_return_error(task, error);
+		return;
+	}
+
+	if (!_sf_secrets_manager_check_reply(response, &error, NULL)) {
+		g_task_return_error(task, error);
+		g_variant_unref(response);
+		return;
+	}
+
+	g_task_return_boolean(task, TRUE);
+}
+
+static void _sf_secrets_collection_create(SfSecretsCollection *collection,
+		GTask *task)
+{
+	SfSecretsCollectionPrivate *priv = sf_secrets_collection_get_instance_private(collection);
+	GDBusProxy *proxy = _sf_secrets_manager_get_dbus_proxy(priv->manager);
+	GVariant *args;
+
+	if (priv->authentication_plugin_name && *priv->authentication_plugin_name) {
+		const gchar *interaction_service_address;
+		SfSecretsUserInteractionMode mode;
+		_sf_secrets_manager_get_interaction_mode(priv->manager, &mode, &interaction_service_address);
+		args = g_variant_new("(ssss(i)(i)(i)s)",
+				priv->name,
+				priv->plugin_name,
+				priv->encryption_plugin_name,
+				priv->authentication_plugin_name,
+				priv->device_unlock_semantic,
+				priv->access_control_mode,
+				mode,
+				interaction_service_address);
+	} else {
+		args = g_variant_new("(ssss(i)(i))",
+				priv->name,
+				priv->plugin_name,
+				priv->encryption_plugin_name,
+				priv->device_unlock_semantic,
+				priv->access_control_mode);
+	}
+
+	g_dbus_proxy_call(proxy,
+			"createCollection",
+			args,
+			G_DBUS_CALL_FLAGS_NONE,
+			-1,
+			g_task_get_cancellable(task),
+			_sf_secrets_collection_create_collection_ready,
+			task);
+	g_object_unref(proxy);
+}
 
 static void _sf_secrets_collection_get_collection_names_ready(GObject *source_object,
 		GAsyncResult *res,
@@ -70,16 +140,13 @@ static void _sf_secrets_collection_get_collection_names_ready(GObject *source_ob
 	}
 
 	if (!found) {
-		if (priv->flags & SF_SECRETS_COLLECTION_CREATE) {
-			g_task_return_new_error(task,
-					g_quark_from_static_string("SfSecrets"),
-						501,
-						"Collection creation not implemented");
+		if ((priv->flags & SF_SECRETS_COLLECTION_FLAGS_MODE_MASK) == SF_SECRETS_COLLECTION_FLAGS_MODE_ENSURE) {
+			_sf_secrets_collection_create(collection, task);
 			return;
 		} else {
 			g_task_return_new_error(task,
 					g_quark_from_static_string("SfSecrets"),
-						404,
+						SF_SECRETS_ERROR_INVALID_COLLECTION,
 						"Collection %s not found",
 						priv->name);
 			return;
@@ -106,21 +173,25 @@ static void _async_initable_init_async (GAsyncInitable *initable,
 		g_task_return_new_error(
 				task,
 				g_quark_from_static_string("SfSecrets"),
-				1337,
-				"No manager");
+				SF_SECRETS_ERROR_UNKNOWN,
+				"No manager defined");
 		return;
 	}
 
 	proxy = _sf_secrets_manager_get_dbus_proxy(priv->manager);
 
-	g_dbus_proxy_call(proxy,
-			"collectionNames",
-			g_variant_new("(s)", priv->plugin_name),
-			G_DBUS_CALL_FLAGS_NONE,
-			-1,
-			cancellable,
-			_sf_secrets_collection_get_collection_names_ready,
-			task);
+	if ((priv->flags & SF_SECRETS_COLLECTION_FLAGS_MODE_MASK) == SF_SECRETS_COLLECTION_FLAGS_MODE_CREATE) {
+		_sf_secrets_collection_create(SF_SECRETS_COLLECTION(initable), task);
+	} else {
+		g_dbus_proxy_call(proxy,
+				"collectionNames",
+				g_variant_new("(s)", priv->plugin_name),
+				G_DBUS_CALL_FLAGS_NONE,
+				-1,
+				cancellable,
+				_sf_secrets_collection_get_collection_names_ready,
+				task);
+	}
 }
 
 static gboolean _async_initable_init_finish (GAsyncInitable *initable,
@@ -166,11 +237,20 @@ static void _sf_secrets_collection_get_property(GObject *object, guint property_
 		case PROP_ENCRYPTION_PLUGIN_NAME:
 			g_value_set_string(value, priv->encryption_plugin_name);
 			break;
+		case PROP_AUTHENTICATION_PLUGIN_NAME:
+			g_value_set_string(value, priv->authentication_plugin_name);
+			break;
 		case PROP_NAME:
 			g_value_set_string(value, priv->name);
 			break;
 		case PROP_FLAGS:
 			g_value_set_uint(value, priv->flags);
+			break;
+		case PROP_ACCESS_CONTROL_MODE:
+			g_value_set_uint(value, priv->access_control_mode);
+			break;
+		case PROP_DEVICE_UNLOCK_SEMANTIC:
+			g_value_set_uint(value, priv->device_unlock_semantic);
 			break;
 		default:
 			g_warning("Unknown property %u", property_id);
@@ -201,6 +281,11 @@ static void _sf_secrets_collection_set_property(GObject *object, guint property_
 				g_free(priv->encryption_plugin_name);
 			priv->encryption_plugin_name = g_value_dup_string(value);
 			break;
+		case PROP_AUTHENTICATION_PLUGIN_NAME:
+			if (priv->authentication_plugin_name)
+				g_free(priv->authentication_plugin_name);
+			priv->authentication_plugin_name = g_value_dup_string(value);
+			break;
 		case PROP_NAME:
 			if (priv->name)
 				g_free(priv->name);
@@ -208,6 +293,12 @@ static void _sf_secrets_collection_set_property(GObject *object, guint property_
 			break;
 		case PROP_FLAGS:
 			priv->flags = g_value_get_uint(value);
+			break;
+		case PROP_ACCESS_CONTROL_MODE:
+			priv->access_control_mode = g_value_get_uint(value);
+			break;
+		case PROP_DEVICE_UNLOCK_SEMANTIC:
+			priv->device_unlock_semantic = g_value_get_uint(value);
 			break;
 		default:
 			g_warning("Unknown property %u", property_id);
@@ -252,6 +343,16 @@ void sf_secrets_collection_class_init(SfSecretsCollectionClass *collection_class
 				G_PARAM_STATIC_STRINGS));
 
 	g_object_class_install_property(G_OBJECT_CLASS(collection_class),
+			PROP_AUTHENTICATION_PLUGIN_NAME,
+			g_param_spec_string("authentication-plugin-name",
+				"authentication-plugin-name",
+				"Authentication plugin name",
+				NULL,
+				G_PARAM_READWRITE |
+				G_PARAM_CONSTRUCT_ONLY |
+				G_PARAM_STATIC_STRINGS));
+
+	g_object_class_install_property(G_OBJECT_CLASS(collection_class),
 			PROP_NAME,
 			g_param_spec_string("name",
 				"name",
@@ -273,43 +374,150 @@ void sf_secrets_collection_class_init(SfSecretsCollectionClass *collection_class
 				G_PARAM_CONSTRUCT_ONLY |
 				G_PARAM_STATIC_STRINGS));
 
-}
+	g_object_class_install_property(G_OBJECT_CLASS(collection_class),
+			PROP_ACCESS_CONTROL_MODE,
+			g_param_spec_uint("access-control-mode",
+				"access-control-mode",
+				"Collection access control mode",
+				SF_SECRETS_ACCESS_CONTROL_MODE_OWNER_ONLY,
+				SF_SECRETS_ACCESS_CONTROL_MODE_NONE,
+				0,
+				G_PARAM_READWRITE |
+				G_PARAM_CONSTRUCT_ONLY |
+				G_PARAM_STATIC_STRINGS));
 
-void sf_secrets_collection_new(SfSecretsManager *manager,
-		const gchar *plugin_name,
-		const gchar *encryption_plugin_name,
-		const gchar *name,
-		SfSecretsCollectionFlags flags,
-		GCancellable *cancellable,
-		GAsyncReadyCallback callback,
-		gpointer user_data)
-{
-	g_async_initable_new_async(SF_TYPE_SECRETS_COLLECTION,
-			G_PRIORITY_DEFAULT,
-			cancellable,
-			callback,
-			user_data,
-			"manager", manager,
-			"plugin-name", plugin_name,
-			"encryption-plugin-name", encryption_plugin_name,
-			"name", name,
-			"flags", flags,
-			NULL);
-}
-
-SfSecretsCollection *sf_secrets_collection_new_finish(GAsyncResult *res,
-		GError **error)
-{
-	GObject *src_obj = g_async_result_get_source_object(res);
-	GObject *obj = g_async_initable_new_finish(G_ASYNC_INITABLE(src_obj),
-			res, error);
-	g_object_unref(src_obj);
-
-	return SF_SECRETS_COLLECTION(obj);
+	g_object_class_install_property(G_OBJECT_CLASS(collection_class),
+			PROP_DEVICE_UNLOCK_SEMANTIC,
+			g_param_spec_uint("device-unlock-semantic",
+				"device-unlock-semantic",
+				"Collection device unlock semantic",
+				SF_SECRETS_DEVICE_UNLOCK_SEMANTIC_KEEP_UNLOCKED,
+				SF_SECRETS_DEVICE_UNLOCK_SEMANTIC_RELOCK,
+				0,
+				G_PARAM_READWRITE |
+				G_PARAM_CONSTRUCT_ONLY |
+				G_PARAM_STATIC_STRINGS));
 }
 
 static void _async_initable_iface_init (GAsyncInitableIface *async_initable_iface)
 {
 	async_initable_iface->init_async = _async_initable_init_async;
 	async_initable_iface->init_finish = _async_initable_init_finish;
+}
+
+static void _sf_secrets_collection_get_secret_ready(GObject *source_object,
+		GAsyncResult *res,
+		gpointer user_data)
+{
+	GTask *task = user_data;
+	SfSecretsCollection *collection = g_task_get_source_object(task);
+	SfSecretsCollectionPrivate *priv = sf_secrets_collection_get_instance_private(collection);
+	GError *error;
+	GVariant *response = g_dbus_proxy_call_finish(G_DBUS_PROXY(source_object),
+			res, &error);
+	GVariantIter iter;
+	GVariantIter secret_iter;
+	GVariantIter *dict_iter;
+	GVariant *array;
+	GVariant *secret_variant;
+	GBytes *secret_bytes;
+	gsize secret_len;
+	gconstpointer secret_data;
+	SfSecretsSecret *secret;
+	const gchar *identifier;
+
+	if (error) {
+		g_task_return_error(task, error);
+		return;
+	}
+
+	if (!_sf_secrets_manager_check_reply(response, &error, &iter)) {
+		g_task_return_error(task, error);
+		g_variant_unref(response);
+		return;
+	}
+
+	secret_variant = g_variant_iter_next_value(&iter);
+	g_variant_iter_init(&secret_iter, secret_variant);
+
+	if (!g_variant_iter_next(&secret_iter, "(&sss)", &identifier, NULL, NULL)) {
+		g_variant_unref(secret_variant);
+		g_task_return_new_error(task,
+				g_quark_from_static_string("SfSecrets"),
+				SF_SECRETS_ERROR_DAEMON,
+				"Unable to parse daemon response");
+	}
+
+	if (!(array = g_variant_iter_next_value(&secret_iter))) {
+		g_variant_unref(array);
+		g_variant_unref(secret_variant);
+		g_task_return_new_error(task,
+				g_quark_from_static_string("SfSecrets"),
+				SF_SECRETS_ERROR_DAEMON,
+				"Unable to parse daemon response");
+	}
+
+	secret_data = g_variant_get_fixed_array(array, &secret_len, sizeof(guchar));
+	secret_bytes = g_bytes_new(secret_data, secret_len);
+
+	secret = g_object_new(SF_TYPE_SECRETS_SECRET,
+			"manager", priv->manager,
+			"collection", collection,
+			"identifier", identifier,
+			"data", secret_bytes,
+			NULL);
+
+	if (g_variant_iter_next(&secret_iter, "a{sv}", &dict_iter)) {
+		const gchar *key;
+		GVariant *value;
+
+		while (g_variant_iter_loop(dict_iter, "{&sv}", &key, &value)) {
+			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING))
+				sf_secrets_secret_set_filter_field(secret, key, g_variant_get_string(value, NULL));
+		}
+	}
+
+	g_variant_unref(secret_variant);
+	g_variant_unref(array);
+	g_bytes_unref(secret_bytes);
+
+	g_task_return_pointer(task, secret, g_object_unref);
+}
+
+void sf_secrets_collection_get_secret(SfSecretsCollection *collection,
+		const gchar *identifier,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data)
+{
+	SfSecretsCollectionPrivate *priv = sf_secrets_collection_get_instance_private(collection);
+	GTask *task = g_task_new(collection, cancellable, callback, user_data);
+	GDBusProxy *proxy = _sf_secrets_manager_get_dbus_proxy(priv->manager);
+	const gchar *interaction_service_address;
+	SfSecretsUserInteractionMode mode;
+
+	_sf_secrets_manager_get_interaction_mode(priv->manager, &mode, &interaction_service_address);
+
+	g_dbus_proxy_call(proxy,
+			"getSecret",
+			g_variant_new("((sss)(i)s)",
+				priv->plugin_name,
+				priv->name ?: "",
+				identifier,
+				mode,
+				interaction_service_address),
+			G_DBUS_CALL_FLAGS_NONE,
+			-1,
+			g_task_get_cancellable(task),
+			_sf_secrets_collection_get_secret_ready,
+			task);
+
+	g_object_unref(proxy);
+
+}
+
+SfSecretsSecret *sf_secrets_collection_get_secret_finish(GAsyncResult *res,
+		GError **error)
+{
+	return g_task_propagate_pointer(G_TASK(res), error);
 }

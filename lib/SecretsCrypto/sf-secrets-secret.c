@@ -7,7 +7,8 @@ enum SfSecretSecretProperties {
 	PROP_COLLECTION,
 	PROP_PLUGIN_NAME,
 	PROP_IDENTIFIER,
-	PROP_FILTER_FIELDS
+	PROP_FILTER_FIELDS,
+	PROP_DATA
 };
 
 typedef struct SfSecretsSecretPrivate_ SfSecretsSecretPrivate;
@@ -62,6 +63,10 @@ static void _sf_secrets_secret_get_property(GObject *object, guint prop_id, GVal
 			g_value_set_boxed(value, priv->filter_fields);
 			break;
 
+		case PROP_DATA:
+			g_value_set_boxed(value, priv->data);
+			break;
+
 		default:
 			break;
 	}
@@ -104,6 +109,13 @@ static void _sf_secrets_secret_set_property(GObject *object, guint prop_id, cons
 				g_hash_table_unref(priv->filter_fields);
 			priv->filter_fields = g_value_dup_boxed(value);
 			break;
+
+		case PROP_DATA:
+			if (priv->data)
+				g_bytes_unref(priv->data);
+			priv->data = g_value_dup_boxed(value);
+			break;
+
 
 		default:
 			break;
@@ -151,6 +163,15 @@ static void sf_secrets_secret_class_init(SfSecretsSecretClass *secret_class)
 				"filter-fields",
 				"Fields for filtering",
 				G_TYPE_HASH_TABLE,
+				G_PARAM_READWRITE |
+				G_PARAM_STATIC_STRINGS));
+
+	g_object_class_install_property(G_OBJECT_CLASS(secret_class),
+			PROP_DATA,
+			g_param_spec_boxed("data",
+				"data",
+				"Secret data",
+				G_TYPE_BYTES,
 				G_PARAM_READWRITE |
 				G_PARAM_STATIC_STRINGS));
 }

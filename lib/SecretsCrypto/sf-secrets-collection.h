@@ -4,7 +4,6 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
-#include <sf-secrets-manager.h>
 #include <sf-secrets-secret.h>
 
 #define SF_TYPE_SECRETS_COLLECTION (sf_secrets_collection_get_type())
@@ -15,6 +14,14 @@ typedef struct SfSecretsCollection_ SfSecretsCollection;
 typedef struct SfSecretsCollectionClass_ SfSecretsCollectionClass;
 typedef enum SfSecretsCollectionFlags_ SfSecretsCollectionFlags;
 
+enum SfSecretsCollectionFlags_ {
+	SF_SECRETS_COLLECTION_FLAGS_MODE_GET = 0 << 0,
+	SF_SECRETS_COLLECTION_FLAGS_MODE_CREATE = 1 << 0,
+	SF_SECRETS_COLLECTION_FLAGS_MODE_ENSURE = 2 << 0,
+	SF_SECRETS_COLLECTION_FLAGS_MODE_DEFAULT = 3 << 0,
+	SF_SECRETS_COLLECTION_FLAGS_MODE_MASK = 3 << 0,
+};
+
 struct SfSecretsCollection_ {
 	GObject parent;
 };
@@ -23,22 +30,7 @@ struct SfSecretsCollectionClass_ {
 	GObjectClass parent_class;
 };
 
-enum SfSecretsCollectionFlags_ {
-	SF_SECRETS_COLLECTION_CREATE = 1 << 0
-};
-
 GType sf_secrets_collection_get_type(void);
-void sf_secrets_collection_new(SfSecretsManager *manager,
-		const gchar *plugin_name,
-		const gchar *encryption_plugin_name,
-		const gchar *name,
-		/* unlockSemantic, accessControlMode */
-		SfSecretsCollectionFlags flags,
-		GCancellable *cancellable,
-		GAsyncReadyCallback callback,
-		gpointer user_data);
-SfSecretsCollection *sf_secrets_collection_new_finish(GAsyncResult *res,
-		GError **error);
 
 const gchar *sf_secrets_collection_get_plugin_name(SfSecretsCollection *collection);
 const gchar *sf_secrets_collection_get_encryption_plugin_name(SfSecretsCollection *collection);
@@ -54,7 +46,6 @@ SfSecretsSecret *sf_secrets_collection_get_secret_finish(GAsyncResult *res,
 
 void sf_secrets_collection_set_secret(SfSecretsCollection *collection,
 		SfSecretsSecret *secret,
-		/* SfSecretsInteractionParams *params, */
 		GCancellable *cancellable,
 		GAsyncReadyCallback cb,
 		gpointer user_data);

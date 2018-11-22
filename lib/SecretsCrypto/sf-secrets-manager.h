@@ -8,6 +8,9 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
+#include <sf-secrets.h>
+#include <sf-secrets-collection.h>
+
 typedef struct SfSecretsManager_ SfSecretsManager;
 typedef struct SfSecretsManagerClass_ SfSecretsManagerClass;
 
@@ -30,5 +33,47 @@ void sf_secrets_manager_get_health_info(SfSecretsManager *manager,
 		GAsyncReadyCallback callback,
 		gpointer user_data);
 gboolean sf_secrets_manager_get_health_info_finish(GAsyncResult *res, GError **error);
+
+void sf_secrets_manager_get_collection(SfSecretsManager *manager,
+		const gchar *plugin_name,
+		const gchar *name,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+SfSecretsCollection *sf_secrets_manager_get_collection_finish(GAsyncResult *res,
+		GError **error);
+
+void sf_secrets_manager_create_collection(SfSecretsManager *manager,
+		const gchar *plugin_name,
+		const gchar *encryption_plugin_name,
+		const gchar *authentication_plugin_name,
+		const gchar *name,
+		SfSecretsDeviceUnlockSemantic unlock_semantic,
+		SfSecretsAccessControlMode access_control_mode,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+SfSecretsCollection *sf_secrets_manager_create_collection_finish(GAsyncResult *res,
+		GError **error);
+
+void sf_secrets_manager_ensure_collection(SfSecretsManager *manager,
+		const gchar *plugin_name,
+		const gchar *encryption_plugin_name,
+		const gchar *authentication_plugin_name,
+		const gchar *name,
+		SfSecretsDeviceUnlockSemantic unlock_semantic,
+		SfSecretsAccessControlMode access_control_mode,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+SfSecretsCollection *sf_secrets_manager_ensure_collection_finish(GAsyncResult *res,
+		GError **error);
+
+SfSecretsCollection *sf_secrets_manager_get_default_collection(SfSecretsManager *manager,
+		const gchar *plugin_name,
+		const gchar *encryption_plugin_name,
+		const gchar *authentication_plugin_name,
+		SfSecretsDeviceUnlockSemantic unlock_semantic,
+		SfSecretsAccessControlMode access_control_mode);
 
 #endif /* SF_SECRETS_MANAGER_H */

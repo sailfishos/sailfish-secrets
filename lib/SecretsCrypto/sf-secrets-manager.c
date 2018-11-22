@@ -19,6 +19,7 @@ struct SfSecretsManagerPrivate_
 	GSList *plugins[SF_SECRET_PLUGIN_TYPE_COUNT];
 	*/
 	gchar *application_id;
+	gboolean user_interaction_mode_set;
 	SfSecretsUserInteractionMode user_interaction_mode;
 
 	SfSecretsInteraction *interaction_interface;
@@ -196,6 +197,8 @@ static gboolean _sf_secrets_manager_continue_interaction(SfSecretsManager *manag
 	SfSecretsManagerPrivate *priv = sf_secrets_manager_get_instance_private(manager);
 	SfSecretsInteractionRequest *request = g_hash_table_lookup(priv->requests, request_id);
 
+	(void)request_params;
+
 	if (!request)
 		return FALSE;
 
@@ -209,8 +212,7 @@ static gboolean _sf_secrets_manager_continue_interaction(SfSecretsManager *manag
 
 static gboolean _sf_secrets_manager_cancel_interaction(SfSecretsManager *manager,
 		GDBusMethodInvocation *invocation,
-		const gchar *request_id,
-		GVariant *args)
+		const gchar *request_id)
 {
 	SfSecretsManagerPrivate *priv = sf_secrets_manager_get_instance_private(manager);
 	SfSecretsInteractionRequest *request = g_hash_table_lookup(priv->requests, request_id);
@@ -230,8 +232,7 @@ static gboolean _sf_secrets_manager_cancel_interaction(SfSecretsManager *manager
 
 static gboolean _sf_secrets_manager_finish_interaction(SfSecretsManager *manager,
 		GDBusMethodInvocation *invocation,
-		const gchar *request_id,
-		GVariant *args)
+		const gchar *request_id)
 {
 	SfSecretsManagerPrivate *priv = sf_secrets_manager_get_instance_private(manager);
 	SfSecretsInteractionRequest *request = g_hash_table_lookup(priv->requests, request_id);
@@ -263,9 +264,17 @@ static void _sf_secrets_manager_set_property(GObject *object, guint property_id,
 			priv->application_id = g_value_dup_string(value);
 			break;
 		case PROP_USER_INTERACTION_MODE:
+			priv->user_interaction_mode_set = TRUE;
 			if (priv->user_interaction_mode == g_value_get_uint(value))
 				break;
 			priv->user_interaction_mode = g_value_get_uint(value);
+
+			if (priv->user_interaction_mode == SF_SECRETS_USER_INTERACTION_MODE_APPLICATION &&
+					g_signal_has_handler_pending(manager,
+						_sf_secrets_manager_signals[SIGNAL_NEW_INTERACTION_REQUEST],
+						0, TRUE))
+				g_warning("User interaction mode set to application, but no handler registered");
+
 			if (priv->server) {
 				if (priv->user_interaction_mode == SF_SECRETS_USER_INTERACTION_MODE_APPLICATION)
 					g_dbus_server_start(priv->server);
@@ -327,7 +336,9 @@ static void _sf_secrets_manager_set_property(GObject *object, guint property_id,
 static gboolean _sf_secrets_manager_interaction_request_unhandled(SfSecretsManager *manager,
 		SfSecretsInteractionRequest *request)
 {
-	GError *error = g_error_new(g_quark_from_static_string("SfSecrets"), 1337, "Unhandled");
+	GError *error = g_error_new(g_quark_from_static_string("SfSecrets"),
+			SF_SECRETS_ERROR_INTERACTION_VIEW_UNAVAILABLE,
+			"Unhandled");
 
 	(void)manager;
 
@@ -578,7 +589,7 @@ void _sf_secrets_manager_discovery_ready(GObject *source_object,
 		g_variant_unref(response);
 		g_task_return_new_error(task,
 				g_quark_from_static_string("SfSecrets"),
-				503, "Daemon sent a reply we didn't understand");
+				SF_SECRETS_ERROR_DAEMON, "Daemon sent a reply we didn't understand");
 		return;
 	}
 
@@ -689,4 +700,131 @@ static void _async_initable_iface_init (GAsyncInitableIface *async_initable_ifac
 {
 	async_initable_iface->init_async = _async_initable_init_async;
 	async_initable_iface->init_finish = _async_initable_init_finish;
+}
+
+void sf_secrets_manager_get_collection(SfSecretsManager *manager,
+		const gchar *plugin_name,
+		const gchar *name,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data)
+{
+	g_async_initable_new_async(SF_TYPE_SECRETS_COLLECTION,
+			G_PRIORITY_DEFAULT,
+			cancellable,
+			callback,
+			user_data,
+			"manager", manager,
+			"plugin-name", plugin_name,
+			"name", name,
+			"flags", (guint)SF_SECRETS_COLLECTION_FLAGS_MODE_GET,
+			NULL);
+}
+
+SfSecretsCollection *sf_secrets_manager_get_collection_finish(GAsyncResult *res,
+		GError **error)
+{
+	GObject *src_obj = g_async_result_get_source_object(res);
+	GObject *obj = g_async_initable_new_finish(G_ASYNC_INITABLE(src_obj),
+			res, error);
+	g_object_unref(src_obj);
+
+	return SF_SECRETS_COLLECTION(obj);
+}
+
+void sf_secrets_manager_create_collection(SfSecretsManager *manager,
+		const gchar *plugin_name,
+		const gchar *encryption_plugin_name,
+		const gchar *authentication_plugin_name,
+		const gchar *name,
+		SfSecretsDeviceUnlockSemantic unlock_semantic,
+		SfSecretsAccessControlMode access_control_mode,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data)
+{
+	g_async_initable_new_async(SF_TYPE_SECRETS_COLLECTION,
+			G_PRIORITY_DEFAULT,
+			cancellable,
+			callback,
+			user_data,
+			"manager", manager,
+			"plugin-name", plugin_name,
+			"encryption-plugin-name", encryption_plugin_name,
+			"authentication-plugin-name", authentication_plugin_name,
+			"device-unlock-semantic", unlock_semantic,
+			"access-control-mode", access_control_mode,
+			"name", name,
+			"flags", (guint)SF_SECRETS_COLLECTION_FLAGS_MODE_CREATE,
+			NULL);
+}
+
+SfSecretsCollection *sf_secrets_manager_create_collection_finish(GAsyncResult *res,
+		GError **error)
+{
+	return sf_secrets_manager_get_collection_finish(res, error);
+}
+
+void sf_secrets_manager_ensure_collection(SfSecretsManager *manager,
+		const gchar *plugin_name,
+		const gchar *encryption_plugin_name,
+		const gchar *authentication_plugin_name,
+		const gchar *name,
+		SfSecretsDeviceUnlockSemantic unlock_semantic,
+		SfSecretsAccessControlMode access_control_mode,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data)
+{
+	g_async_initable_new_async(SF_TYPE_SECRETS_COLLECTION,
+			G_PRIORITY_DEFAULT,
+			cancellable,
+			callback,
+			user_data,
+			"manager", manager,
+			"plugin-name", plugin_name,
+			"encryption-plugin-name", encryption_plugin_name,
+			"authentication-plugin-name", authentication_plugin_name,
+			"device-unlock-semantic", (guint)unlock_semantic,
+			"access-control-mode", (guint)access_control_mode,
+			"flags", (guint)SF_SECRETS_COLLECTION_FLAGS_MODE_ENSURE,
+			"name", name,
+			NULL);
+}
+
+SfSecretsCollection *sf_secrets_manager_ensure_collection_finish(GAsyncResult *res,
+		GError **error)
+{
+	return sf_secrets_manager_get_collection_finish(res, error);
+}
+
+void _sf_secrets_manager_get_interaction_mode(SfSecretsManager *manager,
+		SfSecretsUserInteractionMode *mode,
+		const gchar **user_interaction_service_address)
+{
+	SfSecretsManagerPrivate *priv = sf_secrets_manager_get_instance_private(manager);
+
+	*mode = priv->user_interaction_mode;
+	if (priv->interaction_service_address)
+		*user_interaction_service_address = priv->interaction_service_address;
+	else
+		*user_interaction_service_address = "";
+}
+
+SfSecretsCollection *sf_secrets_manager_get_default_collection(SfSecretsManager *manager,
+		const gchar *plugin_name,
+		const gchar *encryption_plugin_name,
+		const gchar *authentication_plugin_name,
+		SfSecretsDeviceUnlockSemantic unlock_semantic,
+		SfSecretsAccessControlMode access_control_mode)
+{
+	return g_object_new(SF_TYPE_SECRETS_COLLECTION,
+			"manager", manager,
+			"plugin-name", plugin_name,
+			"encryption-plugin-name", encryption_plugin_name,
+			"authentication-plugin-name", authentication_plugin_name,
+			"device-unlock-semantic", unlock_semantic,
+			"access-control-mode", access_control_mode,
+			"flags", SF_SECRETS_COLLECTION_FLAGS_MODE_DEFAULT,
+			NULL);
 }
