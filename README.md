@@ -175,6 +175,12 @@ If you wish to build the GnuPG plugin, you will need to install libgpg-error, gp
    devel-su -p /opt/tests/Sailfish/Crypto/tst_cryptorequests
    ```
 
+6. Run the manual system tests
+
+   ```bash
+   devel-su -p /opt/tests/Sailfish/Crypto/matrix/run-matrix-tests.sh
+   ```
+
 ## Architectural Overview:
 
 The client-facing API is primarily a thin wrapper around DBus calls to
