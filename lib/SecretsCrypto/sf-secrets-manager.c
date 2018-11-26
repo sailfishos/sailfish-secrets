@@ -387,9 +387,30 @@ static void sf_secrets_manager_class_init(SfSecretsManagerClass *manager_class)
 }
 
 
-gboolean sf_secrets_manager_get_health_info_finish(GAsyncResult *res, GError **error)
+gboolean sf_secrets_manager_get_health_info_finish(GAsyncResult *res,
+		gboolean *is_healthy,
+		SfSecretsHealth *salt_data_health,
+		SfSecretsHealth *master_lock_health,
+		GError **error)
 {
 	GVariant *ret = g_task_propagate_pointer(G_TASK(res), error);
+
+	gint32 sd_health;
+	gint32 ml_health;
+
+	g_variant_get(ret, "((i)(i))",
+			&sd_health,
+			&ml_health);
+
+	if (salt_data_health)
+		*salt_data_health = sd_health;
+	if (master_lock_health)
+		*master_lock_health = ml_health;
+	if (is_healthy)
+		*is_healthy = sd_health == SF_SECRETS_HEALTH_OK &&
+			ml_health == SF_SECRETS_HEALTH_OK;
+
+	g_variant_unref(ret);
 
 	if (!ret)
 		return FALSE;
@@ -406,16 +427,19 @@ void _sf_secrets_manager_get_health_info_reply(GObject *source_object,
 
 	if (error) {
 		g_task_return_error(task, error);
+		g_object_unref(task);
 		return;
 	}
 
 	if (!_sf_secrets_manager_check_reply(ret, &error, NULL)) {
 		g_task_return_error(task, error);
+		g_object_unref(task);
 		g_variant_unref(ret);
 		return;
 	}
 
 	g_task_return_pointer(task, ret, (GDestroyNotify)g_variant_unref);
+	g_object_unref(task);
 }
 
 void sf_secrets_manager_get_health_info(SfSecretsManager *manager,
@@ -478,11 +502,13 @@ static void _sf_secrets_manager_get_plugin_info_ready(GObject *source_object,
 
 	if (error) {
 		g_task_return_error(task, error);
+		g_object_unref(task);
 		return;
 	}
 
 	if (!_sf_secrets_manager_check_reply(response, &error, &iter)) {
 		g_task_return_error(task, error);
+		g_object_unref(task);
 		g_variant_unref(response);
 		return;
 	}
@@ -510,6 +536,7 @@ static void _sf_secrets_manager_get_plugin_info_ready(GObject *source_object,
 	*/
 
 	g_task_return_boolean(task, TRUE);
+	g_object_unref(task);
 	g_variant_unref(response);
 }
 
@@ -528,6 +555,7 @@ static void _sf_secrets_manager_proxy_ready(GObject *source_object,
 
 	if (error) {
 		g_task_return_error(task, error);
+		g_object_unref(task);
 		return;
 	}
 
@@ -553,6 +581,7 @@ void _sf_secrets_manager_connection_ready(GObject *source_object,
 
 	if (error) {
 		g_task_return_error(task, error);
+		g_object_unref(task);
 		return;
 	}
 
@@ -580,6 +609,7 @@ void _sf_secrets_manager_discovery_ready(GObject *source_object,
 
 	if (error) {
 		g_task_return_error(task, error);
+		g_object_unref(task);
 		return;
 	}
 
@@ -590,6 +620,7 @@ void _sf_secrets_manager_discovery_ready(GObject *source_object,
 		g_task_return_new_error(task,
 				g_quark_from_static_string("SfSecrets"),
 				SF_SECRETS_ERROR_DAEMON, "Daemon sent a reply we didn't understand");
+		g_object_unref(task);
 		return;
 	}
 
@@ -615,6 +646,7 @@ void _sf_secrets_manager_discovery_proxy_ready(GObject *source_object,
 
 	if (error) {
 		g_task_return_error(task, error);
+		g_object_unref(task);
 		return;
 	}
 
@@ -827,4 +859,210 @@ SfSecretsCollection *sf_secrets_manager_get_default_collection(SfSecretsManager 
 			"access-control-mode", access_control_mode,
 			"flags", SF_SECRETS_COLLECTION_FLAGS_MODE_DEFAULT,
 			NULL);
+}
+
+void _sf_secrets_manager_result_only_ready(GObject *source_object, GAsyncResult *res, gpointer user_data)
+{
+	GTask *task = user_data;
+	GError *error;
+	GVariant *response = g_dbus_proxy_call_finish(G_DBUS_PROXY(source_object),
+			res, &error);
+
+	if (error) {
+		g_task_return_error(task, error);
+		g_object_unref(task);
+		return;
+	}
+
+	if (!_sf_secrets_manager_check_reply(response, &error, NULL)) {
+		g_task_return_error(task, error);
+		g_object_unref(task);
+		g_variant_unref(response);
+		return;
+	}
+
+	g_task_return_boolean(task, TRUE);
+	g_object_unref(task);
+}
+
+void _sf_secrets_manager_query_lock_status_ready(GObject *source_object,
+		GAsyncResult *res,
+		gpointer user_data)
+{
+	GTask *task = user_data;
+	GError *error = NULL;
+	GVariant *ret = g_dbus_proxy_call_finish(G_DBUS_PROXY(source_object), res, &error);
+	GVariantIter iter;
+	gint32 status;
+
+	if (error) {
+		g_task_return_error(task, error);
+		g_object_unref(task);
+		return;
+	}
+
+	if (!_sf_secrets_manager_check_reply(ret, &error, &iter)) {
+		g_task_return_error(task, error);
+		g_object_unref(task);
+		g_variant_unref(ret);
+		return;
+	}
+
+	g_variant_iter_next(&iter, "(i)", &status);
+	g_variant_unref(ret);
+	g_task_return_int(task, status);
+	g_object_unref(task);
+}
+
+void sf_secrets_manager_query_lock_status(SfSecretsManager *manager,
+		SfSecretsLockCodeTargetType target_type,
+		const gchar *target,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data)
+{
+	SfSecretsManagerPrivate *priv = sf_secrets_manager_get_instance_private(manager);
+	GTask *task = g_task_new(manager, cancellable, callback, user_data);
+
+	g_dbus_proxy_call(priv->proxy,
+			"queryLockStatus",
+			g_variant_new("((i)s)",
+				(gint32)target_type,
+				target),
+			G_DBUS_CALL_FLAGS_NONE,
+			-1,
+			cancellable,
+			_sf_secrets_manager_query_lock_status_ready,
+			task);
+}
+
+SfSecretsLockStatus sf_secrets_manager_query_lock_status_finish(GAsyncResult *res,
+		GError **error)
+{
+	return g_task_propagate_int(G_TASK(res), error);
+}
+
+static void _sf_secrets_manager_lock_code_request_reply(GObject *source_object,
+		GAsyncResult *res,
+		gpointer user_data)
+{
+	_sf_secrets_manager_result_only_ready(source_object, res, user_data);
+}
+
+static void _sf_secrets_manager_lock_code_request(SfSecretsManager *manager,
+		const gchar *method,
+		SfSecretsLockCodeTargetType target_type,
+		const gchar *target,
+		const gchar *authentication_plugin_name,
+		SfSecretsInputType input_type,
+		SfSecretsEchoMode echo_mode,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data)
+{
+	SfSecretsManagerPrivate *priv = sf_secrets_manager_get_instance_private(manager);
+	GTask *task = g_task_new(manager, cancellable, callback, user_data);
+
+	g_dbus_proxy_call(priv->proxy,
+			method,
+			g_variant_new("((i)s(ssss(i)sa{is}(i)(i))(i)s)",
+				target_type,
+				target ?: "",
+				"", "", "",
+				authentication_plugin_name,
+				0, "",
+				g_variant_new_parsed("@a{is} {}"),
+				input_type,
+				echo_mode,
+				priv->user_interaction_mode,
+				priv->interaction_service_address ?: ""),
+			G_DBUS_CALL_FLAGS_NONE,
+			-1,
+			cancellable,
+			_sf_secrets_manager_lock_code_request_reply,
+			task);
+}
+
+void sf_secrets_manager_modify_lock_code(SfSecretsManager *manager,
+		SfSecretsLockCodeTargetType target_type,
+		const gchar *target,
+		const gchar *authentication_plugin_name,
+		SfSecretsInputType input_type,
+		SfSecretsEchoMode echo_mode,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data)
+{
+	_sf_secrets_manager_lock_code_request(manager,
+			"modifyLockCode",
+			target_type,
+			target,
+			authentication_plugin_name,
+			input_type,
+			echo_mode,
+			cancellable,
+			callback,
+			user_data);
+}
+
+gboolean sf_secrets_manager_modify_lock_code_finish(GAsyncResult *res,
+		GError **error)
+{
+	return g_task_propagate_boolean(G_TASK(res), error);
+}
+
+void sf_secrets_manager_provide_lock_code(SfSecretsManager *manager,
+		SfSecretsLockCodeTargetType target_type,
+		const gchar *target,
+		const gchar *authentication_plugin_name,
+		SfSecretsInputType input_type,
+		SfSecretsEchoMode echo_mode,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data)
+{
+	_sf_secrets_manager_lock_code_request(manager,
+			"provideLockCode",
+			target_type,
+			target,
+			authentication_plugin_name,
+			input_type,
+			echo_mode,
+			cancellable,
+			callback,
+			user_data);
+}
+
+gboolean sf_secrets_manager_provide_lock_code_finish(GAsyncResult *res,
+		GError **error)
+{
+	return g_task_propagate_boolean(G_TASK(res), error);
+}
+
+void sf_secrets_manager_forget_lock_code(SfSecretsManager *manager,
+		SfSecretsLockCodeTargetType target_type,
+		const gchar *target,
+		const gchar *authentication_plugin_name,
+		SfSecretsInputType input_type,
+		SfSecretsEchoMode echo_mode,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data)
+{
+	_sf_secrets_manager_lock_code_request(manager,
+			"forgetLockCode",
+			target_type,
+			target,
+			authentication_plugin_name,
+			input_type,
+			echo_mode,
+			cancellable,
+			callback,
+			user_data);
+}
+
+gboolean sf_secrets_manager_forget_lock_code_finish(GAsyncResult *res,
+		GError **error)
+{
+	return g_task_propagate_boolean(G_TASK(res), error);
 }

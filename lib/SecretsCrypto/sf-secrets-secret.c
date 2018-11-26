@@ -205,3 +205,10 @@ const gchar *sf_secrets_secret_get_filter_field(SfSecretsSecret *secret, const g
 		return NULL;
 	return g_hash_table_lookup(priv->filter_fields, key);
 }
+
+const gchar *sf_secrets_secret_get_identifier(SfSecretsSecret *secret)
+{
+	SfSecretsSecretPrivate *priv = sf_secrets_secret_get_instance_private(secret);
+
+	return priv->identifier;
+}

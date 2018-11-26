@@ -32,7 +32,11 @@ void sf_secrets_manager_get_health_info(SfSecretsManager *manager,
 		GCancellable *cancellable,
 		GAsyncReadyCallback callback,
 		gpointer user_data);
-gboolean sf_secrets_manager_get_health_info_finish(GAsyncResult *res, GError **error);
+gboolean sf_secrets_manager_get_health_info_finish(GAsyncResult *res,
+		gboolean *is_healthy,
+		SfSecretsHealth *salt_data_health,
+		SfSecretsHealth *master_lock_health,
+		GError **error);
 
 void sf_secrets_manager_get_collection(SfSecretsManager *manager,
 		const gchar *plugin_name,
@@ -75,5 +79,50 @@ SfSecretsCollection *sf_secrets_manager_get_default_collection(SfSecretsManager 
 		const gchar *authentication_plugin_name,
 		SfSecretsDeviceUnlockSemantic unlock_semantic,
 		SfSecretsAccessControlMode access_control_mode);
+
+void sf_secrets_manager_query_lock_status(SfSecretsManager *manager,
+		SfSecretsLockCodeTargetType target_type,
+		const gchar *target,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+SfSecretsLockStatus sf_secrets_manager_query_lock_status_finish(GAsyncResult *res,
+		GError **error);
+
+void sf_secrets_manager_modify_lock_code(SfSecretsManager *manager,
+		SfSecretsLockCodeTargetType target_type,
+		const gchar *target,
+		const gchar *authentication_plugin_name,
+		SfSecretsInputType input_type,
+		SfSecretsEchoMode echo_mode,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+gboolean sf_secrets_manager_modify_lock_code_finish(GAsyncResult *res,
+		GError **error);
+
+void sf_secrets_manager_provide_lock_code(SfSecretsManager *manager,
+		SfSecretsLockCodeTargetType target_type,
+		const gchar *target,
+		const gchar *authentication_plugin_name,
+		SfSecretsInputType input_type,
+		SfSecretsEchoMode echo_mode,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+gboolean sf_secrets_manager_provide_lock_code_finish(GAsyncResult *res,
+		GError **error);
+
+void sf_secrets_manager_forget_lock_code(SfSecretsManager *manager,
+		SfSecretsLockCodeTargetType target_type,
+		const gchar *target,
+		const gchar *authentication_plugin_name,
+		SfSecretsInputType input_type,
+		SfSecretsEchoMode echo_mode,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+gboolean sf_secrets_manager_forget_lock_code_finish(GAsyncResult *res,
+		GError **error);
 
 #endif /* SF_SECRETS_MANAGER_H */

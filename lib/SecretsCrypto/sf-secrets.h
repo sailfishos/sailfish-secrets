@@ -4,11 +4,6 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
-#define SF_TYPE_SECRETS_PLUGIN_INFO (sf_secrets_manager_get_type())
-
-typedef struct SfSecretsPluginInfo_ SfSecretsPluginInfo;
-typedef struct SfSecretsSecretIdentifier_ SfSecretsSecretIdentifier;
-
 typedef enum SfSecretsUserInteractionMode_ {
 	SF_SECRETS_USER_INTERACTION_MODE_PREVENT = 0,
 	SF_SECRETS_USER_INTERACTION_MODE_SYSTEM,
@@ -149,6 +144,23 @@ typedef enum SfSecretsError_ {
         SF_SECRETS_ERROR_OTHER = 1024,
 } SfSecretsError;
 
+typedef enum SfSecretsFilterOperator_ {
+	SF_SECRETS_FILTER_OPERATOR_OR = 0,
+	SF_SECRETS_FILTER_OPERATOR_AND
+} SfSecretsFilterOperator;
+
+typedef enum SfSecretsLockCodeTargetType {
+	SF_SECRETS_LOCK_CODE_TARGET_TYPE_METADATA_DATABASE = 0,
+	SF_SECRETS_LOCK_CODE_TARGET_TYPE_EXTENSION_PLUGIN,
+} SfSecretsLockCodeTargetType;
+
+typedef enum SfSecretsLockStatus {
+	SF_SECRETS_LOCK_STATUS_UNKNOWN = 0,
+	SF_SECRETS_LOCK_STATUS_UNSUPPORTED,
+	SF_SECRETS_LOCK_STATUS_UNLOCKED,
+	SF_SECRETS_LOCK_STATUS_LOCKED,
+} SfSecretsLockStatus;
+
 struct SfSecretsPluginInfo_ {
 	gchar *display_name;
 	gchar *name;
@@ -162,6 +174,31 @@ struct SfSecretsSecretIdentifier_ {
 	gchar *storage_plugin_name;
 };
 
-void sf_secrets_plugin_info_free(SfSecretsPluginInfo *info);
+typedef enum SfSecretsEchoMode_ {
+        SF_SECRETS_ECHO_MODE_UNKNOWN = 0,
+        SF_SECRETS_ECHO_MODE_NORMAL,
+        SF_SECRETS_ECHO_MODE_PASSWORD,
+        SF_SECRETS_ECHO_MODE_NO,
+} SfSecretsEchoMode;
+
+typedef enum SfSecretsInputType_ {
+	SF_SECRETS_INPUT_TYPE_UNKNOWN        = 0,
+	SF_SECRETS_INPUT_TYPE_AUTHENTICATION = 1,  // returns non-empty data if the user authenticates via system dialog
+	SF_SECRETS_INPUT_TYPE_CONFIRMATION   = 2,  // returns non-empty data if the user allows the operation
+	SF_SECRETS_INPUT_TYPE_NUMERIC        = 4,  // returns the numeric (e.g. PIN) data from the user
+	SF_SECRETS_INPUT_TYPE_ALPHANUMERIC   = 8,  // returns the alphanumeric (e.g. passphrase) data from the user
+	SF_SECRETS_INPUT_TYPE_FINGERPRINT    = 16, // returns the fingerprint data from the user
+	SF_SECRETS_INPUT_TYPE_IRIS           = 32, // returns the iris data from the user
+	SF_SECRETS_INPUT_TYPE_RETINA         = 64, // returns the retina data from the user
+	// reserved
+	LastInputType       = 65536
+} SfSecretsInputType;
+
+typedef enum SfSecretsHealth_ {
+        SF_SECRETS_HEALTH_OK = 0,
+        SF_SECRETS_HEALTH_UNKNOWN,
+        SF_SECRETS_HEALTH_CORRUPTED,
+        SF_SECRETS_HEALTH_OTHER_ERROR,
+} SfSecretsHealth;
 
 #endif

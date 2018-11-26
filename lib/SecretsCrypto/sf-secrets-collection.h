@@ -5,6 +5,7 @@
 #include <gio/gio.h>
 
 #include <sf-secrets-secret.h>
+#include <sf-secrets.h>
 
 #define SF_TYPE_SECRETS_COLLECTION (sf_secrets_collection_get_type())
 #define SF_SECRETS_COLLECTION(o) (G_TYPE_CHECK_INSTANCE_CAST((o), SF_TYPE_SECRETS_COLLECTION, SfSecretsCollection))
@@ -64,5 +65,14 @@ void sf_secrets_collection_delete_secret_by_name(SfSecretsCollection *collection
 		GAsyncReadyCallback cb,
 		gpointer user_data);
 gboolean sf_secrets_collection_delete_secret_by_name_finish(GAsyncResult *res, GError **error);
+
+void sf_secrets_collection_find_secrets(SfSecretsCollection *collection,
+		SfSecretsFilterOperator op,
+		GCancellable *cancellable,
+		GAsyncReadyCallback cb,
+		gpointer user_data,
+		const gchar *first_filter_name,
+		...) G_GNUC_NULL_TERMINATED;
+gchar **sf_secrets_collection_find_secrets_finish(GAsyncResult *res, GError **error);
 
 #endif /* SF_SECRETS_COLLECTION_H */
