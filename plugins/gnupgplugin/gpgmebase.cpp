@@ -268,10 +268,7 @@ Result Daemon::Plugins::GnuPGPlugin::generateKey(const Key &keyTemplate,
         if (empty == kpgParams.customParameters().constEnd()) {
             Sailfish::Secrets::SecretManager secretManager;
             Sailfish::Secrets::InteractionParameters uiParams;
-            Sailfish::Secrets::InteractionParameters::PromptText prompt;
-            //% "Repeat password"
-            prompt.setRepeatInstruction(qtTrId("gnupg_plugin-repeat_passphrase"));
-            uiParams.setPromptText(prompt);
+            uiParams.setOperation(Sailfish::Secrets::InteractionParameters::CreatePassword);
             uiParams.setInputType(Sailfish::Secrets::InteractionParameters::AlphaNumericInput);
             uiParams.setEchoMode(Sailfish::Secrets::InteractionParameters::PasswordEcho);
 

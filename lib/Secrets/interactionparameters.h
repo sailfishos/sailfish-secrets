@@ -94,6 +94,8 @@ public:
         StoreKey            = 1 << 25,
         ImportKey           = 1 << 26,
 
+        CreatePassword      = 1 << 27,
+
         // reserved
         LastOperation       = 1 << 30
     };
