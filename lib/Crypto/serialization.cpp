@@ -309,7 +309,7 @@ QDataStream& operator<<(QDataStream& out, const CryptoManager::VerificationStatu
 
 QDBusArgument &operator<<(QDBusArgument &argument, const Key &key)
 {
-    //((sss)iiiiiayayaya(ay)a{sv})
+    //((sss)iiiiiayayayaaya{sv})
     argument.beginStructure();
     argument << key.identifier();
     argument << static_cast<int>(key.origin());

@@ -13,7 +13,12 @@ PUBLIC_HEADERS += \
     $$PWD/sf-secrets-collection.h \
     $$PWD/sf-secrets-invocation-request.h \
     $$PWD/sf-secrets-secret.h \
-    $$PWD/sf-secrets.h
+    $$PWD/sf-secrets.h \
+    \
+    $$PWD/sf-crypto.h \
+    $$PWD/sf-crypto-manager.h \
+    $$PWD/sf-crypto-key.h
+
 
 
 HEADERS += $$PUBLIC_HEADERS \
@@ -23,7 +28,11 @@ SOURCES += \
     $$PWD/sf-secrets-manager.c \
     $$PWD/sf-secrets-collection.c \
     $$PWD/sf-secrets-interaction-request.c \
-    $$PWD/sf-secrets-secret.c
+    $$PWD/sf-secrets-secret.c \
+    \
+    $$PWD/sf-crypto-manager.c \
+    $$PWD/sf-crypto-key.c
+
 
 develheaders.path = /usr/include/Sailfish/SecretsCrypto/
 develheaders.files = $$PUBLIC_HEADERS

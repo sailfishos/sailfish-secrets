@@ -5,7 +5,6 @@
 enum SfSecretSecretProperties {
 	PROP_MANAGER = 1,
 	PROP_COLLECTION,
-	PROP_PLUGIN_NAME,
 	PROP_IDENTIFIER,
 	PROP_FILTER_FIELDS,
 	PROP_DATA
@@ -17,7 +16,6 @@ struct SfSecretsSecretPrivate_
 {
 	SfSecretsManager *manager;
 	SfSecretsCollection *collection;
-	gchar *plugin_name;
 	gchar *identifier;
 	GHashTable *filter_fields;
 	GBytes *data;
@@ -33,6 +31,18 @@ static void _sf_secrets_secret_finalize(GObject *object)
 
 	if (priv->filter_fields)
 		g_hash_table_unref(priv->filter_fields);
+
+	if (priv->manager)
+		g_object_unref(priv->manager);
+
+	if (priv->collection)
+		g_object_unref(priv->collection);
+
+	if (priv->data)
+		g_bytes_unref(priv->data);
+
+	if (priv->identifier)
+		g_free(priv->identifier);
 }
 
 static void _sf_secrets_secret_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec)
@@ -49,10 +59,6 @@ static void _sf_secrets_secret_get_property(GObject *object, guint prop_id, GVal
 
 		case PROP_COLLECTION:
 			g_value_set_object(value, priv->collection);
-			break;
-
-		case PROP_PLUGIN_NAME:
-			g_value_set_string(value, priv->plugin_name);
 			break;
 
 		case PROP_IDENTIFIER:
@@ -92,12 +98,6 @@ static void _sf_secrets_secret_set_property(GObject *object, guint prop_id, cons
 			priv->collection = g_value_dup_object(value);
 			break;
 
-		case PROP_PLUGIN_NAME:
-			if (priv->plugin_name)
-				g_free(priv->plugin_name);
-			priv->plugin_name = g_value_dup_string(value);
-			break;
-
 		case PROP_IDENTIFIER:
 			if (priv->identifier)
 				g_free(priv->identifier);
@@ -134,16 +134,6 @@ static void sf_secrets_secret_class_init(SfSecretsSecretClass *secret_class)
 				"manager",
 				"Secrets Manager",
 				SF_TYPE_SECRETS_MANAGER,
-				G_PARAM_READWRITE |
-				G_PARAM_CONSTRUCT_ONLY |
-				G_PARAM_STATIC_STRINGS));
-
-	g_object_class_install_property(G_OBJECT_CLASS(secret_class),
-			PROP_PLUGIN_NAME,
-			g_param_spec_string("plugin-name",
-				"plugin-name",
-				"Backend plugin name",
-				NULL,
 				G_PARAM_READWRITE |
 				G_PARAM_CONSTRUCT_ONLY |
 				G_PARAM_STATIC_STRINGS));

@@ -207,7 +207,7 @@ class SecretsDBusObject : public QObject, protected QDBusContext
     "          <arg name=\"lockCodeTargetType\" type=\"(i)\" direction=\"in\" />\n"
     "          <arg name=\"lockCodeTarget\" type=\"s\" direction=\"in\" />\n"
     "          <arg name=\"result\" type=\"(iis)\" direction=\"out\" />\n"
-    "          <arg name=\"lockStatus\" type=\"(i)\" direction=\"in\" />\n"
+    "          <arg name=\"lockStatus\" type=\"(i)\" direction=\"out\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.In0\" value=\"Sailfish::Secrets::LockCodeRequest::LockCodeTargetType\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out0\" value=\"Sailfish::Secrets::Result\" />\n"
     "          <annotation name=\"org.qtproject.QtDBus.QtTypeName.Out1\" value=\"Sailfish::Secrets::LockCodeRequest::LockStatus\" />\n"
