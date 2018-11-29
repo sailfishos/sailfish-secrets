@@ -395,4 +395,24 @@ typedef enum SfCryptoVerificationStatus_ {
         SF_CRYPTO_VERIFICATION_STATUS_KEY_INVALID = 64
 } SfCryptoVerificationStatus;
 
+typedef enum SfCryptoEchoMode_ {
+        SF_CRYPTO_ECHO_MODE_UNKNOWN = 0,
+        SF_CRYPTO_ECHO_MODE_NORMAL,
+        SF_CRYPTO_ECHO_MODE_PASSWORD,
+        SF_CRYPTO_ECHO_MODE_NO,
+} SfCryptoEchoMode;
+
+typedef enum SfCryptoInputType_ {
+	SF_CRYPTO_INPUT_TYPE_UNKNOWN        = 0,
+	SF_CRYPTO_INPUT_TYPE_AUTHENTICATION = 1,  // returns non-empty data if the user authenticates via system dialog
+	SF_CRYPTO_INPUT_TYPE_CONFIRMATION   = 2,  // returns non-empty data if the user allows the operation
+	SF_CRYPTO_INPUT_TYPE_NUMERIC        = 4,  // returns the numeric (e.g. PIN) data from the user
+	SF_CRYPTO_INPUT_TYPE_ALPHANUMERIC   = 8,  // returns the alphanumeric (e.g. passphrase) data from the user
+	SF_CRYPTO_INPUT_TYPE_FINGERPRINT    = 16, // returns the fingerprint data from the user
+	SF_CRYPTO_INPUT_TYPE_IRIS           = 32, // returns the iris data from the user
+	SF_CRYPTO_INPUT_TYPE_RETINA         = 64, // returns the retina data from the user
+	// reserved
+	LastInputType       = 65536
+} SfCryptoInputType;
+
 #endif /* SF_CRYPTO_H */

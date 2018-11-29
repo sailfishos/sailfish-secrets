@@ -49,20 +49,73 @@ void sf_crypto_manager_seed_random_data_generator(SfCryptoManager *manager,
 		gpointer user_data);
 gboolean sf_crypto_manager_seed_random_data_generator_finish(GAsyncResult *res, GError **error);
 
+void sf_crypto_manager_generate_initialization_vector(SfCryptoManager *manager,
+		SfCryptoAlgorithm algorithm,
+		SfCryptoBlockMode block_mode,
+		gint key_size,
+		GHashTable *custom_params,
+		const gchar *crypto_provider,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+GBytes *sf_crypto_manager_generate_initialization_vector_finish(GAsyncResult *res, GError **error);
+
 /* generateKey */
 /* generateStoredKey */
-/* importKey */
-/* importStoredKey */
+
+void sf_crypto_manager_import_key(SfCryptoManager *manager,
+		GBytes *data,
+		const gchar *authentication_plugin,
+		SfCryptoInputType input_type,
+		SfCryptoEchoMode echo_mode,
+		GHashTable *custom_params,
+		const gchar *crypto_provider,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+SfCryptoKey *sf_crypto_manager_import_key_finish(GAsyncResult *res, GError **error);
+
+void sf_crypto_manager_import_stored_key(SfCryptoManager *manager,
+		GBytes *data,
+		SfCryptoKey *key_template,
+		const gchar *authentication_plugin,
+		SfCryptoInputType input_type,
+		SfCryptoEchoMode echo_mode,
+		GHashTable *custom_params,
+		const gchar *crypto_provider,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+SfCryptoKey *sf_crypto_manager_import_stored_key_finish(GAsyncResult *res, GError **error);
 
 void sf_crypto_manager_stored_key(SfCryptoManager *manager,
 		const gchar *name,
 		const gchar *collection_name,
 		const gchar *plugin_name,
+		SfCryptoKeyConstraint components,
 		GHashTable *custom_params,
 		GCancellable *cancellable,
 		GAsyncReadyCallback callback,
 		gpointer user_data);
 SfCryptoKey *sf_crypto_manager_stored_key_finish(GAsyncResult *res, GError **error);
+
+void sf_crypto_manager_delete_stored_key(SfCryptoManager *manager,
+		const gchar *name,
+		const gchar *collection_name,
+		const gchar *plugin_name,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+gboolean sf_crypto_manager_delete_stored_key_finish(GAsyncResult *res, GError **error);
+
+void sf_crypto_manager_stored_key_names(SfCryptoManager *manager,
+		const gchar *plugin_name,
+		const gchar *collection_name,
+		GHashTable *custom_params,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+gchar **sf_crypto_manager_stored_key_names_finish(GAsyncResult *res, GError **error);
 
 void sf_crypto_manager_sign(SfCryptoManager *manager,
 		GBytes *data,

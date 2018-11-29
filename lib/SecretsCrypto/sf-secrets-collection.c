@@ -65,6 +65,7 @@ static void _sf_secrets_collection_create_collection_ready(GObject *source_objec
 		return;
 	}
 
+	g_variant_unref(response);
 	g_task_return_boolean(task, TRUE);
 	g_object_unref(task);
 }
@@ -162,6 +163,7 @@ static void _sf_secrets_collection_get_collection_names_ready(GObject *source_ob
 	}
 
 	g_task_return_boolean(task, TRUE);
+	g_variant_unref(response);
 	g_object_unref(task);
 }
 
@@ -493,6 +495,7 @@ static void _sf_secrets_collection_get_secret_ready(GObject *source_object,
 
 	g_variant_unref(secret_variant);
 	g_variant_unref(array);
+	g_variant_unref(response);
 	g_bytes_unref(secret_bytes);
 
 	g_task_return_pointer(task, secret, g_object_unref);
@@ -743,6 +746,7 @@ static void _sf_secrets_collection_find_secrets_ready(GObject *source_object,
 				NULL))
 		g_array_append_val(secret_names, secret_name);
 	g_variant_unref(secrets);
+	g_variant_unref(response);
 
 	g_task_return_pointer(task, g_array_free(secret_names, FALSE), (GDestroyNotify)g_strfreev);
 	g_object_unref(task);
