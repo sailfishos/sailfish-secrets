@@ -2,6 +2,7 @@
 #define SF_CRYPTO_KEY_H
 
 #include <glib-object.h>
+#include <sf-crypto.h>
 
 #define SF_TYPE_CRYPTO_KEY (sf_crypto_key_get_type())
 #define SF_CRYPTO_KEY(o) (G_TYPE_CHECK_INSTANCE_CAST((o), SF_TYPE_CRYPTO_KEY, SfCryptoKey))
@@ -45,8 +46,32 @@ SfCryptoKey *sf_crypto_key_new_public(GBytes *public_key);
 SfCryptoKey *sf_crypto_key_new_private(GBytes *private_key);
 SfCryptoKey *sf_crypto_key_new_secret(GBytes *secret_key);
 
-const gchar *sf_crypto_key_get_identifier(SfCryptoKey *secret);
-
+const gchar *sf_crypto_key_get_name(SfCryptoKey *key);
+void sf_crypto_key_set_name(SfCryptoKey *key, const gchar *name);
+const gchar *sf_crypto_key_get_collection_name(SfCryptoKey *key);
+void sf_crypto_key_set_collection_name(SfCryptoKey *key, const gchar *collection_name);
+const gchar *sf_crypto_key_get_plugin_name(SfCryptoKey *key);
+void sf_crypto_key_set_plugin_name(SfCryptoKey *key, const gchar *plugin_name);
+SfCryptoKeyOrigin sf_crypto_key_get_origin(SfCryptoKey *key);
+void sf_crypto_key_set_origin(SfCryptoKey *key, SfCryptoKeyOrigin origin);
+SfCryptoAlgorithm sf_crypto_key_get_algorithm(SfCryptoKey *key);
+void sf_crypto_key_set_algorithm(SfCryptoKey *key, SfCryptoAlgorithm algorithm);
+SfCryptoOperation sf_crypto_key_get_operations(SfCryptoKey *key);
+void sf_crypto_key_set_operations(SfCryptoKey *key, SfCryptoOperation operations);
+SfCryptoKeyConstraint sf_crypto_key_get_constraints(SfCryptoKey *key);
+void sf_crypto_key_set_constraints(SfCryptoKey *key, SfCryptoKeyConstraint constraints);
+int sf_crypto_key_get_key_size(SfCryptoKey *key);
+void sf_crypto_key_set_key_size(SfCryptoKey *key, int key_size);
+GBytes *sf_crypto_key_get_public_key(SfCryptoKey *key);
+void sf_crypto_key_set_public_key(SfCryptoKey *key, GBytes *public_key);
+GBytes *sf_crypto_key_get_private_key(SfCryptoKey *key);
+void sf_crypto_key_set_private_key(SfCryptoKey *key, GBytes *private_key);
+GBytes *sf_crypto_key_get_secret_key(SfCryptoKey *key);
+void sf_crypto_key_set_secret_key(SfCryptoKey *key, GBytes *secret_key);
+GPtrArray *sf_crypto_key_get_custom_params(SfCryptoKey *key);
+void sf_crypto_key_set_custom_params(SfCryptoKey *key, GPtrArray *custom_params);
+GHashTable *sf_crypto_key_get_filter_data(SfCryptoKey *key);
+void sf_crypto_key_set_filter_data(SfCryptoKey *key, GHashTable *filter_data);
 void sf_crypto_key_set_filter_field(SfCryptoKey *secret, const gchar *key, const gchar *value);
 const gchar *sf_crypto_key_get_filter_field(SfCryptoKey *secret, const gchar *key);
 

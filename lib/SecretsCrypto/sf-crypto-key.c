@@ -372,13 +372,6 @@ const gchar *sf_crypto_key_get_filter_field(SfCryptoKey *key, const gchar *field
 	return g_hash_table_lookup(priv->filter_data, field);
 }
 
-const gchar *sf_crypto_key_get_name(SfCryptoKey *key)
-{
-	SfCryptoKeyPrivate *priv = sf_crypto_key_get_instance_private(key);
-
-	return priv->name;
-}
-
 GVariant *_sf_variant_new_bytes_or_empty(GBytes *bytes)
 {
 	if (!bytes)
@@ -622,4 +615,199 @@ SfCryptoKey *sf_crypto_key_deserialize(gconstpointer data, gsize len)
 	g_variant_unref(key_as_variant);
 
 	return ret;
+}
+
+const gchar *sf_crypto_key_get_name(SfCryptoKey *key)
+{
+	SfCryptoKeyPrivate *priv = sf_crypto_key_get_instance_private(key);
+	return priv->name;
+}
+
+void sf_crypto_key_set_name(SfCryptoKey *key, const gchar *name)
+{
+	GValue v = { 0 };
+	g_value_init(&v, G_TYPE_STRING);
+	g_value_set_static_string(&v, name);
+	G_OBJECT_GET_CLASS(key)->set_property(G_OBJECT(key), PROP_NAME, &v, NULL);
+	g_value_unset(&v);
+}
+
+const gchar *sf_crypto_key_get_collection_name(SfCryptoKey *key)
+{
+	SfCryptoKeyPrivate *priv = sf_crypto_key_get_instance_private(key);
+	return priv->collection_name;
+}
+
+void sf_crypto_key_set_collection_name(SfCryptoKey *key, const gchar *collection_name)
+{
+	GValue v = { 0 };
+	g_value_init(&v, G_TYPE_STRING);
+	g_value_set_static_string(&v, collection_name);
+	G_OBJECT_GET_CLASS(key)->set_property(G_OBJECT(key), PROP_COLLECTION_NAME, &v, NULL);
+	g_value_unset(&v);
+}
+
+const gchar *sf_crypto_key_get_plugin_name(SfCryptoKey *key)
+{
+	SfCryptoKeyPrivate *priv = sf_crypto_key_get_instance_private(key);
+	return priv->plugin_name;
+}
+
+void sf_crypto_key_set_plugin_name(SfCryptoKey *key, const gchar *plugin_name)
+{
+	GValue v = { 0 };
+	g_value_init(&v, G_TYPE_STRING);
+	g_value_set_static_string(&v, plugin_name);
+	G_OBJECT_GET_CLASS(key)->set_property(G_OBJECT(key), PROP_PLUGIN_NAME, &v, NULL);
+	g_value_unset(&v);
+}
+
+SfCryptoKeyOrigin sf_crypto_key_get_origin(SfCryptoKey *key)
+{
+	SfCryptoKeyPrivate *priv = sf_crypto_key_get_instance_private(key);
+	return priv->origin;
+}
+
+void sf_crypto_key_set_origin(SfCryptoKey *key, SfCryptoKeyOrigin origin)
+{
+	GValue v = { 0 };
+	g_value_init(&v, G_TYPE_INT);
+	g_value_set_int(&v, origin);
+	G_OBJECT_GET_CLASS(key)->set_property(G_OBJECT(key), PROP_ORIGIN, &v, NULL);
+	g_value_unset(&v);
+}
+
+SfCryptoAlgorithm sf_crypto_key_get_algorithm(SfCryptoKey *key)
+{
+	SfCryptoKeyPrivate *priv = sf_crypto_key_get_instance_private(key);
+	return priv->algorithm;
+}
+
+void sf_crypto_key_set_algorithm(SfCryptoKey *key, SfCryptoAlgorithm algorithm)
+{
+	GValue v = { 0 };
+	g_value_init(&v, G_TYPE_INT);
+	g_value_set_int(&v, algorithm);
+	G_OBJECT_GET_CLASS(key)->set_property(G_OBJECT(key), PROP_ALGORITHM, &v, NULL);
+	g_value_unset(&v);
+}
+
+SfCryptoOperation sf_crypto_key_get_operations(SfCryptoKey *key)
+{
+	SfCryptoKeyPrivate *priv = sf_crypto_key_get_instance_private(key);
+	return priv->operations;
+}
+
+void sf_crypto_key_set_operations(SfCryptoKey *key, SfCryptoOperation operations)
+{
+	GValue v = { 0 };
+	g_value_init(&v, G_TYPE_INT);
+	g_value_set_int(&v, operations);
+	G_OBJECT_GET_CLASS(key)->set_property(G_OBJECT(key), PROP_OPERATIONS, &v, NULL);
+	g_value_unset(&v);
+}
+
+SfCryptoKeyConstraint sf_crypto_key_get_constraints(SfCryptoKey *key)
+{
+	SfCryptoKeyPrivate *priv = sf_crypto_key_get_instance_private(key);
+	return priv->constraints;
+}
+
+void sf_crypto_key_set_constraints(SfCryptoKey *key, SfCryptoKeyConstraint constraints)
+{
+	GValue v = { 0 };
+	g_value_init(&v, G_TYPE_INT);
+	g_value_set_int(&v, constraints);
+	G_OBJECT_GET_CLASS(key)->set_property(G_OBJECT(key), PROP_CONSTRAINTS, &v, NULL);
+	g_value_unset(&v);
+}
+
+int sf_crypto_key_get_key_size(SfCryptoKey *key)
+{
+	SfCryptoKeyPrivate *priv = sf_crypto_key_get_instance_private(key);
+	return priv->key_size;
+}
+
+void sf_crypto_key_set_key_size(SfCryptoKey *key, int key_size)
+{
+	GValue v = { 0 };
+	g_value_init(&v, G_TYPE_INT);
+	g_value_set_int(&v, key_size);
+	G_OBJECT_GET_CLASS(key)->set_property(G_OBJECT(key), PROP_KEY_SIZE, &v, NULL);
+	g_value_unset(&v);
+}
+
+GBytes *sf_crypto_key_get_public_key(SfCryptoKey *key)
+{
+	SfCryptoKeyPrivate *priv = sf_crypto_key_get_instance_private(key);
+	return priv->public_key;
+}
+
+void sf_crypto_key_set_public_key(SfCryptoKey *key, GBytes *public_key)
+{
+	GValue v = { 0 };
+	g_value_init(&v, G_TYPE_BYTES);
+	g_value_set_boxed(&v, public_key);
+	G_OBJECT_GET_CLASS(key)->set_property(G_OBJECT(key), PROP_PUBLIC_KEY, &v, NULL);
+	g_value_unset(&v);
+}
+
+GBytes *sf_crypto_key_get_private_key(SfCryptoKey *key)
+{
+	SfCryptoKeyPrivate *priv = sf_crypto_key_get_instance_private(key);
+	return priv->private_key;
+}
+
+void sf_crypto_key_set_private_key(SfCryptoKey *key, GBytes *private_key)
+{
+	GValue v = { 0 };
+	g_value_init(&v, G_TYPE_BYTES);
+	g_value_set_boxed(&v, private_key);
+	G_OBJECT_GET_CLASS(key)->set_property(G_OBJECT(key), PROP_PRIVATE_KEY, &v, NULL);
+	g_value_unset(&v);
+}
+
+GBytes *sf_crypto_key_get_secret_key(SfCryptoKey *key)
+{
+	SfCryptoKeyPrivate *priv = sf_crypto_key_get_instance_private(key);
+	return priv->secret_key;
+}
+
+void sf_crypto_key_set_secret_key(SfCryptoKey *key, GBytes *secret_key)
+{
+	GValue v = { 0 };
+	g_value_init(&v, G_TYPE_BYTES);
+	g_value_set_boxed(&v, secret_key);
+	G_OBJECT_GET_CLASS(key)->set_property(G_OBJECT(key), PROP_SECRET_KEY, &v, NULL);
+	g_value_unset(&v);
+}
+
+GPtrArray *sf_crypto_key_get_custom_params(SfCryptoKey *key)
+{
+	SfCryptoKeyPrivate *priv = sf_crypto_key_get_instance_private(key);
+	return priv->custom_params;
+}
+
+void sf_crypto_key_set_custom_params(SfCryptoKey *key, GPtrArray *custom_params)
+{
+	GValue v = { 0 };
+	g_value_init(&v, G_TYPE_PTR_ARRAY);
+	g_value_set_boxed(&v, custom_params);
+	G_OBJECT_GET_CLASS(key)->set_property(G_OBJECT(key), PROP_CUSTOM_PARAMS, &v, NULL);
+	g_value_unset(&v);
+}
+
+GHashTable *sf_crypto_key_get_filter_data(SfCryptoKey *key)
+{
+	SfCryptoKeyPrivate *priv = sf_crypto_key_get_instance_private(key);
+	return priv->filter_data;
+}
+
+void sf_crypto_key_set_filter_data(SfCryptoKey *key, GHashTable *filter_data)
+{
+	GValue v = { 0 };
+	g_value_init(&v, G_TYPE_HASH_TABLE);
+	g_value_set_boxed(&v, filter_data);
+	G_OBJECT_GET_CLASS(key)->set_property(G_OBJECT(key), PROP_FILTER_DATA, &v, NULL);
+	g_value_unset(&v);
 }

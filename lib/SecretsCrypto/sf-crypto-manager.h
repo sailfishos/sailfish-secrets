@@ -60,8 +60,34 @@ void sf_crypto_manager_generate_initialization_vector(SfCryptoManager *manager,
 		gpointer user_data);
 GBytes *sf_crypto_manager_generate_initialization_vector_finish(GAsyncResult *res, GError **error);
 
-/* generateKey */
-/* generateStoredKey */
+void sf_crypto_manager_generate_key(SfCryptoManager *manager,
+		SfCryptoKey *key_template,
+		/*
+		SfKpgParams *kpg_params,
+		SfSkdfParams *skdf_params,
+		*/
+		GHashTable *custom_params,
+		const gchar *crypto_provider,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+SfCryptoKey *sf_crypto_manager_generate_key_finish(GAsyncResult *res, GError **error);
+
+void sf_crypto_manager_generate_stored_key(SfCryptoManager *manager,
+		SfCryptoKey *key_template,
+		/*
+		SfKpgParams *kpg_params,
+		SfSkdfParams *skdf_params,
+		*/
+		const gchar *authentication_plugin,
+		SfCryptoInputType input_type,
+		SfCryptoEchoMode echo_mode,
+		GHashTable *custom_params,
+		const gchar *crypto_provider,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+SfCryptoKey *sf_crypto_manager_generate_stored_key_finish(GAsyncResult *res, GError **error);
 
 void sf_crypto_manager_import_key(SfCryptoManager *manager,
 		GBytes *data,

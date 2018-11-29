@@ -521,6 +521,11 @@ void sf_crypto_manager_generate_random_data(SfCryptoManager *manager,
 			task);
 }
 
+GBytes *sf_crypto_manager_generate_random_data_finish(GAsyncResult *res, GError **error)
+{
+	return g_task_propagate_pointer(G_TASK(res), error);
+}
+
 static void _sf_crypto_manager_generate_initialization_vector_ready(GObject *source_object,
 		GAsyncResult *res,
 		gpointer user_data)
@@ -560,9 +565,118 @@ GBytes *sf_crypto_manager_generate_initialization_vector_finish(GAsyncResult *re
 {
 	return g_task_propagate_pointer(G_TASK(res), error);
 }
-GBytes *sf_crypto_manager_generate_random_data_finish(GAsyncResult *res, GError **error)
+
+static void _sf_crypto_manager_generate_key_ready(GObject *source_object,
+		GAsyncResult *res,
+		gpointer user_data)
 {
-	return g_task_propagate_pointer(G_TASK(res), error);
+	_sf_crypto_manager_result_key_ready(source_object, res, user_data);
+}
+
+void sf_crypto_manager_generate_key(SfCryptoManager *manager,
+		SfCryptoKey *key_template,
+		/*
+		SfKpgParams *kpg_params,
+		SfSkdfParams *skdf_params,
+		*/
+		GHashTable *custom_params,
+		const gchar *crypto_provider,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data)
+{
+	SfCryptoManagerPrivate *priv = sf_crypto_manager_get_instance_private(manager);
+	GTask *task = g_task_new(manager, cancellable, callback, user_data);
+
+	g_dbus_proxy_call(priv->proxy,
+			"generateKey",
+			g_variant_new("(@" SF_CRYPTO_KEY_VARIANT_STRING
+				"(i@a{sv}@a{sv})"
+				"(@ay@ay(i)(i)(i)(i)xiiii@a{sv})"
+				"a{sv}s",
+				_sf_crypto_key_to_variant(key_template),
+				(gint32)0,
+				g_variant_new_array(G_VARIANT_TYPE("{sv}"), NULL, 0),
+				g_variant_new_array(G_VARIANT_TYPE("{sv}"), NULL, 0),
+				g_variant_new_array(G_VARIANT_TYPE_BYTE, NULL, 0),
+				g_variant_new_array(G_VARIANT_TYPE_BYTE, NULL, 0),
+				(gint32)0, (gint32)0, (gint32)0, (gint32)0,
+				(gint64)0, (gint32)0, (gint32)0, (gint32)0, (gint32)0,
+				g_variant_new_array(G_VARIANT_TYPE("{sv}"), NULL, 0),
+				_sf_variant_new_variant_map_or_empty(custom_params),
+				crypto_provider),
+			G_DBUS_CALL_FLAGS_NONE,
+			-1,
+			cancellable,
+			_sf_crypto_manager_generate_key_ready,
+			task);
+}
+
+SfCryptoKey *sf_crypto_manager_generate_key_finish(GAsyncResult *res, GError **error)
+{
+	return g_object_ref_sink(g_task_propagate_pointer(G_TASK(res), error));
+}
+
+static void _sf_crypto_manager_generate_stored_key_ready(GObject *source_object,
+		GAsyncResult *res,
+		gpointer user_data)
+{
+	_sf_crypto_manager_result_key_ready(source_object, res, user_data);
+}
+
+void sf_crypto_manager_generate_stored_key(SfCryptoManager *manager,
+		SfCryptoKey *key_template,
+		/*
+		SfKpgParams *kpg_params,
+		SfSkdfParams *skdf_params,
+		*/
+		const gchar *authentication_plugin,
+		SfCryptoInputType input_type,
+		SfCryptoEchoMode echo_mode,
+		GHashTable *custom_params,
+		const gchar *crypto_provider,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data)
+{
+	SfCryptoManagerPrivate *priv = sf_crypto_manager_get_instance_private(manager);
+	GTask *task = g_task_new(manager, cancellable, callback, user_data);
+
+	g_dbus_proxy_call(priv->proxy,
+			"generateStoredKey",
+			g_variant_new("(@" SF_CRYPTO_KEY_VARIANT_STRING
+				"(i@a{sv}@a{sv})"
+				"(@ay@ay(i)(i)(i)(i)xiiii@a{sv})"
+				"(ssss(i)s@a{is}(i)(i))"
+				"a{sv}s",
+				_sf_crypto_key_to_variant(key_template),
+
+				(gint32)0,
+				g_variant_new_array(G_VARIANT_TYPE("{sv}"), NULL, 0),
+				g_variant_new_array(G_VARIANT_TYPE("{sv}"), NULL, 0),
+				g_variant_new_array(G_VARIANT_TYPE_BYTE, NULL, 0),
+				g_variant_new_array(G_VARIANT_TYPE_BYTE, NULL, 0),
+
+				(gint32)0, (gint32)0, (gint32)0, (gint32)0,
+				(gint64)0, (gint32)0, (gint32)0, (gint32)0, (gint32)0,
+				g_variant_new_array(G_VARIANT_TYPE("{sv}"), NULL, 0),
+
+				"", "", "", "", 0, authentication_plugin,
+				g_variant_new_array(G_VARIANT_TYPE("{is}"), NULL, 0),
+				input_type, echo_mode,
+
+				_sf_variant_new_variant_map_or_empty(custom_params),
+				crypto_provider),
+			G_DBUS_CALL_FLAGS_NONE,
+			-1,
+			cancellable,
+			_sf_crypto_manager_generate_stored_key_ready,
+			task);
+}
+
+SfCryptoKey *sf_crypto_manager_generate_stored_key_finish(GAsyncResult *res, GError **error)
+{
+	return g_object_ref_sink(g_task_propagate_pointer(G_TASK(res), error));
 }
 
 static void _sf_crypto_manager_import_key_ready(GObject *source_object,
@@ -588,7 +702,9 @@ void sf_crypto_manager_import_key(SfCryptoManager *manager,
 
 	g_dbus_proxy_call(priv->proxy,
 			"importKey",
-			g_variant_new("(@ay(ssss(i)s@a{is}(i)(i))@a{sv}s)",
+			g_variant_new("(@ay"
+				"(ssss(i)s@a{is}(i)(i))"
+				"@a{sv}s)",
 				_sf_variant_new_bytes_or_empty(data),
 				"", "", "", "", 0, authentication_plugin,
 				g_variant_new_array(G_VARIANT_TYPE("{is}"), NULL, 0),
@@ -677,7 +793,7 @@ void sf_crypto_manager_seed_random_data_generator(SfCryptoManager *manager,
 
 	g_dbus_proxy_call(priv->proxy,
 			"seedRandomDataGenerator",
-			g_variant_new("(@aydsa{sv}s)",
+			g_variant_new("(@ayds@a{sv}s)",
 				_sf_variant_new_bytes_or_empty(seed_data),
 				entropy_estimate,
 				engine_name,
@@ -868,7 +984,7 @@ void sf_crypto_manager_stored_key_names(SfCryptoManager *manager,
 
 	g_dbus_proxy_call(priv->proxy,
 			"storedKeyIdentifiers",
-			g_variant_new("(ssa{sv})",
+			g_variant_new("(ss@a{sv})",
 				plugin_name,
 				collection_name,
 				_sf_variant_new_variant_map_or_empty(custom_params)),
@@ -1256,7 +1372,7 @@ static void _sf_crypto_manager_lock_code_request(SfCryptoManager *manager,
 
 	g_dbus_proxy_call(priv->proxy,
 			method,
-			g_variant_new("((i)s(ssss(i)sa{is}(i)(i))(i)s)",
+			g_variant_new("((i)s(ssss(i)s@a{is}(i)(i))(i)s)",
 				target_type,
 				target ?: "",
 				"", "", "",
