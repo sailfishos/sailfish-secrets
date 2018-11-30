@@ -1,6 +1,10 @@
 #ifndef SF_CRYPTO_H
 #define SF_CRYPTO_H
 
+extern const gchar *SF_CRYPTO_DEFAULT_PLUGIN;
+extern const gchar *SF_CRYPTO_DEFAULT_STORAGE_PLUGIN;
+extern const gchar *SF_CRYPTO_DEFAULT_CSPRNG_ENGINE;
+
 typedef enum SfCryptoResult_ {
 	SF_CRYPTO_RESULT_SUCCEEDED = 0,
 	SF_CRYPTO_RESULT_PENDING = 1,

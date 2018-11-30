@@ -2,6 +2,10 @@
 #include "sf-crypto-manager.h"
 #include "sf-crypto-key-private.h"
 
+const gchar *SF_CRYPTO_DEFAULT_PLUGIN = "plugin.crypto.default";
+const gchar *SF_CRYPTO_DEFAULT_STORAGE_PLUGIN = "plugin.cryptostorage.default";
+const gchar *SF_CRYPTO_DEFAULT_CSPRNG_ENGINE = "default";
+
 typedef struct SfCryptoManagerPrivate_ SfCryptoManagerPrivate;
 /*
 typedef enum SfCryptoManagerSignal_ {
@@ -1291,6 +1295,7 @@ GBytes *sf_crypto_manager_decrypt_finish(GAsyncResult *res, SfCryptoVerification
 
 	return rv;
 }
+
 /*
 void _sf_crypto_manager_query_lock_status_ready(GObject *source_object,
 		GAsyncResult *res,
