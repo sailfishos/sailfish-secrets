@@ -1,5 +1,8 @@
 TEMPLATE = app
 TARGET = sailfishsecretsd
+QT = core sql dbus concurrent
+CONFIG += link_pkgconfig hide_symbols
+PKGCONFIG += dbus-1 Qt5Concurrent Qt5DBus Qt5Core Qt5Sql
 
 packagesExist(qt5-boostable) {
     DEFINES += HAS_BOOSTER
@@ -8,23 +11,18 @@ packagesExist(qt5-boostable) {
     warning("qt5-boostable not available; startup times will be slower")
 }
 
-include($$PWD/../common.pri)
-include($$PWD/../lib/libsailfishsecrets.pri)
-include($$PWD/../lib/libsailfishsecretspluginapi.pri)
-include($$PWD/../lib/libsailfishcrypto.pri)
-include($$PWD/../lib/libsailfishcryptopluginapi.pri)
-
-QT += sql dbus concurrent
-
-CONFIG += link_pkgconfig hide_symbols
-PKGCONFIG += dbus-1 Qt5Concurrent Qt5DBus Qt5Core
-
 packagesExist(nemonotifications-qt5) {
     PKGCONFIG += nemonotifications-qt5
     DEFINES += HAS_NEMO_NOTIFICATIONS
 } else {
     warning("package nemonotifications-qt5 is not present, building without notification support")
 }
+
+include($$PWD/../common.pri)
+include($$PWD/../lib/libsailfishsecrets.pri)
+include($$PWD/../lib/libsailfishsecretspluginapi.pri)
+include($$PWD/../lib/libsailfishcrypto.pri)
+include($$PWD/../lib/libsailfishcryptopluginapi.pri)
 
 HEADERS += \
     $$PWD/controller_p.h \

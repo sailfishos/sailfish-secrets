@@ -4,8 +4,7 @@ TARGET = $$qtLibraryTarget($$TARGET)
 target.path = $$[QT_INSTALL_LIBS]
 CONFIG += qt create_pc create_prl no_install_prl hide_symbols
 DEFINES += SAILFISH_CRYPTO_LIBRARY_BUILD
-QT += dbus
-QT -= gui
+QT = core dbus
 
 include($$PWD/../../common.pri)
 
