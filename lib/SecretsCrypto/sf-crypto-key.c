@@ -1,6 +1,7 @@
 #include "sf-crypto-key.h"
 #include "sf-crypto-key-private.h"
 #include "sf-crypto-manager.h"
+#include "sf-common-private.h"
 
 enum SfCryptoKeyProperties {
 	PROP_NAME = 1,
@@ -372,16 +373,6 @@ const gchar *sf_crypto_key_get_filter_field(SfCryptoKey *key, const gchar *field
 	return g_hash_table_lookup(priv->filter_data, field);
 }
 
-GVariant *_sf_variant_new_bytes_or_empty(GBytes *bytes)
-{
-	if (!bytes)
-		return g_variant_new_array(G_VARIANT_TYPE_BYTE, NULL, 0);
-	return g_variant_new_fixed_array(G_VARIANT_TYPE_BYTE,
-			g_bytes_get_data(bytes, NULL),
-			g_bytes_get_size(bytes) / sizeof(guchar),
-			sizeof(guchar));
-}
-
 static GVariant *_sf_variant_new_array_bytes_or_empty(GPtrArray *array)
 {
 	GVariantBuilder bldr;
@@ -394,17 +385,6 @@ static GVariant *_sf_variant_new_array_bytes_or_empty(GPtrArray *array)
 	for (i = 0; i < array->len; i++)
 		g_variant_builder_add_value(&bldr, _sf_variant_new_bytes_or_empty(g_ptr_array_index(array, i)));
 	return g_variant_builder_end(&bldr);
-}
-
-GBytes *_sf_bytes_new_from_variant_or_null(GVariant *variant)
-{
-	gconstpointer data;
-	gsize n_elements;
-
-	data = g_variant_get_fixed_array(variant, &n_elements, sizeof(guchar));
-	if (n_elements == 0)
-		return NULL;
-	return g_bytes_new(data, n_elements * sizeof(guchar));
 }
 
 static GPtrArray *_sf_array_bytes_from_variant_or_null(GVariant *variant)
@@ -427,24 +407,7 @@ static GPtrArray *_sf_array_bytes_from_variant_or_null(GVariant *variant)
 	return res;
 }
 
-GVariant *_sf_variant_new_variant_map_or_empty(GHashTable *hash_table)
-{
-	GVariantDict var_dict;
-
-	g_variant_dict_init(&var_dict, NULL);
-
-	if (hash_table) {
-		GHashTableIter ht_iter;
-		gpointer key;
-		gpointer value;
-		g_hash_table_iter_init(&ht_iter, hash_table);
-		while (g_hash_table_iter_next(&ht_iter, &key, &value))
-			g_variant_dict_insert_value(&var_dict, key, value);
-	}
-
-	return g_variant_dict_end(&var_dict);
-}
-
+/*
 static GHashTable *_sf_hash_table_new_from_variant(GVariant *variant)
 {
 	GHashTable *res;
@@ -458,15 +421,15 @@ static GHashTable *_sf_hash_table_new_from_variant(GVariant *variant)
 		return NULL;
 
 	res = g_hash_table_new_full(g_str_hash, g_str_equal,
-			g_free, g_free);
+			g_free, g_variant_unref);
 
 	do {
-		g_hash_table_replace(res, key, g_variant_dup_string(item, NULL));
-		g_variant_unref(item);
+		g_hash_table_replace(res, key, item);
 	} while (g_variant_iter_next(&iter, "{sv}", &key, &item));
 
 	return res;
 }
+*/
 
 GVariant *_sf_crypto_key_to_variant(SfCryptoKey *key)
 {
@@ -485,7 +448,7 @@ GVariant *_sf_crypto_key_to_variant(SfCryptoKey *key)
 			_sf_variant_new_bytes_or_empty(priv->private_key),
 			_sf_variant_new_bytes_or_empty(priv->secret_key),
 			_sf_variant_new_array_bytes_or_empty(priv->custom_params),
-			_sf_variant_new_variant_map_or_empty(priv->filter_data));
+			_sf_variant_new_variant_map_string_or_empty(priv->filter_data));
 }
 
 SfCryptoKey *_sf_crypto_key_from_variant(GVariant *variant)
@@ -532,7 +495,7 @@ SfCryptoKey *_sf_crypto_key_from_variant(GVariant *variant)
 	privkey = _sf_bytes_new_from_variant_or_null(public_key);
 	seckey = _sf_bytes_new_from_variant_or_null(public_key);
 	custparm = _sf_array_bytes_from_variant_or_null(custom_params);
-	filter_ht = _sf_hash_table_new_from_variant(filter_data);
+	filter_ht = _sf_hash_table_new_string_from_variant(filter_data);
 
 	g_variant_unref(public_key);
 	g_variant_unref(private_key);

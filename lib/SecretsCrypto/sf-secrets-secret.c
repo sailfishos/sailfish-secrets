@@ -1,11 +1,11 @@
 #include "sf-secrets-secret.h"
 #include "sf-secrets-manager.h"
-#include "sf-secrets-collection.h"
 
 enum SfSecretSecretProperties {
 	PROP_MANAGER = 1,
-	PROP_COLLECTION,
-	PROP_IDENTIFIER,
+	PROP_PLUGIN_NAME,
+	PROP_COLLECTION_NAME,
+	PROP_NAME,
 	PROP_FILTER_FIELDS,
 	PROP_DATA
 };
@@ -15,8 +15,9 @@ typedef struct SfSecretsSecretPrivate_ SfSecretsSecretPrivate;
 struct SfSecretsSecretPrivate_
 {
 	SfSecretsManager *manager;
-	SfSecretsCollection *collection;
-	gchar *identifier;
+	gchar *collection_name;
+	gchar *plugin_name;
+	gchar *name;
 	GHashTable *filter_fields;
 	GBytes *data;
 };
@@ -35,14 +36,15 @@ static void _sf_secrets_secret_finalize(GObject *object)
 	if (priv->manager)
 		g_object_unref(priv->manager);
 
-	if (priv->collection)
-		g_object_unref(priv->collection);
-
 	if (priv->data)
 		g_bytes_unref(priv->data);
 
-	if (priv->identifier)
-		g_free(priv->identifier);
+	if (priv->name)
+		g_free(priv->name);
+	if (priv->collection_name)
+		g_free(priv->collection_name);
+	if (priv->plugin_name)
+		g_free(priv->plugin_name);
 }
 
 static void _sf_secrets_secret_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec)
@@ -57,12 +59,16 @@ static void _sf_secrets_secret_get_property(GObject *object, guint prop_id, GVal
 			g_value_set_object(value, priv->manager);
 			break;
 
-		case PROP_COLLECTION:
-			g_value_set_object(value, priv->collection);
+		case PROP_COLLECTION_NAME:
+			g_value_set_string(value, priv->collection_name);
 			break;
 
-		case PROP_IDENTIFIER:
-			g_value_set_string(value, priv->identifier);
+		case PROP_NAME:
+			g_value_set_string(value, priv->name);
+			break;
+
+		case PROP_PLUGIN_NAME:
+			g_value_set_string(value, priv->plugin_name);
 			break;
 
 		case PROP_FILTER_FIELDS:
@@ -92,16 +98,22 @@ static void _sf_secrets_secret_set_property(GObject *object, guint prop_id, cons
 			priv->manager = g_value_dup_object(value);
 			break;
 
-		case PROP_COLLECTION:
-			if (priv->collection)
-				g_object_unref(priv->collection);
-			priv->collection = g_value_dup_object(value);
+		case PROP_PLUGIN_NAME:
+			if (priv->plugin_name)
+				g_free(priv->plugin_name);
+			priv->plugin_name = g_value_dup_object(value);
 			break;
 
-		case PROP_IDENTIFIER:
-			if (priv->identifier)
-				g_free(priv->identifier);
-			priv->identifier = g_value_dup_string(value);
+		case PROP_COLLECTION_NAME:
+			if (priv->collection_name)
+				g_free(priv->collection_name);
+			priv->collection_name = g_value_dup_object(value);
+			break;
+
+		case PROP_NAME:
+			if (priv->name)
+				g_free(priv->name);
+			priv->name = g_value_dup_string(value);
 			break;
 
 		case PROP_FILTER_FIELDS:
@@ -139,10 +151,28 @@ static void sf_secrets_secret_class_init(SfSecretsSecretClass *secret_class)
 				G_PARAM_STATIC_STRINGS));
 
 	g_object_class_install_property(G_OBJECT_CLASS(secret_class),
-			PROP_IDENTIFIER,
-			g_param_spec_string("identifier",
-				"identifier",
-				"Secret identifier",
+			PROP_COLLECTION_NAME,
+			g_param_spec_string("collection-name",
+				"collection-name",
+				"Collection name",
+				NULL,
+				G_PARAM_READWRITE |
+				G_PARAM_STATIC_STRINGS));
+
+	g_object_class_install_property(G_OBJECT_CLASS(secret_class),
+			PROP_PLUGIN_NAME,
+			g_param_spec_string("plugin-name",
+				"plugin-name",
+				"Storage plugin name",
+				NULL,
+				G_PARAM_READWRITE |
+				G_PARAM_STATIC_STRINGS));
+
+	g_object_class_install_property(G_OBJECT_CLASS(secret_class),
+			PROP_NAME,
+			g_param_spec_string("name",
+				"name",
+				"Secret name",
 				NULL,
 				G_PARAM_READWRITE |
 				G_PARAM_STATIC_STRINGS));
@@ -196,9 +226,21 @@ const gchar *sf_secrets_secret_get_filter_field(SfSecretsSecret *secret, const g
 	return g_hash_table_lookup(priv->filter_fields, key);
 }
 
-const gchar *sf_secrets_secret_get_identifier(SfSecretsSecret *secret)
+const gchar *sf_secrets_secret_get_name(SfSecretsSecret *secret)
 {
 	SfSecretsSecretPrivate *priv = sf_secrets_secret_get_instance_private(secret);
 
-	return priv->identifier;
+	return priv->name;
+}
+const gchar *sf_secrets_secret_get_collection_name(SfSecretsSecret *secret)
+{
+	SfSecretsSecretPrivate *priv = sf_secrets_secret_get_instance_private(secret);
+
+	return priv->collection_name;
+}
+const gchar *sf_secrets_secret_get_plugin_name(SfSecretsSecret *secret)
+{
+	SfSecretsSecretPrivate *priv = sf_secrets_secret_get_instance_private(secret);
+
+	return priv->plugin_name;
 }

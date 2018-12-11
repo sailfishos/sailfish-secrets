@@ -1,6 +1,7 @@
 #include "sf-crypto.h"
 #include "sf-crypto-manager.h"
 #include "sf-crypto-key-private.h"
+#include "sf-common-private.h"
 
 const gchar *SF_CRYPTO_DEFAULT_PLUGIN = "plugin.crypto.default";
 const gchar *SF_CRYPTO_DEFAULT_STORAGE_PLUGIN = "plugin.cryptostorage.default";
@@ -124,6 +125,64 @@ static void sf_crypto_manager_class_init(SfCryptoManagerClass *manager_class)
 				G_PARAM_STATIC_STRINGS));
 }
 
+static GVariant *_sf_variant_new_variant_map_or_empty(GHashTable *hash_table)
+{
+	GVariantDict var_dict;
+
+	g_variant_dict_init(&var_dict, NULL);
+
+	if (hash_table) {
+		GHashTableIter ht_iter;
+		gpointer key;
+		gpointer value;
+		g_hash_table_iter_init(&ht_iter, hash_table);
+		while (g_hash_table_iter_next(&ht_iter, &key, &value))
+			g_variant_dict_insert_value(&var_dict, key, value);
+	}
+
+	return g_variant_dict_end(&var_dict);
+}
+
+#define SF_KPG_VARIANT_STRING "(ia{sv}a{sv})"
+
+static GVariant *_sf_variant_new_kpg_or_empty(SfCryptoKpgParams *params) {
+	if (!params)
+		return g_variant_new("(i@a{sv}@a{sv})",
+				(gint32)SF_CRYPTO_KEY_PAIR_TYPE_UNKNOWN,
+				g_variant_new_array(G_VARIANT_TYPE("{sv}"), NULL, 0),
+				g_variant_new_array(G_VARIANT_TYPE("{sv}"), NULL, 0));
+	return g_variant_new("(i@a{sv}@a{sv})",
+			(gint32)params->type,
+			_sf_variant_new_variant_map_or_empty(params->custom_params),
+			_sf_variant_new_variant_map_or_empty(params->type_params));
+}
+
+#define SF_SKDF_VARIANT_STRING "(ayay(i)(i)(i)(i)xiiia{sv})"
+static GVariant *_sf_variant_new_skdf_or_empty(SfCryptoSkdfParams *params)
+{
+	if (!params)
+		return g_variant_new("(@ay@ay(i)(i)(i)(i)xiiia@a{sv}",
+				g_variant_new_array(G_VARIANT_TYPE_BYTE, NULL, 0),
+				g_variant_new_array(G_VARIANT_TYPE_BYTE, NULL, 0),
+				SF_CRYPTO_KDF_UNKNOWN,
+				SF_CRYPTO_MAC_UNKNOWN,
+				SF_CRYPTO_ALGORITHM_UNKNOWN,
+				SF_CRYPTO_DIGEST_UNKNOWN,
+				(gint64)0, (gint32)0, (gint32)0,
+				g_variant_new_array(G_VARIANT_TYPE("{sv}"), NULL, 0));
+	return g_variant_new("(@ay@ay(i)(i)(i)(i)xiiia@a{sv}",
+			_sf_variant_new_bytes_or_empty(params->input_data),
+			_sf_variant_new_bytes_or_empty(params->salt),
+			(gint32)params->function,
+			(gint32)params->mac,
+			(gint32)params->algorithm,
+			(gint32)params->digest,
+			(gint64)params->memory_size,
+			(gint32)params->iterations,
+			(gint32)params->key_size,
+			_sf_variant_new_variant_map_or_empty(params->custom_params));
+}
+
 SfCryptoManager *sf_crypto_manager_new_finish(GAsyncResult *res,
 		GError **error)
 {
@@ -177,23 +236,33 @@ gboolean _sf_crypto_manager_check_reply(GVariant *response, GError **error, GVar
 	return res;
 }
 
+static GVariant *_sf_crypto_manager_dbus_call_finish(GObject *source_object,
+		GAsyncResult *res,
+		GError **error,
+		GVariantIter *iter)
+{
+	GVariant *response = g_dbus_proxy_call_finish(G_DBUS_PROXY(source_object),
+			res, error);
+
+	if (!response)
+		return response;
+
+	if (!_sf_crypto_manager_check_reply(response, error, iter)) {
+		g_variant_unref(response);
+		return NULL;
+	}
+
+	return response;
+}
 
 static void _sf_crypto_manager_get_plugin_info_ready(GObject *source_object,
 		GAsyncResult *res,
 		gpointer user_data)
 {
 	GTask *task = user_data;
-	/*
-	SfCryptoManager *secrets = g_task_get_source_object(task);
-	SfCryptoManagerPrivate *priv = sf_crypto_manager_get_instance_private(secrets);
-	*/
 	GError *error = NULL;
-	GVariant *response = g_dbus_proxy_call_finish(G_DBUS_PROXY(source_object),
-			res, &error);
 	GVariantIter iter;
-	/*
-	int i;
-	*/
+	GVariant *response = _sf_crypto_manager_dbus_call_finish(source_object, res, &error, &iter);
 
 	if (error) {
 		g_task_return_error(task, error);
@@ -201,23 +270,56 @@ static void _sf_crypto_manager_get_plugin_info_ready(GObject *source_object,
 		return;
 	}
 
-	if (!_sf_crypto_manager_check_reply(response, &error, &iter)) {
-		g_task_return_error(task, error);
-		g_object_unref(task);
-		g_variant_unref(response);
-		return;
-	}
+	g_task_set_task_data(task, response, (GDestroyNotify)g_variant_unref);
+	g_task_return_pointer(task, g_variant_iter_copy(&iter), (GDestroyNotify)g_variant_iter_free);
+	g_object_unref(task);
+}
 
-	/*
-	for (i = 0; i < SF_SECRET_PLUGIN_TYPE_COUNT; i++) {
-		GVariant *array = g_variant_iter_next_value(&iter);
+void sf_crypto_manager_get_plugin_info(SfCryptoManager *manager,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data)
+{
+	GTask *task = g_task_new(manager, cancellable, callback, user_data);
+	SfCryptoManagerPrivate *priv = sf_crypto_manager_get_instance_private(manager);
+
+	g_dbus_proxy_call(priv->proxy,
+			"getPluginInfo",
+			NULL,
+			G_DBUS_CALL_FLAGS_NONE,
+			-1,
+			g_task_get_cancellable(task),
+			_sf_crypto_manager_get_plugin_info_ready,
+			task);
+}
+
+gboolean sf_crypto_manager_get_plugin_info_finish(GAsyncResult *res,
+		GSList **crypto_plugins,
+		GSList **storage_plugins,
+		GError **error)
+{
+	gsize i;
+	GSList **plugin_lists[] = {
+		crypto_plugins,
+		storage_plugins,
+	};
+	GVariantIter *iter = g_task_propagate_pointer(G_TASK(res), error);
+
+	if (!iter)
+		return FALSE;
+
+	for (i = 0; i < G_N_ELEMENTS(plugin_lists); i++) {
+		GVariant *array = g_variant_iter_next_value(iter);
 		GVariantIter array_iter;
 		SfCryptoPluginInfo info;
 		gint32 state;
 
-		if (!array)
-			break;
+		if (!plugin_lists[i]) {
+			g_variant_unref(array);
+			continue;
+		}
 
+		*plugin_lists[i] = NULL;
 		g_variant_iter_init(&array_iter, array);
 		while (g_variant_iter_loop(&array_iter, "(&s&sii)",
 					&info.display_name,
@@ -225,14 +327,14 @@ static void _sf_crypto_manager_get_plugin_info_ready(GObject *source_object,
 					&info.version,
 					&state)) {
 			info.state = state;
-			priv->plugins[i] = g_slist_append(priv->plugins[i], sf_crypto_plugin_info_copy(&info));
+			*plugin_lists[i] = g_slist_append(*plugin_lists[i], sf_crypto_plugin_info_copy(&info));
 		}
+		g_variant_unref(array);
 	}
-	*/
 
-	g_task_return_boolean(task, TRUE);
-	g_object_unref(task);
-	g_variant_unref(response);
+	g_variant_iter_free(iter);
+
+	return TRUE;
 }
 
 static void _sf_crypto_manager_proxy_ready(GObject *source_object,
@@ -254,14 +356,8 @@ static void _sf_crypto_manager_proxy_ready(GObject *source_object,
 		return;
 	}
 
-	g_dbus_proxy_call(priv->proxy,
-			"getPluginInfo",
-			NULL,
-			G_DBUS_CALL_FLAGS_NONE,
-			-1,
-			g_task_get_cancellable(task),
-			_sf_crypto_manager_get_plugin_info_ready,
-			task);
+	g_task_return_boolean(task, TRUE);
+	g_object_unref(task);
 }
 
 void _sf_crypto_manager_connection_ready(GObject *source_object,
@@ -406,8 +502,8 @@ static void _sf_crypto_manager_result_bytearray_ready(GObject *source_object,
 {
 	GTask *task = user_data;
 	GError *error = NULL;
-	GVariant *ret = g_dbus_proxy_call_finish(G_DBUS_PROXY(source_object), res, &error);
 	GVariantIter iter;
+	GVariant *ret = _sf_crypto_manager_dbus_call_finish(source_object, res, &error, &iter);
 	GVariant *digest;
 	const guchar *digest_data;
 	gsize digest_len;
@@ -416,13 +512,6 @@ static void _sf_crypto_manager_result_bytearray_ready(GObject *source_object,
 	if (error) {
 		g_task_return_error(task, error);
 		g_object_unref(task);
-		return;
-	}
-
-	if (!_sf_crypto_manager_check_reply(ret, &error, &iter)) {
-		g_task_return_error(task, error);
-		g_object_unref(task);
-		g_variant_unref(ret);
 		return;
 	}
 
@@ -442,20 +531,13 @@ static void _sf_crypto_manager_result_key_ready(GObject *source_object,
 {
 	GTask *task = user_data;
 	GError *error;
-	GVariant *response = g_dbus_proxy_call_finish(G_DBUS_PROXY(source_object), res, &error);
-	GVariant *key;
 	GVariantIter iter;
+	GVariant *response = _sf_crypto_manager_dbus_call_finish(source_object, res, &error, &iter);
+	GVariant *key;
 
 	if (error) {
 		g_task_return_error(task, error);
 		g_object_unref(task);
-		return;
-	}
-
-	if (!_sf_crypto_manager_check_reply(response, &error, &iter)) {
-		g_task_return_error(task, error);
-		g_object_unref(task);
-		g_variant_unref(response);
 		return;
 	}
 
@@ -472,18 +554,11 @@ static void _sf_crypto_manager_result_ready(GObject *source_object,
 {
 	GTask *task = user_data;
 	GError *error = NULL;
-	GVariant *ret = g_dbus_proxy_call_finish(G_DBUS_PROXY(source_object), res, &error);
+	GVariant *ret = _sf_crypto_manager_dbus_call_finish(source_object, res, &error, NULL);
 
 	if (error) {
 		g_task_return_error(task, error);
 		g_object_unref(task);
-		return;
-	}
-
-	if (!_sf_crypto_manager_check_reply(ret, &error, NULL)) {
-		g_task_return_error(task, error);
-		g_object_unref(task);
-		g_variant_unref(ret);
 		return;
 	}
 
@@ -579,10 +654,8 @@ static void _sf_crypto_manager_generate_key_ready(GObject *source_object,
 
 void sf_crypto_manager_generate_key(SfCryptoManager *manager,
 		SfCryptoKey *key_template,
-		/*
-		SfKpgParams *kpg_params,
-		SfSkdfParams *skdf_params,
-		*/
+		SfCryptoKpgParams *kpg_params,
+		SfCryptoSkdfParams *skdf_params,
 		GHashTable *custom_params,
 		const gchar *crypto_provider,
 		GCancellable *cancellable,
@@ -595,18 +668,12 @@ void sf_crypto_manager_generate_key(SfCryptoManager *manager,
 	g_dbus_proxy_call(priv->proxy,
 			"generateKey",
 			g_variant_new("(@" SF_CRYPTO_KEY_VARIANT_STRING
-				"(i@a{sv}@a{sv})"
-				"(@ay@ay(i)(i)(i)(i)xiiii@a{sv})"
-				"a{sv}s",
+				"@" SF_KPG_VARIANT_STRING
+				"@" SF_SKDF_VARIANT_STRING
+				"@a{sv}s",
 				_sf_crypto_key_to_variant(key_template),
-				(gint32)0,
-				g_variant_new_array(G_VARIANT_TYPE("{sv}"), NULL, 0),
-				g_variant_new_array(G_VARIANT_TYPE("{sv}"), NULL, 0),
-				g_variant_new_array(G_VARIANT_TYPE_BYTE, NULL, 0),
-				g_variant_new_array(G_VARIANT_TYPE_BYTE, NULL, 0),
-				(gint32)0, (gint32)0, (gint32)0, (gint32)0,
-				(gint64)0, (gint32)0, (gint32)0, (gint32)0, (gint32)0,
-				g_variant_new_array(G_VARIANT_TYPE("{sv}"), NULL, 0),
+				_sf_variant_new_kpg_or_empty(kpg_params),
+				_sf_variant_new_skdf_or_empty(skdf_params),
 				_sf_variant_new_variant_map_or_empty(custom_params),
 				crypto_provider),
 			G_DBUS_CALL_FLAGS_NONE,
@@ -630,10 +697,8 @@ static void _sf_crypto_manager_generate_stored_key_ready(GObject *source_object,
 
 void sf_crypto_manager_generate_stored_key(SfCryptoManager *manager,
 		SfCryptoKey *key_template,
-		/*
-		SfKpgParams *kpg_params,
-		SfSkdfParams *skdf_params,
-		*/
+		SfCryptoKpgParams *kpg_params,
+		SfCryptoSkdfParams *skdf_params,
 		const gchar *authentication_plugin,
 		SfCryptoInputType input_type,
 		SfCryptoEchoMode echo_mode,
@@ -649,21 +714,14 @@ void sf_crypto_manager_generate_stored_key(SfCryptoManager *manager,
 	g_dbus_proxy_call(priv->proxy,
 			"generateStoredKey",
 			g_variant_new("(@" SF_CRYPTO_KEY_VARIANT_STRING
-				"(i@a{sv}@a{sv})"
-				"(@ay@ay(i)(i)(i)(i)xiiii@a{sv})"
+				"@" SF_KPG_VARIANT_STRING
+				"@" SF_SKDF_VARIANT_STRING
 				"(ssss(i)s@a{is}(i)(i))"
 				"a{sv}s",
+
 				_sf_crypto_key_to_variant(key_template),
-
-				(gint32)0,
-				g_variant_new_array(G_VARIANT_TYPE("{sv}"), NULL, 0),
-				g_variant_new_array(G_VARIANT_TYPE("{sv}"), NULL, 0),
-				g_variant_new_array(G_VARIANT_TYPE_BYTE, NULL, 0),
-				g_variant_new_array(G_VARIANT_TYPE_BYTE, NULL, 0),
-
-				(gint32)0, (gint32)0, (gint32)0, (gint32)0,
-				(gint64)0, (gint32)0, (gint32)0, (gint32)0, (gint32)0,
-				g_variant_new_array(G_VARIANT_TYPE("{sv}"), NULL, 0),
+				_sf_variant_new_kpg_or_empty(kpg_params),
+				_sf_variant_new_skdf_or_empty(skdf_params),
 
 				"", "", "", "", 0, authentication_plugin,
 				g_variant_new_array(G_VARIANT_TYPE("{is}"), NULL, 0),
@@ -825,7 +883,7 @@ static void _sf_crypto_manager_calculate_digest_ready(GObject *source_object,
 void sf_crypto_manager_calculate_digest(SfCryptoManager *manager,
 		GBytes *data,
 		SfCryptoSignaturePadding padding,
-		SfCryptoDigestFunction digest,
+		SfCryptoDigest digest,
 		GHashTable *custom_params, /* char * => GVariant */
 		const gchar *crypto_provider,
 		GCancellable *cancellable,
@@ -938,10 +996,9 @@ static void _sf_crypto_manager_stored_key_names_ready(GObject *source_object,
 {
 	GTask *task = user_data;
 	GError *error = NULL;
-	GVariant *response = g_dbus_proxy_call_finish(G_DBUS_PROXY(source_object),
-			res, &error);
-	GArray *key_names;
 	GVariantIter iter;
+	GVariant *response = _sf_crypto_manager_dbus_call_finish(source_object, res, &error, &iter);
+	GArray *key_names;
 	GVariant *keys;
 	GVariantIter key_iter;
 	gchar *key_name;
@@ -949,13 +1006,6 @@ static void _sf_crypto_manager_stored_key_names_ready(GObject *source_object,
 	if (error) {
 		g_task_return_error(task, error);
 		g_object_unref(task);
-		return;
-	}
-
-	if (!_sf_crypto_manager_check_reply(response, &error, &iter)) {
-		g_task_return_error(task, error);
-		g_object_unref(task);
-		g_variant_unref(response);
 		return;
 	}
 
@@ -1015,7 +1065,7 @@ void sf_crypto_manager_sign(SfCryptoManager *manager,
 		GBytes *data,
 		SfCryptoKey *key,
 		SfCryptoSignaturePadding padding,
-		SfCryptoDigestFunction digest,
+		SfCryptoDigest digest,
 		GHashTable *custom_params,
 		const gchar *crypto_provider,
 		GCancellable *cancellable,
@@ -1052,20 +1102,13 @@ static void _sf_crypto_manager_verify_ready(GObject *source_object,
 {
 	GTask *task = user_data;
 	GError *error = NULL;
-	GVariant *ret = g_dbus_proxy_call_finish(G_DBUS_PROXY(source_object), res, &error);
 	GVariantIter iter;
+	GVariant *ret = _sf_crypto_manager_dbus_call_finish(source_object, res, &error, &iter);
 	gint32 status;
 
 	if (error) {
 		g_task_return_error(task, error);
 		g_object_unref(task);
-		return;
-	}
-
-	if (!_sf_crypto_manager_check_reply(ret, &error, &iter)) {
-		g_task_return_error(task, error);
-		g_object_unref(task);
-		g_variant_unref(ret);
 		return;
 	}
 
@@ -1081,7 +1124,7 @@ void sf_crypto_manager_verify(SfCryptoManager *manager,
 		GBytes *data,
 		SfCryptoKey *key,
 		SfCryptoSignaturePadding padding,
-		SfCryptoDigestFunction digest,
+		SfCryptoDigest digest,
 		GHashTable *custom_params,
 		const gchar *crypto_provider,
 		GCancellable *cancellable,
@@ -1119,21 +1162,14 @@ static void _sf_crypto_manager_encrypt_ready(GObject *source_object,
 {
 	GTask *task = user_data;
 	GError *error = NULL;
-	GVariant *ret = g_dbus_proxy_call_finish(G_DBUS_PROXY(source_object), res, &error);
 	GVariantIter iter;
+	GVariant *ret = _sf_crypto_manager_dbus_call_finish(source_object, res, &error, &iter);
 	GVariant *enc_data;
 	GVariant *tag;
 
 	if (error) {
 		g_task_return_error(task, error);
 		g_object_unref(task);
-		return;
-	}
-
-	if (!_sf_crypto_manager_check_reply(ret, &error, &iter)) {
-		g_task_return_error(task, error);
-		g_object_unref(task);
-		g_variant_unref(ret);
 		return;
 	}
 
@@ -1210,21 +1246,14 @@ static void _sf_crypto_manager_decrypt_ready(GObject *source_object,
 {
 	GTask *task = user_data;
 	GError *error = NULL;
-	GVariant *ret = g_dbus_proxy_call_finish(G_DBUS_PROXY(source_object), res, &error);
 	GVariantIter iter;
+	GVariant *ret = _sf_crypto_manager_dbus_call_finish(source_object, res, &error, &iter);
 	GVariant *dec_data;
 	gint32 status;
 
 	if (error) {
 		g_task_return_error(task, error);
 		g_object_unref(task);
-		return;
-	}
-
-	if (!_sf_crypto_manager_check_reply(ret, &error, &iter)) {
-		g_task_return_error(task, error);
-		g_object_unref(task);
-		g_variant_unref(ret);
 		return;
 	}
 

@@ -1,6 +1,9 @@
 #ifndef SF_CRYPTO_H
 #define SF_CRYPTO_H
 
+#include <glib.h>
+#include <glib-object.h>
+
 extern const gchar *SF_CRYPTO_DEFAULT_PLUGIN;
 extern const gchar *SF_CRYPTO_DEFAULT_STORAGE_PLUGIN;
 extern const gchar *SF_CRYPTO_DEFAULT_CSPRNG_ENGINE;
@@ -186,7 +189,7 @@ typedef enum SfCryptoSignaturePadding_ {
 	SF_CRYPTO_SIGNATURE_PADDING_LAST        = 255 // reserve
 } SfCryptoSignaturePadding;
 
-typedef enum SfCryptoDigestFunction_ {
+typedef enum SfCryptoDigest_ {
 	SF_CRYPTO_DIGEST_UNKNOWN       = 0,
 	SF_CRYPTO_DIGEST_CUSTOM        = 1,
 	SF_CRYPTO_DIGEST_MD5           = 5,
@@ -227,7 +230,7 @@ typedef enum SfCryptoDigestFunction_ {
 	SF_CRYPTO_DIGEST_TIGER2_192,
 	SF_CRYPTO_DIGEST_RADIO_GATUN    = 90,
 	SF_CRYPTO_DIGEST_FUNCTION_LAST  = 4095 // reserve
-} SfCryptoDigestFunction;
+} SfCryptoDigest;
 
 typedef enum SfCryptoMac_ {
         SF_CRYPTO_MAC_UNKNOWN          = 0,
@@ -239,7 +242,7 @@ typedef enum SfCryptoMac_ {
         SF_CRYPTO_MAC_LAST             = 255 // reserve
 } SfCryptoMac;
 
-typedef enum SfCryptoKdf {
+typedef enum SfCryptoKdf_ {
         SF_CRYPTO_KDF_UNKNOWN          = 0,
         SF_CRYPTO_KDF_CUSTOM           = 1,
         SF_CRYPTO_KDF_PKCS5_PBKDF2      = 10,
@@ -252,7 +255,7 @@ typedef enum SfCryptoKdf {
         SF_CRYPTO_KDF_ARGON2id         = 52,
         SF_CRYPTO_KDF_LYRA2            = 60,
         SF_CRYPTO_KDF_LAST             = 255 // reserve
-} SfCryptKdf;
+} SfCryptoKdf;
 
 typedef enum SfCryptoCurve {
         SF_CRYPTO_CURVE_UNKNOWN            = 0,
@@ -418,5 +421,37 @@ typedef enum SfCryptoInputType_ {
 	// reserved
 	LastInputType       = 65536
 } SfCryptoInputType;
+
+typedef enum SfCryptoKeyPairType_ {
+	SF_CRYPTO_KEY_PAIR_TYPE_UNKNOWN = SF_CRYPTO_ALGORITHM_UNKNOWN,
+	SF_CRYPTO_KEY_PAIR_TYPE_CUSTOM = SF_CRYPTO_ALGORITHM_CUSTOM,
+	SF_CRYPTO_KEY_PAIR_TYPE_RSA = SF_CRYPTO_ALGORITHM_RSA,
+	SF_CRYPTO_KEY_PAIR_TYPE_DSA = SF_CRYPTO_ALGORITHM_DSA,
+	SF_CRYPTO_KEY_PAIR_TYPE_DH = SF_CRYPTO_ALGORITHM_DH,
+	SF_CRYPTO_KEY_PAIR_TYPE_EC = SF_CRYPTO_ALGORITHM_EC,
+} SfCryptoKeyPairType;
+
+typedef enum SfCryptoPluginState_ {
+	SF_CRYPTO_PLUGIN_STATE_UNKNOWN   = 0,
+	SF_CRYPTO_PLUGIN_STATE_AVAILABLE = 1 << 0,
+	SF_CRYPTO_PLUGIN_STATE_MASTER_UNLOCKED = 1 << 1,
+	SF_CRYPTO_PLUGIN_STATE_PLUGIN_UNLOCKED = 1 << 2,
+	SF_CRYPTO_PLUGIN_STATE_PLUGIN_SUPPORTS_LOCKING = 1 << 3,
+	SF_CRYPTO_PLUGIN_STATE_PLUGIN_SUPPORTS_SET_LOCK_CODE = 1 << 4,
+} SfCryptoPluginState;
+
+struct SfCryptoPluginInfo_ {
+	gchar *display_name;
+	gchar *name;
+	int version;
+	SfCryptoPluginState state;
+};
+typedef struct SfCryptoPluginInfo_ SfCryptoPluginInfo;
+
+#define SF_TYPE_CRYPTO_PLUGIN_INFO sf_crypto_plugin_info_get_type()
+
+GType sf_crypto_plugin_info_get_type(void);
+void sf_crypto_plugin_info_free(SfCryptoPluginInfo *info);
+SfCryptoPluginInfo *sf_crypto_plugin_info_copy(const SfCryptoPluginInfo *other);
 
 #endif /* SF_CRYPTO_H */

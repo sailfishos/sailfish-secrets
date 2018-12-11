@@ -10,14 +10,15 @@ PKGCONFIG += glib-2.0 gio-2.0
 
 PUBLIC_HEADERS += \
     $$PWD/sf-secrets-manager.h \
-    $$PWD/sf-secrets-collection.h \
     $$PWD/sf-secrets-invocation-request.h \
     $$PWD/sf-secrets-secret.h \
     $$PWD/sf-secrets.h \
     \
     $$PWD/sf-crypto.h \
     $$PWD/sf-crypto-manager.h \
-    $$PWD/sf-crypto-key.h
+    $$PWD/sf-crypto-key.h \
+    \
+    $$PWD/sf-common-private.h
 
 
 
@@ -26,12 +27,15 @@ HEADERS += $$PUBLIC_HEADERS \
 
 SOURCES += \
     $$PWD/sf-secrets-manager.c \
-    $$PWD/sf-secrets-collection.c \
     $$PWD/sf-secrets-interaction-request.c \
     $$PWD/sf-secrets-secret.c \
+    $$PWD/sf-secrets.c \
     \
     $$PWD/sf-crypto-manager.c \
-    $$PWD/sf-crypto-key.c
+    $$PWD/sf-crypto-key.c \
+    $$PWD/sf-crypto.c \
+    \
+    $$PWD/sf-common.c
 
 
 develheaders.path = /usr/include/Sailfish/SecretsCrypto/

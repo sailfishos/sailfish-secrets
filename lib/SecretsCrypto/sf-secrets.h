@@ -4,6 +4,11 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
+extern const gchar *SF_SECRETS_DEFAULT_AUTHENTICATION_PLUGIN;
+extern const gchar *SF_SECRETS_DEFAULT_STORAGE_PLUGIN;
+extern const gchar *SF_SECRETS_DEFAULT_ENCRYPTION_PLUGIN;
+extern const gchar *SF_SECRETS_DEAFULT_ENCRYPTED_STORAGE_PLUGIN;
+
 typedef enum SfSecretsUserInteractionMode_ {
 	SF_SECRETS_USER_INTERACTION_MODE_PREVENT = 0,
 	SF_SECRETS_USER_INTERACTION_MODE_SYSTEM,
@@ -27,8 +32,8 @@ typedef enum SfSecretsPluginState_ {
 	SF_SECRETS_PLUGIN_STATE_AVAILABLE = 1 << 0,
 	SF_SECRETS_PLUGIN_STATE_MASTER_UNLOCKED = 1 << 1,
 	SF_SECRETS_PLUGIN_STATE_PLUGIN_UNLOCKED = 1 << 2,
-	SF_SECRETS_PLUGIN_STATE_PLUGIN_SUPPORTS_LOCKING = 1 << 2,
-	SF_SECRETS_PLUGIN_STATE_PLUGIN_SUPPORTS_SET_LOCK_CODE = 1 << 2,
+	SF_SECRETS_PLUGIN_STATE_PLUGIN_SUPPORTS_LOCKING = 1 << 3,
+	SF_SECRETS_PLUGIN_STATE_PLUGIN_SUPPORTS_SET_LOCK_CODE = 1 << 4,
 } SfSecretsPluginState;
 
 typedef enum SfSecretsError_ {
@@ -167,12 +172,7 @@ struct SfSecretsPluginInfo_ {
 	int version;
 	SfSecretsPluginState state;
 };
-
-struct SfSecretsSecretIdentifier_ {
-	gchar *name;
-	gchar *collection_name;
-	gchar *storage_plugin_name;
-};
+typedef struct SfSecretsPluginInfo_ SfSecretsPluginInfo;
 
 typedef enum SfSecretsEchoMode_ {
         SF_SECRETS_ECHO_MODE_UNKNOWN = 0,
@@ -200,5 +200,8 @@ typedef enum SfSecretsHealth_ {
         SF_SECRETS_HEALTH_CORRUPTED,
         SF_SECRETS_HEALTH_OTHER_ERROR,
 } SfSecretsHealth;
+
+void sf_secrets_plugin_info_free(SfSecretsPluginInfo *info);
+SfSecretsPluginInfo *sf_secrets_plugin_info_copy(const SfSecretsPluginInfo *info);
 
 #endif

@@ -9,7 +9,7 @@
 #include <gio/gio.h>
 
 #include <sf-secrets.h>
-#include <sf-secrets-collection.h>
+#include <sf-secrets-secret.h>
 
 typedef struct SfSecretsManager_ SfSecretsManager;
 typedef struct SfSecretsManagerClass_ SfSecretsManagerClass;
@@ -38,13 +38,13 @@ gboolean sf_secrets_manager_get_health_info_finish(GAsyncResult *res,
 		SfSecretsHealth *master_lock_health,
 		GError **error);
 
-void sf_secrets_manager_get_collection(SfSecretsManager *manager,
+/* userInput */
+void sf_secrets_manager_collection_names(SfSecretsManager *manager,
 		const gchar *plugin_name,
-		const gchar *name,
 		GCancellable *cancellable,
 		GAsyncReadyCallback callback,
 		gpointer user_data);
-SfSecretsCollection *sf_secrets_manager_get_collection_finish(GAsyncResult *res,
+gchar **sf_secrets_manager_collection_names_finish(GAsyncResult *res,
 		GError **error);
 
 void sf_secrets_manager_create_collection(SfSecretsManager *manager,
@@ -57,28 +57,86 @@ void sf_secrets_manager_create_collection(SfSecretsManager *manager,
 		GCancellable *cancellable,
 		GAsyncReadyCallback callback,
 		gpointer user_data);
-SfSecretsCollection *sf_secrets_manager_create_collection_finish(GAsyncResult *res,
+gboolean sf_secrets_manager_create_collection_finish(GAsyncResult *res,
 		GError **error);
 
-void sf_secrets_manager_ensure_collection(SfSecretsManager *manager,
+void sf_secrets_manager_delete_collection(SfSecretsManager *manager,
 		const gchar *plugin_name,
+		const gchar *collection_name,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+gboolean sf_secrets_manager_delete_collcetion_finish(GAsyncResult *res,
+		GError **error);
+
+void sf_secrets_manager_set_secret(SfSecretsManager *manager,
+		SfSecretsSecret *secret,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+void sf_secrets_manager_set_secret_standalone(SfSecretsManager *manager,
+		SfSecretsSecret *secret,
 		const gchar *encryption_plugin_name,
-		const gchar *authentication_plugin_name,
-		const gchar *name,
+		const gchar *authentication_plugin,
 		SfSecretsDeviceUnlockSemantic unlock_semantic,
 		SfSecretsAccessControlMode access_control_mode,
 		GCancellable *cancellable,
 		GAsyncReadyCallback callback,
 		gpointer user_data);
-SfSecretsCollection *sf_secrets_manager_ensure_collection_finish(GAsyncResult *res,
+gboolean sf_secrets_collection_set_secret_finish(GAsyncResult *res, GError **error);
+
+void sf_secrets_manager_get_secret(SfSecretsManager *manager,
+		const gchar *secret_name,
+		const gchar *collection_name,
+		const gchar *storage_plugin,
+		GCancellable *cancellable,
+		GAsyncReadyCallback cb,
+		gpointer user_data);
+SfSecretsSecret *sf_secrets_manager_get_secret_finish(GAsyncResult *res,
 		GError **error);
 
-SfSecretsCollection *sf_secrets_manager_get_default_collection(SfSecretsManager *manager,
+void sf_secrets_manager_find_secrets_va(SfSecretsManager *manager,
+		const gchar *collection_name,
 		const gchar *plugin_name,
-		const gchar *encryption_plugin_name,
-		const gchar *authentication_plugin_name,
-		SfSecretsDeviceUnlockSemantic unlock_semantic,
-		SfSecretsAccessControlMode access_control_mode);
+		SfSecretsFilterOperator op,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data,
+		const gchar *first_filter_name,
+		va_list args);
+void sf_secrets_manager_find_secrets_ht(SfSecretsManager *manager,
+		const gchar *collection_name,
+		const gchar *plugin_name,
+		GHashTable *filters,
+		SfSecretsFilterOperator op,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+void sf_secrets_manager_find_secrets(SfSecretsManager *manager,
+		const gchar *collection_name,
+		const gchar *plugin_name,
+		SfSecretsFilterOperator op,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data,
+		const gchar *first_filter_name,
+		...);
+gchar **sf_secrets_manager_find_secrets_finish(GAsyncResult *res, GError **error);
+
+void sf_secrets_manager_delete_secret_by_name(SfSecretsManager *manager,
+		const gchar *name,
+		const gchar *collection_name,
+		const gchar *plugin_name,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+void sf_secrets_manager_delete_secret(SfSecretsManager *manager,
+		SfSecretsSecret *secret,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+gboolean sf_secrets_manager_delete_secret_finish(GAsyncResult *res,
+		GError **error);
 
 void sf_secrets_manager_query_lock_status(SfSecretsManager *manager,
 		SfSecretsLockCodeTargetType target_type,

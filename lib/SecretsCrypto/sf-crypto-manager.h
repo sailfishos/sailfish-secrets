@@ -22,6 +22,28 @@ struct SfCryptoManagerClass_ {
 	GObjectClass parent_class;
 };
 
+struct SfCryptoKpgParams_ {
+	SfCryptoKeyPairType type;
+	GHashTable *custom_params;
+	GHashTable *type_params;
+};
+typedef struct SfCryptoKpgParams_ SfCryptoKpgParams;
+
+struct SfCryptoSkdfParams_ {
+	GBytes *input_data;
+	GBytes *salt;
+	SfCryptoKdf function;
+	SfCryptoMac mac;
+	SfCryptoAlgorithm algorithm;
+	SfCryptoDigest digest;
+	gint64 memory_size;
+	gint32 iterations;
+	gint32 parallelism;
+	gint32 key_size;
+	GHashTable *custom_params;
+};
+typedef struct SfCryptoSkdfParams_ SfCryptoSkdfParams;
+
 GType sf_crypto_manager_get_type(void);
 void sf_crypto_manager_new(GCancellable *cancellable,
 		GAsyncReadyCallback callback,
@@ -62,10 +84,8 @@ GBytes *sf_crypto_manager_generate_initialization_vector_finish(GAsyncResult *re
 
 void sf_crypto_manager_generate_key(SfCryptoManager *manager,
 		SfCryptoKey *key_template,
-		/*
-		SfKpgParams *kpg_params,
-		SfSkdfParams *skdf_params,
-		*/
+		SfCryptoKpgParams *kpg_params,
+		SfCryptoSkdfParams *skdf_params,
 		GHashTable *custom_params,
 		const gchar *crypto_provider,
 		GCancellable *cancellable,
@@ -75,10 +95,8 @@ SfCryptoKey *sf_crypto_manager_generate_key_finish(GAsyncResult *res, GError **e
 
 void sf_crypto_manager_generate_stored_key(SfCryptoManager *manager,
 		SfCryptoKey *key_template,
-		/*
-		SfKpgParams *kpg_params,
-		SfSkdfParams *skdf_params,
-		*/
+		SfCryptoKpgParams *kpg_params,
+		SfCryptoSkdfParams *skdf_params,
 		const gchar *authentication_plugin,
 		SfCryptoInputType input_type,
 		SfCryptoEchoMode echo_mode,
@@ -147,7 +165,7 @@ void sf_crypto_manager_sign(SfCryptoManager *manager,
 		GBytes *data,
 		SfCryptoKey *key,
 		SfCryptoSignaturePadding padding,
-		SfCryptoDigestFunction digest,
+		SfCryptoDigest digest,
 		GHashTable *custom_params,
 		const gchar *crypto_provider,
 		GCancellable *cancellable,
@@ -160,7 +178,7 @@ void sf_crypto_manager_verify(SfCryptoManager *manager,
 		GBytes *data,
 		SfCryptoKey *key,
 		SfCryptoSignaturePadding padding,
-		SfCryptoDigestFunction digest,
+		SfCryptoDigest digest,
 		GHashTable *custom_params,
 		const gchar *crypto_provider,
 		GCancellable *cancellable,
@@ -200,7 +218,7 @@ GBytes *sf_crypto_manager_decrypt_finish(GAsyncResult *res, SfCryptoVerification
 void sf_crypto_manager_calculate_digest(SfCryptoManager *manager,
 		GBytes *data,
 		SfCryptoSignaturePadding padding,
-		SfCryptoDigestFunction digest,
+		SfCryptoDigest digest,
 		GHashTable *custom_params, /* gchar * => GVariant * */
 		const gchar *crypto_provider,
 		GCancellable *cancellable,

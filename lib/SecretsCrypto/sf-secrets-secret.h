@@ -23,7 +23,9 @@ GType sf_secrets_secret_get_type(void);
 SfSecretsSecret *sf_secrets_secret_new(const gchar *identifier);
 SfSecretsSecret *sf_secrets_secret_new_data(const gchar *identifier, GBytes *data);
 
-const gchar *sf_secrets_secret_get_identifier(SfSecretsSecret *secret);
+const gchar *sf_secrets_secret_get_name(SfSecretsSecret *secret);
+const gchar *sf_secrets_secret_get_collection_name(SfSecretsSecret *secret);
+const gchar *sf_secrets_secret_get_plugin_name(SfSecretsSecret *secret);
 
 void sf_secrets_secret_set_filter_field(SfSecretsSecret *secret, const gchar *key, const gchar *value);
 const gchar *sf_secrets_secret_get_filter_field(SfSecretsSecret *secret, const gchar *key);
