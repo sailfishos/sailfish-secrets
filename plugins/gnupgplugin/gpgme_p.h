@@ -294,8 +294,17 @@ struct GPGmeKey {
         QStringList emails;
         gpgme_user_id_t uid = key->uids;
         while (uid) {
-            if (uid->email) {
-                emails << uid->email;
+            if (uid->email && uid->email[0]) {
+                // email can have the form <foo@example.org> or foo@example.org
+                if (uid->email[0] == '<') {
+                    QString email(uid->email + 1);
+                    if (email.endsWith('>')) {
+                        email.chop(1);
+                    }
+                    emails << email;
+                } else {
+                    emails << uid->email;
+                }
             }
             uid = uid->next;
         }
