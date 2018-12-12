@@ -971,7 +971,6 @@ void sf_secrets_manager_set_secret(SfSecretsManager *manager,
 		g_object_unref(task);
 	}
 
-	g_task_set_task_data(task, secret, g_object_unref);
 	g_object_get(secret,
 		"data", &data,
 		"filter-fields", &filter_hash, NULL);
@@ -1032,19 +1031,26 @@ void sf_secrets_manager_set_secret_standalone(SfSecretsManager *manager,
 		g_object_unref(task);
 	}
 
-	g_task_set_task_data(task, secret, g_object_unref);
 	g_object_get(secret,
 		"data", &data,
-		"filters", &filter_hash, NULL);
+		"filter-fields", &filter_hash, NULL);
 
 	secret_data = _sf_variant_new_bytes_or_empty(data);
-	g_bytes_unref(data);
+	if (data)
+		g_bytes_unref(data);
 
 	filters = _sf_variant_new_variant_map_string_or_empty(filter_hash);
-	g_hash_table_unref(filter_hash);
+	if (filter_hash)
+		g_hash_table_unref(filter_hash);
+
 
 	if (authentication_plugin_name && *authentication_plugin_name) {
-		args = g_variant_new("(((sss)@ay@a{sv})ss(ssss(i)s@a{is}(i)(i))(i)(i)(i)s",
+		args = g_variant_new("("
+				"((sss)@ay@a{sv})"
+				"ss"
+				"(ssss(i)s@a{is}(i)(i))"
+				"(i)(i)(i)s"
+				")",
 				sf_secrets_secret_get_name(secret),
 				"",
 				sf_secrets_secret_get_plugin_name(secret),
@@ -1058,14 +1064,13 @@ void sf_secrets_manager_set_secret_standalone(SfSecretsManager *manager,
 				priv->user_interaction_mode,
 				EMPTY_IF_NULL(priv->interaction_service_address));
 	} else {
-		args = g_variant_new("(((sss)@ay@a{sv})s(ssss(i)s@a{is}(i)(i))(i)(i)(i)s",
+		args = g_variant_new("(((sss)@ay@a{sv})s(ssss(i)s@a{is}(i)(i))(i)(i)(i)s)",
 				sf_secrets_secret_get_name(secret),
 				"",
 				sf_secrets_secret_get_plugin_name(secret),
 				secret_data,
 				filters,
 				encryption_plugin_name,
-				filters,
 				"", "", "", "", 0, "", g_variant_new_array(G_VARIANT_TYPE("{is}"), NULL, 0), 0, 0,
 				device_unlock_semantic,
 				access_control_mode,
@@ -1081,6 +1086,8 @@ void sf_secrets_manager_set_secret_standalone(SfSecretsManager *manager,
 			g_task_get_cancellable(task),
 			_sf_secrets_manager_set_secret_ready,
 			task);
+
+	g_object_unref(g_object_ref_sink(secret));
 }
 
 
@@ -1108,11 +1115,11 @@ void sf_secrets_manager_delete_secret_by_name(SfSecretsManager *manager,
 	GTask *task = g_task_new(manager, cancellable, callback, user_data);
 
 	g_dbus_proxy_call(priv->proxy,
-			"getSecret",
+			"deleteSecret",
 			g_variant_new("((sss)(i)s)",
-				plugin_name,
-				EMPTY_IF_NULL(collection_name),
 				name,
+				EMPTY_IF_NULL(collection_name),
+				plugin_name,
 				priv->user_interaction_mode,
 				EMPTY_IF_NULL(priv->interaction_service_address)),
 			G_DBUS_CALL_FLAGS_NONE,
@@ -1365,8 +1372,10 @@ static void _sf_secrets_manager_get_secret_ready(GObject *source_object,
 	g_variant_unref(array);
 	g_variant_unref(fields);
 	g_variant_unref(response);
-	g_bytes_unref(secret_bytes);
-	g_hash_table_unref(filter_fields);
+	if (secret_bytes)
+		g_bytes_unref(secret_bytes);
+	if (filter_fields)
+		g_hash_table_unref(filter_fields);
 
 	g_task_return_pointer(task, secret, g_object_unref);
 	g_object_unref(task);
