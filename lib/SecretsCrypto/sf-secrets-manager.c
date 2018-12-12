@@ -375,72 +375,6 @@ static void sf_secrets_manager_class_init(SfSecretsManagerClass *manager_class)
 }
 
 
-gboolean sf_secrets_manager_get_health_info_finish(GAsyncResult *res,
-		gboolean *is_healthy,
-		SfSecretsHealth *salt_data_health,
-		SfSecretsHealth *master_lock_health,
-		GError **error)
-{
-	GVariant *ret = g_task_propagate_pointer(G_TASK(res), error);
-
-	gint32 sd_health;
-	gint32 ml_health;
-
-	g_variant_get(ret, "((i)(i))",
-			&sd_health,
-			&ml_health);
-
-	if (salt_data_health)
-		*salt_data_health = sd_health;
-	if (master_lock_health)
-		*master_lock_health = ml_health;
-	if (is_healthy)
-		*is_healthy = sd_health == SF_SECRETS_HEALTH_OK &&
-			ml_health == SF_SECRETS_HEALTH_OK;
-
-	g_variant_unref(ret);
-
-	if (!ret)
-		return FALSE;
-	return TRUE;
-}
-
-void _sf_secrets_manager_get_health_info_reply(GObject *source_object,
-		GAsyncResult *res,
-		gpointer user_data)
-{
-	GTask *task = user_data;
-	GError *error = NULL;
-	GVariant *ret = g_dbus_proxy_call_finish(G_DBUS_PROXY(source_object), res, &error);
-
-	if (error) {
-		g_task_return_error(task, error);
-		g_object_unref(task);
-		return;
-	}
-
-	g_task_return_pointer(task, ret, (GDestroyNotify)g_variant_unref);
-	g_object_unref(task);
-}
-
-void sf_secrets_manager_get_health_info(SfSecretsManager *manager,
-		GCancellable *cancellable,
-		GAsyncReadyCallback callback,
-		gpointer user_data)
-{
-	SfSecretsManagerPrivate *priv = sf_secrets_manager_get_instance_private(manager);
-	GTask *task = g_task_new(manager, cancellable, callback, user_data);
-
-	g_dbus_proxy_call(priv->proxy,
-			"getHealthInfo",
-			NULL,
-			G_DBUS_CALL_FLAGS_NONE,
-			-1,
-			cancellable,
-			_sf_secrets_manager_get_health_info_reply,
-			task);
-}
-
 SfSecretsManager *sf_secrets_manager_new_finish(GAsyncResult *res,
 		GError **error)
 {
@@ -668,7 +602,7 @@ static GVariant *_sf_secrets_manager_dbus_call_finish(GObject *source_object,
 void _sf_secrets_manager_result_only_ready(GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
 	GTask *task = user_data;
-	GError *error;
+	GError *error = NULL;
 	GVariant *response = _sf_secrets_manager_dbus_call_finish(source_object, res, &error, NULL);
 
 	if (error) {
@@ -741,6 +675,7 @@ gboolean sf_secrets_manager_get_plugin_info_finish(GAsyncResult *res,
 		encrypted_storage_plugins,
 		authentication_plugins
 	};
+
 	GVariantIter *iter = g_task_propagate_pointer(G_TASK(res), error);
 
 	if (!iter)
@@ -775,16 +710,14 @@ gboolean sf_secrets_manager_get_plugin_info_finish(GAsyncResult *res,
 	return TRUE;
 }
 
-
-static void _sf_secrets_manager_collection_names_ready(GObject *source_object,
+void _sf_secrets_manager_get_health_info_reply(GObject *source_object,
 		GAsyncResult *res,
 		gpointer user_data)
 {
-	GVariantIter iter;
 	GTask *task = user_data;
-	GError *error;
-	GVariant *response = _sf_secrets_manager_dbus_call_finish(source_object, res, &error, &iter);
-	gchar **names;
+	GError *error = NULL;
+	GVariantIter iter;
+	GVariant *ret = _sf_secrets_manager_dbus_call_finish(source_object, res, &error, &iter);
 
 	if (error) {
 		g_task_return_error(task, error);
@@ -792,10 +725,88 @@ static void _sf_secrets_manager_collection_names_ready(GObject *source_object,
 		return;
 	}
 
-	g_variant_iter_next(&iter, "^as", &names);
+	g_task_set_task_data(task, ret, (GDestroyNotify)g_variant_unref);
+	g_task_return_pointer(task, g_variant_iter_copy(&iter), (GDestroyNotify)g_variant_iter_free);
+	g_object_unref(task);
+}
+
+void sf_secrets_manager_get_health_info(SfSecretsManager *manager,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data)
+{
+	SfSecretsManagerPrivate *priv = sf_secrets_manager_get_instance_private(manager);
+	GTask *task = g_task_new(manager, cancellable, callback, user_data);
+
+	g_dbus_proxy_call(priv->proxy,
+			"getHealthInfo",
+			NULL,
+			G_DBUS_CALL_FLAGS_NONE,
+			-1,
+			cancellable,
+			_sf_secrets_manager_get_health_info_reply,
+			task);
+}
+
+gboolean sf_secrets_manager_get_health_info_finish(GAsyncResult *res,
+		gboolean *is_healthy,
+		SfSecretsHealth *salt_data_health,
+		SfSecretsHealth *master_lock_health,
+		GError **error)
+{
+	GVariantIter *ret = g_task_propagate_pointer(G_TASK(res), error);
+
+	gint32 sd_health;
+	gint32 ml_health;
+
+	g_variant_iter_next(ret, "(i)",
+			&sd_health);
+	g_variant_iter_next(ret, "(i)",
+			&ml_health);
+
+	if (salt_data_health)
+		*salt_data_health = sd_health;
+	if (master_lock_health)
+		*master_lock_health = ml_health;
+	if (is_healthy)
+		*is_healthy = sd_health == SF_SECRETS_HEALTH_OK &&
+			ml_health == SF_SECRETS_HEALTH_OK;
+
+	g_variant_iter_free(ret);
+
+	if (!ret)
+		return FALSE;
+	return TRUE;
+}
+
+static void _sf_secrets_manager_collection_names_ready(GObject *source_object,
+		GAsyncResult *res,
+		gpointer user_data)
+{
+	GVariantIter iter;
+	GTask *task = user_data;
+	GError *error = NULL;
+	GVariant *response = _sf_secrets_manager_dbus_call_finish(source_object, res, &error, &iter);
+	GVariant *namemap;
+	GVariantIter mapiter;
+	GArray *names;
+	gchar *name;
+
+	if (error) {
+		g_task_return_error(task, error);
+		g_object_unref(task);
+		return;
+	}
+
+	names = g_array_new(TRUE, FALSE, sizeof(gchar *));
+	namemap = g_variant_iter_next_value(&iter);
+	g_variant_iter_init(&mapiter, namemap);
+	while (g_variant_iter_next(&mapiter, "{sv}", &name, NULL))
+		g_array_append_val(names, name);
+	g_variant_unref(namemap);
 	g_variant_unref(response);
 
-	g_task_return_pointer(task, names, (GDestroyNotify)g_strfreev);
+	g_task_return_pointer(task, g_array_free(names, FALSE), (GDestroyNotify)g_strfreev);
 	g_object_unref(task);
 }
 
@@ -829,7 +840,7 @@ static void _sf_secrets_manager_create_collection_ready(GObject *source_object,
 		gpointer user_data)
 {
 	GTask *task = user_data;
-	GError *error;
+	GError *error = NULL;
 	GVariant *response = _sf_secrets_manager_dbus_call_finish(source_object, res, &error, NULL);
 
 	if (error) {
@@ -869,7 +880,7 @@ void sf_secrets_manager_create_collection(SfSecretsManager *manager,
 				priv->user_interaction_mode,
 				EMPTY_IF_NULL(priv->interaction_service_address));
 	} else {
-		args = g_variant_new("(ssss(i)(i))",
+		args = g_variant_new("(sss(i)(i))",
 				name,
 				plugin_name,
 				encryption_plugin_name,
@@ -924,7 +935,7 @@ void sf_secrets_manager_delete_collection(SfSecretsManager *manager,
 			task);
 }
 
-gboolean sf_secrets_manager_delete_collcetion_finish(GAsyncResult *res,
+gboolean sf_secrets_manager_delete_collection_finish(GAsyncResult *res,
 		GError **error)
 {
 	return g_task_propagate_boolean(G_TASK(res), error);
@@ -963,13 +974,15 @@ void sf_secrets_manager_set_secret(SfSecretsManager *manager,
 	g_task_set_task_data(task, secret, g_object_unref);
 	g_object_get(secret,
 		"data", &data,
-		"filters", &filter_hash, NULL);
+		"filter-fields", &filter_hash, NULL);
 
 	secret_data = _sf_variant_new_bytes_or_empty(data);
-	g_bytes_unref(data);
+	if (data)
+		g_bytes_unref(data);
 
 	filters = _sf_variant_new_variant_map_string_or_empty(filter_hash);
-	g_hash_table_unref(filter_hash);
+	if (filter_hash)
+		g_hash_table_unref(filter_hash);
 
 	g_dbus_proxy_call(priv->proxy,
 			"setSecret",
@@ -987,6 +1000,8 @@ void sf_secrets_manager_set_secret(SfSecretsManager *manager,
 			g_task_get_cancellable(task),
 			_sf_secrets_manager_set_secret_ready,
 			task);
+
+	g_object_unref(g_object_ref_sink(secret));
 }
 
 void sf_secrets_manager_set_secret_standalone(SfSecretsManager *manager,
@@ -1309,7 +1324,7 @@ static void _sf_secrets_manager_get_secret_ready(GObject *source_object,
 {
 	GTask *task = user_data;
 	SfSecretsManager *manager = g_task_get_source_object(task);
-	GError *error;
+	GError *error = NULL;
 	GVariantIter iter;
 	GVariant *response = _sf_secrets_manager_dbus_call_finish(source_object,
 			res, &error, &iter);

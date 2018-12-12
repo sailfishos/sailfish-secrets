@@ -94,3 +94,11 @@ static void sf_secrets_interaction_request_init(SfSecretsInteractionRequest *req
 {
 	(void)request;
 }
+
+void sf_secrets_interaction_request_return_error(SfSecretsInteractionRequest *request, const GError *error)
+{
+	SfSecretsInteractionRequestPrivate *priv = sf_secrets_interaction_request_get_instance_private(request);
+
+	(void)priv;
+	(void)error;
+}

@@ -101,13 +101,13 @@ static void _sf_secrets_secret_set_property(GObject *object, guint prop_id, cons
 		case PROP_PLUGIN_NAME:
 			if (priv->plugin_name)
 				g_free(priv->plugin_name);
-			priv->plugin_name = g_value_dup_object(value);
+			priv->plugin_name = g_value_dup_string(value);
 			break;
 
 		case PROP_COLLECTION_NAME:
 			if (priv->collection_name)
 				g_free(priv->collection_name);
-			priv->collection_name = g_value_dup_object(value);
+			priv->collection_name = g_value_dup_string(value);
 			break;
 
 		case PROP_NAME:

@@ -1,536 +1,363 @@
-/*
- * Copyright (C) 2017 Jolla Ltd.
- * Contact: Chris Adams <chris.adams@jollamobile.com>
- * All rights reserved.
- * BSD 3-Clause License, see LICENSE.
- */
-
-#include <SecretsCrypto/secrets.h>
-#include <SecretsCrypto/crypto.h>
-
+#include <SecretsCrypto/sf-secrets-manager.h>
 #include <glib.h>
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#define SECRETS_PLUGIN_STORAGE_TEST "org.sailfishos.secrets.plugin.storage.sqlite.test"
+#define SECRETS_PLUGIN_ENCRYPTION_TEST "org.sailfishos.secrets.plugin.encryption.openssl.test"
 
-/* TODO: this should be rewritten as a centrally-dispatched state machine */
+typedef struct SfSecretsFixture_ {
+	GMainLoop *loop;
+	GError *error;
+	SfSecretsManager *manager;
+	GAsyncResult *test_res;
+} SfSecretsFixture;
 
-static int tst_secretscrypto_complete = 0;
-static int tst_secretscrypto_return = 0;
-
-struct CallbackContext {
-    struct Sailfish_Secrets_Secret *secret;
-    struct Sailfish_Secrets_InteractionParameters *params;
-    int refcount;
-};
-
-struct CallbackContext*
-CallbackContext_new(
-        struct Sailfish_Secrets_Secret *secret,
-        struct Sailfish_Secrets_InteractionParameters *params)
+static void _tst_secret_ref_res_and_quit(GObject *source_object,
+		GAsyncResult *res,
+		gpointer user_data)
 {
-    struct CallbackContext *ctxt =
-        (struct CallbackContext *)
-        malloc(sizeof(struct CallbackContext));
+	SfSecretsFixture *fixture = user_data;
 
-    ctxt->secret = secret;
-    ctxt->params = params;
-    ctxt->refcount = 1;
+	(void)source_object;
 
-    return ctxt;
+	fixture->test_res = g_object_ref(res);
+	g_main_loop_quit(fixture->loop);
 }
 
-void CallbackContext_ref(struct CallbackContext *ctxt)
+static void tst_secret_create_manager(SfSecretsFixture *fixture,
+		gconstpointer data)
 {
-    if (ctxt)
-        ctxt->refcount = ctxt->refcount + 1;
+	(void)data;
+	g_assert_no_error(fixture->error);
+	g_assert_nonnull(fixture->manager);
 }
 
-void CallbackContext_unref(struct CallbackContext *ctxt)
+static void tst_secret_get_plugin_info(SfSecretsFixture *fixture,
+		gconstpointer data)
 {
-    if (ctxt) {
-        ctxt->refcount = ctxt->refcount - 1;
-        if (ctxt->refcount == 0) {
-            Sailfish_Secrets_Secret_unref(ctxt->secret);
-            Sailfish_Secrets_InteractionParameters_unref(ctxt->params);
-            free(ctxt);
-        }
-    }
+	GSList *plgns[] = { (GSList *)0xdeadbeef, NULL, NULL, NULL };
+	gsize i;
+
+	(void)data;
+
+	if (!fixture->manager) {
+		g_test_skip("No manager");
+		return;
+	}
+
+	sf_secrets_manager_get_plugin_info(fixture->manager,
+			NULL,
+			_tst_secret_ref_res_and_quit,
+			fixture);
+	g_main_loop_run(fixture->loop);
+
+	sf_secrets_manager_get_plugin_info_finish(
+			fixture->test_res,
+			&plgns[0],
+			&plgns[1],
+			&plgns[2],
+			&plgns[3],
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	if (g_test_failed())
+		return;
+
+	for (i = 0; i < G_N_ELEMENTS(plgns); i++) {
+		while (plgns[i]) {
+			g_debug("Found plugin: %s", ((SfSecretsPluginInfo *)plgns[i]->data)->name);
+			sf_secrets_plugin_info_free(plgns[i]->data);
+			plgns[i] = g_slist_delete_link(plgns[i], plgns[i]);
+		}
+	}
 }
 
-static struct Sailfish_Crypto_Key *tst_secretscrypto_generatedkey = NULL;
-static struct Sailfish_Crypto_Key *tst_secretscrypto_storedkey = NULL;
-static size_t tst_secretscrypto_generatedkey_encrypted_size = 0;
-static unsigned char *tst_secretscrypto_generatedkey_encrypted = NULL;
-static size_t tst_secretscrypto_storedkey_encrypted_size = 0;
-static unsigned char *tst_secretscrypto_storedkey_encrypted = NULL;
-static size_t tst_secretscrypto_plaintext_size = 16;
-static unsigned char tst_secretscrypto_plaintext[16] = {
-    's', 'e', 'c', 'r', 'e', 't',
-    ' ', 'd', 'a', 't', 'a', '\0',
-    '\0', '\0', '\0', '\0'
-};
-
-void secrets_disconnect_callback(void *context, struct Sailfish_Secrets_Result *result)
+static void tst_secret_get_health_info(SfSecretsFixture *fixture,
+		gconstpointer data)
 {
-    (void)context;
-    if (result->code != Sailfish_Secrets_Result_Succeeded) {
-        fprintf(stderr, "Failed to disconnect from secrets daemon: %s\n", result->errorMessage);
-    }
-    tst_secretscrypto_complete = 1;
+	SfSecretsHealth salth;
+	SfSecretsHealth mlockh;
+	gboolean is_healthy;
+
+	(void)data;
+
+	if (!fixture->manager) {
+		g_test_skip("No manager");
+		return;
+	}
+	sf_secrets_manager_get_health_info(fixture->manager, NULL,
+			_tst_secret_ref_res_and_quit,
+			fixture);
+	g_main_loop_run(fixture->loop);
+
+	sf_secrets_manager_get_health_info_finish(fixture->test_res,
+			&is_healthy,
+			&salth,
+			&mlockh,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	if (g_test_failed())
+		return;
+
+	g_debug("Healthy: %d", is_healthy);
 }
 
-void crypto_disconnect_callback(void *context, struct Sailfish_Crypto_Result *result)
+static void tst_secret_collection_names(SfSecretsFixture *fixture,
+		gconstpointer data)
 {
-    (void)context;
-    if (result->code != Sailfish_Crypto_Result_Succeeded) {
-        fprintf(stderr, "Failed to disconnect from crypto daemon: %s\n", result->errorMessage);
-    }
-    if (!Sailfish_Secrets_disconnectFromServer(secrets_disconnect_callback, NULL)) {
-        fprintf(stderr, "Unable to disconnect from secrets daemon after disconnecting from crypto daemon!\n");
-        tst_secretscrypto_complete = 1;
-    }
+	gchar **collections;
+	gsize i;
+
+	(void)data;
+
+	if (!fixture->manager) {
+		g_test_skip("No manager");
+		return;
+	}
+	sf_secrets_manager_collection_names(fixture->manager,
+			SECRETS_PLUGIN_STORAGE_TEST,
+		       	NULL,
+			_tst_secret_ref_res_and_quit,
+			fixture);
+	g_main_loop_run(fixture->loop);
+
+	collections = sf_secrets_manager_collection_names_finish(fixture->test_res,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	if (g_test_failed())
+		return;
+
+	for (i = 0; collections[i]; i++)
+		g_debug("Found collection: %s", collections[i]);
+	g_strfreev(collections);
 }
 
-void cleanup_connections()
+static void tst_secret_create_delete_collection(SfSecretsFixture *fixture,
+		gconstpointer data)
 {
-    if (!Sailfish_Crypto_disconnectFromServer(crypto_disconnect_callback, NULL)) {
-        fprintf(stderr, "Unable to disconnect from crypto daemon!\n");
-        if (!Sailfish_Secrets_disconnectFromServer(secrets_disconnect_callback, NULL)) {
-            fprintf(stderr, "Unable to disconnect from secrets daemon!\n");
-            tst_secretscrypto_complete = 1;
-        }
-    }
+	(void)data;
+
+	if (!fixture->manager) {
+		g_test_skip("No manager");
+		return;
+	}
+	sf_secrets_manager_create_collection(
+			fixture->manager,
+			SECRETS_PLUGIN_STORAGE_TEST,
+			SECRETS_PLUGIN_ENCRYPTION_TEST,
+			NULL,
+			"tst_capi_collection",
+			SF_SECRETS_DEVICE_UNLOCK_SEMANTIC_KEEP_UNLOCKED,
+			SF_SECRETS_ACCESS_CONTROL_MODE_OWNER_ONLY,
+			NULL,
+			_tst_secret_ref_res_and_quit,
+			fixture);
+	g_main_loop_run(fixture->loop);
+
+	sf_secrets_manager_create_collection_finish(fixture->test_res, &fixture->error);
+
+	if (fixture->error &&
+			fixture->error->code == SF_SECRETS_ERROR_COLLECTION_ALREADY_EXISTS) {
+		g_debug("Collection already exists, deleting it anyway");
+		g_error_free(fixture->error);
+		fixture->error = NULL;
+	}
+	g_assert_no_error(fixture->error);
+	if (g_test_failed())
+		return;
+
+	g_object_unref(fixture->test_res);
+	sf_secrets_manager_delete_collection(
+			fixture->manager,
+			SECRETS_PLUGIN_STORAGE_TEST,
+			"tst_capi_collection",
+			NULL,
+			_tst_secret_ref_res_and_quit,
+			fixture);
+	g_main_loop_run(fixture->loop);
+
+	sf_secrets_manager_delete_collection_finish(fixture->test_res,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
 }
 
-void crypto_deleteCollection_callback(void *context, struct Sailfish_Secrets_Result *result)
+static void tst_secret_set_get_secret(SfSecretsFixture *fixture,
+		gconstpointer data)
 {
-    (void)context;
-    if (result->code != Sailfish_Secrets_Result_Succeeded) {
-        fprintf(stderr, "Failed to delete crypto collection: %s\n", result->errorMessage);
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    } else {
-        /* successfully finished test */
-        tst_secretscrypto_return = 0;
-        cleanup_connections();
-    }
+	SfSecretsSecret *secret;
+	GBytes *secret_data;
+	gint8 buffer[1024];
+	gsize i;
+
+	(void)data;
+
+	if (!fixture->manager) {
+		g_test_skip("No manager");
+		return;
+	}
+
+	for (i = 0; i < G_N_ELEMENTS(buffer); i++)
+		buffer[i] = g_test_rand_int_range(0, G_MAXUINT8);
+
+	sf_secrets_manager_create_collection(
+			fixture->manager,
+			SECRETS_PLUGIN_STORAGE_TEST,
+			SECRETS_PLUGIN_ENCRYPTION_TEST,
+			NULL,
+			"tst_capi_collection",
+			SF_SECRETS_DEVICE_UNLOCK_SEMANTIC_KEEP_UNLOCKED,
+			SF_SECRETS_ACCESS_CONTROL_MODE_OWNER_ONLY,
+			NULL,
+			_tst_secret_ref_res_and_quit,
+			fixture);
+	g_main_loop_run(fixture->loop);
+
+	sf_secrets_manager_create_collection_finish(fixture->test_res, &fixture->error);
+
+	if (fixture->error &&
+			fixture->error->code == SF_SECRETS_ERROR_COLLECTION_ALREADY_EXISTS) {
+		g_test_skip("Collection already exists, skipping");
+		return;
+	}
+	g_assert_no_error(fixture->error);
+	if (g_test_failed())
+		return;
+
+	g_object_unref(fixture->test_res);
+	fixture->test_res = NULL;
+
+	secret_data = g_bytes_new_static(buffer, sizeof(buffer));
+	sf_secrets_manager_set_secret(fixture->manager,
+			g_object_new(SF_TYPE_SECRETS_SECRET,
+				"name", "tst_capi_secret",
+				"collection-name", "tst_capi_collection",
+				"plugin-name", SECRETS_PLUGIN_STORAGE_TEST,
+				"data", secret_data,
+				NULL),
+			NULL,
+			_tst_secret_ref_res_and_quit,
+			fixture);
+	g_bytes_unref(secret_data);
+	g_main_loop_run(fixture->loop);
+
+	sf_secrets_manager_set_secret_finish(fixture->test_res, &fixture->error);
+
+	g_assert_no_error(fixture->error);
+	if (g_test_failed())
+		return;
+
+	g_object_unref(fixture->test_res);
+	sf_secrets_manager_get_secret(fixture->manager,
+			"tst_capi_secret",
+			"tst_capi_collection",
+			SECRETS_PLUGIN_STORAGE_TEST,
+			NULL,
+			_tst_secret_ref_res_and_quit,
+			fixture);
+	g_main_loop_run(fixture->loop);
+
+	secret = sf_secrets_manager_get_secret_finish(fixture->test_res, &fixture->error);
+
+	g_assert_no_error(fixture->error);
+	if (g_test_failed())
+		return;
+
+	g_object_get(secret,
+			"data", &secret_data,
+			NULL);
+
+	g_assert_cmpmem(g_bytes_get_data(secret_data, NULL), g_bytes_get_size(secret_data),
+			buffer, sizeof(buffer));
+
+	g_bytes_unref(secret_data);
+
+	if (g_test_failed())
+		return;
+
+	g_object_unref(fixture->test_res);
+	sf_secrets_manager_delete_secret(fixture->manager,
+			secret,
+			NULL,
+			_tst_secret_ref_res_and_quit,
+			fixture);
+	g_object_unref(secret);
+	g_main_loop_run(fixture->loop);
+
+	sf_secrets_manager_delete_secret_finish(fixture->test_res, &fixture->error);
+
+	g_assert_no_error(fixture->error);
+	if (g_test_failed())
+		return;
+
+	sf_secrets_manager_delete_collection(
+			fixture->manager,
+			SECRETS_PLUGIN_STORAGE_TEST,
+			"tst_capi_collection",
+			NULL,
+			_tst_secret_ref_res_and_quit,
+			fixture);
+	g_main_loop_run(fixture->loop);
+
+	sf_secrets_manager_delete_collection_finish(fixture->test_res,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
 }
 
-void crypto_storedKey_decrypt_callback(void *context, struct Sailfish_Crypto_Result *result, unsigned char *data, size_t dataSize)
+static void _tst_secret_setup_ready(GObject *source_object,
+		GAsyncResult *res,
+		gpointer user_data)
 {
-    (void)context;
-    if (result->code != Sailfish_Crypto_Result_Succeeded) {
-        fprintf(stderr, "Failed to decrypt with stored key: %s\n", result->errorMessage);
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    } else {
-        if (!data || !dataSize) {
-            fprintf(stderr, "Invalid data decrypted with generated key!\n");
-            tst_secretscrypto_return = 1;
-            cleanup_connections();
-        } else if (dataSize != tst_secretscrypto_plaintext_size) {
-            fprintf(stderr, "Invalid data size decrypted with stored key!\n");
-            tst_secretscrypto_return = 1;
-            cleanup_connections();
-        } else if (memcmp(tst_secretscrypto_plaintext, data, tst_secretscrypto_plaintext_size) != 0) {
-            fprintf(stderr, "Different data decrypted with stored key!\n");
-            tst_secretscrypto_return = 1;
-            cleanup_connections();
-        } else if (!Sailfish_Secrets_SecretManager_deleteCollection(
-                    "tstcapicryptocollection",
-                    "org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test",
-                    Sailfish_Secrets_SecretManager_PreventInteraction,
-                    "",
-                    crypto_deleteCollection_callback,
-                    NULL)) {
-            fprintf(stderr, "Unable to call deleteCollection for crypto!\n");
-            tst_secretscrypto_return = 1;
-            cleanup_connections();
-        }
-    }
+	SfSecretsFixture *fixture = user_data;
+
+	(void)source_object;
+
+	fixture->manager = sf_secrets_manager_new_finish(res, &fixture->error);
+	g_main_loop_quit(fixture->loop);
 }
 
-void crypto_storedKey_encrypt_callback(void *context, struct Sailfish_Crypto_Result *result, unsigned char *data, size_t dataSize)
+static void tst_secret_setup(SfSecretsFixture *fixture,
+		gconstpointer data)
 {
-    (void)context;
-    if (result->code != Sailfish_Crypto_Result_Succeeded) {
-        fprintf(stderr, "Failed to encrypt with stored key: %s\n", result->errorMessage);
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    } else {
-        if (!data || !dataSize) {
-            fprintf(stderr, "Invalid data encrypted with stored key!\n");
-            tst_secretscrypto_return = 1;
-            cleanup_connections();
-        } else {
-            tst_secretscrypto_storedkey_encrypted_size = dataSize;
-            tst_secretscrypto_storedkey_encrypted = (unsigned char *)malloc(dataSize);
-            memcpy(tst_secretscrypto_storedkey_encrypted, data, dataSize);
-            if (!Sailfish_Crypto_CryptoManager_decrypt(
-                        tst_secretscrypto_storedkey_encrypted,
-                        tst_secretscrypto_storedkey_encrypted_size,
-                        tst_secretscrypto_storedkey,
-                        Sailfish_Crypto_BlockModeCbc,
-                        Sailfish_Crypto_EncryptionPaddingNone,
-                        Sailfish_Crypto_DigestSha256,
-                        "org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test",
-                        crypto_storedKey_decrypt_callback,
-                        NULL)) {
-                fprintf(stderr, "Unable to call decrypt with storedKey!\n");
-                tst_secretscrypto_return = 1;
-                cleanup_connections();
-            }
-        }
-    }
+	(void)data;
+	fixture->error = NULL;
+	fixture->test_res = NULL;
+	fixture->loop = g_main_loop_new(NULL, TRUE);
+	sf_secrets_manager_new(NULL, _tst_secret_setup_ready, fixture);
+	if (g_main_loop_is_running(fixture->loop))
+		g_main_loop_run(fixture->loop);
 }
 
-void crypto_generateStoredKey_callback(void *context, struct Sailfish_Crypto_Result *result, struct Sailfish_Crypto_Key *key)
+static void tst_secret_teardown(SfSecretsFixture *fixture,
+		gconstpointer data)
 {
-    (void)context;
-    if (result->code != Sailfish_Crypto_Result_Succeeded) {
-        fprintf(stderr, "Failed to generate stored crypto key: %s\n", result->errorMessage);
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    } else {
-        Sailfish_Crypto_Key_ref(key);
-        tst_secretscrypto_storedkey = key;
-        if (!Sailfish_Crypto_CryptoManager_encrypt(
-                    tst_secretscrypto_plaintext,
-                    16,
-                    tst_secretscrypto_storedkey,
-                    Sailfish_Crypto_BlockModeCbc,
-                    Sailfish_Crypto_EncryptionPaddingNone,
-                    Sailfish_Crypto_DigestSha256,
-                    "org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test",
-                    crypto_storedKey_encrypt_callback,
-                    NULL)) {
-            fprintf(stderr, "Unable to call encrypt with storedKey!\n");
-            tst_secretscrypto_return = 1;
-            cleanup_connections();
-        }
-    }
+	(void)data;
+	g_main_loop_unref(fixture->loop);
+	if (fixture->manager)
+		g_object_unref(fixture->manager);
+	if (fixture->error)
+		g_error_free(fixture->error);
+	if (fixture->test_res)
+		g_object_unref(fixture->test_res);
 }
 
-void crypto_generatedKey_decrypt_callback(void *context, struct Sailfish_Crypto_Result *result, unsigned char *data, size_t dataSize)
+int main(int argc, char **argv)
 {
-    (void)context;
-    if (result->code != Sailfish_Crypto_Result_Succeeded) {
-        fprintf(stderr, "Failed to decrypt with generated key: %s\n", result->errorMessage);
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    } else {
-        if (!data || !dataSize) {
-            fprintf(stderr, "Invalid data decrypted with generated key!\n");
-            tst_secretscrypto_return = 1;
-            cleanup_connections();
-        } else if (dataSize != tst_secretscrypto_plaintext_size) {
-            fprintf(stderr, "Invalid data size decrypted with generated key!\n");
-            tst_secretscrypto_return = 1;
-            cleanup_connections();
-        } else if (memcmp(tst_secretscrypto_plaintext, data, tst_secretscrypto_plaintext_size) != 0) {
-            fprintf(stderr, "Different data decrypted with generated key!\n");
-            tst_secretscrypto_return = 1;
-            cleanup_connections();
-        } else {
-            struct Sailfish_Crypto_Key *key_template = Sailfish_Crypto_Key_new(
-                        "tstcapicryptosecret", "tstcapicryptocollection",
-                        "org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test");
-            key_template->origin = Sailfish_Crypto_Key_OriginDevice;
-            key_template->algorithm = Sailfish_Crypto_AlgorithmAes;
-            key_template->operations = Sailfish_Crypto_Key_OperationEncrypt
-                | Sailfish_Crypto_Key_OperationDecrypt;
-            key_template->componentConstraints = Sailfish_Crypto_Key_MetaData
-                | Sailfish_Crypto_Key_PublicKeyData
-                | Sailfish_Crypto_Key_PrivateKeyData;
-            key_template->size = 256;
-            Sailfish_Crypto_Key_addFilter(key_template, "test", "true");
-            if (!Sailfish_Crypto_CryptoManager_generateStoredKey(
-                        key_template,
-                        "org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test",
-                        crypto_generateStoredKey_callback,
-                        NULL)) {
-                fprintf(stderr, "Unable to call generateStoredKey!\n");
-                tst_secretscrypto_return = 1;
-                cleanup_connections();
-            }
-            Sailfish_Crypto_Key_unref(key_template);
-        }
-    }
-}
+	g_test_init(&argc, &argv, NULL);
 
-void crypto_generatedKey_encrypt_callback(void *context, struct Sailfish_Crypto_Result *result, unsigned char *data, size_t dataSize)
-{
-    (void)context;
-    if (result->code != Sailfish_Crypto_Result_Succeeded) {
-        fprintf(stderr, "Failed to encrypt with generated key: %s\n", result->errorMessage);
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    } else {
-        if (!data || !dataSize) {
-            fprintf(stderr, "Invalid data encrypted with generated key!\n");
-            tst_secretscrypto_return = 1;
-            cleanup_connections();
-        } else {
-            tst_secretscrypto_generatedkey_encrypted_size = dataSize;
-            tst_secretscrypto_generatedkey_encrypted = (unsigned char *)malloc(dataSize);
-            memcpy(tst_secretscrypto_generatedkey_encrypted, data, dataSize);
-            if (!Sailfish_Crypto_CryptoManager_decrypt(
-                        tst_secretscrypto_generatedkey_encrypted,
-                        tst_secretscrypto_generatedkey_encrypted_size,
-                        tst_secretscrypto_generatedkey,
-                        Sailfish_Crypto_BlockModeCbc,
-                        Sailfish_Crypto_EncryptionPaddingNone,
-                        Sailfish_Crypto_DigestSha256,
-                        "org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test",
-                        crypto_generatedKey_decrypt_callback,
-                        NULL)) {
-                fprintf(stderr, "Unable to call decrypt with generatedKey!\n");
-                tst_secretscrypto_return = 1;
-                cleanup_connections();
-            }
-        }
-    }
-}
+	g_test_set_nonfatal_assertions();
 
-void crypto_generateKey_callback(void *context, struct Sailfish_Crypto_Result *result, struct Sailfish_Crypto_Key *key)
-{
-    (void)context;
-    if (result->code != Sailfish_Crypto_Result_Succeeded) {
-        fprintf(stderr, "Failed to generate crypto key: %s\n", result->errorMessage);
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    } else {
-        Sailfish_Crypto_Key_ref(key);
-        tst_secretscrypto_generatedkey = key;
-        if (!Sailfish_Crypto_CryptoManager_encrypt(
-                    tst_secretscrypto_plaintext,
-                    16,
-                    tst_secretscrypto_generatedkey,
-                    Sailfish_Crypto_BlockModeCbc,
-                    Sailfish_Crypto_EncryptionPaddingNone,
-                    Sailfish_Crypto_DigestSha256,
-                    "org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test",
-                    crypto_generatedKey_encrypt_callback,
-                    NULL)) {
-            fprintf(stderr, "Unable to call encrypt with generatedKey!\n");
-            tst_secretscrypto_return = 1;
-            cleanup_connections();
-        }
-    }
-}
+#define sf_secret_test(name, test) \
+	g_test_add("/Secrets/" name, SfSecretsFixture, NULL, \
+			tst_secret_setup, test, tst_secret_teardown)
 
-void crypto_createCollection_callback(void *context, struct Sailfish_Secrets_Result *result)
-{
-    (void)context;
-    if (result->code != Sailfish_Secrets_Result_Succeeded) {
-        fprintf(stderr, "Failed to create crypto collection: %s\n", result->errorMessage);
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    } else {
-        struct Sailfish_Crypto_Key *key_template = Sailfish_Crypto_Key_new(
-                    "tst_capi_crypto_secret", "", "");
-        key_template->origin = Sailfish_Crypto_Key_OriginDevice;
-        key_template->algorithm = Sailfish_Crypto_AlgorithmAes;
-        key_template->operations = Sailfish_Crypto_Key_OperationEncrypt
-                | Sailfish_Crypto_Key_OperationDecrypt;
-        key_template->componentConstraints = Sailfish_Crypto_Key_MetaData
-                | Sailfish_Crypto_Key_PublicKeyData
-                | Sailfish_Crypto_Key_PrivateKeyData;
-        key_template->size = 256;
-        Sailfish_Crypto_Key_addFilter(key_template, "test", "true");
-        if (!Sailfish_Crypto_CryptoManager_generateKey(
-                    key_template,
-                    "org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test",
-                    crypto_generateKey_callback,
-                    NULL)) {
-            fprintf(stderr, "Unable to call generateKey!\n");
-            tst_secretscrypto_return = 1;
-            cleanup_connections();
-        }
-        Sailfish_Crypto_Key_unref(key_template);
-    }
-}
+	sf_secret_test("CreateManager", tst_secret_create_manager);
+	sf_secret_test("GetPluginInfo", tst_secret_get_plugin_info);
+	sf_secret_test("GetHealthInfo", tst_secret_get_health_info);
+	sf_secret_test("CollectionNames", tst_secret_collection_names);
+	sf_secret_test("CreateDeleteCollection", tst_secret_create_delete_collection);
+	sf_secret_test("SetGetSecret", tst_secret_set_get_secret);
 
-void crypto_connectToServer_callback(void *context, struct Sailfish_Crypto_Result *result)
-{
-    (void)context;
-    if (result->code != Sailfish_Crypto_Result_Succeeded) {
-        fprintf(stderr, "Failed to connect to crypto endpoint: %s\n", result->errorMessage);
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    } else if (!Sailfish_Secrets_SecretManager_createCollection(
-                        "tstcapicryptocollection",
-                        "org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test",
-                        "org.sailfishos.secrets.plugin.encryptedstorage.sqlcipher.test",
-                        Sailfish_Secrets_SecretManager_DeviceLockKeepUnlocked,
-                        Sailfish_Secrets_SecretManager_OwnerOnlyMode,
-                        crypto_createCollection_callback,
-                        NULL)) {
-        fprintf(stderr, "Unable to call createCollection for crypto storage!\n");
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    }
-}
+#undef sf_secret_test
 
-void deleteCollection_callback(void *context, struct Sailfish_Secrets_Result *result)
-{
-    (void)context;
-    if (result->code != Sailfish_Secrets_Result_Succeeded) {
-        fprintf(stderr, "Failed to delete collection: %s\n", result->errorMessage);
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    } else if (!Sailfish_Crypto_connectToServer(crypto_connectToServer_callback, NULL)) {
-        fprintf(stderr, "Unable to connect to crypto endpoint!\n");
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    }
-}
+	g_test_run();
 
-void getSecret_callback(void *context, struct Sailfish_Secrets_Result *result, struct Sailfish_Secrets_Secret *secret)
-{
-    struct CallbackContext *cb_ctxt = (struct CallbackContext *)context;
-    struct Sailfish_Secrets_Secret *set_secret = cb_ctxt->secret;
-    if (result->code != Sailfish_Secrets_Result_Succeeded) {
-        fprintf(stderr, "Failed to get secret: %s\n", result->errorMessage);
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    } else if (secret->dataSize != set_secret->dataSize) {
-        fprintf(stderr, "Retrieved secret data size different! %d != %d\n",
-                secret->dataSize, set_secret->dataSize);
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    } else if (memcmp(secret->data,
-                      set_secret->data,
-                      set_secret->dataSize) != 0) {
-        fprintf(stderr, "Retrieved secret data different!\n");
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    } else if (!Sailfish_Secrets_SecretManager_deleteCollection(
-                "tst_capi_collection",
-                "org.sailfishos.secrets.plugin.storage.sqlite.test",
-                Sailfish_Secrets_SecretManager_PreventInteraction,
-                "",
-                deleteCollection_callback,
-                NULL)) {
-        fprintf(stderr, "Unable to call deleteCollection!\n");
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    }
-    CallbackContext_unref(cb_ctxt);
-}
-
-void setSecret_callback(void *context, struct Sailfish_Secrets_Result *result)
-{
-    struct CallbackContext *cb_ctxt = (struct CallbackContext *)context;
-    struct Sailfish_Secrets_Secret *set_secret = cb_ctxt->secret;
-    if (result->code != Sailfish_Secrets_Result_Succeeded) {
-        fprintf(stderr, "Failed to set secret: %s\n", result->errorMessage);
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    } else if (!Sailfish_Secrets_SecretManager_getSecret(
-                    set_secret->identifier,
-                    Sailfish_Secrets_SecretManager_PreventInteraction,
-                    "",
-                    getSecret_callback,
-                    cb_ctxt)) {
-        fprintf(stderr, "Unable to call getSecret!\n");
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    }
-}
-
-void createCollection_callback(void *context, struct Sailfish_Secrets_Result *result)
-{
-    (void)context;
-    if (result->code != Sailfish_Secrets_Result_Succeeded) {
-        fprintf(stderr, "Failed to create collection: %s\n", result->errorMessage);
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    } else {
-        struct Sailfish_Secrets_Secret *set_secret
-                = Sailfish_Secrets_Secret_new(
-                    tst_secretscrypto_plaintext,
-                    tst_secretscrypto_plaintext_size);
-        Sailfish_Secrets_Secret_setIdentifier(
-                    set_secret, "tst_capi_secret", "tst_capi_collection",
-                    "org.sailfishos.secrets.plugin.storage.sqlite.test");
-        Sailfish_Secrets_Secret_addFilter(set_secret, "type", "blob");
-        Sailfish_Secrets_Secret_addFilter(set_secret, "test", "true");
-
-        struct Sailfish_Secrets_InteractionParameters *ui_params
-                = Sailfish_Secrets_InteractionParameters_new(
-                    "", "", 0, 0);
-
-        struct CallbackContext *cb_ctxt = CallbackContext_new(
-                    set_secret, ui_params);
-
-        if (!Sailfish_Secrets_SecretManager_setSecret(
-                    set_secret,
-                    ui_params,
-                    Sailfish_Secrets_SecretManager_PreventInteraction,
-                    "",
-                    setSecret_callback,
-                    cb_ctxt)) {
-            fprintf(stderr, "Unable to call setSecret!\n");
-            tst_secretscrypto_return = 1;
-            cleanup_connections();
-        }
-    }
-}
-
-void connectToServer_callback(void *context, struct Sailfish_Secrets_Result *result)
-{
-    (void)context;
-    if (result->code != Sailfish_Secrets_Result_Succeeded) {
-        fprintf(stderr, "Failed to connect to sailfishsecretsd: %s\n", result->errorMessage);
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    } else if (!Sailfish_Secrets_SecretManager_createCollection(
-                        "tst_capi_collection",
-                        "org.sailfishos.secrets.plugin.storage.sqlite.test",
-                        "org.sailfishos.secrets.plugin.encryption.openssl.test",
-                        Sailfish_Secrets_SecretManager_DeviceLockKeepUnlocked,
-                        Sailfish_Secrets_SecretManager_OwnerOnlyMode,
-                        createCollection_callback,
-                        NULL)) {
-        fprintf(stderr, "Unable to call createCollection!\n");
-        tst_secretscrypto_return = 1;
-        cleanup_connections();
-    }
-}
-
-gboolean end_test_if_complete(gpointer user_data)
-{
-    if (tst_secretscrypto_complete) {
-        g_main_loop_quit((GMainLoop*)user_data);
-        return FALSE;
-    }
-    return TRUE;
-}
-
-int main(int argc, char *argv[])
-{
-    GMainLoop *loop = g_main_loop_new(NULL, FALSE);
-    (void)argc;
-    (void)argv;
-    g_timeout_add (50, end_test_if_complete, loop);
-    if (!Sailfish_Secrets_connectToServer(connectToServer_callback, NULL)) {
-        fprintf(stderr, "Unable to connect to sailfishsecretsd!\n");
-        tst_secretscrypto_return = 1;
-    } else {
-        g_main_loop_run(loop);
-        g_main_loop_unref(loop);
-    }
-    Sailfish_Crypto_Key_unref(tst_secretscrypto_generatedkey);
-    Sailfish_Crypto_Key_unref(tst_secretscrypto_storedkey);
-    free(tst_secretscrypto_generatedkey_encrypted);
-    free(tst_secretscrypto_storedkey_encrypted);
-    if (tst_secretscrypto_return == 0) {
-        fprintf(stdout, "PASS!\n");
-    } else {
-        fprintf(stdout, "FAIL!\n");
-    }
-    return tst_secretscrypto_return;
+	return 0;
 }

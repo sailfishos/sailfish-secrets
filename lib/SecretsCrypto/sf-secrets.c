@@ -1,5 +1,10 @@
 #include "sf-secrets.h"
 
+const gchar *SF_SECRETS_DEFAULT_AUTHENTICATION_PLUGIN = "plugin.authentication.default";
+const gchar *SF_SECRETS_DEFAULT_STORAGE_PLUGIN = "plugin.storage.default";
+const gchar *SF_SECRETS_DEFAULT_ENCRYPTION_PLUGIN = "plugin.encryption.default";
+const gchar *SF_SECRETS_DEAFULT_ENCRYPTED_STORAGE_PLUGIN = "plugin.encryptedstorage.default";
+
 void sf_secrets_plugin_info_free(SfSecretsPluginInfo *info)
 {
 	if (G_UNLIKELY(!info))

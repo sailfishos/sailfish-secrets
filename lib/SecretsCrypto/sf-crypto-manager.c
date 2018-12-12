@@ -530,7 +530,7 @@ static void _sf_crypto_manager_result_key_ready(GObject *source_object,
 		gpointer user_data)
 {
 	GTask *task = user_data;
-	GError *error;
+	GError *error = NULL;
 	GVariantIter iter;
 	GVariant *response = _sf_crypto_manager_dbus_call_finish(source_object, res, &error, &iter);
 	GVariant *key;

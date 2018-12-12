@@ -8,8 +8,8 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
-#include <sf-secrets.h>
-#include <sf-secrets-secret.h>
+#include "sf-secrets.h"
+#include "sf-secrets-secret.h"
 
 typedef struct SfSecretsManager_ SfSecretsManager;
 typedef struct SfSecretsManagerClass_ SfSecretsManagerClass;
@@ -27,6 +27,17 @@ void sf_secrets_manager_new(GCancellable *cancellable,
 		GAsyncReadyCallback callback,
 		gpointer user_data);
 SfSecretsManager *sf_secrets_manager_new_finish(GAsyncResult *res, GError **error);
+
+void sf_secrets_manager_get_plugin_info(SfSecretsManager *manager,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+gboolean sf_secrets_manager_get_plugin_info_finish(GAsyncResult *res,
+		GSList **storage_plugins,
+		GSList **encryption_plugins,
+		GSList **encrypted_storage_plugins,
+		GSList **authentication_plugins,
+		GError **error);
 
 void sf_secrets_manager_get_health_info(SfSecretsManager *manager,
 		GCancellable *cancellable,
@@ -66,7 +77,7 @@ void sf_secrets_manager_delete_collection(SfSecretsManager *manager,
 		GCancellable *cancellable,
 		GAsyncReadyCallback callback,
 		gpointer user_data);
-gboolean sf_secrets_manager_delete_collcetion_finish(GAsyncResult *res,
+gboolean sf_secrets_manager_delete_collection_finish(GAsyncResult *res,
 		GError **error);
 
 void sf_secrets_manager_set_secret(SfSecretsManager *manager,
@@ -83,7 +94,7 @@ void sf_secrets_manager_set_secret_standalone(SfSecretsManager *manager,
 		GCancellable *cancellable,
 		GAsyncReadyCallback callback,
 		gpointer user_data);
-gboolean sf_secrets_collection_set_secret_finish(GAsyncResult *res, GError **error);
+gboolean sf_secrets_manager_set_secret_finish(GAsyncResult *res, GError **error);
 
 void sf_secrets_manager_get_secret(SfSecretsManager *manager,
 		const gchar *secret_name,
