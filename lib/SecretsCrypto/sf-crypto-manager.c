@@ -720,13 +720,13 @@ void sf_crypto_manager_generate_stored_key(SfCryptoManager *manager,
 				"@" SF_KPG_VARIANT_STRING
 				"@" SF_SKDF_VARIANT_STRING
 				"(ssss(i)s@a{is}(i)(i))"
-				"a{sv}s)",
+				"@a{sv}s)",
 
 				_sf_crypto_key_to_variant(key_template),
 				_sf_variant_new_kpg_or_empty(kpg_params),
 				_sf_variant_new_skdf_or_empty(skdf_params),
 
-				"", "", "", "", 0, authentication_plugin,
+				"", "", "", "", 0, EMPTY_IF_NULL(authentication_plugin),
 				g_variant_new_array(G_VARIANT_TYPE("{is}"), NULL, 0),
 				input_type, echo_mode,
 
@@ -771,7 +771,7 @@ void sf_crypto_manager_import_key(SfCryptoManager *manager,
 				"(ssss(i)s@a{is}(i)(i))"
 				"@a{sv}s)",
 				_sf_variant_new_bytes_or_empty(data),
-				"", "", "", "", 0, authentication_plugin,
+				"", "", "", "", 0, EMPTY_IF_NULL(authentication_plugin),
 				g_variant_new_array(G_VARIANT_TYPE("{is}"), NULL, 0),
 				input_type, echo_mode,
 				_sf_variant_new_variant_map_or_empty(custom_params),
@@ -1224,7 +1224,7 @@ void sf_crypto_manager_encrypt(SfCryptoManager *manager,
 
 GBytes *sf_crypto_manager_encrypt_finish(GAsyncResult *res, GBytes **tag, GError **error)
 {
-	GError *err;
+	GError *err = NULL;
 	GBytes *rv = g_task_propagate_pointer(G_TASK(res), &err);
 
 	if (err) {
@@ -1312,7 +1312,7 @@ void sf_crypto_manager_decrypt(SfCryptoManager *manager,
 
 GBytes *sf_crypto_manager_decrypt_finish(GAsyncResult *res, SfCryptoVerificationStatus *status, GError **error)
 {
-	GError *err;
+	GError *err = NULL;
 	GBytes *rv = g_task_propagate_pointer(G_TASK(res), &err);
 
 	if (err) {
