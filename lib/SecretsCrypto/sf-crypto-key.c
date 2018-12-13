@@ -435,7 +435,7 @@ GVariant *_sf_crypto_key_to_variant(SfCryptoKey *key)
 {
 	SfCryptoKeyPrivate *priv = sf_crypto_key_get_instance_private(key);
 
-	return g_variant_new("((sss)iiiiiayayaya(ay)a{sv})",
+	return g_variant_new("((sss)iiiii@ay@ay@ay@aay(@a{sv}))",
 			priv->name ?: "",
 			priv->collection_name ?: "",
 			priv->plugin_name ?: "",
@@ -476,7 +476,7 @@ SfCryptoKey *_sf_crypto_key_from_variant(GVariant *variant)
 	GHashTable *filter_ht;
 
 	g_variant_get(variant,
-			"(&s&s&s)iiiii@ay@ay@ay@aay@a{sv})",
+			"((&s&s&s)iiiii@ay@ay@ay@aay(@a{sv}))",
 			&name,
 			&collection_name,
 			&plugin_name,
@@ -486,14 +486,14 @@ SfCryptoKey *_sf_crypto_key_from_variant(GVariant *variant)
 			&constraints,
 			&key_size,
 			&public_key,
-			&secret_key,
 			&private_key,
+			&secret_key,
 			&custom_params,
 			&filter_data);
 
 	pubkey = _sf_bytes_new_from_variant_or_null(public_key);
-	privkey = _sf_bytes_new_from_variant_or_null(public_key);
-	seckey = _sf_bytes_new_from_variant_or_null(public_key);
+	privkey = _sf_bytes_new_from_variant_or_null(private_key);
+	seckey = _sf_bytes_new_from_variant_or_null(secret_key);
 	custparm = _sf_array_bytes_from_variant_or_null(custom_params);
 	filter_ht = _sf_hash_table_new_string_from_variant(filter_data);
 
@@ -519,11 +519,16 @@ SfCryptoKey *_sf_crypto_key_from_variant(GVariant *variant)
 			"filter-data", filter_ht,
 			NULL);
 
-	g_bytes_unref(pubkey);
-	g_bytes_unref(seckey);
-	g_bytes_unref(privkey);
-	g_ptr_array_unref(custparm);
-	g_hash_table_unref(filter_ht);
+	if (pubkey)
+		g_bytes_unref(pubkey);
+	if (seckey)
+		g_bytes_unref(seckey);
+	if (privkey)
+		g_bytes_unref(privkey);
+	if (custparm)
+		g_ptr_array_unref(custparm);
+	if (filter_ht)
+		g_hash_table_unref(filter_ht);
 
 	return result;
 }

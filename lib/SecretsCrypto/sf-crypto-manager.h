@@ -5,8 +5,8 @@
 #define SF_CRYPTO_MANAGER(o) (G_TYPE_CHECK_INSTANCE_CAST((o), SF_TYPE_CRYPTO_MANAGER, SfCryptoManager))
 #define SF_IS_CRYPTO_MANAGER(o) (G_TYPE_CHECK_INSTANCE_TYPE((o), SF_TYPE_CRYPTO_MANAGER))
 
-#include <sf-crypto.h>
-#include <sf-crypto-key.h>
+#include "sf-crypto.h"
+#include "sf-crypto-key.h"
 
 #include <glib-object.h>
 #include <gio/gio.h>
@@ -49,6 +49,15 @@ void sf_crypto_manager_new(GCancellable *cancellable,
 		GAsyncReadyCallback callback,
 		gpointer user_data);
 SfCryptoManager *sf_crypto_manager_new_finish(GAsyncResult *res, GError **error);
+
+void sf_crypto_manager_get_plugin_info(SfCryptoManager *manager,
+		GCancellable *cancellable,
+		GAsyncReadyCallback callback,
+		gpointer user_data);
+gboolean sf_crypto_manager_get_plugin_info_finish(GAsyncResult *res,
+		GSList **crypto_plugins,
+		GSList **storage_plugins,
+		GError **error);
 
 void sf_crypto_manager_generate_random_data(SfCryptoManager *manager,
 		guint64 amount,

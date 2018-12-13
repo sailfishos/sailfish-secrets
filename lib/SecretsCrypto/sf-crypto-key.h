@@ -2,7 +2,7 @@
 #define SF_CRYPTO_KEY_H
 
 #include <glib-object.h>
-#include <sf-crypto.h>
+#include "sf-crypto.h"
 
 #define SF_TYPE_CRYPTO_KEY (sf_crypto_key_get_type())
 #define SF_CRYPTO_KEY(o) (G_TYPE_CHECK_INSTANCE_CAST((o), SF_TYPE_CRYPTO_KEY, SfCryptoKey))

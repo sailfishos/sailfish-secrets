@@ -3,7 +3,7 @@
 
 #include "sf-crypto-key.h"
 
-#define SF_CRYPTO_KEY_VARIANT_STRING "((sss)iiiiiayayayaaya{sv})"
+#define SF_CRYPTO_KEY_VARIANT_STRING "((sss)iiiiiayayayaay(a{sv}))"
 
 GVariant *_sf_crypto_key_to_variant(SfCryptoKey *key);
 SfCryptoKey *_sf_crypto_key_from_variant(GVariant *variant);

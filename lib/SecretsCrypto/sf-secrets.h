@@ -191,7 +191,7 @@ typedef enum SfSecretsInputType_ {
 	SF_SECRETS_INPUT_TYPE_IRIS           = 32, // returns the iris data from the user
 	SF_SECRETS_INPUT_TYPE_RETINA         = 64, // returns the retina data from the user
 	// reserved
-	LastInputType       = 65536
+	SF_SECRETS_INPUT_TYPE_LAST           = 65536
 } SfSecretsInputType;
 
 typedef enum SfSecretsHealth_ {

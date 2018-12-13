@@ -419,7 +419,7 @@ typedef enum SfCryptoInputType_ {
 	SF_CRYPTO_INPUT_TYPE_IRIS           = 32, // returns the iris data from the user
 	SF_CRYPTO_INPUT_TYPE_RETINA         = 64, // returns the retina data from the user
 	// reserved
-	LastInputType       = 65536
+	SF_CRYPTO_INPUT_TYPE_LAST           = 65536
 } SfCryptoInputType;
 
 typedef enum SfCryptoKeyPairType_ {

@@ -161,16 +161,16 @@ static GVariant *_sf_variant_new_kpg_or_empty(SfCryptoKpgParams *params) {
 static GVariant *_sf_variant_new_skdf_or_empty(SfCryptoSkdfParams *params)
 {
 	if (!params)
-		return g_variant_new("(@ay@ay(i)(i)(i)(i)xiiia@a{sv}",
+		return g_variant_new("(@ay@ay(i)(i)(i)(i)xiii@a{sv})",
 				g_variant_new_array(G_VARIANT_TYPE_BYTE, NULL, 0),
 				g_variant_new_array(G_VARIANT_TYPE_BYTE, NULL, 0),
 				SF_CRYPTO_KDF_UNKNOWN,
 				SF_CRYPTO_MAC_UNKNOWN,
 				SF_CRYPTO_ALGORITHM_UNKNOWN,
 				SF_CRYPTO_DIGEST_UNKNOWN,
-				(gint64)0, (gint32)0, (gint32)0,
+				(gint64)0, (gint32)0, (gint32)0, (gint32)0,
 				g_variant_new_array(G_VARIANT_TYPE("{sv}"), NULL, 0));
-	return g_variant_new("(@ay@ay(i)(i)(i)(i)xiiia@a{sv}",
+	return g_variant_new("(@ay@ay(i)(i)(i)(i)xiii@a{sv})",
 			_sf_variant_new_bytes_or_empty(params->input_data),
 			_sf_variant_new_bytes_or_empty(params->salt),
 			(gint32)params->function,
@@ -179,6 +179,7 @@ static GVariant *_sf_variant_new_skdf_or_empty(SfCryptoSkdfParams *params)
 			(gint32)params->digest,
 			(gint64)params->memory_size,
 			(gint32)params->iterations,
+			(gint32)params->parallelism,
 			(gint32)params->key_size,
 			_sf_variant_new_variant_map_or_empty(params->custom_params));
 }
@@ -382,7 +383,7 @@ void _sf_crypto_manager_connection_ready(GObject *source_object,
 			G_DBUS_PROXY_FLAGS_NONE,
 			NULL, NULL,
 			"/Sailfish/Crypto",
-			"org.sailfishos.secrets",
+			"org.sailfishos.crypto",
 			g_task_get_cancellable(task),
 			_sf_crypto_manager_proxy_ready,
 			task);
@@ -627,7 +628,7 @@ void sf_crypto_manager_generate_initialization_vector(SfCryptoManager *manager,
 
 	g_dbus_proxy_call(priv->proxy,
 			"generateInitializationVector",
-			g_variant_new("((i)(i)ia{sv}s)",
+			g_variant_new("((i)(i)i@a{sv}s)",
 				algorithm,
 				block_mode,
 				key_size,
@@ -670,7 +671,7 @@ void sf_crypto_manager_generate_key(SfCryptoManager *manager,
 			g_variant_new("(@" SF_CRYPTO_KEY_VARIANT_STRING
 				"@" SF_KPG_VARIANT_STRING
 				"@" SF_SKDF_VARIANT_STRING
-				"@a{sv}s",
+				"@a{sv}s)",
 				_sf_crypto_key_to_variant(key_template),
 				_sf_variant_new_kpg_or_empty(kpg_params),
 				_sf_variant_new_skdf_or_empty(skdf_params),
@@ -681,11 +682,13 @@ void sf_crypto_manager_generate_key(SfCryptoManager *manager,
 			cancellable,
 			_sf_crypto_manager_generate_key_ready,
 			task);
+
+	g_object_unref(g_object_ref_sink(key_template));
 }
 
 SfCryptoKey *sf_crypto_manager_generate_key_finish(GAsyncResult *res, GError **error)
 {
-	return g_object_ref_sink(g_task_propagate_pointer(G_TASK(res), error));
+	return g_task_propagate_pointer(G_TASK(res), error);
 }
 
 static void _sf_crypto_manager_generate_stored_key_ready(GObject *source_object,
@@ -717,7 +720,7 @@ void sf_crypto_manager_generate_stored_key(SfCryptoManager *manager,
 				"@" SF_KPG_VARIANT_STRING
 				"@" SF_SKDF_VARIANT_STRING
 				"(ssss(i)s@a{is}(i)(i))"
-				"a{sv}s",
+				"a{sv}s)",
 
 				_sf_crypto_key_to_variant(key_template),
 				_sf_variant_new_kpg_or_empty(kpg_params),
@@ -1203,7 +1206,7 @@ void sf_crypto_manager_encrypt(SfCryptoManager *manager,
 
 	g_dbus_proxy_call(priv->proxy,
 			"encrypt",
-			g_variant_new("(@ay@ay@" SF_CRYPTO_KEY_VARIANT_STRING "(i)(i)@ay@a{sv}s",
+			g_variant_new("(@ay@ay@" SF_CRYPTO_KEY_VARIANT_STRING "(i)(i)@ay@a{sv}s)",
 				_sf_variant_new_bytes_or_empty(data),
 				_sf_variant_new_bytes_or_empty(iv),
 				_sf_crypto_key_to_variant(key),
@@ -1234,8 +1237,11 @@ GBytes *sf_crypto_manager_encrypt_finish(GAsyncResult *res, GBytes **tag, GError
 
 	}
 
-	if (tag)
-		*tag = g_object_ref(g_task_get_task_data(G_TASK(res)));
+	if (tag) {
+		*tag = g_task_get_task_data(G_TASK(res));
+		if (*tag)
+			g_bytes_ref(*tag);
+	}
 
 	return rv;
 }
@@ -1287,7 +1293,7 @@ void sf_crypto_manager_decrypt(SfCryptoManager *manager,
 
 	g_dbus_proxy_call(priv->proxy,
 			"decrypt",
-			g_variant_new("(@ay@ay@" SF_CRYPTO_KEY_VARIANT_STRING "(i)(i)@ay@a{sv}s",
+			g_variant_new("(@ay@ay@" SF_CRYPTO_KEY_VARIANT_STRING "(i)(i)@ay@ay@a{sv}s)",
 				_sf_variant_new_bytes_or_empty(data),
 				_sf_variant_new_bytes_or_empty(iv),
 				_sf_crypto_key_to_variant(key),
