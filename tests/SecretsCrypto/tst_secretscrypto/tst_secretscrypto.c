@@ -918,6 +918,58 @@ static void tst_crypto_import_key(SfCryptoFixture *fixture,
 		g_bytes_unref(bytes);
 }
 
+struct digest_details {
+	gsize data_size;
+	GChecksumType g_digest;
+	SfCryptoDigest sf_digest;
+};
+
+static void tst_crypto_digest(SfCryptoFixture *fixture,
+		gconstpointer data)
+{
+	const struct digest_details *dd = data;
+	gchar *buffer = g_malloc(dd->data_size);
+	GBytes *bytes;
+	GBytes *digest;
+	GChecksum *gcs;
+	guchar *gdigest;
+	gsize i;
+
+	for (i = 0; i < dd->data_size; i++)
+		buffer[i] = g_test_rand_int_range(0, G_MAXUINT8);
+	bytes = g_bytes_new_take(buffer, dd->data_size);
+
+	g_test_queue_destroy((GDestroyNotify)g_bytes_unref, bytes);
+
+	sf_crypto_manager_calculate_digest(fixture->manager,
+			bytes,
+			SF_CRYPTO_SIGNATURE_PADDING_NONE,
+			dd->sf_digest,
+			NULL,
+			CRYPTO_PLUGIN_TEST,
+			NULL,
+			_tst_crypto_ref_res_and_quit,
+			fixture);
+	g_main_loop_run(fixture->loop);
+
+	digest = sf_crypto_manager_calculate_digest_finish(fixture->test_res, &fixture->error);
+
+	g_assert_no_error(fixture->error);
+	if (g_test_failed())
+		return;
+
+	gcs = g_checksum_new(dd->g_digest);
+	g_checksum_update(gcs, g_bytes_get_data(bytes, NULL), g_bytes_get_size(bytes));
+	gdigest = g_malloc((i = g_checksum_type_get_length(dd->g_digest)));
+	g_checksum_get_digest(gcs, gdigest, &i);
+	g_checksum_free(gcs);
+
+	g_assert_cmpmem(g_bytes_get_data(digest, NULL), g_bytes_get_size(digest),
+			gdigest, i);
+
+	g_free(gdigest);
+}
+
 static void _tst_secret_setup_ready(GObject *source_object,
 		GAsyncResult *res,
 		gpointer user_data)
@@ -1067,6 +1119,18 @@ int main(int argc, char **argv)
 		.key_type = "public-key",
 		.algorithm = SF_CRYPTO_ALGORITHM_RSA,
 		.key_size = 1024 }));
+	sf_crypto_test("DigestMd5", tst_crypto_digest, (&(struct digest_details){
+		.data_size = 1024,
+		.g_digest = G_CHECKSUM_MD5,
+		.sf_digest = SF_CRYPTO_DIGEST_MD5}));
+	sf_crypto_test("DigestSha256", tst_crypto_digest, (&(struct digest_details){
+		.data_size = 2048,
+		.g_digest = G_CHECKSUM_SHA256,
+		.sf_digest = SF_CRYPTO_DIGEST_SHA256}));
+	sf_crypto_test("DigestSha512", tst_crypto_digest, (&(struct digest_details){
+		.data_size = 4096,
+		.g_digest = G_CHECKSUM_SHA512,
+		.sf_digest = SF_CRYPTO_DIGEST_SHA512}));
 #undef sf_secret_test
 
 	g_test_run();
