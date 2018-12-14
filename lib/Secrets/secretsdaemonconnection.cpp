@@ -201,4 +201,5 @@ void Sailfish::Secrets::SecretsDaemonConnection::registerDBusTypes()
     qDBusRegisterMetaType<Sailfish::Secrets::LockCodeRequest::LockCodeTargetType>();
     qDBusRegisterMetaType<Sailfish::Secrets::LockCodeRequest::LockStatus>();
     qDBusRegisterMetaType<Sailfish::Secrets::HealthCheckRequest::Health>();
+    qDBusRegisterMetaType<QMap<QString, bool> >();
 }

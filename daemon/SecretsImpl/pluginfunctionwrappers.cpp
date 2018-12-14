@@ -292,7 +292,7 @@ IdentifiersResult Daemon::ApiImpl::storedKeyIdentifiers(
                       const QVariantMap &customParameters,
                       Result *result,
                       QVector<Secret::Identifier> *idents) {
-        QVariantMap cnamesMap;
+        QMap<QString, bool> cnamesMap;
         QStringList cnames;
         QStringList knames;
         *result = p->collectionNames(&cnamesMap);
@@ -531,7 +531,7 @@ SecretMetadataResult StoragePluginFunctionWrapper::secretMetadata(
 CollectionNamesResult StoragePluginFunctionWrapper::collectionNames(
         StoragePluginWrapper *plugin)
 {
-    QVariantMap cnamesMap;
+    QMap<QString, bool> cnamesMap;
     Result result = plugin->collectionNames(&cnamesMap);
     return CollectionNamesResult(result, cnamesMap);
 }
@@ -673,7 +673,7 @@ StoragePluginFunctionWrapper::reencryptDeviceLockedCollectionsAndSecrets(
     // foreach collection, get metadata
     // if usesDeviceLockKey, re-encrypt
     QStringList cnames;
-    QVariantMap cnamesMap;
+    QMap<QString, bool> cnamesMap;
     Result result = plugin->collectionNames(&cnamesMap);
     cnames = cnamesMap.keys();
     if (result.code() != Result::Succeeded) {
@@ -758,7 +758,7 @@ StoragePluginFunctionWrapper::collectionSecretPreCheck(
         bool newSecret)
 {
     QStringList cnames;
-    QVariantMap cnamesMap;
+    QMap<QString, bool> cnamesMap;
     Result result = plugin->collectionNames(&cnamesMap);
     cnames = cnamesMap.keys();
     if (result.code() != Result::Succeeded) {
@@ -848,7 +848,7 @@ SecretMetadataResult EncryptedStoragePluginFunctionWrapper::secretMetadata(
 CollectionNamesResult EncryptedStoragePluginFunctionWrapper::collectionNames(
         EncryptedStoragePluginWrapper *plugin)
 {
-    QVariantMap cnamesMap;
+    QMap<QString, bool> cnamesMap;
     Result result = plugin->collectionNames(&cnamesMap);
     return CollectionNamesResult(result, cnamesMap);
 }
@@ -1237,7 +1237,7 @@ Result EncryptedStoragePluginFunctionWrapper::unlockDeviceLockedCollectionsAndRe
 {
     // find out which collections are device-locked
     QStringList cnames;
-    QVariantMap cnamesMap;
+    QMap<QString, bool> cnamesMap;
     Result result = plugin->collectionNames(&cnamesMap);
     cnames = cnamesMap.keys();
     if (result.code() != Result::Succeeded) {
@@ -1359,7 +1359,7 @@ Result EncryptedStoragePluginFunctionWrapper::collectionSecretPreCheck(
         bool newSecret)
 {
     QStringList cnames;
-    QVariantMap cnamesMap;
+    QMap<QString, bool> cnamesMap;
     Result result = plugin->collectionNames(&cnamesMap);
     cnames = cnamesMap.keys();
     if (result.code() != Result::Succeeded) {

@@ -148,7 +148,7 @@ void CollectionNamesRequest::startRequest()
             emit resultChanged();
         }
 
-        QDBusPendingReply<Result, QVariantMap> reply = d->m_manager->d_ptr->collectionNames(
+        QDBusPendingReply<Result, QMap<QString, bool> > reply = d->m_manager->d_ptr->collectionNames(
                     d->m_storagePluginName);
         if (!reply.isValid() && !reply.error().message().isEmpty()) {
             d->m_status = Request::Finished;
@@ -168,14 +168,10 @@ void CollectionNamesRequest::startRequest()
             connect(d->m_watcher.data(), &QDBusPendingCallWatcher::finished,
                     [this] {
                 QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.take();
-                QDBusPendingReply<Result, QVariantMap> reply = *watcher;
+                QDBusPendingReply<Result, QMap<QString, bool> > reply = *watcher;
                 this->d_ptr->m_status = Request::Finished;
                 this->d_ptr->m_result = reply.argumentAt<0>();
-                const QVariantMap collections = reply.argumentAt<1>();
-                this->d_ptr->m_collectionNames.clear();
-                for (const QString &collectionName : collections.keys()) {
-                    this->d_ptr->m_collectionNames.insert(collectionName, collections.value(collectionName).toBool());
-                }
+                this->d_ptr->m_collectionNames = reply.argumentAt<1>();
                 watcher->deleteLater();
                 emit this->statusChanged();
                 emit this->resultChanged();

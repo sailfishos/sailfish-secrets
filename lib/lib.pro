@@ -6,7 +6,8 @@ SUBDIRS += \
     SecretsDocs \
     Crypto \
     CryptoPluginApi \
-    CryptoDocs
+    CryptoDocs \
+    SecretsCrypto # C-API
 
 Secrets.subdir = $$PWD/Secrets
 SecretsPluginApi.subdir = $$PWD/Secrets/Plugins

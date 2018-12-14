@@ -41,6 +41,7 @@ public:
         SerializationError = 3,
         StorageError = 4,
         DaemonError = 5,
+        DiscoveryError = 6,
 
         InvalidCryptographicServiceProvider = 10,
         InvalidStorageProvider,
