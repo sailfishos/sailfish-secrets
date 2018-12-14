@@ -1055,6 +1055,106 @@ static void tst_crypto_digest(SfCryptoFixture *fixture,
 	g_free(gdigest);
 }
 
+static void tst_crypto_sign_verify(SfCryptoFixture *fixture,
+		gconstpointer data)
+{
+	const struct key_details *kd = data;
+	SfCryptoKey *key = g_object_new(SF_TYPE_CRYPTO_KEY,
+			"algorithm", kd->algorithm,
+			"key-size", kd->key_size,
+			NULL);
+	gint8 *buffer;
+	GBytes *secret_data;
+	GBytes *signature;
+	SfCryptoVerificationStatus verify_status;
+
+	(void)data;
+
+	buffer = g_malloc(kd->data_size);
+	g_test_queue_free(buffer);
+
+	sf_crypto_manager_generate_key(fixture->manager,
+			key,
+			_tst_crypto_kpg_params(key), NULL,
+			NULL,
+			CRYPTO_PLUGIN_TEST,
+			NULL,
+			_tst_crypto_ref_res_and_quit,
+			fixture);
+	g_main_loop_run(fixture->loop);
+
+	key = sf_crypto_manager_generate_key_finish(fixture->test_res, &fixture->error);
+
+	g_assert_no_error(fixture->error);
+	if (g_test_failed())
+		return;
+
+	g_object_ref_sink(key);
+	g_test_queue_unref(key);
+
+	sf_crypto_manager_generate_random_data(fixture->manager,
+			kd->data_size,
+			SF_CRYPTO_DEFAULT_CSPRNG_ENGINE,
+			NULL,
+			CRYPTO_PLUGIN_TEST,
+			NULL,
+			_tst_crypto_ref_res_and_quit,
+			fixture);
+	g_main_loop_run(fixture->loop);
+
+	secret_data = sf_crypto_manager_generate_random_data_finish(fixture->test_res, &fixture->error);
+
+	g_assert_no_error(fixture->error);
+	g_assert_nonnull(secret_data);
+
+	if (g_test_failed())
+		return;
+
+	g_test_queue_destroy((GDestroyNotify)g_bytes_unref, secret_data);
+
+	sf_crypto_manager_sign(fixture->manager,
+			secret_data,
+			key,
+			kd->padding,
+			SF_CRYPTO_DIGEST_SHA256,
+			NULL,
+			CRYPTO_PLUGIN_TEST,
+			NULL,
+			_tst_crypto_ref_res_and_quit,
+			fixture);
+
+	g_main_loop_run(fixture->loop);
+
+	signature = sf_crypto_manager_sign_finish(fixture->test_res, &fixture->error);
+
+	g_assert_no_error(fixture->error);
+	if (g_test_failed())
+		return;
+
+	g_test_queue_destroy((GDestroyNotify)g_bytes_unref, signature);
+
+	sf_crypto_manager_verify(fixture->manager,
+			signature,
+			secret_data,
+			key,
+			kd->padding,
+			SF_CRYPTO_DIGEST_SHA256,
+			NULL,
+			CRYPTO_PLUGIN_TEST,
+			NULL,
+			_tst_crypto_ref_res_and_quit,
+			fixture);
+
+	g_main_loop_run(fixture->loop);
+
+	verify_status = sf_crypto_manager_verify_finish(fixture->test_res, &fixture->error);
+
+	g_assert_no_error(fixture->error);
+	g_assert_cmpint(verify_status, ==, SF_CRYPTO_VERIFICATION_STATUS_SUCCEEDED);
+	if (g_test_failed())
+		return;
+}
+
 static void _tst_secret_setup_ready(GObject *source_object,
 		GAsyncResult *res,
 		gpointer user_data)
@@ -1228,6 +1328,12 @@ int main(int argc, char **argv)
 		.data_size = 4096,
 		.g_digest = G_CHECKSUM_SHA512,
 		.sf_digest = SF_CRYPTO_DIGEST_SHA512}));
+	sf_crypto_test("SignVerifyRsa2048", tst_crypto_sign_verify, (&(struct key_details){
+		.algorithm = SF_CRYPTO_ALGORITHM_RSA,
+		.padding = SF_CRYPTO_ENCRYPTION_PADDING_NONE,
+		.block_mode = SF_CRYPTO_BLOCK_MODE_UNKNOWN,
+		.key_size = 2048,
+		.data_size = 256 }));
 #undef sf_secret_test
 
 	g_test_run();
