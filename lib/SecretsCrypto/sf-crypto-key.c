@@ -779,3 +779,55 @@ void sf_crypto_key_set_filter_data(SfCryptoKey *key, GHashTable *filter_data)
 	G_OBJECT_GET_CLASS(key)->set_property(G_OBJECT(key), PROP_FILTER_DATA, &v, NULL);
 	g_value_unset(&v);
 }
+
+SfCryptoKey *sf_crypto_key_new_reference(const gchar *name,
+		const gchar *collection_name,
+		const gchar *plugin_name)
+{
+	return g_object_new(SF_TYPE_CRYPTO_KEY,
+			"name", name,
+			"collection-name", collection_name,
+			"plugin-name", plugin_name,
+			NULL);
+}
+
+SfCryptoKey *sf_crypto_key_new_template(const gchar *name,
+		const gchar *collection_name,
+		const gchar *plugin_name,
+		SfCryptoAlgorithm algorithm,
+		gint key_size)
+{
+	return g_object_new(SF_TYPE_CRYPTO_KEY,
+			"name", name,
+			"collection-name", collection_name,
+			"plugin-name", plugin_name,
+			"algorithm", algorithm,
+			"key-size", key_size,
+			NULL);
+}
+
+SfCryptoKey *sf_crypto_key_new_public(SfCryptoAlgorithm algorithm, gint key_size, GBytes *public_key)
+{
+	return g_object_new(SF_TYPE_CRYPTO_KEY,
+			"algorithm", algorithm,
+			"public-key", public_key,
+			"key-size", key_size,
+			NULL);
+}
+
+SfCryptoKey *sf_crypto_key_new_private(SfCryptoAlgorithm algorithm, gint key_size, GBytes *private_key)
+{
+	return g_object_new(SF_TYPE_CRYPTO_KEY,
+			"algorithm", algorithm,
+			"private-key", private_key,
+			"key-size", key_size,
+			NULL);
+}
+
+SfCryptoKey *sf_crypto_key_new_secret(SfCryptoAlgorithm algorithm, GBytes *secret_key)
+{
+	return g_object_new(SF_TYPE_CRYPTO_KEY,
+			"algorithm", algorithm,
+			"secret-key", secret_key,
+			NULL);
+}

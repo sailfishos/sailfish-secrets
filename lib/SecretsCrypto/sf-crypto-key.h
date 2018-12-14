@@ -41,10 +41,16 @@ SfCryptoKey *sf_crypto_key_new_reference(const gchar *name,
 		const gchar *plugin_name);
 SfCryptoKey *sf_crypto_key_new_template(const gchar *name,
 		const gchar *collection_name,
-		const gchar *plugin_name);
-SfCryptoKey *sf_crypto_key_new_public(GBytes *public_key);
-SfCryptoKey *sf_crypto_key_new_private(GBytes *private_key);
-SfCryptoKey *sf_crypto_key_new_secret(GBytes *secret_key);
+		const gchar *plugin_name,
+		SfCryptoAlgorithm algorithm,
+		gint key_size);
+SfCryptoKey *sf_crypto_key_new_public(SfCryptoAlgorithm algorithm,
+		gint key_size,
+		GBytes *public_key);
+SfCryptoKey *sf_crypto_key_new_private(SfCryptoAlgorithm algorithm,
+		gint key_size,
+		GBytes *private_key);
+SfCryptoKey *sf_crypto_key_new_secret(SfCryptoAlgorithm algorithm, GBytes *secret_key);
 
 const gchar *sf_crypto_key_get_name(SfCryptoKey *key);
 void sf_crypto_key_set_name(SfCryptoKey *key, const gchar *name);

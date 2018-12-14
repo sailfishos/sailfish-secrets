@@ -31,6 +31,7 @@ static void _tst_secret_ref_res_and_quit(GObject *source_object,
 	(void)source_object;
 
 	fixture->test_res = g_object_ref(res);
+	g_test_queue_unref(fixture->test_res);
 	g_main_loop_quit(fixture->loop);
 }
 
@@ -125,7 +126,7 @@ static void tst_secret_collection_names(SfSecretsFixture *fixture,
 	}
 	sf_secrets_manager_collection_names(fixture->manager,
 			SECRETS_PLUGIN_STORAGE_TEST,
-		       	NULL,
+			NULL,
 			_tst_secret_ref_res_and_quit,
 			fixture);
 	g_main_loop_run(fixture->loop);
@@ -175,7 +176,6 @@ static void tst_secret_create_delete_collection(SfSecretsFixture *fixture,
 	if (g_test_failed())
 		return;
 
-	g_object_unref(fixture->test_res);
 	sf_secrets_manager_delete_collection(
 			fixture->manager,
 			SECRETS_PLUGIN_STORAGE_TEST,
@@ -232,9 +232,6 @@ static void tst_secret_set_get_collection_secret(SfSecretsFixture *fixture,
 	if (g_test_failed())
 		return;
 
-	g_object_unref(fixture->test_res);
-	fixture->test_res = NULL;
-
 	secret_data = g_bytes_new_static(buffer, sizeof(buffer));
 	sf_secrets_manager_set_secret(fixture->manager,
 			g_object_new(SF_TYPE_SECRETS_SECRET,
@@ -255,7 +252,6 @@ static void tst_secret_set_get_collection_secret(SfSecretsFixture *fixture,
 	if (g_test_failed())
 		return;
 
-	g_object_unref(fixture->test_res);
 	sf_secrets_manager_get_secret(fixture->manager,
 			"tst_capi_secret",
 			"tst_capi_collection",
@@ -283,7 +279,6 @@ static void tst_secret_set_get_collection_secret(SfSecretsFixture *fixture,
 	if (g_test_failed())
 		return;
 
-	g_object_unref(fixture->test_res);
 	sf_secrets_manager_delete_secret(fixture->manager,
 			secret,
 			NULL,
@@ -355,9 +350,6 @@ static void tst_secret_set_find_delete_collection_secret(SfSecretsFixture *fixtu
 	if (g_test_failed())
 		return;
 
-	g_object_unref(fixture->test_res);
-	fixture->test_res = NULL;
-
 	secret_data = g_bytes_new_static(buffer, sizeof(buffer));
 
 	secret = g_object_ref_sink(g_object_new(SF_TYPE_SECRETS_SECRET,
@@ -383,7 +375,6 @@ static void tst_secret_set_find_delete_collection_secret(SfSecretsFixture *fixtu
 	if (g_test_failed())
 		return;
 
-	g_object_unref(fixture->test_res);
 	sf_secrets_manager_find_secrets(fixture->manager,
 			"tst_capi_collection",
 			SECRETS_PLUGIN_STORAGE_TEST,
@@ -396,6 +387,7 @@ static void tst_secret_set_find_delete_collection_secret(SfSecretsFixture *fixtu
 	g_main_loop_run(fixture->loop);
 
 	secret_names = sf_secrets_manager_find_secrets_finish(fixture->test_res, &fixture->error);
+	g_test_queue_destroy((GDestroyNotify)g_strfreev, secret_names);
 
 	g_assert_no_error(fixture->error);
 	if (g_test_failed())
@@ -405,12 +397,9 @@ static void tst_secret_set_find_delete_collection_secret(SfSecretsFixture *fixtu
 	if (!g_test_failed())
 		g_assert_cmpstr(secret_names[0], ==, "tst_capi_secret");
 
-	if (g_test_failed()) {
-		g_strfreev(secret_names);
+	if (g_test_failed())
 		return;
-	}
 
-	g_object_unref(fixture->test_res);
 	sf_secrets_manager_delete_secret(fixture->manager,
 			secret,
 			NULL,
@@ -480,7 +469,6 @@ static void tst_secret_set_get_standalone_secret(SfSecretsFixture *fixture,
 	if (g_test_failed())
 		return;
 
-	g_object_unref(fixture->test_res);
 	sf_secrets_manager_get_secret(fixture->manager,
 			"tst_capi_secret",
 			NULL,
@@ -508,7 +496,6 @@ static void tst_secret_set_get_standalone_secret(SfSecretsFixture *fixture,
 	if (g_test_failed())
 		return;
 
-	g_object_unref(fixture->test_res);
 	sf_secrets_manager_delete_secret(fixture->manager,
 			secret,
 			NULL,
@@ -533,6 +520,7 @@ static void _tst_crypto_ref_res_and_quit(GObject *source_object,
 	(void)source_object;
 
 	fixture->test_res = g_object_ref(res);
+	g_test_queue_unref(fixture->test_res);
 	g_main_loop_quit(fixture->loop);
 }
 
@@ -581,11 +569,40 @@ static void tst_crypto_get_plugin_info(SfCryptoFixture *fixture,
 	}
 }
 
+static void tst_crypto_generate_random_data(SfCryptoFixture *fixture,
+		gconstpointer data)
+{
+	GBytes *random_bytes;
+	(void)data;
+
+	sf_crypto_manager_generate_random_data(fixture->manager,
+			4096,
+			SF_CRYPTO_DEFAULT_CSPRNG_ENGINE,
+			NULL,
+			CRYPTO_PLUGIN_TEST,
+			NULL,
+			_tst_crypto_ref_res_and_quit,
+			fixture);
+	g_main_loop_run(fixture->loop);
+
+	random_bytes = sf_crypto_manager_generate_random_data_finish(fixture->test_res, &fixture->error);
+
+	g_assert_no_error(fixture->error);
+	g_assert_nonnull(random_bytes);
+
+	if (g_test_failed())
+		return;
+
+	g_assert_cmpint(g_bytes_get_size(random_bytes), ==, 4096);
+	g_bytes_unref(random_bytes);
+}
+
 struct key_details {
 	SfCryptoAlgorithm algorithm;
 	SfCryptoEncryptionPadding padding;
 	SfCryptoBlockMode block_mode;
 	gint32 key_size;
+	gsize data_size;
 };
 
 static void tst_crypto_generate_key(SfCryptoFixture *fixture,
@@ -617,6 +634,34 @@ static void tst_crypto_generate_key(SfCryptoFixture *fixture,
 	g_object_unref(key);
 }
 
+static SfCryptoKpgParams *_tst_crypto_kpg_params(SfCryptoKey *key)
+{
+	static SfCryptoKpgParams kpg_params;
+	memset(&kpg_params, 0, sizeof(kpg_params));
+
+	switch (sf_crypto_key_get_algorithm(key)) {
+	case SF_CRYPTO_ALGORITHM_RSA:
+		kpg_params.type = SF_CRYPTO_KEY_PAIR_TYPE_RSA;
+		kpg_params.type_params = g_hash_table_new_full(g_str_hash, g_str_equal,
+				NULL, (GDestroyNotify)g_variant_unref);
+		g_test_queue_destroy((GDestroyNotify)g_hash_table_unref, kpg_params.type_params);
+		g_hash_table_insert(kpg_params.type_params, "modulusLength", g_variant_ref_sink(g_variant_new_int32(sf_crypto_key_get_key_size(key))));
+		g_hash_table_insert(kpg_params.type_params, "numberPrimes", g_variant_ref_sink(g_variant_new_int32(2)));
+		g_hash_table_insert(kpg_params.type_params, "publicExponent", g_variant_ref_sink(g_variant_new_int32(65537)));
+
+		return &kpg_params;
+	case SF_CRYPTO_ALGORITHM_EC:
+		kpg_params.type = SF_CRYPTO_KEY_PAIR_TYPE_EC;
+		kpg_params.type_params = g_hash_table_new_full(g_str_hash, g_str_equal,
+				NULL, (GDestroyNotify)g_variant_unref);
+		g_test_queue_destroy((GDestroyNotify)g_hash_table_unref, kpg_params.type_params);
+		g_hash_table_insert(kpg_params.type_params, "ellipticCurve", g_variant_ref_sink(g_variant_new_int32(SF_CRYPTO_CURVE_SECP384R1)));
+		return &kpg_params;
+	default:
+		return NULL;
+	}
+}
+
 static void tst_crypto_encrypt_decrypt(SfCryptoFixture *fixture,
 		gconstpointer data)
 {
@@ -625,7 +670,7 @@ static void tst_crypto_encrypt_decrypt(SfCryptoFixture *fixture,
 			"algorithm", kd->algorithm,
 			"key-size", kd->key_size,
 			NULL);
-	gint8 buffer[1024];
+	gint8 *buffer;
 	GBytes *secret_data;
 	GBytes *iv;
 	GBytes *tag;
@@ -633,9 +678,12 @@ static void tst_crypto_encrypt_decrypt(SfCryptoFixture *fixture,
 
 	(void)data;
 
+	buffer = g_malloc(kd->data_size);
+	g_test_queue_free(buffer);
+
 	sf_crypto_manager_generate_key(fixture->manager,
 			key,
-			NULL, NULL,
+			_tst_crypto_kpg_params(key), NULL,
 			NULL,
 			CRYPTO_PLUGIN_TEST,
 			NULL,
@@ -649,7 +697,7 @@ static void tst_crypto_encrypt_decrypt(SfCryptoFixture *fixture,
 	if (g_test_failed())
 		return;
 
-	g_test_queue_unref(key);
+	g_object_ref_sink(key);
 
 	sf_crypto_manager_generate_initialization_vector(fixture->manager,
 			sf_crypto_key_get_algorithm(key),
@@ -661,19 +709,20 @@ static void tst_crypto_encrypt_decrypt(SfCryptoFixture *fixture,
 			_tst_crypto_ref_res_and_quit,
 			fixture);
 	g_main_loop_run(fixture->loop);
-
 	iv = sf_crypto_manager_generate_initialization_vector_finish(fixture->test_res, &fixture->error);
 
+	g_test_queue_unref(key);
 	g_assert_no_error(fixture->error);
+
 	if (g_test_failed())
 		return;
 
 	g_test_queue_destroy((GDestroyNotify)g_bytes_unref, iv);
 
-	for (i = 0; i < G_N_ELEMENTS(buffer); i++)
+	for (i = 0; i < kd->data_size; i++)
 		buffer[i] = g_test_rand_int_range(0, G_MAXUINT8);
 
-	secret_data = g_bytes_new_static(buffer, sizeof(buffer));
+	secret_data = g_bytes_new_static(buffer, kd->data_size);
 
 	sf_crypto_manager_encrypt(fixture->manager,
 			secret_data,
@@ -722,7 +771,7 @@ static void tst_crypto_encrypt_decrypt(SfCryptoFixture *fixture,
 		return;
 
 	g_assert_cmpmem(g_bytes_get_data(secret_data, NULL), g_bytes_get_size(secret_data),
-			buffer, sizeof(buffer));
+			buffer, kd->data_size);
 	g_bytes_unref(secret_data);
 }
 
@@ -736,6 +785,7 @@ static void tst_crypto_encrypt_decrypt_stored(SfCryptoFixture *fixture,
 	GBytes *secret_data;
 	GBytes *iv;
 	GBytes *tag;
+	gchar **key_names;
 	gsize i;
 
 	sf_secrets_manager_new(NULL, _tst_crypto_ref_res_and_quit, fixture);
@@ -784,11 +834,14 @@ static void tst_crypto_encrypt_decrypt_stored(SfCryptoFixture *fixture,
 			fixture);
 	g_main_loop_run(fixture->loop);
 
-	key = sf_crypto_manager_generate_key_finish(fixture->test_res, &fixture->error);
+	key = sf_crypto_manager_generate_stored_key_finish(fixture->test_res, &fixture->error);
 
 	g_assert_no_error(fixture->error);
 	if (g_test_failed())
 		return;
+
+	g_object_ref_sink(key);
+	g_test_queue_unref(key);
 
 	sf_crypto_manager_generate_initialization_vector(fixture->manager,
 			sf_crypto_key_get_algorithm(key),
@@ -858,6 +911,37 @@ static void tst_crypto_encrypt_decrypt_stored(SfCryptoFixture *fixture,
 			buffer, sizeof(buffer));
 	g_bytes_unref(secret_data);
 
+	sf_crypto_manager_stored_key_names(fixture->manager,
+			SECRETS_PLUGIN_STORAGE_TEST,
+			"tst_capi_collection",
+			NULL, NULL,
+			_tst_secret_ref_res_and_quit,
+			fixture);
+	g_main_loop_run(fixture->loop);
+
+	key_names = sf_crypto_manager_stored_key_names_finish(fixture->test_res, &fixture->error);
+
+	g_assert_no_error(fixture->error);
+	if (g_test_failed())
+		return;
+	g_assert_cmpint(g_strv_length(key_names), ==, 1);
+	g_assert_cmpstr(key_names[0], ==, sf_crypto_key_get_name(key));
+
+	g_strfreev(key_names);
+
+	sf_crypto_manager_delete_stored_key(fixture->manager,
+			"tst_crypto_key",
+			"tst_capi_collection",
+			SECRETS_PLUGIN_STORAGE_TEST,
+			NULL,
+			_tst_secret_ref_res_and_quit,
+			fixture);
+	g_main_loop_run(fixture->loop);
+
+	sf_crypto_manager_delete_stored_key_finish(fixture->test_res, &fixture->error);
+
+	g_assert_no_error(fixture->error);
+
 	sf_secrets_manager_delete_collection(
 			sm,
 			SECRETS_PLUGIN_STORAGE_TEST,
@@ -889,6 +973,7 @@ static void tst_crypto_import_key(SfCryptoFixture *fixture,
 	(void)data;
 
 	bytes = g_bytes_new_static(ikd->data, strlen(ikd->data));
+	g_test_queue_destroy((GDestroyNotify)g_bytes_unref, bytes);
 
 	sf_crypto_manager_import_key(fixture->manager,
 			bytes,
@@ -914,8 +999,7 @@ static void tst_crypto_import_key(SfCryptoFixture *fixture,
 	g_assert_cmpint(sf_crypto_key_get_algorithm(key), ==, ikd->algorithm);
 	g_assert_cmpint(sf_crypto_key_get_key_size(key), ==, ikd->key_size);
 
-	if (bytes)
-		g_bytes_unref(bytes);
+	g_bytes_unref(bytes);
 }
 
 struct digest_details {
@@ -967,6 +1051,7 @@ static void tst_crypto_digest(SfCryptoFixture *fixture,
 	g_assert_cmpmem(g_bytes_get_data(digest, NULL), g_bytes_get_size(digest),
 			gdigest, i);
 
+	g_bytes_unref(digest);
 	g_free(gdigest);
 }
 
@@ -1003,8 +1088,6 @@ static void tst_secret_teardown(SfSecretsFixture *fixture,
 		g_object_unref(fixture->manager);
 	if (fixture->error)
 		g_error_free(fixture->error);
-	if (fixture->test_res)
-		g_object_unref(fixture->test_res);
 }
 
 static void _tst_crypto_setup_ready(GObject *source_object,
@@ -1040,8 +1123,6 @@ static void tst_crypto_teardown(SfCryptoFixture *fixture,
 		g_object_unref(fixture->manager);
 	if (fixture->error)
 		g_error_free(fixture->error);
-	if (fixture->test_res)
-		g_object_unref(fixture->test_res);
 }
 
 int main(int argc, char **argv)
@@ -1069,22 +1150,38 @@ int main(int argc, char **argv)
 			tst_crypto_setup, test, tst_crypto_teardown)
 	sf_crypto_test("CreateManager", tst_crypto_create_manager, NULL);
 	sf_crypto_test("GetPluginInfo", tst_crypto_get_plugin_info, NULL);
+	sf_crypto_test("GenerateRandomData", tst_crypto_generate_random_data, NULL);
 	sf_crypto_test("GenerateKey", tst_crypto_generate_key, NULL);
 	sf_crypto_test("EncryptDecryptAesCbc128", tst_crypto_encrypt_decrypt, (&(struct key_details){
 		.algorithm = SF_CRYPTO_ALGORITHM_AES,
 		.padding = SF_CRYPTO_ENCRYPTION_PADDING_NONE,
 		.block_mode = SF_CRYPTO_BLOCK_MODE_CBC,
-		.key_size = 128 }));
+		.key_size = 128,
+	        .data_size = 1024 }));
 	sf_crypto_test("EncryptDecryptAesCbc192", tst_crypto_encrypt_decrypt, (&(struct key_details){
 		.algorithm = SF_CRYPTO_ALGORITHM_AES,
 		.padding = SF_CRYPTO_ENCRYPTION_PADDING_NONE,
 		.block_mode = SF_CRYPTO_BLOCK_MODE_CBC,
-		.key_size = 192 }));
+		.key_size = 192,
+		.data_size = 2048 }));
 	sf_crypto_test("EncryptDecryptAesCbc256", tst_crypto_encrypt_decrypt, (&(struct key_details){
 		.algorithm = SF_CRYPTO_ALGORITHM_AES,
 		.padding = SF_CRYPTO_ENCRYPTION_PADDING_NONE,
 		.block_mode = SF_CRYPTO_BLOCK_MODE_CBC,
-		.key_size = 256 }));
+		.key_size = 256,
+		.data_size = 4096 }));
+	sf_crypto_test("EncryptDecryptRsa2048", tst_crypto_encrypt_decrypt, (&(struct key_details){
+		.algorithm = SF_CRYPTO_ALGORITHM_RSA,
+		.padding = SF_CRYPTO_ENCRYPTION_PADDING_NONE,
+		.block_mode = SF_CRYPTO_BLOCK_MODE_UNKNOWN,
+		.key_size = 2048,
+		.data_size = 256 }));
+	sf_crypto_test("EncryptDecryptRsa4096", tst_crypto_encrypt_decrypt, (&(struct key_details){
+		.algorithm = SF_CRYPTO_ALGORITHM_RSA,
+		.padding = SF_CRYPTO_ENCRYPTION_PADDING_NONE,
+		.block_mode = SF_CRYPTO_BLOCK_MODE_UNKNOWN,
+		.key_size = 4096,
+		.data_size = 512 }));
 	sf_crypto_test("EncryptDecryptStoredAesCbc128", tst_crypto_encrypt_decrypt_stored, (&(struct key_details){
 		.algorithm = SF_CRYPTO_ALGORITHM_AES,
 		.padding = SF_CRYPTO_ENCRYPTION_PADDING_NONE,

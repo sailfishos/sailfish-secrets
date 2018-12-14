@@ -801,7 +801,7 @@ Daemon::Plugins::OpenSslCryptoPlugin::encryptAsymmetric(
 
     if (blockMode != Sailfish::Crypto::CryptoManager::BlockModeUnknown) {
         return Sailfish::Crypto::Result(Sailfish::Crypto::Result::OperationNotSupportedError,
-                                        QLatin1String("TODO: encryption padding other than Unknown"));
+                                        QLatin1String("TODO: block mode other than Unknown"));
     }
 
     int opensslPadding = getOpenSslRsaPadding(padding);
