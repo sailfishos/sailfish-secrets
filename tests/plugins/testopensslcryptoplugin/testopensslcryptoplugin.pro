@@ -6,6 +6,7 @@ PKGCONFIG += libcrypto
 
 include($$PWD/../../../common.pri)
 include($$PWD/../../../lib/libsailfishcrypto.pri)
+include($$PWD/../../../lib/libsailfishcryptopluginapi.pri)
 
 DEFINES += SAILFISHCRYPTO_TESTPLUGIN SAILFISHCRYPTO_BUILD_OPENSSLCRYPTOPLUGIN
 
