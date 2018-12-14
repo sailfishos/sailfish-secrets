@@ -153,7 +153,7 @@ SecretManagerPrivate::userInput(
 }
 
 
-QDBusPendingReply<Result, QVariantMap>
+QDBusPendingReply<Result, QMap<QString, bool> >
 SecretManagerPrivate::collectionNames(
         const QString &storagePluginName)
 {
