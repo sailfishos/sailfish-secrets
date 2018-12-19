@@ -962,12 +962,16 @@ void sf_secrets_manager_set_secret(SfSecretsManager *manager,
     GHashTable *filter_hash;
     GVariant *filters;
 
+    g_object_ref_sink(secret);
+
     if (G_UNLIKELY(!sf_secrets_secret_get_collection_name(secret))) {
         g_task_return_new_error(task,
                 SF_SECRETS_ERROR,
                     SF_SECRETS_ERROR_INVALID_COLLECTION,
                     "sf_secrets_manager_set_secret called with standalone secret");
         g_object_unref(task);
+        g_object_unref(secret);
+        return;
     }
 
     g_object_get(secret,
@@ -999,7 +1003,7 @@ void sf_secrets_manager_set_secret(SfSecretsManager *manager,
             _sf_secrets_manager_set_secret_ready,
             task);
 
-    g_object_unref(g_object_ref_sink(secret));
+    g_object_unref(secret);
 }
 
 void sf_secrets_manager_set_secret_standalone(SfSecretsManager *manager,
@@ -1022,12 +1026,17 @@ void sf_secrets_manager_set_secret_standalone(SfSecretsManager *manager,
     GHashTable *filter_hash;
     GVariant *filters;
 
+    g_object_ref_sink(secret);
+
     if (G_UNLIKELY(sf_secrets_secret_get_collection_name(secret))) {
         g_task_return_new_error(task,
                 SF_SECRETS_ERROR,
                     SF_SECRETS_ERROR_INVALID_COLLECTION,
                     "sf_secrets_manager_set_secret_standalone called with collection secret");
         g_object_unref(task);
+        g_object_unref(secret);
+
+        return;
     }
 
     g_object_get(secret,
@@ -1086,7 +1095,7 @@ void sf_secrets_manager_set_secret_standalone(SfSecretsManager *manager,
             _sf_secrets_manager_set_secret_ready,
             task);
 
-    g_object_unref(g_object_ref_sink(secret));
+    g_object_unref(secret);
 }
 
 

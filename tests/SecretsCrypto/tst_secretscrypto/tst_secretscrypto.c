@@ -190,6 +190,85 @@ static void tst_secret_create_delete_collection(SfSecretsFixture *fixture,
     g_assert_no_error(fixture->error);
 }
 
+static void tst_secret_set_no_collection(SfSecretsFixture *fixture,
+        gconstpointer data)
+{
+    SfSecretsSecret *secret;
+    GBytes *sec_data;
+
+    (void)data;
+
+    if (!fixture->manager) {
+        g_test_skip("No manager");
+        return;
+    }
+
+    sec_data = g_bytes_new_static("tst_capi", 8);
+    secret = g_object_new(SF_TYPE_SECRETS_SECRET,
+            "data", sec_data,
+            "plugin-name", SECRETS_PLUGIN_STORAGE_TEST,
+            "name", "tst_capi_secret",
+            NULL);
+    g_bytes_unref(sec_data);
+
+    g_object_add_weak_pointer(G_OBJECT(secret), (gpointer *)&secret);
+
+    sf_secrets_manager_set_secret(fixture->manager,
+            secret,
+            NULL,
+            _tst_secret_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    sf_secrets_manager_set_secret_finish(fixture->test_res, &fixture->error);
+
+    g_assert_error(fixture->error,
+            SF_SECRETS_ERROR, SF_SECRETS_ERROR_INVALID_COLLECTION);
+    g_assert_null(secret);
+}
+
+static void tst_secret_set_standalone_with_collection(SfSecretsFixture *fixture,
+        gconstpointer data)
+{
+    SfSecretsSecret *secret;
+    GBytes *sec_data;
+
+    (void)data;
+
+    if (!fixture->manager) {
+        g_test_skip("No manager");
+        return;
+    }
+
+    sec_data = g_bytes_new_static("tst_capi", 8);
+    secret = g_object_new(SF_TYPE_SECRETS_SECRET,
+            "data", sec_data,
+            "plugin-name", SECRETS_PLUGIN_STORAGE_TEST,
+            "collection-name", "tst_capi_collection",
+            "name", "tst_capi_secret",
+            NULL);
+    g_bytes_unref(sec_data);
+
+    g_object_add_weak_pointer(G_OBJECT(secret), (gpointer *)&secret);
+
+    sf_secrets_manager_set_secret_standalone(fixture->manager,
+            secret,
+            SECRETS_PLUGIN_ENCRYPTION_TEST,
+            NULL,
+            SF_SECRETS_DEVICE_UNLOCK_SEMANTIC_KEEP_UNLOCKED,
+            SF_SECRETS_ACCESS_CONTROL_MODE_OWNER_ONLY,
+            NULL,
+            _tst_secret_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    sf_secrets_manager_set_secret_finish(fixture->test_res, &fixture->error);
+
+    g_assert_error(fixture->error,
+            SF_SECRETS_ERROR, SF_SECRETS_ERROR_INVALID_COLLECTION);
+    g_assert_null(secret);
+}
+
 static void tst_secret_set_get_collection_secret(SfSecretsFixture *fixture,
         gconstpointer data)
 {
@@ -511,6 +590,125 @@ static void tst_secret_set_get_standalone_secret(SfSecretsFixture *fixture,
         return;
 }
 
+static void tst_secret_collections_nonexistent_plugin(SfSecretsFixture *fixture,
+        gconstpointer data)
+{
+    gchar **names;
+
+    (void)data;
+
+    sf_secrets_manager_collection_names(fixture->manager,
+            "tst_capi_nonexistent_plugin",
+            NULL,
+            _tst_secret_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    names = sf_secrets_manager_collection_names_finish(fixture->test_res, &fixture->error);
+    g_assert_error(fixture->error,
+            SF_SECRETS_ERROR,
+            SF_SECRETS_ERROR_INVALID_EXTENSION_PLUGIN);
+    g_assert_null(names);
+
+    if (names)
+        g_strfreev(names);
+}
+
+static void tst_secret_get_from_nonexistent_collection(SfSecretsFixture *fixture,
+        gconstpointer data)
+{
+    SfSecretsSecret *secret;
+
+    (void)data;
+
+    sf_secrets_manager_get_secret(fixture->manager,
+            "tst_capi_secret",
+            "tst_capi_nonexistent_collection",
+            SECRETS_PLUGIN_STORAGE_TEST,
+            NULL,
+            _tst_secret_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    secret = sf_secrets_manager_get_secret_finish(fixture->test_res, &fixture->error);
+
+    g_assert_error(fixture->error,
+                    SF_SECRETS_ERROR,
+                    SF_SECRETS_ERROR_INVALID_COLLECTION);
+    g_assert_null(secret);
+}
+
+static void tst_secret_create_existing_collection(SfSecretsFixture *fixture,
+        gconstpointer data)
+{
+    (void)data;
+
+    sf_secrets_manager_create_collection(
+            fixture->manager,
+            SECRETS_PLUGIN_STORAGE_TEST,
+            SECRETS_PLUGIN_ENCRYPTION_TEST,
+            NULL,
+            "tst_capi_collection",
+            SF_SECRETS_DEVICE_UNLOCK_SEMANTIC_KEEP_UNLOCKED,
+            SF_SECRETS_ACCESS_CONTROL_MODE_OWNER_ONLY,
+            NULL,
+            _tst_secret_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    sf_secrets_manager_create_collection_finish(fixture->test_res, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+    if (g_test_failed())
+        return;
+
+    sf_secrets_manager_create_collection(
+            fixture->manager,
+            SECRETS_PLUGIN_STORAGE_TEST,
+            SECRETS_PLUGIN_ENCRYPTION_TEST,
+            NULL,
+            "tst_capi_collection",
+            SF_SECRETS_DEVICE_UNLOCK_SEMANTIC_KEEP_UNLOCKED,
+            SF_SECRETS_ACCESS_CONTROL_MODE_OWNER_ONLY,
+            NULL,
+            _tst_secret_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    sf_secrets_manager_create_collection_finish(fixture->test_res, &fixture->error);
+
+    g_assert_error(fixture->error, SF_SECRETS_ERROR,
+                    SF_SECRETS_ERROR_COLLECTION_ALREADY_EXISTS);
+    g_clear_error(&fixture->error);
+
+    sf_secrets_manager_delete_collection(
+            fixture->manager,
+            SECRETS_PLUGIN_STORAGE_TEST,
+            "tst_capi_collection",
+            NULL,
+            _tst_secret_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    sf_secrets_manager_delete_collection_finish(fixture->test_res,
+            &fixture->error);
+    g_assert_no_error(fixture->error);
+
+    sf_secrets_manager_delete_collection(
+            fixture->manager,
+            SECRETS_PLUGIN_STORAGE_TEST,
+            "tst_capi_collection",
+            NULL,
+            _tst_secret_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    sf_secrets_manager_delete_collection_finish(fixture->test_res,
+            &fixture->error);
+    g_assert_error(fixture->error, SF_SECRETS_ERROR,
+		    SF_SECRETS_ERROR_INVALID_COLLECTION);
+}
+
 static void _tst_crypto_ref_res_and_quit(GObject *source_object,
         GAsyncResult *res,
         gpointer user_data)
@@ -632,6 +830,94 @@ static void tst_crypto_generate_key(SfCryptoFixture *fixture,
         return;
 
     g_object_unref(key);
+}
+
+static void tst_crypto_nonexistent_stored_key(SfCryptoFixture *fixture,
+        gconstpointer data)
+{
+    SfCryptoKey *key;
+    SfSecretsManager *sm;
+
+    (void)data;
+
+    sf_crypto_manager_stored_key(fixture->manager,
+            "tst_capi_key",
+            "tst_capi_collection",
+            SECRETS_PLUGIN_STORAGE_TEST,
+            SF_CRYPTO_KEY_CONSTRAINT_NO_DATA,
+            NULL,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    key = sf_crypto_manager_stored_key_finish(fixture->test_res, &fixture->error);
+
+    g_assert_error(fixture->error,
+            SF_CRYPTO_ERROR, SF_CRYPTO_ERROR_INVALID_KEY_IDENTIFIER);
+    g_assert_null(key);
+
+    g_clear_error(&fixture->error);
+
+    sf_secrets_manager_new(NULL, _tst_crypto_ref_res_and_quit, fixture);
+    g_main_loop_run(fixture->loop);
+    sm = sf_secrets_manager_new_finish(fixture->test_res, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+    if (g_test_failed())
+        return;
+
+    g_test_queue_unref(sm);
+
+    sf_secrets_manager_create_collection(
+            sm,
+            SECRETS_PLUGIN_STORAGE_TEST,
+            SECRETS_PLUGIN_ENCRYPTION_TEST,
+            NULL,
+            "tst_capi_collection",
+            SF_SECRETS_DEVICE_UNLOCK_SEMANTIC_KEEP_UNLOCKED,
+            SF_SECRETS_ACCESS_CONTROL_MODE_OWNER_ONLY,
+            NULL,
+            _tst_secret_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    sf_secrets_manager_create_collection_finish(fixture->test_res, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+    if (g_test_failed())
+        return;
+
+    sf_crypto_manager_stored_key(fixture->manager,
+            "tst_capi_key",
+            "tst_capi_collection",
+            SECRETS_PLUGIN_STORAGE_TEST,
+            SF_CRYPTO_KEY_CONSTRAINT_NO_DATA,
+            NULL,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    key = sf_crypto_manager_stored_key_finish(fixture->test_res, &fixture->error);
+
+    g_assert_error(fixture->error,
+            SF_CRYPTO_ERROR, SF_CRYPTO_ERROR_INVALID_KEY_IDENTIFIER);
+    g_assert_null(key);
+    g_clear_error(&fixture->error);
+
+    sf_secrets_manager_delete_collection(
+            sm,
+            SECRETS_PLUGIN_STORAGE_TEST,
+            "tst_capi_collection",
+            NULL,
+            _tst_secret_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    sf_secrets_manager_delete_collection_finish(fixture->test_res,
+            &fixture->error);
+    g_assert_no_error(fixture->error);
 }
 
 static SfCryptoKpgParams *_tst_crypto_kpg_params(SfCryptoKey *key)
@@ -1155,6 +1441,132 @@ static void tst_crypto_sign_verify(SfCryptoFixture *fixture,
         return;
 }
 
+static void tst_crypto_import_verify(SfCryptoFixture *fixture, gconstpointer test_data)
+{
+    SfCryptoKey *key;
+    const gchar data[] = "Test secret data\n";
+    /* From openssl genrsa; openssl dgst -sha256 -sign */
+    const gchar signature[] = {
+        0x2b, 0xee, 0x71, 0x11, 0x4b, 0x48, 0xe6, 0x3f, 0xc1, 0x19, 0x3c,
+        0x42, 0x7d, 0x68, 0xd5, 0x3a, 0x35, 0x0b, 0x41, 0x92, 0x9f, 0x3c,
+        0xeb, 0xbb, 0x85, 0x77, 0xe9, 0x8d, 0x35, 0xfb, 0x4c, 0x1b, 0x60,
+        0xad, 0x9f, 0xed, 0x2e, 0xcc, 0x49, 0xef, 0x2e, 0xbb, 0xf8, 0xdf,
+        0xc5, 0xb0, 0xd1, 0xa7, 0x88, 0x67, 0x03, 0xc4, 0xe2, 0x41, 0xa0,
+        0x2d, 0x65, 0x2e, 0xae, 0x82, 0x48, 0xbf, 0x58, 0x18, 0x54, 0x3f,
+        0xcc, 0xc2, 0xb5, 0xe4, 0xf4, 0x88, 0x46, 0xd3, 0x90, 0xd0, 0x52,
+        0x6d, 0xca, 0x4e, 0x5c, 0xeb, 0xde, 0xed, 0x62, 0xb2, 0xd6, 0x6e,
+        0x12, 0x0b, 0x96, 0x9d, 0xf6, 0xb0, 0x4d, 0xf6, 0x2f, 0x41, 0x2a,
+        0xcf, 0x9d, 0xb6, 0xa9, 0xc0, 0x70, 0x25, 0xa8, 0x54, 0x37, 0xff,
+        0x02, 0xe2, 0xf9, 0x8d, 0xc8, 0xc0, 0xa6, 0x65, 0x23, 0x2c, 0xdc,
+        0x03, 0xf6, 0xb5, 0x71, 0xca, 0x27, 0x14, 0xb6, 0xf9, 0xb6, 0x30,
+        0x0e, 0x44, 0x77, 0x60, 0x64, 0x7d, 0x3a, 0xa9, 0xa8, 0xcb, 0x05,
+        0x04, 0xf1, 0x3e, 0x69, 0xf3, 0xf4, 0xa6, 0x91, 0xbe, 0x5e, 0x7d,
+        0x07, 0x05, 0x7d, 0xd3, 0xaf, 0x23, 0x9c, 0x9a, 0x9c, 0xc0, 0x85,
+        0x71, 0x88, 0x99, 0xbe, 0x48, 0x00, 0xab, 0xa2, 0x27, 0x26, 0x20,
+        0x96, 0xb5, 0x84, 0x50, 0x7f, 0x97, 0xbe, 0x9c, 0x45, 0xf7, 0x4c,
+        0x3a, 0x1d, 0xec, 0x98, 0xaf, 0x32, 0x42, 0x1d, 0xee, 0x75, 0x97,
+        0xf1, 0x57, 0xac, 0x10, 0xde, 0x48, 0xf0, 0x28, 0xc9, 0xcd, 0x8b,
+        0xae, 0x42, 0x8b, 0xe8, 0x90, 0x6e, 0xce, 0x69, 0xd9, 0xe9, 0x8d,
+        0xa4, 0x80, 0xd4, 0x5d, 0x5d, 0x89, 0xc5, 0x71, 0xd2, 0x8c, 0xa0,
+        0x51, 0x40, 0xb3, 0x80, 0x94, 0xb9, 0x68, 0x0d, 0x4c, 0x89, 0xcd,
+        0x8a, 0xd9, 0xdf, 0x6d, 0x31, 0x7b, 0x8b, 0x48, 0x89, 0x32, 0x2b,
+        0x7a, 0x62, 0x15,
+    };
+
+    /* From openssl genrsa; openssl pkey */
+    const gchar pubkey[] = "-----BEGIN PUBLIC KEY-----\n"
+        "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvtEhmgAcjb9y3pQWhiWf\n"
+        "E+2WMfzFGoZgTsoA0l7HKeNJ1m230VuGbR/Fc4waUmJ7gwZK8gxJoWcItZEj8Box\n"
+        "iXOG8SfzYW2CJbVFJi/k47DceBoUk20J0x1zP18zd10k/yS8WUQPTTyzvxZQPCdQ\n"
+        "cTDDOkMK6yHrpGCYWfkMAT3y2ufp8XxBkVATbPxegd2H1kyzk9yyfMU2tZZdsCfU\n"
+        "nphAyELfCLoEv0md/UH/69JlIXSE4zts8zIhiJuNOZJbH9rklq0DvyrgtRYRahSK\n"
+        "1kgn6eHBuZZp1vpVggbOI25Qc7tp392i02QqxFwnOE7XYAJYYEFAoX8/x6XjYVTl\n"
+        "qwIDAQAB\n"
+        "-----END PUBLIC KEY-----\n";
+
+    GBytes *pub_bytes = g_bytes_new_static(pubkey, G_N_ELEMENTS(pubkey) - 1);
+    GBytes *data_bytes = g_bytes_new_static(data, G_N_ELEMENTS(data) - 1);
+    GBytes *sig_bytes = g_bytes_new_static(signature, G_N_ELEMENTS(signature));
+
+    SfCryptoVerificationStatus verify_status;
+
+    (void)test_data;
+
+    g_test_queue_destroy((GDestroyNotify)g_bytes_unref, pub_bytes);
+    g_test_queue_destroy((GDestroyNotify)g_bytes_unref, data_bytes);
+    g_test_queue_destroy((GDestroyNotify)g_bytes_unref, sig_bytes);
+
+    sf_crypto_manager_import_key(fixture->manager,
+            pub_bytes,
+            NULL, SF_CRYPTO_INPUT_TYPE_UNKNOWN, SF_CRYPTO_ECHO_MODE_UNKNOWN,
+            NULL,
+            CRYPTO_PLUGIN_TEST,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+    key = sf_crypto_manager_import_key_finish(fixture->test_res, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+    g_assert_nonnull(key);
+    if (g_test_failed())
+        return;
+
+    sf_crypto_manager_verify(fixture->manager,
+            sig_bytes,
+            data_bytes,
+            key,
+            SF_CRYPTO_ENCRYPTION_PADDING_NONE,
+            SF_CRYPTO_DIGEST_SHA256,
+            NULL,
+            CRYPTO_PLUGIN_TEST,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    verify_status = sf_crypto_manager_verify_finish(fixture->test_res, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+    g_assert_cmpint(verify_status, ==, SF_CRYPTO_VERIFICATION_STATUS_SUCCEEDED);
+    if (g_test_failed())
+        return;
+}
+
+static void tst_crypto_import_invalid(SfCryptoFixture *fixture, gconstpointer test_data)
+{
+    SfCryptoKey *key;
+    const gchar pubkey[] = "-----BEGIN PUBLIC KEY-----\n"
+        "aiuhgiuwey8a6wb7869nw87aenf9876wb876b387af687ew9f6nwae687f6aa98w\n"
+        "aihwefiuwefbwauiebfhoawiuendhewafubivy8t94btoweiufniuwbfiuwabiu3\n"
+        "awieohfiubwefiuay3298na89obwt98voywki8t632vbt3AWTU49tu8oanwv4twa\n"
+        "awuefiuwaefhjkse8tbz7/3wyb+i7vkn3zyrncyrinay4n7tiakytnky4it7ynss\n"
+        "acuNlRYsPYbRi0zq/HU/69WyVKFR4mgf8mVuvWhABMWoU9exyd0QiletgELEnuFX\n"
+        "aw8b3786bq2837awtaAWEILHWItaiwy4yba8enofWEFAweif6ab7wefAWEFawiel\n"
+        "wa832341\n"
+        "-----END PUBLIC KEY-----\n";
+
+    GBytes *pub_bytes = g_bytes_new_static(pubkey, G_N_ELEMENTS(pubkey) - 1);
+
+    (void)test_data;
+
+    g_test_queue_destroy((GDestroyNotify)g_bytes_unref, pub_bytes);
+
+    sf_crypto_manager_import_key(fixture->manager,
+            pub_bytes,
+            NULL, SF_CRYPTO_INPUT_TYPE_UNKNOWN, SF_CRYPTO_ECHO_MODE_UNKNOWN,
+            NULL,
+            CRYPTO_PLUGIN_TEST,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+    key = sf_crypto_manager_import_key_finish(fixture->test_res, &fixture->error);
+
+    g_assert_error(fixture->error, SF_CRYPTO_ERROR, SF_CRYPTO_ERROR_CRYPTO_PLUGIN_KEY_IMPORT);
+    g_assert_null(key);
+}
+
 static void _tst_secret_setup_ready(GObject *source_object,
         GAsyncResult *res,
         gpointer user_data)
@@ -1240,9 +1652,14 @@ int main(int argc, char **argv)
     sf_secret_test("GetHealthInfo", tst_secret_get_health_info);
     sf_secret_test("CollectionNames", tst_secret_collection_names);
     sf_secret_test("CreateDeleteCollection", tst_secret_create_delete_collection);
+    sf_secret_test("SetSecretNoCollection", tst_secret_set_no_collection);
+    sf_secret_test("SetSecretStandaloneWithCollection", tst_secret_set_standalone_with_collection);
     sf_secret_test("SetGetStandaloneSecret", tst_secret_set_get_standalone_secret);
     sf_secret_test("SetGetCollectionSecret", tst_secret_set_get_collection_secret);
     sf_secret_test("SetFindDeleteCollectionSecret", tst_secret_set_find_delete_collection_secret);
+    sf_secret_test("GetFromNonexistentPlugin", tst_secret_collections_nonexistent_plugin);
+    sf_secret_test("GetFromNonexistentCollection", tst_secret_get_from_nonexistent_collection);
+    sf_secret_test("CreateExistingCollection", tst_secret_create_existing_collection);
 #undef sf_secret_test
 
 #define sf_crypto_test(name, test, data) \
@@ -1252,6 +1669,7 @@ int main(int argc, char **argv)
     sf_crypto_test("GetPluginInfo", tst_crypto_get_plugin_info, NULL);
     sf_crypto_test("GenerateRandomData", tst_crypto_generate_random_data, NULL);
     sf_crypto_test("GenerateKey", tst_crypto_generate_key, NULL);
+    sf_crypto_test("NonexistentStoredKey", tst_crypto_nonexistent_stored_key, NULL);
     sf_crypto_test("EncryptDecryptAesCbc128", tst_crypto_encrypt_decrypt, (&(struct key_details){
         .algorithm = SF_CRYPTO_ALGORITHM_AES,
         .padding = SF_CRYPTO_ENCRYPTION_PADDING_NONE,
@@ -1334,6 +1752,8 @@ int main(int argc, char **argv)
         .block_mode = SF_CRYPTO_BLOCK_MODE_UNKNOWN,
         .key_size = 2048,
         .data_size = 256 }));
+    sf_crypto_test("ImportVerify", tst_crypto_import_verify, NULL);
+    sf_crypto_test("ImportInvalid", tst_crypto_import_invalid, NULL);
 #undef sf_secret_test
 
     g_test_run();

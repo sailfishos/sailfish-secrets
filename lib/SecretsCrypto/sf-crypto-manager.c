@@ -786,7 +786,7 @@ void sf_crypto_manager_import_key(SfCryptoManager *manager,
 
 SfCryptoKey *sf_crypto_manager_import_key_finish(GAsyncResult *res, GError **error)
 {
-    return g_object_ref_sink(g_task_propagate_pointer(G_TASK(res), error));
+    return g_task_propagate_pointer(G_TASK(res), error);
 }
 
 static void _sf_crypto_manager_import_stored_key_ready(GObject *source_object,
@@ -834,7 +834,7 @@ void sf_crypto_manager_import_stored_key(SfCryptoManager *manager,
 
 SfCryptoKey *sf_crypto_manager_import_stored_key_finish(GAsyncResult *res, GError **error)
 {
-    return g_object_ref_sink(g_task_propagate_pointer(G_TASK(res), error));
+    return g_task_propagate_pointer(G_TASK(res), error);
 }
 
 static void _sf_crypto_manager_seed_random_data_generator_ready(GObject *source_object,
@@ -954,7 +954,7 @@ void sf_crypto_manager_stored_key(SfCryptoManager *manager,
 
 SfCryptoKey *sf_crypto_manager_stored_key_finish(GAsyncResult *res, GError **error)
 {
-    return g_object_ref_sink(g_task_propagate_pointer(G_TASK(res), error));
+    return g_task_propagate_pointer(G_TASK(res), error);
 }
 
 static void _sf_crypto_manager_delete_stored_key_ready(GObject *source_object,
