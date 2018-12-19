@@ -357,7 +357,7 @@ Sailfish::Secrets::Result QAssuanServer::requestPassphrase(QByteArray *passphras
     passphrase->clear();
 
     bool useCache = m_useCache->value(QVariant(true)).toBool();
-    if (useCache && cacheId.isValid()) {
+    if (useCache && cacheId.isValid() && prompt.instruction().isEmpty()) {
         Sailfish::Secrets::StoredSecretRequest request;
         qCDebug(lcSailfishPinentry) << "Starting cache request for" << cacheId.name();
         request.setManager(&secretManager);
