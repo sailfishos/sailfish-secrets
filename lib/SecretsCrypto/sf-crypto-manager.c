@@ -225,10 +225,9 @@ gboolean _sf_crypto_manager_check_reply(GVariant *response, GError **error, GVar
     g_variant_get(result, "(iii&s)", &result_code, &error_code, &storage_error_code, &error_msg);
 
     if (result_code != SF_CRYPTO_RESULT_SUCCEEDED) {
-        if (error)
-            *error = g_error_new(
-                    g_quark_from_static_string("SfCrypto"),
-                    error_code, "%s", error_msg);
+        g_set_error(error,
+                SF_CRYPTO_ERROR,
+                error_code, "%s", error_msg);
         res = FALSE;
     }
 
@@ -410,7 +409,7 @@ void _sf_crypto_manager_discovery_ready(GObject *source_object,
     if (!address) {
         g_variant_unref(response);
         g_task_return_new_error(task,
-                g_quark_from_static_string("SfCrypto"),
+                SF_CRYPTO_ERROR,
                 SF_CRYPTO_ERROR_DAEMON, "Daemon sent a reply we didn't understand");
         g_object_unref(task);
         return;

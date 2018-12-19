@@ -4,6 +4,9 @@
 #include <glib.h>
 #include <glib-object.h>
 
+#define SF_CRYPTO_ERROR (sf_crypto_error_quark())
+GQuark sf_crypto_error_quark(void);
+
 extern const gchar *SF_CRYPTO_DEFAULT_PLUGIN;
 extern const gchar *SF_CRYPTO_DEFAULT_STORAGE_PLUGIN;
 extern const gchar *SF_CRYPTO_DEFAULT_CSPRNG_ENGINE;

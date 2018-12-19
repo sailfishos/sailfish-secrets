@@ -1,5 +1,7 @@
 #include "sf-crypto.h"
 
+G_DEFINE_QUARK(SfCryptoError, sf_crypto_error)
+
 G_DEFINE_BOXED_TYPE(SfCryptoPluginInfo, sf_crypto_plugin_info, sf_crypto_plugin_info_copy, sf_crypto_plugin_info_free)
 
 void sf_crypto_plugin_info_free(SfCryptoPluginInfo *info)

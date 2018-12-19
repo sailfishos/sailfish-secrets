@@ -4,6 +4,9 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
+#define SF_SECRETS_ERROR (sf_secrets_error_quark())
+GQuark sf_secrets_error_quark(void);
+
 extern const gchar *SF_SECRETS_DEFAULT_AUTHENTICATION_PLUGIN;
 extern const gchar *SF_SECRETS_DEFAULT_STORAGE_PLUGIN;
 extern const gchar *SF_SECRETS_DEFAULT_ENCRYPTION_PLUGIN;
