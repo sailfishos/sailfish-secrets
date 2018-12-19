@@ -2,11 +2,10 @@ TEMPLATE = lib
 TARGET = sailfishcryptoplugin
 TARGET = $$qtLibraryTarget($$TARGET)
 CONFIG += plugin hide_symbols
+QT = qml core
 
 include($$PWD/../../common.pri)
 include($$PWD/../../lib/libsailfishcrypto.pri)
-
-QT += qml core
 
 HEADERS += \
     $$PWD/plugintypes.h \

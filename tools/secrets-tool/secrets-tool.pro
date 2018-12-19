@@ -1,5 +1,6 @@
 TEMPLATE = app
 TARGET = secrets-tool
+QT = core dbus
 
 CONFIG += link_pkgconfig console
 PKGCONFIG += Qt5Core Qt5DBus

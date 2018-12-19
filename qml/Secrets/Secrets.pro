@@ -2,11 +2,10 @@ TEMPLATE = lib
 TARGET = sailfishsecretsplugin
 TARGET = $$qtLibraryTarget($$TARGET)
 CONFIG += plugin hide_symbols
+QT = qml quick gui core
 
 include($$PWD/../../common.pri)
 include($$PWD/../../lib/libsailfishsecrets.pri)
-
-QT += qml quick gui core
 
 HEADERS += \
     $$PWD/plugintypes.h \
