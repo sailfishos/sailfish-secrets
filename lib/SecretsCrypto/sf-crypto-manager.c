@@ -1,5 +1,6 @@
 #include "sf-crypto.h"
 #include "sf-crypto-manager.h"
+#include "sf-crypto-manager-private.h"
 #include "sf-crypto-key-private.h"
 #include "sf-common-private.h"
 #include "sf-secrets.h"
@@ -126,24 +127,6 @@ static void sf_crypto_manager_class_init(SfCryptoManagerClass *manager_class)
                 G_PARAM_STATIC_STRINGS));
 }
 
-static GVariant *_sf_variant_new_variant_map_or_empty(GHashTable *hash_table)
-{
-    GVariantDict var_dict;
-
-    g_variant_dict_init(&var_dict, NULL);
-
-    if (hash_table) {
-        GHashTableIter ht_iter;
-        gpointer key;
-        gpointer value;
-        g_hash_table_iter_init(&ht_iter, hash_table);
-        while (g_hash_table_iter_next(&ht_iter, &key, &value))
-            g_variant_dict_insert_value(&var_dict, key, value);
-    }
-
-    return g_variant_dict_end(&var_dict);
-}
-
 #define SF_KPG_VARIANT_STRING "(ia{sv}a{sv})"
 
 static GVariant *_sf_variant_new_kpg_or_empty(SfCryptoKpgParams *params) {
@@ -243,7 +226,7 @@ gboolean _sf_crypto_manager_check_reply(GVariant *response, GError **error, GVar
     return res;
 }
 
-static GVariant *_sf_crypto_manager_dbus_call_finish(GObject *source_object,
+GVariant *_sf_crypto_manager_dbus_call_finish(GObject *source_object,
         GAsyncResult *res,
         GError **error,
         GVariantIter *iter)
@@ -503,7 +486,7 @@ static void _async_initable_iface_init (GAsyncInitableIface *async_initable_ifac
     async_initable_iface->init_finish = _async_initable_init_finish;
 }
 
-static void _sf_crypto_manager_result_bytearray_ready(GObject *source_object,
+void _sf_crypto_manager_result_bytearray_ready(GObject *source_object,
         GAsyncResult *res,
         gpointer user_data)
 {
@@ -512,8 +495,6 @@ static void _sf_crypto_manager_result_bytearray_ready(GObject *source_object,
     GVariantIter iter;
     GVariant *ret = _sf_crypto_manager_dbus_call_finish(source_object, res, &error, &iter);
     GVariant *digest;
-    const guchar *digest_data;
-    gsize digest_len;
     GBytes *digest_bytes;
 
     if (error) {
@@ -523,8 +504,7 @@ static void _sf_crypto_manager_result_bytearray_ready(GObject *source_object,
     }
 
     g_variant_iter_next(&iter, "@ay", &digest);
-    digest_data = g_variant_get_fixed_array(digest, &digest_len, sizeof(guchar));
-    digest_bytes = g_bytes_new(digest_data, digest_len);
+    digest_bytes = _sf_bytes_new_from_variant(digest);
 
     g_variant_unref(digest);
     g_variant_unref(ret);
@@ -555,7 +535,7 @@ static void _sf_crypto_manager_result_key_ready(GObject *source_object,
     g_variant_unref(response);
 }
 
-static void _sf_crypto_manager_result_ready(GObject *source_object,
+void _sf_crypto_manager_result_ready(GObject *source_object,
         GAsyncResult *res,
         gpointer user_data)
 {

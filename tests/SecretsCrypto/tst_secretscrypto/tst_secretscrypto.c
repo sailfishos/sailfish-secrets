@@ -1,5 +1,6 @@
 #include <SecretsCrypto/sf-secrets-manager.h>
 #include <SecretsCrypto/sf-crypto-manager.h>
+#include <SecretsCrypto/sf-crypto-cipher-session.h>
 #include <glib.h>
 
 #include <string.h>
@@ -20,7 +21,22 @@ typedef struct SfCryptoFixture_ {
     GError *error;
     SfCryptoManager *manager;
     GAsyncResult *test_res;
+    gpointer test_data;
 } SfCryptoFixture;
+
+static GBytes *_fuzz_bytes_take(GBytes *from, gsize fuzz)
+{
+    GByteArray *data = g_bytes_unref_to_array(from);
+    gsize i;
+
+    if (fuzz > data->len)
+        fuzz = data->len;
+
+    for (i = 0; i < fuzz; i++)
+        data->data[g_test_rand_int_range(0, data->len)] ^= g_test_rand_int_range(1, (gint)G_MAXUINT8 + 1);
+
+    return g_byte_array_free_to_bytes(data);
+}
 
 static void _tst_secret_ref_res_and_quit(GObject *source_object,
         GAsyncResult *res,
@@ -706,7 +722,7 @@ static void tst_secret_create_existing_collection(SfSecretsFixture *fixture,
     sf_secrets_manager_delete_collection_finish(fixture->test_res,
             &fixture->error);
     g_assert_error(fixture->error, SF_SECRETS_ERROR,
-		    SF_SECRETS_ERROR_INVALID_COLLECTION);
+            SF_SECRETS_ERROR_INVALID_COLLECTION);
 }
 
 static void _tst_crypto_ref_res_and_quit(GObject *source_object,
@@ -801,6 +817,10 @@ struct key_details {
     SfCryptoBlockMode block_mode;
     gint32 key_size;
     gsize data_size;
+    gsize chunks;
+    gsize fuzz_sig;
+    gsize fuzz_data;
+    SfCryptoVerificationStatus expected_status;
 };
 
 static void tst_crypto_generate_key(SfCryptoFixture *fixture,
@@ -1396,8 +1416,6 @@ static void tst_crypto_sign_verify(SfCryptoFixture *fixture,
     if (g_test_failed())
         return;
 
-    g_test_queue_destroy((GDestroyNotify)g_bytes_unref, secret_data);
-
     sf_crypto_manager_sign(fixture->manager,
             secret_data,
             key,
@@ -1411,12 +1429,18 @@ static void tst_crypto_sign_verify(SfCryptoFixture *fixture,
 
     g_main_loop_run(fixture->loop);
 
+    if (kd->fuzz_data)
+        secret_data = _fuzz_bytes_take(secret_data, kd->fuzz_data);
+    g_test_queue_destroy((GDestroyNotify)g_bytes_unref, secret_data);
+
     signature = sf_crypto_manager_sign_finish(fixture->test_res, &fixture->error);
 
     g_assert_no_error(fixture->error);
     if (g_test_failed())
         return;
 
+    if (kd->fuzz_sig)
+        signature = _fuzz_bytes_take(signature, kd->fuzz_sig);
     g_test_queue_destroy((GDestroyNotify)g_bytes_unref, signature);
 
     sf_crypto_manager_verify(fixture->manager,
@@ -1436,7 +1460,7 @@ static void tst_crypto_sign_verify(SfCryptoFixture *fixture,
     verify_status = sf_crypto_manager_verify_finish(fixture->test_res, &fixture->error);
 
     g_assert_no_error(fixture->error);
-    g_assert_cmpint(verify_status, ==, SF_CRYPTO_VERIFICATION_STATUS_SUCCEEDED);
+    g_assert_cmpint(verify_status, ==, kd->expected_status);
     if (g_test_failed())
         return;
 }
@@ -1567,6 +1591,714 @@ static void tst_crypto_import_invalid(SfCryptoFixture *fixture, gconstpointer te
     g_assert_null(key);
 }
 
+static void tst_crypto_encrypt_decrypt_session(SfCryptoFixture *fixture,
+        gconstpointer data)
+{
+    const struct key_details *kd = data;
+    SfCryptoKey *key = g_object_new(SF_TYPE_CRYPTO_KEY,
+            "algorithm", kd->algorithm,
+            "key-size", kd->key_size,
+            NULL);
+    SfCryptoCipherSession *encoder;
+    SfCryptoCipherSession *decoder;
+    gint8 *buffer;
+    GBytes *iv;
+    GBytes *remainder;
+    gsize i;
+    GByteArray *encoded;
+    GByteArray *decoded;
+
+    (void)data;
+
+    buffer = g_malloc(kd->data_size);
+    g_test_queue_free(buffer);
+
+    sf_crypto_manager_generate_key(fixture->manager,
+            key,
+            _tst_crypto_kpg_params(key), NULL,
+            NULL,
+            CRYPTO_PLUGIN_TEST,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    key = sf_crypto_manager_generate_key_finish(fixture->test_res, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+    if (g_test_failed())
+        return;
+
+    g_object_ref_sink(key);
+
+    sf_crypto_manager_generate_initialization_vector(fixture->manager,
+            sf_crypto_key_get_algorithm(key),
+            kd->block_mode,
+            sf_crypto_key_get_key_size(key),
+            NULL,
+            CRYPTO_PLUGIN_TEST,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+    iv = sf_crypto_manager_generate_initialization_vector_finish(fixture->test_res, &fixture->error);
+
+    g_test_queue_unref(key);
+    g_assert_no_error(fixture->error);
+
+    if (g_test_failed())
+        return;
+
+    g_test_queue_destroy((GDestroyNotify)g_bytes_unref, iv);
+
+    sf_crypto_cipher_session_new(fixture->manager,
+            iv,
+            key,
+            SF_CRYPTO_OPERATION_ENCRYPT,
+            kd->block_mode,
+            kd->padding,
+            SF_CRYPTO_SIGNATURE_PADDING_NONE,
+            SF_CRYPTO_DIGEST_SHA256,
+            NULL,
+            CRYPTO_PLUGIN_TEST,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    encoder = sf_crypto_cipher_session_new_finish(fixture->test_res, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+    g_assert_nonnull(encoder);
+
+    if (g_test_failed())
+        return;
+
+    g_test_queue_unref(encoder);
+
+    sf_crypto_cipher_session_new(fixture->manager,
+            iv,
+            key,
+            SF_CRYPTO_OPERATION_DECRYPT,
+            kd->block_mode,
+            kd->padding,
+            SF_CRYPTO_SIGNATURE_PADDING_NONE,
+            SF_CRYPTO_DIGEST_SHA256,
+            NULL,
+            CRYPTO_PLUGIN_TEST,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    decoder = sf_crypto_cipher_session_new_finish(fixture->test_res, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+    g_assert_nonnull(decoder);
+
+    if (g_test_failed())
+        return;
+
+    g_test_queue_unref(decoder);
+
+    encoded = g_byte_array_sized_new(kd->data_size * kd->chunks);
+    decoded = g_byte_array_sized_new(kd->data_size * kd->chunks);
+
+    g_test_queue_destroy((GDestroyNotify)g_byte_array_unref, encoded);
+    g_test_queue_destroy((GDestroyNotify)g_byte_array_unref, decoded);
+
+    for (i = 0; i < kd->chunks; i++) {
+        GBytes *random_bytes = NULL;
+        GBytes *encoded_bytes;
+
+        sf_crypto_manager_generate_random_data(fixture->manager,
+                kd->data_size,
+                SF_CRYPTO_DEFAULT_CSPRNG_ENGINE,
+                NULL,
+                CRYPTO_PLUGIN_TEST,
+                NULL,
+                _tst_crypto_ref_res_and_quit,
+                fixture);
+        g_main_loop_run(fixture->loop);
+
+        random_bytes = sf_crypto_manager_generate_random_data_finish(fixture->test_res, &fixture->error);
+
+        g_assert_no_error(fixture->error);
+        g_assert_nonnull(random_bytes);
+
+        if (g_test_failed())
+            return;
+
+        g_byte_array_append(encoded, g_bytes_get_data(random_bytes, NULL), g_bytes_get_size(random_bytes));
+
+        sf_crypto_cipher_session_update(encoder,
+                random_bytes,
+                NULL,
+                NULL,
+                _tst_crypto_ref_res_and_quit,
+                fixture);
+        g_bytes_unref(random_bytes);
+        g_main_loop_run(fixture->loop);
+
+        sf_crypto_cipher_session_update_finish(fixture->test_res, &encoded_bytes, &fixture->error);
+
+        g_assert_no_error(fixture->error);
+        g_assert_nonnull(encoded_bytes);
+
+        if (g_test_failed())
+            return;
+
+        sf_crypto_cipher_session_update(decoder,
+                encoded_bytes,
+                NULL,
+                NULL,
+                _tst_crypto_ref_res_and_quit,
+                fixture);
+        g_bytes_unref(encoded_bytes);
+        g_main_loop_run(fixture->loop);
+
+        sf_crypto_cipher_session_update_finish(fixture->test_res, &random_bytes, &fixture->error);
+
+        g_assert_no_error(fixture->error);
+        g_assert_nonnull(random_bytes);
+
+        if (g_test_failed())
+            return;
+
+        g_byte_array_append(decoded, g_bytes_get_data(random_bytes, NULL), g_bytes_get_size(random_bytes));
+        g_bytes_unref(random_bytes);
+
+        g_assert_cmpmem(encoded->data, MIN(encoded->len, decoded->len),
+                decoded->data, MIN(decoded->len, encoded->len));
+    }
+
+    sf_crypto_cipher_session_close(encoder,
+            NULL,
+            NULL,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    sf_crypto_cipher_session_close_finish(fixture->test_res, &remainder, NULL, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+
+    if (g_test_failed())
+        return;
+
+    if (remainder && g_bytes_get_size(remainder)) {
+        sf_crypto_cipher_session_update(decoder,
+                remainder,
+                NULL,
+                NULL,
+                _tst_crypto_ref_res_and_quit,
+                fixture);
+        g_bytes_unref(remainder);
+        g_main_loop_run(fixture->loop);
+
+        sf_crypto_cipher_session_update_finish(fixture->test_res, &remainder, &fixture->error);
+
+        g_assert_no_error(fixture->error);
+        g_assert_nonnull(remainder);
+
+        if (g_test_failed())
+            return;
+
+        g_byte_array_append(decoded, g_bytes_get_data(remainder, NULL), g_bytes_get_size(remainder));
+    }
+    if (remainder)
+        g_bytes_unref(remainder);
+
+    sf_crypto_cipher_session_close(decoder,
+            NULL,
+            NULL,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    sf_crypto_cipher_session_close_finish(fixture->test_res, &remainder, NULL, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+
+    if (g_test_failed())
+        return;
+
+    if (remainder) {
+        g_byte_array_append(decoded, g_bytes_get_data(remainder, NULL), g_bytes_get_size(remainder));
+        g_bytes_unref(remainder);
+    }
+
+    g_assert_cmpmem(encoded->data, encoded->len,
+            decoded->data, decoded->len);
+}
+
+struct batch_data {
+    GByteArray *decoded;
+    SfCryptoCipherSession *decoder;
+    gint to_decode;
+};
+
+static void _tst_crypto_decrypt_ready(GObject *source_object,
+        GAsyncResult *res,
+        gpointer user_data)
+{
+    SfCryptoFixture *fixture = user_data;
+    struct batch_data *bd = fixture->test_data;
+    GBytes *decrypted;
+
+    (void)source_object;
+
+    sf_crypto_cipher_session_update_finish(res, &decrypted, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+
+    if (g_test_failed()) {
+        g_main_loop_quit(fixture->loop);
+        return;
+    }
+
+    g_byte_array_append(bd->decoded, g_bytes_get_data(decrypted, NULL), g_bytes_get_size(decrypted));
+    g_bytes_unref(decrypted);
+
+    if (!--bd->to_decode)
+        g_main_loop_quit(fixture->loop);
+}
+
+static void _tst_crypto_encrypt_ready(GObject *source_object,
+        GAsyncResult *res,
+        gpointer user_data)
+{
+    SfCryptoFixture *fixture = user_data;
+    struct batch_data *bd = fixture->test_data;
+    GBytes *encrypted;
+
+    (void)source_object;
+
+    sf_crypto_cipher_session_update_finish(res, &encrypted, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+
+    if (g_test_failed()) {
+        g_main_loop_quit(fixture->loop);
+        return;
+    }
+
+    sf_crypto_cipher_session_update(bd->decoder,
+            encrypted,
+            NULL,
+            NULL,
+            _tst_crypto_decrypt_ready,
+            fixture);
+    g_bytes_unref(encrypted);
+}
+
+static void tst_crypto_encrypt_decrypt_session_batch(SfCryptoFixture *fixture,
+        gconstpointer data)
+{
+    const struct key_details *kd = data;
+    SfCryptoKey *key = g_object_new(SF_TYPE_CRYPTO_KEY,
+            "algorithm", kd->algorithm,
+            "key-size", kd->key_size,
+            NULL);
+    SfCryptoCipherSession *encoder;
+    gint8 *buffer;
+    GBytes *iv;
+    GBytes *remainder;
+    gsize i;
+    GByteArray *encoded;
+    struct batch_data bd;
+
+    bd.to_decode = kd->chunks;
+    fixture->test_data = &bd;
+
+    buffer = g_malloc(kd->data_size);
+    g_test_queue_free(buffer);
+
+    sf_crypto_manager_generate_key(fixture->manager,
+            key,
+            _tst_crypto_kpg_params(key), NULL,
+            NULL,
+            CRYPTO_PLUGIN_TEST,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    key = sf_crypto_manager_generate_key_finish(fixture->test_res, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+    if (g_test_failed())
+        return;
+
+    g_object_ref_sink(key);
+
+    sf_crypto_manager_generate_initialization_vector(fixture->manager,
+            sf_crypto_key_get_algorithm(key),
+            kd->block_mode,
+            sf_crypto_key_get_key_size(key),
+            NULL,
+            CRYPTO_PLUGIN_TEST,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+    iv = sf_crypto_manager_generate_initialization_vector_finish(fixture->test_res, &fixture->error);
+
+    g_test_queue_unref(key);
+    g_assert_no_error(fixture->error);
+
+    if (g_test_failed())
+        return;
+
+    g_test_queue_destroy((GDestroyNotify)g_bytes_unref, iv);
+
+    sf_crypto_cipher_session_new(fixture->manager,
+            iv,
+            key,
+            SF_CRYPTO_OPERATION_ENCRYPT,
+            kd->block_mode,
+            kd->padding,
+            SF_CRYPTO_SIGNATURE_PADDING_NONE,
+            SF_CRYPTO_DIGEST_SHA256,
+            NULL,
+            CRYPTO_PLUGIN_TEST,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    encoder = sf_crypto_cipher_session_new_finish(fixture->test_res, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+    g_assert_nonnull(encoder);
+
+    if (g_test_failed())
+        return;
+
+    g_test_queue_unref(encoder);
+
+    sf_crypto_cipher_session_new(fixture->manager,
+            iv,
+            key,
+            SF_CRYPTO_OPERATION_DECRYPT,
+            kd->block_mode,
+            kd->padding,
+            SF_CRYPTO_SIGNATURE_PADDING_NONE,
+            SF_CRYPTO_DIGEST_SHA256,
+            NULL,
+            CRYPTO_PLUGIN_TEST,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    bd.decoder = sf_crypto_cipher_session_new_finish(fixture->test_res, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+    g_assert_nonnull(bd.decoder);
+
+    if (g_test_failed())
+        return;
+
+    g_test_queue_unref(bd.decoder);
+
+    encoded = g_byte_array_sized_new(kd->data_size * kd->chunks);
+    bd.decoded = g_byte_array_sized_new(kd->data_size * kd->chunks);
+
+    g_test_queue_destroy((GDestroyNotify)g_byte_array_unref, encoded);
+    g_test_queue_destroy((GDestroyNotify)g_byte_array_unref, bd.decoded);
+
+    for (i = 0; i < kd->chunks; i++) {
+        GBytes *random_bytes;
+        size_t j;
+
+        for (j = 0; j < kd->data_size; j++)
+            buffer[j] = g_test_rand_int_range(0, G_MAXUINT8);
+
+        random_bytes = g_bytes_new_static(buffer, kd->data_size);
+
+        g_byte_array_append(encoded, g_bytes_get_data(random_bytes, NULL), g_bytes_get_size(random_bytes));
+
+        sf_crypto_cipher_session_update(encoder,
+                random_bytes,
+                NULL,
+                NULL,
+                _tst_crypto_encrypt_ready,
+                fixture);
+        g_bytes_unref(random_bytes);
+    }
+    g_main_loop_run(fixture->loop);
+
+    sf_crypto_cipher_session_close(encoder,
+            NULL,
+            NULL,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    sf_crypto_cipher_session_close_finish(fixture->test_res, &remainder, NULL, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+
+    if (g_test_failed())
+        return;
+
+    if (remainder && g_bytes_get_size(remainder)) {
+        sf_crypto_cipher_session_update(bd.decoder,
+                remainder,
+                NULL,
+                NULL,
+                _tst_crypto_ref_res_and_quit,
+                fixture);
+        g_bytes_unref(remainder);
+        g_main_loop_run(fixture->loop);
+
+        sf_crypto_cipher_session_update_finish(fixture->test_res, &remainder, &fixture->error);
+
+        g_assert_no_error(fixture->error);
+        g_assert_nonnull(remainder);
+
+        if (g_test_failed())
+            return;
+
+        g_byte_array_append(bd.decoded, g_bytes_get_data(remainder, NULL), g_bytes_get_size(remainder));
+    }
+    if (remainder)
+        g_bytes_unref(remainder);
+
+    sf_crypto_cipher_session_close(bd.decoder,
+            NULL,
+            NULL,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    sf_crypto_cipher_session_close_finish(fixture->test_res, &remainder, NULL, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+
+    if (g_test_failed())
+        return;
+
+    if (remainder) {
+        g_byte_array_append(bd.decoded, g_bytes_get_data(remainder, NULL), g_bytes_get_size(remainder));
+        g_bytes_unref(remainder);
+    }
+
+    g_assert_cmpmem(encoded->data, encoded->len,
+            bd.decoded->data, bd.decoded->len);
+}
+
+static void tst_crypto_session_sign_verify(SfCryptoFixture *fixture,
+        gconstpointer data)
+{
+    const struct key_details *kd = data;
+    SfCryptoKey *key = g_object_new(SF_TYPE_CRYPTO_KEY,
+            "algorithm", kd->algorithm,
+            "key-size", kd->key_size,
+            NULL);
+    SfCryptoCipherSession *signer;
+    SfCryptoCipherSession *verifier;
+    gint8 *buffer;
+    GBytes *iv;
+    GBytes *signature;
+    gsize i;
+    SfCryptoVerificationStatus verify_status;
+
+    (void)data;
+
+    buffer = g_malloc(kd->data_size);
+    g_test_queue_free(buffer);
+
+    sf_crypto_manager_generate_key(fixture->manager,
+            key,
+            _tst_crypto_kpg_params(key), NULL,
+            NULL,
+            CRYPTO_PLUGIN_TEST,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    key = sf_crypto_manager_generate_key_finish(fixture->test_res, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+    if (g_test_failed())
+        return;
+
+    g_object_ref_sink(key);
+
+    sf_crypto_manager_generate_initialization_vector(fixture->manager,
+            sf_crypto_key_get_algorithm(key),
+            kd->block_mode,
+            sf_crypto_key_get_key_size(key),
+            NULL,
+            CRYPTO_PLUGIN_TEST,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+    iv = sf_crypto_manager_generate_initialization_vector_finish(fixture->test_res, &fixture->error);
+
+    g_test_queue_unref(key);
+    g_assert_no_error(fixture->error);
+
+    if (g_test_failed())
+        return;
+
+    g_test_queue_destroy((GDestroyNotify)g_bytes_unref, iv);
+
+    sf_crypto_cipher_session_new(fixture->manager,
+            iv,
+            key,
+            SF_CRYPTO_OPERATION_SIGN,
+            kd->block_mode,
+            kd->padding,
+            SF_CRYPTO_SIGNATURE_PADDING_NONE,
+            SF_CRYPTO_DIGEST_SHA256,
+            NULL,
+            CRYPTO_PLUGIN_TEST,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    signer = sf_crypto_cipher_session_new_finish(fixture->test_res, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+    g_assert_nonnull(signer);
+
+    if (g_test_failed())
+        return;
+
+    g_test_queue_unref(signer);
+
+    sf_crypto_cipher_session_new(fixture->manager,
+            iv,
+            key,
+            SF_CRYPTO_OPERATION_VERIFY,
+            kd->block_mode,
+            kd->padding,
+            SF_CRYPTO_SIGNATURE_PADDING_NONE,
+            SF_CRYPTO_DIGEST_SHA256,
+            NULL,
+            CRYPTO_PLUGIN_TEST,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    verifier = sf_crypto_cipher_session_new_finish(fixture->test_res, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+    g_assert_nonnull(verifier);
+
+    if (g_test_failed())
+        return;
+
+    g_test_queue_unref(verifier);
+
+    for (i = 0; i < kd->chunks; i++) {
+        GBytes *random_bytes;
+
+        sf_crypto_manager_generate_random_data(fixture->manager,
+                kd->data_size,
+                SF_CRYPTO_DEFAULT_CSPRNG_ENGINE,
+                NULL,
+                CRYPTO_PLUGIN_TEST,
+                NULL,
+                _tst_crypto_ref_res_and_quit,
+                fixture);
+        g_main_loop_run(fixture->loop);
+
+        random_bytes = sf_crypto_manager_generate_random_data_finish(fixture->test_res, &fixture->error);
+
+        g_assert_no_error(fixture->error);
+        g_assert_nonnull(random_bytes);
+
+        if (g_test_failed())
+            return;
+
+        sf_crypto_cipher_session_update(signer,
+                random_bytes,
+                NULL,
+                NULL,
+                _tst_crypto_ref_res_and_quit,
+                fixture);
+        g_main_loop_run(fixture->loop);
+
+        sf_crypto_cipher_session_update_finish(fixture->test_res, NULL, &fixture->error);
+
+        g_assert_no_error(fixture->error);
+
+        if (g_test_failed())
+            return;
+
+        if (kd->fuzz_data)
+            random_bytes = _fuzz_bytes_take(random_bytes, kd->fuzz_data);
+
+        sf_crypto_cipher_session_update(verifier,
+                random_bytes,
+                NULL,
+                NULL,
+                _tst_crypto_ref_res_and_quit,
+                fixture);
+        g_bytes_unref(random_bytes);
+        g_main_loop_run(fixture->loop);
+
+        sf_crypto_cipher_session_update_finish(fixture->test_res, NULL, &fixture->error);
+
+        g_assert_no_error(fixture->error);
+
+        if (g_test_failed())
+            return;
+    }
+
+    sf_crypto_cipher_session_close(signer,
+            NULL,
+            NULL,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    sf_crypto_cipher_session_close_finish(fixture->test_res, &signature, NULL, &fixture->error);
+
+    g_assert_no_error(fixture->error);
+    g_assert_nonnull(signature);
+
+    if (g_test_failed())
+        return;
+
+    if (kd->fuzz_sig)
+        signature = _fuzz_bytes_take(signature, kd->fuzz_sig);
+
+    sf_crypto_cipher_session_close(verifier,
+            signature,
+            NULL,
+            NULL,
+            _tst_crypto_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+    g_bytes_unref(signature);
+
+    sf_crypto_cipher_session_close_finish(fixture->test_res,
+            NULL,
+            &verify_status,
+            &fixture->error);
+
+    g_assert_no_error(fixture->error);
+
+    if (g_test_failed())
+        return;
+
+    g_assert_cmpint(verify_status, ==, kd->expected_status);
+}
+
 static void _tst_secret_setup_ready(GObject *source_object,
         GAsyncResult *res,
         gpointer user_data)
@@ -1675,7 +2407,7 @@ int main(int argc, char **argv)
         .padding = SF_CRYPTO_ENCRYPTION_PADDING_NONE,
         .block_mode = SF_CRYPTO_BLOCK_MODE_CBC,
         .key_size = 128,
-            .data_size = 1024 }));
+        .data_size = 1024 }));
     sf_crypto_test("EncryptDecryptAesCbc192", tst_crypto_encrypt_decrypt, (&(struct key_details){
         .algorithm = SF_CRYPTO_ALGORITHM_AES,
         .padding = SF_CRYPTO_ENCRYPTION_PADDING_NONE,
@@ -1751,9 +2483,66 @@ int main(int argc, char **argv)
         .padding = SF_CRYPTO_ENCRYPTION_PADDING_NONE,
         .block_mode = SF_CRYPTO_BLOCK_MODE_UNKNOWN,
         .key_size = 2048,
-        .data_size = 256 }));
+        .data_size = 256,
+        .expected_status = SF_CRYPTO_VERIFICATION_STATUS_SUCCEEDED }));
+    sf_crypto_test("SignVerifyFuzzSigRsa2048", tst_crypto_sign_verify, (&(struct key_details){
+        .algorithm = SF_CRYPTO_ALGORITHM_RSA,
+        .padding = SF_CRYPTO_ENCRYPTION_PADDING_NONE,
+        .block_mode = SF_CRYPTO_BLOCK_MODE_UNKNOWN,
+        .key_size = 2048,
+        .data_size = 256,
+        .fuzz_sig = 1,
+        .expected_status = SF_CRYPTO_VERIFICATION_STATUS_FAILED }));
+    sf_crypto_test("SignVerifyFuzzDataRsa2048", tst_crypto_sign_verify, (&(struct key_details){
+        .algorithm = SF_CRYPTO_ALGORITHM_RSA,
+        .padding = SF_CRYPTO_ENCRYPTION_PADDING_NONE,
+        .block_mode = SF_CRYPTO_BLOCK_MODE_UNKNOWN,
+        .key_size = 2048,
+        .data_size = 256,
+        .fuzz_data = 1,
+        .expected_status = SF_CRYPTO_VERIFICATION_STATUS_FAILED }));
     sf_crypto_test("ImportVerify", tst_crypto_import_verify, NULL);
     sf_crypto_test("ImportInvalid", tst_crypto_import_invalid, NULL);
+    sf_crypto_test("EncryptDecryptSessionAes128", tst_crypto_encrypt_decrypt_session, (&(struct key_details){
+        .algorithm = SF_CRYPTO_ALGORITHM_AES,
+        .padding = SF_CRYPTO_ENCRYPTION_PADDING_NONE,
+        .block_mode = SF_CRYPTO_BLOCK_MODE_CBC,
+        .key_size = 128,
+        .chunks = 5,
+        .data_size = 1024 }));
+    sf_crypto_test("EncryptDecryptSessionBatchAes128", tst_crypto_encrypt_decrypt_session_batch, (&(struct key_details){
+        .algorithm = SF_CRYPTO_ALGORITHM_AES,
+        .padding = SF_CRYPTO_ENCRYPTION_PADDING_NONE,
+        .block_mode = SF_CRYPTO_BLOCK_MODE_CBC,
+        .key_size = 128,
+        .chunks = 5,
+        .data_size = 1024 }));
+    sf_crypto_test("SignVerifySessionRsa2048", tst_crypto_session_sign_verify, (&(struct key_details){
+        .algorithm = SF_CRYPTO_ALGORITHM_RSA,
+        .padding = SF_CRYPTO_ENCRYPTION_PADDING_NONE,
+        .block_mode = SF_CRYPTO_BLOCK_MODE_UNKNOWN,
+        .key_size = 2048,
+        .chunks = 5,
+        .data_size = 256,
+        .expected_status = SF_CRYPTO_VERIFICATION_STATUS_SUCCEEDED }));
+    sf_crypto_test("SignVerifySessionFuzzDataRsa2048", tst_crypto_session_sign_verify, (&(struct key_details){
+        .algorithm = SF_CRYPTO_ALGORITHM_RSA,
+        .padding = SF_CRYPTO_ENCRYPTION_PADDING_NONE,
+        .block_mode = SF_CRYPTO_BLOCK_MODE_UNKNOWN,
+        .key_size = 2048,
+        .chunks = 5,
+        .data_size = 256,
+        .fuzz_data = 1,
+        .expected_status = SF_CRYPTO_VERIFICATION_STATUS_FAILED }));
+    sf_crypto_test("SignVerifySessionFuzzSigRsa2048", tst_crypto_session_sign_verify, (&(struct key_details){
+        .algorithm = SF_CRYPTO_ALGORITHM_RSA,
+        .padding = SF_CRYPTO_ENCRYPTION_PADDING_NONE,
+        .block_mode = SF_CRYPTO_BLOCK_MODE_UNKNOWN,
+        .key_size = 2048,
+        .chunks = 5,
+        .data_size = 256,
+        .fuzz_sig = 1,
+        .expected_status = SF_CRYPTO_VERIFICATION_STATUS_FAILED }));
 #undef sf_secret_test
 
     g_test_run();
