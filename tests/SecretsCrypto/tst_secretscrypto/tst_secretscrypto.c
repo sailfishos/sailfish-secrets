@@ -854,7 +854,7 @@ static void tst_crypto_nonexistent_stored_key(SfCryptoFixture *fixture,
     key = sf_crypto_manager_stored_key_finish(fixture->test_res, &fixture->error);
 
     g_assert_error(fixture->error,
-            SF_CRYPTO_ERROR, SF_CRYPTO_ERROR_INVALID_KEY_IDENTIFIER);
+            SF_SECRETS_ERROR, SF_SECRETS_ERROR_INVALID_COLLECTION);
     g_assert_null(key);
 
     g_clear_error(&fixture->error);
@@ -902,7 +902,7 @@ static void tst_crypto_nonexistent_stored_key(SfCryptoFixture *fixture,
     key = sf_crypto_manager_stored_key_finish(fixture->test_res, &fixture->error);
 
     g_assert_error(fixture->error,
-            SF_CRYPTO_ERROR, SF_CRYPTO_ERROR_INVALID_KEY_IDENTIFIER);
+            SF_SECRETS_ERROR, SF_SECRETS_ERROR_INVALID_SECRET);
     g_assert_null(key);
     g_clear_error(&fixture->error);
 

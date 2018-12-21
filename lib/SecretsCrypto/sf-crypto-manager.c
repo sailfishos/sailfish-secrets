@@ -2,6 +2,7 @@
 #include "sf-crypto-manager.h"
 #include "sf-crypto-key-private.h"
 #include "sf-common-private.h"
+#include "sf-secrets.h"
 
 const gchar *SF_CRYPTO_DEFAULT_PLUGIN = "plugin.crypto.default";
 const gchar *SF_CRYPTO_DEFAULT_STORAGE_PLUGIN = "plugin.cryptostorage.default";
@@ -225,9 +226,15 @@ gboolean _sf_crypto_manager_check_reply(GVariant *response, GError **error, GVar
     g_variant_get(result, "(iii&s)", &result_code, &error_code, &storage_error_code, &error_msg);
 
     if (result_code != SF_CRYPTO_RESULT_SUCCEEDED) {
-        g_set_error(error,
-                SF_CRYPTO_ERROR,
-                error_code, "%s", error_msg);
+        if (storage_error_code != SF_SECRETS_ERROR_NO)
+            /* Return the actual storage error in SfSecrets error domain */
+            g_set_error(error,
+                    SF_SECRETS_ERROR,
+                    storage_error_code, "%s", error_msg);
+        else
+            g_set_error(error,
+                    SF_CRYPTO_ERROR,
+                    error_code, "%s", error_msg);
         res = FALSE;
     }
 
