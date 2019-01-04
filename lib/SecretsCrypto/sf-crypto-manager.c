@@ -2,6 +2,7 @@
 #include "sf-crypto-manager.h"
 #include "sf-crypto-key-private.h"
 #include "sf-common-private.h"
+#include "sf-secrets.h"
 
 const gchar *SF_CRYPTO_DEFAULT_PLUGIN = "plugin.crypto.default";
 const gchar *SF_CRYPTO_DEFAULT_STORAGE_PLUGIN = "plugin.cryptostorage.default";
@@ -225,9 +226,14 @@ gboolean _sf_crypto_manager_check_reply(GVariant *response, GError **error, GVar
     g_variant_get(result, "(iii&s)", &result_code, &error_code, &storage_error_code, &error_msg);
 
     if (result_code != SF_CRYPTO_RESULT_SUCCEEDED) {
-        if (error)
-            *error = g_error_new(
-                    g_quark_from_static_string("SfCrypto"),
+        if (storage_error_code != SF_SECRETS_ERROR_NO)
+            /* Return the actual storage error in SfSecrets error domain */
+            g_set_error(error,
+                    SF_SECRETS_ERROR,
+                    storage_error_code, "%s", error_msg);
+        else
+            g_set_error(error,
+                    SF_CRYPTO_ERROR,
                     error_code, "%s", error_msg);
         res = FALSE;
     }
@@ -410,7 +416,7 @@ void _sf_crypto_manager_discovery_ready(GObject *source_object,
     if (!address) {
         g_variant_unref(response);
         g_task_return_new_error(task,
-                g_quark_from_static_string("SfCrypto"),
+                SF_CRYPTO_ERROR,
                 SF_CRYPTO_ERROR_DAEMON, "Daemon sent a reply we didn't understand");
         g_object_unref(task);
         return;
@@ -787,7 +793,7 @@ void sf_crypto_manager_import_key(SfCryptoManager *manager,
 
 SfCryptoKey *sf_crypto_manager_import_key_finish(GAsyncResult *res, GError **error)
 {
-    return g_object_ref_sink(g_task_propagate_pointer(G_TASK(res), error));
+    return g_task_propagate_pointer(G_TASK(res), error);
 }
 
 static void _sf_crypto_manager_import_stored_key_ready(GObject *source_object,
@@ -835,7 +841,7 @@ void sf_crypto_manager_import_stored_key(SfCryptoManager *manager,
 
 SfCryptoKey *sf_crypto_manager_import_stored_key_finish(GAsyncResult *res, GError **error)
 {
-    return g_object_ref_sink(g_task_propagate_pointer(G_TASK(res), error));
+    return g_task_propagate_pointer(G_TASK(res), error);
 }
 
 static void _sf_crypto_manager_seed_random_data_generator_ready(GObject *source_object,
@@ -955,7 +961,7 @@ void sf_crypto_manager_stored_key(SfCryptoManager *manager,
 
 SfCryptoKey *sf_crypto_manager_stored_key_finish(GAsyncResult *res, GError **error)
 {
-    return g_object_ref_sink(g_task_propagate_pointer(G_TASK(res), error));
+    return g_task_propagate_pointer(G_TASK(res), error);
 }
 
 static void _sf_crypto_manager_delete_stored_key_ready(GObject *source_object,

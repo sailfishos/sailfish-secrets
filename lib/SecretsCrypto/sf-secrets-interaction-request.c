@@ -1,4 +1,5 @@
 #include "sf-secrets-interaction-request.h"
+#include "sf-secrets.h"
 #include <gio/gio.h>
 
 typedef struct SfSecretsInteractionRequestPrivate_ SfSecretsInteractionRequestPrivate;
@@ -29,9 +30,9 @@ static void _sf_secrets_interaction_request_finalize(GObject *object)
     SfSecretsInteractionRequestPrivate *priv = sf_secrets_interaction_request_get_instance_private(request);
 
     if (priv->invocation) {
-        GError *error = g_error_new(g_quark_from_string("SfSecrets"),
-                1337,
-                "Jag är död");
+        GError *error = g_error_new(SF_SECRETS_ERROR,
+                SF_SECRETS_ERROR_INTERACTION_VIEW_USER_CANCELED,
+                "Destroyed while operation in progress");
         sf_secrets_interaction_request_return_error(request, error);
         g_error_free(error);
         g_object_unref(priv->invocation);

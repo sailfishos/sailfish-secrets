@@ -5,6 +5,8 @@ const gchar *SF_SECRETS_DEFAULT_STORAGE_PLUGIN = "plugin.storage.default";
 const gchar *SF_SECRETS_DEFAULT_ENCRYPTION_PLUGIN = "plugin.encryption.default";
 const gchar *SF_SECRETS_DEAFULT_ENCRYPTED_STORAGE_PLUGIN = "plugin.encryptedstorage.default";
 
+G_DEFINE_QUARK(SfSecretsError, sf_secrets_error)
+
 void sf_secrets_plugin_info_free(SfSecretsPluginInfo *info)
 {
     if (G_UNLIKELY(!info))
