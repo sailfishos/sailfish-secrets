@@ -1,4 +1,5 @@
 #include <SecretsCrypto/sf-secrets-manager.h>
+#include <SecretsCrypto/sf-secrets-interaction-request.h>
 #include <SecretsCrypto/sf-crypto-manager.h>
 #include <SecretsCrypto/sf-crypto-cipher-session.h>
 #include <glib.h>
@@ -7,6 +8,7 @@
 
 #define SECRETS_PLUGIN_STORAGE_TEST "org.sailfishos.secrets.plugin.storage.sqlite.test"
 #define SECRETS_PLUGIN_ENCRYPTION_TEST "org.sailfishos.secrets.plugin.encryption.openssl.test"
+#define SECRETS_PLUGIN_INAPP_AUTH_TEST "org.sailfishos.secrets.plugin.authentication.inapp.test"
 #define CRYPTO_PLUGIN_TEST "org.sailfishos.crypto.plugin.crypto.openssl.test"
 
 typedef struct SfSecretsFixture_ {
@@ -723,6 +725,95 @@ static void tst_secret_create_existing_collection(SfSecretsFixture *fixture,
             &fixture->error);
     g_assert_error(fixture->error, SF_SECRETS_ERROR,
             SF_SECRETS_ERROR_INVALID_COLLECTION);
+}
+
+static void _tst_secret_interaction_request_continue(SfSecretsInteractionRequest *request,
+        SfSecretsFixture *fixture)
+{
+    GBytes *b;
+    (void)fixture;
+    (void)request;
+
+    b = g_bytes_new_static("sailfish", 8);
+    sf_secrets_interaction_request_return(request, b);
+    g_bytes_unref(b);
+}
+
+static gboolean _tst_secret_interaction_request_new_request(SfSecretsManager *manager,
+        SfSecretsInteractionRequest *request,
+        SfSecretsFixture *fixture)
+{
+    GBytes *b;
+
+    (void)manager;
+    (void)fixture;
+
+    g_signal_connect(request, "continue", G_CALLBACK(_tst_secret_interaction_request_continue), fixture);
+    g_signal_connect(request, "finish", G_CALLBACK(g_object_unref), NULL);
+    g_signal_connect(request, "cancel", G_CALLBACK(g_object_unref), NULL);
+
+    g_object_ref(request);
+
+    b = g_bytes_new_static("sailfish", 8);
+    sf_secrets_interaction_request_return(request, b);
+    g_bytes_unref(b);
+
+    return TRUE;
+}
+
+static void tst_secret_interaction_request(SfSecretsFixture *fixture,
+        gconstpointer data)
+{
+    (void)data;
+
+    if (!fixture->manager) {
+        g_test_skip("No manager");
+        return;
+    }
+
+    g_object_set(fixture->manager,
+            "user-interaction-mode", SF_SECRETS_USER_INTERACTION_MODE_APPLICATION,
+            NULL);
+
+    g_signal_connect(fixture->manager, "new-interaction-request",
+            G_CALLBACK(_tst_secret_interaction_request_new_request), fixture);
+    sf_secrets_manager_create_collection(
+            fixture->manager,
+            SECRETS_PLUGIN_STORAGE_TEST,
+            SECRETS_PLUGIN_ENCRYPTION_TEST,
+            SECRETS_PLUGIN_INAPP_AUTH_TEST,
+            "tst_capi_collection",
+            SF_SECRETS_DEVICE_UNLOCK_SEMANTIC_KEEP_UNLOCKED,
+            SF_SECRETS_ACCESS_CONTROL_MODE_OWNER_ONLY,
+            NULL,
+            _tst_secret_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    sf_secrets_manager_create_collection_finish(fixture->test_res, &fixture->error);
+
+    if (fixture->error &&
+            fixture->error->code == SF_SECRETS_ERROR_COLLECTION_ALREADY_EXISTS) {
+        g_debug("Collection already exists, deleting it anyway");
+        g_error_free(fixture->error);
+        fixture->error = NULL;
+    }
+    g_assert_no_error(fixture->error);
+    if (g_test_failed())
+        return;
+
+    sf_secrets_manager_delete_collection(
+            fixture->manager,
+            SECRETS_PLUGIN_STORAGE_TEST,
+            "tst_capi_collection",
+            NULL,
+            _tst_secret_ref_res_and_quit,
+            fixture);
+    g_main_loop_run(fixture->loop);
+
+    sf_secrets_manager_delete_collection_finish(fixture->test_res,
+            &fixture->error);
+    g_assert_no_error(fixture->error);
 }
 
 static void _tst_crypto_ref_res_and_quit(GObject *source_object,
@@ -2392,6 +2483,7 @@ int main(int argc, char **argv)
     sf_secret_test("GetFromNonexistentPlugin", tst_secret_collections_nonexistent_plugin);
     sf_secret_test("GetFromNonexistentCollection", tst_secret_get_from_nonexistent_collection);
     sf_secret_test("CreateExistingCollection", tst_secret_create_existing_collection);
+    sf_secret_test("InteractionRequest", tst_secret_interaction_request);
 #undef sf_secret_test
 
 #define sf_crypto_test(name, test, data) \
