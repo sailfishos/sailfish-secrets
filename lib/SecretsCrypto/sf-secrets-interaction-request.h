@@ -13,6 +13,6 @@ typedef struct SfSecretsInteractionRequestClass_ SfSecretsInteractionRequestClas
 
 GType sf_secrets_interaction_request_get_type(void);
 void sf_secrets_interaction_request_return_error(SfSecretsInteractionRequest *request, const GError *error);
-void sf_secrets_interaction_request_return(SfSecretsInteractionRequest *request, const GBytes *bytes);
+void sf_secrets_interaction_request_return(SfSecretsInteractionRequest *request, GBytes *bytes);
 
 #endif /* SF_SECRETS_INTERACTION_REQUEST_H */
