@@ -5890,17 +5890,25 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        QString collectionName = pr.parameters.takeFirst().value<QString>();
+                        QString storagePluginName = pr.parameters.takeFirst().value<QString>();
+                        QString encryptionPluginName = pr.parameters.takeFirst().value<QString>();
+                        QString authenticationPluginName = pr.parameters.takeFirst().value<QString>();
+                        SecretManager::CustomLockUnlockSemantic unlockSemantic = static_cast<SecretManager::CustomLockUnlockSemantic>(pr.parameters.takeFirst().value<int>());
+                        SecretManager::AccessControlMode accessControlMode = static_cast<SecretManager::AccessControlMode>(pr.parameters.takeFirst().value<int>());
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
                         returnResult = createCustomLockCollectionWithAuthenticationCode(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    static_cast<SecretManager::CustomLockUnlockSemantic>(pr.parameters.takeFirst().value<int>()),
-                                    static_cast<SecretManager::AccessControlMode>(pr.parameters.takeFirst().value<int>()),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
+                                    collectionName,
+                                    storagePluginName,
+                                    encryptionPluginName,
+                                    authenticationPluginName,
+                                    unlockSemantic,
+                                    accessControlMode,
+                                    userInteractionMode,
+                                    interactionServiceAddress,
                                     userInput);
                     }
                     break;
@@ -5913,13 +5921,16 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                         Secret secret = pr.parameters.takeFirst().value<Secret>();
                         secret.setData(userInput);
                         /*InteractionParameters uiParams = */pr.parameters.takeFirst().value<InteractionParameters>();
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
+                        CollectionMetadata collectionMetadata = pr.parameters.takeFirst().value<CollectionMetadata>();
                         returnResult = setCollectionSecretGetAuthenticationCode(
                                     pr.callerPid,
                                     pr.requestId,
                                     secret,
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<CollectionMetadata>());
+                                    userInteractionMode,
+                                    interactionServiceAddress,
+                                    collectionMetadata);
                     }
                     break;
                 }
@@ -5928,13 +5939,17 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        Secret secret = pr.parameters.takeFirst().value<Secret>();
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
+                        CollectionMetadata collectionMetadata = pr.parameters.takeFirst().value<CollectionMetadata>();
                         returnResult = setCollectionSecretWithAuthenticationCode(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<Secret>(),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    secret,
+                                    userInteractionMode,
+                                    interactionServiceAddress,
+                                    collectionMetadata,
                                     userInput);
                     }
                     break;
@@ -5961,13 +5976,16 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                     } else {
                         Secret secret = pr.parameters.takeFirst().value<Secret>();
                         secret.setData(userInput);
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
+                        SecretMetadata secretMetadata = pr.parameters.takeFirst().value<SecretMetadata>();
                         returnResult = setStandaloneCustomLockSecretGetAuthenticationCode(
                                     pr.callerPid,
                                     pr.requestId,
                                     secret,
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<SecretMetadata>());
+                                    userInteractionMode,
+                                    interactionServiceAddress,
+                                    secretMetadata);
                     }
                     break;
                 }
@@ -5976,11 +5994,14 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        Secret secret = pr.parameters.takeFirst().value<Secret>();
+                        SecretMetadata secretMetadata = pr.parameters.takeFirst().value<SecretMetadata>();
+
                         returnResult = setStandaloneCustomLockSecretWithAuthenticationCode(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<Secret>(),
-                                    pr.parameters.takeFirst().value<SecretMetadata>(),
+                                    secret,
+                                    secretMetadata,
                                     userInput);
                     }
                     break;
@@ -5990,13 +6011,18 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        Secret::Identifier identifier = pr.parameters.takeFirst().value<Secret::Identifier>();
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
+                        CollectionMetadata collectionMetadata = pr.parameters.takeFirst().value<CollectionMetadata>();
+
                         returnResult = getCollectionSecretWithAuthenticationCode(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<Secret::Identifier>(),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    identifier,
+                                    userInteractionMode,
+                                    interactionServiceAddress,
+                                    collectionMetadata,
                                     userInput);
                     }
                     break;
@@ -6006,13 +6032,18 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        Secret::Identifier identifier = pr.parameters.takeFirst().value<Secret::Identifier>();
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
+                        SecretMetadata secretMetadata = pr.parameters.takeFirst().value<SecretMetadata>();
+
                         returnResult = getStandaloneSecretWithAuthenticationCode(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<Secret::Identifier>(),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<SecretMetadata>(),
+                                    identifier,
+                                    userInteractionMode,
+                                    interactionServiceAddress,
+                                    secretMetadata,
                                     userInput);
                     }
                     break;
@@ -6022,16 +6053,24 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        QString collectionName = pr.parameters.takeFirst().value<QString>();
+                        QString storagePluginName = pr.parameters.takeFirst().value<QString>();
+                        Secret::FilterData filter = pr.parameters.takeFirst().value<Secret::FilterData>();
+                        SecretManager::FilterOperator filterOperator = static_cast<SecretManager::FilterOperator>(pr.parameters.takeFirst().value<int>());
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
+                        CollectionMetadata collectionMetadata = pr.parameters.takeFirst().value<CollectionMetadata>();
+
                         returnResult = findCollectionSecretsWithAuthenticationCode(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<Secret::FilterData>(),
-                                    static_cast<SecretManager::FilterOperator>(pr.parameters.takeFirst().value<int>()),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    collectionName,
+                                    storagePluginName,
+                                    filter,
+                                    filterOperator,
+                                    userInteractionMode,
+                                    interactionServiceAddress,
+                                    collectionMetadata,
                                     userInput);
                     }
                     break;
@@ -6041,14 +6080,19 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        QString collectionName = pr.parameters.takeFirst().value<QString>();
+                        QString storagePluginName = pr.parameters.takeFirst().value<QString>();
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
+                        CollectionMetadata collectionMetadata = pr.parameters.takeFirst().value<CollectionMetadata>();
                         deleteCollectionWithLockCode(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    collectionName,
+                                    storagePluginName,
+                                    userInteractionMode,
+                                    interactionServiceAddress,
+                                    collectionMetadata,
                                     userInput);
                         returnResult = Result(Result::Pending);
                     }
@@ -6059,13 +6103,17 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        Secret::Identifier identifier = pr.parameters.takeFirst().value<Secret::Identifier>();
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
+                        CollectionMetadata collectionMetadata = pr.parameters.takeFirst().value<CollectionMetadata>();
                         returnResult = deleteCollectionSecretWithAuthenticationCode(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<Secret::Identifier>(),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    identifier,
+                                    userInteractionMode,
+                                    interactionServiceAddress,
+                                    collectionMetadata,
                                     userInput);
                     }
                     break;
@@ -6073,27 +6121,38 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                 case ModifyLockCodeRequest: {
                     if (pr.parameters.size() == 5) {
                         // we have the old lock code.  Now we need the new lock code.
+                        LockCodeRequest::LockCodeTargetType lockCodeTargetType = pr.parameters.takeFirst().value<LockCodeRequest::LockCodeTargetType>();
+                        QString lockCodeTarget = pr.parameters.takeFirst().value<QString>();
+                        InteractionParameters interactionParams = pr.parameters.takeFirst().value<InteractionParameters>();
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
                         returnResult = modifyLockCodeWithLockCode(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<LockCodeRequest::LockCodeTargetType>(),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<InteractionParameters>(),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
+                                    lockCodeTargetType,
+                                    lockCodeTarget,
+                                    interactionParams,
+                                    userInteractionMode,
+                                    interactionServiceAddress,
                                     userInput);
                     } else if (pr.parameters.size() == 6) {
                         // we have both the old and new lock codes.
                         // attempt to update the encryption key from the lock code.
+                        LockCodeRequest::LockCodeTargetType lockCodeTargetType = pr.parameters.takeFirst().value<LockCodeRequest::LockCodeTargetType>();
+                        QString lockCodeTarget = pr.parameters.takeFirst().value<QString>();
+                        InteractionParameters interactionParams = pr.parameters.takeFirst().value<InteractionParameters>();
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
+                        QByteArray oldLockCode = pr.parameters.takeFirst().value<QByteArray>();
                         returnResult = modifyLockCodeWithLockCodes(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<LockCodeRequest::LockCodeTargetType>(),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<InteractionParameters>(),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<QByteArray>(),
+                                    lockCodeTargetType,
+                                    lockCodeTarget,
+                                    interactionParams,
+                                    userInteractionMode,
+                                    interactionServiceAddress,
+                                    oldLockCode,
                                     userInput);
                     } else {
                         returnResult = Result(Result::UnknownError,
@@ -6106,14 +6165,19 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        LockCodeRequest::LockCodeTargetType lockCodeTargetType = pr.parameters.takeFirst().value<LockCodeRequest::LockCodeTargetType>();
+                        QString lockCodeTarget = pr.parameters.takeFirst().value<QString>();
+                        InteractionParameters interactionParams = pr.parameters.takeFirst().value<InteractionParameters>();
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
                         returnResult = provideLockCodeWithLockCode(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<LockCodeRequest::LockCodeTargetType>(),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<InteractionParameters>(),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
+                                    lockCodeTargetType,
+                                    lockCodeTarget,
+                                    interactionParams,
+                                    userInteractionMode,
+                                    interactionServiceAddress,
                                     userInput);
                     }
                     break;
@@ -6133,14 +6197,19 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        Secret::Identifier identifier = pr.parameters.takeFirst().value<Secret::Identifier>();
+                        Sailfish::Crypto::CryptoManager::Operation operation = pr.parameters.takeFirst().value<Sailfish::Crypto::CryptoManager::Operation>();
+                        QString cryptoPluginName = pr.parameters.takeFirst().value<QString>();
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        CollectionMetadata collectionMetadata = pr.parameters.takeFirst().value<CollectionMetadata>();
                         returnResult = useCollectionKeyPreCheckWithAuthenticationCode(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<Secret::Identifier>(),
-                                    pr.parameters.takeFirst().value<Sailfish::Crypto::CryptoManager::Operation>(),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    identifier,
+                                    operation,
+                                    cryptoPluginName,
+                                    userInteractionMode,
+                                    collectionMetadata,
                                     userInput);
                     }
                     break;
@@ -6150,12 +6219,15 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        Secret::Identifier identifier = pr.parameters.takeFirst().value<Secret::Identifier>();
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        CollectionMetadata collectionMetadata = pr.parameters.takeFirst().value<CollectionMetadata>();
                         returnResult = setCollectionKeyPreCheckWithAuthenticationCode(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<Secret::Identifier>(),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    identifier,
+                                    userInteractionMode,
+                                    collectionMetadata,
                                     userInput);
                     }
                     break;
@@ -6165,15 +6237,21 @@ Daemon::ApiImpl::RequestProcessor::userInputInteractionCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        QString collectionName = pr.parameters.takeFirst().value<QString>();
+                        QString storagePluginName = pr.parameters.takeFirst().value<QString>();
+                        QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
+                        CollectionMetadata collectionMetadata = pr.parameters.takeFirst().value<CollectionMetadata>();
                         returnResult = storedKeyIdentifiersWithAuthenticationCode(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<QVariantMap>(),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    collectionName,
+                                    storagePluginName,
+                                    customParameters,
+                                    userInteractionMode,
+                                    interactionServiceAddress,
+                                    collectionMetadata,
                                     userInput);
                     }
                     break;
@@ -6223,14 +6301,19 @@ void Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        QString collectionName = pr.parameters.takeFirst().value<QString>();
+                        QString storagePluginName = pr.parameters.takeFirst().value<QString>();
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
+                        CollectionMetadata collectionMetadata = pr.parameters.takeFirst().value<CollectionMetadata>();
                         deleteCollectionWithEncryptionKey(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    collectionName,
+                                    storagePluginName,
+                                    userInteractionMode,
+                                    interactionServiceAddress,
+                                    collectionMetadata,
                                     m_requestQueue->deviceLockKey());
                         returnResult = Result(Result::Pending);
                     }
@@ -6241,15 +6324,21 @@ void Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        QString collectionName = pr.parameters.takeFirst().value<QString>();
+                        QString storagePluginName = pr.parameters.takeFirst().value<QString>();
+                        QVariantMap customParameters = pr.parameters.takeFirst().value<QVariantMap>();
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
+                        CollectionMetadata collectionMetadata = pr.parameters.takeFirst().value<CollectionMetadata>();
                         storedKeyIdentifiersWithEncryptionKey(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<QVariantMap>(),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    collectionName,
+                                    storagePluginName,
+                                    customParameters,
+                                    userInteractionMode,
+                                    interactionServiceAddress,
+                                    collectionMetadata,
                                     m_requestQueue->deviceLockKey(),
                                     true);
                         returnResult = Result(Result::Pending);
@@ -6261,13 +6350,17 @@ void Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        Secret secret = pr.parameters.takeFirst().value<Secret>();
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
+                        CollectionMetadata collectionMetadata = pr.parameters.takeFirst().value<CollectionMetadata>();
                         setCollectionSecretWithEncryptionKey(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<Secret>(),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    secret,
+                                    userInteractionMode,
+                                    interactionServiceAddress,
+                                    collectionMetadata,
                                     m_requestQueue->deviceLockKey());
                         returnResult = Result(Result::Pending);
                     }
@@ -6278,13 +6371,18 @@ void Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        Secret::Identifier identifier = pr.parameters.takeFirst().value<Secret::Identifier>();
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
+                        CollectionMetadata collectionMetadata = pr.parameters.takeFirst().value<CollectionMetadata>();
+
                         getCollectionSecretWithEncryptionKey(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<Secret::Identifier>(),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    identifier,
+                                    userInteractionMode,
+                                    interactionServiceAddress,
+                                    collectionMetadata,
                                     m_requestQueue->deviceLockKey());
                         returnResult = Result(Result::Pending);
                     }
@@ -6295,13 +6393,18 @@ void Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        Secret::Identifier identifier = pr.parameters.takeFirst().value<Secret::Identifier>();
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
+                        SecretMetadata secretMetadata = pr.parameters.takeFirst().value<SecretMetadata>();
+
                         getStandaloneSecretWithEncryptionKey(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<Secret::Identifier>(),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<SecretMetadata>(),
+                                    identifier,
+                                    userInteractionMode,
+                                    interactionServiceAddress,
+                                    secretMetadata,
                                     m_requestQueue->deviceLockKey());
                         returnResult = Result(Result::Pending);
                     }
@@ -6312,16 +6415,24 @@ void Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        QString collectionName = pr.parameters.takeFirst().value<QString>();
+                        QString storagePluginName = pr.parameters.takeFirst().value<QString>();
+                        Secret::FilterData filter = pr.parameters.takeFirst().value<Secret::FilterData>();
+                        SecretManager::FilterOperator filterOperator = static_cast<SecretManager::FilterOperator>(pr.parameters.takeFirst().value<int>());
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
+                        CollectionMetadata collectionMetadata = pr.parameters.takeFirst().value<CollectionMetadata>();
+
                         findCollectionSecretsWithEncryptionKey(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<Secret::FilterData>(),
-                                    static_cast<SecretManager::FilterOperator>(pr.parameters.takeFirst().value<int>()),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    collectionName,
+                                    storagePluginName,
+                                    filter,
+                                    filterOperator,
+                                    userInteractionMode,
+                                    interactionServiceAddress,
+                                    collectionMetadata,
                                     m_requestQueue->deviceLockKey());
                         returnResult = Result(Result::Pending);
                     }
@@ -6332,13 +6443,18 @@ void Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        Secret::Identifier identifier = pr.parameters.takeFirst().value<Secret::Identifier>();
+                        SecretManager::UserInteractionMode userInteractionMode = static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>());
+                        QString interactionServiceAddress = pr.parameters.takeFirst().value<QString>();
+                        CollectionMetadata collectionMetadata = pr.parameters.takeFirst().value<CollectionMetadata>();
+
                         deleteCollectionSecretWithEncryptionKey(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<Secret::Identifier>(),
-                                    static_cast<SecretManager::UserInteractionMode>(pr.parameters.takeFirst().value<int>()),
-                                    pr.parameters.takeFirst().value<QString>(),
-                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    identifier,
+                                    userInteractionMode,
+                                    interactionServiceAddress,
+                                    collectionMetadata,
                                     m_requestQueue->deviceLockKey());
                         returnResult = Result(Result::Pending);
                     }
@@ -6349,11 +6465,13 @@ void Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        Secret::Identifier identifier = pr.parameters.takeFirst().value<Secret::Identifier>();
+                        CollectionMetadata collectionMetadata = pr.parameters.takeFirst().value<CollectionMetadata>();
                         useCollectionKeyPreCheckWithEncryptionKey(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<Secret::Identifier>(),
-                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    identifier,
+                                    collectionMetadata,
                                     m_requestQueue->deviceLockKey());
                         returnResult = Result(Result::Pending);
                     }
@@ -6364,11 +6482,13 @@ void Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
                         returnResult = Result(Result::UnknownError,
                                               QLatin1String("Internal error: incorrect parameter count!"));
                     } else {
+                        Secret::Identifier identifier = pr.parameters.takeFirst().value<Secret::Identifier>();
+                        CollectionMetadata collectionMetadata = pr.parameters.takeFirst().value<CollectionMetadata>();
                         setCollectionKeyPreCheckWithEncryptionKey(
                                     pr.callerPid,
                                     pr.requestId,
-                                    pr.parameters.takeFirst().value<Secret::Identifier>(),
-                                    pr.parameters.takeFirst().value<CollectionMetadata>(),
+                                    identifier,
+                                    collectionMetadata,
                                     m_requestQueue->deviceLockKey());
                         returnResult = Result(Result::Pending);
                     }
