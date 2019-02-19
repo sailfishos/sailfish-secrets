@@ -280,6 +280,7 @@ BuildRequires:  libassuan-devel
 Requires:   %{secretsdaemon} = %{version}-%{release}
 Requires:   libsailfishcrypto = %{version}-%{release}
 Requires:   libsailfishcryptopluginapi = %{version}-%{release}
+Requires:   %{secretsdaemon}-secretsplugin-common
 
 %description -n %{secretsdaemon}-cryptoplugins-gnupg
 %{summary}.
