@@ -10,6 +10,17 @@ GVariant *_sf_variant_new_bytes_or_empty(GBytes *bytes)
             sizeof(guchar));
 }
 
+GBytes *_sf_bytes_new_from_variant(GVariant *variant)
+{
+    gconstpointer data;
+    gsize n_elements;
+
+    data = g_variant_get_fixed_array(variant, &n_elements, sizeof(guchar));
+    return g_bytes_new_with_free_func(
+            data, n_elements * sizeof(guchar),
+            (GDestroyNotify)g_variant_unref, g_variant_ref(variant));
+}
+
 GBytes *_sf_bytes_new_from_variant_or_null(GVariant *variant)
 {
     gconstpointer data;
@@ -18,7 +29,9 @@ GBytes *_sf_bytes_new_from_variant_or_null(GVariant *variant)
     data = g_variant_get_fixed_array(variant, &n_elements, sizeof(guchar));
     if (n_elements == 0)
         return NULL;
-    return g_bytes_new(data, n_elements * sizeof(guchar));
+    return g_bytes_new_with_free_func(
+            data, n_elements * sizeof(guchar),
+            (GDestroyNotify)g_variant_unref, g_variant_ref(variant));
 }
 
 GVariant *_sf_variant_new_variant_map_string_or_empty(GHashTable *hash_table)
@@ -60,4 +73,22 @@ GHashTable *_sf_hash_table_new_string_from_variant(GVariant *variant)
     } while (g_variant_iter_next(&iter, "{sv}", &key, &item));
 
     return res;
+}
+
+GVariant *_sf_variant_new_variant_map_or_empty(GHashTable *hash_table)
+{
+    GVariantDict var_dict;
+
+    g_variant_dict_init(&var_dict, NULL);
+
+    if (hash_table) {
+        GHashTableIter ht_iter;
+        gpointer key;
+        gpointer value;
+        g_hash_table_iter_init(&ht_iter, hash_table);
+        while (g_hash_table_iter_next(&ht_iter, &key, &value))
+            g_variant_dict_insert_value(&var_dict, key, value);
+    }
+
+    return g_variant_dict_end(&var_dict);
 }

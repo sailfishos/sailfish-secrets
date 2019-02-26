@@ -17,13 +17,14 @@ PUBLIC_HEADERS += \
     $$PWD/sf-crypto.h \
     $$PWD/sf-crypto-manager.h \
     $$PWD/sf-crypto-key.h \
-    \
-    $$PWD/sf-common-private.h
-
-
+    $$PWD/sf-crypto-cipher-session.h
 
 HEADERS += $$PUBLIC_HEADERS \
-    $$PWD/sf-secrets-manager-private.h
+    $$PWD/sf-secrets-manager-private.h \
+    \
+    $$PWD/sf-crypto-manager-private.h \
+    \
+    $$PWD/sf-common-private.h
 
 SOURCES += \
     $$PWD/sf-secrets-manager.c \
@@ -34,6 +35,7 @@ SOURCES += \
     $$PWD/sf-crypto-manager.c \
     $$PWD/sf-crypto-key.c \
     $$PWD/sf-crypto.c \
+    $$PWD/sf-crypto-cipher-session.c \
     \
     $$PWD/sf-common.c
 
