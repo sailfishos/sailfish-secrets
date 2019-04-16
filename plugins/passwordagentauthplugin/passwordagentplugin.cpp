@@ -654,12 +654,16 @@ Result PasswordAgentPlugin::beginUserInputInteraction(
                                  was introduced. */
                               || promptText.contains(InteractionParameters::RepeatInstruction));
 
+    // SecretManager connection timeout is fixed at 3 minutes.
+    // Keep the timeout of the password dialog below this
+    // threshold to avoid having the dialog stay on screen
+    // while the request has already timeouted.
     QDBusPendingCall call = agent->asyncCall(newPassword
                     ? QStringLiteral("CreatePassword")
                     : QStringLiteral("QueryPassword"), {
                 QVariant::fromValue(cookie),
                 QVariant::fromValue(promptText.message()),
-                QVariant::fromValue(properties) }, 5 * 60 * 1000);
+                QVariant::fromValue(properties) }, 2 * 60 * 1000 + 30 * 1000);
 
     PasswordResponse * const response = new PasswordResponse(
                 call,
