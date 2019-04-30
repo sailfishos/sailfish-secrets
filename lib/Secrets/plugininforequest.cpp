@@ -217,11 +217,16 @@ void PluginInfoRequest::startRequest()
                                   QVector<PluginInfo>,
                                   QVector<PluginInfo> > reply = *watcher;
                 this->d_ptr->m_status = Request::Finished;
-                this->d_ptr->m_result = reply.argumentAt<0>();
-                this->d_ptr->m_storagePlugins = reply.argumentAt<1>();
-                this->d_ptr->m_encryptionPlugins = reply.argumentAt<2>();
-                this->d_ptr->m_encryptedStoragePlugins = reply.argumentAt<3>();
-                this->d_ptr->m_authenticationPlugins = reply.argumentAt<4>();
+                if (reply.isError()) {
+                    this->d_ptr->m_result = Result(Result::DaemonError,
+                                                   reply.error().message());
+                } else {
+                    this->d_ptr->m_result = reply.argumentAt<0>();
+                    this->d_ptr->m_storagePlugins = reply.argumentAt<1>();
+                    this->d_ptr->m_encryptionPlugins = reply.argumentAt<2>();
+                    this->d_ptr->m_encryptedStoragePlugins = reply.argumentAt<3>();
+                    this->d_ptr->m_authenticationPlugins = reply.argumentAt<4>();
+                }
                 watcher->deleteLater();
                 emit this->statusChanged();
                 emit this->resultChanged();

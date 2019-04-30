@@ -350,9 +350,14 @@ void EncryptRequest::startRequest()
                 QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.take();
                 QDBusPendingReply<Result, QByteArray, QByteArray> reply = *watcher;
                 this->d_ptr->m_status = Request::Finished;
-                this->d_ptr->m_result = reply.argumentAt<0>();
-                this->d_ptr->m_ciphertext = reply.argumentAt<1>();
-                this->d_ptr->m_authenticationTag = reply.argumentAt<2>();
+                if (reply.isError()) {
+                    this->d_ptr->m_result = Result(Result::DaemonError,
+                                                   reply.error().message());
+                } else {
+                    this->d_ptr->m_result = reply.argumentAt<0>();
+                    this->d_ptr->m_ciphertext = reply.argumentAt<1>();
+                    this->d_ptr->m_authenticationTag = reply.argumentAt<2>();
+                }
                 watcher->deleteLater();
                 emit this->statusChanged();
                 emit this->resultChanged();

@@ -174,9 +174,14 @@ void HealthCheckRequest::startRequest()
                                   HealthCheckRequest::Health,
                                   HealthCheckRequest::Health> reply = *watcher;
                 this->d_ptr->m_status = Request::Finished;
-                this->d_ptr->m_result = reply.argumentAt<0>();
-                this->d_ptr->m_saltDataHealth = reply.argumentAt<1>();
-                this->d_ptr->m_masterlockHealth = reply.argumentAt<2>();
+                if (reply.isError()) {
+                    this->d_ptr->m_result = Result(Result::DaemonError,
+                                                   reply.error().message());
+                } else {
+                    this->d_ptr->m_result = reply.argumentAt<0>();
+                    this->d_ptr->m_saltDataHealth = reply.argumentAt<1>();
+                    this->d_ptr->m_masterlockHealth = reply.argumentAt<2>();
+                }
                 watcher->deleteLater();
                 emit this->saltDataHealthChanged();
                 emit this->masterlockHealthChanged();

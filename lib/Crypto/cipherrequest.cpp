@@ -730,15 +730,20 @@ void CipherRequest::startRequest()
                             needsStEmit = true;
                             this->d_ptr->m_status = Request::Finished;
                         }
-                        this->d_ptr->m_result = reply.argumentAt<0>();
-                        if (this->d_ptr->m_result.code() == Result::Succeeded) {
-                            this->d_ptr->m_cipherSessionToken = 0;
-                        }
-                        this->d_ptr->m_generatedData = reply.argumentAt<1>();
                         bool needsVfEmit = false;
-                        if (this->d_ptr->m_verificationStatus != reply.argumentAt<2>()) {
-                            needsVfEmit = true;
-                            this->d_ptr->m_verificationStatus = reply.argumentAt<2>();
+                        if (reply.isError()) {
+                            this->d_ptr->m_result = Result(Result::DaemonError,
+                                                           reply.error().message());
+                        } else {
+                            this->d_ptr->m_result = reply.argumentAt<0>();
+                            if (this->d_ptr->m_result.code() == Result::Succeeded) {
+                                this->d_ptr->m_cipherSessionToken = 0;
+                            }
+                            this->d_ptr->m_generatedData = reply.argumentAt<1>();
+                            if (this->d_ptr->m_verificationStatus != reply.argumentAt<2>()) {
+                                needsVfEmit = true;
+                                this->d_ptr->m_verificationStatus = reply.argumentAt<2>();
+                            }
                         }
                         watcher->deleteLater();
                         if (needsStEmit) {

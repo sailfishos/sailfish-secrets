@@ -377,9 +377,14 @@ void DecryptRequest::startRequest()
                 QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.take();
                 QDBusPendingReply<Result, QByteArray, CryptoManager::VerificationStatus> reply = *watcher;
                 this->d_ptr->m_status = Request::Finished;
-                this->d_ptr->m_result = reply.argumentAt<0>();
-                this->d_ptr->m_plaintext = reply.argumentAt<1>();
-                this->d_ptr->m_verificationStatus = reply.argumentAt<2>();
+                if (reply.isError()) {
+                    this->d_ptr->m_result = Result(Result::DaemonError,
+                                                   reply.error().message());
+                } else {
+                    this->d_ptr->m_result = reply.argumentAt<0>();
+                    this->d_ptr->m_plaintext = reply.argumentAt<1>();
+                    this->d_ptr->m_verificationStatus = reply.argumentAt<2>();
+                }
                 watcher->deleteLater();
                 emit this->statusChanged();
                 emit this->resultChanged();
