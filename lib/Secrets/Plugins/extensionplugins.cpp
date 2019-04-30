@@ -1338,7 +1338,7 @@ AuthenticationPlugin::~AuthenticationPlugin()
  */
 
 /*!
- * \fn AuthenticationPlugin::beginAuthentication(uint pid, qint64 requestId)
+ * \fn AuthenticationPlugin::beginAuthentication(uint pid, qint64 requestId, const Sailfish::Secrets::InteractionParameters::PromptText &promptText)
  * \brief Begin an authentication (user verification) flow on behalf of the
  *        application with the specified \a pid as part of the secrets
  *        framework request with the specified \a requestId.
@@ -1358,6 +1358,13 @@ AuthenticationPlugin::~AuthenticationPlugin()
  * Sailfish::Secrets::Result with the result code set to
  * Sailfish::Secrets::Result::Failed and the error code set to
  * Sailfish::Secrets::Result::SecretsPluginIsLockedError.
+ */
+
+/*!
+ * \fn AuthenticationPlugin::cancelAuthentication(uint pid, qint64 requestId)
+ * \brief Cancel a running authentication flow.
+ *
+ * This will cancel a running authentication flow.
  */
 
 /*!
@@ -1388,3 +1395,11 @@ AuthenticationPlugin::~AuthenticationPlugin()
  * Sailfish::Secrets::Result::Failed and the error code set to
  * Sailfish::Secrets::Result::SecretsPluginIsLockedError.
  */
+
+/*!
+ * \fn AuthenticationPlugin::cancelUserInputInteraction(uint pid, qint64 requestId)
+ * \brief Cancel a running user input interaction.
+ *
+ * This will cancel a running user input interaction.
+ */
+

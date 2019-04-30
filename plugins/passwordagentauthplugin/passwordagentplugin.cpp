@@ -379,6 +379,32 @@ struct PasswordAgentPlugin::Agent
         call(QStringLiteral("Cancel"), { cookie });
     }
 
+    bool remove(const QString &cookie)
+    {
+        QHash<QString, PasswordResponse *>::Iterator it = responses.find(cookie);
+        if (it != responses.end()) {
+            it.value()->deleteLater();
+            responses.erase(it);
+        }
+        return it != responses.end();
+    }
+
+    void cancelAndRemove(uint callerPid, qint64 requestId)
+    {
+        QHash<QString, PasswordResponse *>::Iterator it = responses.begin();
+        while (it != responses.end()) {
+            if (it.value()->callerPid == callerPid
+                && it.value()->requestId == requestId) {
+                cancel(it.key());
+                it.value()->deleteLater();
+                responses.erase(it);
+                return;
+            } else {
+                ++it;
+            }
+        }
+    }
+
     const QDBusConnection connection;
     const QString service;
     const QString path;
@@ -500,9 +526,12 @@ Result PasswordAgentPlugin::beginAuthentication(
     m_polkitResponses.insert(cookie, response);
 
     connect(response, &QDBusPendingCallWatcher::finished, this, [=](QDBusPendingCallWatcher *watcher) {
-        watcher->deleteLater();
-
-        m_polkitResponses.remove(cookie);
+        QHash<QString, PolkitResponse *>::Iterator it = m_polkitResponses.find(cookie);
+        if (it == m_polkitResponses.end()) {
+            return;
+        }
+        it.value()->deleteLater();
+        m_polkitResponses.erase(it);
 
         Result result;
 
@@ -586,6 +615,30 @@ void PasswordAgentPlugin::startDeviceLockAuthentication(
             promptText.message(),
             { { QStringLiteral("authenticatingPid"), QVariant::fromValue(callerPid) } },
             methods);
+
+    m_nemoTimers.insert(QPair<uint, quint64>(callerPid, requestId), timeout);
+}
+
+void PasswordAgentPlugin::cancelAuthentication(
+        uint callerPid,
+        qint64 requestId)
+{
+    QHash<QString, PolkitResponse *>::Iterator it = m_polkitResponses.begin();
+    while (it != m_polkitResponses.end()) {
+        if (it.value()->callerPid == callerPid
+                && it.value()->requestId == requestId) {
+            it.value()->cancel();
+            it.value()->deleteLater();
+            m_polkitResponses.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    QHash<QPair<uint, quint64>, QTimer *>::Iterator timerIt = m_nemoTimers.find(QPair<uint, quint64>(callerPid, requestId));
+    if (timerIt != m_nemoTimers.end()) {
+        timerIt.value()->deleteLater();
+        m_nemoTimers.erase(timerIt);
+    }
 }
 
 static const QPair<InteractionParameters::Prompt, QString> promptKeys[] = {
@@ -672,9 +725,10 @@ Result PasswordAgentPlugin::beginUserInputInteraction(
     agent->responses.insert(cookie, response);
 
     connect(response, &QDBusPendingCallWatcher::finished, this, [=](QDBusPendingCallWatcher *watcher) {
-        watcher->deleteLater();
-
-        agent->responses.remove(cookie);
+        Q_UNUSED(watcher);
+        if (!agent->remove(cookie)) {
+            return;
+        }
 
         Result result;
 
@@ -710,6 +764,15 @@ Result PasswordAgentPlugin::beginUserInputInteraction(
     });
 
     return Result(Result::Pending);
+}
+
+void PasswordAgentPlugin::cancelUserInputInteraction(
+        uint callerPid,
+        qint64 requestId)
+{
+    if (m_sessionAgent) {
+        m_sessionAgent->cancelAndRemove(callerPid, requestId);
+    }
 }
 
 void PasswordAgentPlugin::addConnection(const QDBusConnection &connection)

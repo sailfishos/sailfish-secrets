@@ -45,8 +45,7 @@ namespace Daemon {
 
 namespace ApiImpl {
 
-class CryptoRequestQueue;
-class CryptoDBusObject : public QObject, protected QDBusContext
+class CryptoDBusObject : public Secrets::Daemon::ApiImpl::DBusObject
 {
     Q_OBJECT
     Q_CLASSINFO("D-Bus Interface", "org.sailfishos.crypto")
@@ -561,9 +560,6 @@ public Q_SLOTS:
             const Sailfish::Crypto::InteractionParameters &interactionParameters,
             const QDBusMessage &message,
             Sailfish::Crypto::Result &result);
-
-private:
-    Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *m_requestQueue;
 };
 
 class RequestProcessor;
@@ -586,6 +582,7 @@ public:
     bool unlockPlugin(const QString &pluginName, const QByteArray &lockCode);
     bool setLockCodePlugin(const QString &pluginName, const QByteArray &oldCode, const QByteArray &newCode);
 
+    void handleCancelation(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request) Q_DECL_OVERRIDE;
     void handlePendingRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;
     void handleFinishedRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;
     QString requestTypeToString(int type) const Q_DECL_OVERRIDE;

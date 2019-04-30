@@ -179,11 +179,19 @@ public:
             qint64 requestId,
             const Sailfish::Secrets::InteractionParameters::PromptText &promptText) = 0;
 
+    virtual void cancelAuthentication(
+            uint callerPid,
+            qint64 requestId) = 0;
+
     virtual Sailfish::Secrets::Result beginUserInputInteraction(
             uint callerPid,
             qint64 requestId,
             const Sailfish::Secrets::InteractionParameters &interactionParameters,
             const QString &interactionServiceAddress) = 0;
+
+    virtual void cancelUserInputInteraction(
+            uint callerPid,
+            qint64 requestId) = 0;
 
 Q_SIGNALS:
     void authenticationCompleted(

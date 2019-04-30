@@ -21,7 +21,7 @@
 #include <QtCore/QVector>
 #include <QtCore/QByteArray>
 
-#define MAP_PLUGIN_NAMES(variable) ::mapPluginNames(m_requestQueue->controller(), variable)
+#define MAP_PLUGIN_NAMES(variable) ::mapPluginNames(static_cast<Daemon::ApiImpl::CryptoRequestQueue*>(m_requestQueue)->controller(), variable)
 
 namespace {
     Sailfish::Crypto::Key mapPluginNames(
@@ -60,8 +60,7 @@ using namespace Sailfish::Crypto;
 
 Daemon::ApiImpl::CryptoDBusObject::CryptoDBusObject(
         Daemon::ApiImpl::CryptoRequestQueue *parent)
-    : QObject(parent)
-    , m_requestQueue(parent)
+    : DBusObject(parent)
 {
 }
 
@@ -723,6 +722,13 @@ QString Daemon::ApiImpl::CryptoRequestQueue::requestTypeToString(int type) const
         default: break;
     }
     return QLatin1String("Unknown Crypto Request!");
+}
+
+void Daemon::ApiImpl::CryptoRequestQueue::handleCancelation(
+        Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request)
+{
+    Q_UNUSED(request);
+    // Only UserInput from Secrets is currently cancellable.
 }
 
 void Daemon::ApiImpl::CryptoRequestQueue::handlePendingRequest(
