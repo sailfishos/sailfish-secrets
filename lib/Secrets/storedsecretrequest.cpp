@@ -206,8 +206,13 @@ void StoredSecretRequest::startRequest()
                 QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.take();
                 QDBusPendingReply<Result, Secret> reply = *watcher;
                 this->d_ptr->m_status = Request::Finished;
-                this->d_ptr->m_result = reply.argumentAt<0>();
-                this->d_ptr->m_secret = reply.argumentAt<1>();
+                if (reply.isError()) {
+                    this->d_ptr->m_result = Result(Result::DaemonError,
+                                                   reply.error().message());
+                } else {
+                    this->d_ptr->m_result = reply.argumentAt<0>();
+                    this->d_ptr->m_secret = reply.argumentAt<1>();
+                }
                 watcher->deleteLater();
                 emit this->statusChanged();
                 emit this->resultChanged();
