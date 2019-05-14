@@ -49,8 +49,7 @@ namespace Daemon {
 
 namespace ApiImpl {
 
-class SecretsRequestQueue;
-class SecretsDBusObject : public QObject, protected QDBusContext
+class SecretsDBusObject : public DBusObject
 {
     Q_OBJECT
     Q_CLASSINFO("D-Bus Interface", "org.sailfishos.secrets")
@@ -417,9 +416,6 @@ public Q_SLOTS:
             const QString &interactionServiceAddress,
             const QDBusMessage &message,
             Sailfish::Secrets::Result &result);
-
-private:
-    Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *m_requestQueue;
 };
 
 class RequestProcessor;
@@ -442,6 +438,7 @@ public:
     bool initialize(const QByteArray &lockCode, InitializationMode mode);
     bool initializePlugins();
 
+    void handleCancelation(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request) Q_DECL_OVERRIDE;
     void handlePendingRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;
     void handleFinishedRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;
     QString requestTypeToString(int type) const Q_DECL_OVERRIDE;

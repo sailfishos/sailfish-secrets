@@ -22,6 +22,7 @@
 QT_BEGIN_NAMESPACE
 class QDBusPendingCallWatcher;
 class QDBusObjectPath;
+class QTimer;
 QT_END_NAMESPACE
 
 namespace Sailfish {
@@ -65,11 +66,19 @@ public:
             qint64 requestId,
             const Sailfish::Secrets::InteractionParameters::PromptText &promptText) Q_DECL_OVERRIDE;
 
+    void cancelAuthentication(
+            uint callerPid,
+            qint64 requestId) Q_DECL_OVERRIDE;
+
     Result beginUserInputInteraction(
             uint callerPid,
             qint64 requestId,
             const InteractionParameters &interactionParameters,
             const QString &interactionServiceAddress) Q_DECL_OVERRIDE;
+
+    void cancelUserInputInteraction(
+            uint callerPid,
+            qint64 requestId) Q_DECL_OVERRIDE;
 
     void addConnection(const QDBusConnection &connection);
     void removeConnection(const QString &name);
@@ -90,6 +99,7 @@ private:
     QScopedPointer<Agent> m_sessionAgent;
     QScopedPointer<QDBusServer> m_server;
     QHash<QString, PolkitResponse *> m_polkitResponses;
+    QHash<QPair<uint, quint64>, QTimer *> m_nemoTimers;
 
     inline void destroyAgent(Agent *agent);
     void startDeviceLockAuthentication(

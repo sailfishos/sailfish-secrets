@@ -30,6 +30,18 @@ Daemon::ApiImpl::RequestQueue::RequestQueue(
     qCDebug(lcSailfishSecretsDaemon) << "New API implementation request queue constructed:" << m_dbusObjectPath << "," << m_dbusInterfaceName;
 }
 
+Daemon::ApiImpl::DBusObject::DBusObject(Daemon::ApiImpl::RequestQueue *parent)
+    : QObject(parent)
+    , m_requestQueue(parent)
+{
+}
+
+void Daemon::ApiImpl::DBusObject::onDisconnection()
+{
+    qCDebug(lcSailfishSecretsDaemon) << "Client disconnected:" << connection().name();
+    m_requestQueue->handleClientDisconnection(connection());
+}
+
 Daemon::ApiImpl::RequestQueue::~RequestQueue()
 {
 }
@@ -46,6 +58,37 @@ void Daemon::ApiImpl::RequestQueue::handleClientConnection(const QDBusConnection
         qCWarning(lcSailfishSecretsDaemon) << "Could not register object for p2p connection!";
     } else {
         qCDebug(lcSailfishSecretsDaemon) << "Registered p2p object with the client connection!";
+    }
+
+    clientConnection.connect(QString(), // any service
+                             QLatin1String("/org/freedesktop/DBus/Local"),
+                             QLatin1String("org.freedesktop.DBus.Local"),
+                             QLatin1String("Disconnected"),
+                             m_dbusObject, SLOT(onDisconnection()));
+}
+
+void Daemon::ApiImpl::RequestQueue::handleClientDisconnection(const QDBusConnection &connection)
+{
+    QList<RequestData*>::Iterator it = m_requests.begin();
+    while (it != m_requests.end()) {
+        Daemon::ApiImpl::RequestQueue::RequestData *request = *it;
+        if (request->connection.name() != connection.name()) {
+            ++it;
+            continue;
+        }
+        switch (request->status) {
+        case RequestInProgress:
+            handleCancelation(request); // Fallthrough
+        case RequestPending:
+            qCDebug(lcSailfishSecretsDaemon) << "Deleting request" << request->requestId << request->remotePid;
+            it = m_requests.erase(it);
+            delete request;
+            break;
+        case RequestFinished:
+            qCDebug(lcSailfishSecretsDaemon) << "Ignoring finished request" << request->requestId << request->remotePid;
+            ++it;
+            break;
+        }
     }
 }
 

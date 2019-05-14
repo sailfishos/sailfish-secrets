@@ -30,6 +30,21 @@ namespace Daemon {
 
 namespace ApiImpl {
 
+class RequestQueue;
+class DBusObject : public QObject, protected QDBusContext
+{
+    Q_OBJECT
+
+public:
+    DBusObject(RequestQueue *parent);
+
+public Q_SLOTS:
+    void onDisconnection();
+
+protected:
+    RequestQueue *m_requestQueue;
+};
+
 // Encapsulates the various things required to implement one of the APIs
 // which are exposed via the Peer-To-Peer DBus interface, and provides
 // an asynchronous queue of API requests.
@@ -76,7 +91,7 @@ public:
 
     virtual ~RequestQueue();
 
-    void setDBusObject(QObject *dbusObject) { m_dbusObject = dbusObject; }
+    void setDBusObject(DBusObject *dbusObject) { m_dbusObject = dbusObject; }
 
     void handleRequest(int requestType,
                        const QVariantList &inParams,
@@ -97,6 +112,7 @@ public:
     Sailfish::Secrets::Result enqueueRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request);
     void requestFinished(quint64 requestId, const QList<QVariant> &outParams);
 
+    virtual void handleCancelation(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request) = 0;
     virtual void handlePendingRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) = 0;
     virtual void handleFinishedRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) = 0;
     virtual QString requestTypeToString(int type) const = 0;
@@ -104,13 +120,14 @@ public:
 public Q_SLOTS:
     void handleRequests();
     void handleClientConnection(const QDBusConnection &connection);
+    void handleClientDisconnection(const QDBusConnection &connection);
 
 private Q_SLOTS:
     void finishEnqueueRequest(quint64 requestId);
 
 protected:
     Controller *m_controller;
-    QObject *m_dbusObject;
+    DBusObject *m_dbusObject;
     QString m_dbusObjectPath;
     QString m_dbusInterfaceName;
     QList<RequestData*> m_requests;

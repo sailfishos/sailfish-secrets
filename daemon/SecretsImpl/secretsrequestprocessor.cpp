@@ -1367,7 +1367,7 @@ Daemon::ApiImpl::RequestProcessor::userInput(
                                  callerPid,
                                  requestId,
                                  Daemon::ApiImpl::UserInputRequest,
-                                 QVariantList() << QVariant::fromValue<InteractionParameters>(promptParams)));
+                                 QVariantList() << QVariant::fromValue<QString>(userInputPlugin)));
     return Result(Result::Pending);
 }
 
@@ -6394,3 +6394,46 @@ void Daemon::ApiImpl::RequestProcessor::authenticationCompleted(
     }
 }
 
+void Daemon::ApiImpl::RequestProcessor::cancelRequest(pid_t callerPid,
+                                                      quint64 requestId)
+{
+    // look up the pending request in our list
+    if (m_pendingRequests.contains(requestId)) {
+        // call the appropriate method to complete the request
+        Daemon::ApiImpl::RequestProcessor::PendingRequest pr = m_pendingRequests.take(requestId);
+        Q_ASSERT(pr.callerPid == callerPid);
+        switch (pr.requestType) {
+        case UserInputRequest: {
+            if (pr.parameters.size() != 1) {
+                qCWarning(lcSailfishSecretsDaemon) << QLatin1String("Internal error: incorrect parameter count!");
+            } else {
+                QString userInputPlugin = pr.parameters.takeFirst().value<QString>();
+                if (!m_authenticationPlugins.contains(userInputPlugin)) {
+                    qCWarning(lcSailfishSecretsDaemon) << QLatin1String("Internal error: unknown plugin name!");
+                } else {
+                    m_authenticationPlugins[userInputPlugin]->cancelUserInputInteraction(callerPid, requestId);
+                }
+            }
+            break;
+        }
+        case DeleteCollectionRequest:
+        case StoredKeyIdentifiersRequest:
+        case SetCollectionSecretRequest:
+        case GetCollectionSecretRequest:
+        case GetStandaloneSecretRequest:
+        case FindCollectionSecretsRequest:
+        case DeleteCollectionSecretRequest:
+        case UseCollectionKeyPreCheckRequest:
+        case SetCollectionKeyPreCheckRequest: {
+            // always use the system authentication plugin for device lock authentication requests.
+            const QString systemAuthenticationPlugin = m_requestQueue->controller()->mappedPluginName(
+                    m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
+                                   : SecretManager::DefaultAuthenticationPluginName);
+            m_authenticationPlugins[systemAuthenticationPlugin]->cancelAuthentication(callerPid, requestId);
+            break;
+        }
+        default:
+            break;
+        }
+    }
+}

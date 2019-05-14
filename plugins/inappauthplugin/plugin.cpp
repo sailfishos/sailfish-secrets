@@ -38,6 +38,15 @@ Daemon::Plugins::InAppPlugin::beginAuthentication(
                   QLatin1String("In-App plugin cannot properly authenticate the user"));
 }
 
+void
+Daemon::Plugins::InAppPlugin::cancelAuthentication(
+            uint callerPid,
+            qint64 requestId)
+{
+    Q_UNUSED(callerPid);
+    Q_UNUSED(requestId);
+}
+
 Result
 Daemon::Plugins::InAppPlugin::beginUserInputInteraction(
             uint callerPid,
@@ -202,4 +211,23 @@ Daemon::Plugins::InAppPlugin::interactionRequestFinished(
                 watcher->interactionServiceAddress(),
                 response.result(),
                 response.responseData());
+}
+
+void
+Daemon::Plugins::InAppPlugin::cancelUserInputInteraction(
+            uint callerPid,
+            qint64 requestId)
+{
+    Q_UNUSED(callerPid);
+
+    if (!m_requests.contains(requestId)) {
+        // The request doesn't exist anymore, it has been finished
+        // already and cancellation is considered a success.
+        return;
+    }
+    InteractionRequestWatcher *watcher = m_requests.take(requestId);
+    watcher->disconnectFromInteractionService();
+    watcher->deleteLater();
+
+    m_responses.remove(requestId);
 }

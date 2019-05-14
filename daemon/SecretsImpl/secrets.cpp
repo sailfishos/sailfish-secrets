@@ -39,7 +39,7 @@
 #include <notification.h>
 #endif
 
-#define MAP_PLUGIN_NAMES(variable) ::mapPluginNames(m_requestQueue->controller(), variable)
+#define MAP_PLUGIN_NAMES(variable) ::mapPluginNames(static_cast<Daemon::ApiImpl::SecretsRequestQueue*>(m_requestQueue)->controller(), variable)
 
 namespace {
 
@@ -108,8 +108,7 @@ using namespace Sailfish::Secrets;
 
 Daemon::ApiImpl::SecretsDBusObject::SecretsDBusObject(
         Daemon::ApiImpl::SecretsRequestQueue *parent)
-    : QObject(parent)
-    , m_requestQueue(parent)
+    : DBusObject(parent)
 {
 }
 
@@ -1211,6 +1210,13 @@ QString Daemon::ApiImpl::SecretsRequestQueue::requestTypeToString(int type) cons
         default: break;
     }
     return QLatin1String("Unknown Secrets Request!");
+}
+
+void Daemon::ApiImpl::SecretsRequestQueue::handleCancelation(
+        Daemon::ApiImpl::RequestQueue::RequestData *request)
+{
+    qCDebug(lcSailfishSecretsDaemon) << "Cancelling request from client:" << request->remotePid << ", request number:" << request->requestId;
+    m_requestProcessor->cancelRequest(request->remotePid, request->requestId);
 }
 
 void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(

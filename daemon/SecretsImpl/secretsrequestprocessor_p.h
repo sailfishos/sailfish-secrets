@@ -298,6 +298,7 @@ public: // helper methods for crypto API bridge (secretscryptohelpers)
             pid_t callerPid,
             quint64 requestId,
             const Sailfish::Secrets::InteractionParameters &uiParams);
+    void cancelRequest(pid_t callerPid, quint64 requestId);
 
 private Q_SLOTS:
     void authenticationCompleted(

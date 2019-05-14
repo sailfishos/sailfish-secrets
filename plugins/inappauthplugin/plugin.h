@@ -70,11 +70,19 @@ public:
                 qint64 requestId,
                 const Sailfish::Secrets::InteractionParameters::PromptText &promptText) Q_DECL_OVERRIDE;
 
+    void cancelAuthentication(
+                uint callerPid,
+                qint64 requestId) Q_DECL_OVERRIDE;
+
     Sailfish::Secrets::Result beginUserInputInteraction(
                 uint callerPid,
                 qint64 requestId,
                 const Sailfish::Secrets::InteractionParameters &interactionParameters,
                 const QString &interactionServiceAddress) Q_DECL_OVERRIDE;
+
+    void cancelUserInputInteraction(
+                uint callerPid,
+                qint64 requestId) Q_DECL_OVERRIDE;
 
 private Q_SLOTS:
     void interactionRequestFinished(quint64 requestId);
