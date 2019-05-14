@@ -283,7 +283,7 @@ public Q_SLOTS:
             const QString &storagePluginName,
             const QDBusMessage &message,
             Sailfish::Secrets::Result &result,
-            QVariantMap &names);
+            QMap<QString, bool> &names);
 
     // create a DeviceLock-protected collection
     void createCollection(

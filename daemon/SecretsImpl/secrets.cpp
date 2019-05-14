@@ -188,7 +188,7 @@ void Daemon::ApiImpl::SecretsDBusObject::collectionNames(
         const QString &storagePluginName,
         const QDBusMessage &message,
         Sailfish::Secrets::Result &result,
-        QVariantMap &names)
+        QMap<QString, bool> &names)
 {
     Q_UNUSED(names); // outparam, set in handlePendingRequest / handleFinishedRequest
     QList<QVariant> inParams;
@@ -1271,7 +1271,7 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
         case CollectionNamesRequest: {
             qCDebug(lcSailfishSecretsDaemon) << "Handling CollectionNamesRequest from client:" << request->remotePid << ", request number:" << request->requestId;
             QString storagePluginName = request->inParams.size() ? request->inParams.takeFirst().value<QString>() : QString();
-            QVariantMap names;
+            QMap<QString, bool> names;
             Result result = masterLocked()
                     ? Result(Result::SecretsDaemonLockedError,
                              QLatin1String("The secrets database is locked"))
@@ -1286,10 +1286,10 @@ void Daemon::ApiImpl::SecretsRequestQueue::handlePendingRequest(
                 *completed = false;
             } else {
                 if (request->isSecretsCryptoRequest) {
-                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << QVariant::fromValue<QVariantMap>(names));
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << QVariant::fromValue<QMap<QString, bool> >(names));
                 } else {
                     request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                            << QVariant::fromValue<QVariantMap>(names));
+                                                                            << QVariant::fromValue<QMap<QString, bool> >(names));
                 }
                 *completed = true;
             }
@@ -2174,14 +2174,15 @@ void Daemon::ApiImpl::SecretsRequestQueue::handleFinishedRequest(
                 qCWarning(lcSailfishSecretsDaemon) << "CollectionNamesRequest:" << request->requestId << "finished as pending!";
                 *completed = true;
             } else {
-                QVariantMap names = request->outParams.size()
-                                  ? request->outParams.takeFirst().value<QVariantMap>()
-                                  : QVariantMap();
+                QMap<QString, bool> names = request->outParams.size()
+                                          ? request->outParams.takeFirst().value<QMap<QString, bool> >()
+                                          : QMap<QString, bool>();
                 if (request->isSecretsCryptoRequest) {
-                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result, QVariantList() << names);
+                    asynchronousCryptoRequestCompleted(request->cryptoRequestId, result,
+                                                       QVariantList() << QVariant::fromValue<QMap<QString, bool> >(names));
                 } else {
                     request->connection.send(request->message.createReply() << QVariant::fromValue<Result>(result)
-                                                                            << QVariant::fromValue<QVariantMap>(names));
+                                                                            << QVariant::fromValue<QMap<QString, bool> >(names));
                 }
                 *completed = true;
             }

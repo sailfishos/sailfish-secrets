@@ -276,7 +276,7 @@ Daemon::ApiImpl::RequestProcessor::collectionNames(
         pid_t callerPid,
         quint64 requestId,
         const QString &storagePluginName,
-        QVariantMap *names)
+        QMap<QString, bool> *names)
 {
     Q_UNUSED(names); // asynchronous out-parameter.
 
