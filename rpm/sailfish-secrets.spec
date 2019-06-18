@@ -202,6 +202,7 @@ BuildRequires:  pkgconfig(Qt5Concurrent)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(libsystemd)
 BuildRequires:  pkgconfig(qt5-boostable)
+BuildRequires:  pkgconfig(systemsettings)
 BuildRequires:  qt5-qttools-linguist
 BuildRequires:  qt5-plugin-sqldriver-sqlite
 Requires:         libsailfishsecrets = %{version}-%{release}
@@ -212,6 +213,7 @@ Requires(post):   systemd
 Requires:         mapplauncherd
 Requires:         libsailfishcrypto = %{version}-%{release}
 Requires:         qt5-plugin-sqldriver-sqlcipher
+Requires:         nemo-qml-plugin-systemsettings
 
 %description -n %{secretsdaemon}
 Provides a secrets storage and cryptographic operations system daemon service,

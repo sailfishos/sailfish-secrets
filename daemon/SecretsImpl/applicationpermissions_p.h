@@ -15,6 +15,7 @@
 #include <QtCore/QList>
 #include <QtCore/QSet>
 
+#include <aboutsettings.h>
 #include <sys/types.h>
 
 namespace Sailfish {
@@ -31,11 +32,17 @@ class ApplicationPermissions : public QObject
 
 public:
     ApplicationPermissions(QObject *parent = Q_NULLPTR)
-        : QObject(parent) {}
+        : QObject(parent) {
+        AboutSettings settings;
+        m_osName = settings.operatingSystemName();
+    }
 
     QString applicationId(pid_t pid) const;
-    QString platformApplicationId() const { return QLatin1String("Sailfish OS"); }
+    QString platformApplicationId() const { return m_osName; }
     bool applicationIsPlatformApplication(pid_t pid) const;
+
+private:
+    QString m_osName;
 };
 
 } // namespace ApiImpl
