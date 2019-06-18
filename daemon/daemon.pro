@@ -2,7 +2,7 @@ TEMPLATE = app
 TARGET = sailfishsecretsd
 QT = core sql dbus concurrent
 CONFIG += link_pkgconfig hide_symbols
-PKGCONFIG += dbus-1 Qt5Concurrent Qt5DBus Qt5Core Qt5Sql
+PKGCONFIG += dbus-1 Qt5Concurrent Qt5DBus Qt5Core Qt5Sql systemsettings
 
 packagesExist(qt5-boostable) {
     DEFINES += HAS_BOOSTER
