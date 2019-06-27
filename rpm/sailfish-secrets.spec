@@ -400,6 +400,7 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 
 %files -n libsailfishcrypto-tests
 %defattr(-,root,root,-)
+%{_bindir}/sailfishcryptoexample
 /opt/tests/Sailfish/Crypto/tst_crypto
 /opt/tests/Sailfish/Crypto/tst_cryptorequests
 /opt/tests/Sailfish/Crypto/tst_cryptosecrets

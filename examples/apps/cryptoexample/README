@@ -1,0 +1,38 @@
+sailfishcryptoexample
+
+This is a simple application which stores a secret into an
+application-specific collection (wallet) which is protected
+by the device lock.
+
+That secret is then used to generate a symmetric key,
+which is used either to encrypt $CWD/plaintext.dat
+and write the output to $CWD/ciphertext.dat, or to
+decrypt $CWD/ciphertext.dat and write the output to
+$CWD/plaintext.dat.
+
+--
+
+Some notes on the implementation:
+
+- By using OwnerOnlyMode access control mode, the secrets
+  daemon will not allow any other application to access
+  the collection of secrets.
+
+- By using DeviceLock protection, the secrets daemon doesn't
+  need to ask the user for the lock code to unlock the
+  collection when the application attempts to access it,
+  but will ask for permission if required (e.g. after reboot).
+
+- A real application should generate a stored key (which
+  is stored securely by the daemon, and never returned
+  to the client process) to avoid potential security issues.
+  This example does not, purely for explanatory purposes.
+  Replace GenerateKeyRequest with GenerateStoredKeyRequest
+  in your production code.
+
+- A real application should not use request.waitForFinished()
+  but instead should handle the state-changes appropriately.
+  This example does not, as it has no UI events which need
+  to be processed, and it simplifies the code flow for
+  example purposes.
+
