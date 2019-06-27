@@ -58,25 +58,25 @@ void KeyPairGenerationParametersPrivate::setSubclassParameters(
 }
 
 /*!
- * \class KeyPairGenerationParameters
- * \brief Encapsulates parameters related to the generation of an asymmetric cryptographic key pair
- *
- * This class encapsulates a variety of parameters which will affect how
- * the crypto plugin generates a key pair when fulfilling a
- * GenerateStoredKeyRequest.
- *
- * This base class is only useful for plugin-specific key-pair generation
- * (where the keyPairType() is specified to be
- * KeyPairGenerationParameters::KeyPairCustom and the client has specified
- * a variety of customParameters()).
- *
- * Most clients will want to use one of the derived types such as
- * EcKeyPairGenerationParameters, RsaKeyPairGenerationParameters,
- * DsaKeyPairGenerationParameters or DhKeyPairGenerationParameters.
+  \class KeyPairGenerationParameters
+  \brief Encapsulates parameters related to the generation of an asymmetric cryptographic key pair
+
+  This class encapsulates a variety of parameters which will affect how
+  the crypto plugin generates a key pair when fulfilling a
+  GenerateStoredKeyRequest.
+
+  This base class is only useful for plugin-specific key-pair generation
+  (where the keyPairType() is specified to be
+  KeyPairGenerationParameters::KeyPairCustom and the client has specified
+  a variety of customParameters()).
+
+  Most clients will want to use one of the derived types such as
+  EcKeyPairGenerationParameters, RsaKeyPairGenerationParameters,
+  DsaKeyPairGenerationParameters or DhKeyPairGenerationParameters.
  */
 
 /*!
- * \brief Constructs a new, empty KeyPairGenerationParameters instance
+  \brief Constructs a new, empty KeyPairGenerationParameters instance
  */
 KeyPairGenerationParameters::KeyPairGenerationParameters()
     : d_ptr(new KeyPairGenerationParametersPrivate)
@@ -84,7 +84,7 @@ KeyPairGenerationParameters::KeyPairGenerationParameters()
 }
 
 /*!
- * \brief Constructs a copy of the \a other KeyPairGenerationParameters instance
+  \brief Constructs a copy of the \a other KeyPairGenerationParameters instance
  */
 KeyPairGenerationParameters::KeyPairGenerationParameters(
         const KeyPairGenerationParameters &other)
@@ -93,14 +93,14 @@ KeyPairGenerationParameters::KeyPairGenerationParameters(
 }
 
 /*!
- * \brief Destroys the KeyPairGenerationParameters instance
+  \brief Destroys the KeyPairGenerationParameters instance
  */
 KeyPairGenerationParameters::~KeyPairGenerationParameters()
 {
 }
 
 /*!
- * \brief Assigns the \a other KeyPairGenerationParameters instance to this
+  \brief Assigns the \a other KeyPairGenerationParameters instance to this
  */
 KeyPairGenerationParameters&
 KeyPairGenerationParameters::operator=(
@@ -111,19 +111,19 @@ KeyPairGenerationParameters::operator=(
 }
 
 /*!
- * \brief Returns true if enough parameters have been provided so that the plugin can generate a key pair
- *
- * This is assumed to be true if the keyPairType() is
- * KeyPairGenerationParameters::KeyPairCustom and some customParameters()
- * exist, otherwise the validity of the parameters depends on the type of
- * key pair to be generated and the specific values specified as parameters
- * for generating that type of key pair.
- *
- * Note that this function cannot determine whether the individual parameters
- * themselves are valid or invalid, as no assumptions about parameter validity
- * are encoded within the client API; hence the plugin may still return an
- * error for parameters which are deemed valid (since they exist) but
- * are erroneously specified (e.g. a prime number which isn't prime).
+  \brief Returns true if enough parameters have been provided so that the plugin can generate a key pair
+
+  This is assumed to be true if the keyPairType() is
+  KeyPairGenerationParameters::KeyPairCustom and some customParameters()
+  exist, otherwise the validity of the parameters depends on the type of
+  key pair to be generated and the specific values specified as parameters
+  for generating that type of key pair.
+
+  Note that this function cannot determine whether the individual parameters
+  themselves are valid or invalid, as no assumptions about parameter validity
+  are encoded within the client API; hence the plugin may still return an
+  error for parameters which are deemed valid (since they exist) but
+  are erroneously specified (e.g. a prime number which isn't prime).
  */
 bool KeyPairGenerationParameters::isValid() const
 {
@@ -144,7 +144,7 @@ bool KeyPairGenerationParameters::isValid() const
 }
 
 /*!
- * \brief Returns the type of key pair which should be generated
+  \brief Returns the type of key pair which should be generated
  */
 KeyPairGenerationParameters::KeyPairType KeyPairGenerationParameters::keyPairType() const
 {
@@ -152,7 +152,7 @@ KeyPairGenerationParameters::KeyPairType KeyPairGenerationParameters::keyPairTyp
 }
 
 /*!
- * \brief Sets the type of key pair which should be generated to \a type
+  \brief Sets the type of key pair which should be generated to \a type
  */
 void KeyPairGenerationParameters::setKeyPairType(KeyPairGenerationParameters::KeyPairType type)
 {
@@ -160,7 +160,7 @@ void KeyPairGenerationParameters::setKeyPairType(KeyPairGenerationParameters::Ke
 }
 
 /*!
- * \brief Returns the plugin-specific custom parameters which will be used during key generation
+  \brief Returns the plugin-specific custom parameters which will be used during key generation
  */
 QVariantMap KeyPairGenerationParameters::customParameters() const
 {
@@ -168,7 +168,7 @@ QVariantMap KeyPairGenerationParameters::customParameters() const
 }
 
 /*!
- * \brief Returns the algorithm-specific parameters which will be used during key generation
+  \brief Returns the algorithm-specific parameters which will be used during key generation
  */
 QVariantMap KeyPairGenerationParameters::subclassParameters() const
 {
@@ -176,7 +176,7 @@ QVariantMap KeyPairGenerationParameters::subclassParameters() const
 }
 
 /*!
- * \brief Sets the plugin-specific custom parameters to be used during key generation to \a params
+  \brief Sets the plugin-specific custom parameters to be used during key generation to \a params
  */
 void KeyPairGenerationParameters::setCustomParameters(const QVariantMap &params)
 {
@@ -184,36 +184,36 @@ void KeyPairGenerationParameters::setCustomParameters(const QVariantMap &params)
 }
 
 /*!
- * \class EcKeyPairGenerationParameters
- * \brief Encapsulates parameters related to the generation of an asymmetric
- *        cryptographic key pair based on an elliptic curve
- *
- * This class encapsulates a variety of parameters which will affect how
- * the crypto plugin generates a key pair.  Usually, an instance of this class
- * will be used when performing a GenerateStoredKeyRequest.
- *
- * An example of parameters to generate an elliptic curve key pair for use in
- * ECDSA and ECDH operations follows:
- *
- * \code
- * Sailfish::Crypto::EcKeyPairGenerationParameters eckpgParams;
- * eckpgParams.setEllipticCurve(Sailfish::Crypto::CryptoManager::Curve25519);
- * \endcode
- *
- * The security size of the generated key will depend on the size of the field
- * over which the curve is defined.  For example, Curve25519 is a 255-bit
- * elliptic curve requiring 252-bit private keys (usually encoded as 256-bit
- * values with four fixed bits), providing security approximately equivalent
- * to using a 128-bit symmetric cipher key, or 3072 bit RSA key.
- *
- * Support for different curves is entirely plugin-specific; please see the
- * documentation for the crypto plugin you intend to use for more information
- * about the different curves which are supported, and what (if any) custom
- * parameters may be supported.
+  \class EcKeyPairGenerationParameters
+  \brief Encapsulates parameters related to the generation of an asymmetric
+         cryptographic key pair based on an elliptic curve
+
+  This class encapsulates a variety of parameters which will affect how
+  the crypto plugin generates a key pair.  Usually, an instance of this class
+  will be used when performing a GenerateStoredKeyRequest.
+
+  An example of parameters to generate an elliptic curve key pair for use in
+  ECDSA and ECDH operations follows:
+
+  \code
+  Sailfish::Crypto::EcKeyPairGenerationParameters eckpgParams;
+  eckpgParams.setEllipticCurve(Sailfish::Crypto::CryptoManager::Curve25519);
+  \endcode
+
+  The security size of the generated key will depend on the size of the field
+  over which the curve is defined.  For example, Curve25519 is a 255-bit
+  elliptic curve requiring 252-bit private keys (usually encoded as 256-bit
+  values with four fixed bits), providing security approximately equivalent
+  to using a 128-bit symmetric cipher key, or 3072 bit RSA key.
+
+  Support for different curves is entirely plugin-specific; please see the
+  documentation for the crypto plugin you intend to use for more information
+  about the different curves which are supported, and what (if any) custom
+  parameters may be supported.
  */
 
 /*!
- * \brief Constructs a new instance of EcKeyPairGenerationParameters
+  \brief Constructs a new instance of EcKeyPairGenerationParameters
  */
 EcKeyPairGenerationParameters::EcKeyPairGenerationParameters()
     : KeyPairGenerationParameters()
@@ -223,7 +223,7 @@ EcKeyPairGenerationParameters::EcKeyPairGenerationParameters()
 }
 
 /*!
- * \brief Constructs a copy of the \a other KeyPairGenerationParameters instance
+  \brief Constructs a copy of the \a other KeyPairGenerationParameters instance
  */
 EcKeyPairGenerationParameters::EcKeyPairGenerationParameters(
         const KeyPairGenerationParameters &other)
@@ -232,14 +232,14 @@ EcKeyPairGenerationParameters::EcKeyPairGenerationParameters(
 }
 
 /*!
- * \brief Destroys the EcKeyPairGenerationParameters instance
+  \brief Destroys the EcKeyPairGenerationParameters instance
  */
 EcKeyPairGenerationParameters::~EcKeyPairGenerationParameters()
 {
 }
 
 /*!
- * \brief Assigns the \a other EcKeyPairGenerationParameters to this instance
+  \brief Assigns the \a other EcKeyPairGenerationParameters to this instance
  */
 EcKeyPairGenerationParameters& EcKeyPairGenerationParameters::operator=(
         const EcKeyPairGenerationParameters &other)
@@ -258,7 +258,7 @@ bool EcKeyPairGenerationParameters::isValid() const
 }
 
 /*!
- * \brief Returns the elliptic curve which should be used to calculate the key pair
+  \brief Returns the elliptic curve which should be used to calculate the key pair
  */
 CryptoManager::EllipticCurve
 EcKeyPairGenerationParameters::ellipticCurve() const
@@ -268,7 +268,7 @@ EcKeyPairGenerationParameters::ellipticCurve() const
 }
 
 /*!
- * \brief Sets the elliptic curve which should be used to calculate the key pair to \a curve
+  \brief Sets the elliptic curve which should be used to calculate the key pair to \a curve
  */
 void EcKeyPairGenerationParameters::setEllipticCurve(
         CryptoManager::EllipticCurve curve)
@@ -279,29 +279,29 @@ void EcKeyPairGenerationParameters::setEllipticCurve(
 
 
 /*!
- * \class RsaKeyPairGenerationParameters
- * \brief Encapsulates parameters related to the generation of an asymmetric
- *        cryptographic key pair based on the RSA algorithm
- *
- * This class encapsulates a variety of parameters which will affect how
- * the crypto plugin generates a key pair.  Usually, an instance of this class
- * will be used when performing a GenerateStoredKeyRequest.
- *
- * An example of parameters to generate a 4096-bit RSA key pair follows.
- * Note that the default public exponent is defined as 65537 and the default
- * number of primes is 2, so the last two lines are not required but are
- * included for illustration purposes.
- *
- * \code
- * Sailfish::Crypto::RsaKeyPairGenerationParameters rsakpgParams;
- * rsakpgParams.setModulusLength(4096);
- * rsakpgParams.setPublicExponent(65537);
- * rsakpgParams.setNumberPrimes(2);
- * \endcode
+  \class RsaKeyPairGenerationParameters
+  \brief Encapsulates parameters related to the generation of an asymmetric
+         cryptographic key pair based on the RSA algorithm
+
+  This class encapsulates a variety of parameters which will affect how
+  the crypto plugin generates a key pair.  Usually, an instance of this class
+  will be used when performing a GenerateStoredKeyRequest.
+
+  An example of parameters to generate a 4096-bit RSA key pair follows.
+  Note that the default public exponent is defined as 65537 and the default
+  number of primes is 2, so the last two lines are not required but are
+  included for illustration purposes.
+
+  \code
+  Sailfish::Crypto::RsaKeyPairGenerationParameters rsakpgParams;
+  rsakpgParams.setModulusLength(4096);
+  rsakpgParams.setPublicExponent(65537);
+  rsakpgParams.setNumberPrimes(2);
+  \endcode
  */
 
 /*!
- * \brief Constructs a new, default RsaKeyPairGenerationParameters instance
+  \brief Constructs a new, default RsaKeyPairGenerationParameters instance
  */
 RsaKeyPairGenerationParameters::RsaKeyPairGenerationParameters()
     : KeyPairGenerationParameters()
@@ -313,7 +313,7 @@ RsaKeyPairGenerationParameters::RsaKeyPairGenerationParameters()
 }
 
 /*!
- * \brief Constructs a copy of the \a other KeyPairGenerationParameters instance
+  \brief Constructs a copy of the \a other KeyPairGenerationParameters instance
  */
 RsaKeyPairGenerationParameters::RsaKeyPairGenerationParameters(
         const KeyPairGenerationParameters &other)
@@ -322,14 +322,14 @@ RsaKeyPairGenerationParameters::RsaKeyPairGenerationParameters(
 }
 
 /*!
- * \brief Destroys the RsaKeyPairGenerationParameters instance
+  \brief Destroys the RsaKeyPairGenerationParameters instance
  */
 RsaKeyPairGenerationParameters::~RsaKeyPairGenerationParameters()
 {
 }
 
 /*!
- * \brief Assigns the \a other RsaKeyPairGenerationParameters to this instance
+  \brief Assigns the \a other RsaKeyPairGenerationParameters to this instance
  */
 RsaKeyPairGenerationParameters& RsaKeyPairGenerationParameters::operator=(const RsaKeyPairGenerationParameters &other)
 {
@@ -346,9 +346,9 @@ bool RsaKeyPairGenerationParameters::isValid() const
 }
 
 /*!
- * \brief Returns the modulus length of the RSA key pair to be generated
- *
- * This defines the security size of the output key.
+  \brief Returns the modulus length of the RSA key pair to be generated
+
+  This defines the security size of the output key.
  */
 int RsaKeyPairGenerationParameters::modulusLength() const
 {
@@ -356,7 +356,7 @@ int RsaKeyPairGenerationParameters::modulusLength() const
 }
 
 /*!
- * \brief Sets the modulus length of the RSA key pair to be generated to \a length
+  \brief Sets the modulus length of the RSA key pair to be generated to \a length
  */
 void RsaKeyPairGenerationParameters::setModulusLength(int length)
 {
@@ -365,10 +365,10 @@ void RsaKeyPairGenerationParameters::setModulusLength(int length)
 }
 
 /*!
- * \brief Sets the number of prime factors in the key as per RFC3447
- *
- * The default value is 2.  Having more than this reduces the security
- * of the key but allows faster performance during operations.
+  \brief Sets the number of prime factors in the key as per RFC3447
+
+  The default value is 2.  Having more than this reduces the security
+  of the key but allows faster performance during operations.
  */
 int RsaKeyPairGenerationParameters::numberPrimes() const
 {
@@ -376,7 +376,7 @@ int RsaKeyPairGenerationParameters::numberPrimes() const
 }
 
 /*!
- * \brief Sets the number of prime factors in the key as per RFC3447 to \a primes
+  \brief Sets the number of prime factors in the key as per RFC3447 to \a primes
  */
 void RsaKeyPairGenerationParameters::setNumberPrimes(int primes)
 {
@@ -385,10 +385,10 @@ void RsaKeyPairGenerationParameters::setNumberPrimes(int primes)
 }
 
 /*!
- * \brief Returns the public exponent to use when generating the key
- *
- * The default value is 65537.  Other common values include 3, 5, 7,
- * 17, and 257, although any prime number is sufficient.
+  \brief Returns the public exponent to use when generating the key
+
+  The default value is 65537.  Other common values include 3, 5, 7,
+  17, and 257, although any prime number is sufficient.
  */
 quint64 RsaKeyPairGenerationParameters::publicExponent() const
 {
@@ -396,7 +396,7 @@ quint64 RsaKeyPairGenerationParameters::publicExponent() const
 }
 
 /*!
- * \brief Sets the public exponent to use when generating the key to \a exponent
+  \brief Sets the public exponent to use when generating the key to \a exponent
  */
 void RsaKeyPairGenerationParameters::setPublicExponent(quint64 exponent)
 {
@@ -406,37 +406,37 @@ void RsaKeyPairGenerationParameters::setPublicExponent(quint64 exponent)
 
 
 /*!
- * \class DsaKeyPairGenerationParameters
- * \brief Encapsulates parameters related to the generation of an asymmetric
- *        cryptographic key pair based on the DSA algorithm
- *
- * This class encapsulates a variety of parameters which will affect how
- * the crypto plugin generates a key pair.  Usually, an instance of this class
- * will be used when performing a GenerateStoredKeyRequest.
- *
- * An example of parameters to generate a 3072-bit DSA key pair using the
- * key family parameters specified in FIPS-186-3 follows:
- *
- * \code
- * Sailfish::Crypto::DsaKeyPairGenerationParameters dsakpgParams;
- * dsakpgParams.setModulusLength(3072);
- * dsakpgParams.setPrimeFactorLength(256);
- * dsakpgParams.setGenerateFamilyParameters(false);
- * \endcode
- *
- * Alternatively, the algorithm parameters may be specified explicitly
- * via setting the modulus(), primeFactor() and base() values:
- *
- * \code
- * Sailfish::Crypto::DsaKeyPairGenerationParameters dsakpgParams;
- * dsakpgParams.setModulus(modulusData);
- * dsakpgParams.setPrimeFactor(primeFactorData);
- * dsakpgParams.setBase(baseData);
- * \endcode
+  \class DsaKeyPairGenerationParameters
+  \brief Encapsulates parameters related to the generation of an asymmetric
+         cryptographic key pair based on the DSA algorithm
+
+  This class encapsulates a variety of parameters which will affect how
+  the crypto plugin generates a key pair.  Usually, an instance of this class
+  will be used when performing a GenerateStoredKeyRequest.
+
+  An example of parameters to generate a 3072-bit DSA key pair using the
+  key family parameters specified in FIPS-186-3 follows:
+
+  \code
+  Sailfish::Crypto::DsaKeyPairGenerationParameters dsakpgParams;
+  dsakpgParams.setModulusLength(3072);
+  dsakpgParams.setPrimeFactorLength(256);
+  dsakpgParams.setGenerateFamilyParameters(false);
+  \endcode
+
+  Alternatively, the algorithm parameters may be specified explicitly
+  via setting the modulus(), primeFactor() and base() values:
+
+  \code
+  Sailfish::Crypto::DsaKeyPairGenerationParameters dsakpgParams;
+  dsakpgParams.setModulus(modulusData);
+  dsakpgParams.setPrimeFactor(primeFactorData);
+  dsakpgParams.setBase(baseData);
+  \endcode
  */
 
 /*!
- * \brief Constructs a new DsaKeyPairGenerationParameters instance
+  \brief Constructs a new DsaKeyPairGenerationParameters instance
  */
 DsaKeyPairGenerationParameters::DsaKeyPairGenerationParameters()
     : KeyPairGenerationParameters()
@@ -448,7 +448,7 @@ DsaKeyPairGenerationParameters::DsaKeyPairGenerationParameters()
 }
 
 /*!
- * \brief Constructs a copy of the \a other instance
+  \brief Constructs a copy of the \a other instance
  */
 DsaKeyPairGenerationParameters::DsaKeyPairGenerationParameters(
         const KeyPairGenerationParameters &other)
@@ -457,14 +457,14 @@ DsaKeyPairGenerationParameters::DsaKeyPairGenerationParameters(
 }
 
 /*!
- * \brief Destroys the instance
+  \brief Destroys the instance
  */
 DsaKeyPairGenerationParameters::~DsaKeyPairGenerationParameters()
 {
 }
 
 /*!
- * \brief Assigns the \a other parameters to this instance
+  \brief Assigns the \a other parameters to this instance
  */
 DsaKeyPairGenerationParameters&
 DsaKeyPairGenerationParameters::operator=(const DsaKeyPairGenerationParameters &other)
@@ -474,8 +474,8 @@ DsaKeyPairGenerationParameters::operator=(const DsaKeyPairGenerationParameters &
 }
 
 /*!
- * \brief Returns true if the parameters contains either a valid modulus, prime factor, and base,
- *        or alternatively a valid modulus length and prime factor length.
+  \brief Returns true if the parameters contains either a valid modulus, prime factor, and base,
+         or alternatively a valid modulus length and prime factor length.
  */
 bool DsaKeyPairGenerationParameters::isValid() const
 {
@@ -489,12 +489,12 @@ bool DsaKeyPairGenerationParameters::isValid() const
 }
 
 /*!
- * \brief Returns the modulus length of the DSA key pair to be generated
- *
- * This defines the security size of the output key.
- *
- * Note that this parameter is only meaningful if the client has not
- * provided explicit values for the modulus(), primeFactor() and base().
+  \brief Returns the modulus length of the DSA key pair to be generated
+
+  This defines the security size of the output key.
+
+  Note that this parameter is only meaningful if the client has not
+  provided explicit values for the modulus(), primeFactor() and base().
  */
 int DsaKeyPairGenerationParameters::modulusLength() const
 {
@@ -502,7 +502,7 @@ int DsaKeyPairGenerationParameters::modulusLength() const
 }
 
 /*!
- * \brief Sets the modulus length of the DSA key pair to be generated to \a length
+  \brief Sets the modulus length of the DSA key pair to be generated to \a length
  */
 void DsaKeyPairGenerationParameters::setModulusLength(int length)
 {
@@ -511,14 +511,14 @@ void DsaKeyPairGenerationParameters::setModulusLength(int length)
 }
 
 /*!
- * \brief Returns the prime factor length of the DSA key pair to be generated
- *
- * This is the length (in bits) of the prime-factor (q).
- * Note that FIPS 186-3 specifies some standard prime factor lengths for
- * certain modulus lengths, along with standardised key family parameters.
- *
- * Note that this parameter is only meaningful if the client has not
- * provided explicit values for the modulus(), primeFactor() and base().
+  \brief Returns the prime factor length of the DSA key pair to be generated
+
+  This is the length (in bits) of the prime-factor (q).
+  Note that FIPS 186-3 specifies some standard prime factor lengths for
+  certain modulus lengths, along with standardised key family parameters.
+
+  Note that this parameter is only meaningful if the client has not
+  provided explicit values for the modulus(), primeFactor() and base().
  */
 int DsaKeyPairGenerationParameters::primeFactorLength() const
 {
@@ -526,7 +526,7 @@ int DsaKeyPairGenerationParameters::primeFactorLength() const
 }
 
 /*!
- * \brief Sets the prime factor length of the DSA key pair to be generated to \a length
+  \brief Sets the prime factor length of the DSA key pair to be generated to \a length
  */
 void DsaKeyPairGenerationParameters::setPrimeFactorLength(int length)
 {
@@ -535,22 +535,22 @@ void DsaKeyPairGenerationParameters::setPrimeFactorLength(int length)
 }
 
 /*!
- * \brief Returns true if the key should be generated using randomly-generated key family parameters
- *
- * The individual parameters (modulus (prime p), prime factor (subprime q),
- * and base (generator g)) define the key family.  In order for the
- * algorithm to work, both parties need to use the same parameters in
- * order for their (randomly generated public and private) keys to belong
- * to the same family (and thus work).
- *
- * If this value is true, the client wants the plugin to generate a key
- * pair using randomly generated key family parameters; otherwise,
- * the client wants the plugin to generate a key pair using the standard
- * key family values specified in FIPS 186-3.
- *
- * This value is only meaningful if the client has provided a modulusLength()
- * and primeFactorLength(), and is ignored if the client has instead
- * provided a modulus(), primeFactor() and base().
+  \brief Returns true if the key should be generated using randomly-generated key family parameters
+
+  The individual parameters (modulus (prime p), prime factor (subprime q),
+  and base (generator g)) define the key family.  In order for the
+  algorithm to work, both parties need to use the same parameters in
+  order for their (randomly generated public and private) keys to belong
+  to the same family (and thus work).
+
+  If this value is true, the client wants the plugin to generate a key
+  pair using randomly generated key family parameters; otherwise,
+  the client wants the plugin to generate a key pair using the standard
+  key family values specified in FIPS 186-3.
+
+  This value is only meaningful if the client has provided a modulusLength()
+  and primeFactorLength(), and is ignored if the client has instead
+  provided a modulus(), primeFactor() and base().
  */
 bool DsaKeyPairGenerationParameters::generateFamilyParameters() const
 {
@@ -558,7 +558,7 @@ bool DsaKeyPairGenerationParameters::generateFamilyParameters() const
 }
 
 /*!
- * \brief Sets whether the key should be generated using randomly-generated key family parameters to \a generate
+  \brief Sets whether the key should be generated using randomly-generated key family parameters to \a generate
  */
 void DsaKeyPairGenerationParameters::setGenerateFamilyParameters(bool generate)
 {
@@ -567,9 +567,9 @@ void DsaKeyPairGenerationParameters::setGenerateFamilyParameters(bool generate)
 }
 
 /*!
- * \brief Returns the modulus to be used when generating the key pair
- *
- * The modulus is also known as the large prime P.
+  \brief Returns the modulus to be used when generating the key pair
+
+  The modulus is also known as the large prime P.
  */
 QByteArray DsaKeyPairGenerationParameters::modulus() const
 {
@@ -577,7 +577,7 @@ QByteArray DsaKeyPairGenerationParameters::modulus() const
 }
 
 /*!
- * \brief Sets the modulus to be used when generating the key pair to \a p
+  \brief Sets the modulus to be used when generating the key pair to \a p
  */
 void DsaKeyPairGenerationParameters::setModulus(const QByteArray &p)
 {
@@ -586,9 +586,9 @@ void DsaKeyPairGenerationParameters::setModulus(const QByteArray &p)
 }
 
 /*!
- * \brief Returns the prime factor to be used when generating the key pair
- *
- * The prime factor is also known as the small prime Q.
+  \brief Returns the prime factor to be used when generating the key pair
+
+  The prime factor is also known as the small prime Q.
  */
 QByteArray DsaKeyPairGenerationParameters::primeFactor() const
 {
@@ -596,7 +596,7 @@ QByteArray DsaKeyPairGenerationParameters::primeFactor() const
 }
 
 /*!
- * \brief Sets the prime factor to be used when generating the key pair to \a q
+  \brief Sets the prime factor to be used when generating the key pair to \a q
  */
 void DsaKeyPairGenerationParameters::setPrimeFactor(const QByteArray &q)
 {
@@ -605,9 +605,9 @@ void DsaKeyPairGenerationParameters::setPrimeFactor(const QByteArray &q)
 }
 
 /*!
- * \brief Returns the base generator to be used when generating the key pair
- *
- * The base is also known as the generator G.
+  \brief Returns the base generator to be used when generating the key pair
+
+  The base is also known as the generator G.
  */
 QByteArray DsaKeyPairGenerationParameters::base() const
 {
@@ -615,7 +615,7 @@ QByteArray DsaKeyPairGenerationParameters::base() const
 }
 
 /*!
- * \brief Sets the base generator to be used when generating the key pair to \a g
+  \brief Sets the base generator to be used when generating the key pair to \a g
  */
 void DsaKeyPairGenerationParameters::setBase(const QByteArray &g)
 {
@@ -624,36 +624,36 @@ void DsaKeyPairGenerationParameters::setBase(const QByteArray &g)
 }
 
 /*!
- * \class DhKeyPairGenerationParameters
- * \brief Encapsulates parameters related to the generation of an asymmetric
- *        cryptographic key pair based on the Diffie-Hellman algorithm
- *
- * This class encapsulates a variety of parameters which will affect how
- * the crypto plugin generates a key pair.  Usually, an instance of this class
- * will be used when performing a GenerateStoredKeyRequest.
- *
- * An example of parameters to generate a 3072-bit DH key pair using the
- * key family parameters specified in FIPS-186-3 follows:
- *
- * \code
- * Sailfish::Crypto::DhKeyPairGenerationParameters dhkpgParams;
- * dhkpgParams.setModulusLength(3072);
- * dhkpgParams.setPrivateExponentLength(256);
- * dhkpgParams.setGenerateFamilyParameters(false);
- * \endcode
- *
- * Alternatively, the algorithm parameters may be specified explicitly
- * via setting the modulus() and base() values:
- *
- * \code
- * Sailfish::Crypto::DhKeyPairGenerationParameters dhkpgParams;
- * dhkpgParams.setModulus(modulusData);
- * dhkpgParams.setBase(baseData);
- * \endcode
+  \class DhKeyPairGenerationParameters
+  \brief Encapsulates parameters related to the generation of an asymmetric
+         cryptographic key pair based on the Diffie-Hellman algorithm
+
+  This class encapsulates a variety of parameters which will affect how
+  the crypto plugin generates a key pair.  Usually, an instance of this class
+  will be used when performing a GenerateStoredKeyRequest.
+
+  An example of parameters to generate a 3072-bit DH key pair using the
+  key family parameters specified in FIPS-186-3 follows:
+
+  \code
+  Sailfish::Crypto::DhKeyPairGenerationParameters dhkpgParams;
+  dhkpgParams.setModulusLength(3072);
+  dhkpgParams.setPrivateExponentLength(256);
+  dhkpgParams.setGenerateFamilyParameters(false);
+  \endcode
+
+  Alternatively, the algorithm parameters may be specified explicitly
+  via setting the modulus() and base() values:
+
+  \code
+  Sailfish::Crypto::DhKeyPairGenerationParameters dhkpgParams;
+  dhkpgParams.setModulus(modulusData);
+  dhkpgParams.setBase(baseData);
+  \endcode
  */
 
 /*!
- * \brief Constructs a new DhKeyPairGenerationParameters instance
+  \brief Constructs a new DhKeyPairGenerationParameters instance
  */
 DhKeyPairGenerationParameters::DhKeyPairGenerationParameters()
     : KeyPairGenerationParameters()
@@ -665,7 +665,7 @@ DhKeyPairGenerationParameters::DhKeyPairGenerationParameters()
 }
 
 /*!
- * \brief Constructs a copy of the \a other parameters
+  \brief Constructs a copy of the \a other parameters
  */
 DhKeyPairGenerationParameters::DhKeyPairGenerationParameters(
         const KeyPairGenerationParameters &other)
@@ -674,14 +674,14 @@ DhKeyPairGenerationParameters::DhKeyPairGenerationParameters(
 }
 
 /*!
- * \brief Destroys the parameters instance
+  \brief Destroys the parameters instance
  */
 DhKeyPairGenerationParameters::~DhKeyPairGenerationParameters()
 {
 }
 
 /*!
- * \brief Assigns the \a other parameters to this instance
+  \brief Assigns the \a other parameters to this instance
  */
 DhKeyPairGenerationParameters&
 DhKeyPairGenerationParameters::operator=(
@@ -703,12 +703,12 @@ bool DhKeyPairGenerationParameters::isValid() const
 }
 
 /*!
- * \brief Returns the modulus length of the DH key pair to be generated
- *
- * This defines the security size of the output key.
- *
- * Note that this parameter is only meaningful if the client has not
- * provided explicit values for the modulus() and base().
+  \brief Returns the modulus length of the DH key pair to be generated
+
+  This defines the security size of the output key.
+
+  Note that this parameter is only meaningful if the client has not
+  provided explicit values for the modulus() and base().
  */
 int DhKeyPairGenerationParameters::modulusLength() const
 {
@@ -716,7 +716,7 @@ int DhKeyPairGenerationParameters::modulusLength() const
 }
 
 /*!
- * \brief Sets the modulus length of the DH key pair to be generated to \a length
+  \brief Sets the modulus length of the DH key pair to be generated to \a length
  */
 void DhKeyPairGenerationParameters::setModulusLength(int length)
 {
@@ -725,13 +725,13 @@ void DhKeyPairGenerationParameters::setModulusLength(int length)
 }
 
 /*!
- * \brief Returns the private exponent length of the DH key pair to be generated
- *
- * This is the length (in bits) of the private exponent which will be generated
- * by the base (generator).
- *
- * Note that this parameter is only meaningful if the client has not
- * provided explicit values for the modulus() and base().
+  \brief Returns the private exponent length of the DH key pair to be generated
+
+  This is the length (in bits) of the private exponent which will be generated
+  by the base (generator).
+
+  Note that this parameter is only meaningful if the client has not
+  provided explicit values for the modulus() and base().
  */
 int DhKeyPairGenerationParameters::privateExponentLength() const
 {
@@ -739,7 +739,7 @@ int DhKeyPairGenerationParameters::privateExponentLength() const
 }
 
 /*!
- * \brief Sets the private exponent length of the DH key pair to be generated to \a length
+  \brief Sets the private exponent length of the DH key pair to be generated to \a length
  */
 void DhKeyPairGenerationParameters::setPrivateExponentLength(int length)
 {
@@ -748,22 +748,22 @@ void DhKeyPairGenerationParameters::setPrivateExponentLength(int length)
 }
 
 /*!
- * \brief Returns true if the key should be generated using randomly-generated key family parameters
- *
- * The individual parameters (modulus (prime p), private exponent (prime q),
- * and base (generator g)) define the key family.  In order for the
- * algorithm to work, both parties need to use the same parameters in
- * order for their (randomly generated public and private) keys to belong
- * to the same family (and thus work).
- *
- * If this value is true, the client wants the plugin to generate a key
- * pair using randomly generated key family parameters; otherwise,
- * the client wants the plugin to generate a key pair using the standard
- * key family values specified in FIPS 186-3.
- *
- * This value is only meaningful if the client has provided a modulusLength()
- * and privateExponentLength(), and is ignored if the client has instead
- * provided a modulus() and base().
+  \brief Returns true if the key should be generated using randomly-generated key family parameters
+
+  The individual parameters (modulus (prime p), private exponent (prime q),
+  and base (generator g)) define the key family.  In order for the
+  algorithm to work, both parties need to use the same parameters in
+  order for their (randomly generated public and private) keys to belong
+  to the same family (and thus work).
+
+  If this value is true, the client wants the plugin to generate a key
+  pair using randomly generated key family parameters; otherwise,
+  the client wants the plugin to generate a key pair using the standard
+  key family values specified in FIPS 186-3.
+
+  This value is only meaningful if the client has provided a modulusLength()
+  and privateExponentLength(), and is ignored if the client has instead
+  provided a modulus() and base().
  */
 bool DhKeyPairGenerationParameters::generateFamilyParameters() const
 {
@@ -771,7 +771,7 @@ bool DhKeyPairGenerationParameters::generateFamilyParameters() const
 }
 
 /*!
- * \brief Sets whether the key should be generated using randomly-generated key family parameters to \a generate
+  \brief Sets whether the key should be generated using randomly-generated key family parameters to \a generate
  */
 void DhKeyPairGenerationParameters::setGenerateFamilyParameters(bool generate)
 {
@@ -780,9 +780,9 @@ void DhKeyPairGenerationParameters::setGenerateFamilyParameters(bool generate)
 }
 
 /*!
- * \brief Returns the modulus to be used when generating the key pair
- *
- * The modulus is also known as the large prime P.
+  \brief Returns the modulus to be used when generating the key pair
+
+  The modulus is also known as the large prime P.
  */
 QByteArray DhKeyPairGenerationParameters::modulus() const
 {
@@ -790,7 +790,7 @@ QByteArray DhKeyPairGenerationParameters::modulus() const
 }
 
 /*!
- * \brief Sets the modulus to be used when generating the key pair to \a p
+  \brief Sets the modulus to be used when generating the key pair to \a p
  */
 void DhKeyPairGenerationParameters::setModulus(const QByteArray &p)
 {
@@ -799,9 +799,9 @@ void DhKeyPairGenerationParameters::setModulus(const QByteArray &p)
 }
 
 /*!
- * \brief Returns the base generator to be used when generating the key pair
- *
- * The base is also known as the generator G.
+  \brief Returns the base generator to be used when generating the key pair
+
+  The base is also known as the generator G.
  */
 QByteArray DhKeyPairGenerationParameters::base() const
 {
@@ -809,7 +809,7 @@ QByteArray DhKeyPairGenerationParameters::base() const
 }
 
 /*!
- * \brief Sets the base generator to be used when generating the key pair \a g
+  \brief Sets the base generator to be used when generating the key pair \a g
  */
 void DhKeyPairGenerationParameters::setBase(const QByteArray &g)
 {
@@ -818,7 +818,7 @@ void DhKeyPairGenerationParameters::setBase(const QByteArray &g)
 }
 
 /*!
- * \brief Returns true if the \a lhs parameters are equal to the \a rhs parameters
+  \brief Returns true if the \a lhs parameters are equal to the \a rhs parameters
  */
 bool Sailfish::Crypto::operator==(const KeyPairGenerationParameters &lhs, const KeyPairGenerationParameters &rhs)
 {
@@ -828,7 +828,7 @@ bool Sailfish::Crypto::operator==(const KeyPairGenerationParameters &lhs, const 
 }
 
 /*!
- * \brief Returns false if the \a lhs parameters are equal to the \a rhs parameters
+  \brief Returns false if the \a lhs parameters are equal to the \a rhs parameters
  */
 bool Sailfish::Crypto::operator!=(const KeyPairGenerationParameters &lhs, const KeyPairGenerationParameters &rhs)
 {
@@ -836,7 +836,7 @@ bool Sailfish::Crypto::operator!=(const KeyPairGenerationParameters &lhs, const 
 }
 
 /*!
- * \brief Returns true if the \a lhs parameters should sort as less than the \a rhs parameters
+  \brief Returns true if the \a lhs parameters should sort as less than the \a rhs parameters
  */
 bool Sailfish::Crypto::operator<(const KeyPairGenerationParameters &lhs, const KeyPairGenerationParameters &rhs)
 {

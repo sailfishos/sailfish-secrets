@@ -23,19 +23,19 @@ CalculateDigestRequestPrivate::CalculateDigestRequestPrivate()
 }
 
 /*!
- * \class CalculateDigestRequest
- * \brief Allows a client request the system crypto service to calculate a digest from data
- *
- * A digest is calculated using a digest function.  Unlike a signature
- * (see SignRequest) no key is required to calculate a digest.
- * A digest can be used to verify that data has not been changed,
- * however it cannot be used to verify the provenance of the data
- * (that is, it can be used to ensure integrity but not authenticity
- * or non-repudiation).
+  \class CalculateDigestRequest
+  \brief Allows a client request the system crypto service to calculate a digest from data
+
+  A digest is calculated using a digest function.  Unlike a signature
+  (see SignRequest) no key is required to calculate a digest.
+  A digest can be used to verify that data has not been changed,
+  however it cannot be used to verify the provenance of the data
+  (that is, it can be used to ensure integrity but not authenticity
+  or non-repudiation).
  */
 
 /*!
- * \brief Constructs a new CalculateDigestRequest object with the given \a parent.
+  \brief Constructs a new CalculateDigestRequest object with the given \a parent.
  */
 CalculateDigestRequest::CalculateDigestRequest(QObject *parent)
     : Request(parent)
@@ -44,14 +44,14 @@ CalculateDigestRequest::CalculateDigestRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the CalculateDigestRequest
+  \brief Destroys the CalculateDigestRequest
  */
 CalculateDigestRequest::~CalculateDigestRequest()
 {
 }
 
 /*!
- * \brief Returns the data which the client wishes the system service to calculate the digest from
+  \brief Returns the data which the client wishes the system service to calculate the digest from
  */
 QByteArray CalculateDigestRequest::data() const
 {
@@ -60,7 +60,7 @@ QByteArray CalculateDigestRequest::data() const
 }
 
 /*!
- * \brief Sets the data which the client wishes the system service to calculate the digest from to \a data
+  \brief Sets the data which the client wishes the system service to calculate the digest from to \a data
  */
 void CalculateDigestRequest::setData(const QByteArray &data)
 {
@@ -76,7 +76,7 @@ void CalculateDigestRequest::setData(const QByteArray &data)
 }
 
 /*!
- * \brief Returns the signature padding mode which should be used when calculating the digest of the data
+  \brief Returns the signature padding mode which should be used when calculating the digest of the data
  */
 Sailfish::Crypto::CryptoManager::SignaturePadding CalculateDigestRequest::padding() const
 {
@@ -85,7 +85,7 @@ Sailfish::Crypto::CryptoManager::SignaturePadding CalculateDigestRequest::paddin
 }
 
 /*!
- * \brief Sets the signature padding mode which should be used when calculating the digest of the data to \a padding
+  \brief Sets the signature padding mode which should be used when calculating the digest of the data to \a padding
  */
 void CalculateDigestRequest::setPadding(Sailfish::Crypto::CryptoManager::SignaturePadding padding)
 {
@@ -101,7 +101,7 @@ void CalculateDigestRequest::setPadding(Sailfish::Crypto::CryptoManager::Signatu
 }
 
 /*!
- * \brief Returns the digest function which should be used to generate the digest
+  \brief Returns the digest function which should be used to generate the digest
  */
 Sailfish::Crypto::CryptoManager::DigestFunction CalculateDigestRequest::digestFunction() const
 {
@@ -110,7 +110,7 @@ Sailfish::Crypto::CryptoManager::DigestFunction CalculateDigestRequest::digestFu
 }
 
 /*!
- * \brief Sets the digest function which should be used to generate the digest to \a digestFunction
+  \brief Sets the digest function which should be used to generate the digest to \a digestFunction
  */
 void CalculateDigestRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digestFunction)
 {
@@ -126,7 +126,7 @@ void CalculateDigestRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::
 }
 
 /*!
- * \brief Returns the name of the crypto plugin which the client wishes to perform the digest calculation operation
+  \brief Returns the name of the crypto plugin which the client wishes to perform the digest calculation operation
  */
 QString CalculateDigestRequest::cryptoPluginName() const
 {
@@ -135,7 +135,7 @@ QString CalculateDigestRequest::cryptoPluginName() const
 }
 
 /*!
- * \brief Sets the name of the crypto plugin which the client wishes to perform the digest calculation operation to \a pluginName
+  \brief Sets the name of the crypto plugin which the client wishes to perform the digest calculation operation to \a pluginName
  */
 void CalculateDigestRequest::setCryptoPluginName(const QString &pluginName)
 {
@@ -151,9 +151,9 @@ void CalculateDigestRequest::setCryptoPluginName(const QString &pluginName)
 }
 
 /*!
- * \brief Returns the digest result of the calculate digest operation.
- *
- * Note: this value is only valid if the status of the request is Request::Finished.
+  \brief Returns the digest result of the calculate digest operation.
+
+  Note: this value is only valid if the status of the request is Request::Finished.
  */
 QByteArray CalculateDigestRequest::digest() const
 {

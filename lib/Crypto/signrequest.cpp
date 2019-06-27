@@ -25,12 +25,12 @@ SignRequestPrivate::SignRequestPrivate()
 }
 
 /*!
- * \class SignRequest
- * \brief Allows a client request the system crypto service to sign data with a specific key
+  \class SignRequest
+  \brief Allows a client request the system crypto service to sign data with a specific key
  */
 
 /*!
- * \brief Constructs a new SignRequest object with the given \a parent.
+  \brief Constructs a new SignRequest object with the given \a parent.
  */
 SignRequest::SignRequest(QObject *parent)
     : Request(parent)
@@ -39,14 +39,14 @@ SignRequest::SignRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the SignRequest
+  \brief Destroys the SignRequest
  */
 SignRequest::~SignRequest()
 {
 }
 
 /*!
- * \brief Returns the data which the client wishes the system service to sign
+  \brief Returns the data which the client wishes the system service to sign
  */
 QByteArray SignRequest::data() const
 {
@@ -55,7 +55,7 @@ QByteArray SignRequest::data() const
 }
 
 /*!
- * \brief Sets the data which the client wishes the system service to sign to \a data
+  \brief Sets the data which the client wishes the system service to sign to \a data
  */
 void SignRequest::setData(const QByteArray &data)
 {
@@ -71,7 +71,7 @@ void SignRequest::setData(const QByteArray &data)
 }
 
 /*!
- * \brief Returns the key which the client wishes the system service to use to sign the data
+  \brief Returns the key which the client wishes the system service to use to sign the data
  */
 Key SignRequest::key() const
 {
@@ -80,7 +80,7 @@ Key SignRequest::key() const
 }
 
 /*!
- * \brief Sets the key which the client wishes the system service to use to sign the data to \a key
+  \brief Sets the key which the client wishes the system service to use to sign the data to \a key
  */
 void SignRequest::setKey(const Key &key)
 {
@@ -96,7 +96,7 @@ void SignRequest::setKey(const Key &key)
 }
 
 /*!
- * \brief Returns the signature padding mode which should be used when signing the data
+  \brief Returns the signature padding mode which should be used when signing the data
  */
 Sailfish::Crypto::CryptoManager::SignaturePadding SignRequest::padding() const
 {
@@ -105,7 +105,7 @@ Sailfish::Crypto::CryptoManager::SignaturePadding SignRequest::padding() const
 }
 
 /*!
- * \brief Sets the signature padding mode which should be used when signing the data to \a padding
+  \brief Sets the signature padding mode which should be used when signing the data to \a padding
  */
 void SignRequest::setPadding(Sailfish::Crypto::CryptoManager::SignaturePadding padding)
 {
@@ -121,7 +121,7 @@ void SignRequest::setPadding(Sailfish::Crypto::CryptoManager::SignaturePadding p
 }
 
 /*!
- * \brief Returns the digest which should be used to generate the signature
+  \brief Returns the digest which should be used to generate the signature
  */
 Sailfish::Crypto::CryptoManager::DigestFunction SignRequest::digestFunction() const
 {
@@ -130,7 +130,7 @@ Sailfish::Crypto::CryptoManager::DigestFunction SignRequest::digestFunction() co
 }
 
 /*!
- * \brief Sets the digest which should be used to generate the signature to \a digestFn
+  \brief Sets the digest which should be used to generate the signature to \a digestFn
  */
 void SignRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digestFn)
 {
@@ -146,7 +146,7 @@ void SignRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunct
 }
 
 /*!
- * \brief Returns the name of the crypto plugin which the client wishes to perform the sign operation
+  \brief Returns the name of the crypto plugin which the client wishes to perform the sign operation
  */
 QString SignRequest::cryptoPluginName() const
 {
@@ -155,7 +155,7 @@ QString SignRequest::cryptoPluginName() const
 }
 
 /*!
- * \brief Sets the name of the crypto plugin which the client wishes to perform the sign operation to \a pluginName
+  \brief Sets the name of the crypto plugin which the client wishes to perform the sign operation to \a pluginName
  */
 void SignRequest::setCryptoPluginName(const QString &pluginName)
 {
@@ -171,9 +171,9 @@ void SignRequest::setCryptoPluginName(const QString &pluginName)
 }
 
 /*!
- * \brief Returns the signature result of the sign operation.
- *
- * Note: this value is only valid if the status of the request is Request::Finished.
+  \brief Returns the signature result of the sign operation.
+
+  Note: this value is only valid if the status of the request is Request::Finished.
  */
 QByteArray SignRequest::signature() const
 {
@@ -182,9 +182,9 @@ QByteArray SignRequest::signature() const
 }
 
 /*!
- * \brief Returns the length of the signature result of the sign operation.
- *
- * Note: this value is only valid if the status of the request is Request::Finished.
+  \brief Returns the length of the signature result of the sign operation.
+
+  Note: this value is only valid if the status of the request is Request::Finished.
  */
 int SignRequest::signatureLength() const
 {

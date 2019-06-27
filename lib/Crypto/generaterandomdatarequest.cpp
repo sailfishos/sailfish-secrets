@@ -27,36 +27,36 @@ GenerateRandomDataRequestPrivate::GenerateRandomDataRequestPrivate()
 }
 
 /*!
- * \class GenerateRandomDataRequest
- * \brief Allows a client request that the system crypto service generate random data.
- *
- * The random data will be generated using the cryptographically-secure random number
- * generator engine specified by the client.  The engines which are supported by the
- * plugin should be documented by that plugin.  The default crypto plugin supports
- * two engines: "default" and "/dev/urandom".
- *
- * If you need a random number, you can use data from this method to create a random
- * number.  For example, to return a random number between 30 and 7777 you could do
- * something like the following:
- *
- * \code
- * Sailfish::Crypto::GenerateRandomDataRequest rd;
- * rd.setManager(cryptoManager);
- * rd.setCryptoPluginName(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
- * rd.setCsprngEngineName(QStringLiteral("/dev/urandom"));
- * rd.setNumberBytes(8);
- * rd.startRequest();
- * rd.waitForFinished(); // in real code, you would not do this, but react to statusChanged()
- * QByteArray randomBytes = rd.generatedData();
- * quint64 randomU64 = 0;
- * memcpy(&randomU64, randomBytes.constData(), 8);
- * double randomDouble = (randomU64 >> 11) * (1.0/9007199254740992.0); // 53 bits / 2**53
- * int randomInRange = qRound((7777 - 30) * randomDouble) + 30;
- * \endcode
+  \class GenerateRandomDataRequest
+  \brief Allows a client request that the system crypto service generate random data.
+
+  The random data will be generated using the cryptographically-secure random number
+  generator engine specified by the client.  The engines which are supported by the
+  plugin should be documented by that plugin.  The default crypto plugin supports
+  two engines: "default" and "/dev/urandom".
+
+  If you need a random number, you can use data from this method to create a random
+  number.  For example, to return a random number between 30 and 7777 you could do
+  something like the following:
+
+  \code
+  Sailfish::Crypto::GenerateRandomDataRequest rd;
+  rd.setManager(cryptoManager);
+  rd.setCryptoPluginName(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
+  rd.setCsprngEngineName(QStringLiteral("/dev/urandom"));
+  rd.setNumberBytes(8);
+  rd.startRequest();
+  rd.waitForFinished(); // in real code, you would not do this, but react to statusChanged()
+  QByteArray randomBytes = rd.generatedData();
+  quint64 randomU64 = 0;
+  memcpy(&randomU64, randomBytes.constData(), 8);
+  double randomDouble = (randomU64 >> 11) * (1.0/9007199254740992.0); // 53 bits / 2**53
+  int randomInRange = qRound((7777 - 30) * randomDouble) + 30;
+  \endcode
  */
 
 /*!
- * \brief Constructs a new GenerateRandomDataRequest object with the given \a parent.
+  \brief Constructs a new GenerateRandomDataRequest object with the given \a parent.
  */
 GenerateRandomDataRequest::GenerateRandomDataRequest(QObject *parent)
     : Request(parent)
@@ -65,14 +65,14 @@ GenerateRandomDataRequest::GenerateRandomDataRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the GenerateRandomDataRequest
+  \brief Destroys the GenerateRandomDataRequest
  */
 GenerateRandomDataRequest::~GenerateRandomDataRequest()
 {
 }
 
 /*!
- * \brief Returns the name of the crypto plugin which the client wishes to perform the key generation operation
+  \brief Returns the name of the crypto plugin which the client wishes to perform the key generation operation
  */
 QString GenerateRandomDataRequest::cryptoPluginName() const
 {
@@ -81,7 +81,7 @@ QString GenerateRandomDataRequest::cryptoPluginName() const
 }
 
 /*!
- * \brief Sets the name of the crypto plugin which the client wishes to perform the key generation operation to \a pluginName
+  \brief Sets the name of the crypto plugin which the client wishes to perform the key generation operation to \a pluginName
  */
 void GenerateRandomDataRequest::setCryptoPluginName(const QString &pluginName)
 {
@@ -97,9 +97,9 @@ void GenerateRandomDataRequest::setCryptoPluginName(const QString &pluginName)
 }
 
 /*!
- * \brief Returns the name of the cryptographically secure random number generator engine
- *        offered by the crypto plugin which the client wishes to be used to generate
- *        the random data
+  \brief Returns the name of the cryptographically secure random number generator engine
+         offered by the crypto plugin which the client wishes to be used to generate
+         the random data
  */
 QString GenerateRandomDataRequest::csprngEngineName() const
 {
@@ -108,13 +108,13 @@ QString GenerateRandomDataRequest::csprngEngineName() const
 }
 
 /*!
- * \brief Sets the name of the cryptographically secure random number generator engine
- *        offered by the crypto plugin which the client wishes to be used to generate
- *        the random data to \a engineName
- *
- * Usually, the default engine offered by the plugin is the correct CSPRNG engine
- * to use (and in fact, most plugins will only offer that one engine), so clients
- * should not have to set this parameter in the majority of cases.
+  \brief Sets the name of the cryptographically secure random number generator engine
+         offered by the crypto plugin which the client wishes to be used to generate
+         the random data to \a engineName
+
+  Usually, the default engine offered by the plugin is the correct CSPRNG engine
+  to use (and in fact, most plugins will only offer that one engine), so clients
+  should not have to set this parameter in the majority of cases.
  */
 void GenerateRandomDataRequest::setCsprngEngineName(const QString &engineName)
 {
@@ -130,7 +130,7 @@ void GenerateRandomDataRequest::setCsprngEngineName(const QString &engineName)
 }
 
 /*!
- * \brief Returns the number of bytes of random data that the client wishes to be generated
+  \brief Returns the number of bytes of random data that the client wishes to be generated
  */
 quint64 GenerateRandomDataRequest::numberBytes() const
 {
@@ -139,7 +139,7 @@ quint64 GenerateRandomDataRequest::numberBytes() const
 }
 
 /*!
- * \brief Sets the number of bytes of random data that the client wishes to be generated to \a nbrBytes
+  \brief Sets the number of bytes of random data that the client wishes to be generated to \a nbrBytes
  */
 void GenerateRandomDataRequest::setNumberBytes(quint64 nbrBytes)
 {
@@ -155,9 +155,9 @@ void GenerateRandomDataRequest::setNumberBytes(quint64 nbrBytes)
 }
 
 /*!
- * \brief Returns the generated random data
- *
- * Note: this value is only valid if the status of the request is Request::Finished.
+  \brief Returns the generated random data
+
+  Note: this value is only valid if the status of the request is Request::Finished.
  */
 QByteArray GenerateRandomDataRequest::generatedData() const
 {

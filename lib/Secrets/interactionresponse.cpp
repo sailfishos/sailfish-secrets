@@ -26,22 +26,22 @@ InteractionResponsePrivate::~InteractionResponsePrivate()
 }
 
 /*!
- * \class InteractionResponse
- * \brief Encapsulates a user-input response from an authentication plugin
- *
- * Whenever an authentication (verifying the identity of the user)
- * or input (requesting data or confirmation from the user) request
- * is processed by an authentication plugin, the response will be
- * encapsulated in an instance of this type.
- *
- * Note that client applications should never have to use this type,
- * as only authentication plugin implementations return instances
- * of this type, and such responses are consumed by the secrets
- * service.
+  \class InteractionResponse
+  \brief Encapsulates a user-input response from an authentication plugin
+
+  Whenever an authentication (verifying the identity of the user)
+  or input (requesting data or confirmation from the user) request
+  is processed by an authentication plugin, the response will be
+  encapsulated in an instance of this type.
+
+  Note that client applications should never have to use this type,
+  as only authentication plugin implementations return instances
+  of this type, and such responses are consumed by the secrets
+  service.
  */
 
 /*!
- * \brief Constructs a new InteractionResponse instance
+  \brief Constructs a new InteractionResponse instance
  */
 InteractionResponse::InteractionResponse()
     : d_ptr(new InteractionResponsePrivate)
@@ -49,14 +49,14 @@ InteractionResponse::InteractionResponse()
 }
 
 /*!
- * \brief Destroys the InteractionResponse instance
+  \brief Destroys the InteractionResponse instance
  */
 InteractionResponse::~InteractionResponse()
 {
 }
 
 /*!
- * \brief Constructs a copy of the \a other InteractionResponse instance
+  \brief Constructs a copy of the \a other InteractionResponse instance
  */
 InteractionResponse::InteractionResponse(const InteractionResponse &other)
     : d_ptr(other.d_ptr)
@@ -64,7 +64,7 @@ InteractionResponse::InteractionResponse(const InteractionResponse &other)
 }
 
 /*!
- * \brief Assigns this InteractionResponse to be equal to the \a other
+  \brief Assigns this InteractionResponse to be equal to the \a other
  */
 InteractionResponse& InteractionResponse::operator=(const InteractionResponse &other)
 {
@@ -73,7 +73,7 @@ InteractionResponse& InteractionResponse::operator=(const InteractionResponse &o
 }
 
 /*!
- * \brief Returns the result of the request
+  \brief Returns the result of the request
  */
 Result InteractionResponse::result() const
 {
@@ -81,7 +81,7 @@ Result InteractionResponse::result() const
 }
 
 /*!
- * \brief Sets the result of the request to \a result
+  \brief Sets the result of the request to \a result
  */
 void InteractionResponse::setResult(const Result &result)
 {
@@ -91,7 +91,7 @@ void InteractionResponse::setResult(const Result &result)
 }
 
 /*!
- * \brief Returns the data which was retrieved from the user
+  \brief Returns the data which was retrieved from the user
  */
 QByteArray InteractionResponse::responseData() const
 {
@@ -99,7 +99,7 @@ QByteArray InteractionResponse::responseData() const
 }
 
 /*!
- * \brief Sets the data which was retrieved from the user to \a data
+  \brief Sets the data which was retrieved from the user to \a data
  */
 void InteractionResponse::setResponseData(const QByteArray &data)
 {
@@ -109,7 +109,7 @@ void InteractionResponse::setResponseData(const QByteArray &data)
 }
 
 /*!
- * \brief Returns true if the \a lhs response is identical to the \a rhs response
+  \brief Returns true if the \a lhs response is identical to the \a rhs response
  */
 bool Sailfish::Secrets::operator==(const InteractionResponse &lhs, const InteractionResponse &rhs)
 {
@@ -118,7 +118,7 @@ bool Sailfish::Secrets::operator==(const InteractionResponse &lhs, const Interac
 }
 
 /*!
- * \brief Returns false if the \a lhs response is identical to the \a rhs response
+  \brief Returns false if the \a lhs response is identical to the \a rhs response
  */
 bool Sailfish::Secrets::operator!=(const InteractionResponse &lhs, const InteractionResponse &rhs)
 {
@@ -126,7 +126,7 @@ bool Sailfish::Secrets::operator!=(const InteractionResponse &lhs, const Interac
 }
 
 /*!
- * \brief Returns true if the \a lhs response should sort as less than the \a rhs response
+  \brief Returns true if the \a lhs response should sort as less than the \a rhs response
  */
 bool Sailfish::Secrets::operator<(const InteractionResponse &lhs, const InteractionResponse &rhs)
 {

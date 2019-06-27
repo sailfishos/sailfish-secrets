@@ -23,12 +23,12 @@ StoredKeyIdentifiersRequestPrivate::StoredKeyIdentifiersRequestPrivate()
 }
 
 /*!
- * \class StoredKeyIdentifiersRequest
- * \brief Allows a client request the identifiers of securely-stored keys from the system crypto service
+  \class StoredKeyIdentifiersRequest
+  \brief Allows a client request the identifiers of securely-stored keys from the system crypto service
  */
 
 /*!
- * \brief Constructs a new StoredKeyIdentifiersRequest object with the given \a parent.
+  \brief Constructs a new StoredKeyIdentifiersRequest object with the given \a parent.
  */
 StoredKeyIdentifiersRequest::StoredKeyIdentifiersRequest(QObject *parent)
     : Request(parent)
@@ -37,14 +37,14 @@ StoredKeyIdentifiersRequest::StoredKeyIdentifiersRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the StoredKeyIdentifiersRequest
+  \brief Destroys the StoredKeyIdentifiersRequest
  */
 StoredKeyIdentifiersRequest::~StoredKeyIdentifiersRequest()
 {
 }
 
 /*!
- * \brief Returns the name of the storage plugin from which the client wishes to retrieve key identifiers
+  \brief Returns the name of the storage plugin from which the client wishes to retrieve key identifiers
  */
 QString StoredKeyIdentifiersRequest::storagePluginName() const
 {
@@ -53,7 +53,7 @@ QString StoredKeyIdentifiersRequest::storagePluginName() const
 }
 
 /*!
- * \brief Sets the name of the storage plugin from which the client wishes to retrieve key identifiers to \a pluginName
+  \brief Sets the name of the storage plugin from which the client wishes to retrieve key identifiers to \a pluginName
  */
 void StoredKeyIdentifiersRequest::setStoragePluginName(const QString &pluginName)
 {
@@ -69,7 +69,7 @@ void StoredKeyIdentifiersRequest::setStoragePluginName(const QString &pluginName
 }
 
 /*!
- * \brief Returns the name of the collection from which the client wishes to retrieve key identifiers
+  \brief Returns the name of the collection from which the client wishes to retrieve key identifiers
  */
 QString StoredKeyIdentifiersRequest::collectionName() const
 {
@@ -78,19 +78,19 @@ QString StoredKeyIdentifiersRequest::collectionName() const
 }
 
 /*!
- * \brief Sets the name of the collection from which the client wishes to retrieve key identifiers to \a name
- *
- * If the collection \a name is empty, this signifies that the client wishes
- * to retrieve the identifiers of keys stored in any collection.  Note that
- * in this case, if some collection stored by the plugin is locked, the
- * client may not be returned any identifiers of keys stored within that
- * collection, and no unlocking flow will be started for such locked
- * collections.
- *
- * If the collection \name is non-empty, this signifies that the client
- * wishes to retrieve the identifiers of keys stored only in that collection.
- * If the collection is locked, an unlock flow will be started (prompting
- * the user for the passphrase to unlock that collection).
+  \brief Sets the name of the collection from which the client wishes to retrieve key identifiers to \a name
+
+  If the collection \a name is empty, this signifies that the client wishes
+  to retrieve the identifiers of keys stored in any collection.  Note that
+  in this case, if some collection stored by the plugin is locked, the
+  client may not be returned any identifiers of keys stored within that
+  collection, and no unlocking flow will be started for such locked
+  collections.
+
+  If the collection \name is non-empty, this signifies that the client
+  wishes to retrieve the identifiers of keys stored only in that collection.
+  If the collection is locked, an unlock flow will be started (prompting
+  the user for the passphrase to unlock that collection).
  */
 void StoredKeyIdentifiersRequest::setCollectionName(const QString &name)
 {
@@ -106,9 +106,9 @@ void StoredKeyIdentifiersRequest::setCollectionName(const QString &name)
 }
 
 /*!
- * \brief Returns the identifiers of securely-stored keys
- *
- * Note: this value is only valid if the status of the request is Request::Finished.
+  \brief Returns the identifiers of securely-stored keys
+
+  Note: this value is only valid if the status of the request is Request::Finished.
  */
 QVector<Key::Identifier> StoredKeyIdentifiersRequest::identifiers() const
 {

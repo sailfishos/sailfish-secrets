@@ -24,60 +24,60 @@ FindSecretsRequestPrivate::FindSecretsRequestPrivate()
 }
 
 /*!
- * \class FindSecretsRequest
- * \brief Allows a client find the identifiers of secrets which match a specific filter
- *        from the system's secure secret storage service
- *
- * The filter specifies metadata field/value pairs, and will be matched against
- * secrets in the storage plugin identified by the specified storagePluginName()
- * according to the given filterOperator().
- *
- * If a collection() is specified to search within, and the calling application is
- * the creator of the collection, or alternatively if the user has granted the
- * application permission to read from the collection, then the Secrets service will
- * instruct the storage plugin to search the collection for matching secrets.
- *
- * However, if the application is not the creator of the collection and the user has
- * not yet been asked if the application should have permission to read the collection,
- * then a system-mediated access control UI flow may be triggered
- * to obtain the user's permission (unless the given userInteractionMode() is
- * \c PreventInteraction in which case the request will fail).
- *
- * If the collection uses an encryption key derived from the system device-lock,
- * then the value will be able to be retrieved without any other UI flow being required
- * if the collection is currently unlocked; however, if the collection uses an encryption
- * key derived from a custom lock, then the custom lock authentication key will be obtained
- * from the user via an authentication flow determined by the authentication plugin used for that
- * collection (which may support \c ApplicationInteraction if the collection
- * is an application-specific collection using an \c ApplicationSpecificAuthentication
- * plugin, but otherwise will be a system-mediated UI flow, unless the userInteractionMode()
- * specified is \c PreventInteraction in which case the request will fail).
- *
- * If no collection() is specified to search within, then only those standalone secrets
- * which the application owns (that is, created) or has been granted explicit permission
- * to access will be matched against the filter and potentially returned.
- *
- * An example of searching for secrets in a collection which match a filter follows:
- *
- * \code
- * Secret::FilterData filter;
- * filter.insert(QLatin1String("domain"), testSecret.filterData(QLatin1String("sailfishos.org")));
- * filter.insert(QLatin1String("example"), testSecret.filterData(QLatin1String("true")));
- *
- * Sailfish::Secrets::SecretManager sm;
- * Sailfish::Secrets::FindSecretsRequest fsr;
- * fsr.setManager(&sm);
- * fsr.setCollectionName(QLatin1String("ExampleCollection"));
- * fsr.setStoragePluginName(Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
- * fsr.setFilter(filter);
- * fsr.setFilterOperator(Sailfish::Secrets::SecretManager::OperatorAnd);
- * fsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
- * fsr.startRequest(); // status() will change to Finished when complete
- * \endcode
+  \class FindSecretsRequest
+  \brief Allows a client find the identifiers of secrets which match a specific filter
+         from the system's secure secret storage service
+
+  The filter specifies metadata field/value pairs, and will be matched against
+  secrets in the storage plugin identified by the specified storagePluginName()
+  according to the given filterOperator().
+
+  If a collection() is specified to search within, and the calling application is
+  the creator of the collection, or alternatively if the user has granted the
+  application permission to read from the collection, then the Secrets service will
+  instruct the storage plugin to search the collection for matching secrets.
+
+  However, if the application is not the creator of the collection and the user has
+  not yet been asked if the application should have permission to read the collection,
+  then a system-mediated access control UI flow may be triggered
+  to obtain the user's permission (unless the given userInteractionMode() is
+  \c PreventInteraction in which case the request will fail).
+
+  If the collection uses an encryption key derived from the system device-lock,
+  then the value will be able to be retrieved without any other UI flow being required
+  if the collection is currently unlocked; however, if the collection uses an encryption
+  key derived from a custom lock, then the custom lock authentication key will be obtained
+  from the user via an authentication flow determined by the authentication plugin used for that
+  collection (which may support \c ApplicationInteraction if the collection
+  is an application-specific collection using an \c ApplicationSpecificAuthentication
+  plugin, but otherwise will be a system-mediated UI flow, unless the userInteractionMode()
+  specified is \c PreventInteraction in which case the request will fail).
+
+  If no collection() is specified to search within, then only those standalone secrets
+  which the application owns (that is, created) or has been granted explicit permission
+  to access will be matched against the filter and potentially returned.
+
+  An example of searching for secrets in a collection which match a filter follows:
+
+  \code
+  Secret::FilterData filter;
+  filter.insert(QLatin1String("domain"), testSecret.filterData(QLatin1String("sailfishos.org")));
+  filter.insert(QLatin1String("example"), testSecret.filterData(QLatin1String("true")));
+
+  Sailfish::Secrets::SecretManager sm;
+  Sailfish::Secrets::FindSecretsRequest fsr;
+  fsr.setManager(&sm);
+  fsr.setCollectionName(QLatin1String("ExampleCollection"));
+  fsr.setStoragePluginName(Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
+  fsr.setFilter(filter);
+  fsr.setFilterOperator(Sailfish::Secrets::SecretManager::OperatorAnd);
+  fsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::PreventInteraction);
+  fsr.startRequest(); // status() will change to Finished when complete
+  \endcode
  */
 
 /*!
- * \brief Constructs a new FindSecretsRequest object with the given \a parent.
+  \brief Constructs a new FindSecretsRequest object with the given \a parent.
  */
 FindSecretsRequest::FindSecretsRequest(QObject *parent)
     : Request(parent)
@@ -86,14 +86,14 @@ FindSecretsRequest::FindSecretsRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the FindSecretsRequest
+  \brief Destroys the FindSecretsRequest
  */
 FindSecretsRequest::~FindSecretsRequest()
 {
 }
 
 /*!
- * \brief Returns the name of the collection that the client wishes to search for secrets matching some filter
+  \brief Returns the name of the collection that the client wishes to search for secrets matching some filter
  */
 QString FindSecretsRequest::collectionName() const
 {
@@ -102,9 +102,9 @@ QString FindSecretsRequest::collectionName() const
 }
 
 /*!
- * \brief Sets the name of the collection that the client wishes to search for secrets matching some filter to \a name
- *
- * Note: if the \a name is empty, then standalone secrets will be searched instead.
+  \brief Sets the name of the collection that the client wishes to search for secrets matching some filter to \a name
+
+  Note: if the \a name is empty, then standalone secrets will be searched instead.
  */
 void FindSecretsRequest::setCollectionName(const QString &name)
 {
@@ -120,7 +120,7 @@ void FindSecretsRequest::setCollectionName(const QString &name)
 }
 
 /*!
- * \brief Returns the name of the storage plugin within which the client wishes to find secrets
+  \brief Returns the name of the storage plugin within which the client wishes to find secrets
  */
 QString FindSecretsRequest::storagePluginName() const
 {
@@ -129,7 +129,7 @@ QString FindSecretsRequest::storagePluginName() const
 }
 
 /*!
- * \brief Sets the name of the storage plugin within which the client wishes to use to find secrets to \a pluginName
+  \brief Sets the name of the storage plugin within which the client wishes to use to find secrets to \a pluginName
  */
 void FindSecretsRequest::setStoragePluginName(const QString &pluginName)
 {
@@ -145,7 +145,7 @@ void FindSecretsRequest::setStoragePluginName(const QString &pluginName)
 }
 
 /*!
- * \brief Returns the filter which will be used when searching for matching secrets
+  \brief Returns the filter which will be used when searching for matching secrets
  */
 Sailfish::Secrets::Secret::FilterData FindSecretsRequest::filter() const
 {
@@ -154,16 +154,16 @@ Sailfish::Secrets::Secret::FilterData FindSecretsRequest::filter() const
 }
 
 /*!
- * \brief Sets the filter which will be used when searching for matching secrets to \a filter
- *
- * The filter consists of key/value pairs which will be matched according to the
- * specified filterOperation().
- *
- * For example, a Secret which has filter data which includes the following two entries:
- * "website"="sailfishos.org","type"="CryptoCertificate" will match the filter
- * \tt{{"website"="sailfishos.org","type"="UsernamePassword"}} if the filterOperator()
- * is \c OperatorOr (since the secret metadata does match one of the filter values) but
- * not if it is \c OperatorAnd (since the secret metadata doesn't match both filter values).
+  \brief Sets the filter which will be used when searching for matching secrets to \a filter
+
+  The filter consists of key/value pairs which will be matched according to the
+  specified filterOperation().
+
+  For example, a Secret which has filter data which includes the following two entries:
+  "website"="sailfishos.org","type"="CryptoCertificate" will match the filter
+  \tt{{"website"="sailfishos.org","type"="UsernamePassword"}} if the filterOperator()
+  is \c OperatorOr (since the secret metadata does match one of the filter values) but
+  not if it is \c OperatorAnd (since the secret metadata doesn't match both filter values).
  */
 void FindSecretsRequest::setFilter(const Sailfish::Secrets::Secret::FilterData &filter)
 {
@@ -179,7 +179,7 @@ void FindSecretsRequest::setFilter(const Sailfish::Secrets::Secret::FilterData &
 }
 
 /*!
- * \brief Returns the filter operator which will be used when searching for matching secrets
+  \brief Returns the filter operator which will be used when searching for matching secrets
  */
 Sailfish::Secrets::SecretManager::FilterOperator FindSecretsRequest::filterOperator() const
 {
@@ -188,14 +188,14 @@ Sailfish::Secrets::SecretManager::FilterOperator FindSecretsRequest::filterOpera
 }
 
 /*!
- * \brief Sets the filter operator which will be used when searching for matching secrets to \a op
- *
- * If the filter operator is AND then all keys must exist in the filter data stored for the secret,
- * and all values for those keys must match the values specified in the input filter.
- *
- * If the filter operator is OR then at least one of the keys must exist in the filter data stored
- * for the secret, where that key's value must match the value specified for that key in the
- * input filter.
+  \brief Sets the filter operator which will be used when searching for matching secrets to \a op
+
+  If the filter operator is AND then all keys must exist in the filter data stored for the secret,
+  and all values for those keys must match the values specified in the input filter.
+
+  If the filter operator is OR then at least one of the keys must exist in the filter data stored
+  for the secret, where that key's value must match the value specified for that key in the
+  input filter.
  */
 void FindSecretsRequest::setFilterOperator(Sailfish::Secrets::SecretManager::FilterOperator op)
 {
@@ -211,7 +211,7 @@ void FindSecretsRequest::setFilterOperator(Sailfish::Secrets::SecretManager::Fil
 }
 
 /*!
- * \brief Returns the user interaction mode required when filtering the secrets (e.g. if a custom lock code must be requested from the user)
+  \brief Returns the user interaction mode required when filtering the secrets (e.g. if a custom lock code must be requested from the user)
  */
 SecretManager::UserInteractionMode FindSecretsRequest::userInteractionMode() const
 {
@@ -220,7 +220,7 @@ SecretManager::UserInteractionMode FindSecretsRequest::userInteractionMode() con
 }
 
 /*!
- * \brief Sets the user interaction mode required when filtering the secrets (e.g. if a custom lock code must be requested from the user) to \a mode
+  \brief Sets the user interaction mode required when filtering the secrets (e.g. if a custom lock code must be requested from the user) to \a mode
  */
 void FindSecretsRequest::setUserInteractionMode(SecretManager::UserInteractionMode mode)
 {
@@ -236,7 +236,7 @@ void FindSecretsRequest::setUserInteractionMode(SecretManager::UserInteractionMo
 }
 
 /*!
- * \brief Returns the identifiers of secrets which matched the filter.
+  \brief Returns the identifiers of secrets which matched the filter.
  */
 QVector<Secret::Identifier> FindSecretsRequest::identifiers() const
 {

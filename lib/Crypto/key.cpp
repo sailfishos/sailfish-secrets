@@ -69,20 +69,20 @@ KeyPrivate::~KeyPrivate()
 //--------------------------------------------
 
 /*!
- * \class Key::Identifier
- * \brief An identifier for a key
- *
- * The identifier consists of the name (alias) of the key, along with
- * the name of the collection in which the key is stored (note that the
- * collection name can be empty if the key is stored as a standalone
- * secret) and the plugin which stores that collection.
- *
- * Together, the key name, collection name and storage plugin name uniquely
- * identify the key as a specific secret in the secrets storage.
+  \class Key::Identifier
+  \brief An identifier for a key
+
+  The identifier consists of the name (alias) of the key, along with
+  the name of the collection in which the key is stored (note that the
+  collection name can be empty if the key is stored as a standalone
+  secret) and the plugin which stores that collection.
+
+  Together, the key name, collection name and storage plugin name uniquely
+  identify the key as a specific secret in the secrets storage.
  */
 
 /*!
- * \brief Constructs a new, empty identifier
+  \brief Constructs a new, empty identifier
  */
 Key::Identifier::Identifier()
     : d_ptr(new KeyIdentifierPrivate)
@@ -90,7 +90,7 @@ Key::Identifier::Identifier()
 }
 
 /*!
- * \brief Constructs a new identifier from the given key \a name, \a collectionName and \a storagePluginName
+  \brief Constructs a new identifier from the given key \a name, \a collectionName and \a storagePluginName
  */
 Key::Identifier::Identifier(const QString &name, const QString &collectionName, const QString &storagePluginName)
         : d_ptr(new KeyIdentifierPrivate)
@@ -101,7 +101,7 @@ Key::Identifier::Identifier(const QString &name, const QString &collectionName, 
 }
 
 /*!
- * \brief Constructs a copy of the \a other identifier
+  \brief Constructs a copy of the \a other identifier
  */
 Key::Identifier::Identifier(const Key::Identifier &other)
     : d_ptr(other.d_ptr)
@@ -109,14 +109,14 @@ Key::Identifier::Identifier(const Key::Identifier &other)
 }
 
 /*!
- * \brief Destroys the identifier
+  \brief Destroys the identifier
  */
 Key::Identifier::~Identifier()
 {
 }
 
 /*!
- * \brief Assigns the \a other identifier to this identifier
+  \brief Assigns the \a other identifier to this identifier
  */
 Key::Identifier& Key::Identifier::operator=(const Key::Identifier &other)
 {
@@ -125,17 +125,17 @@ Key::Identifier& Key::Identifier::operator=(const Key::Identifier &other)
 }
 
 /*!
- * \brief Returns true if the key identifier consists of valid, non-empty components
- *
- * Note that this doesn't mean that the identifier does in fact identify
- * a valid key stored by the system secrets service; rather, it means
- * that if a key with the name() specified in this identifier is stored
- * in a collection with the collectionName() specified in this identifier
- * by the storage (or crypto storage) plugin identified by the storagePluginName()
- * specified in this identifier, then this identifier would identify it.
- *
- * That is, if either name() or collectionName() or storagePluginName() is
- * empty, the identifier is not considered valid.
+  \brief Returns true if the key identifier consists of valid, non-empty components
+
+  Note that this doesn't mean that the identifier does in fact identify
+  a valid key stored by the system secrets service; rather, it means
+  that if a key with the name() specified in this identifier is stored
+  in a collection with the collectionName() specified in this identifier
+  by the storage (or crypto storage) plugin identified by the storagePluginName()
+  specified in this identifier, then this identifier would identify it.
+
+  That is, if either name() or collectionName() or storagePluginName() is
+  empty, the identifier is not considered valid.
  */
 bool Key::Identifier::isValid() const
 {
@@ -145,7 +145,7 @@ bool Key::Identifier::isValid() const
 }
 
 /*!
- * \brief Returns the key name from the identifier
+  \brief Returns the key name from the identifier
  */
 QString Key::Identifier::name() const
 {
@@ -153,7 +153,7 @@ QString Key::Identifier::name() const
 }
 
 /*!
- * \brief Sets the key name in the identifier to \a name
+  \brief Sets the key name in the identifier to \a name
  */
 void Key::Identifier::setName(const QString &name)
 {
@@ -161,7 +161,7 @@ void Key::Identifier::setName(const QString &name)
 }
 
 /*!
- * \brief Returns the collection name from the identifier
+  \brief Returns the collection name from the identifier
  */
 QString Key::Identifier::collectionName() const
 {
@@ -169,7 +169,7 @@ QString Key::Identifier::collectionName() const
 }
 
 /*!
- * \brief Sets the collection name in the identifier to \a collectionName
+  \brief Sets the collection name in the identifier to \a collectionName
  */
 void Key::Identifier::setCollectionName(const QString &collectionName)
 {
@@ -177,7 +177,7 @@ void Key::Identifier::setCollectionName(const QString &collectionName)
 }
 
 /*!
- * \brief Returns the storage plugin name from the identifier
+  \brief Returns the storage plugin name from the identifier
  */
 QString Key::Identifier::storagePluginName() const
 {
@@ -185,7 +185,7 @@ QString Key::Identifier::storagePluginName() const
 }
 
 /*!
- * \brief Sets the storage plugin name in the identifier to \a storagePluginName
+  \brief Sets the storage plugin name in the identifier to \a storagePluginName
  */
 void Key::Identifier::setStoragePluginName(const QString &storagePluginName)
 {
@@ -195,23 +195,27 @@ void Key::Identifier::setStoragePluginName(const QString &storagePluginName)
 //--------------------------------------------
 
 /*!
- * \class Key
- * \brief An instance of a key which can be used for cryptographic operations.
- *
- * The Key class encapsulates information about a
- * cryptographic key, including metadata such as the cryptosystem algorithm
- * the key is used with, the types of operations which may be performed
- * with the key, and the parameters which are supported when performing
- * operations with the key, as well as key data (private/public key data
- * for asymmetric cryptosystems, and secret key data for symmetric cryptosystems).
- *
- * In many cases, client applications need never know the key data, as the
- * key can be generated and stored securely, and then used securely by name reference,
- * without the key data ever entering the client application process address space.
+  \class Key
+  \brief An instance of a key which can be used for cryptographic operations.
+
+  The Key class encapsulates information about a
+  cryptographic key, including metadata such as the cryptosystem algorithm
+  the key is used with, the types of operations which may be performed
+  with the key, and the parameters which are supported when performing
+  operations with the key, as well as key data (private/public key data
+  for asymmetric cryptosystems, and secret key data for symmetric cryptosystems).
+
+  In many cases, client applications need never know the key data, as the
+  key can be generated and stored securely, and then used securely by name reference,
+  without the key data ever entering the client application process address space.
+
+  See \l{GenerateStoredKeyRequest} for more information about securely generating
+  a key which is stored by the system service, and see \a {GenerateKeyRequest} for
+  more information about generating a key which is returned to the application.
  */
 
 /*!
- * \brief Constructs an empty key
+  \brief Constructs an empty key
  */
 Key::Key()
     : d_ptr(new KeyPrivate)
@@ -219,7 +223,7 @@ Key::Key()
 }
 
 /*!
- * \brief Constructs a copy of the \a other key
+  \brief Constructs a copy of the \a other key
  */
 Key::Key(const Key &other)
     : d_ptr(other.d_ptr)
@@ -227,13 +231,13 @@ Key::Key(const Key &other)
 }
 
 /*!
- * \brief Constructs a key which references a stored key with the given
- * \a name from the given \a collection in the storage plugin with the
- * given \a storagePluginName.
- *
- * A stored key is one which is stored securely by the Sailfish Crypto daemon,
- * whose underlying secret data (e.g. private key or secret key data) will never
- * be exposed to the client process.
+  \brief Constructs a key which references a stored key with the given
+  \a name from the given \a collection in the storage plugin with the
+  given \a storagePluginName.
+
+  A stored key is one which is stored securely by the Sailfish Crypto daemon,
+  whose underlying secret data (e.g. private key or secret key data) will never
+  be exposed to the client process.
  */
 Key::Key(const QString &name, const QString &collection, const QString &storagePluginName)
     : d_ptr(new KeyPrivate)
@@ -242,14 +246,14 @@ Key::Key(const QString &name, const QString &collection, const QString &storageP
 }
 
 /*!
- * \brief Destroys the key
+  \brief Destroys the key
  */
 Key::~Key()
 {
 }
 
 /*!
- * \brief Assigns the \a other key to this key, and returns a reference to this key
+  \brief Assigns the \a other key to this key, and returns a reference to this key
  */
 Key& Key::operator=(const Key &other)
 {
@@ -258,7 +262,7 @@ Key& Key::operator=(const Key &other)
 }
 
 /*!
- * \brief Returns the identifier of the stored key which this key references
+  \brief Returns the identifier of the stored key which this key references
  */
 Key::Identifier Key::identifier() const
 {
@@ -266,7 +270,7 @@ Key::Identifier Key::identifier() const
 }
 
 /*!
- * \brief Sets the identifier of the stored key which this key references to the given \a identifier
+  \brief Sets the identifier of the stored key which this key references to the given \a identifier
  */
 void Key::setIdentifier(const Key::Identifier &identifier)
 {
@@ -276,7 +280,7 @@ void Key::setIdentifier(const Key::Identifier &identifier)
 
 
 /*!
- * \brief Returns the name field from the identifier of the key
+  \brief Returns the name field from the identifier of the key
  */
 QString Key::name() const
 {
@@ -284,7 +288,7 @@ QString Key::name() const
 }
 
 /*!
- * \brief Sets the name field in the identifier of the key to \a name
+  \brief Sets the name field in the identifier of the key to \a name
  */
 void Key::setName(const QString &name)
 {
@@ -292,7 +296,7 @@ void Key::setName(const QString &name)
 }
 
 /*!
- * \brief Returns the collection name field from the identifier of the key
+  \brief Returns the collection name field from the identifier of the key
  */
 QString Key::collectionName() const
 {
@@ -300,7 +304,7 @@ QString Key::collectionName() const
 }
 
 /*!
- * \brief Sets the collection name field in the identifier of the key to \a cname
+  \brief Sets the collection name field in the identifier of the key to \a cname
  */
 void Key::setCollectionName(const QString &cname)
 {
@@ -308,7 +312,7 @@ void Key::setCollectionName(const QString &cname)
 }
 
 /*!
- * \brief Returns the storage plugin name field from the identifier of the key
+  \brief Returns the storage plugin name field from the identifier of the key
  */
 QString Key::storagePluginName() const
 {
@@ -316,7 +320,7 @@ QString Key::storagePluginName() const
 }
 
 /*!
- * \brief Sets the storage plugin name field in the identifier of the key to \a pname
+  \brief Sets the storage plugin name field in the identifier of the key to \a pname
  */
 void Key::setStoragePluginName(const QString &pname)
 {
@@ -324,7 +328,7 @@ void Key::setStoragePluginName(const QString &pname)
 }
 
 /*!
- * \brief Returns information about the origin of the key
+  \brief Returns information about the origin of the key
  */
 Key::Origin Key::origin() const
 {
@@ -332,7 +336,7 @@ Key::Origin Key::origin() const
 }
 
 /*!
- * \brief Sets origin information for the key to the given \a origin
+  \brief Sets origin information for the key to the given \a origin
  */
 void Key::setOrigin(Key::Origin origin)
 {
@@ -340,7 +344,7 @@ void Key::setOrigin(Key::Origin origin)
 }
 
 /*!
- * \brief Returns the cryptosystem algorithm this key is intended to be used with
+  \brief Returns the cryptosystem algorithm this key is intended to be used with
  */
 CryptoManager::Algorithm Key::algorithm() const
 {
@@ -348,7 +352,7 @@ CryptoManager::Algorithm Key::algorithm() const
 }
 
 /*!
- * \brief Sets the cryptosystem algorithm this key is intended to be used with to \a algorithm
+  \brief Sets the cryptosystem algorithm this key is intended to be used with to \a algorithm
  */
 void Key::setAlgorithm(CryptoManager::Algorithm algorithm)
 {
@@ -356,7 +360,7 @@ void Key::setAlgorithm(CryptoManager::Algorithm algorithm)
 }
 
 /*!
- * \brief Returns the set of operations which are supported for this key
+  \brief Returns the set of operations which are supported for this key
  */
 CryptoManager::Operations Key::operations() const
 {
@@ -364,18 +368,18 @@ CryptoManager::Operations Key::operations() const
 }
 
 /*!
- * \brief Sets the operations which are supported for this key to \a operations
- *
- * This should generally only be called by the client when specifying a template
- * key as a parameter to a \l{GenerateStoredKeyRequest}.
- *
- * Some crypto storage plugins will enforce these as constraints, so that a
- * key whose operations contains only \l{CryptoManager::OperationSign} and
- * \l{CryptoManager::OperationVerify} will not be able to be used in
- * encryption or decryption operations, for example.
- *
- * Please see the documentation for the crypto plugin you intend to use, for
- * more information about whether it enforces such constraints.
+  \brief Sets the operations which are supported for this key to \a operations
+
+  This should generally only be called by the client when specifying a template
+  key as a parameter to a \l{GenerateStoredKeyRequest}.
+
+  Some crypto storage plugins will enforce these as constraints, so that a
+  key whose operations contains only \l{CryptoManager::OperationSign} and
+  \l{CryptoManager::OperationVerify} will not be able to be used in
+  encryption or decryption operations, for example.
+
+  Please see the documentation for the crypto plugin you intend to use, for
+  more information about whether it enforces such constraints.
  */
 void Key::setOperations(CryptoManager::Operations operations)
 {
@@ -383,7 +387,7 @@ void Key::setOperations(CryptoManager::Operations operations)
 }
 
 /*!
- * \brief Returns the types of key components which the client is allowed to retrieve after the key has been stored
+  \brief Returns the types of key components which the client is allowed to retrieve after the key has been stored
  */
 Key::Components Key::componentConstraints() const
 {
@@ -391,33 +395,33 @@ Key::Components Key::componentConstraints() const
 }
 
 /*!
- * \brief Sets the types of key components which the client is allowed to retrieve after the key has been stored to \a components
- *
- * This should generally only be called by the client when specifying a template
- * key as a parameter to a \l{GenerateStoredKeyRequest}.  Clients are only able
- * to retrieve the key components specified in the componentsConstraints() after
- * the key has been stored.
- *
- * When a key is generated and stored, the client can specify constraints which
- * should be enforced by the crypto storage plugin in which the key is stored.
- * This allows the client to specify, for example, that no client (including
- * itself) is allowed to retrieve the secret key data from the key, after the
- * key has been stored, to ensure the security of the key is maintained.
- *
- * By default, only Key::MetaData and Key::PublicKeyData are included in the
- * components constraints, and so any secret or private key data will NOT
- * be able to be read back by clients, if the key is stored in a crypto plugin
- * which enforces key component constraints.
- *
- * Note that only crypto storage plugins (that is, any plugin which implements both
- * the Sailfish::Crypto::CryptoPlugin and the Sailfish::Secrets::EncryptedStoragePlugin
- * interfaces) can enforce these key component constraints.  If the key is stored
- * in any other type of storage plugin (e.g. a Sailfish::Secrets::StoragePlugin)
- * then the key component constraints will not be enforced.
- *
- * Also note that whether the crypto storage plugin enforces the constraint or not
- * is up to the plugin.  Please see the documentation for the plugin you intend
- * to use, to see if it supports enforcing key component constraints.
+  \brief Sets the types of key components which the client is allowed to retrieve after the key has been stored to \a components
+
+  This should generally only be called by the client when specifying a template
+  key as a parameter to a \l{GenerateStoredKeyRequest}.  Clients are only able
+  to retrieve the key components specified in the componentsConstraints() after
+  the key has been stored.
+
+  When a key is generated and stored, the client can specify constraints which
+  should be enforced by the crypto storage plugin in which the key is stored.
+  This allows the client to specify, for example, that no client (including
+  itself) is allowed to retrieve the secret key data from the key, after the
+  key has been stored, to ensure the security of the key is maintained.
+
+  By default, only Key::MetaData and Key::PublicKeyData are included in the
+  components constraints, and so any secret or private key data will NOT
+  be able to be read back by clients, if the key is stored in a crypto plugin
+  which enforces key component constraints.
+
+  Note that only crypto storage plugins (that is, any plugin which implements both
+  the Sailfish::Crypto::CryptoPlugin and the Sailfish::Secrets::EncryptedStoragePlugin
+  interfaces) can enforce these key component constraints.  If the key is stored
+  in any other type of storage plugin (e.g. a Sailfish::Secrets::StoragePlugin)
+  then the key component constraints will not be enforced.
+
+  Also note that whether the crypto storage plugin enforces the constraint or not
+  is up to the plugin.  Please see the documentation for the plugin you intend
+  to use, to see if it supports enforcing key component constraints.
  */
 void Key::setComponentConstraints(Key::Components components)
 {
@@ -425,27 +429,27 @@ void Key::setComponentConstraints(Key::Components components)
 }
 
 /*!
- * \brief Returns the security size, in bits, of the key.
- *
- * Note that this will NOT necessarily be the data size of any of
- * the key fields, depending on the type of algorithm the key
- * is designed to be used for.
- *
- * For symmetric algorithm keys, the security size is generally also
- * the data size (in bits) of the secret key.
- *
- * For asymmetric keys, the security size is generally the size
- * of the modulus (in the case of RSA keys) or the curve group
- * size (in the case of ECC keys), and the actual data size of
- * the private and public key data may be much larger (for example,
- * the private key data for an RSA key could include modulus,
- * public exponent, private exponent, prime factors, reduced modulo
- * factors, and inverse factor modulo, in order to avoid having to
- * recalculate those pieces of data at every use - which altogether
- * adds up to a much larger data size than the security size).
- *
- * As such, an RSA key with a security size of 2048 bits could
- * have a data (storage) size of 1232 bytes (in PKCS#8 format).
+  \brief Returns the security size, in bits, of the key.
+
+  Note that this will NOT necessarily be the data size of any of
+  the key fields, depending on the type of algorithm the key
+  is designed to be used for.
+
+  For symmetric algorithm keys, the security size is generally also
+  the data size (in bits) of the secret key.
+
+  For asymmetric keys, the security size is generally the size
+  of the modulus (in the case of RSA keys) or the curve group
+  size (in the case of ECC keys), and the actual data size of
+  the private and public key data may be much larger (for example,
+  the private key data for an RSA key could include modulus,
+  public exponent, private exponent, prime factors, reduced modulo
+  factors, and inverse factor modulo, in order to avoid having to
+  recalculate those pieces of data at every use - which altogether
+  adds up to a much larger data size than the security size).
+
+  As such, an RSA key with a security size of 2048 bits could
+  have a data (storage) size of 1232 bytes (in PKCS#8 format).
  */
 int Key::size() const
 {
@@ -453,20 +457,20 @@ int Key::size() const
 }
 
 /*!
- * \brief Sets the security size, in bits, of the key to \a size
- *
- * Clients should call this when generating a key (either via
- * GenerateKeyRequest or GeneratedStoredKeyRequest).
- *
- * Note that if the client also passes KeyDerivationParameters
- * to such a request, the size specified here will be ignored, in
- * favour of the output key size specified in those parameters.
- *
- * If no valid symmetric key derivation parameters are passed to
- * the request, then the crypto plugin will generate a key appropriate
- * for the specified algorithm according to this size (for symmetric
- * algorithms, this means that the plugin will usually generate random
- * data of the appropriate size).
+  \brief Sets the security size, in bits, of the key to \a size
+
+  Clients should call this when generating a key (either via
+  GenerateKeyRequest or GeneratedStoredKeyRequest).
+
+  Note that if the client also passes KeyDerivationParameters
+  to such a request, the size specified here will be ignored, in
+  favour of the output key size specified in those parameters.
+
+  If no valid symmetric key derivation parameters are passed to
+  the request, then the crypto plugin will generate a key appropriate
+  for the specified algorithm according to this size (for symmetric
+  algorithms, this means that the plugin will usually generate random
+  data of the appropriate size).
  */
 void Key::setSize(int size)
 {
@@ -474,7 +478,7 @@ void Key::setSize(int size)
 }
 
 /*!
- * \brief Returns the public key data associated with this key (asymmetric cryptosystems only)
+  \brief Returns the public key data associated with this key (asymmetric cryptosystems only)
  */
 QByteArray Key::publicKey() const
 {
@@ -482,7 +486,7 @@ QByteArray Key::publicKey() const
 }
 
 /*!
- * \brief Sets the public key data associated with this key to \a key
+  \brief Sets the public key data associated with this key to \a key
  */
 void Key::setPublicKey(const QByteArray &key)
 {
@@ -490,7 +494,7 @@ void Key::setPublicKey(const QByteArray &key)
 }
 
 /*!
- * \brief Returns the private key data associated with this key (asymmetric cryptosystems only)
+  \brief Returns the private key data associated with this key (asymmetric cryptosystems only)
  */
 QByteArray Key::privateKey() const
 {
@@ -498,10 +502,10 @@ QByteArray Key::privateKey() const
 }
 
 /*!
- * \brief Sets the private key data associated with this key to \a key
- *
- * This field will be ignored if the algorithm specified for the key
- * is that of a symmetric cryptosystem.
+  \brief Sets the private key data associated with this key to \a key
+
+  This field will be ignored if the algorithm specified for the key
+  is that of a symmetric cryptosystem.
  */
 void Key::setPrivateKey(const QByteArray &key)
 {
@@ -509,7 +513,7 @@ void Key::setPrivateKey(const QByteArray &key)
 }
 
 /*!
- * \brief Returns the private key data associated with this key (symmetric cryptosystems only)
+  \brief Returns the private key data associated with this key (symmetric cryptosystems only)
  */
 QByteArray Key::secretKey() const
 {
@@ -517,10 +521,10 @@ QByteArray Key::secretKey() const
 }
 
 /*!
- * \brief Sets the secret key data associated with this key to \a key
- *
- * This field will be ignored if the algorithm specified for the key
- * is that of an asymmetric cryptosystem.
+  \brief Sets the secret key data associated with this key to \a key
+
+  This field will be ignored if the algorithm specified for the key
+  is that of an asymmetric cryptosystem.
  */
 void Key::setSecretKey(const QByteArray &key)
 {
@@ -528,7 +532,7 @@ void Key::setSecretKey(const QByteArray &key)
 }
 
 /*!
- * \brief Returns the custom parameters associated with this key
+  \brief Returns the custom parameters associated with this key
  */
 QVector<QByteArray> Key::customParameters() const
 {
@@ -536,14 +540,14 @@ QVector<QByteArray> Key::customParameters() const
 }
 
 /*!
- * \brief Sets the custom parameters associated with this key to \a parameters.
- *
- * Some cryptosystem providers (i.e. Sailfish Crypto API extension plugins)
- * may require some custom parameters to be supplied when generating, storing
- * or performing operations with keys.
- *
- * In general, these parameters will be ignored unless the extension plugin
- * requires them for some operation.
+  \brief Sets the custom parameters associated with this key to \a parameters.
+
+  Some cryptosystem providers (i.e. Sailfish Crypto API extension plugins)
+  may require some custom parameters to be supplied when generating, storing
+  or performing operations with keys.
+
+  In general, these parameters will be ignored unless the extension plugin
+  requires them for some operation.
  */
 void Key::setCustomParameters(const QVector<QByteArray> &parameters)
 {
@@ -551,11 +555,11 @@ void Key::setCustomParameters(const QVector<QByteArray> &parameters)
 }
 
 /*!
- * \brief Returns the filter data associated with this key.
- *
- * Other clients can use the filter data to find this key,
- * if they have permission to access it.  The filter data
- * is a simple map of string field to string value.
+  \brief Returns the filter data associated with this key.
+
+  Other clients can use the filter data to find this key,
+  if they have permission to access it.  The filter data
+  is a simple map of string field to string value.
  */
 Key::FilterData Key::filterData() const
 {
@@ -563,7 +567,7 @@ Key::FilterData Key::filterData() const
 }
 
 /*!
- * \brief Returns the filter data value for the given \a field.
+  \brief Returns the filter data value for the given \a field.
  */
 QString Key::filterData(const QString &field) const
 {
@@ -571,10 +575,10 @@ QString Key::filterData(const QString &field) const
 }
 
 /*!
- * \brief Replaces the filter data in this key with the given \a data.
- *
- * Note that the field "Type" will always have the value "CryptoKey"
- * and this field value cannot be overwritten.
+  \brief Replaces the filter data in this key with the given \a data.
+
+  Note that the field "Type" will always have the value "CryptoKey"
+  and this field value cannot be overwritten.
  */
 void Key::setFilterData(const Key::FilterData &data)
 {
@@ -584,7 +588,7 @@ void Key::setFilterData(const Key::FilterData &data)
 }
 
 /*!
- * \brief Returns the fields (keys) of filter data associated with the secret
+  \brief Returns the fields (keys) of filter data associated with the secret
  */
 QStringList Key::filterDataFields() const
 {
@@ -592,10 +596,10 @@ QStringList Key::filterDataFields() const
 }
 
 /*!
- * \brief Sets filter data for the given \a field to the given \a value.
- *
- * Note that the field "Type" will always have the value "CryptoKey"
- * and this field value cannot be overwritten.
+  \brief Sets filter data for the given \a field to the given \a value.
+
+  Note that the field "Type" will always have the value "CryptoKey"
+  and this field value cannot be overwritten.
  */
 void Key::setFilterData(const QString &field, const QString &value)
 {
@@ -605,9 +609,9 @@ void Key::setFilterData(const QString &field, const QString &value)
 }
 
 /*!
- * \brief Returns true if the key has a filter data value specified for the given \a field.
- *
- * Note that this function will always return true for the field "Type".
+  \brief Returns true if the key has a filter data value specified for the given \a field.
+
+  Note that this function will always return true for the field "Type".
  */
 bool Key::hasFilterData(const QString &field)
 {
@@ -615,7 +619,7 @@ bool Key::hasFilterData(const QString &field)
 }
 
 /*!
- * \brief Returns true if the \a lhs identifier consists of the same name and collection name as the \a rhs identifier
+  \brief Returns true if the \a lhs identifier consists of the same name and collection name as the \a rhs identifier
  */
 bool Sailfish::Crypto::operator==(const Key::Identifier &lhs, const Key::Identifier &rhs)
 {
@@ -625,7 +629,7 @@ bool Sailfish::Crypto::operator==(const Key::Identifier &lhs, const Key::Identif
 }
 
 /*!
- * \brief Returns false if the \a lhs identifier consists of the same name and collection name as the \a rhs identifier
+  \brief Returns false if the \a lhs identifier consists of the same name and collection name as the \a rhs identifier
  */
 bool Sailfish::Crypto::operator!=(const Key::Identifier &lhs, const Key::Identifier &rhs)
 {
@@ -633,7 +637,7 @@ bool Sailfish::Crypto::operator!=(const Key::Identifier &lhs, const Key::Identif
 }
 
 /*!
- * \brief Returns true if the \a lhs identifier should sort as less than the \a rhs identifier
+  \brief Returns true if the \a lhs identifier should sort as less than the \a rhs identifier
  */
 bool Sailfish::Crypto::operator<(const Key::Identifier &lhs, const Key::Identifier &rhs)
 {
@@ -645,7 +649,7 @@ bool Sailfish::Crypto::operator<(const Key::Identifier &lhs, const Key::Identifi
 }
 
 /*!
- * \brief Returns true if the \a lhs key is equal to the \a rhs key
+  \brief Returns true if the \a lhs key is equal to the \a rhs key
  */
 bool Sailfish::Crypto::operator==(const Key &lhs, const Key &rhs)
 {
@@ -662,7 +666,7 @@ bool Sailfish::Crypto::operator==(const Key &lhs, const Key &rhs)
 }
 
 /*!
- * \brief Returns false if the \a lhs key is equal to the \a rhs key
+  \brief Returns false if the \a lhs key is equal to the \a rhs key
  */
 bool Sailfish::Crypto::operator!=(const Key &lhs, const Key &rhs)
 {
@@ -670,7 +674,7 @@ bool Sailfish::Crypto::operator!=(const Key &lhs, const Key &rhs)
 }
 
 /*!
- * \brief Returns true if the \a lhs key should sort as less than the \a rhs key
+  \brief Returns true if the \a lhs key should sort as less than the \a rhs key
  */
 bool Sailfish::Crypto::operator<(const Key &lhs, const Key &rhs)
 {

@@ -27,12 +27,12 @@ SeedRandomDataGeneratorRequestPrivate::SeedRandomDataGeneratorRequestPrivate()
 }
 
 /*!
- * \class SeedRandomDataGeneratorRequest
- * \brief Allows a client request that the system crypto service seed its RNG with specific data.
+  \class SeedRandomDataGeneratorRequest
+  \brief Allows a client request that the system crypto service seed its RNG with specific data.
  */
 
 /*!
- * \brief Constructs a new SeedRandomDataGeneratorRequest object with the given \a parent.
+  \brief Constructs a new SeedRandomDataGeneratorRequest object with the given \a parent.
  */
 SeedRandomDataGeneratorRequest::SeedRandomDataGeneratorRequest(QObject *parent)
     : Request(parent)
@@ -41,14 +41,14 @@ SeedRandomDataGeneratorRequest::SeedRandomDataGeneratorRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the SeedRandomDataGeneratorRequest
+  \brief Destroys the SeedRandomDataGeneratorRequest
  */
 SeedRandomDataGeneratorRequest::~SeedRandomDataGeneratorRequest()
 {
 }
 
 /*!
- * \brief Returns the name of the crypto plugin which the client wishes to perform the key generation operation
+  \brief Returns the name of the crypto plugin which the client wishes to perform the key generation operation
  */
 QString SeedRandomDataGeneratorRequest::cryptoPluginName() const
 {
@@ -57,7 +57,7 @@ QString SeedRandomDataGeneratorRequest::cryptoPluginName() const
 }
 
 /*!
- * \brief Sets the name of the crypto plugin which the client wishes to perform the key generation operation to \a pluginName
+  \brief Sets the name of the crypto plugin which the client wishes to perform the key generation operation to \a pluginName
  */
 void SeedRandomDataGeneratorRequest::setCryptoPluginName(const QString &pluginName)
 {
@@ -73,8 +73,8 @@ void SeedRandomDataGeneratorRequest::setCryptoPluginName(const QString &pluginNa
 }
 
 /*!
- * \brief Returns the name of the cryptographically secure random number generator engine
- *        offered by the crypto plugin which the client wishes to seed.
+  \brief Returns the name of the cryptographically secure random number generator engine
+         offered by the crypto plugin which the client wishes to seed.
  */
 QString SeedRandomDataGeneratorRequest::csprngEngineName() const
 {
@@ -83,12 +83,12 @@ QString SeedRandomDataGeneratorRequest::csprngEngineName() const
 }
 
 /*!
- * \brief Sets the name of the cryptographically secure random number generator engine
- *        offered by the crypto plugin which the client wishes to seed to \a engineName
- *
- * Usually, the default engine offered by the plugin is the correct CSPRNG engine
- * to use (and in fact, most plugins will only offer that one engine), so clients
- * should not have to set this parameter in the majority of cases.
+  \brief Sets the name of the cryptographically secure random number generator engine
+         offered by the crypto plugin which the client wishes to seed to \a engineName
+
+  Usually, the default engine offered by the plugin is the correct CSPRNG engine
+  to use (and in fact, most plugins will only offer that one engine), so clients
+  should not have to set this parameter in the majority of cases.
  */
 void SeedRandomDataGeneratorRequest::setCsprngEngineName(const QString &engineName)
 {
@@ -104,10 +104,10 @@ void SeedRandomDataGeneratorRequest::setCsprngEngineName(const QString &engineNa
 }
 
 /*!
- * \brief Returns the client's estimate for how much entropy is contained in the seed data
- *
- * The entropy estimate must be between 0.0 (no randomness) and 1.0 (totally random).
- * The default entropy estimate is 1.0.
+  \brief Returns the client's estimate for how much entropy is contained in the seed data
+
+  The entropy estimate must be between 0.0 (no randomness) and 1.0 (totally random).
+  The default entropy estimate is 1.0.
  */
 double SeedRandomDataGeneratorRequest::entropyEstimate() const
 {
@@ -116,9 +116,9 @@ double SeedRandomDataGeneratorRequest::entropyEstimate() const
 }
 
 /*!
- * \brief Sets the client's estimate for how much entropy is contained in the seed data to \a estimate
- *
- * The value of \a estimate will be clamped to between 0.0 (no randomness) and 1.0 (totally random).
+  \brief Sets the client's estimate for how much entropy is contained in the seed data to \a estimate
+
+  The value of \a estimate will be clamped to between 0.0 (no randomness) and 1.0 (totally random).
  */
 void SeedRandomDataGeneratorRequest::setEntropyEstimate(double estimate)
 {
@@ -141,7 +141,7 @@ void SeedRandomDataGeneratorRequest::setEntropyEstimate(double estimate)
 }
 
 /*!
- * \brief Returns the seed data
+  \brief Returns the seed data
  */
 QByteArray SeedRandomDataGeneratorRequest::seedData() const
 {
@@ -150,7 +150,7 @@ QByteArray SeedRandomDataGeneratorRequest::seedData() const
 }
 
 /*!
- * \brief Sets the seed data to \a data
+  \brief Sets the seed data to \a data
  */
 void SeedRandomDataGeneratorRequest::setSeedData(const QByteArray &data)
 {

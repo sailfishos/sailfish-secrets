@@ -25,31 +25,31 @@ HealthCheckRequestPrivate::HealthCheckRequestPrivate()
 }
 
 /*!
- * \class HealthCheckRequest
- * \brief Allows a client request information about the well-being of secrets data.
- *
- * Normally, a client does not have to use this kind of request, because the
- * data corruption is taken care of by the Settings app. When a data corruption
- * is detected by the secrets daemon it will display a notification to the user
- * which opens the Settings app that will take care of it.
- *
- * Here is an example that retrieves information about the secrets data health:
- *
- * \code
- * Sailfish::Secrets::SecretManager man;
- * Sailfish::Secrets::HealthCheckRequest req;
- * req.setManager(&man);
- * req.startRequest(); // status() will change to Finished when complete
- *
- * // real clients should not use waitForFinished() because it blocks
- * req.waitForFinished();
- * qDebug() << "salt data health:" << req.saltDataHealth();
- * qDebug() << "masterlock health:" << req.masterlockHealth();
- * \endcode
+  \class HealthCheckRequest
+  \brief Allows a client request information about the well-being of secrets data.
+
+  Normally, a client does not have to use this kind of request, because the
+  data corruption is taken care of by the Settings app. When a data corruption
+  is detected by the secrets daemon it will display a notification to the user
+  which opens the Settings app that will take care of it.
+
+  Here is an example that retrieves information about the secrets data health:
+
+  \code
+  Sailfish::Secrets::SecretManager man;
+  Sailfish::Secrets::HealthCheckRequest req;
+  req.setManager(&man);
+  req.startRequest(); // status() will change to Finished when complete
+
+  // real clients should not use waitForFinished() because it blocks
+  req.waitForFinished();
+  qDebug() << "salt data health:" << req.saltDataHealth();
+  qDebug() << "masterlock health:" << req.masterlockHealth();
+  \endcode
  */
 
 /*!
- * \brief Constructs a new HealthCheckRequest object with the given \a parent.
+  \brief Constructs a new HealthCheckRequest object with the given \a parent.
  */
 HealthCheckRequest::HealthCheckRequest(QObject *parent)
     : Request(parent)
@@ -58,17 +58,17 @@ HealthCheckRequest::HealthCheckRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the HealthCheckRequest
+  \brief Destroys the HealthCheckRequest
  */
 HealthCheckRequest::~HealthCheckRequest()
 {
 }
 
 /*!
- * \brief Returns information about salt data health.
- *
- * The result can be used to decuce whether a data corruption happened
- * to the salt data.
+  \brief Returns information about salt data health.
+
+  The result can be used to decuce whether a data corruption happened
+  to the salt data.
  */
 HealthCheckRequest::Health HealthCheckRequest::saltDataHealth() const
 {
@@ -77,10 +77,10 @@ HealthCheckRequest::Health HealthCheckRequest::saltDataHealth() const
 }
 
 /*!
- * \brief Returns information about masterlock health.
- *
- * The result can be used to decuce whether a data corruption happened
- * to the masterlock data.
+  \brief Returns information about masterlock health.
+
+  The result can be used to decuce whether a data corruption happened
+  to the masterlock data.
  */
 HealthCheckRequest::Health HealthCheckRequest::masterlockHealth() const
 {
@@ -89,11 +89,11 @@ HealthCheckRequest::Health HealthCheckRequest::masterlockHealth() const
 }
 
 /*!
- * \brief Tells whether the secrets data is completely healthy.
- *
- * The result can be used to decuce whether a data corruption happened
- * to any data which is monitored for data corruptions. Returns true if
- * everything is okay and false otherwise.
+  \brief Tells whether the secrets data is completely healthy.
+
+  The result can be used to decuce whether a data corruption happened
+  to any data which is monitored for data corruptions. Returns true if
+  everything is okay and false otherwise.
  */
 bool HealthCheckRequest::isHealthy() const
 {

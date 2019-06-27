@@ -52,20 +52,20 @@ SecretPrivate::~SecretPrivate()
 //--------------------------------------------
 
 /*!
- * \class Secret::Identifier
- * \brief An identifier for a secret
- *
- * The identifier consists of the name (alias) of the secret, along with
- * the name of the collection in which the secret is stored (note that the
- * collection name can be empty if the secret is stored as a standalone
- * secret) and the name of the storage plugin which stores the collection.
- *
- * Together, the secret name, collection name and storage plugin name
- * uniquely identify the secret in the secrets storage.
+  \class Secret::Identifier
+  \brief An identifier for a secret
+
+  The identifier consists of the name (alias) of the secret, along with
+  the name of the collection in which the secret is stored (note that the
+  collection name can be empty if the secret is stored as a standalone
+  secret) and the name of the storage plugin which stores the collection.
+
+  Together, the secret name, collection name and storage plugin name
+  uniquely identify the secret in the secrets storage.
  */
 
 /*!
- * \brief Constructs a new, empty identifier
+  \brief Constructs a new, empty identifier
  */
 Secret::Identifier::Identifier()
     : d_ptr(new SecretIdentifierPrivate)
@@ -73,7 +73,7 @@ Secret::Identifier::Identifier()
 }
 
 /*!
- * \brief Constructs a new identifier from the given secret \a name, \a collectionName and \a storagePluginName
+  \brief Constructs a new identifier from the given secret \a name, \a collectionName and \a storagePluginName
  */
 Secret::Identifier::Identifier(const QString &name, const QString &collectionName, const QString &storagePluginName)
         : d_ptr(new SecretIdentifierPrivate)
@@ -84,7 +84,7 @@ Secret::Identifier::Identifier(const QString &name, const QString &collectionNam
 }
 
 /*!
- * \brief Constructs a copy of the \a other identifier
+  \brief Constructs a copy of the \a other identifier
  */
 Secret::Identifier::Identifier(const Secret::Identifier &other)
     : d_ptr(other.d_ptr)
@@ -92,14 +92,14 @@ Secret::Identifier::Identifier(const Secret::Identifier &other)
 }
 
 /*!
- * \brief Destroys the identifier
+  \brief Destroys the identifier
  */
 Secret::Identifier::~Identifier()
 {
 }
 
 /*!
- * \brief Assigns the \a other identifier to this identifier
+  \brief Assigns the \a other identifier to this identifier
  */
 Secret::Identifier& Secret::Identifier::operator=(const Secret::Identifier &other)
 {
@@ -108,12 +108,12 @@ Secret::Identifier& Secret::Identifier::operator=(const Secret::Identifier &othe
 }
 
 /*!
- * \brief Returns true if the secret name is not empty
- *
- * Note that this doesn't mean that the identifier does in fact identify
- * a valid secret stored by the system secrets service; rather, it means
- * that if a secret with that name does exist, then this identifier
- * would identify it.
+  \brief Returns true if the secret name is not empty
+
+  Note that this doesn't mean that the identifier does in fact identify
+  a valid secret stored by the system secrets service; rather, it means
+  that if a secret with that name does exist, then this identifier
+  would identify it.
  */
 bool Secret::Identifier::isValid() const
 {
@@ -121,14 +121,14 @@ bool Secret::Identifier::isValid() const
 }
 
 /*!
- * \brief Returns true if the collection name is empty
- *
- * A standalone secret is a secret which is not stored in a collection,
- * but instead is stored "standalone".
- *
- * Note that standalone secrets are usually less-secure than collection
- * stored secrets, as they are likely to be stored in a database which
- * is not block-level encrypted.
+  \brief Returns true if the collection name is empty
+
+  A standalone secret is a secret which is not stored in a collection,
+  but instead is stored "standalone".
+
+  Note that standalone secrets are usually less-secure than collection
+  stored secrets, as they are likely to be stored in a database which
+  is not block-level encrypted.
  */
 bool Secret::Identifier::identifiesStandaloneSecret() const
 {
@@ -136,7 +136,7 @@ bool Secret::Identifier::identifiesStandaloneSecret() const
 }
 
 /*!
- * \brief Returns the secret name from the identifier
+  \brief Returns the secret name from the identifier
  */
 QString Secret::Identifier::name() const
 {
@@ -144,7 +144,7 @@ QString Secret::Identifier::name() const
 }
 
 /*!
- * \brief Sets the secret name in the identifier to \a name
+  \brief Sets the secret name in the identifier to \a name
  */
 void Secret::Identifier::setName(const QString &name)
 {
@@ -152,7 +152,7 @@ void Secret::Identifier::setName(const QString &name)
 }
 
 /*!
- * \brief Returns the collection name from the identifier
+  \brief Returns the collection name from the identifier
  */
 QString Secret::Identifier::collectionName() const
 {
@@ -160,7 +160,7 @@ QString Secret::Identifier::collectionName() const
 }
 
 /*!
- * \brief Sets the collection name in the identifier to \a collectionName
+  \brief Sets the collection name in the identifier to \a collectionName
  */
 void Secret::Identifier::setCollectionName(const QString &collectionName)
 {
@@ -168,7 +168,7 @@ void Secret::Identifier::setCollectionName(const QString &collectionName)
 }
 
 /*!
- * \brief Returns the storage plugin name from the identifier
+  \brief Returns the storage plugin name from the identifier
  */
 QString Secret::Identifier::storagePluginName() const
 {
@@ -176,7 +176,7 @@ QString Secret::Identifier::storagePluginName() const
 }
 
 /*!
- * \brief Sets the storage plugin name in the identifier to \a storagePluginName
+  \brief Sets the storage plugin name in the identifier to \a storagePluginName
  */
 void Secret::Identifier::setStoragePluginName(const QString &storagePluginName)
 {
@@ -186,18 +186,18 @@ void Secret::Identifier::setStoragePluginName(const QString &storagePluginName)
 //--------------------------------------------
 
 /*!
- * \class Secret
- * \brief An instance of a secret
- *
- * The Secret class encapsulates a piece of data stored by an application
- * with the system secrets storage service.  Each secret is identified by
- * its name (alias) along with the name of the collection in which the
- * secret is stored (the collection name is optional if the secret is
- * stored standalone).
+  \class Secret
+  \brief An instance of a secret
+
+  The Secret class encapsulates a piece of data stored by an application
+  with the system secrets storage service.  Each secret is identified by
+  its name (alias) along with the name of the collection in which the
+  secret is stored (the collection name is optional if the secret is
+  stored standalone).
  */
 
 /*!
- * \brief Constructs an empty secret with an unknown type
+  \brief Constructs an empty secret with an unknown type
  */
 Secret::Secret()
     : d_ptr(new SecretPrivate)
@@ -206,7 +206,7 @@ Secret::Secret()
 }
 
 /*!
- * \brief Constructs a copy of the \a other secret
+  \brief Constructs a copy of the \a other secret
  */
 Secret::Secret(const Secret &other)
     : d_ptr(other.d_ptr)
@@ -214,7 +214,7 @@ Secret::Secret(const Secret &other)
 }
 
 /*!
- * \brief Constructs a secret which references a secret stored in the given \a storagePlugin with the given \a name from the given \a collection.
+  \brief Constructs a secret which references a secret stored in the given \a storagePlugin with the given \a name from the given \a collection.
  */
 Secret::Secret(const QString &name, const QString &collection, const QString &storagePlugin)
     : d_ptr(new SecretPrivate)
@@ -224,7 +224,7 @@ Secret::Secret(const QString &name, const QString &collection, const QString &st
 }
 
 /*!
- * \brief Constructs a secret which references a stored secret with the given \a ident
+  \brief Constructs a secret which references a stored secret with the given \a ident
  */
 Secret::Secret(const Secret::Identifier &ident)
     : d_ptr(new SecretPrivate)
@@ -234,7 +234,7 @@ Secret::Secret(const Secret::Identifier &ident)
 }
 
 /*!
- * \brief Constructs a secret from the given secret data \a blob tagged with the given \a filterData
+  \brief Constructs a secret from the given secret data \a blob tagged with the given \a filterData
  */
 Secret::Secret(const QByteArray &blob, const Secret::FilterData &filterData)
     : d_ptr(new SecretPrivate)
@@ -245,14 +245,14 @@ Secret::Secret(const QByteArray &blob, const Secret::FilterData &filterData)
 }
 
 /*!
- * \brief Destroys the secret
+  \brief Destroys the secret
  */
 Secret::~Secret()
 {
 }
 
 /*!
- * \brief Assigns the \a other secret to this secret
+  \brief Assigns the \a other secret to this secret
  */
 Secret& Secret::operator=(const Secret &other)
 {
@@ -261,9 +261,9 @@ Secret& Secret::operator=(const Secret &other)
 }
 
 /*!
- * \brief Returns the type of the secret
- *
- * This metadata is informational only, and doesn't affect its storage.
+  \brief Returns the type of the secret
+
+  This metadata is informational only, and doesn't affect its storage.
  */
 QString Secret::type() const
 {
@@ -271,7 +271,7 @@ QString Secret::type() const
 }
 
 /*!
- * \brief Sets the type of the secret to the given \a type
+  \brief Sets the type of the secret to the given \a type
  */
 void Secret::setType(const QString &type)
 {
@@ -279,7 +279,7 @@ void Secret::setType(const QString &type)
 }
 
 /*!
- * \brief Returns the identifier of the secret
+  \brief Returns the identifier of the secret
  */
 Secret::Identifier Secret::identifier() const
 {
@@ -287,7 +287,7 @@ Secret::Identifier Secret::identifier() const
 }
 
 /*!
- * \brief Sets the identifier of the secret to the given \a identifier
+  \brief Sets the identifier of the secret to the given \a identifier
  */
 void Secret::setIdentifier(const Secret::Identifier &identifier)
 {
@@ -295,7 +295,7 @@ void Secret::setIdentifier(const Secret::Identifier &identifier)
 }
 
 /*!
- * \brief Returns the name field from the identifier of the secret
+  \brief Returns the name field from the identifier of the secret
  */
 QString Secret::name() const
 {
@@ -303,7 +303,7 @@ QString Secret::name() const
 }
 
 /*!
- * \brief Sets the name field in the identifier of the secret to \a name
+  \brief Sets the name field in the identifier of the secret to \a name
  */
 void Secret::setName(const QString &name)
 {
@@ -311,7 +311,7 @@ void Secret::setName(const QString &name)
 }
 
 /*!
- * \brief Returns the collection name field from the identifier of the secret
+  \brief Returns the collection name field from the identifier of the secret
  */
 QString Secret::collectionName() const
 {
@@ -319,7 +319,7 @@ QString Secret::collectionName() const
 }
 
 /*!
- * \brief Sets the collection name field in the identifier of the secret to \a cname
+  \brief Sets the collection name field in the identifier of the secret to \a cname
  */
 void Secret::setCollectionName(const QString &cname)
 {
@@ -327,7 +327,7 @@ void Secret::setCollectionName(const QString &cname)
 }
 
 /*!
- * \brief Returns the storage plugin name field from the identifier of the secret
+  \brief Returns the storage plugin name field from the identifier of the secret
  */
 QString Secret::storagePluginName() const
 {
@@ -335,7 +335,7 @@ QString Secret::storagePluginName() const
 }
 
 /*!
- * \brief Sets the storage plugin name field in the identifier of the secret to \a pname
+  \brief Sets the storage plugin name field in the identifier of the secret to \a pname
  */
 void Secret::setStoragePluginName(const QString &pname)
 {
@@ -343,9 +343,9 @@ void Secret::setStoragePluginName(const QString &pname)
 }
 
 /*!
- * \brief Returns the secret data from the secret
- *
- * This is the data which will be stored securely by the secrets service
+  \brief Returns the secret data from the secret
+
+  This is the data which will be stored securely by the secrets service
  */
 QByteArray Secret::data() const
 {
@@ -353,7 +353,7 @@ QByteArray Secret::data() const
 }
 
 /*!
- * \brief Sets the secret data in the secret to \a data
+  \brief Sets the secret data in the secret to \a data
  */
 void Secret::setData(const QByteArray &data)
 {
@@ -361,9 +361,9 @@ void Secret::setData(const QByteArray &data)
 }
 
 /*!
- * \brief Returns the filter data associated with the secret
- *
- * This filter data may be used by other clients to find the secret
+  \brief Returns the filter data associated with the secret
+
+  This filter data may be used by other clients to find the secret
  */
 Secret::FilterData Secret::filterData() const
 {
@@ -371,7 +371,7 @@ Secret::FilterData Secret::filterData() const
 }
 
 /*!
- * \brief Sets the filter data associated with the secret to \a filterData
+  \brief Sets the filter data associated with the secret to \a filterData
  */
 void Secret::setFilterData(const Secret::FilterData &filterData)
 {
@@ -379,7 +379,7 @@ void Secret::setFilterData(const Secret::FilterData &filterData)
 }
 
 /*!
- * \brief Returns the fields (keys) of filter data associated with the secret
+  \brief Returns the fields (keys) of filter data associated with the secret
  */
 QStringList Secret::filterDataFields() const
 {
@@ -387,7 +387,7 @@ QStringList Secret::filterDataFields() const
 }
 
 /*!
- * \brief Returns the filter data value associated with the secret for the given filter \a field
+  \brief Returns the filter data value associated with the secret for the given filter \a field
  */
 QString Secret::filterData(const QString &field) const
 {
@@ -395,7 +395,7 @@ QString Secret::filterData(const QString &field) const
 }
 
 /*!
- * \brief Sets the filter data value associated with the secret for the given filter \a field to \a value
+  \brief Sets the filter data value associated with the secret for the given filter \a field to \a value
  */
 void Secret::setFilterData(const QString &field, const QString &value)
 {
@@ -403,7 +403,7 @@ void Secret::setFilterData(const QString &field, const QString &value)
 }
 
 /*!
- * \brief Returns true if the secret has filter data associated with it for the given filter \a field
+  \brief Returns true if the secret has filter data associated with it for the given filter \a field
  */
 bool Secret::hasFilterData(const QString &field) const
 {
@@ -411,7 +411,7 @@ bool Secret::hasFilterData(const QString &field) const
 }
 
 /*!
- * \brief Returns true if the \a lhs identifier consists of the same name and collection name as the \a rhs identifier
+  \brief Returns true if the \a lhs identifier consists of the same name and collection name as the \a rhs identifier
  */
 bool Sailfish::Secrets::operator==(const Secret::Identifier &lhs, const Secret::Identifier &rhs)
 {
@@ -420,7 +420,7 @@ bool Sailfish::Secrets::operator==(const Secret::Identifier &lhs, const Secret::
 }
 
 /*!
- * \brief Returns false if the \a lhs identifier consists of the same name and collection name as the \a rhs identifier
+  \brief Returns false if the \a lhs identifier consists of the same name and collection name as the \a rhs identifier
  */
 bool Sailfish::Secrets::operator!=(const Secret::Identifier &lhs, const Secret::Identifier &rhs)
 {
@@ -428,7 +428,7 @@ bool Sailfish::Secrets::operator!=(const Secret::Identifier &lhs, const Secret::
 }
 
 /*!
- * \brief Returns true if the \a lhs identifier should sort as less than the \a rhs identifier
+  \brief Returns true if the \a lhs identifier should sort as less than the \a rhs identifier
  */
 bool Sailfish::Secrets::operator<(const Secret::Identifier &lhs, const Secret::Identifier &rhs)
 {
@@ -438,7 +438,7 @@ bool Sailfish::Secrets::operator<(const Secret::Identifier &lhs, const Secret::I
 }
 
 /*!
- * \brief Returns true if the \a lhs secret is equal to the \a rhs secret
+  \brief Returns true if the \a lhs secret is equal to the \a rhs secret
  */
 bool Sailfish::Secrets::operator==(const Secret &lhs, const Secret &rhs)
 {
@@ -448,7 +448,7 @@ bool Sailfish::Secrets::operator==(const Secret &lhs, const Secret &rhs)
 }
 
 /*!
- * \brief Returns false if the \a lhs secret is equal to the \a rhs secret
+  \brief Returns false if the \a lhs secret is equal to the \a rhs secret
  */
 bool Sailfish::Secrets::operator!=(const Secret &lhs, const Secret &rhs)
 {
@@ -456,7 +456,7 @@ bool Sailfish::Secrets::operator!=(const Secret &lhs, const Secret &rhs)
 }
 
 /*!
- * \brief Returns true if the \a lhs secret should sort as less than the \a rhs secret
+  \brief Returns true if the \a lhs secret should sort as less than the \a rhs secret
  */
 bool Sailfish::Secrets::operator<(const Secret &lhs, const Secret &rhs)
 {

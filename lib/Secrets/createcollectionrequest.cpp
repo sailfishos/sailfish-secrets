@@ -28,49 +28,49 @@ CreateCollectionRequestPrivate::CreateCollectionRequestPrivate()
 }
 
 /*!
- * \class CreateCollectionRequest
- * \brief Allows a client request that the system secrets service create a collection for secrets storage
- *
- * This class allows clients to request the Secrets service to create a collection
- * with the particular collectionName(), which will be stored by the storage plugin
- * identified by its storagePluginName().
- *
- * The collection may be either a device-lock protected collection or a custom-lock
- * protected collection, and different unlock semantics may apply in each case.
- * Creating a custom-lock collection will also require an authentication flow to
- * be specified so that the user can enter an appropriate lock-code or pass-phrase.
- * In either case, secrets stored in the collection will be encrypted with a key
- * derived from the appropriate authentication code, by the encryption plugin
- * identified by its encryptionPluginName().
- *
- * If the storagePluginName() and encryptionPluginName() are specified to be the
- * same plugin, then that plugin is assumed to be an \tt EncryptedStoragePlugin
- * which performs block-level encryption of the entire collection, instead of
- * per-value encryption of individual secrets.
- *
- * An accessControlMode() may also be specified for the collection, which will be
- * enforced by the system secrets service, in order to allow or prevent other
- * applications from reading the secret.
- *
- * An example of creating a device-lock protected, block-level encrypted collection
- * is as follows:
- *
- * \code
- * Sailfish::Secrets::SecretManager sm;
- * Sailfish::Secrets::CreateCollectionRequest ccr;
- * ccr.setManager(&sm);
- * ccr.setCollectionName(QLatin1String("ExampleCollection"));
- * ccr.setAccessControlMode(Sailfish::Secrets::SecretManager::OwnerOnlyMode);
- * ccr.setCollectionLockType(Sailfish::Secrets::CreateCollectionRequest::DeviceLock);
- * ccr.setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked);
- * ccr.setStoragePluginName(Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
- * ccr.setEncryptionPluginName(Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
- * ccr.startRequest(); // status() will change to Finished when complete
- * \endcode
+  \class CreateCollectionRequest
+  \brief Allows a client request that the system secrets service create a collection for secrets storage
+
+  This class allows clients to request the Secrets service to create a collection
+  with the particular collectionName(), which will be stored by the storage plugin
+  identified by its storagePluginName().
+
+  The collection may be either a device-lock protected collection or a custom-lock
+  protected collection, and different unlock semantics may apply in each case.
+  Creating a custom-lock collection will also require an authentication flow to
+  be specified so that the user can enter an appropriate lock-code or pass-phrase.
+  In either case, secrets stored in the collection will be encrypted with a key
+  derived from the appropriate authentication code, by the encryption plugin
+  identified by its encryptionPluginName().
+
+  If the storagePluginName() and encryptionPluginName() are specified to be the
+  same plugin, then that plugin is assumed to be an \tt EncryptedStoragePlugin
+  which performs block-level encryption of the entire collection, instead of
+  per-value encryption of individual secrets.
+
+  An accessControlMode() may also be specified for the collection, which will be
+  enforced by the system secrets service, in order to allow or prevent other
+  applications from reading the secret.
+
+  An example of creating a device-lock protected, block-level encrypted collection
+  is as follows:
+
+  \code
+  Sailfish::Secrets::SecretManager sm;
+  Sailfish::Secrets::CreateCollectionRequest ccr;
+  ccr.setManager(&sm);
+  ccr.setCollectionName(QLatin1String("ExampleCollection"));
+  ccr.setAccessControlMode(Sailfish::Secrets::SecretManager::OwnerOnlyMode);
+  ccr.setCollectionLockType(Sailfish::Secrets::CreateCollectionRequest::DeviceLock);
+  ccr.setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked);
+  ccr.setStoragePluginName(Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
+  ccr.setEncryptionPluginName(Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
+  ccr.startRequest(); // status() will change to Finished when complete
+  \endcode
  */
 
 /*!
- * \brief Constructs a new CreateCollectionRequest object with the given \a parent.
+  \brief Constructs a new CreateCollectionRequest object with the given \a parent.
  */
 CreateCollectionRequest::CreateCollectionRequest(QObject *parent)
     : Request(parent)
@@ -79,19 +79,19 @@ CreateCollectionRequest::CreateCollectionRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the CreateCollectionRequest
+  \brief Destroys the CreateCollectionRequest
  */
 CreateCollectionRequest::~CreateCollectionRequest()
 {
 }
 
 /*!
- * \brief Returns the type of lock which will be applied to the created collection.
- *
- * A collection whose lock type is CreateCollectionRequest::DeviceLock will use the
- * device-lock code for its security, whereas a collection whose lock type is
- * CreateCollectionRequest::CustomLock will use a separate pass phrase, PIN code, or
- * other authentication method.
+  \brief Returns the type of lock which will be applied to the created collection.
+
+  A collection whose lock type is CreateCollectionRequest::DeviceLock will use the
+  device-lock code for its security, whereas a collection whose lock type is
+  CreateCollectionRequest::CustomLock will use a separate pass phrase, PIN code, or
+  other authentication method.
  */
 CreateCollectionRequest::CollectionLockType CreateCollectionRequest::collectionLockType() const
 {
@@ -100,7 +100,7 @@ CreateCollectionRequest::CollectionLockType CreateCollectionRequest::collectionL
 }
 
 /*!
- * \brief Sets the type of lock which will be applied to the created collection to \a type
+  \brief Sets the type of lock which will be applied to the created collection to \a type
  */
 void CreateCollectionRequest::setCollectionLockType(CreateCollectionRequest::CollectionLockType type)
 {
@@ -116,7 +116,7 @@ void CreateCollectionRequest::setCollectionLockType(CreateCollectionRequest::Col
 }
 
 /*!
- * \brief Returns the name of the collection which the client wishes create
+  \brief Returns the name of the collection which the client wishes create
  */
 QString CreateCollectionRequest::collectionName() const
 {
@@ -125,7 +125,7 @@ QString CreateCollectionRequest::collectionName() const
 }
 
 /*!
- * \brief Sets the name of the collection which the client wishes to create to \a name
+  \brief Sets the name of the collection which the client wishes to create to \a name
  */
 void CreateCollectionRequest::setCollectionName(const QString &name)
 {
@@ -141,8 +141,8 @@ void CreateCollectionRequest::setCollectionName(const QString &name)
 }
 
 /*!
- * \brief Returns the name of the storage plugin which the client wishes to use to create the collection
- * \note When storagePluginName is the same as encryptionPluginName, then it is assumed that the user means an EncryptedStoragePlugin.
+  \brief Returns the name of the storage plugin which the client wishes to use to create the collection
+  \note When storagePluginName is the same as encryptionPluginName, then it is assumed that the user means an EncryptedStoragePlugin.
  */
 QString CreateCollectionRequest::storagePluginName() const
 {
@@ -151,7 +151,7 @@ QString CreateCollectionRequest::storagePluginName() const
 }
 
 /*!
- * \brief Sets the name of the storage plugin which the client wishes to use to create the collection to \a pluginName
+  \brief Sets the name of the storage plugin which the client wishes to use to create the collection to \a pluginName
  */
 void CreateCollectionRequest::setStoragePluginName(const QString &pluginName)
 {
@@ -167,8 +167,8 @@ void CreateCollectionRequest::setStoragePluginName(const QString &pluginName)
 }
 
 /*!
- * \brief Returns the name of the encryption plugin which the client wishes to use to encrypt secrets stored in the collection
- * \note When storagePluginName is the same as encryptionPluginName, then it is assumed that the user means an EncryptedStoragePlugin.
+  \brief Returns the name of the encryption plugin which the client wishes to use to encrypt secrets stored in the collection
+  \note When storagePluginName is the same as encryptionPluginName, then it is assumed that the user means an EncryptedStoragePlugin.
  */
 QString CreateCollectionRequest::encryptionPluginName() const
 {
@@ -177,7 +177,7 @@ QString CreateCollectionRequest::encryptionPluginName() const
 }
 
 /*!
- * \brief Sets the name of the encryption plugin which the client wishes to use to encrypt secrets stored in the collection to \a pluginName
+  \brief Sets the name of the encryption plugin which the client wishes to use to encrypt secrets stored in the collection to \a pluginName
  */
 void CreateCollectionRequest::setEncryptionPluginName(const QString &pluginName)
 {
@@ -193,7 +193,7 @@ void CreateCollectionRequest::setEncryptionPluginName(const QString &pluginName)
 }
 
 /*!
- * \brief Returns the name of the authentication plugin which the client wishes to use to authenticate the user (in order to unlock the collection)
+  \brief Returns the name of the authentication plugin which the client wishes to use to authenticate the user (in order to unlock the collection)
  */
 QString CreateCollectionRequest::authenticationPluginName() const
 {
@@ -202,9 +202,9 @@ QString CreateCollectionRequest::authenticationPluginName() const
 }
 
 /*!
- * \brief Sets the name of the authentication plugin which the client wishes to use to authenticate the user (in order to unlock the collection) to \a pluginName
- *
- * Note: this will only apply to collections whose collectionLockType() is CreateCollectionRequest::CustomLock.
+  \brief Sets the name of the authentication plugin which the client wishes to use to authenticate the user (in order to unlock the collection) to \a pluginName
+
+  Note: this will only apply to collections whose collectionLockType() is CreateCollectionRequest::CustomLock.
  */
 void CreateCollectionRequest::setAuthenticationPluginName(const QString &pluginName)
 {
@@ -220,7 +220,7 @@ void CreateCollectionRequest::setAuthenticationPluginName(const QString &pluginN
 }
 
 /*!
- * \brief Returns the unlock semantic which will apply to the collection if it is protected by the device lock.
+  \brief Returns the unlock semantic which will apply to the collection if it is protected by the device lock.
  */
 SecretManager::DeviceLockUnlockSemantic CreateCollectionRequest::deviceLockUnlockSemantic() const
 {
@@ -229,9 +229,9 @@ SecretManager::DeviceLockUnlockSemantic CreateCollectionRequest::deviceLockUnloc
 }
 
 /*!
- * \brief Sets the unlock semantic which will apply to the collection if it is protected by the device lock to \a semantic.
- *
- * Note: this will only apply to collections whose collectionLockType() is CreateCollectionRequest::DeviceLock.
+  \brief Sets the unlock semantic which will apply to the collection if it is protected by the device lock to \a semantic.
+
+  Note: this will only apply to collections whose collectionLockType() is CreateCollectionRequest::DeviceLock.
  */
 void CreateCollectionRequest::setDeviceLockUnlockSemantic(SecretManager::DeviceLockUnlockSemantic semantic)
 {
@@ -247,7 +247,7 @@ void CreateCollectionRequest::setDeviceLockUnlockSemantic(SecretManager::DeviceL
 }
 
 /*!
- * \brief Returns the unlock semantic which will apply to the collection if it is protected by a custom lock.
+  \brief Returns the unlock semantic which will apply to the collection if it is protected by a custom lock.
  */
 SecretManager::CustomLockUnlockSemantic CreateCollectionRequest::customLockUnlockSemantic() const
 {
@@ -256,9 +256,9 @@ SecretManager::CustomLockUnlockSemantic CreateCollectionRequest::customLockUnloc
 }
 
 /*!
- * \brief Sets the unlock semantic which will apply to the collection if it is protected by a custom lock to \a semantic.
- *
- * Note: this will only apply to collections whose collectionLockType() is CreateCollectionRequest::CustomLock.
+  \brief Sets the unlock semantic which will apply to the collection if it is protected by a custom lock to \a semantic.
+
+  Note: this will only apply to collections whose collectionLockType() is CreateCollectionRequest::CustomLock.
  */
 void CreateCollectionRequest::setCustomLockUnlockSemantic(SecretManager::CustomLockUnlockSemantic semantic)
 {
@@ -274,7 +274,7 @@ void CreateCollectionRequest::setCustomLockUnlockSemantic(SecretManager::CustomL
 }
 
 /*!
- * \brief Returns the access control mode which will be enforced for the collection
+  \brief Returns the access control mode which will be enforced for the collection
  */
 SecretManager::AccessControlMode CreateCollectionRequest::accessControlMode() const
 {
@@ -283,7 +283,7 @@ SecretManager::AccessControlMode CreateCollectionRequest::accessControlMode() co
 }
 
 /*!
- * \brief Sets the access control mode which will be enforced for the collection to \a mode
+  \brief Sets the access control mode which will be enforced for the collection to \a mode
  */
 void CreateCollectionRequest::setAccessControlMode(SecretManager::AccessControlMode mode)
 {
@@ -299,7 +299,7 @@ void CreateCollectionRequest::setAccessControlMode(SecretManager::AccessControlM
 }
 
 /*!
- * \brief Returns the user interaction mode required when creating the collection (e.g. if a custom lock code must be requested from the user)
+  \brief Returns the user interaction mode required when creating the collection (e.g. if a custom lock code must be requested from the user)
  */
 SecretManager::UserInteractionMode CreateCollectionRequest::userInteractionMode() const
 {
@@ -308,9 +308,9 @@ SecretManager::UserInteractionMode CreateCollectionRequest::userInteractionMode(
 }
 
 /*!
- * \brief Sets the user interaction mode required when creating the collection (e.g. if a custom lock code must be requested from the user) to \a mode
- *
- * Note: this will only apply to collections whose collectionLockType() is CreateCollectionRequest::CustomLock.
+  \brief Sets the user interaction mode required when creating the collection (e.g. if a custom lock code must be requested from the user) to \a mode
+
+  Note: this will only apply to collections whose collectionLockType() is CreateCollectionRequest::CustomLock.
  */
 void CreateCollectionRequest::setUserInteractionMode(SecretManager::UserInteractionMode mode)
 {

@@ -24,12 +24,12 @@ StoredKeyRequestPrivate::StoredKeyRequestPrivate()
 }
 
 /*!
- * \class StoredKeyRequest
- * \brief Allows a client request a securely-stored key from the system crypto service.
+  \class StoredKeyRequest
+  \brief Allows a client request a securely-stored key from the system crypto service.
  */
 
 /*!
- * \brief Constructs a new StoredKeyRequest object with the given \a parent.
+  \brief Constructs a new StoredKeyRequest object with the given \a parent.
  */
 StoredKeyRequest::StoredKeyRequest(QObject *parent)
     : Request(parent)
@@ -38,14 +38,14 @@ StoredKeyRequest::StoredKeyRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the StoredKeyRequest
+  \brief Destroys the StoredKeyRequest
  */
 StoredKeyRequest::~StoredKeyRequest()
 {
 }
 
 /*!
- * \brief Returns the identifier of the securely-stored key which the client wishes to retrieve
+  \brief Returns the identifier of the securely-stored key which the client wishes to retrieve
  */
 Key::Identifier StoredKeyRequest::identifier() const
 {
@@ -55,7 +55,7 @@ Key::Identifier StoredKeyRequest::identifier() const
 
 
 /*!
- * \brief Sets the identifier of the securely-stored key which the client wishes to retrieve to \a ident
+  \brief Sets the identifier of the securely-stored key which the client wishes to retrieve to \a ident
  */
 void StoredKeyRequest::setIdentifier(const Key::Identifier &ident)
 {
@@ -71,7 +71,7 @@ void StoredKeyRequest::setIdentifier(const Key::Identifier &ident)
 }
 
 /*!
- * \brief Returns the flags describing which components of the stored key the client wishes to retrieve
+  \brief Returns the flags describing which components of the stored key the client wishes to retrieve
  */
 Key::Components StoredKeyRequest::keyComponents() const
 {
@@ -80,22 +80,22 @@ Key::Components StoredKeyRequest::keyComponents() const
 }
 
 /*!
- * \brief Sets the flags describing which components of the stored key the client wishes to retrieve to \a components
- *
- * If the \a components includes \c Key::MetaData then information
- * about the key (including its origin, algorithm, supported block modes,
- * supported encryption and signature paddings, supported digests, operations,
- * and filter data) will be retrieved.
- *
- * If the \a components includes \c Key::PublicKeyData then
- * public key data will be retrieved.
- *
- * If the \a components includes \c Key::PrivateKeyData then
- * private key data and secret key data will be retrieved.
- *
- * Depending on the storage plugin, the custom parameters associated with the
- * key may be considered to be either metadata, public key data, or secret
- * key data, and will be retrieved or omitted accordingly.
+  \brief Sets the flags describing which components of the stored key the client wishes to retrieve to \a components
+
+  If the \a components includes \c Key::MetaData then information
+  about the key (including its origin, algorithm, supported block modes,
+  supported encryption and signature paddings, supported digests, operations,
+  and filter data) will be retrieved.
+
+  If the \a components includes \c Key::PublicKeyData then
+  public key data will be retrieved.
+
+  If the \a components includes \c Key::PrivateKeyData then
+  private key data and secret key data will be retrieved.
+
+  Depending on the storage plugin, the custom parameters associated with the
+  key may be considered to be either metadata, public key data, or secret
+  key data, and will be retrieved or omitted accordingly.
  */
 void StoredKeyRequest::setKeyComponents(Key::Components components)
 {
@@ -111,9 +111,9 @@ void StoredKeyRequest::setKeyComponents(Key::Components components)
 }
 
 /*!
- * \brief Returns the retrieved key
- *
- * Note: this value is only valid if the status of the request is Request::Finished.
+  \brief Returns the retrieved key
+
+  Note: this value is only valid if the status of the request is Request::Finished.
  */
 Key StoredKeyRequest::storedKey() const
 {

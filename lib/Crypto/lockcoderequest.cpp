@@ -26,59 +26,59 @@ LockCodeRequestPrivate::LockCodeRequestPrivate()
 }
 
 /*!
- * \class LockCodeRequest
- * \brief Allows a client to request that the system service either
- *        unlock, lock, or modify the lock code associated with a plugin.
- *
- * \b{Note: most clients will never need to use this class, as the
- * other request types automatically trigger locking and relocking
- * flows as required.}
- *
- * The operation will be applied to the plugin specified by the
- * \l{lockCodeTarget()}.  Only some plugins support these operations,
- * and in some cases only privileged applications (such as the system
- * settings application) may be permitted to perform these operations.
- *
- * If the \l{lockCodeRequestType()} specified is \l{QueryLockStatus}
- * then the service will return whether the specified target plugin
- * or metadata database is locked and requires a lock code to be entered.
- *
- * If the \l{lockCodeRequestType()} specified is \l{ModifyLockCode}
- * then the user will be prompted (via a system-mediated user interaction
- * flow) for the current lock code, and if that matches the existing
- * lock code, they will then be prompted for the new lock code.
- *
- * If the \l{lockCodeRequestType()} specified is \l{ProvideLockCode}
- * then the user will be prompted (via a system-mediated user interaction
- * flow) for the current lock code, which will be used to unlock the plugin.
- *
- * If the \l{lockCodeRequestType()} specified is \l{ForgetLockCode}
- * then if the datum is currently unlocked, the user will be prompted (via a
- * system-mediated user interaction flow) for the current lock code, and if
- * it matches the actual lock code, the plugin will be locked.
- *
- * An example of modifying the lock code used for a particular plugin follows:
- *
- * \code
- * // Require an alpha-numeric lock code to be provided
- * Sailfish::Crypto::InteractionParameters uiParams;
- * uiParams.setInputType(Sailfish::Crypto::InteractionParameters::AlphaNumericInput);
- * uiParams.setEchoMode(Sailfish::Crypto::InteractionParameters::PasswordEcho);
- *
- * // Request that the collection be re-keyed.
- * Sailfish::Crypto::CryptoManager cm;
- * Sailfish::Crypto::LockCodeRequest lcr;
- * lcr.setManager(&cm);
- * lcr.setLockCodeRequestType(Sailfish::Crypto::LockCodeRequest::ModifyLockCode);
- * lcr.setLockCodeTargetType(Sailfish::Crypto::LockCodeRequest::ExtensionPlugin);
- * lcr.setLockCodeTarget(QLatin1String("some.crypto.extension.plugin.name"));
- * lcr.setInteractionParameters(uiParams);
- * lcr.startRequest(); // status() will change to Finished when complete
- * \endcode
+  \class LockCodeRequest
+  \brief Allows a client to request that the system service either
+         unlock, lock, or modify the lock code associated with a plugin.
+
+  \b{Note: most clients will never need to use this class, as the
+  other request types automatically trigger locking and relocking
+  flows as required.}
+
+  The operation will be applied to the plugin specified by the
+  \l{lockCodeTarget()}.  Only some plugins support these operations,
+  and in some cases only privileged applications (such as the system
+  settings application) may be permitted to perform these operations.
+
+  If the \l{lockCodeRequestType()} specified is \l{QueryLockStatus}
+  then the service will return whether the specified target plugin
+  or metadata database is locked and requires a lock code to be entered.
+
+  If the \l{lockCodeRequestType()} specified is \l{ModifyLockCode}
+  then the user will be prompted (via a system-mediated user interaction
+  flow) for the current lock code, and if that matches the existing
+  lock code, they will then be prompted for the new lock code.
+
+  If the \l{lockCodeRequestType()} specified is \l{ProvideLockCode}
+  then the user will be prompted (via a system-mediated user interaction
+  flow) for the current lock code, which will be used to unlock the plugin.
+
+  If the \l{lockCodeRequestType()} specified is \l{ForgetLockCode}
+  then if the datum is currently unlocked, the user will be prompted (via a
+  system-mediated user interaction flow) for the current lock code, and if
+  it matches the actual lock code, the plugin will be locked.
+
+  An example of modifying the lock code used for a particular plugin follows:
+
+  \code
+  // Require an alpha-numeric lock code to be provided
+  Sailfish::Crypto::InteractionParameters uiParams;
+  uiParams.setInputType(Sailfish::Crypto::InteractionParameters::AlphaNumericInput);
+  uiParams.setEchoMode(Sailfish::Crypto::InteractionParameters::PasswordEcho);
+
+  // Request that the collection be re-keyed.
+  Sailfish::Crypto::CryptoManager cm;
+  Sailfish::Crypto::LockCodeRequest lcr;
+  lcr.setManager(&cm);
+  lcr.setLockCodeRequestType(Sailfish::Crypto::LockCodeRequest::ModifyLockCode);
+  lcr.setLockCodeTargetType(Sailfish::Crypto::LockCodeRequest::ExtensionPlugin);
+  lcr.setLockCodeTarget(QLatin1String("some.crypto.extension.plugin.name"));
+  lcr.setInteractionParameters(uiParams);
+  lcr.startRequest(); // status() will change to Finished when complete
+  \endcode
  */
 
 /*!
- * \brief Constructs a new LockCodeRequest object with the given \a parent.
+  \brief Constructs a new LockCodeRequest object with the given \a parent.
  */
 LockCodeRequest::LockCodeRequest(QObject *parent)
     : Request(parent)
@@ -87,14 +87,14 @@ LockCodeRequest::LockCodeRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the LockCodeRequest
+  \brief Destroys the LockCodeRequest
  */
 LockCodeRequest::~LockCodeRequest()
 {
 }
 
 /*!
- * \brief Returns the type of lock code operation being requested
+  \brief Returns the type of lock code operation being requested
  */
 LockCodeRequest::LockCodeRequestType LockCodeRequest::lockCodeRequestType() const
 {
@@ -103,7 +103,7 @@ LockCodeRequest::LockCodeRequestType LockCodeRequest::lockCodeRequestType() cons
 }
 
 /*!
- * \brief Sets the type of lock code operation being requested to \a type
+  \brief Sets the type of lock code operation being requested to \a type
  */
 void LockCodeRequest::setLockCodeRequestType(LockCodeRequest::LockCodeRequestType type)
 {
@@ -123,7 +123,7 @@ void LockCodeRequest::setLockCodeRequestType(LockCodeRequest::LockCodeRequestTyp
 }
 
 /*!
- * \brief Returns the type of the target of the lock code operation
+  \brief Returns the type of the target of the lock code operation
  */
 LockCodeRequest::LockCodeTargetType LockCodeRequest::lockCodeTargetType() const
 {
@@ -132,10 +132,10 @@ LockCodeRequest::LockCodeTargetType LockCodeRequest::lockCodeTargetType() const
 }
 
 /*!
- * \brief Sets the type of the target of the lock code operation to \a type
- *
- * Some plugins must be unlocked prior to use, and such plugins should
- * document their semantics for their intended clients.
+  \brief Sets the type of the target of the lock code operation to \a type
+
+  Some plugins must be unlocked prior to use, and such plugins should
+  document their semantics for their intended clients.
  */
 void LockCodeRequest::setLockCodeTargetType(LockCodeRequest::LockCodeTargetType type)
 {
@@ -151,7 +151,7 @@ void LockCodeRequest::setLockCodeTargetType(LockCodeRequest::LockCodeTargetType 
 }
 
 /*!
- * \brief Returns the user input parameters which should be used when requesting the secret data from the user
+  \brief Returns the user input parameters which should be used when requesting the secret data from the user
  */
 InteractionParameters LockCodeRequest::interactionParameters() const
 {
@@ -160,11 +160,11 @@ InteractionParameters LockCodeRequest::interactionParameters() const
 }
 
 /*!
- * \brief Sets the user input parameters which should be used when requesting the lock code from the user to \a params
- *
- * Note: specifying user input parameters implies that system-mediated user interaction
- * flows are allowed by the calling application, and are required by the collection
- * or standalone secret for which the lock code is being requested.
+  \brief Sets the user input parameters which should be used when requesting the lock code from the user to \a params
+
+  Note: specifying user input parameters implies that system-mediated user interaction
+  flows are allowed by the calling application, and are required by the collection
+  or standalone secret for which the lock code is being requested.
  */
 void LockCodeRequest::setInteractionParameters(const InteractionParameters &params)
 {
@@ -183,7 +183,7 @@ void LockCodeRequest::setInteractionParameters(const InteractionParameters &para
 // e.g. to allow changing the type of lock code (from PIN to ALPHANUM, etc)?
 
 /*!
- * \brief Returns the name of the target to which the lock code operation should be applied
+  \brief Returns the name of the target to which the lock code operation should be applied
  */
 QString LockCodeRequest::lockCodeTarget() const
 {
@@ -192,7 +192,7 @@ QString LockCodeRequest::lockCodeTarget() const
 }
 
 /*!
- * \brief Sets the name of the target to which the lock code operation should be applied to \a name
+  \brief Sets the name of the target to which the lock code operation should be applied to \a name
  */
 void LockCodeRequest::setLockCodeTarget(const QString &targetName)
 {
@@ -208,10 +208,10 @@ void LockCodeRequest::setLockCodeTarget(const QString &targetName)
 }
 
 /*!
- * \brief Returns the current lock status of the target plugin or metadata database
- *
- * The value will only be valid if the request's operation is \c{QueryLockStatus}.
- * Per-plugin lock status information is also reported from PluginInfoRequest.
+  \brief Returns the current lock status of the target plugin or metadata database
+
+  The value will only be valid if the request's operation is \c{QueryLockStatus}.
+  Per-plugin lock status information is also reported from PluginInfoRequest.
  */
 LockCodeRequest::LockStatus LockCodeRequest::lockStatus() const
 {

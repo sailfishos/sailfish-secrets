@@ -36,13 +36,13 @@ const QString CryptoManager::DefaultCryptoPluginName = QStringLiteral("plugin.cr
 const QString CryptoManager::DefaultCryptoStoragePluginName = QStringLiteral("plugin.cryptostorage.default");
 
 /*!
- * \internal
- * \class CryptoManagerPrivate
- * \brief Performs DBus calls to the system crypto service
+  \internal
+  \class CryptoManagerPrivate
+  \brief Performs P2P DBus calls to the system crypto service
  */
 
 /*!
- * \internal
+  \internal
  */
 CryptoManagerPrivate::CryptoManagerPrivate(CryptoManager *parent)
     : m_crypto(CryptoDaemonConnection::instance())
@@ -53,7 +53,7 @@ CryptoManagerPrivate::CryptoManagerPrivate(CryptoManager *parent)
 }
 
 /*!
- * \internal
+  \internal
  */
 CryptoManagerPrivate::~CryptoManagerPrivate()
 {
@@ -62,11 +62,11 @@ CryptoManagerPrivate::~CryptoManagerPrivate()
 }
 
 /*!
- * \internal
- * \brief Returns the names of available crypto plugins as well as the names of available (Secrets) storage plugins
- *
- * Any plugin which is both a crypto plugin and a storage plugin must be
- * able to implement stored-key functionality (e.g. GenerateStoredKeyRequest).
+  \internal
+  \brief Returns the names of available crypto plugins as well as the names of available (Secrets) storage plugins
+
+  Any plugin which is both a crypto plugin and a storage plugin must be
+  able to implement stored-key functionality (e.g. GenerateStoredKeyRequest).
  */
 QDBusPendingReply<Result, QVector<PluginInfo>, QVector<PluginInfo> >
 CryptoManagerPrivate::getPluginInfo()
@@ -643,7 +643,7 @@ CryptoManagerPrivate::forgetLockCode(
 }
 
 /*!
- * \internal
+  \internal
  */
 CryptoManagerPrivate *CryptoManager::pimpl() const
 {

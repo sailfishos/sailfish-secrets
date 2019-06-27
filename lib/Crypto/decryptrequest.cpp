@@ -24,12 +24,12 @@ DecryptRequestPrivate::DecryptRequestPrivate()
 }
 
 /*!
- * \class DecryptRequest
- * \brief Allows a client request that the system crypto service decrypt data with a specific key.
+  \class DecryptRequest
+  \brief Allows a client request that the system crypto service decrypt data with a specific key.
  */
 
 /*!
- * \brief Constructs a new DecryptRequest object with the given \a parent.
+  \brief Constructs a new DecryptRequest object with the given \a parent.
  */
 DecryptRequest::DecryptRequest(QObject *parent)
     : Request(parent)
@@ -38,14 +38,14 @@ DecryptRequest::DecryptRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the DecryptRequest
+  \brief Destroys the DecryptRequest
  */
 DecryptRequest::~DecryptRequest()
 {
 }
 
 /*!
- * \brief Returns the data which the client wishes to decrypt
+  \brief Returns the data which the client wishes to decrypt
  */
 QByteArray DecryptRequest::data() const
 {
@@ -54,7 +54,7 @@ QByteArray DecryptRequest::data() const
 }
 
 /*!
- * \brief Sets the data which the client wishes to decrypt to \a data
+  \brief Sets the data which the client wishes to decrypt to \a data
  */
 void DecryptRequest::setData(const QByteArray &data)
 {
@@ -70,7 +70,7 @@ void DecryptRequest::setData(const QByteArray &data)
 }
 
 /*!
- * \brief Returns the initialization vector which the client wishes to use when decrypting the data
+  \brief Returns the initialization vector which the client wishes to use when decrypting the data
  */
 QByteArray DecryptRequest::initializationVector() const
 {
@@ -79,17 +79,17 @@ QByteArray DecryptRequest::initializationVector() const
 }
 
 /*!
- * \brief Sets the initialization vector which the client wishes to use when decrypting the data to \a iv
- *
- * Note that this is only applicable for certain key types using certain
- * modes of encryption (e.g. CBC mode with AES symmetric keys).
- *
- * The client must specify the same initialization vector when decrypting
- * the cipher text as they used when encrypting it.  The initialization
- * vector is not secret, and can be stored along with the ciphertext,
- * however it should be generated using a cryptographically secure
- * random number generator (see \l{GenerateRandomDataRequest}) and must
- * be the appropriate size according to the cipher.
+  \brief Sets the initialization vector which the client wishes to use when decrypting the data to \a iv
+
+  Note that this is only applicable for certain key types using certain
+  modes of encryption (e.g. CBC mode with AES symmetric keys).
+
+  The client must specify the same initialization vector when decrypting
+  the cipher text as they used when encrypting it.  The initialization
+  vector is not secret, and can be stored along with the ciphertext,
+  however it should be generated using a cryptographically secure
+  random number generator (see \l{GenerateRandomDataRequest}) and must
+  be the appropriate size according to the cipher.
  */
 void DecryptRequest::setInitializationVector(const QByteArray &iv)
 {
@@ -105,7 +105,7 @@ void DecryptRequest::setInitializationVector(const QByteArray &iv)
 }
 
 /*!
- * \brief Returns the key the client wishes to be used to decrypt data
+  \brief Returns the key the client wishes to be used to decrypt data
  */
 Key DecryptRequest::key() const
 {
@@ -114,7 +114,7 @@ Key DecryptRequest::key() const
 }
 
 /*!
- * \brief Sets the key the client wishes to be used to decrypt data to \a key
+  \brief Sets the key the client wishes to be used to decrypt data to \a key
  */
 void DecryptRequest::setKey(const Key &key)
 {
@@ -130,7 +130,7 @@ void DecryptRequest::setKey(const Key &key)
 }
 
 /*!
- * \brief Returns the block mode to be used when decrypting the data
+  \brief Returns the block mode to be used when decrypting the data
  */
 Sailfish::Crypto::CryptoManager::BlockMode DecryptRequest::blockMode() const
 {
@@ -139,7 +139,7 @@ Sailfish::Crypto::CryptoManager::BlockMode DecryptRequest::blockMode() const
 }
 
 /*!
- * \brief Sets the block mode to be used when decrypting the data to the given \a mode
+  \brief Sets the block mode to be used when decrypting the data to the given \a mode
  */
 void DecryptRequest::setBlockMode(Sailfish::Crypto::CryptoManager::BlockMode mode)
 {
@@ -155,7 +155,7 @@ void DecryptRequest::setBlockMode(Sailfish::Crypto::CryptoManager::BlockMode mod
 }
 
 /*!
- * \brief Returns the encryption padding mode to be used when decrypting the data
+  \brief Returns the encryption padding mode to be used when decrypting the data
  */
 Sailfish::Crypto::CryptoManager::EncryptionPadding DecryptRequest::padding() const
 {
@@ -164,7 +164,7 @@ Sailfish::Crypto::CryptoManager::EncryptionPadding DecryptRequest::padding() con
 }
 
 /*!
- * \brief Sets the encryption padding mode to be used when decrypting the data to the given \a padding
+  \brief Sets the encryption padding mode to be used when decrypting the data to the given \a padding
  */
 void DecryptRequest::setPadding(Sailfish::Crypto::CryptoManager::EncryptionPadding padding)
 {
@@ -180,7 +180,7 @@ void DecryptRequest::setPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddi
 }
 
 /*!
- * \brief Returns the authentication data for the decrypt operation
+  \brief Returns the authentication data for the decrypt operation
  */
 QByteArray DecryptRequest::authenticationData() const
 {
@@ -189,9 +189,9 @@ QByteArray DecryptRequest::authenticationData() const
 }
 
 /*!
- * \brief Sets the authentication data for the decrypt operation
- *
- * This is only required if performing an authenticated decryption.
+  \brief Sets the authentication data for the decrypt operation
+
+  This is only required if performing an authenticated decryption.
  */
 void DecryptRequest::setAuthenticationData(const QByteArray &data)
 {
@@ -207,7 +207,7 @@ void DecryptRequest::setAuthenticationData(const QByteArray &data)
 }
 
 /*!
- * \brief Returns the authentication tag for the decrypt operation
+  \brief Returns the authentication tag for the decrypt operation
  */
 QByteArray DecryptRequest::authenticationTag() const
 {
@@ -216,9 +216,9 @@ QByteArray DecryptRequest::authenticationTag() const
 }
 
 /*!
- * \brief Sets the authentication tag for the decrypt operation
- *
- * This is only required if performing an authenticated decryption.
+  \brief Sets the authentication tag for the decrypt operation
+
+  This is only required if performing an authenticated decryption.
  */
 void DecryptRequest::setAuthenticationTag(const QByteArray &authenticationTag)
 {
@@ -234,7 +234,7 @@ void DecryptRequest::setAuthenticationTag(const QByteArray &authenticationTag)
 }
 
 /*!
- * \brief Returns the name of the crypto plugin which the client wishes to perform the decryption operation
+  \brief Returns the name of the crypto plugin which the client wishes to perform the decryption operation
  */
 QString DecryptRequest::cryptoPluginName() const
 {
@@ -243,7 +243,7 @@ QString DecryptRequest::cryptoPluginName() const
 }
 
 /*!
- * \brief Sets the name of the crypto plugin which the client wishes to perform the decryption operation to \a pluginName
+  \brief Sets the name of the crypto plugin which the client wishes to perform the decryption operation to \a pluginName
  */
 void DecryptRequest::setCryptoPluginName(const QString &pluginName)
 {
@@ -259,9 +259,9 @@ void DecryptRequest::setCryptoPluginName(const QString &pluginName)
 }
 
 /*!
- * \brief Returns the plaintext result of the decryption operation.
- *
- * Note: this value is only valid if the status of the request is Request::Finished.
+  \brief Returns the plaintext result of the decryption operation.
+
+  Note: this value is only valid if the status of the request is Request::Finished.
  */
 QByteArray DecryptRequest::plaintext() const
 {
@@ -270,9 +270,9 @@ QByteArray DecryptRequest::plaintext() const
 }
 
 /*!
- * \brief Returns the verification result of the decryption operation.
- *
- * Note: this value is only valid if the status of the request is Request::Finished.
+  \brief Returns the verification result of the decryption operation.
+
+  Note: this value is only valid if the status of the request is Request::Finished.
  */
 Sailfish::Crypto::CryptoManager::VerificationStatus DecryptRequest::verificationStatus() const
 {
@@ -327,10 +327,10 @@ void DecryptRequest::setManager(CryptoManager *manager)
 }
 
 /*!
- * \brief Starts a decryption operation.
- *
- * If \l authenticationData has been set, the decryption operation will be
- * authenticated using the \l authenticationData and \l authenticationTag values.
+  \brief Starts a decryption operation.
+
+  If \l authenticationData has been set, the decryption operation will be
+  authenticated using the \l authenticationData and \l authenticationTag values.
  */
 void DecryptRequest::startRequest()
 {

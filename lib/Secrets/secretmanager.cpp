@@ -42,13 +42,13 @@ const QString SecretManager::DefaultEncryptionPluginName = QStringLiteral("plugi
 const QString SecretManager::DefaultEncryptedStoragePluginName = QStringLiteral("plugin.encryptedstorage.default");
 
 /*!
- * \class SecretManagerPrivate
- * \internal
- * \brief Encapsulates DBus communication with the system secrets service
+  \class SecretManagerPrivate
+  \internal
+  \brief Encapsulates DBus communication with the system secrets service
  */
 
 /*!
- * \internal
+  \internal
  */
 SecretManagerPrivate::SecretManagerPrivate(SecretManager *parent)
     : QObject(parent)
@@ -656,7 +656,7 @@ SecretManagerPrivate::forgetLockCode(
 }
 
 /*!
- * \internal
+  \internal
  */
 SecretManagerPrivate *SecretManager::pimpl() const
 {
@@ -701,7 +701,7 @@ SecretManager::SecretManager(QObject *parent)
 }
 
 /*!
- * Destroys the SecretManager
+  Destroys the SecretManager
  */
 SecretManager::~SecretManager()
 {
@@ -718,6 +718,7 @@ bool SecretManager::isInitialized() const
 
 /*!
   \brief Registers the given \a view with the SecretManager.
+
   The \a view the InteractionView instance which will display any UI required during secret request
   if the authentication plugin for the secret or collection supports \c ApplicationSpecificAuthentication
   in-process UI flows.

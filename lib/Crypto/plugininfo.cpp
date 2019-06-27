@@ -34,25 +34,25 @@ PluginInfoPrivate::~PluginInfoPrivate()
 //--------------------------------------------
 
 /*!
- * \class PluginInfo
- * \brief Information about a plugin
- *
- * The result encapsulates the name and version of a plugin.
- * Instances of this object which contain information about
- * plugins which are available for use by clients can be
- * accessed via PluginInfoRequest.
- *
- * Clients should target a specific plugin when they implement
- * their application, as each plugin may have slightly different
- * semantics.
- *
- * Clients must read the documentation supplied by the plugin
- * implementor in order to know what functionality a given version
- * of the plugin supports.
+  \class PluginInfo
+  \brief Information about a plugin
+
+  The result encapsulates the name and version of a plugin.
+  Instances of this object which contain information about
+  plugins which are available for use by clients can be
+  accessed via PluginInfoRequest.
+
+  Clients should target a specific plugin when they implement
+  their application, as each plugin may have slightly different
+  semantics.
+
+  Clients must read the documentation supplied by the plugin
+  implementor in order to know what functionality a given version
+  of the plugin supports.
  */
 
 /*!
- * \brief Constructs a plugin info object containing the given \a name, \a version and \a status
+  \brief Constructs a plugin info object containing the given \a name, \a version and \a status
  */
 PluginInfo::PluginInfo(const QString &displayName,
                        const QString &name,
@@ -67,7 +67,7 @@ PluginInfo::PluginInfo(const QString &displayName,
 }
 
 /*!
- * \brief Constructs a copy of the \a other plugin info object
+  \brief Constructs a copy of the \a other plugin info object
  */
 PluginInfo::PluginInfo(const PluginInfo &other)
     : d_ptr(other.d_ptr)
@@ -75,14 +75,14 @@ PluginInfo::PluginInfo(const PluginInfo &other)
 }
 
 /*!
- * \brief Destroys the plugin info object
+  \brief Destroys the plugin info object
  */
 PluginInfo::~PluginInfo()
 {
 }
 
 /*!
- * \brief Assigns the \a other plugin info object to this plugin info object
+  \brief Assigns the \a other plugin info object to this plugin info object
  */
 PluginInfo& PluginInfo::operator=(const PluginInfo &other)
 {
@@ -91,10 +91,10 @@ PluginInfo& PluginInfo::operator=(const PluginInfo &other)
 }
 
 /*!
- * \brief Returns the display name of the plugin
- *
- * This is the user-friendly, human-readable name reported by the
- * plugin and should already be translated.
+  \brief Returns the display name of the plugin
+
+  This is the user-friendly, human-readable name reported by the
+  plugin and should already be translated.
  */
 QString PluginInfo::displayName() const
 {
@@ -102,10 +102,10 @@ QString PluginInfo::displayName() const
 }
 
 /*!
- * \brief Returns the name of the plugin
- *
- * This is a unique identifier for the plugin, and is not
- * necessarily human-readable.
+  \brief Returns the name of the plugin
+
+  This is a unique identifier for the plugin, and is not
+  necessarily human-readable.
  */
 QString PluginInfo::name() const
 {
@@ -113,7 +113,7 @@ QString PluginInfo::name() const
 }
 
 /*!
- * \brief Returns the version of the plugin
+  \brief Returns the version of the plugin
  */
 int PluginInfo::version() const
 {
@@ -121,7 +121,7 @@ int PluginInfo::version() const
 }
 
 /*!
- * \brief Returns the status flags of the plugin
+  \brief Returns the status flags of the plugin
  */
 PluginInfo::StatusFlags PluginInfo::statusFlags() const
 {
@@ -129,7 +129,7 @@ PluginInfo::StatusFlags PluginInfo::statusFlags() const
 }
 
 /*!
- * \brief Returns true if the \a lhs plugin info object is equal to the \a rhs plugin info object
+  \brief Returns true if the \a lhs plugin info object is equal to the \a rhs plugin info object
  */
 bool Sailfish::Crypto::operator==(const PluginInfo &lhs, const PluginInfo &rhs)
 {
@@ -140,7 +140,7 @@ bool Sailfish::Crypto::operator==(const PluginInfo &lhs, const PluginInfo &rhs)
 }
 
 /*!
- * \brief Returns false if the \a lhs plugin info object is equal to the \a rhs plugin info object
+  \brief Returns false if the \a lhs plugin info object is equal to the \a rhs plugin info object
  */
 bool Sailfish::Crypto::operator!=(const PluginInfo &lhs, const PluginInfo &rhs)
 {
@@ -148,7 +148,7 @@ bool Sailfish::Crypto::operator!=(const PluginInfo &lhs, const PluginInfo &rhs)
 }
 
 /*!
- * \brief Returns true if the \a lhs plugin info object should sort less than \a rhs plugin info object
+  \brief Returns true if the \a lhs plugin info object should sort less than \a rhs plugin info object
  */
 bool Sailfish::Crypto::operator<(const PluginInfo &lhs, const PluginInfo &rhs)
 {

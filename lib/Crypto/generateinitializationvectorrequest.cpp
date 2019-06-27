@@ -25,12 +25,12 @@ GenerateInitializationVectorRequestPrivate::GenerateInitializationVectorRequestP
 }
 
 /*!
- * \class GenerateInitializationVectorRequest
- * \brief Allows the client to request an Initialization Vector from the system crypto service
+  \class GenerateInitializationVectorRequest
+  \brief Allows the client to request an Initialization Vector from the system crypto service
  */
 
 /*!
- * \brief Constructs a new GenerateInitializationVectorRequest object with the given \a parent.
+  \brief Constructs a new GenerateInitializationVectorRequest object with the given \a parent.
  */
 GenerateInitializationVectorRequest::GenerateInitializationVectorRequest(QObject *parent)
     : Request(parent)
@@ -39,14 +39,14 @@ GenerateInitializationVectorRequest::GenerateInitializationVectorRequest(QObject
 }
 
 /*!
- * \brief Destroys the GenerateInitializationVectorRequest
+  \brief Destroys the GenerateInitializationVectorRequest
  */
 GenerateInitializationVectorRequest::~GenerateInitializationVectorRequest()
 {
 }
 
 /*!
- * \brief Returns the algorithm which should be used when generating the IV
+  \brief Returns the algorithm which should be used when generating the IV
  */
 CryptoManager::Algorithm GenerateInitializationVectorRequest::algorithm() const
 {
@@ -55,7 +55,7 @@ CryptoManager::Algorithm GenerateInitializationVectorRequest::algorithm() const
 }
 
 /*!
- * \brief Sets the algorithm which should be used when generating the IV to \a algorithm
+  \brief Sets the algorithm which should be used when generating the IV to \a algorithm
  */
 void GenerateInitializationVectorRequest::setAlgorithm(CryptoManager::Algorithm algorithm)
 {
@@ -71,7 +71,7 @@ void GenerateInitializationVectorRequest::setAlgorithm(CryptoManager::Algorithm 
 }
 
 /*!
- * \brief Returns the block mode which should be used when generating the IV
+  \brief Returns the block mode which should be used when generating the IV
  */
 Sailfish::Crypto::CryptoManager::BlockMode GenerateInitializationVectorRequest::blockMode() const
 {
@@ -80,7 +80,7 @@ Sailfish::Crypto::CryptoManager::BlockMode GenerateInitializationVectorRequest::
 }
 
 /*!
- * \brief Sets the block mode which should be used when generating the IV to \a mode
+  \brief Sets the block mode which should be used when generating the IV to \a mode
  */
 void GenerateInitializationVectorRequest::setBlockMode(Sailfish::Crypto::CryptoManager::BlockMode mode)
 {
@@ -96,7 +96,7 @@ void GenerateInitializationVectorRequest::setBlockMode(Sailfish::Crypto::CryptoM
 }
 
 /*!
- * \brief Returns the key size which should be used when generating the IV
+  \brief Returns the key size which should be used when generating the IV
  */
 int GenerateInitializationVectorRequest::keySize() const
 {
@@ -105,7 +105,7 @@ int GenerateInitializationVectorRequest::keySize() const
 }
 
 /*!
- * \brief Sets the key size which should be used when generating the IV to \a keySize
+  \brief Sets the key size which should be used when generating the IV to \a keySize
  */
 void GenerateInitializationVectorRequest::setKeySize(int keySize)
 {
@@ -121,7 +121,7 @@ void GenerateInitializationVectorRequest::setKeySize(int keySize)
 }
 
 /*!
- * \brief Returns the name of the crypto plugin which the client wishes to perform the generation
+  \brief Returns the name of the crypto plugin which the client wishes to perform the generation
  */
 QString GenerateInitializationVectorRequest::cryptoPluginName() const
 {
@@ -130,7 +130,7 @@ QString GenerateInitializationVectorRequest::cryptoPluginName() const
 }
 
 /*!
- * \brief Sets the name of the crypto plugin which the client wishes to perform the generation to \a pluginName
+  \brief Sets the name of the crypto plugin which the client wishes to perform the generation to \a pluginName
  */
 void GenerateInitializationVectorRequest::setCryptoPluginName(const QString &pluginName)
 {
