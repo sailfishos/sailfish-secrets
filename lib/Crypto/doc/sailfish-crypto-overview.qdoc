@@ -265,8 +265,8 @@ achieve this, and the resulting plugin should be installed into the
 
 Note that if you wish to provide secure key storage as well as cryptographic
 services to clients, you also need to extend
-\l{Sailfish::Secrets::EncryptedStoragePlugin}.  For more information about that
-topic, please see the documentation about the \l{Sailfish OS Secrets library}.
+\c Sailfish::Secrets::EncryptedStoragePlugin.  For more information about that
+topic, please see the documentation about the Sailfish OS Secrets library.
 
 A variety of crypto plugins are shipped by default with the framework, and
 these are documented at the page about

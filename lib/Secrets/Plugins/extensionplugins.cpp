@@ -37,9 +37,10 @@ using namespace Sailfish::Secrets;
   \li \l{Sailfish::Secrets::EncryptedStoragePlugin} provides encrypted storage for secrets
   \endlist
 
-  In addition, there also exists the \l{Sailfish::Crypto::CryptoPlugin} extension plugin type,
-  which provides cryptographic functionality to clients.  If a particular plugin implements
-  both the \l{Sailfish::Crypto::CryptoPlugin} and \l{Sailfish::Secrets::EncryptedStoragePlugin}
+  In addition, there also exists the \c Sailfish::Crypto::CryptoPlugin extension plugin type,
+  which provides cryptographic functionality to clients (See the Sailfish OS Crypto library
+  documentation for more details).  If a particular plugin implements
+  both the \c Sailfish::Crypto::CryptoPlugin and \l{Sailfish::Secrets::EncryptedStoragePlugin}
   interfaces then it is able to secure store cryptographic keys as well as perform cryptographic
   operations using those keys, and is referred to as a Crypto-Storage Plugin.
 
