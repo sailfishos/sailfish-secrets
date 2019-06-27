@@ -52,9 +52,12 @@ StoredSecretRequestPrivate::StoredSecretRequestPrivate()
   plugin, but otherwise will be a system-mediated UI flow, unless the \a userInteractionMode
   specified is \c PreventInteraction in which case the request will fail).
 
-  Note that only those components of the secret which were allowed for retrieval
-  via \l{Sailfish::Secrets::Secret::setComponentConstraints()} will be able to be
-  retrieved, even if the calling application is the owner of the secret.
+  If the data contained in the secret is actually a cryptographic key created via the
+  \c Sailfish::Crypto library, then only those components of the key which were allowed
+  for retrieval via \c Sailfish::Crypto::Key::setComponentConstraints() will be able to be
+  retrieved, even if the calling application is the owner of the secret.  For more
+  information about that topic, please see the documentation for the
+  \c Sailfish::Crypto library.
 
   An example of retrieving a collection-stored secret follows:
 
