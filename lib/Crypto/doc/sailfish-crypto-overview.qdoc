@@ -7,10 +7,9 @@
 ****************************************************************************************/
 
 /*!
-\contentspage {Sailfish OS Crypto Library Contents}
 \page sailfish-crypto-overview.html
 
-\title Sailfish OS Crypto Library Overview
+\title Sailfish OS Crypto Library
 
 The Sailfish OS Crypto Library provides applications with API to access the
 cryptography functionality offered by the system service daemon as part of the
