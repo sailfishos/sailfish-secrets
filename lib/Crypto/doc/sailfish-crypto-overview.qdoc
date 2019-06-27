@@ -14,9 +14,7 @@
 
 The Sailfish OS Crypto Library provides applications with API to access the
 cryptography functionality offered by the system service daemon as part of the
-Sailfish OS Secrets and Crypto Framework.  Please see the Sailfish OS Secrets
-documentation for more in-depth documentation about the framework architecture,
-and broad overview of the features the framework provides.
+Sailfish OS Secrets and Crypto Framework.
 
 \note The Sailfish OS Secrets and Crypto Framework is still in active
 development and is subject to change.  Normal 3rd party API backward
@@ -24,6 +22,31 @@ compatibility promises don't hold.
 Follow \l{http://together.jolla.com/}{Together Jolla} release notes and
 \l{https://lists.sailfishos.org/cgi-bin/mailman/listinfo/devel}
 {Sailfish OS Developers} mailing list to get notified of API changes.
+
+\section1 Sailfish OS Crypto Architecture
+
+Applications running on highly-connected devices require the capability to
+perform advanced cryptographic operations, in order to protect the user's data,
+authenticate with remote services, verify the authenticity of other connected
+devices, and communicate securely.  The keys and certificates which are used
+to perform such operations also need to be stored securely on the device, in
+order to prevent malicious third-party applications from accessing those keys.
+
+In order to provide this capability, Sailfish OS includes a system service
+(extensible via vendor-specific plugins) which offers both secure storage of
+keys and the ability to perform cryptographic operations on behalf of client
+applications.  Client applications access this service via the Sailfish OS
+Crypto Library, which provides an asynchronous API for performing a variety
+of operations (and hides the IPC used as an internal implementation detail).
+
+Applications using the Sailfish OS Secrets and Crypto Framework delegate
+cryptographic operations to the system service, and the framework has been
+designed to ensure that when used appropriately, secret key data need never
+enter the process address space of the application. Furthermore, if the
+cryptographic service provider plugin to the framework is backed by secure
+hardware, Trusted Execution Environment application, or Trusted Platform
+Module, then secret key data need never enter the normal "rich" execution
+environment.
 
 \section1 Using the Sailfish OS Crypto Library
 
