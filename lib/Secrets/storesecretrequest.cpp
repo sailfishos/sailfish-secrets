@@ -28,142 +28,142 @@ StoreSecretRequestPrivate::StoreSecretRequestPrivate()
 }
 
 /*!
- * \class StoreSecretRequest
- * \brief Allows a client request that the system secrets service securely store a secret
- *
- * This class allows clients to request the Secrets service to store a secret
- * (either in a particular collection or as a standalone secret) in a particular
- * storage plugin.
- *
- * Note that the filter data defined in the secret will be encrypted
- * prior to storage only if the secret is stored in a collection and that collection
- * is stored by an EncryptedStoragePlugin; otherwise, only the identifier and data
- * will be stored in encrypted form.
- *
- * If the calling application is the creator of the collection specified in the
- * secret's identifier, or alternatively if the user has granted the application
- * permission to modify that collection and either there are no special access controls
- * associated with the particular secret or the secret does not yet exist, then the
- * Secrets service will instruct the storage plugin to store the secret into the collection.
- *
- * If the application is not the creator of the collection and the user has not yet
- * been asked if the application should have permission to modify the collection,
- * or if the secret already exists and has specific access controls associated with
- * it but the user has not yet been asked whether the application should have permission
- * to modify the secret, then a system-mediated access control UI flow may be triggered
- * to obtain the user's permission (unless the given \a userInteractionMode is
- * \a PreventInteraction in which case the request will fail).
- *
- * Alternatively, if the secret is a standalone secret, and a standalone secret with
- * that identifier already exists and was created by another application,
- * but the \a accessControlMode is \c OwnerOnlyMode, the request will fail,
- * as applications are not able to steal ownership from other applications.
- *
- * If the collection uses an encryption key derived from the system device-lock,
- * then the value will be able to be stored without any other UI flow being required;
- * however, if the collection uses an encryption key derived from a custom lock,
- * then the custom lock authentication key will be obtained from the user via
- * an authentication flow determined by the authentication plugin used for that
- * collection (which may support \c ApplicationInteraction if the collection
- * is an application-specific collection using an \c ApplicationSpecificAuthentication
- * plugin, but otherwise will be a system-mediated UI flow, unless the \a userInteractionMode
- * specified is \c PreventInteraction in which case the request will fail).
- *
- * If the secret is a standalone secret protected by a custom-lock rather than
- * the system device-lock, then an authentication flow will be required in order
- * to retrieve a custom lock code or passphrase from the user.
- *
- * An example of storing a secret into a pre-existing collection is as follows:
- *
- * \code
- * // Define the secret.
- * Sailfish::Secrets::Secret exampleSecret(
- *         Sailfish::Secrets::Secret::Identifier(
- *                 QLatin1String("ExampleSecret"),
- *                 QLatin1String("ExampleCollection"),
- *                 Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName));
- * exampleSecret.setData("Some secret data");
- * exampleSecret.setType(Sailfish::Secrets::Secret::TypeBlob);
- * exampleSecret.setFilterData(QLatin1String("domain"),
- *                             QLatin1String("sailfishos.org"));
- * exampleSecret.setFilterData(QLatin1String("example"),
- *                             QLatin1String("true"));
- *
- * // Request that the secret be securely stored.
- * Sailfish::Secrets::SecretManager sm;
- * Sailfish::Secrets::StoreSecretRequest ssr;
- * ssr.setManager(&sm);
- * ssr.setSecretStorageType(Sailfish::Secrets::StoreSecretRequest::CollectionSecret);
- * ssr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
- * ssr.setSecret(exampleSecret);
- * ssr.startRequest(); // status() will change to Finished when complete
- * \endcode
- *
- * An example of storing a standalone secret protected by the device lock is:
- *
- * \code
- * // Define a standalone secret (no collection name specified in the identifier)
- * Sailfish::Secrets::Secret standaloneSecret(
- *         Sailfish::Secrets::Secret::Identifier(
- *              QStringLiteral("StandaloneSecret"),
- *              QString(),
- *              Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName));
- * standaloneSecret.setData("Example secret data");
- * standaloneSecret.setType(Secret::TypeBlob);
- * standaloneSecret.setFilterData(QLatin1String("domain"),
- *                                QLatin1String("sailfishos.org"));
- * standaloneSecret.setFilterData(QLatin1String("example"),
- *                                QLatin1String("true"));
- *
- * // Request that the secret be stored by the default storage plugin
- * Sailfish::Secrets::SecretManager sm;
- * Sailfish::Secrets::StoreSecretRequest ssr;
- * ssr.setManager(&sm);
- * ssr.setSecretStorageType(StoreSecretRequest::StandaloneDeviceLockSecret);
- * ssr.setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked);
- * ssr.setAccessControlMode(Sailfish::Secrets::SecretManager::OwnerOnlyMode);
- * ssr.setEncryptionPluginName(Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName);
- * ssr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
- * ssr.setSecret(standaloneSecret);
- * ssr.startRequest(); // status() will change to Finished when complete
- * \endcode
- *
- * An example of storing a secret into a pre-existing collection, where the
- * secret data is requested securely from the user by the secrets service
- * prior to storage, follows:
- *
- * \code
- * // Define the secret data request prompt parameters.
- * Sailfish::Secrets::InteractionParameters uiParams;
- * uiParams.setInputType(Sailfish::Secrets::InteractionParameters::AlphaNumericInput);
- * uiParams.setEchoMode(Sailfish::Secrets::InteractionParameters::NormalEcho);
- *
- * // Define the secret.  Note that it contains metadata only.
- * Sailfish::Secrets::Secret exampleSecret(
- *         Sailfish::Secrets::Secret::Identifier(
- *                 QLatin1String("ExampleSecret"),
- *                 QLatin1String("ExampleCollection"),
- *                 Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName));
- * exampleSecret.setType(Sailfish::Secrets::Secret::TypeBlob);
- * exampleSecret.setFilterData(QLatin1String("domain"),
- *                             QLatin1String("sailfishos.org"));
- * exampleSecret.setFilterData(QLatin1String("example"),
- *                             QLatin1String("true"));
- *
- * // Request that the secret be securely stored.
- * Sailfish::Secrets::SecretManager sm;
- * Sailfish::Secrets::StoreSecretRequest ssr;
- * ssr.setManager(&sm);
- * ssr.setInteractionParameters(uiParams);
- * ssr.setSecretStorageType(Sailfish::Secrets::StoreSecretRequest::CollectionSecret);
- * ssr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
- * ssr.setSecret(exampleSecret);
- * ssr.startRequest(); // status() will change to Finished when complete
- * \endcode
+  \class StoreSecretRequest
+  \brief Allows a client request that the system secrets service securely store a secret
+
+  This class allows clients to request the Secrets service to store a secret
+  (either in a particular collection or as a standalone secret) in a particular
+  storage plugin.
+
+  Note that the filter data defined in the secret will be encrypted
+  prior to storage only if the secret is stored in a collection and that collection
+  is stored by an EncryptedStoragePlugin; otherwise, only the identifier and data
+  will be stored in encrypted form.
+
+  If the calling application is the creator of the collection specified in the
+  secret's identifier, or alternatively if the user has granted the application
+  permission to modify that collection and either there are no special access controls
+  associated with the particular secret or the secret does not yet exist, then the
+  Secrets service will instruct the storage plugin to store the secret into the collection.
+
+  If the application is not the creator of the collection and the user has not yet
+  been asked if the application should have permission to modify the collection,
+  or if the secret already exists and has specific access controls associated with
+  it but the user has not yet been asked whether the application should have permission
+  to modify the secret, then a system-mediated access control UI flow may be triggered
+  to obtain the user's permission (unless the given \a userInteractionMode is
+  \a PreventInteraction in which case the request will fail).
+
+  Alternatively, if the secret is a standalone secret, and a standalone secret with
+  that identifier already exists and was created by another application,
+  but the \a accessControlMode is \c OwnerOnlyMode, the request will fail,
+  as applications are not able to steal ownership from other applications.
+
+  If the collection uses an encryption key derived from the system device-lock,
+  then the value will be able to be stored without any other UI flow being required;
+  however, if the collection uses an encryption key derived from a custom lock,
+  then the custom lock authentication key will be obtained from the user via
+  an authentication flow determined by the authentication plugin used for that
+  collection (which may support \c ApplicationInteraction if the collection
+  is an application-specific collection using an \c ApplicationSpecificAuthentication
+  plugin, but otherwise will be a system-mediated UI flow, unless the \a userInteractionMode
+  specified is \c PreventInteraction in which case the request will fail).
+
+  If the secret is a standalone secret protected by a custom-lock rather than
+  the system device-lock, then an authentication flow will be required in order
+  to retrieve a custom lock code or passphrase from the user.
+
+  An example of storing a secret into a pre-existing collection is as follows:
+
+  \code
+  // Define the secret.
+  Sailfish::Secrets::Secret exampleSecret(
+          Sailfish::Secrets::Secret::Identifier(
+                  QLatin1String("ExampleSecret"),
+                  QLatin1String("ExampleCollection"),
+                  Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName));
+  exampleSecret.setData("Some secret data");
+  exampleSecret.setType(Sailfish::Secrets::Secret::TypeBlob);
+  exampleSecret.setFilterData(QLatin1String("domain"),
+                              QLatin1String("sailfishos.org"));
+  exampleSecret.setFilterData(QLatin1String("example"),
+                              QLatin1String("true"));
+
+  // Request that the secret be securely stored.
+  Sailfish::Secrets::SecretManager sm;
+  Sailfish::Secrets::StoreSecretRequest ssr;
+  ssr.setManager(&sm);
+  ssr.setSecretStorageType(Sailfish::Secrets::StoreSecretRequest::CollectionSecret);
+  ssr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
+  ssr.setSecret(exampleSecret);
+  ssr.startRequest(); // status() will change to Finished when complete
+  \endcode
+
+  An example of storing a standalone secret protected by the device lock is:
+
+  \code
+  // Define a standalone secret (no collection name specified in the identifier)
+  Sailfish::Secrets::Secret standaloneSecret(
+          Sailfish::Secrets::Secret::Identifier(
+               QStringLiteral("StandaloneSecret"),
+               QString(),
+               Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName));
+  standaloneSecret.setData("Example secret data");
+  standaloneSecret.setType(Secret::TypeBlob);
+  standaloneSecret.setFilterData(QLatin1String("domain"),
+                                 QLatin1String("sailfishos.org"));
+  standaloneSecret.setFilterData(QLatin1String("example"),
+                                 QLatin1String("true"));
+
+  // Request that the secret be stored by the default storage plugin
+  Sailfish::Secrets::SecretManager sm;
+  Sailfish::Secrets::StoreSecretRequest ssr;
+  ssr.setManager(&sm);
+  ssr.setSecretStorageType(StoreSecretRequest::StandaloneDeviceLockSecret);
+  ssr.setDeviceLockUnlockSemantic(Sailfish::Secrets::SecretManager::DeviceLockKeepUnlocked);
+  ssr.setAccessControlMode(Sailfish::Secrets::SecretManager::OwnerOnlyMode);
+  ssr.setEncryptionPluginName(Sailfish::Secrets::SecretManager::DefaultEncryptionPluginName);
+  ssr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
+  ssr.setSecret(standaloneSecret);
+  ssr.startRequest(); // status() will change to Finished when complete
+  \endcode
+
+  An example of storing a secret into a pre-existing collection, where the
+  secret data is requested securely from the user by the secrets service
+  prior to storage, follows:
+
+  \code
+  // Define the secret data request prompt parameters.
+  Sailfish::Secrets::InteractionParameters uiParams;
+  uiParams.setInputType(Sailfish::Secrets::InteractionParameters::AlphaNumericInput);
+  uiParams.setEchoMode(Sailfish::Secrets::InteractionParameters::NormalEcho);
+
+  // Define the secret.  Note that it contains metadata only.
+  Sailfish::Secrets::Secret exampleSecret(
+          Sailfish::Secrets::Secret::Identifier(
+                  QLatin1String("ExampleSecret"),
+                  QLatin1String("ExampleCollection"),
+                  Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName));
+  exampleSecret.setType(Sailfish::Secrets::Secret::TypeBlob);
+  exampleSecret.setFilterData(QLatin1String("domain"),
+                              QLatin1String("sailfishos.org"));
+  exampleSecret.setFilterData(QLatin1String("example"),
+                              QLatin1String("true"));
+
+  // Request that the secret be securely stored.
+  Sailfish::Secrets::SecretManager sm;
+  Sailfish::Secrets::StoreSecretRequest ssr;
+  ssr.setManager(&sm);
+  ssr.setInteractionParameters(uiParams);
+  ssr.setSecretStorageType(Sailfish::Secrets::StoreSecretRequest::CollectionSecret);
+  ssr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
+  ssr.setSecret(exampleSecret);
+  ssr.startRequest(); // status() will change to Finished when complete
+  \endcode
  */
 
 /*!
- * \brief Constructs a new StoreSecretRequest object with the given \a parent.
+  \brief Constructs a new StoreSecretRequest object with the given \a parent.
  */
 StoreSecretRequest::StoreSecretRequest(QObject *parent)
     : Request(parent)
@@ -172,28 +172,28 @@ StoreSecretRequest::StoreSecretRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the StoreSecretRequest
+  \brief Destroys the StoreSecretRequest
  */
 StoreSecretRequest::~StoreSecretRequest()
 {
 }
 
 /*!
- * \brief Returns the type of storage which will apply to the stored secret
- *
- * A secret whose storage type is StoreSecretRequest::CollectionSecret will
- * be stored in the collection whose name is specified in the secret's
- * identifier's \l{Sailfish::Secrets::Secret::Identifier::collectionName()}
- * field.  The collection will have either a custom lock or device lock
- * depending on the semantics defined for it when it was created.
- *
- * A secret whose storage type is StoreSecretRequest::StandaloneCustomLockSecret
- * will be individually encrypted with the custom lock code, and then the
- * encrypted version will be stored in a standalone, unencrypted collection.
- *
- * A secret whose storage type is StoreSecretRequest::StandaloneDeviceLockSecret
- * will be individually encrypted with the device lock code, and then the
- * encrypted version will be stored in a standalone, unencrypted collection.
+  \brief Returns the type of storage which will apply to the stored secret
+
+  A secret whose storage type is StoreSecretRequest::CollectionSecret will
+  be stored in the collection whose name is specified in the secret's
+  identifier's \l{Sailfish::Secrets::Secret::Identifier::collectionName()}
+  field.  The collection will have either a custom lock or device lock
+  depending on the semantics defined for it when it was created.
+
+  A secret whose storage type is StoreSecretRequest::StandaloneCustomLockSecret
+  will be individually encrypted with the custom lock code, and then the
+  encrypted version will be stored in a standalone, unencrypted collection.
+
+  A secret whose storage type is StoreSecretRequest::StandaloneDeviceLockSecret
+  will be individually encrypted with the device lock code, and then the
+  encrypted version will be stored in a standalone, unencrypted collection.
  */
 StoreSecretRequest::SecretStorageType StoreSecretRequest::secretStorageType() const
 {
@@ -202,7 +202,7 @@ StoreSecretRequest::SecretStorageType StoreSecretRequest::secretStorageType() co
 }
 
 /*!
- * \brief Sets the type of storage which will apply to the stored secret to \a type
+  \brief Sets the type of storage which will apply to the stored secret to \a type
  */
 void StoreSecretRequest::setSecretStorageType(StoreSecretRequest::SecretStorageType type)
 {
@@ -218,7 +218,7 @@ void StoreSecretRequest::setSecretStorageType(StoreSecretRequest::SecretStorageT
 }
 
 /*!
- * \brief Returns the name of the encryption plugin which the client wishes to use to encrypt the standalone secret
+  \brief Returns the name of the encryption plugin which the client wishes to use to encrypt the standalone secret
  */
 QString StoreSecretRequest::encryptionPluginName() const
 {
@@ -227,11 +227,11 @@ QString StoreSecretRequest::encryptionPluginName() const
 }
 
 /*!
- * \brief Sets the name of the encryption plugin which the client wishes to use to encrypt the standalone secret to \a pluginName
- *
- * Note: this will only apply to secrets whose secretStorageType() is
- * StoreSecretRequest::StandaloneCustomLockSecret or
- * StoreSecretRequest::StandaloneDeviceLockSecret.
+  \brief Sets the name of the encryption plugin which the client wishes to use to encrypt the standalone secret to \a pluginName
+
+  Note: this will only apply to secrets whose secretStorageType() is
+  StoreSecretRequest::StandaloneCustomLockSecret or
+  StoreSecretRequest::StandaloneDeviceLockSecret.
  */
 void StoreSecretRequest::setEncryptionPluginName(const QString &pluginName)
 {
@@ -247,7 +247,7 @@ void StoreSecretRequest::setEncryptionPluginName(const QString &pluginName)
 }
 
 /*!
- * \brief Returns the name of the authentication plugin which the client wishes to use to authenticate the user (in order to unlock the secret)
+  \brief Returns the name of the authentication plugin which the client wishes to use to authenticate the user (in order to unlock the secret)
  */
 QString StoreSecretRequest::authenticationPluginName() const
 {
@@ -256,9 +256,9 @@ QString StoreSecretRequest::authenticationPluginName() const
 }
 
 /*!
- * \brief Sets the name of the authentication plugin which the client wishes to use to authenticate the user (in order to unlock the secret) to \a pluginName
- *
- * Note: this will only apply to secrets whose secretStorageType() is StoreSecretRequest::StandaloneCustomLockSecret.
+  \brief Sets the name of the authentication plugin which the client wishes to use to authenticate the user (in order to unlock the secret) to \a pluginName
+
+  Note: this will only apply to secrets whose secretStorageType() is StoreSecretRequest::StandaloneCustomLockSecret.
  */
 void StoreSecretRequest::setAuthenticationPluginName(const QString &pluginName)
 {
@@ -274,7 +274,7 @@ void StoreSecretRequest::setAuthenticationPluginName(const QString &pluginName)
 }
 
 /*!
- * \brief Returns the secret which the client wishes to store securely
+  \brief Returns the secret which the client wishes to store securely
  */
 Secret StoreSecretRequest::secret() const
 {
@@ -283,14 +283,14 @@ Secret StoreSecretRequest::secret() const
 }
 
 /*!
- * \brief Sets the secret which the client wishes to store securely to \a secret
- *
- * Note: if the secretStorageType() is StoreSecretRequest::CollectionSecret, the
- * identifier of the secret must specify a valid collection name.
- * Conversely, if the secretStorageType() is either
- * StoreSecretRequest::StandaloneCustomLockSecret or
- * StoreSecretRequest::StandaloneDeviceLockSecret then the identifier of the
- * secret must not contain any collection name.
+  \brief Sets the secret which the client wishes to store securely to \a secret
+
+  Note: if the secretStorageType() is StoreSecretRequest::CollectionSecret, the
+  identifier of the secret must specify a valid collection name.
+  Conversely, if the secretStorageType() is either
+  StoreSecretRequest::StandaloneCustomLockSecret or
+  StoreSecretRequest::StandaloneDeviceLockSecret then the identifier of the
+  secret must not contain any collection name.
  */
 void StoreSecretRequest::setSecret(const Secret &secret)
 {
@@ -306,15 +306,15 @@ void StoreSecretRequest::setSecret(const Secret &secret)
 }
 
 /*!
- * \brief Returns the user input parameters which should be used when requesting the secret data from the user
- *
- * If the user input parameters are not valid, the secret data which is contained
- * within the secret() will be stored.  If the user input parameters are valid, then the
- * secret data which is contained within the secret() will be overwritten prior to storage
- * with the data retrieved from the user.
- *
- * Note: specifying user input parameters implies that system-mediated user interaction
- * flows are allowed by the calling application.
+  \brief Returns the user input parameters which should be used when requesting the secret data from the user
+
+  If the user input parameters are not valid, the secret data which is contained
+  within the secret() will be stored.  If the user input parameters are valid, then the
+  secret data which is contained within the secret() will be overwritten prior to storage
+  with the data retrieved from the user.
+
+  Note: specifying user input parameters implies that system-mediated user interaction
+  flows are allowed by the calling application.
  */
 InteractionParameters StoreSecretRequest::interactionParameters() const
 {
@@ -323,15 +323,15 @@ InteractionParameters StoreSecretRequest::interactionParameters() const
 }
 
 /*!
- * \brief Sets the user input parameters which should be used when requesting the secret data from the user to \a params
- *
- * If the user input parameters are not valid, the secret data which is contained
- * within the secret() will be stored.  If the user input parameters are valid, then the
- * secret data which is contained within the secret() will be overwritten prior to storage
- * with the data retrieved from the user.
- *
- * Note: specifying user input parameters implies that system-mediated user interaction
- * flows are allowed by the calling application.
+  \brief Sets the user input parameters which should be used when requesting the secret data from the user to \a params
+
+  If the user input parameters are not valid, the secret data which is contained
+  within the secret() will be stored.  If the user input parameters are valid, then the
+  secret data which is contained within the secret() will be overwritten prior to storage
+  with the data retrieved from the user.
+
+  Note: specifying user input parameters implies that system-mediated user interaction
+  flows are allowed by the calling application.
  */
 void StoreSecretRequest::setInteractionParameters(const InteractionParameters &params)
 {
@@ -347,7 +347,7 @@ void StoreSecretRequest::setInteractionParameters(const InteractionParameters &p
 }
 
 /*!
- * \brief Returns the unlock semantic which will apply to the secret if it is protected by the device lock.
+  \brief Returns the unlock semantic which will apply to the secret if it is protected by the device lock.
  */
 SecretManager::DeviceLockUnlockSemantic StoreSecretRequest::deviceLockUnlockSemantic() const
 {
@@ -356,9 +356,9 @@ SecretManager::DeviceLockUnlockSemantic StoreSecretRequest::deviceLockUnlockSema
 }
 
 /*!
- * \brief Sets the unlock semantic which will apply to the secret if it is protected by the device lock to \a semantic.
- *
- * Note: this will only apply to secrets whose secretStorageType() is StoreSecretRequest::StandaloneDeviceLockSecret.
+  \brief Sets the unlock semantic which will apply to the secret if it is protected by the device lock to \a semantic.
+
+  Note: this will only apply to secrets whose secretStorageType() is StoreSecretRequest::StandaloneDeviceLockSecret.
  */
 void StoreSecretRequest::setDeviceLockUnlockSemantic(SecretManager::DeviceLockUnlockSemantic semantic)
 {
@@ -374,7 +374,7 @@ void StoreSecretRequest::setDeviceLockUnlockSemantic(SecretManager::DeviceLockUn
 }
 
 /*!
- * \brief Returns the unlock semantic which will apply to the secret if it is protected by a custom lock.
+  \brief Returns the unlock semantic which will apply to the secret if it is protected by a custom lock.
  */
 SecretManager::CustomLockUnlockSemantic StoreSecretRequest::customLockUnlockSemantic() const
 {
@@ -383,9 +383,9 @@ SecretManager::CustomLockUnlockSemantic StoreSecretRequest::customLockUnlockSema
 }
 
 /*!
- * \brief Sets the unlock semantic which will apply to the secret if it is protected by a custom lock to \a semantic.
- *
- * Note: this will only apply to secrets whose secretStorageType() is StoreSecretRequest::StandaloneCustomLockSecret.
+  \brief Sets the unlock semantic which will apply to the secret if it is protected by a custom lock to \a semantic.
+
+  Note: this will only apply to secrets whose secretStorageType() is StoreSecretRequest::StandaloneCustomLockSecret.
  */
 void StoreSecretRequest::setCustomLockUnlockSemantic(SecretManager::CustomLockUnlockSemantic semantic)
 {
@@ -401,7 +401,7 @@ void StoreSecretRequest::setCustomLockUnlockSemantic(SecretManager::CustomLockUn
 }
 
 /*!
- * \brief Returns the access control mode which will be enforced for the secret
+  \brief Returns the access control mode which will be enforced for the secret
  */
 SecretManager::AccessControlMode StoreSecretRequest::accessControlMode() const
 {
@@ -410,11 +410,11 @@ SecretManager::AccessControlMode StoreSecretRequest::accessControlMode() const
 }
 
 /*!
- * \brief Sets the access control mode which will be enforced for the secret to \a mode
- *
- * Note: this will only apply to secrets whose secretStorageType() is
- * StoreSecretRequest::StandaloneCustomLockSecret or
- * StoreSecretRequest::StandaloneDeviceLockSecret.
+  \brief Sets the access control mode which will be enforced for the secret to \a mode
+
+  Note: this will only apply to secrets whose secretStorageType() is
+  StoreSecretRequest::StandaloneCustomLockSecret or
+  StoreSecretRequest::StandaloneDeviceLockSecret.
  */
 void StoreSecretRequest::setAccessControlMode(SecretManager::AccessControlMode mode)
 {
@@ -430,7 +430,7 @@ void StoreSecretRequest::setAccessControlMode(SecretManager::AccessControlMode m
 }
 
 /*!
- * \brief Returns the user interaction mode required when storing the secret (e.g. if a custom lock code must be requested from the user)
+  \brief Returns the user interaction mode required when storing the secret (e.g. if a custom lock code must be requested from the user)
  */
 SecretManager::UserInteractionMode StoreSecretRequest::userInteractionMode() const
 {
@@ -439,12 +439,12 @@ SecretManager::UserInteractionMode StoreSecretRequest::userInteractionMode() con
 }
 
 /*!
- * \brief Sets the user interaction mode required when storing the secret (e.g. if a custom lock code must be requested from the user) to \a mode
- *
- * Note: this will only apply to secrets whose secretStorageType() is StoreSecretRequest::StandaloneCustomLockSecret.
- *
- * Note: if interactionParameters() are specified, a system-mediated user interaction flow to request
- * the secret data will be performed, regardless of the value of the userInteractionMode().
+  \brief Sets the user interaction mode required when storing the secret (e.g. if a custom lock code must be requested from the user) to \a mode
+
+  Note: this will only apply to secrets whose secretStorageType() is StoreSecretRequest::StandaloneCustomLockSecret.
+
+  Note: if interactionParameters() are specified, a system-mediated user interaction flow to request
+  the secret data will be performed, regardless of the value of the userInteractionMode().
  */
 void StoreSecretRequest::setUserInteractionMode(SecretManager::UserInteractionMode mode)
 {

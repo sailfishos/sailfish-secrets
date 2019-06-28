@@ -9,7 +9,7 @@ daemon which delegates operations to plugins which are loaded into the
 system daemon process.  Those plugins may optionally use a Secure
 Peripheral or Trusted Execution Environment application as their actual
 backend.
-    
+
 The Crypto API allows clients to perform cryptographic operations via
 the same system daemon which delegates operations to crypto plugins
 which are loaded into the system daemon process.  Those plugins may
@@ -75,19 +75,32 @@ making the system handle it (mostly for testing purposes)
 * `ExampleUsbTokenPlugin`: which provides an example for plugin developers who want to add support
 for their secure peripherals
 
-### Secrets and crypto libraries
+A community-developed plugin exists to provide GnuPG functionality to clients, including:
+
+* `GnuPG OpenPGP Plugin`: provides cryptographic operations using GnuPG
+* `GnuPG S/MIME Plugin`: provides signing and verification support for emails
+* `GnuPG PinEntry Plugin`: provides integration with GnuPG pin-entry for authentication
+
+Huge thanks for Damien Caliste for his ongoing work on this plugin and the framework more generally.
+
+### Secrets and Crypto Libraries
 
 #### 1. Client libraries
 
-These libraries are intended for consumption by client applications. They provide Qt-style APIs
-with request objects which emit appropriate signals upon operation completion, and whose API
+The Sailfish Secrets and Sailfish Crypto C++ (Qt) libraries expose the capability of the
+Sailfish OS Secrets and Crypto Framwork to client applications.  They provide Qt-style APIs
+with request objects which emit appropriate signals upon operation completion, and which
 can be extended in the future without breaking binary or source compatibility. All IPC is hidden
 as an implementation detail, as the D-Bus APIs are NOT stable, and no compatibility guarantees
 are provided for those.
 
-A QML API has also been implemented, allowing clients to utilize the Sailfish Secrets and Crypto
+A QML API has also been implemented, allowing clients to utilize the Sailfish OS Secrets and Crypto
 Framework within QML applications, however this API should be considered experimental and
 subject to change at this time.
+
+A (glib-based) C API has also been implemented, allowing clients to utilize the Sailfish OS Secrets
+and Crypto Framework within non-Qt applications, however this API should be considered experimental
+and subject to change at this time.
 
 #### 2. Plugin libraries
 
@@ -117,11 +130,11 @@ For Sailfish OS:
 
 For your Linux desktop:
 
-1. Qt 5.6.3 (downloadable from official Qt SDK) - yes you need this exact version, because sailfish-secrets bundles
-qtsqlcipher, which depends on Qt internals that are not compatible between versions.
+1. Qt 5.6.3 (downloadable from official Qt SDK, you need this exact version, because sailfish-secrets bundles
+qtsqlcipher, which depends on Qt internals that are not compatible between versions)
 2. sqlcipher package (installed from your distro's package manager)
 
-If you wish to build the GnuPG plugin, you will need to install libgpg-error, gpgme-devel, and libassuan-devel.
+If you wish to build the GnuPG plugins, you will need to install libgpg-error, gpgme-devel, and libassuan-devel.
 
 ## Building
 
@@ -131,9 +144,10 @@ If you wish to build the GnuPG plugin, you will need to install libgpg-error, gp
     git clone https://github.com/sailfishos/sailfish-secrets.git sailfish-secrets
     cd sailfish-secrets
     ```
-2. Run the build command for usual sailfish os git-projects:
+2. Run the usual build command for Sailfish OS projects:
 
     ```bash
+    # inside Sailfish OS SDK prompt:
     mb2 build
     ```
 
@@ -183,7 +197,7 @@ If you wish to build the GnuPG plugin, you will need to install libgpg-error, gp
 
 ## Architectural Overview:
 
-The client-facing API is primarily a thin wrapper around DBus calls to
+The client-facing API is primarily a thin wrapper around P2P DBus calls to
 the system daemon (sailfishsecretsd).  That daemon manages a queue of
 incoming client requests for each separate domain (Secrets + Crypto),
 and handles the requests by performing some book-keeping (and, in the
@@ -211,8 +225,8 @@ data requests) the client application can provide the UI via a plugin.
                                  +--^---+-------+ +---^---+-------+
                                  |crypto|plugins| |secrets|plugins|
   +---------------------+        +------+-------+-+-------+-------+
-  |    Access Control   |<------<|                                |
-  |       Daemon        |>------>|                                |
+  |   Access Control    |<------<|                                |
+  |   Daemon (future)   |>------>|                                |
   +---------------------+  DBus  |                                |
                                  |        sailfishsecretsd        |
   +---------------------+        |                                |
@@ -238,6 +252,12 @@ data requests) the client application can provide the UI via a plugin.
   |                          |        DBus              |
   |                          |>-------------------------'
   +--------------------------+
+
+  * All DBus flows use P2P DBus (i.e. Unix Domain Sockets)
+  * The system access control daemon is not yet implemented
+    so currently access control is performed by the secrets
+    daemon itself, based on which application created the
+    secret (or collection of secrets) in question
 ```
 
 ## Current Status:
@@ -259,22 +279,21 @@ Known open work items:
   - fine-grained access control (requires access-control daemon, TBA)
   - use request-specific data structures instead of QVariantList
     when marshalling incoming requests from the queue to the handler
-  - full API and code review is required
   - unit test coverage needs to be expanded
+  - on-going code review would be appreciated
 
 - Secrets:
   - improve the lock/unlock semantics (e.g. automatic unlock flows)
 
 - Crypto:
+  - review from domain expert would be greatly appreciated
   - implement support for certificates
   - implement support for message authentication codes
   - improve support for key exchange operations
 
-In general, the entire Crypto domain needs a domain expert to review
-carefully, point out architectural issues, and offer advice about
-implementation details.  It is expected that fixes will be able to
-be made without breaking binary or source compatibility for client
-applications, due to the architecture of the framework.
+It is expected that fixes will be able to be made without breaking either
+binary or source compatibility for client applications, due to the
+architecture of the framework and the way the C++ API was implemented.
 
 ## Contributions
 
@@ -291,6 +310,6 @@ are willing to help out :-)
 
 Huge thanks in particular to Damien Caliste who has contributed a variety
 of fixes, pointed out several API design flaws, extensively tested the
-framework, and implemented (and contributed) a GPG-based plugin.
+framework, and implemented (and contributed) a GnuPG-based plugin.
 
 

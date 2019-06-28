@@ -23,15 +23,15 @@ GenerateKeyRequestPrivate::GenerateKeyRequestPrivate()
 }
 
 /*!
- * \class GenerateKeyRequest
- * \brief Allows a client request that the system crypto service generate a key based on a template.
- *
- * This key will not be stored securely by the crypto daemon, but instead will
- * be returned in its complete form to the caller.
+  \class GenerateKeyRequest
+  \brief Allows a client request that the system crypto service generate a key based on a template.
+
+  This key will not be stored securely by the crypto daemon, but instead will
+  be returned in its complete form to the caller.
  */
 
 /*!
- * \brief Constructs a new GenerateKeyRequest object with the given \a parent.
+  \brief Constructs a new GenerateKeyRequest object with the given \a parent.
  */
 GenerateKeyRequest::GenerateKeyRequest(QObject *parent)
     : Request(parent)
@@ -40,14 +40,14 @@ GenerateKeyRequest::GenerateKeyRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the GenerateKeyRequest
+  \brief Destroys the GenerateKeyRequest
  */
 GenerateKeyRequest::~GenerateKeyRequest()
 {
 }
 
 /*!
- * \brief Returns the name of the crypto plugin which the client wishes to perform the key generation operation
+  \brief Returns the name of the crypto plugin which the client wishes to perform the key generation operation
  */
 QString GenerateKeyRequest::cryptoPluginName() const
 {
@@ -56,7 +56,7 @@ QString GenerateKeyRequest::cryptoPluginName() const
 }
 
 /*!
- * \brief Sets the name of the crypto plugin which the client wishes to perform the key generation operation to \a pluginName
+  \brief Sets the name of the crypto plugin which the client wishes to perform the key generation operation to \a pluginName
  */
 void GenerateKeyRequest::setCryptoPluginName(const QString &pluginName)
 {
@@ -72,10 +72,10 @@ void GenerateKeyRequest::setCryptoPluginName(const QString &pluginName)
 }
 
 /*!
- * \brief Returns the symmetric key derivation parameters which should be used to generate the secret key data
- *
- * These parameters are only meaningful if the template key
- * algorithm is a symmetric cipher algorithm.
+  \brief Returns the symmetric key derivation parameters which should be used to generate the secret key data
+
+  These parameters are only meaningful if the template key
+  algorithm is a symmetric cipher algorithm.
  */
 KeyDerivationParameters
 GenerateKeyRequest::keyDerivationParameters() const
@@ -85,7 +85,7 @@ GenerateKeyRequest::keyDerivationParameters() const
 }
 
 /*!
- * \brief Sets the symmetric key derivation parameters which should be used to generate the secret key data to \a params
+  \brief Sets the symmetric key derivation parameters which should be used to generate the secret key data to \a params
  */
 void GenerateKeyRequest::setKeyDerivationParameters(
         const KeyDerivationParameters &params)
@@ -102,11 +102,11 @@ void GenerateKeyRequest::setKeyDerivationParameters(
 }
 
 /*!
- * \brief Returns the asymmetric key pair generation parameters which
- *        should be used to generate the public and private key data
- *
- * These parameters are only meaningful if the template key
- * algorithm is an asymmetric cipher algorithm.
+  \brief Returns the asymmetric key pair generation parameters which
+         should be used to generate the public and private key data
+
+  These parameters are only meaningful if the template key
+  algorithm is an asymmetric cipher algorithm.
  */
 KeyPairGenerationParameters
 GenerateKeyRequest::keyPairGenerationParameters() const
@@ -116,8 +116,8 @@ GenerateKeyRequest::keyPairGenerationParameters() const
 }
 
 /*!
- * \brief Sets the asymmetric key pair generation parameters which
- *        should be used to generate the public and private key data to \a params
+  \brief Sets the asymmetric key pair generation parameters which
+         should be used to generate the public and private key data to \a params
  */
 void GenerateKeyRequest::setKeyPairGenerationParameters(
         const KeyPairGenerationParameters &params)
@@ -134,7 +134,7 @@ void GenerateKeyRequest::setKeyPairGenerationParameters(
 }
 
 /*!
- * \brief Returns the key which should be used as a template when generating the full key
+  \brief Returns the key which should be used as a template when generating the full key
  */
 Key GenerateKeyRequest::keyTemplate() const
 {
@@ -143,7 +143,7 @@ Key GenerateKeyRequest::keyTemplate() const
 }
 
 /*!
- * \brief Sets the key which should be used as a template when generating the full key to \a key
+  \brief Sets the key which should be used as a template when generating the full key to \a key
  */
 void GenerateKeyRequest::setKeyTemplate(const Key &key)
 {
@@ -159,9 +159,9 @@ void GenerateKeyRequest::setKeyTemplate(const Key &key)
 }
 
 /*!
- * \brief Returns the generated key
- *
- * Note: this value is only valid if the status of the request is Request::Finished.
+  \brief Returns the generated key
+
+  Note: this value is only valid if the status of the request is Request::Finished.
  */
 Key GenerateKeyRequest::generatedKey() const
 {

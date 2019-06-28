@@ -7,16 +7,13 @@
 ****************************************************************************************/
 
 /*!
-\contentspage {Sailfish OS Crypto Library Contents}
 \page sailfish-crypto-overview.html
 
-\title Sailfish OS Crypto Library Overview
+\title Sailfish OS Crypto Library
 
 The Sailfish OS Crypto Library provides applications with API to access the
 cryptography functionality offered by the system service daemon as part of the
-Sailfish OS Secrets and Crypto Framework.  Please see the Sailfish OS Secrets
-documentation for more in-depth documentation about the framework architecture,
-and broad overview of the features the framework provides.
+Sailfish OS Secrets and Crypto Framework.
 
 \note The Sailfish OS Secrets and Crypto Framework is still in active
 development and is subject to change.  Normal 3rd party API backward
@@ -24,6 +21,31 @@ compatibility promises don't hold.
 Follow \l{http://together.jolla.com/}{Together Jolla} release notes and
 \l{https://lists.sailfishos.org/cgi-bin/mailman/listinfo/devel}
 {Sailfish OS Developers} mailing list to get notified of API changes.
+
+\section1 Sailfish OS Crypto Architecture
+
+Applications running on highly-connected devices require the capability to
+perform advanced cryptographic operations, in order to protect the user's data,
+authenticate with remote services, verify the authenticity of other connected
+devices, and communicate securely.  The keys and certificates which are used
+to perform such operations also need to be stored securely on the device, in
+order to prevent malicious third-party applications from accessing those keys.
+
+In order to provide this capability, Sailfish OS includes a system service
+(extensible via vendor-specific plugins) which offers both secure storage of
+keys and the ability to perform cryptographic operations on behalf of client
+applications.  Client applications access this service via the Sailfish OS
+Crypto Library, which provides an asynchronous API for performing a variety
+of operations (and hides the IPC used as an internal implementation detail).
+
+Applications using the Sailfish OS Secrets and Crypto Framework delegate
+cryptographic operations to the system service, and the framework has been
+designed to ensure that when used appropriately, secret key data need never
+enter the process address space of the application. Furthermore, if the
+cryptographic service provider plugin to the framework is backed by secure
+hardware, Trusted Execution Environment application, or Trusted Platform
+Module, then secret key data need never enter the normal "rich" execution
+environment.
 
 \section1 Using the Sailfish OS Crypto Library
 
@@ -71,18 +93,18 @@ classes which provide this functionality:
 \li \l{Sailfish::Crypto::SeedRandomDataGeneratorRequest} to seed a crypto plugin's random number generator
 \li \l{Sailfish::Crypto::GenerateRandomDataRequest} to generate random data
 \li \l{Sailfish::Crypto::GenerateInitializationVectorRequest} to generate an initialization vector for use in encryption or decryption
-\li \l{Sailfish::Crypto::GenerateKeyRequest} to generate a \l{Key}
-\li \l{Sailfish::Crypto::GenerateStoredKeyRequest} to generate a securely-stored \l{Key}
-\li \l{Sailfish::Crypto::ImportKeyRequest} to import a \l{Key} from a data file
-\li \l{Sailfish::Crypto::ImportStoredKeyRequest} to import a \l{Key} from a data file and store it securely
-\li \l{Sailfish::Crypto::StoredKeyRequest} to retrieve a securely-stored \l{Key}
-\li \l{Sailfish::Crypto::StoredKeyIdentifiersRequest} to retrieve the identifiers of securely-stored \l{Key}{Keys}
-\li \l{Sailfish::Crypto::DeleteStoredKeyRequest} to delete a securely-stored \l{Key}
-\li \l{Sailfish::Crypto::EncryptRequest} to encrypt data with a given \l{Key}
-\li \l{Sailfish::Crypto::DecryptRequest} to decrypt data with a given \l{Key}
+\li \l{Sailfish::Crypto::GenerateKeyRequest} to generate a \l{Sailfish::Crypto::Key}{Key}
+\li \l{Sailfish::Crypto::GenerateStoredKeyRequest} to generate a securely-stored \l{Sailfish::Crypto::Key}{Key}
+\li \l{Sailfish::Crypto::ImportKeyRequest} to import a \l{Sailfish::Crypto::Key}{Key} from a data file
+\li \l{Sailfish::Crypto::ImportStoredKeyRequest} to import a \l{Sailfish::Crypto::Key}{Key} from a data file and store it securely
+\li \l{Sailfish::Crypto::StoredKeyRequest} to retrieve a securely-stored \l{Sailfish::Crypto::Key}{Key}
+\li \l{Sailfish::Crypto::StoredKeyIdentifiersRequest} to retrieve the identifiers of securely-stored \l{Sailfish::Crypto::Key}{Keys}
+\li \l{Sailfish::Crypto::DeleteStoredKeyRequest} to delete a securely-stored \l{Sailfish::Crypto::Key}{Key}
+\li \l{Sailfish::Crypto::EncryptRequest} to encrypt data with a given \l{Sailfish::Crypto::Key}{Key}
+\li \l{Sailfish::Crypto::DecryptRequest} to decrypt data with a given \l{Sailfish::Crypto::Key}{Key}
 \li \l{Sailfish::Crypto::CalculateDigestRequest} to calculate a digest (non-keyed hash) of some data
-\li \l{Sailfish::Crypto::SignRequest} to generate a signature for some data with a given \l{Key}
-\li \l{Sailfish::Crypto::VerifyRequest} to verify if a signature was generated with a given \l{Key}
+\li \l{Sailfish::Crypto::SignRequest} to generate a signature for some data with a given \l{Sailfish::Crypto::Key}{Key}
+\li \l{Sailfish::Crypto::VerifyRequest} to verify if a signature was generated with a given \l{Sailfish::Crypto::Key}{Key}
 \li \l{Sailfish::Crypto::CipherRequest} to start a cipher session with which to encrypt, decrypt, sign or verify a stream of data
 \endlist
 
@@ -243,8 +265,8 @@ achieve this, and the resulting plugin should be installed into the
 
 Note that if you wish to provide secure key storage as well as cryptographic
 services to clients, you also need to extend
-\l{Sailfish::Secrets::EncryptedStoragePlugin}.  For more information about that
-topic, please see the documentation about the \l{Sailfish OS Secrets library}.
+\c Sailfish::Secrets::EncryptedStoragePlugin.  For more information about that
+topic, please see the documentation about the Sailfish OS Secrets library.
 
 A variety of crypto plugins are shipped by default with the framework, and
 these are documented at the page about

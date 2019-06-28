@@ -7,6 +7,8 @@ url             = https://github.com/sailfishos/sailfish-secrets/
 sourcedirs += $$PWD/../ $$PWD/../doc $$PWD/../../../doc $$PWD/../../Crypto/Plugins/
 headerdirs += $$PWD/../ $$PWD/../../Crypto/Plugins/
 
+Cpp.ignoretokens += SAILFISH_CRYPTO_API
+
 outputformats = HTML
 outputdir = $$PWD/../doc/html
 base = file:$$PWD/../doc/html
@@ -20,8 +22,19 @@ qhp.projects = SailfishCrypto
 qhp.SailfishCrypto.file = sailfish-crypto.qhp
 qhp.SailfishCrypto.namespace = org.sailfishos.crypto.0.0.1
 qhp.SailfishCrypto.virtualFolder = sailfish-crypto
-qhp.SailfishCrypto.indexTitle = Sailfish OS Secrets and Crypto Framework Overview
+qhp.SailfishCrypto.indexTitle = Sailfish OS Crypto Library
 qhp.SailfishCrypto.indexRoot =
+
+qhp.SailfishCrypto.subprojects        = overview classes
+
+qhp.SailfishCrypto.subprojects.overview.title = Sailfish OS Crypto Library
+qhp.SailfishCrypto.subprojects.overview.indexTitle = Sailfish OS Crypto Library Contents
+qhp.SailfishCrypto.subprojects.overview.type = manual
+
+qhp.SailfishCrypto.subprojects.classes.title = C++ Classes
+qhp.SailfishCrypto.subprojects.classes.indexTitle = Sailfish Crypto C++ Classes
+qhp.SailfishCrypto.subprojects.classes.selectors = class fake:headerfile
+qhp.SailfishCrypto.subprojects.classes.sortPages = true
 
 qhp.SailfishCrypto.filterAttributes = sailfish-crypto 1.0.0
 qhp.SailfishCrypto.customFilters.SailfishCrypto.name = Sailfish OS Crypto Library 0.0.1
@@ -38,4 +51,4 @@ HTML.footer += \
     "  </p>\n" \
     "</div>\n"
 
-navigation.homepage = "Sailfish OS Secrets and Crypto Framework Overview"
+navigation.homepage = "Sailfish OS Crypto Library"

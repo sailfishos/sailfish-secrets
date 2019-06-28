@@ -11,5 +11,4 @@ OTHER_FILES += \
     $$PWD/sailfish-crypto-overview.qdoc \
     $$PWD/sailfish-crypto-plugins.qdoc \
     $$PWD/sailfish-crypto.cpp \
-    $$PWD/../../../doc/index.qdoc \
     $$PWD/../../../doc/sailfish.cpp

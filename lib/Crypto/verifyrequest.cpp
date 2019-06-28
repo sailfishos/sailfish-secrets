@@ -26,12 +26,12 @@ VerifyRequestPrivate::VerifyRequestPrivate()
 }
 
 /*!
- * \class VerifyRequest
- * \brief Allows a client request the system crypto service to verify that data was signed with a specific key
+  \class VerifyRequest
+  \brief Allows a client request the system crypto service to verify that data was signed with a specific key
  */
 
 /*!
- * \brief Constructs a new VerifyRequest object with the given \a parent
+  \brief Constructs a new VerifyRequest object with the given \a parent
  */
 VerifyRequest::VerifyRequest(QObject *parent)
     : Request(parent)
@@ -40,14 +40,14 @@ VerifyRequest::VerifyRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the VerifyRequest
+  \brief Destroys the VerifyRequest
  */
 VerifyRequest::~VerifyRequest()
 {
 }
 
 /*!
- * \brief Returns the signature which the client wishes the system service to verify
+  \brief Returns the signature which the client wishes the system service to verify
  */
 QByteArray VerifyRequest::signature() const
 {
@@ -56,7 +56,7 @@ QByteArray VerifyRequest::signature() const
 }
 
 /*!
- * \brief Sets the signature which the client wishes the system service to verify to \a sig
+  \brief Sets the signature which the client wishes the system service to verify to \a sig
  */
 void VerifyRequest::setSignature(const QByteArray &sig)
 {
@@ -76,7 +76,7 @@ void VerifyRequest::setSignature(const QByteArray &sig)
 }
 
 /*!
- * \brief Returns the data which was signed by the remote party
+  \brief Returns the data which was signed by the remote party
  */
 QByteArray VerifyRequest::data() const
 {
@@ -85,7 +85,7 @@ QByteArray VerifyRequest::data() const
 }
 
 /*!
- * \brief Sets the data which was signed by the remote party to \a data
+  \brief Sets the data which was signed by the remote party to \a data
  */
 void VerifyRequest::setData(const QByteArray &data)
 {
@@ -105,7 +105,7 @@ void VerifyRequest::setData(const QByteArray &data)
 }
 
 /*!
- * \brief Returns the key which the client wishes the system service to use to verify the data
+  \brief Returns the key which the client wishes the system service to use to verify the data
  */
 Key VerifyRequest::key() const
 {
@@ -114,7 +114,7 @@ Key VerifyRequest::key() const
 }
 
 /*!
- * \brief Sets the key which the client wishes the system service to use to verify the data to \a key
+  \brief Sets the key which the client wishes the system service to use to verify the data to \a key
  */
 void VerifyRequest::setKey(const Key &key)
 {
@@ -134,7 +134,7 @@ void VerifyRequest::setKey(const Key &key)
 }
 
 /*!
- * \brief Returns the signature padding mode which was used when signing the data
+  \brief Returns the signature padding mode which was used when signing the data
  */
 Sailfish::Crypto::CryptoManager::SignaturePadding VerifyRequest::padding() const
 {
@@ -143,7 +143,7 @@ Sailfish::Crypto::CryptoManager::SignaturePadding VerifyRequest::padding() const
 }
 
 /*!
- * \brief Sets the signature padding mode which was used when signing the data to \a padding
+  \brief Sets the signature padding mode which was used when signing the data to \a padding
  */
 void VerifyRequest::setPadding(Sailfish::Crypto::CryptoManager::SignaturePadding padding)
 {
@@ -163,7 +163,7 @@ void VerifyRequest::setPadding(Sailfish::Crypto::CryptoManager::SignaturePadding
 }
 
 /*!
- * \brief Returns the digest which was used to generate the signature
+  \brief Returns the digest which was used to generate the signature
  */
 Sailfish::Crypto::CryptoManager::DigestFunction VerifyRequest::digestFunction() const
 {
@@ -172,7 +172,7 @@ Sailfish::Crypto::CryptoManager::DigestFunction VerifyRequest::digestFunction() 
 }
 
 /*!
- * \brief Sets the digest which was used to generate the signature to \a digestFn
+  \brief Sets the digest which was used to generate the signature to \a digestFn
  */
 void VerifyRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digestFn)
 {
@@ -192,7 +192,7 @@ void VerifyRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFun
 }
 
 /*!
- * \brief Returns the name of the crypto plugin which the client wishes to perform the verification operation
+  \brief Returns the name of the crypto plugin which the client wishes to perform the verification operation
  */
 QString VerifyRequest::cryptoPluginName() const
 {
@@ -201,7 +201,7 @@ QString VerifyRequest::cryptoPluginName() const
 }
 
 /*!
- * \brief Sets the name of the crypto plugin which the client wishes to perform the verification operation to \a pluginName
+  \brief Sets the name of the crypto plugin which the client wishes to perform the verification operation to \a pluginName
  */
 void VerifyRequest::setCryptoPluginName(const QString &pluginName)
 {
@@ -221,9 +221,9 @@ void VerifyRequest::setCryptoPluginName(const QString &pluginName)
 }
 
 /*!
- * \brief Returns true if signature data was determined to have been signed with the specified key.
- *
- * Note: this value is only valid if the status of the request is Request::Finished.
+  \brief Returns true if signature data was determined to have been signed with the specified key.
+
+  Note: this value is only valid if the status of the request is Request::Finished.
  */
 Sailfish::Crypto::CryptoManager::VerificationStatus VerifyRequest::verificationStatus() const
 {

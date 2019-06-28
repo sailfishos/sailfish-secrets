@@ -245,31 +245,67 @@ namespace Sailfish {
     } // namespace Secrets
 } // namespace Sailfish
 
+/*!
+  \class InteractionView
+  \brief Interface for implementing in-app authentication
+
+  If a client application wishes to use in-app authentication, they
+  must instantiate an InteractionView and register it via a
+  \l{Sailfish::Secrets::SecretManager}{SecretManager}.
+
+  Subsequent flows which specify
+  \l{Sailfish::Secrets::SecretManager::ApplicationInteraction}{in-app interaction}
+  will be routed to the application's InteractionView.
+
+  \note A concrete implementation of InteractionView is provided
+        as \c{ApplicationInteractionView} in the \c{Sailfish.Secrets}
+        QML import.
+ */
+
+/*!
+  \brief Constructs a new InteractionView instance
+ */
 InteractionView::InteractionView()
     : d_ptr(new InteractionViewPrivate)
 {
 }
 
+/*!
+  \brief Constructs a copy of the \a other InteractionView instance
+ */
 InteractionView::InteractionView(const InteractionView &other)
     : d_ptr(other.d_ptr)
 {
 }
 
+/*!
+  \brief Destroys the interaction view
+ */
 InteractionView::~InteractionView()
 {
 }
 
+/*!
+  \brief Register this view as the in-app interaction view to service
+         in-app authentication flows with the \a manager.
+ */
 void InteractionView::registerWithSecretManager(SecretManager *manager)
 {
     d_ptr->m_secretManager = manager;
     manager->registerInteractionView(this);
 }
 
+/*!
+  \brief Returns a pointer to the SecretManager that this InteractionView was registered with.
+ */
 SecretManager *InteractionView::registeredWithSecretManager() const
 {
     return d_ptr->m_secretManager.data();
 }
 
+/*!
+  \brief Send the given \a response for an interaction request
+ */
 void InteractionView::sendResponse(
         const InteractionResponse &response)
 {
@@ -279,6 +315,9 @@ void InteractionView::sendResponse(
     }
 }
 
+/*!
+  \brief Performs the specified \a request for interaction
+ */
 bool InteractionView::performRequest(QObject *sender, const InteractionParameters &request)
 {
     if (d_ptr->m_uiService) {
@@ -291,6 +330,9 @@ bool InteractionView::performRequest(QObject *sender, const InteractionParameter
     return true;
 }
 
+/*!
+  \brief Continues the specified \a request for interaction (e.g. second stage)
+ */
 bool InteractionView::continueRequest(QObject *sender, const InteractionParameters &request)
 {
     if (d_ptr->m_uiService) {
@@ -303,6 +345,11 @@ bool InteractionView::continueRequest(QObject *sender, const InteractionParamete
     return true;
 }
 
+/*!
+  \brief Cancels the current interaction request
+
+  Returns true if the active request was successfully cancelled, otherwise returns false.
+ */
 bool InteractionView::cancelRequest(QObject *sender)
 {
     if (d_ptr->m_uiService && d_ptr->m_uiService == qobject_cast<InteractionService*>(sender)) {
@@ -319,6 +366,12 @@ bool InteractionView::cancelRequest(QObject *sender)
     return false;
 }
 
+/*!
+  \brief Mark the previously-responded request as finished.
+
+  The interaction should no longer be active, and any data associated
+  with the request may be cleaned up.
+ */
 bool InteractionView::finishRequest(QObject *sender)
 {
     if (d_ptr->m_uiService && d_ptr->m_uiService == qobject_cast<InteractionService*>(sender)) {

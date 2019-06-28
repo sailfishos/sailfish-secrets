@@ -21,4 +21,5 @@ packagesExist(qt5-boostable) {
 
 HEADERS += helper.h
 SOURCES += main.cpp
+OTHER_FILES += README
 INSTALLS += target

@@ -23,30 +23,30 @@ CollectionNamesRequestPrivate::CollectionNamesRequestPrivate()
 }
 
 /*!
- * \class CollectionNamesRequest
- * \brief Allows a client request the names of collections of secrets from the system secrets service
- *
- * This class allows clients to request the Secrets service return the names of
- * collections of secrets which are stored in a particular storage plugin.
- * Note that the client may not have the ability to read from or write to any
- * collection returned from this method, depending on the access controls which
- * apply to the collections.
- *
- * An example of requesting collection names follows:
- *
- * \code
- * Sailfish::Secrets::SecretManager sm;
- * Sailfish::Secrets::CollectionNamesRequest cnr;
- * cnr.setManager(&sm);
- * cnr.setStoragePluginName(Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
- * cnr.startRequest();
- * // status() will change to Finished when complete
- * // collectionNames() will contain the names of the collections
- * \endcode
+  \class CollectionNamesRequest
+  \brief Allows a client request the names of collections of secrets from the system secrets service
+
+  This class allows clients to request the Secrets service return the names of
+  collections of secrets which are stored in a particular storage plugin.
+  Note that the client may not have the ability to read from or write to any
+  collection returned from this method, depending on the access controls which
+  apply to the collections.
+
+  An example of requesting collection names follows:
+
+  \code
+  Sailfish::Secrets::SecretManager sm;
+  Sailfish::Secrets::CollectionNamesRequest cnr;
+  cnr.setManager(&sm);
+  cnr.setStoragePluginName(Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
+  cnr.startRequest();
+  // status() will change to Finished when complete
+  // collectionNames() will contain the names of the collections
+  \endcode
  */
 
 /*!
- * \brief Constructs a new CollectionNamesRequest object with the given \a parent.
+  \brief Constructs a new CollectionNamesRequest object with the given \a parent.
  */
 CollectionNamesRequest::CollectionNamesRequest(QObject *parent)
     : Request(parent)
@@ -55,14 +55,14 @@ CollectionNamesRequest::CollectionNamesRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the CollectionNamesRequest
+  \brief Destroys the CollectionNamesRequest
  */
 CollectionNamesRequest::~CollectionNamesRequest()
 {
 }
 
 /*!
- * \brief Returns the name of the storage plugin from which the client wishes to retrieve collection names
+  \brief Returns the name of the storage plugin from which the client wishes to retrieve collection names
  */
 QString CollectionNamesRequest::storagePluginName() const
 {
@@ -71,7 +71,7 @@ QString CollectionNamesRequest::storagePluginName() const
 }
 
 /*!
- * \brief Sets the name of the storage plugin from which the client wishes to retrieve collection names to \a pluginName
+  \brief Sets the name of the storage plugin from which the client wishes to retrieve collection names to \a pluginName
  */
 void CollectionNamesRequest::setStoragePluginName(const QString &pluginName)
 {
@@ -87,7 +87,7 @@ void CollectionNamesRequest::setStoragePluginName(const QString &pluginName)
 }
 
 /*!
- * \brief Returns the names of the collections stored by the specified storage plugin
+  \brief Returns the names of the collections stored by the specified storage plugin
  */
 QStringList CollectionNamesRequest::collectionNames() const
 {
@@ -96,13 +96,13 @@ QStringList CollectionNamesRequest::collectionNames() const
 }
 
 /*!
- * \brief Returns true if the collection with the specified \a collectionName was locked
- *        when this request was performed.
- *
- * Note that the value reported by this method will not automatically update if a
- * collection is subsequently unlocked (e.g. by performing a StoredKeyIdentifiersRequest
- * with the collection name set to the given collection); instead, the user must
- * start this request again, and then the updated value will be reported appropriately.
+  \brief Returns true if the collection with the specified \a collectionName was locked
+         when this request was performed.
+
+  Note that the value reported by this method will not automatically update if a
+  collection is subsequently unlocked (e.g. by performing a StoredKeyIdentifiersRequest
+  with the collection name set to the given collection); instead, the user must
+  start this request again, and then the updated value will be reported appropriately.
  */
 bool CollectionNamesRequest::isCollectionLocked(const QString &collectionName) const
 {

@@ -23,12 +23,12 @@ DeleteStoredKeyRequestPrivate::DeleteStoredKeyRequestPrivate()
 }
 
 /*!
- * \class DeleteStoredKeyRequest
- * \brief Allows a client request that the system crypto service delete a stored key
+  \class DeleteStoredKeyRequest
+  \brief Allows a client request that the system crypto service delete a stored key
  */
 
 /*!
- * \brief Constructs a new DeleteStoredKeyRequest object with the given \a parent.
+  \brief Constructs a new DeleteStoredKeyRequest object with the given \a parent.
  */
 DeleteStoredKeyRequest::DeleteStoredKeyRequest(QObject *parent)
     : Request(parent)
@@ -37,14 +37,14 @@ DeleteStoredKeyRequest::DeleteStoredKeyRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the DeleteStoredKeyRequest
+  \brief Destroys the DeleteStoredKeyRequest
  */
 DeleteStoredKeyRequest::~DeleteStoredKeyRequest()
 {
 }
 
 /*!
- * \brief Returns the identifier of the stored key which the client wishes to be deleted
+  \brief Returns the identifier of the stored key which the client wishes to be deleted
  */
 Key::Identifier DeleteStoredKeyRequest::identifier() const
 {
@@ -53,7 +53,7 @@ Key::Identifier DeleteStoredKeyRequest::identifier() const
 }
 
 /*!
- * \brief Sets the identifier of the stored key which the client wishes to be deleted to \a ident
+  \brief Sets the identifier of the stored key which the client wishes to be deleted to \a ident
  */
 void DeleteStoredKeyRequest::setIdentifier(const Key::Identifier &ident)
 {

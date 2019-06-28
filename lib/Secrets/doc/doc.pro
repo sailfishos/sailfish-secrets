@@ -11,5 +11,4 @@ OTHER_FILES += \
     $$PWD/sailfish-secrets-overview.qdoc \
     $$PWD/sailfish-secrets-plugins.qdoc \
     $$PWD/sailfish-secrets.cpp \
-    $$PWD/../../../doc/index.qdoc \
     $$PWD/../../../doc/sailfish.cpp

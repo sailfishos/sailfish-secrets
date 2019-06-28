@@ -30,12 +30,12 @@ CipherRequestPrivate::CipherRequestPrivate()
 }
 
 /*!
- * \class CipherRequest
- * \brief Allows the client to request a cipher session from the system crypto service
+  \class CipherRequest
+  \brief Allows the client to request a cipher session from the system crypto service
  */
 
 /*!
- * \brief Constructs a new CipherRequest object with the given \a parent.
+  \brief Constructs a new CipherRequest object with the given \a parent.
  */
 CipherRequest::CipherRequest(QObject *parent)
     : Request(parent)
@@ -44,14 +44,14 @@ CipherRequest::CipherRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the CipherRequest
+  \brief Destroys the CipherRequest
  */
 CipherRequest::~CipherRequest()
 {
 }
 
 /*!
- * \brief Returns the mode which the client wishes to apply to the cipher session
+  \brief Returns the mode which the client wishes to apply to the cipher session
  */
 CipherRequest::CipherMode CipherRequest::cipherMode() const
 {
@@ -60,122 +60,122 @@ CipherRequest::CipherMode CipherRequest::cipherMode() const
 }
 
 /*!
- * \brief Sets the mode which the client wishes to apply to the cipher session to \a mode
- *
- * The mode will be applied by the system crypto service to the cipher session.
- * In general, the client will want to initialize the cipher session, and then
- * repeatedly update the cipher session with data to be operated upon, and
- * then when finished with all data should finalize the cipher session.
- *
- * The following example shows how to use a CipherRequest to encrypt a stream
- * of data using AES 256 encryption in CBC mode.  Note that it forces the
- * request to finish synchronously, however this is purely to keep the example
- * concise; real code should \bold{not} use the waitForFinished() method,
- * but instead should react to the statusChanged() signal to determine when
- * each step of the request has finished.  Also, error checking has been
- * omitted for brevity.
- *
- * \code
- * QByteArray ciphertext;
- * CipherRequest cr;
- * cr.setManager(cryptoManager);
- *
- * // Initialize the cipher.
- * cr.setCipherMode(CipherRequest::InitializeCipher);
- * cr.setKey(key); // a valid AES 256 key or key reference
- * cr.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
- * cr.setOperation(Sailfish::Crypto::CryptoManager::OperationEncrypt);
- * cr.setInitializationVector(initializationVector);    // See GenerateInitializationVectorRequest
- * cr.startRequest();
- * cr.waitForFinished();
- *
- * // Update the cipher session with data to encrypt.
- * while (morePlaintextBlocks()) {
- *     cr.setCipherMode(CipherRequest::UpdateCipher);
- *     cr.setData(getPlaintextBlock()); // e.g. read from file
- *     cr.startRequest();
- *     cr.waitForFinished();
- *     ciphertext.append(cr.generatedData());
- * }
- *
- * // Finalize the cipher session.
- * cr.setCipherMode(CipherRequest::FinalizeCipher);
- * cr.startRequest();
- * cr.waitForFinished();
- * ciphertext.append(cr.generatedData());
- * \endcode
- *
- * To decrypt some ciphertext, the same initialization vector must be
- * specified as was used to encrypt the plaintext data originally.
- * An example of decrypting data follows:
- *
- * \code
- * QByteArray plaintext;
- * CipherRequest cr;
- * cr.setManager(cryptoManager);
- *
- * // Initialize the cipher.
- * cr.setCipherMode(CipherRequest::InitializeCipher);
- * cr.setKey(key); // a valid AES 256 key or key reference
- * cr.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
- * cr.setOperation(Sailfish::Crypto::CryptoManager::OperationDecrypt);
- * cr.setInitializationVector(initializationVector); // IV used during encryption.
- * cr.startRequest();
- * cr.waitForFinished();
- *
- * // Update the cipher session with data to decrypt.
- * while (moreCiphertextBlocks()) {
- *     cr.setCipherMode(CipherRequest::UpdateCipher);
- *     cr.setData(getCiphertextBlock()); // e.g. read from file
- *     cr.startRequest();
- *     cr.waitForFinished();
- *     // Note: in CBC mode the first generatedData() will be smaller
- *     // than the input data by one complete block (16 bytes for AES 256).
- *     plaintext.append(cr.generatedData());
- * }
- *
- * // Finalize the cipher session.
- * cr.setCipherMode(CipherRequest::FinalizeCipher);
- * cr.startRequest();
- * cr.waitForFinished();
- * plaintext.append(cr.generatedData());
- * \endcode
- *
- * Note that authenticated encryption and decryption is slightly
- * different, as encryption finalization produces an authentication tag, which must
- * be provided during decryption finalization for verification.
- * For example, after encrypting data using BlockModeGcm:
- *
- * \code
- * // Finalize the GCM encryption cipher session.
- * cr.setCipherMode(CipherRequest::FinalizeCipher);
- * cr.startRequest();
- * cr.waitForFinished();
- * QByteArray gcmTag = cr.generatedData();
- * \endcode
- *
- * and when decrypting, the authentication tag should be provided for finalization
- * and the verificationStatus flag should be checked carefully:
- *
- * \code
- * // Finalize the GCM decryption cipher session.
- * cr.setCipherMode(CipherRequest::FinalizeCipher);
- * cr.setData(gcmTag);
- * cr.startRequest();
- * cr.waitForFinished();
- * Sailfish::Crypto::CryptoManager::VerificationStatus status = cr.verificationStatus();
- * \endcode
- *
- * If \a mode is either CipherRequest::UpdateCipher or
- * CipherRequest::FinalizeCipher then when the request is finished
- * the generatedData() should contain the block of data which
- * was generated based upon the input data (that is, it will be
- * encrypted, decrypted, or signature data) or alternatively
- * verificationStatus() should contain whether the signature data was
- * verificationStatus or if authenticated decryption succeeded, if the
- * operation() was CryptoManager::OperationEncrypt, CryptoManager::OperationDecrypt,
- * CryptoManager::Sign, or CryptoManager::Verify or CryptoManager::OperationDecrypt
- * with BlockModeGcm respectively.
+  \brief Sets the mode which the client wishes to apply to the cipher session to \a mode
+
+  The mode will be applied by the system crypto service to the cipher session.
+  In general, the client will want to initialize the cipher session, and then
+  repeatedly update the cipher session with data to be operated upon, and
+  then when finished with all data should finalize the cipher session.
+
+  The following example shows how to use a CipherRequest to encrypt a stream
+  of data using AES 256 encryption in CBC mode.  Note that it forces the
+  request to finish synchronously, however this is purely to keep the example
+  concise; real code should \bold{not} use the waitForFinished() method,
+  but instead should react to the statusChanged() signal to determine when
+  each step of the request has finished.  Also, error checking has been
+  omitted for brevity.
+
+  \code
+  QByteArray ciphertext;
+  CipherRequest cr;
+  cr.setManager(cryptoManager);
+
+  // Initialize the cipher.
+  cr.setCipherMode(CipherRequest::InitializeCipher);
+  cr.setKey(key); // a valid AES 256 key or key reference
+  cr.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
+  cr.setOperation(Sailfish::Crypto::CryptoManager::OperationEncrypt);
+  cr.setInitializationVector(initializationVector);    // See GenerateInitializationVectorRequest
+  cr.startRequest();
+  cr.waitForFinished();
+
+  // Update the cipher session with data to encrypt.
+  while (morePlaintextBlocks()) {
+      cr.setCipherMode(CipherRequest::UpdateCipher);
+      cr.setData(getPlaintextBlock()); // e.g. read from file
+      cr.startRequest();
+      cr.waitForFinished();
+      ciphertext.append(cr.generatedData());
+  }
+
+  // Finalize the cipher session.
+  cr.setCipherMode(CipherRequest::FinalizeCipher);
+  cr.startRequest();
+  cr.waitForFinished();
+  ciphertext.append(cr.generatedData());
+  \endcode
+
+  To decrypt some ciphertext, the same initialization vector must be
+  specified as was used to encrypt the plaintext data originally.
+  An example of decrypting data follows:
+
+  \code
+  QByteArray plaintext;
+  CipherRequest cr;
+  cr.setManager(cryptoManager);
+
+  // Initialize the cipher.
+  cr.setCipherMode(CipherRequest::InitializeCipher);
+  cr.setKey(key); // a valid AES 256 key or key reference
+  cr.setBlockMode(Sailfish::Crypto::CryptoManager::BlockModeCbc);
+  cr.setOperation(Sailfish::Crypto::CryptoManager::OperationDecrypt);
+  cr.setInitializationVector(initializationVector); // IV used during encryption.
+  cr.startRequest();
+  cr.waitForFinished();
+
+  // Update the cipher session with data to decrypt.
+  while (moreCiphertextBlocks()) {
+      cr.setCipherMode(CipherRequest::UpdateCipher);
+      cr.setData(getCiphertextBlock()); // e.g. read from file
+      cr.startRequest();
+      cr.waitForFinished();
+      // Note: in CBC mode the first generatedData() will be smaller
+      // than the input data by one complete block (16 bytes for AES 256).
+      plaintext.append(cr.generatedData());
+  }
+
+  // Finalize the cipher session.
+  cr.setCipherMode(CipherRequest::FinalizeCipher);
+  cr.startRequest();
+  cr.waitForFinished();
+  plaintext.append(cr.generatedData());
+  \endcode
+
+  Note that authenticated encryption and decryption is slightly
+  different, as encryption finalization produces an authentication tag, which must
+  be provided during decryption finalization for verification.
+  For example, after encrypting data using BlockModeGcm:
+
+  \code
+  // Finalize the GCM encryption cipher session.
+  cr.setCipherMode(CipherRequest::FinalizeCipher);
+  cr.startRequest();
+  cr.waitForFinished();
+  QByteArray gcmTag = cr.generatedData();
+  \endcode
+
+  and when decrypting, the authentication tag should be provided for finalization
+  and the verificationStatus flag should be checked carefully:
+
+  \code
+  // Finalize the GCM decryption cipher session.
+  cr.setCipherMode(CipherRequest::FinalizeCipher);
+  cr.setData(gcmTag);
+  cr.startRequest();
+  cr.waitForFinished();
+  Sailfish::Crypto::CryptoManager::VerificationStatus status = cr.verificationStatus();
+  \endcode
+
+  If \a mode is either CipherRequest::UpdateCipher or
+  CipherRequest::FinalizeCipher then when the request is finished
+  the generatedData() should contain the block of data which
+  was generated based upon the input data (that is, it will be
+  encrypted, decrypted, or signature data) or alternatively
+  verificationStatus() should contain whether the signature data was
+  verificationStatus or if authenticated decryption succeeded, if the
+  operation() was CryptoManager::OperationEncrypt, CryptoManager::OperationDecrypt,
+  CryptoManager::Sign, or CryptoManager::Verify or CryptoManager::OperationDecrypt
+  with BlockModeGcm respectively.
  */
 void CipherRequest::setCipherMode(CipherRequest::CipherMode mode)
 {
@@ -191,7 +191,7 @@ void CipherRequest::setCipherMode(CipherRequest::CipherMode mode)
 }
 
 /*!
- * \brief Returns the operation which the client wishes to perform with the cipher session
+  \brief Returns the operation which the client wishes to perform with the cipher session
  */
 CryptoManager::Operation CipherRequest::operation() const
 {
@@ -200,10 +200,10 @@ CryptoManager::Operation CipherRequest::operation() const
 }
 
 /*!
- * \brief Sets the operation which the client wishes to perform with the cipher session to \a op
- *
- * Note: this parameter is only meaningful prior to initializing the cipher.  Once
- * initialized, the operation of the cipher cannot be changed.
+  \brief Sets the operation which the client wishes to perform with the cipher session to \a op
+
+  Note: this parameter is only meaningful prior to initializing the cipher.  Once
+  initialized, the operation of the cipher cannot be changed.
  */
 void CipherRequest::setOperation(CryptoManager::Operation op)
 {
@@ -219,7 +219,7 @@ void CipherRequest::setOperation(CryptoManager::Operation op)
 }
 
 /*!
- * \brief Returns the data which the client wishes the system service to operate on
+  \brief Returns the data which the client wishes the system service to operate on
  */
 QByteArray CipherRequest::data() const
 {
@@ -228,7 +228,7 @@ QByteArray CipherRequest::data() const
 }
 
 /*!
- * \brief Sets the data which the client wishes the system service to operate on to \a data
+  \brief Sets the data which the client wishes the system service to operate on to \a data
  */
 void CipherRequest::setData(const QByteArray &data)
 {
@@ -244,7 +244,7 @@ void CipherRequest::setData(const QByteArray &data)
 }
 
 /*!
- * \brief Returns the initialization vector which the client wishes to use when encrypting or decrypting the data
+  \brief Returns the initialization vector which the client wishes to use when encrypting or decrypting the data
  */
 QByteArray CipherRequest::initializationVector() const
 {
@@ -253,20 +253,20 @@ QByteArray CipherRequest::initializationVector() const
 }
 
 /*!
- * \brief Sets the initialization vector which the client wishes to use when encrypting or decrypting the data to \a iv
- *
- * This initialization vector data will only be used for encrypt or decrypt operations, and is only
- * passed to the system service when the cipher mode is \l{CipherRequest::InitializeCipher}.
- *
- * Note that this is only applicable for certain key types using certain
- * modes of encryption or decryption (e.g. CBC mode with AES symmetric keys).
- *
- * The client must specify the same initialization vector when decrypting
- * the cipher text as they used when encrypting it.  The initialization
- * vector is not secret, and can be stored along with the ciphertext,
- * however it should be generated using a cryptographically secure
- * random number generator (see \l{GenerateRandomDataRequest}) and must
- * be the appropriate size according to the cipher.
+  \brief Sets the initialization vector which the client wishes to use when encrypting or decrypting the data to \a iv
+
+  This initialization vector data will only be used for encrypt or decrypt operations, and is only
+  passed to the system service when the cipher mode is \l{CipherRequest::InitializeCipher}.
+
+  Note that this is only applicable for certain key types using certain
+  modes of encryption or decryption (e.g. CBC mode with AES symmetric keys).
+
+  The client must specify the same initialization vector when decrypting
+  the cipher text as they used when encrypting it.  The initialization
+  vector is not secret, and can be stored along with the ciphertext,
+  however it should be generated using a cryptographically secure
+  random number generator (see \l{GenerateRandomDataRequest}) and must
+  be the appropriate size according to the cipher.
  */
 void CipherRequest::setInitializationVector(const QByteArray &iv)
 {
@@ -282,7 +282,7 @@ void CipherRequest::setInitializationVector(const QByteArray &iv)
 }
 
 /*!
- * \brief Returns the key which the client wishes the system service to use to encrypt the data
+  \brief Returns the key which the client wishes the system service to use to encrypt the data
  */
 Key CipherRequest::key() const
 {
@@ -291,7 +291,7 @@ Key CipherRequest::key() const
 }
 
 /*!
- * \brief Sets the key which the client wishes the system service to use to encrypt the data to \a key
+  \brief Sets the key which the client wishes the system service to use to encrypt the data to \a key
  */
 void CipherRequest::setKey(const Key &key)
 {
@@ -307,7 +307,7 @@ void CipherRequest::setKey(const Key &key)
 }
 
 /*!
- * \brief Returns the block mode which should be used when encrypting the data
+  \brief Returns the block mode which should be used when encrypting the data
  */
 Sailfish::Crypto::CryptoManager::BlockMode CipherRequest::blockMode() const
 {
@@ -316,7 +316,7 @@ Sailfish::Crypto::CryptoManager::BlockMode CipherRequest::blockMode() const
 }
 
 /*!
- * \brief Sets the block mode which should be used when encrypting the data to \a mode
+  \brief Sets the block mode which should be used when encrypting the data to \a mode
  */
 void CipherRequest::setBlockMode(Sailfish::Crypto::CryptoManager::BlockMode mode)
 {
@@ -332,7 +332,7 @@ void CipherRequest::setBlockMode(Sailfish::Crypto::CryptoManager::BlockMode mode
 }
 
 /*!
- * \brief Returns the encryption padding mode which should be used when encrypting or decrypting the data
+  \brief Returns the encryption padding mode which should be used when encrypting or decrypting the data
  */
 Sailfish::Crypto::CryptoManager::EncryptionPadding CipherRequest::encryptionPadding() const
 {
@@ -341,7 +341,7 @@ Sailfish::Crypto::CryptoManager::EncryptionPadding CipherRequest::encryptionPadd
 }
 
 /*!
- * \brief Sets the encryption padding mode which should be used when encrypting or decrypting the data to \a padding
+  \brief Sets the encryption padding mode which should be used when encrypting or decrypting the data to \a padding
  */
 void CipherRequest::setEncryptionPadding(Sailfish::Crypto::CryptoManager::EncryptionPadding padding)
 {
@@ -357,7 +357,7 @@ void CipherRequest::setEncryptionPadding(Sailfish::Crypto::CryptoManager::Encryp
 }
 
 /*!
- * \brief Returns the signature padding mode which should be used when signing or verifying the data
+  \brief Returns the signature padding mode which should be used when signing or verifying the data
  */
 Sailfish::Crypto::CryptoManager::SignaturePadding CipherRequest::signaturePadding() const
 {
@@ -366,7 +366,7 @@ Sailfish::Crypto::CryptoManager::SignaturePadding CipherRequest::signaturePaddin
 }
 
 /*!
- * \brief Sets the signature padding mode which should be used when signing or verifying the data to \a padding
+  \brief Sets the signature padding mode which should be used when signing or verifying the data to \a padding
  */
 void CipherRequest::setSignaturePadding(Sailfish::Crypto::CryptoManager::SignaturePadding padding)
 {
@@ -382,7 +382,7 @@ void CipherRequest::setSignaturePadding(Sailfish::Crypto::CryptoManager::Signatu
 }
 
 /*!
- * \brief Returns the digest which should be used when signing or verifying the data
+  \brief Returns the digest which should be used when signing or verifying the data
  */
 Sailfish::Crypto::CryptoManager::DigestFunction CipherRequest::digestFunction() const
 {
@@ -391,7 +391,7 @@ Sailfish::Crypto::CryptoManager::DigestFunction CipherRequest::digestFunction() 
 }
 
 /*!
- * \brief Sets tthe digest which should be used when signing or verifying the data to \a digestFn
+  \brief Sets tthe digest which should be used when signing or verifying the data to \a digestFn
  */
 void CipherRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFunction digestFn)
 {
@@ -407,7 +407,7 @@ void CipherRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFun
 }
 
 /*!
- * \brief Returns the name of the crypto plugin which the client wishes to perform the encryption operation
+  \brief Returns the name of the crypto plugin which the client wishes to perform the encryption operation
  */
 QString CipherRequest::cryptoPluginName() const
 {
@@ -416,7 +416,7 @@ QString CipherRequest::cryptoPluginName() const
 }
 
 /*!
- * \brief Sets the name of the crypto plugin which the client wishes to perform the encryption operation to \a pluginName
+  \brief Sets the name of the crypto plugin which the client wishes to perform the encryption operation to \a pluginName
  */
 void CipherRequest::setCryptoPluginName(const QString &pluginName)
 {
@@ -432,9 +432,9 @@ void CipherRequest::setCryptoPluginName(const QString &pluginName)
 }
 
 /*!
- * \brief Returns the generated data result of the cipher operation.
- *
- * Note: this value is only valid if the status of the request is Request::Finished.
+  \brief Returns the generated data result of the cipher operation.
+
+  Note: this value is only valid if the status of the request is Request::Finished.
  */
 QByteArray CipherRequest::generatedData() const
 {
@@ -443,11 +443,11 @@ QByteArray CipherRequest::generatedData() const
 }
 
 /*!
- * \brief Returns the result of the verify operation.
- *
- * Note: this value is only valid if the status of the request is Request::Finished
- * and the cipher session has been finalized and the operation() was
- * CryptoManager::OperationVerify.
+  \brief Returns the result of the verify operation.
+
+  Note: this value is only valid if the status of the request is Request::Finished
+  and the cipher session has been finalized and the operation() was
+  CryptoManager::OperationVerify.
  */
 Sailfish::Crypto::CryptoManager::VerificationStatus CipherRequest::verificationStatus() const
 {

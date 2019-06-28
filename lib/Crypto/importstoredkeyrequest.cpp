@@ -22,65 +22,65 @@ ImportStoredKeyRequestPrivate::ImportStoredKeyRequestPrivate()
 }
 
 /*!
- * \class ImportKeyRequest
- * \brief Allows a client request that the system crypto service import and securely store a key.
- *
- * The imported key will be stored securely by the crypto daemon into the storage
- * plugin identified by the storage plugin specified in the key template's
- * identifier, and the returned key reference will not contain any private or secret
- * key data.
- *
- * Available storage providers can be enumerated from the Sailfish Secrets API.
- *
- * If the cryptoPluginName() and the storage plugin specified in the identifier of
- * the keyTemplate() are the same, then the key will be stored in storage managed by
- * the crypto provider plugin, if that plugin supports storing keys.
- * In that case, the crypto plugin must also be a Sailfish::Secrets::EncryptedStoragePlugin.
- * Such crypto storage plugins can enforce key component readability constraints,
- * and allow cryptographic operations to occur in the most secure manner possible.
- *
- * An example of importing a public key from a .pem file and storing securely follows:
- *
- * \code
- * // Read the PEM data from the file.
- * QFile pemFile("/path/to/file.pem");
- * if (!pemFile.open(QIODevice::ReadOnly)) {
- *     qWarning() << "Unable to open file for reading.";
- *     return;
- * }
- * const QByteArray pemData = pemFile.readAll();
- *
- * // Set interaction parameters for the passphrase prompt
- * // if a passphrase is required to decrypt the key from .pem.
- * Sailfish::Crypto::InteractionParameters uiParams;
- * uiParams.setInputType(Sailfish::Crypto::InteractionParameters::AlphaNumericInput);
- * uiParams.setEchoMode(Sailfish::Crypto::InteractionParameters::NormalEcho);
- *
- * // Define the key metadata via a template.
- * Sailfish::Crypto::Key keyTemplate;
- * keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt
- *                          |Sailfish::Crypto::CryptoManager::OperationVerify);
- * keyTemplate.setComponentConstraints(Sailfish::Crypto::Key::MetaData
- *                                    |Sailfish::Crypto::Key::PublicKeyData);
- * keyTemplate.setIdentifier(
- *         Sailfish::Crypto::Key::Identifier(
- *             QLatin1String("ExampleImportedKey"),
- *             QLatin1String("ExampleCollection"),
- *             Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName)));
- *
- * // Ask the crypto service to perform the required operations.
- * Sailfish::Crypto::ImportStoredKeyRequest iskr;
- * iskr.setManager(cryptoManager);
- * iskr.setCryptoPluginName(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
- * iskr.setInteractionParameters(uiParams);
- * iskr.setKeyTemplate(keyTemplate);
- * iskr.setData(pemData);
- * iskr.startRequest();
- * \endcode
+  \class ImportKeyRequest
+  \brief Allows a client request that the system crypto service import and securely store a key.
+
+  The imported key will be stored securely by the crypto daemon into the storage
+  plugin identified by the storage plugin specified in the key template's
+  identifier, and the returned key reference will not contain any private or secret
+  key data.
+
+  Available storage providers can be enumerated from the Sailfish Secrets API.
+
+  If the cryptoPluginName() and the storage plugin specified in the identifier of
+  the keyTemplate() are the same, then the key will be stored in storage managed by
+  the crypto provider plugin, if that plugin supports storing keys.
+  In that case, the crypto plugin must also be a Sailfish::Secrets::EncryptedStoragePlugin.
+  Such crypto storage plugins can enforce key component readability constraints,
+  and allow cryptographic operations to occur in the most secure manner possible.
+
+  An example of importing a public key from a .pem file and storing securely follows:
+
+  \code
+  // Read the PEM data from the file.
+  QFile pemFile("/path/to/file.pem");
+  if (!pemFile.open(QIODevice::ReadOnly)) {
+      qWarning() << "Unable to open file for reading.";
+      return;
+  }
+  const QByteArray pemData = pemFile.readAll();
+
+  // Set interaction parameters for the passphrase prompt
+  // if a passphrase is required to decrypt the key from .pem.
+  Sailfish::Crypto::InteractionParameters uiParams;
+  uiParams.setInputType(Sailfish::Crypto::InteractionParameters::AlphaNumericInput);
+  uiParams.setEchoMode(Sailfish::Crypto::InteractionParameters::NormalEcho);
+
+  // Define the key metadata via a template.
+  Sailfish::Crypto::Key keyTemplate;
+  keyTemplate.setOperations(Sailfish::Crypto::CryptoManager::OperationEncrypt
+                           |Sailfish::Crypto::CryptoManager::OperationVerify);
+  keyTemplate.setComponentConstraints(Sailfish::Crypto::Key::MetaData
+                                     |Sailfish::Crypto::Key::PublicKeyData);
+  keyTemplate.setIdentifier(
+          Sailfish::Crypto::Key::Identifier(
+              QLatin1String("ExampleImportedKey"),
+              QLatin1String("ExampleCollection"),
+              Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName)));
+
+  // Ask the crypto service to perform the required operations.
+  Sailfish::Crypto::ImportStoredKeyRequest iskr;
+  iskr.setManager(cryptoManager);
+  iskr.setCryptoPluginName(Sailfish::Crypto::CryptoManager::DefaultCryptoStoragePluginName);
+  iskr.setInteractionParameters(uiParams);
+  iskr.setKeyTemplate(keyTemplate);
+  iskr.setData(pemData);
+  iskr.startRequest();
+  \endcode
  */
 
 /*!
- * \brief Constructs a new ImportStoredKeyRequest object with the given \a parent.
+  \brief Constructs a new ImportStoredKeyRequest object with the given \a parent.
  */
 ImportStoredKeyRequest::ImportStoredKeyRequest(QObject *parent)
     : Request(parent)
@@ -89,14 +89,14 @@ ImportStoredKeyRequest::ImportStoredKeyRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the ImportStoredKeyRequest
+  \brief Destroys the ImportStoredKeyRequest
  */
 ImportStoredKeyRequest::~ImportStoredKeyRequest()
 {
 }
 
 /*!
- * \brief Returns the name of the crypto plugin which the client wishes to perform the key generation operation
+  \brief Returns the name of the crypto plugin which the client wishes to perform the key generation operation
  */
 QString ImportStoredKeyRequest::cryptoPluginName() const
 {
@@ -105,7 +105,7 @@ QString ImportStoredKeyRequest::cryptoPluginName() const
 }
 
 /*!
- * \brief Sets the name of the crypto plugin which the client wishes to perform the key generation operation to \a pluginName
+  \brief Sets the name of the crypto plugin which the client wishes to perform the key generation operation to \a pluginName
  */
 void ImportStoredKeyRequest::setCryptoPluginName(const QString &pluginName)
 {
@@ -121,10 +121,10 @@ void ImportStoredKeyRequest::setCryptoPluginName(const QString &pluginName)
 }
 
 /*!
- * \brief Returns the user input parameters which should be used when requesting the input data from the user
- *
- * If specified, the user may be prompted to enter a pass phrase needed to decrypt the imported
- * key.
+  \brief Returns the user input parameters which should be used when requesting the input data from the user
+
+  If specified, the user may be prompted to enter a pass phrase needed to decrypt the imported
+  key.
  */
 Sailfish::Crypto::InteractionParameters
 ImportStoredKeyRequest::interactionParameters() const
@@ -134,7 +134,7 @@ ImportStoredKeyRequest::interactionParameters() const
 }
 
 /*!
- * \brief Sets the user input parameters which should be used when requesting the input data from the user to \a uiParams
+  \brief Sets the user input parameters which should be used when requesting the input data from the user to \a uiParams
  */
 void ImportStoredKeyRequest::setInteractionParameters(
         const Sailfish::Crypto::InteractionParameters &uiParams)
@@ -151,7 +151,7 @@ void ImportStoredKeyRequest::setInteractionParameters(
 }
 
 /*!
- * \brief Returns the data which should be imported as a key.
+  \brief Returns the data which should be imported as a key.
  */
 QByteArray ImportStoredKeyRequest::data() const
 {
@@ -160,7 +160,7 @@ QByteArray ImportStoredKeyRequest::data() const
 }
 
 /*!
- * \brief Sets the \a data which should be imported.
+  \brief Sets the \a data which should be imported.
  */
 void ImportStoredKeyRequest::setData(const QByteArray &data)
 {
@@ -176,14 +176,14 @@ void ImportStoredKeyRequest::setData(const QByteArray &data)
 }
 
 /*!
- * \brief Returns the key which should be used as a template when storing the imported key
- *
- * The key template should contain a valid identifier, component constraints to prevent
- * unauthorized clients from reading back sensitive data, and valid operations, as
- * well as any filter data the client wishes to be associated with the key.
- *
- * Other information, like the algorithm and key size, will be set automatically by
- * the crypto plugin which constructs the key from the import data.
+  \brief Returns the key which should be used as a template when storing the imported key
+
+  The key template should contain a valid identifier, component constraints to prevent
+  unauthorized clients from reading back sensitive data, and valid operations, as
+  well as any filter data the client wishes to be associated with the key.
+
+  Other information, like the algorithm and key size, will be set automatically by
+  the crypto plugin which constructs the key from the import data.
  */
 Key ImportStoredKeyRequest::keyTemplate() const
 {
@@ -192,7 +192,7 @@ Key ImportStoredKeyRequest::keyTemplate() const
 }
 
 /*!
- * \brief Sets the key which should be used as a template when storing the imported key to \a keyTemplate
+  \brief Sets the key which should be used as a template when storing the imported key to \a keyTemplate
  */
 void ImportStoredKeyRequest::setKeyTemplate(const Key &keyTemplate)
 {
@@ -208,11 +208,11 @@ void ImportStoredKeyRequest::setKeyTemplate(const Key &keyTemplate)
 }
 
 /*!
- * \brief Returns a key reference to the securely-stored imported key
- *
- * Note: this value is only valid if the status of the request is Request::Finished.
- *
- * The key reference will contain metadata and a valid identifier, but no private or secret key data.
+  \brief Returns a key reference to the securely-stored imported key
+
+  Note: this value is only valid if the status of the request is Request::Finished.
+
+  The key reference will contain metadata and a valid identifier, but no private or secret key data.
  */
 Key ImportStoredKeyRequest::importedKeyReference() const
 {

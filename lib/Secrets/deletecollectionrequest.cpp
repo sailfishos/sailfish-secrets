@@ -24,41 +24,41 @@ DeleteCollectionRequestPrivate::DeleteCollectionRequestPrivate()
 }
 
 /*!
- * \class DeleteCollectionRequest
- * \brief Allows a client request that the system secrets service delete a collection from secrets storage
- *
- * This class allows clients to request the Secrets service to delete a collection
- * with the particular collectionName() from the storage plugin with the specified
- * storagePluginName().
- *
- * If the calling application is the creator of the collection, or alternatively
- * if the user has granted the application permission to delete the collection,
- * then the Secrets service will instruct the storage plugin to delete the
- * collection and any secrets it contains.
- *
- * If the application is not the creator of the collection and the user has not yet
- * been asked if the application should have permission to delete the collection,
- * a system-mediated access control UI flow may be triggered to obtain the user's
- * permission (unless the given \a userInteractionMode is \a PreventInteraction
- * in which case the request will fail).
- *
- * An example of deleting a collection is as follows:
- *
- * \code
- * Sailfish::Secrets::SecretManager sm;
- * Sailfish::Secrets::DeleteCollectionRequest dcr;
- * dcr.setManager(&sm);
- * dcr.setStoragePluginName(Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
- * dcr.setCollectionName(QLatin1String("ExampleCollection"));
- * dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
- * dcr.startRequest(); // status() will change to Finished when complete
- * \endcode
+  \class DeleteCollectionRequest
+  \brief Allows a client request that the system secrets service delete a collection from secrets storage
+
+  This class allows clients to request the Secrets service to delete a collection
+  with the particular collectionName() from the storage plugin with the specified
+  storagePluginName().
+
+  If the calling application is the creator of the collection, or alternatively
+  if the user has granted the application permission to delete the collection,
+  then the Secrets service will instruct the storage plugin to delete the
+  collection and any secrets it contains.
+
+  If the application is not the creator of the collection and the user has not yet
+  been asked if the application should have permission to delete the collection,
+  a system-mediated access control UI flow may be triggered to obtain the user's
+  permission (unless the given \a userInteractionMode is \a PreventInteraction
+  in which case the request will fail).
+
+  An example of deleting a collection is as follows:
+
+  \code
+  Sailfish::Secrets::SecretManager sm;
+  Sailfish::Secrets::DeleteCollectionRequest dcr;
+  dcr.setManager(&sm);
+  dcr.setStoragePluginName(Sailfish::Secrets::SecretManager::DefaultEncryptedStoragePluginName);
+  dcr.setCollectionName(QLatin1String("ExampleCollection"));
+  dcr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
+  dcr.startRequest(); // status() will change to Finished when complete
+  \endcode
 }
 \endcode
  */
 
 /*!
- * \brief Constructs a new DeleteCollectionRequest object with the given \a parent.
+  \brief Constructs a new DeleteCollectionRequest object with the given \a parent.
  */
 DeleteCollectionRequest::DeleteCollectionRequest(QObject *parent)
     : Request(parent)
@@ -67,14 +67,14 @@ DeleteCollectionRequest::DeleteCollectionRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the DeleteCollectionRequest
+  \brief Destroys the DeleteCollectionRequest
  */
 DeleteCollectionRequest::~DeleteCollectionRequest()
 {
 }
 
 /*!
- * \brief Returns the name of the collection which the client wishes delete
+  \brief Returns the name of the collection which the client wishes delete
  */
 QString DeleteCollectionRequest::collectionName() const
 {
@@ -83,7 +83,7 @@ QString DeleteCollectionRequest::collectionName() const
 }
 
 /*!
- * \brief Sets the name of the collection which the client wishes to delete to \a name
+  \brief Sets the name of the collection which the client wishes to delete to \a name
  */
 void DeleteCollectionRequest::setCollectionName(const QString &name)
 {
@@ -99,7 +99,7 @@ void DeleteCollectionRequest::setCollectionName(const QString &name)
 }
 
 /*!
- * \brief Returns the name of the storage plugin from which the client wishes to delete the collection
+  \brief Returns the name of the storage plugin from which the client wishes to delete the collection
  */
 QString DeleteCollectionRequest::storagePluginName() const
 {
@@ -108,7 +108,7 @@ QString DeleteCollectionRequest::storagePluginName() const
 }
 
 /*!
- * \brief Sets the name of the storage plugin from which the client wishes to delete the collection to \a pluginName
+  \brief Sets the name of the storage plugin from which the client wishes to delete the collection to \a pluginName
  */
 void DeleteCollectionRequest::setStoragePluginName(const QString &pluginName)
 {
@@ -124,7 +124,7 @@ void DeleteCollectionRequest::setStoragePluginName(const QString &pluginName)
 }
 
 /*!
- * \brief Returns the user interaction mode required when deleting the collection (e.g. if a custom lock code must be requested from the user)
+  \brief Returns the user interaction mode required when deleting the collection (e.g. if a custom lock code must be requested from the user)
  */
 SecretManager::UserInteractionMode DeleteCollectionRequest::userInteractionMode() const
 {
@@ -133,7 +133,7 @@ SecretManager::UserInteractionMode DeleteCollectionRequest::userInteractionMode(
 }
 
 /*!
- * \brief Sets the user interaction mode required when deleting the collection (e.g. if a custom lock code must be requested from the user) to \a mode
+  \brief Sets the user interaction mode required when deleting the collection (e.g. if a custom lock code must be requested from the user) to \a mode
  */
 void DeleteCollectionRequest::setUserInteractionMode(SecretManager::UserInteractionMode mode)
 {

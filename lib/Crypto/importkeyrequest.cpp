@@ -22,15 +22,15 @@ ImportKeyRequestPrivate::ImportKeyRequestPrivate()
 }
 
 /*!
- * \class ImportKeyRequest
- * \brief Allows a client request that the system crypto service import a key from some data.
- *
- * This key will not be stored securely by the crypto daemon, but instead will
- * be returned in its complete form to the caller.
+  \class ImportKeyRequest
+  \brief Allows a client request that the system crypto service import a key from some data.
+
+  This key will not be stored securely by the crypto daemon, but instead will
+  be returned in its complete form to the caller.
  */
 
 /*!
- * \brief Constructs a new ImportKeyRequest object with the given \a parent.
+  \brief Constructs a new ImportKeyRequest object with the given \a parent.
  */
 ImportKeyRequest::ImportKeyRequest(QObject *parent)
     : Request(parent)
@@ -39,14 +39,14 @@ ImportKeyRequest::ImportKeyRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the ImportKeyRequest
+  \brief Destroys the ImportKeyRequest
  */
 ImportKeyRequest::~ImportKeyRequest()
 {
 }
 
 /*!
- * \brief Returns the name of the crypto plugin which the client wishes to perform the key import operation
+  \brief Returns the name of the crypto plugin which the client wishes to perform the key import operation
  */
 QString ImportKeyRequest::cryptoPluginName() const
 {
@@ -55,7 +55,7 @@ QString ImportKeyRequest::cryptoPluginName() const
 }
 
 /*!
- * \brief Sets the name of the crypto plugin which the client wishes to perform the key import operation to \a pluginName
+  \brief Sets the name of the crypto plugin which the client wishes to perform the key import operation to \a pluginName
  */
 void ImportKeyRequest::setCryptoPluginName(const QString &pluginName)
 {
@@ -71,10 +71,10 @@ void ImportKeyRequest::setCryptoPluginName(const QString &pluginName)
 }
 
 /*!
- * \brief Returns the user input parameters which should be used when requesting the input data from the user
- *
- * If specified, the user may be prompted to enter a pass phrase needed to decrypt the imported
- * key.
+  \brief Returns the user input parameters which should be used when requesting the input data from the user
+
+  If specified, the user may be prompted to enter a pass phrase needed to decrypt the imported
+  key.
  */
 Sailfish::Crypto::InteractionParameters
 ImportKeyRequest::interactionParameters() const
@@ -84,7 +84,7 @@ ImportKeyRequest::interactionParameters() const
 }
 
 /*!
- * \brief Sets the user input parameters which should be used when requesting the input data from the user to \a uiParams
+  \brief Sets the user input parameters which should be used when requesting the input data from the user to \a uiParams
  */
 void ImportKeyRequest::setInteractionParameters(
         const Sailfish::Crypto::InteractionParameters &uiParams)
@@ -101,7 +101,7 @@ void ImportKeyRequest::setInteractionParameters(
 }
 
 /*!
- * \brief Returns the data which should be imported as a key.
+  \brief Returns the data which should be imported as a key.
  */
 QByteArray ImportKeyRequest::data() const
 {
@@ -110,7 +110,7 @@ QByteArray ImportKeyRequest::data() const
 }
 
 /*!
- * \brief Sets the \a data which should be imported.
+  \brief Sets the \a data which should be imported.
  */
 void ImportKeyRequest::setData(const QByteArray &data)
 {
@@ -126,9 +126,9 @@ void ImportKeyRequest::setData(const QByteArray &data)
 }
 
 /*!
- * \brief Returns the imported key
- *
- * Note: this value is only valid if the status of the request is Request::Finished.
+  \brief Returns the imported key
+
+  Note: this value is only valid if the status of the request is Request::Finished.
  */
 Key ImportKeyRequest::importedKey() const
 {

@@ -35,18 +35,18 @@ ResultPrivate::~ResultPrivate()
 //--------------------------------------------
 
 /*!
- * \class Result
- * \brief The result of a secrets operation
- *
- * The result encapsulates information about whether a given secrets
- * operation succeeded, failed, or is pending conclusion.  If the
- * operation failed, the result will also include some extra information
- * about why the operation failed, to better allow client applications
- * to handle the failure gracefully.
+  \class Result
+  \brief The result of a secrets operation
+
+  The result encapsulates information about whether a given secrets
+  operation succeeded, failed, or is pending conclusion.  If the
+  operation failed, the result will also include some extra information
+  about why the operation failed, to better allow client applications
+  to handle the failure gracefully.
  */
 
 /*!
- * \brief Constructs a new, empty, successful result.
+  \brief Constructs a new, empty, successful result.
  */
 Result::Result(Result::ResultCode resultCode)
     : d_ptr(new ResultPrivate)
@@ -61,7 +61,7 @@ Result::Result(Result::ResultCode resultCode)
 }
 
 /*!
- * \brief Constructs a new result with the given \a errorCode and \a errorMessage
+  \brief Constructs a new result with the given \a errorCode and \a errorMessage
  */
 Result::Result(Result::ErrorCode errorCode, const QString &errorMessage)
     : d_ptr(new ResultPrivate)
@@ -74,7 +74,7 @@ Result::Result(Result::ErrorCode errorCode, const QString &errorMessage)
 }
 
 /*!
- * \brief Constructs a copy of the \a other result
+  \brief Constructs a copy of the \a other result
  */
 Result::Result(const Result &other)
     : d_ptr(other.d_ptr)
@@ -82,14 +82,14 @@ Result::Result(const Result &other)
 }
 
 /*!
- * \brief Destroys the result
+  \brief Destroys the result
  */
 Result::~Result()
 {
 }
 
 /*!
- * \brief Assigns the \a other result to this result
+  \brief Assigns the \a other result to this result
  */
 Result& Result::operator=(const Result &other)
 {
@@ -98,7 +98,7 @@ Result& Result::operator=(const Result &other)
 }
 
 /*!
- * \brief Sets the error message associated with the result to \a m
+  \brief Sets the error message associated with the result to \a m
  */
 void Result::setErrorMessage(const QString &m)
 {
@@ -106,12 +106,12 @@ void Result::setErrorMessage(const QString &m)
 }
 
 /*!
- * \brief Returns the error message associated with the result
- *
- * The error message is not meant for consumption by users of
- * the application, as it will not be translated and may contain
- * technical information.  It is primarily intended for use
- * by developers during development and debugging of applications.
+  \brief Returns the error message associated with the result
+
+  The error message is not meant for consumption by users of
+  the application, as it will not be translated and may contain
+  technical information.  It is primarily intended for use
+  by developers during development and debugging of applications.
  */
 QString Result::errorMessage() const
 {
@@ -119,7 +119,7 @@ QString Result::errorMessage() const
 }
 
 /*!
- * \brief Sets the error code associated with the result to \ c
+  \brief Sets the error code associated with the result to \ c
  */
 void Result::setErrorCode(int c)
 {
@@ -127,7 +127,7 @@ void Result::setErrorCode(int c)
 }
 
 /*!
- * \brief Sets the error code associated with the result to \ c
+  \brief Sets the error code associated with the result to \ c
  */
 void Result::setErrorCode(Result::ErrorCode c)
 {
@@ -135,7 +135,7 @@ void Result::setErrorCode(Result::ErrorCode c)
 }
 
 /*!
- * \brief Returns the error code associated with the result
+  \brief Returns the error code associated with the result
  */
 Result::ErrorCode Result::errorCode() const
 {
@@ -143,7 +143,7 @@ Result::ErrorCode Result::errorCode() const
 }
 
 /*!
- * \brief Sets the result code associated with the result to \ c
+  \brief Sets the result code associated with the result to \ c
  */
 void Result::setCode(int c)
 {
@@ -151,7 +151,7 @@ void Result::setCode(int c)
 }
 
 /*!
- * \brief Sets the result code associated with the result to \ c
+  \brief Sets the result code associated with the result to \ c
  */
 void Result::setCode(Result::ResultCode c)
 {
@@ -159,7 +159,7 @@ void Result::setCode(Result::ResultCode c)
 }
 
 /*!
- * \brief Returns the result code associated with the result
+  \brief Returns the result code associated with the result
  */
 Result::ResultCode Result::code() const
 {
@@ -167,7 +167,7 @@ Result::ResultCode Result::code() const
 }
 
 /*!
- * \brief Returns true if the \a lhs result is equal to the \a rhs result
+  \brief Returns true if the \a lhs result is equal to the \a rhs result
  */
 bool Sailfish::Secrets::operator==(const Result &lhs, const Result &rhs)
 {
@@ -177,7 +177,7 @@ bool Sailfish::Secrets::operator==(const Result &lhs, const Result &rhs)
 }
 
 /*!
- * \brief Returns false if the \a lhs result is equal to the \a rhs result
+  \brief Returns false if the \a lhs result is equal to the \a rhs result
  */
 bool Sailfish::Secrets::operator!=(const Result &lhs, const Result &rhs)
 {
@@ -185,7 +185,7 @@ bool Sailfish::Secrets::operator!=(const Result &lhs, const Result &rhs)
 }
 
 /*!
- * \brief Returns true if the \a lhs result should sort less than \a rhs result
+  \brief Returns true if the \a lhs result should sort less than \a rhs result
  */
 bool Sailfish::Secrets::operator<(const Result &lhs, const Result &rhs)
 {

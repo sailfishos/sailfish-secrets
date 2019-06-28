@@ -24,52 +24,55 @@ StoredSecretRequestPrivate::StoredSecretRequestPrivate()
 }
 
 /*!
- * \class StoredSecretRequest
- * \brief Allows a client request a secret from the system's secure secret storage service
- *
- * This class allows clients to request the Secrets service to retrieve a secret
- * identified by a given identifier().  The identifier() will identify either a
- * standalone or collection-stored secret.
- *
- * If the application making the request is the creator of the secret, or alternatively
- * if the user has granted the application permission to read the specific secret,
- * then the Secrets service will instruct the storage plugin to retrieve the secret.
- *
- * If the application is not the creator of the secret and the user has not yet
- * been asked if the application should have permission to read the secret, then a
- * system-mediated access control UI flow may be triggered to obtain the user's
- * permission (unless the given \a userInteractionMode is \a PreventInteraction
- * in which case the request will fail).
- *
- * If the secret uses an encryption key derived from the system device-lock,
- * then the value will be able to be retrieved without any other UI flow being required
- * if the secret (or the collection in which the secret is stored, if the secret is not a
- * standalone secret) is currently unlocked; however, if the secret (or collection) uses
- * an encryption key derived from a custom lock, then the custom lock authentication key
- * will be obtained from the user via an authentication flow determined by the authentication
- * plugin used for that secret (which may support \c ApplicationInteraction if the secret
- * is an application-specific secret using an \c ApplicationSpecificAuthentication
- * plugin, but otherwise will be a system-mediated UI flow, unless the \a userInteractionMode
- * specified is \c PreventInteraction in which case the request will fail).
- *
- * Note that only those components of the secret which were allowed for retrieval
- * via \l{Sailfish::Secrets::Secret::setComponentConstraints()} will be able to be
- * retrieved, even if the calling application is the owner of the secret.
- *
- * An example of retrieving a collection-stored secret follows:
- *
- * \code
- * Sailfish::Secrets::SecretManager sm;
- * Sailfish::Secrets::StoredSecretRequest ssr;
- * ssr.setManager(&sm);
- * ssr.setIdentifier(Sailfish::Secrets::Secret::Identifier("ExampleSecret", "ExampleCollection"));
- * ssr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
- * ssr.startRequest(); // status() will change to Finished when complete
- * \endcode
+  \class StoredSecretRequest
+  \brief Allows a client request a secret from the system's secure secret storage service
+
+  This class allows clients to request the Secrets service to retrieve a secret
+  identified by a given identifier().  The identifier() will identify either a
+  standalone or collection-stored secret.
+
+  If the application making the request is the creator of the secret, or alternatively
+  if the user has granted the application permission to read the specific secret,
+  then the Secrets service will instruct the storage plugin to retrieve the secret.
+
+  If the application is not the creator of the secret and the user has not yet
+  been asked if the application should have permission to read the secret, then a
+  system-mediated access control UI flow may be triggered to obtain the user's
+  permission (unless the given \a userInteractionMode is \a PreventInteraction
+  in which case the request will fail).
+
+  If the secret uses an encryption key derived from the system device-lock,
+  then the value will be able to be retrieved without any other UI flow being required
+  if the secret (or the collection in which the secret is stored, if the secret is not a
+  standalone secret) is currently unlocked; however, if the secret (or collection) uses
+  an encryption key derived from a custom lock, then the custom lock authentication key
+  will be obtained from the user via an authentication flow determined by the authentication
+  plugin used for that secret (which may support \c ApplicationInteraction if the secret
+  is an application-specific secret using an \c ApplicationSpecificAuthentication
+  plugin, but otherwise will be a system-mediated UI flow, unless the \a userInteractionMode
+  specified is \c PreventInteraction in which case the request will fail).
+
+  If the data contained in the secret is actually a cryptographic key created via the
+  \c Sailfish::Crypto library, then only those components of the key which were allowed
+  for retrieval via \c Sailfish::Crypto::Key::setComponentConstraints() will be able to be
+  retrieved, even if the calling application is the owner of the secret.  For more
+  information about that topic, please see the documentation for the
+  \c Sailfish::Crypto library.
+
+  An example of retrieving a collection-stored secret follows:
+
+  \code
+  Sailfish::Secrets::SecretManager sm;
+  Sailfish::Secrets::StoredSecretRequest ssr;
+  ssr.setManager(&sm);
+  ssr.setIdentifier(Sailfish::Secrets::Secret::Identifier("ExampleSecret", "ExampleCollection"));
+  ssr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
+  ssr.startRequest(); // status() will change to Finished when complete
+  \endcode
  */
 
 /*!
- * \brief Constructs a new StoredSecretRequest object with the given \a parent.
+  \brief Constructs a new StoredSecretRequest object with the given \a parent.
  */
 StoredSecretRequest::StoredSecretRequest(QObject *parent)
     : Request(parent)
@@ -78,14 +81,14 @@ StoredSecretRequest::StoredSecretRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the StoredSecretRequest
+  \brief Destroys the StoredSecretRequest
  */
 StoredSecretRequest::~StoredSecretRequest()
 {
 }
 
 /*!
- * \brief Returns the identifier of the secret which the client wishes to retrieve
+  \brief Returns the identifier of the secret which the client wishes to retrieve
  */
 Secret::Identifier StoredSecretRequest::identifier() const
 {
@@ -94,7 +97,7 @@ Secret::Identifier StoredSecretRequest::identifier() const
 }
 
 /*!
- * \brief Sets the identifier of the secret which the client wishes to retrieve to \a ident
+  \brief Sets the identifier of the secret which the client wishes to retrieve to \a ident
  */
 void StoredSecretRequest::setIdentifier(const Secret::Identifier &ident)
 {
@@ -110,7 +113,7 @@ void StoredSecretRequest::setIdentifier(const Secret::Identifier &ident)
 }
 
 /*!
- * \brief Returns the secret which was retrieved for the client
+  \brief Returns the secret which was retrieved for the client
  */
 Secret StoredSecretRequest::secret() const
 {
@@ -119,7 +122,7 @@ Secret StoredSecretRequest::secret() const
 }
 
 /*!
- * \brief Returns the user interaction mode required when retrieving the secret (e.g. if a custom lock code must be requested from the user)
+  \brief Returns the user interaction mode required when retrieving the secret (e.g. if a custom lock code must be requested from the user)
  */
 SecretManager::UserInteractionMode StoredSecretRequest::userInteractionMode() const
 {
@@ -128,7 +131,7 @@ SecretManager::UserInteractionMode StoredSecretRequest::userInteractionMode() co
 }
 
 /*!
- * \brief Sets the user interaction mode required when retrieving the secret (e.g. if a custom lock code must be requested from the user) to \a mode
+  \brief Sets the user interaction mode required when retrieving the secret (e.g. if a custom lock code must be requested from the user) to \a mode
  */
 void StoredSecretRequest::setUserInteractionMode(SecretManager::UserInteractionMode mode)
 {

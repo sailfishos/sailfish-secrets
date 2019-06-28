@@ -23,28 +23,28 @@ PluginInfoRequestPrivate::PluginInfoRequestPrivate()
 }
 
 /*!
- * \class PluginInfoRequest
- * \brief Allows a client request information about available storage, encryption and authentication plugins
- *
- * An example of retrieving information about available plugins follows:
- *
- * \code
- * Sailfish::Secrets::SecretManager sm;
- * Sailfish::Secrets::PluginInfoRequest pir;
- * pir.setManager(&sm);
- * pir.startRequest();
- * // status() will change to Finished when complete
- * // real clients should not use waitForFinished().
- * pir.waitForFinished();
- * for (const auto &plugin : pir.encryptedStoragePlugins()) {
- *     qDebug() << "Have encrypted storage plugin:" << plugin.name()
- *              << "with version:" << plugin.version();
- * }
- * \endcode
+  \class PluginInfoRequest
+  \brief Allows a client request information about available storage, encryption and authentication plugins
+
+  An example of retrieving information about available plugins follows:
+
+  \code
+  Sailfish::Secrets::SecretManager sm;
+  Sailfish::Secrets::PluginInfoRequest pir;
+  pir.setManager(&sm);
+  pir.startRequest();
+  // status() will change to Finished when complete
+  // real clients should not use waitForFinished().
+  pir.waitForFinished();
+  for (const auto &plugin : pir.encryptedStoragePlugins()) {
+      qDebug() << "Have encrypted storage plugin:" << plugin.name()
+               << "with version:" << plugin.version();
+  }
+  \endcode
  */
 
 /*!
- * \brief Constructs a new PluginInfoRequest object with the given \a parent.
+  \brief Constructs a new PluginInfoRequest object with the given \a parent.
  */
 PluginInfoRequest::PluginInfoRequest(QObject *parent)
     : Request(parent)
@@ -53,24 +53,24 @@ PluginInfoRequest::PluginInfoRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the PluginInfoRequest
+  \brief Destroys the PluginInfoRequest
  */
 PluginInfoRequest::~PluginInfoRequest()
 {
 }
 
 /*!
- * \brief Returns information about available storage plugins.
- *
- * Storage plugins provide storage for secrets.  Different plugins
- * may be better for different use cases (e.g., some may be backed
- * by a secure hardware peripheral, or a Trusted Execution Environment
- * application, whereas others may simply run "normal" application code
- * to store data to an SQL database on the device's filesystem).
- *
- * These storage plugins don't perform any encryption; the Secrets
- * service will use a specific encryption plugin to perform encryption
- * and decryption operations.
+  \brief Returns information about available storage plugins.
+
+  Storage plugins provide storage for secrets.  Different plugins
+  may be better for different use cases (e.g., some may be backed
+  by a secure hardware peripheral, or a Trusted Execution Environment
+  application, whereas others may simply run "normal" application code
+  to store data to an SQL database on the device's filesystem).
+
+  These storage plugins don't perform any encryption; the Secrets
+  service will use a specific encryption plugin to perform encryption
+  and decryption operations.
  */
 QVector<PluginInfo>
 PluginInfoRequest::storagePlugins() const
@@ -80,14 +80,14 @@ PluginInfoRequest::storagePlugins() const
 }
 
 /*!
- * \brief Returns information about available encryption plugins.
- *
- * Encryption plugins provide crypto operations for secrets.
- * Different plugisn may be better for different use cases (e.g.,
- * some may be backed by a secure hardware peripheral, or a
- * Trusted Execution Environment application, whereas others may
- * simply run "normal" application code to perform cryptographic
- * operations).
+  \brief Returns information about available encryption plugins.
+
+  Encryption plugins provide crypto operations for secrets.
+  Different plugisn may be better for different use cases (e.g.,
+  some may be backed by a secure hardware peripheral, or a
+  Trusted Execution Environment application, whereas others may
+  simply run "normal" application code to perform cryptographic
+  operations).
  */
 QVector<PluginInfo>
 PluginInfoRequest::encryptionPlugins() const
@@ -97,14 +97,14 @@ PluginInfoRequest::encryptionPlugins() const
 }
 
 /*!
- * \brief Returns information about available encrypted storage plugins.
- *
- * Encrypted storage plugins provide all-in-one encryption and
- * storage for secrets.  They generally use block-mode encryption
- * algorithms such as AES256 to encrypt or decrypt entire pages
- * of data when writing to or reading from a database, which makes
- * them ideally suited to implement device-lock protected secret
- * collection stores.
+  \brief Returns information about available encrypted storage plugins.
+
+  Encrypted storage plugins provide all-in-one encryption and
+  storage for secrets.  They generally use block-mode encryption
+  algorithms such as AES256 to encrypt or decrypt entire pages
+  of data when writing to or reading from a database, which makes
+  them ideally suited to implement device-lock protected secret
+  collection stores.
  */
 QVector<PluginInfo>
 PluginInfoRequest::encryptedStoragePlugins() const
@@ -114,25 +114,25 @@ PluginInfoRequest::encryptedStoragePlugins() const
 }
 
 /*!
- * \brief Returns information about available authentication plugins.
- *
- * Authentication plugins provide UI flows which request the user
- * to provide an authentication key (e.g. lock code, password,
- * fingerprint, iris scan or voice recognition template) which
- * can be used to generate an encryption or decryption key.
- *
- * If your application intends to store only application-specific
- * secrets, then when creating the collection or secret you
- * can specify an authentication plugin which supports
- * the \c ApplicationSpecificAuthentication authentication type,
- * and register a \l InteractionView with the manager
- * which will then be used to provide the UI interaction with the
- * user, in-process.  (Note that if you do not wish any UI interaction,
- * the InteractionView implementation can return a precalculated key directly.)
- *
- * Alternatively, other plugins provide various system-mediated
- * UI flows which ensure that the integrity of the user's authentication
- * data is maintained.
+  \brief Returns information about available authentication plugins.
+
+  Authentication plugins provide UI flows which request the user
+  to provide an authentication key (e.g. lock code, password,
+  fingerprint, iris scan or voice recognition template) which
+  can be used to generate an encryption or decryption key.
+
+  If your application intends to store only application-specific
+  secrets, then when creating the collection or secret you
+  can specify an authentication plugin which supports
+  the \c ApplicationSpecificAuthentication authentication type,
+  and register a \l InteractionView with the manager
+  which will then be used to provide the UI interaction with the
+  user, in-process.  (Note that if you do not wish any UI interaction,
+  the InteractionView implementation can return a precalculated key directly.)
+
+  Alternatively, other plugins provide various system-mediated
+  UI flows which ensure that the integrity of the user's authentication
+  data is maintained.
  */
 QVector<PluginInfo>
 PluginInfoRequest::authenticationPlugins() const

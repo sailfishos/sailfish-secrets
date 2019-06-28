@@ -23,46 +23,46 @@ InteractionRequestPrivate::InteractionRequestPrivate()
 }
 
 /*!
- * \class InteractionRequest
- * \brief Allows a client request user input, mediated by the secrets service
- *
- * This class allows clients to request user input, via a system-mediated
- * user interaction flow.  The user will be explicitly informed that the
- * application has initiated the user interaction request, and that the
- * supplied data should not be considered to be secure.
- *
- * Most applications should not have any need to use this request type,
- * as they can usually show their own input dialog and ask the user for
- * input directly that way, however some daemon services without any
- * UI capability may need to use this request type to retrieve
- * non-sensitive or transient data from the user.
- *
- * An example of retrieving user input follows:
- *
- * \code
- * // Define the interaction request prompt parameters.
- * Sailfish::Secrets::InteractionParameters uiParams;
- * uiParams.setInputType(Sailfish::Secrets::InteractionParameters::AlphaNumericInput);
- * uiParams.setEchoMode(Sailfish::Secrets::InteractionParameters::NormalEcho);
- * uiParams.setPromptText(tr("Enter some data"));
- *
- * // Perform the request.
- * Sailfish::Secrets::SecretManager sm;
- * Sailfish::Secrets::InteractionRequest ir;
- * ir.setManager(&sm);
- * ir.setInteractionParameters(&uiParams);
- * ir.startRequest(); // status() will change to Finished when complete
- * ir.waitForFinished(); // or better: connect to statusChanged()
- * QByteArray userInput = ir.userInput();
- * \endcode
- *
- * Note that if the user canceled the user input (or authentication
- * or confirmation) dialog the result will contain the
- * \c{Result::InteractionViewUserCanceledError} error code.
+  \class InteractionRequest
+  \brief Allows a client request user input, mediated by the secrets service
+
+  This class allows clients to request user input, via a system-mediated
+  user interaction flow.  The user will be explicitly informed that the
+  application has initiated the user interaction request, and that the
+  supplied data should not be considered to be secure.
+
+  Most applications should not have any need to use this request type,
+  as they can usually show their own input dialog and ask the user for
+  input directly that way, however some daemon services without any
+  UI capability may need to use this request type to retrieve
+  non-sensitive or transient data from the user.
+
+  An example of retrieving user input follows:
+
+  \code
+  // Define the interaction request prompt parameters.
+  Sailfish::Secrets::InteractionParameters uiParams;
+  uiParams.setInputType(Sailfish::Secrets::InteractionParameters::AlphaNumericInput);
+  uiParams.setEchoMode(Sailfish::Secrets::InteractionParameters::NormalEcho);
+  uiParams.setPromptText(tr("Enter some data"));
+
+  // Perform the request.
+  Sailfish::Secrets::SecretManager sm;
+  Sailfish::Secrets::InteractionRequest ir;
+  ir.setManager(&sm);
+  ir.setInteractionParameters(&uiParams);
+  ir.startRequest(); // status() will change to Finished when complete
+  ir.waitForFinished(); // or better: connect to statusChanged()
+  QByteArray userInput = ir.userInput();
+  \endcode
+
+  Note that if the user canceled the user input (or authentication
+  or confirmation) dialog the result will contain the
+  \c{Result::InteractionViewUserCanceledError} error code.
  */
 
 /*!
- * \brief Constructs a new InteractionRequest object with the given \a parent.
+  \brief Constructs a new InteractionRequest object with the given \a parent.
  */
 InteractionRequest::InteractionRequest(QObject *parent)
     : Request(parent)
@@ -71,14 +71,14 @@ InteractionRequest::InteractionRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the InteractionRequest
+  \brief Destroys the InteractionRequest
  */
 InteractionRequest::~InteractionRequest()
 {
 }
 
 /*!
- * \brief Returns the interaction parameters which allow customisation of the input prompt
+  \brief Returns the interaction parameters which allow customisation of the input prompt
  */
 InteractionParameters InteractionRequest::interactionParameters() const
 {
@@ -87,7 +87,7 @@ InteractionParameters InteractionRequest::interactionParameters() const
 }
 
 /*!
- * \brief Sets the interaction parameters which allow customisation of the input prompt to \a uiParams
+  \brief Sets the interaction parameters which allow customisation of the input prompt to \a uiParams
  */
 void InteractionRequest::setInteractionParameters(const InteractionParameters &uiParams)
 {
@@ -103,7 +103,7 @@ void InteractionRequest::setInteractionParameters(const InteractionParameters &u
 }
 
 /*!
- * \brief Returns the user input which was retrieved for the client
+  \brief Returns the user input which was retrieved for the client
  */
 QByteArray InteractionRequest::userInput() const
 {

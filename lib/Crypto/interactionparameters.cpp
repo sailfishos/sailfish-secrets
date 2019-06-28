@@ -31,74 +31,74 @@ InteractionParametersPrivate::~InteractionParametersPrivate()
 }
 
 /*!
- * \class InteractionParameters
- * \brief Encapsulates parameters related to requesting input from the user
- *
- * This class encapsulates a variety of parameters which will affect the
- * look and feel, as well as functionality, of a prompt to be shown to
- * the user of the device.
- *
- * Usually, this will be used when requesting some secret data from the
- * user from which a cryptographic key will be generated (that is,
- * a passphrase or a PIN code).
- *
- * Please see the documentation for \l{GenerateStoredKeyRequest} for more
- * information about how it can be used.
+  \class InteractionParameters
+  \brief Encapsulates parameters related to requesting input from the user
+
+  This class encapsulates a variety of parameters which will affect the
+  look and feel, as well as functionality, of a prompt to be shown to
+  the user of the device.
+
+  Usually, this will be used when requesting some secret data from the
+  user from which a cryptographic key will be generated (that is,
+  a passphrase or a PIN code).
+
+  Please see the documentation for \l{GenerateStoredKeyRequest} for more
+  information about how it can be used.
  */
 
 /*!
- * \enum InteractionParameters::Prompt
- * \brief Identifiers for prompt strings which will be shown to the user when requesting input.
- *
- * \value Message A message describing the reason for the prompt.
- * \value Instruction An instruction asking the user to enter a passphrase.
- * \value NewInstruction An instruction asking the user to enter a new passphrase.
- * \value RepeatInstruction An instruction asking the user to repeat a new passphrase.
- * \value Accept A label for the prompt accept action.
- * \value Cancel A label for the prompt cancel action.
+  \enum InteractionParameters::Prompt
+  \brief Identifiers for prompt strings which will be shown to the user when requesting input.
+
+  \value Message A message describing the reason for the prompt.
+  \value Instruction An instruction asking the user to enter a passphrase.
+  \value NewInstruction An instruction asking the user to enter a new passphrase.
+  \value RepeatInstruction An instruction asking the user to repeat a new passphrase.
+  \value Accept A label for the prompt accept action.
+  \value Cancel A label for the prompt cancel action.
  */
 
 /*!
- * \class InteractionParameters::PromptText
- * \brief Encapsulates a collection of labels which will be shown to the user when requesting input.
+  \class InteractionParameters::PromptText
+  \brief Encapsulates a collection of labels which will be shown to the user when requesting input.
 
- * These strings allow overriding the default display strings in user prompts. A \l message
- * explaining the reason for the prompt is typically required but others may also be specified
- * to better suit the context of the message.
+  These strings allow overriding the default display strings in user prompts. A \l message
+  explaining the reason for the prompt is typically required but others may also be specified
+  to better suit the context of the message.
  */
 
 /*!
- * \property InteractionParameters::PromptText::message
- * \brief A message describing the reason for the prompt.
+  \property InteractionParameters::PromptText::message
+  \brief A message describing the reason for the prompt.
  */
 
 /*!
- * \property InteractionParameters::PromptText::instruction
- * \brief An instruction asking the user to enter a passphrase.
+  \property InteractionParameters::PromptText::instruction
+  \brief An instruction asking the user to enter a passphrase.
  */
 
 /*!
- * \property InteractionParameters::PromptText::newInstruction
- * \brief An instruction asking the user to enter a new passphrase.
+  \property InteractionParameters::PromptText::newInstruction
+  \brief An instruction asking the user to enter a new passphrase.
  */
 
 /*!
- *\property InteractionParameters::PromptText::repeatInstruction
- * \brief An instruction asking the user to repeat a new passphrase.
+  \property InteractionParameters::PromptText::repeatInstruction
+  \brief An instruction asking the user to repeat a new passphrase.
  */
 
 /*!
- * \property InteractionParameters::PromptText::accept
- * \brief A label for the prompt accept action.
+  \property InteractionParameters::PromptText::accept
+  \brief A label for the prompt accept action.
  */
 
 /*!
- * \property InteractionParameters::PromptText::cancel
- * \brief A label for the prompt cancel action.
+  \property InteractionParameters::PromptText::cancel
+  \brief A label for the prompt cancel action.
  */
 
 /*!
- * \brief Constructs a new InteractionParameters instance
+  \brief Constructs a new InteractionParameters instance
  */
 InteractionParameters::InteractionParameters()
     : d_ptr(new InteractionParametersPrivate)
@@ -106,14 +106,14 @@ InteractionParameters::InteractionParameters()
 }
 
 /*!
- * \brief Destroys the InteractionParameters instance
+  \brief Destroys the InteractionParameters instance
  */
 InteractionParameters::~InteractionParameters()
 {
 }
 
 /*!
- * \brief Constructs a copy of the \a other InteractionParameters instance
+  \brief Constructs a copy of the \a other InteractionParameters instance
  */
 InteractionParameters::InteractionParameters(const InteractionParameters &other)
     : d_ptr(other.d_ptr)
@@ -121,7 +121,7 @@ InteractionParameters::InteractionParameters(const InteractionParameters &other)
 }
 
 /*!
- * \brief Assigns this InteractionParameters to be equal to the \a other
+  \brief Assigns this InteractionParameters to be equal to the \a other
  */
 InteractionParameters& InteractionParameters::operator=(const InteractionParameters &other)
 {
@@ -130,7 +130,7 @@ InteractionParameters& InteractionParameters::operator=(const InteractionParamet
 }
 
 /*!
- * \brief Returns true if the required user input type is well-specified
+  \brief Returns true if the required user input type is well-specified
  */
 bool InteractionParameters::isValid() const
 {
@@ -138,7 +138,7 @@ bool InteractionParameters::isValid() const
 }
 
 /*!
- * \brief Returns the name of the key associated with the user input request
+  \brief Returns the name of the key associated with the user input request
  */
 QString InteractionParameters::keyName() const
 {
@@ -146,10 +146,10 @@ QString InteractionParameters::keyName() const
 }
 
 /*!
- * \brief Sets the name of the key associated with the user input request to \a name
- *
- * Note that in general, this parameter will be supplied by the crypto service,
- * so any value set by the client application here will have no effect.
+  \brief Sets the name of the key associated with the user input request to \a name
+
+  Note that in general, this parameter will be supplied by the crypto service,
+  so any value set by the client application here will have no effect.
  */
 void InteractionParameters::setKeyName(const QString &name)
 {
@@ -159,7 +159,7 @@ void InteractionParameters::setKeyName(const QString &name)
 }
 
 /*!
- * \brief Returns the name of the collection in which the key is stored, which is associated with the user input request
+  \brief Returns the name of the collection in which the key is stored, which is associated with the user input request
  */
 QString InteractionParameters::collectionName() const
 {
@@ -167,10 +167,10 @@ QString InteractionParameters::collectionName() const
 }
 
 /*!
- * \brief Sets the name of the collection in which the key is stored, which is associated with the user input request to \a name
- *
- * Note that in general, this parameter will be supplied by the secrets service,
- * so any value set by the client application here will have no effect.
+  \brief Sets the name of the collection in which the key is stored, which is associated with the user input request to \a name
+
+  Note that in general, this parameter will be supplied by the secrets service,
+  so any value set by the client application here will have no effect.
  */
 void InteractionParameters::setCollectionName(const QString &name)
 {
@@ -180,7 +180,7 @@ void InteractionParameters::setCollectionName(const QString &name)
 }
 
 /*!
- * \brief Returns the name of the extension plugin which is associated with the user input request
+  \brief Returns the name of the extension plugin which is associated with the user input request
  */
 QString InteractionParameters::pluginName() const
 {
@@ -188,10 +188,10 @@ QString InteractionParameters::pluginName() const
 }
 
 /*!
- * \brief Sets the name of the extension plugin which is associated with the user input request to \a name
- *
- * Note that in general, this parameter will be supplied by the secrets service,
- * so any value set by the client application here will have no effect.
+  \brief Sets the name of the extension plugin which is associated with the user input request to \a name
+
+  Note that in general, this parameter will be supplied by the secrets service,
+  so any value set by the client application here will have no effect.
  */
 void InteractionParameters::setPluginName(const QString &name)
 {
@@ -201,7 +201,7 @@ void InteractionParameters::setPluginName(const QString &name)
 }
 
 /*!
- * \brief Returns the identifier of the client application making the request
+  \brief Returns the identifier of the client application making the request
  */
 QString InteractionParameters::applicationId() const
 {
@@ -209,10 +209,10 @@ QString InteractionParameters::applicationId() const
 }
 
 /*!
- * \brief Sets the identifier of the client application making the request to \a id
- *
- * Note that in general, this parameter will be supplied by the secrets service,
- * so any value set by the client application here will have no effect.
+  \brief Sets the identifier of the client application making the request to \a id
+
+  Note that in general, this parameter will be supplied by the secrets service,
+  so any value set by the client application here will have no effect.
  */
 void InteractionParameters::setApplicationId(const QString &id)
 {
@@ -222,7 +222,7 @@ void InteractionParameters::setApplicationId(const QString &id)
 }
 
 /*!
- * \brief Returns the type of operation which will be performed with the user input once received
+  \brief Returns the type of operation which will be performed with the user input once received
  */
 InteractionParameters::Operation InteractionParameters::operation() const
 {
@@ -230,10 +230,10 @@ InteractionParameters::Operation InteractionParameters::operation() const
 }
 
 /*!
- * \brief Sets the type of operation which will be performed with the user input once received to \a op
- *
- * Note that in general, this parameter will be supplied by the secrets service,
- * so any value set by the client application here will have no effect.
+  \brief Sets the type of operation which will be performed with the user input once received to \a op
+
+  Note that in general, this parameter will be supplied by the secrets service,
+  so any value set by the client application here will have no effect.
  */
 void InteractionParameters::setOperation(Operation op)
 {
@@ -243,7 +243,7 @@ void InteractionParameters::setOperation(Operation op)
 }
 
 /*!
- * \brief Returns the name of the authentication plugin which will provide the user input flow
+  \brief Returns the name of the authentication plugin which will provide the user input flow
  */
 QString InteractionParameters::authenticationPluginName() const
 {
@@ -251,10 +251,10 @@ QString InteractionParameters::authenticationPluginName() const
 }
 
 /*!
- * \brief Sets the name of the authentication plugin which will provide the user input flow to \a pluginName
- *
- * If no authentication plugin name is specified, the default system authentication
- * plugin for the specified inputType() will be used.
+  \brief Sets the name of the authentication plugin which will provide the user input flow to \a pluginName
+
+  If no authentication plugin name is specified, the default system authentication
+  plugin for the specified inputType() will be used.
  */
 void InteractionParameters::setAuthenticationPluginName(const QString &pluginName)
 {
@@ -264,7 +264,7 @@ void InteractionParameters::setAuthenticationPluginName(const QString &pluginNam
 }
 
 /*!
- * \brief Returns the application-specified prompt text to be displayed as part of the user input flow
+  \brief Returns the application-specified prompt text to be displayed as part of the user input flow
  */
 InteractionParameters::PromptText InteractionParameters::promptText() const
 {
@@ -272,10 +272,10 @@ InteractionParameters::PromptText InteractionParameters::promptText() const
 }
 
 /*!
- * \brief Sets the application-specified prompt text to be displayed as part of the user input flow to \a prompt
- *
- * Note that this field will usually be supplied by the secrets service for system-mediated user interaction flows,
- * so any value set by client applications will have no effect.
+  \brief Sets the application-specified prompt text to be displayed as part of the user input flow to \a prompt
+
+  Note that this field will usually be supplied by the secrets service for system-mediated user interaction flows,
+  so any value set by client applications will have no effect.
  */
 void InteractionParameters::setPromptText(const PromptText &prompt)
 {
@@ -285,10 +285,10 @@ void InteractionParameters::setPromptText(const PromptText &prompt)
 }
 
 /*!
- * \brief Sets an application-specified \a message to be displayed as part of the user input flow.
- *
- * Note that this field will usually be supplied by the secrets service for system-mediated user interaction flows,
- * so any value set by client applications will have no effect.
+  \brief Sets an application-specified \a message to be displayed as part of the user input flow.
+
+  Note that this field will usually be supplied by the secrets service for system-mediated user interaction flows,
+  so any value set by client applications will have no effect.
  */
 void InteractionParameters::setPromptText(const QString &message)
 {
@@ -296,7 +296,7 @@ void InteractionParameters::setPromptText(const QString &message)
 }
 
 /*!
- * \brief Returns the type of input required from the user
+  \brief Returns the type of input required from the user
  */
 InteractionParameters::InputType InteractionParameters::inputType() const
 {
@@ -304,7 +304,7 @@ InteractionParameters::InputType InteractionParameters::inputType() const
 }
 
 /*!
- * \brief Sets the type of input required from the user to \a type
+  \brief Sets the type of input required from the user to \a type
  */
 void InteractionParameters::setInputType(InteractionParameters::InputType type)
 {
@@ -314,7 +314,7 @@ void InteractionParameters::setInputType(InteractionParameters::InputType type)
 }
 
 /*!
- * \brief Returns the echo mode which should apply as the user provides the input
+  \brief Returns the echo mode which should apply as the user provides the input
  */
 InteractionParameters::EchoMode InteractionParameters::echoMode() const
 {
@@ -322,7 +322,7 @@ InteractionParameters::EchoMode InteractionParameters::echoMode() const
 }
 
 /*!
- * \brief Sets the echo mode which should apply as the user provides the input to \a mode
+  \brief Sets the echo mode which should apply as the user provides the input to \a mode
  */
 void InteractionParameters::setEchoMode(InteractionParameters::EchoMode mode)
 {
@@ -332,7 +332,7 @@ void InteractionParameters::setEchoMode(InteractionParameters::EchoMode mode)
 }
 
 /*!
- * \brief Returns true if the \a lhs parameters are equal to the \a rhs parameters
+  \brief Returns true if the \a lhs parameters are equal to the \a rhs parameters
  */
 bool Sailfish::Crypto::operator==(const InteractionParameters &lhs, const InteractionParameters &rhs)
 {
@@ -348,7 +348,7 @@ bool Sailfish::Crypto::operator==(const InteractionParameters &lhs, const Intera
 }
 
 /*!
- * \brief Returns false if the \a lhs parameters are equal to the \a rhs parameters
+  \brief Returns false if the \a lhs parameters are equal to the \a rhs parameters
  */
 bool Sailfish::Crypto::operator!=(const InteractionParameters &lhs, const InteractionParameters &rhs)
 {
@@ -356,7 +356,7 @@ bool Sailfish::Crypto::operator!=(const InteractionParameters &lhs, const Intera
 }
 
 /*!
- * \brief Returns true if the \a lhs parameters should sort as less than the \a rhs parameters
+  \brief Returns true if the \a lhs parameters should sort as less than the \a rhs parameters
  */
 bool Sailfish::Crypto::operator<(const InteractionParameters &lhs, const InteractionParameters &rhs)
 {

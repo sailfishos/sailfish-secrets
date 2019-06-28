@@ -7,7 +7,6 @@
 ****************************************************************************************/
 
 /*!
-\contentspage {Sailfish OS Crypto Plugins Contents}
 \page sailfish-crypto-plugins.html
 
 \title Default Crypto Plugins for the Sailfish OS Secrets and Crypto Framework
@@ -100,5 +99,16 @@ found at: https://github.com/sailfishos/sailfish-secrets/tree/master/examples/pl
 
 An example (skeleton) Crypto Storage plugin may be found at:
 https://github.com/sailfishos/sailfish-secrets/tree/master/examples/plugins/examplecryptostorageplugin/
+
+*/
+
+/*!
+\page sailfish-crypto-contents.html
+
+\title Sailfish OS Crypto Library Contents
+
+\list
+\li \l{Default Crypto Plugins for the Sailfish OS Secrets and Crypto Framework}
+\endlist
 
 */

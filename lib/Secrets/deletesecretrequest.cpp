@@ -24,33 +24,33 @@ DeleteSecretRequestPrivate::DeleteSecretRequestPrivate()
 }
 
 /*!
- * \class DeleteSecretRequest
- * \brief Allows a client request that a secret be deleted from the system's secure secret storage service
- *
- * If the calling application is the creator of the secret, or alternatively
- * if the user has granted the application permission to delete the secret,
- * then the Secrets service will instruct the storage plugin to delete the secret.
- *
- * If the application is not the creator of the secret and the user has not yet
- * been asked if the application should have permission to delete the secret,
- * then a system-mediated access control UI flow may be triggered
- * to obtain the user's permission (unless the given userInteractionMode() is
- * \c PreventInteraction in which case the request will fail).
- *
- * An example of deleting a secret follows:
- *
- * \code
- * Sailfish::Secrets::SecretManager sm;
- * Sailfish::Secrets::DeleteSecretRequest dsr;
- * dsr.setManager(&sm);
- * dsr.setIdentifier(Sailfish::Secrets::Secret::Identifier("ExampleSecret", "ExampleCollection"));
- * dsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
- * dsr.startRequest(); // status() will change to Finished when complete
- * \endcode
+  \class DeleteSecretRequest
+  \brief Allows a client request that a secret be deleted from the system's secure secret storage service
+
+  If the calling application is the creator of the secret, or alternatively
+  if the user has granted the application permission to delete the secret,
+  then the Secrets service will instruct the storage plugin to delete the secret.
+
+  If the application is not the creator of the secret and the user has not yet
+  been asked if the application should have permission to delete the secret,
+  then a system-mediated access control UI flow may be triggered
+  to obtain the user's permission (unless the given userInteractionMode() is
+  \c PreventInteraction in which case the request will fail).
+
+  An example of deleting a secret follows:
+
+  \code
+  Sailfish::Secrets::SecretManager sm;
+  Sailfish::Secrets::DeleteSecretRequest dsr;
+  dsr.setManager(&sm);
+  dsr.setIdentifier(Sailfish::Secrets::Secret::Identifier("ExampleSecret", "ExampleCollection"));
+  dsr.setUserInteractionMode(Sailfish::Secrets::SecretManager::SystemInteraction);
+  dsr.startRequest(); // status() will change to Finished when complete
+  \endcode
  */
 
 /*!
- * \brief Constructs a new DeleteSecretRequest object with the given \a parent.
+  \brief Constructs a new DeleteSecretRequest object with the given \a parent.
  */
 DeleteSecretRequest::DeleteSecretRequest(QObject *parent)
     : Request(parent)
@@ -59,14 +59,14 @@ DeleteSecretRequest::DeleteSecretRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the DeleteSecretRequest
+  \brief Destroys the DeleteSecretRequest
  */
 DeleteSecretRequest::~DeleteSecretRequest()
 {
 }
 
 /*!
- * \brief Returns the identifier of the secret which the client wishes to delete
+  \brief Returns the identifier of the secret which the client wishes to delete
  */
 Secret::Identifier DeleteSecretRequest::identifier() const
 {
@@ -75,7 +75,7 @@ Secret::Identifier DeleteSecretRequest::identifier() const
 }
 
 /*!
- * \brief Sets the identifier of the secret which the client wishes to delete to \a ident
+  \brief Sets the identifier of the secret which the client wishes to delete to \a ident
  */
 void DeleteSecretRequest::setIdentifier(const Secret::Identifier &ident)
 {
@@ -91,7 +91,7 @@ void DeleteSecretRequest::setIdentifier(const Secret::Identifier &ident)
 }
 
 /*!
- * \brief Returns the user interaction mode required when deleting the secret (e.g. if a custom lock code must be requested from the user)
+  \brief Returns the user interaction mode required when deleting the secret (e.g. if a custom lock code must be requested from the user)
  */
 SecretManager::UserInteractionMode DeleteSecretRequest::userInteractionMode() const
 {
@@ -100,7 +100,7 @@ SecretManager::UserInteractionMode DeleteSecretRequest::userInteractionMode() co
 }
 
 /*!
- * \brief Sets the user interaction mode required when deleting the secret (e.g. if a custom lock code must be requested from the user) to \a mode
+  \brief Sets the user interaction mode required when deleting the secret (e.g. if a custom lock code must be requested from the user) to \a mode
  */
 void DeleteSecretRequest::setUserInteractionMode(SecretManager::UserInteractionMode mode)
 {

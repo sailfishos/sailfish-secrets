@@ -24,12 +24,12 @@ PluginInfoRequestPrivate::PluginInfoRequestPrivate()
 }
 
 /*!
- * \class PluginInfoRequest
- * \brief Allows a client request information about available crypto and storage plugins
+  \class PluginInfoRequest
+  \brief Allows a client request information about available crypto and storage plugins
  */
 
 /*!
- * \brief Constructs a new PluginInfoRequest object with the given \a parent.
+  \brief Constructs a new PluginInfoRequest object with the given \a parent.
  */
 PluginInfoRequest::PluginInfoRequest(QObject *parent)
     : Request(parent)
@@ -38,16 +38,16 @@ PluginInfoRequest::PluginInfoRequest(QObject *parent)
 }
 
 /*!
- * \brief Destroys the PluginInfoRequest
+  \brief Destroys the PluginInfoRequest
  */
 PluginInfoRequest::~PluginInfoRequest()
 {
 }
 
 /*!
- * \brief Returns information about available crypto plugins
- *
- * Note: this value is only valid if the status of the request is Request::Finished.
+  \brief Returns information about available crypto plugins
+
+  Note: this value is only valid if the status of the request is Request::Finished.
  */
 QVector<Sailfish::Crypto::PluginInfo> PluginInfoRequest::cryptoPlugins() const
 {
@@ -56,12 +56,12 @@ QVector<Sailfish::Crypto::PluginInfo> PluginInfoRequest::cryptoPlugins() const
 }
 
 /*!
- * \brief Returns information about available (Secrets) storage plugins
- *
- * A plugin which is both a crypto plugin and a storage plugin is able
- * to store keys (and thus can be used with GenerateStoredKeyRequest etc).
- *
- * Note: this value is only valid if the status of the request is Request::Finished.
+  \brief Returns information about available (Secrets) storage plugins
+
+  A plugin which is both a crypto plugin and a storage plugin is able
+  to store keys (and thus can be used with GenerateStoredKeyRequest etc).
+
+  Note: this value is only valid if the status of the request is Request::Finished.
  */
 QVector<Sailfish::Crypto::PluginInfo> PluginInfoRequest::storagePlugins() const
 {
