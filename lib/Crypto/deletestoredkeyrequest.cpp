@@ -25,6 +25,7 @@ DeleteStoredKeyRequestPrivate::DeleteStoredKeyRequestPrivate()
 /*!
   \class DeleteStoredKeyRequest
   \brief Allows a client request that the system crypto service delete a stored key
+  \inmodule SailfishCrypto
  */
 
 /*!

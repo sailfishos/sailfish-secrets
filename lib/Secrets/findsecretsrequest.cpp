@@ -27,6 +27,7 @@ FindSecretsRequestPrivate::FindSecretsRequestPrivate()
   \class FindSecretsRequest
   \brief Allows a client find the identifiers of secrets which match a specific filter
          from the system's secure secret storage service
+  \inmodule SailfishSecrets
 
   The filter specifies metadata field/value pairs, and will be matched against
   secrets in the storage plugin identified by the specified storagePluginName()

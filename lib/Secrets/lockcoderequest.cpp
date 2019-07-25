@@ -32,6 +32,7 @@ LockCodeRequestPrivate::LockCodeRequestPrivate()
          unlock, lock, or modify the lock code associated with the
          device, an extension plugin, a standalone secret or a
          collection.
+  \inmodule SailfishSecrets
 
   \b{Note: most clients will never need to use this class, as the
   other request types automatically trigger locking and relocking

@@ -28,6 +28,7 @@ InteractionResponsePrivate::~InteractionResponsePrivate()
 /*!
   \class InteractionResponse
   \brief Encapsulates a user-input response from an authentication plugin
+  \inmodule SailfishSecrets
 
   Whenever an authentication (verifying the identity of the user)
   or input (requesting data or confirmation from the user) request

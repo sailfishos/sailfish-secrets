@@ -26,6 +26,7 @@ PluginInfoRequestPrivate::PluginInfoRequestPrivate()
 /*!
   \class PluginInfoRequest
   \brief Allows a client request information about available crypto and storage plugins
+  \inmodule SailfishCrypto
  */
 
 /*!

@@ -26,6 +26,7 @@ DecryptRequestPrivate::DecryptRequestPrivate()
 /*!
   \class DecryptRequest
   \brief Allows a client request that the system crypto service decrypt data with a specific key.
+  \inmodule SailfishCrypto
  */
 
 /*!

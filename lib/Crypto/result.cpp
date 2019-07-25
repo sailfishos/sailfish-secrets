@@ -39,6 +39,7 @@ ResultPrivate::~ResultPrivate()
 /*!
   \class Result
   \brief The result of a crypto operation
+  \inmodule SailfishCrypto
 
   The result encapsulates information about whether a given crypto
   operation succeeded, failed, or is pending conclusion.  If the

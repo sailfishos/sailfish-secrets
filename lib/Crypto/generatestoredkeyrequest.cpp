@@ -25,6 +25,7 @@ GenerateStoredKeyRequestPrivate::GenerateStoredKeyRequestPrivate()
 /*!
   \class GenerateKeyRequest
   \brief Allows a client request that the system crypto service generate and secure store a key based on a template.
+  \inmodule SailfishCrypto
 
   The generated key will be stored securely by the crypto daemon via the storage
   plugin identified by the storage plugin specified in the key template's

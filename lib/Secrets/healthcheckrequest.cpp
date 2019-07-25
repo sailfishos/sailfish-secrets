@@ -27,6 +27,7 @@ HealthCheckRequestPrivate::HealthCheckRequestPrivate()
 /*!
   \class HealthCheckRequest
   \brief Allows a client request information about the well-being of secrets data.
+  \inmodule SailfishSecrets
 
   Normally, a client does not have to use this kind of request, because the
   data corruption is taken care of by the Settings app. When a data corruption

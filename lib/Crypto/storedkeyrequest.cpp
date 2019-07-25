@@ -26,6 +26,7 @@ StoredKeyRequestPrivate::StoredKeyRequestPrivate()
 /*!
   \class StoredKeyRequest
   \brief Allows a client request a securely-stored key from the system crypto service.
+  \inmodule SailfishCrypto
  */
 
 /*!

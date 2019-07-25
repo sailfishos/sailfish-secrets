@@ -30,6 +30,7 @@ CreateCollectionRequestPrivate::CreateCollectionRequestPrivate()
 /*!
   \class CreateCollectionRequest
   \brief Allows a client request that the system secrets service create a collection for secrets storage
+  \inmodule SailfishSecrets
 
   This class allows clients to request the Secrets service to create a collection
   with the particular collectionName(), which will be stored by the storage plugin

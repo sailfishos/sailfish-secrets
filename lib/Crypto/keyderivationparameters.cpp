@@ -46,6 +46,7 @@ KeyDerivationParametersPrivate::~KeyDerivationParametersPrivate()
 /*!
   \class KeyDerivationParameters
   \brief Encapsulates parameters related to the derivation of a symmetric encryption key
+  \inmodule SailfishCrypto
 
   This class encapsulates a variety of parameters which will affect how
   the crypto plugin generates a key.  Usually, an instance of this class

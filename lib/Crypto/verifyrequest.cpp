@@ -28,6 +28,7 @@ VerifyRequestPrivate::VerifyRequestPrivate()
 /*!
   \class VerifyRequest
   \brief Allows a client request the system crypto service to verify that data was signed with a specific key
+  \inmodule SailfishCrypto
  */
 
 /*!

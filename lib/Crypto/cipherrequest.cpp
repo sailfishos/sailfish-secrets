@@ -32,6 +32,7 @@ CipherRequestPrivate::CipherRequestPrivate()
 /*!
   \class CipherRequest
   \brief Allows the client to request a cipher session from the system crypto service
+  \inmodule SailfishCrypto
  */
 
 /*!

@@ -33,6 +33,7 @@ InteractionParametersPrivate::~InteractionParametersPrivate()
 /*!
   \class InteractionParameters
   \brief Encapsulates parameters related to requesting input from the user
+  \inmodule SailfishCrypto
 
   This class encapsulates a variety of parameters which will affect the
   look and feel, as well as functionality, of a prompt to be shown to
@@ -61,6 +62,7 @@ InteractionParametersPrivate::~InteractionParametersPrivate()
 /*!
   \class InteractionParameters::PromptText
   \brief Encapsulates a collection of labels which will be shown to the user when requesting input.
+  \inmodule SailfishCrypto
 
   These strings allow overriding the default display strings in user prompts. A \l message
   explaining the reason for the prompt is typically required but others may also be specified
