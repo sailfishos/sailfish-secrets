@@ -25,6 +25,7 @@ CalculateDigestRequestPrivate::CalculateDigestRequestPrivate()
 /*!
   \class CalculateDigestRequest
   \brief Allows a client request the system crypto service to calculate a digest from data
+  \inmodule SailfishCrypto
 
   A digest is calculated using a digest function.  Unlike a signature
   (see SignRequest) no key is required to calculate a digest.

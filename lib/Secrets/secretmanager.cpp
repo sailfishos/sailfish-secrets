@@ -45,6 +45,7 @@ const QString SecretManager::DefaultEncryptedStoragePluginName = QStringLiteral(
   \class SecretManagerPrivate
   \internal
   \brief Encapsulates DBus communication with the system secrets service
+  \inmodule SailfishSecrets
  */
 
 /*!
@@ -668,6 +669,7 @@ SecretManagerPrivate *SecretManager::pimpl() const
 /*!
   \class SecretManager
   \brief Allows clients to make requests of the system secrets service.
+  \inmodule SailfishSecrets
 
   The SecretManager class provides an interface to the system secrets service.
   In order to perform requests, clients should use the \l Request

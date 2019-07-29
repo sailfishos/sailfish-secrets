@@ -22,6 +22,7 @@ using namespace Sailfish::Crypto;
   \brief Specifies an interface which provides a variety of cryptographic
          operations to clients which will be exposed via the Sailfish OS
          Crypto API.
+  \inmodule SailfishCrypto
 
   The CryptoPlugin type specifies an interface which provides encryption,
   decryption, signing, verification, key derivation, key pair generation,

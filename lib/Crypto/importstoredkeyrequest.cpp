@@ -24,6 +24,7 @@ ImportStoredKeyRequestPrivate::ImportStoredKeyRequestPrivate()
 /*!
   \class ImportKeyRequest
   \brief Allows a client request that the system crypto service import and securely store a key.
+  \inmodule SailfishCrypto
 
   The imported key will be stored securely by the crypto daemon into the storage
   plugin identified by the storage plugin specified in the key template's

@@ -25,6 +25,7 @@ StoredKeyIdentifiersRequestPrivate::StoredKeyIdentifiersRequestPrivate()
 /*!
   \class StoredKeyIdentifiersRequest
   \brief Allows a client request the identifiers of securely-stored keys from the system crypto service
+  \inmodule SailfishCrypto
  */
 
 /*!

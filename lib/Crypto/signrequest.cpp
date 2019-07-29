@@ -27,6 +27,7 @@ SignRequestPrivate::SignRequestPrivate()
 /*!
   \class SignRequest
   \brief Allows a client request the system crypto service to sign data with a specific key
+  \inmodule SailfishCrypto
  */
 
 /*!

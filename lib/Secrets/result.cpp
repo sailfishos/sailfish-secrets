@@ -37,6 +37,7 @@ ResultPrivate::~ResultPrivate()
 /*!
   \class Result
   \brief The result of a secrets operation
+  \inmodule SailfishSecrets
 
   The result encapsulates information about whether a given secrets
   operation succeeded, failed, or is pending conclusion.  If the

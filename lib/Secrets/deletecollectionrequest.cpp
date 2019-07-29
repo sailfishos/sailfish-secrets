@@ -26,6 +26,7 @@ DeleteCollectionRequestPrivate::DeleteCollectionRequestPrivate()
 /*!
   \class DeleteCollectionRequest
   \brief Allows a client request that the system secrets service delete a collection from secrets storage
+  \inmodule SailfishSecrets
 
   This class allows clients to request the Secrets service to delete a collection
   with the particular collectionName() from the storage plugin with the specified

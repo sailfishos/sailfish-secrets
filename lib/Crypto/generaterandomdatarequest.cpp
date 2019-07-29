@@ -29,6 +29,7 @@ GenerateRandomDataRequestPrivate::GenerateRandomDataRequestPrivate()
 /*!
   \class GenerateRandomDataRequest
   \brief Allows a client request that the system crypto service generate random data.
+  \inmodule SailfishCrypto
 
   The random data will be generated using the cryptographically-secure random number
   generator engine specified by the client.  The engines which are supported by the

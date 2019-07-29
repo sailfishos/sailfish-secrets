@@ -7,6 +7,12 @@
 ****************************************************************************************/
 
 /*!
+\module SailfishCrypto
+\title Sailfish Crypto C++ Classes
+
+*/
+
+/*!
 \page sailfish-crypto-overview.html
 
 \title Sailfish OS Crypto Library

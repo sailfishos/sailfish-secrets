@@ -30,6 +30,7 @@ StoreSecretRequestPrivate::StoreSecretRequestPrivate()
 /*!
   \class StoreSecretRequest
   \brief Allows a client request that the system secrets service securely store a secret
+  \inmodule SailfishSecrets
 
   This class allows clients to request the Secrets service to store a secret
   (either in a particular collection or as a standalone secret) in a particular

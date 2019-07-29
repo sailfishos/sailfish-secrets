@@ -39,6 +39,7 @@ const QString CryptoManager::DefaultCryptoStoragePluginName = QStringLiteral("pl
   \internal
   \class CryptoManagerPrivate
   \brief Performs P2P DBus calls to the system crypto service
+  \inmodule SailfishCrypto
  */
 
 /*!
@@ -653,6 +654,7 @@ CryptoManagerPrivate *CryptoManager::pimpl() const
 /*!
   \class CryptoManager
   \brief Allows clients to make requests of the system crypto service.
+  \inmodule SailfishCrypto
 
   The CryptoManager class provides an interface to the system crypto service.
   In order to perform requests, clients should use the \l Request
