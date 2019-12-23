@@ -23,6 +23,7 @@
 #include <QtDBus/QDBusMessage>
 #include <QtDBus/QDBusArgument>
 #include <QtDBus/QDBusMetaType>
+#include <QStandardPaths>
 
 Q_LOGGING_CATEGORY(lcSailfishCryptoDaemonConnection, "org.sailfishos.crypto.daemon.connection", QtWarningMsg)
 
@@ -40,7 +41,7 @@ bool Sailfish::Crypto::CryptoDaemonConnectionPrivate::connect()
     }
 
     // Step one: query the crypto daemon's "discovery" SessionBusObject for the PeerToPeer address.
-    QString address(QStringLiteral("unix:path=/run/user/100000/sailfishsecretsd-p2pSocket"));
+    QString address(QStringLiteral("unix:path=") + QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation) + QStringLiteral("/sailfishsecretsd-p2pSocket"));
     QDBusInterface iface("org.sailfishos.crypto.daemon.discovery",
                          "/Sailfish/Crypto/Discovery",
                          "org.sailfishos.crypto.daemon.discovery",

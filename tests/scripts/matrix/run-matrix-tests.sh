@@ -8,7 +8,10 @@ fi
 
 echo "Starting sailfishsecretsd in test mode, please wait..."
 systemctl --user stop sailfish-secretsd
-rm -rf "/home/nemo/.local/share/system/privileged/Secrets/"
+
+USERNAME=$(loginctl list-sessions | grep seat0 | tr -s " " | cut -d " " -f 4)
+USERHOME=$(getent passwd $USERNAME | cut -d : -f 6)
+rm -rf "~$USERHOME/.local/share/system/privileged/Secrets/"
 sleep 4
 (/usr/bin/sailfishsecretsd --test 2>&1 | cat > /dev/null) &
 sailfishsecretsdaemonpid=$!
@@ -55,7 +58,7 @@ runscript() {
         scriptresult=$?
     else
         echo "        About to run in non-privileged terminal: $scriptfile"
-        (exec sg nemo "$scriptfile")
+        (exec sg $USERNAME "$scriptfile")
         scriptresult=$?
     fi
 }
