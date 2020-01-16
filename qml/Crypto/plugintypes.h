@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2018 Jolla Ltd.
+ * Copyright (C) 2018 - 2020 Jolla Ltd.
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  * Contact: Chris Adams <chris.adams@jollamobile.com>
  * All rights reserved.
  * BSD 3-Clause License, see LICENSE.
@@ -64,9 +65,9 @@ public:
     QString defaultCryptoStoragePluginName() const { return DefaultCryptoStoragePluginName; }
 
     // QML API - allow clients to construct "uncreatable" value types
-    Q_INVOKABLE Result constructResult() const;
-    Q_INVOKABLE Key constructKey() const;
-    Q_INVOKABLE Key constructKey(const QString &name,
+    Q_INVOKABLE Sailfish::Crypto::Result constructResult() const;
+    Q_INVOKABLE Sailfish::Crypto::Key constructKey() const;
+    Q_INVOKABLE Sailfish::Crypto::Key constructKey(const QString &name,
                                  const QString &collectionName,
                                  const QString &storagePluginName) const;
     Q_INVOKABLE Sailfish::Crypto::Key::Identifier

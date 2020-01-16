@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2018 Jolla Ltd.
+ * Copyright (C) 2018 - 2020 Jolla Ltd.
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  * Contact: Chris Adams <chris.adams@jollamobile.com>
  * All rights reserved.
  * BSD 3-Clause License, see LICENSE.
@@ -17,16 +18,16 @@ void Sailfish::Crypto::Plugin::CryptoPlugin::initializeEngine(QQmlEngine *, cons
 
 void Sailfish::Crypto::Plugin::CryptoPlugin::registerTypes(const char *uri)
 {
-    qRegisterMetaType<Sailfish::Crypto::Result>("Result");
+    qRegisterMetaType<Sailfish::Crypto::Result>("Sailfish::Crypto::Result");
     QMetaType::registerComparators<Sailfish::Crypto::Result>();
-    qmlRegisterUncreatableType<Sailfish::Crypto::Result>(uri, 1, 0, "CryptoResult", QStringLiteral("Result objects cannot be constructed directly in QML"));
+    qmlRegisterUncreatableType<Sailfish::Crypto::Result>(uri, 1, 0, "Result", QStringLiteral("Result objects cannot be constructed directly in QML"));
 
-    qRegisterMetaType<Sailfish::Crypto::Key>("Key");
+    qRegisterMetaType<Sailfish::Crypto::Key>("Sailfish::Crypto::Key");
     QMetaType::registerComparators<Sailfish::Crypto::Key>();
     qmlRegisterUncreatableType<Sailfish::Crypto::Key>(uri, 1, 0, "Key", QStringLiteral("Key objects cannot be constructed directly in QML"));
 
-    qmlRegisterUncreatableType<Sailfish::Crypto::Request>(uri, 1, 0, "CryptoRequest", QStringLiteral("Request is an abstract class, can't construct in QML"));
-    qRegisterMetaType<Sailfish::Crypto::Request::Status>("CryptoRequestStatus");
+    qmlRegisterUncreatableType<Sailfish::Crypto::Request>(uri, 1, 0, "Request", QStringLiteral("Request is an abstract class, can't construct in QML"));
+    qRegisterMetaType<Sailfish::Crypto::Request::Status>("Sailfish::Crypto::Request::Status");
     qmlRegisterUncreatableType<Sailfish::Crypto::PluginInfo>(uri, 1, 0, "PluginInfo", QStringLiteral("PluginInfo objects cannot be constructed directly in QML"));
     qmlRegisterType<Sailfish::Crypto::Plugin::PluginInfoRequestWrapper>(uri, 1, 0, "PluginInfoRequest");
     qmlRegisterType<Sailfish::Crypto::SeedRandomDataGeneratorRequest>(uri, 1, 0, "SeedRandomDataGeneratorRequest");
