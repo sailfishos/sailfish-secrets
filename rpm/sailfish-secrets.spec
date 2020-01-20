@@ -249,6 +249,7 @@ Requires:  qt5-plugin-sqldriver-sqlcipher
 Requires:  libsailfishsecretspluginapi = %{version}-%{release}
 Requires:  %{secretsdaemon} = %{version}-%{release}
 Requires:  nemo-qml-plugin-devicelock
+Requires:  polkit >= 0.105+git3
 
 %description -n %{secretsdaemon}-secretsplugin-common
 %{summary}.
