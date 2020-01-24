@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2017 Jolla Ltd.
+ * Copyright (C) 2017 - 2020 Jolla Ltd.
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  * Contact: Chris Adams <chris.adams@jollamobile.com>
  * All rights reserved.
  * BSD 3-Clause License, see LICENSE.
@@ -18,30 +19,30 @@ void Sailfish::Secrets::Plugin::SecretsPlugin::initializeEngine(QQmlEngine *, co
 
 void Sailfish::Secrets::Plugin::SecretsPlugin::registerTypes(const char *uri)
 {
-    qRegisterMetaType<Sailfish::Secrets::InteractionParameters>("InteractionParameters");
-    qRegisterMetaType<Sailfish::Secrets::InteractionParameters::InputType>("InteractionParameters::InputType");
-    qRegisterMetaType<Sailfish::Secrets::InteractionParameters::EchoMode>("InteractionParameters::EchoMode");
-    qRegisterMetaType<Sailfish::Secrets::InteractionParameters::Operation>("InteractionParameters::Operation");
+    qRegisterMetaType<Sailfish::Secrets::InteractionParameters>("Sailfish::Secrets::InteractionParameters");
+    qRegisterMetaType<Sailfish::Secrets::InteractionParameters::InputType>("Sailfish::Secrets::InteractionParameters::InputType");
+    qRegisterMetaType<Sailfish::Secrets::InteractionParameters::EchoMode>("Sailfish::Secrets::InteractionParameters::EchoMode");
+    qRegisterMetaType<Sailfish::Secrets::InteractionParameters::Operation>("Sailfish::Secrets::InteractionParameters::Operation");
     QMetaType::registerComparators<Sailfish::Secrets::InteractionParameters>();
     qmlRegisterUncreatableType<Sailfish::Secrets::InteractionParameters>(uri, 1, 0, "InteractionParameters", QStringLiteral("InteractionParameters objects cannot be constructed directly in QML"));
     qmlRegisterUncreatableType<Sailfish::Secrets::InteractionParameters::PromptText>(uri, 1, 0, "PromptText", QStringLiteral("Can't construct PromptText in QML"));
 
-    qRegisterMetaType<Sailfish::Secrets::InteractionResponse>("InteractionResponse");
+    qRegisterMetaType<Sailfish::Secrets::InteractionResponse>("Sailfish::Secrets::InteractionResponse");
     QMetaType::registerComparators<Sailfish::Secrets::InteractionResponse>();
     qmlRegisterUncreatableType<Sailfish::Secrets::InteractionResponse>(uri, 1, 0, "InteractionResponse", QStringLiteral("InteractionResponse objects cannot be constructed directly in QML"));
 
-    qRegisterMetaType<Sailfish::Secrets::Result>("SecretsResult");
+    qRegisterMetaType<Sailfish::Secrets::Result>("Sailfish::Secrets::Result");
     QMetaType::registerComparators<Sailfish::Secrets::Result>();
-    qmlRegisterUncreatableType<Sailfish::Secrets::Result>(uri, 1, 0, "SecretsResult", QStringLiteral("Result objects cannot be constructed directly in QML"));
-    qRegisterMetaType<Sailfish::Secrets::Result::ResultCode>("SecretsResultCode");
-    qRegisterMetaType<Sailfish::Secrets::Result::ErrorCode>("SecretsErrorCode");
+    qmlRegisterUncreatableType<Sailfish::Secrets::Result>(uri, 1, 0, "Result", QStringLiteral("Result objects cannot be constructed directly in QML"));
+    qRegisterMetaType<Sailfish::Secrets::Result::ResultCode>("Sailfish::Secrets::Result::ResultCode");
+    qRegisterMetaType<Sailfish::Secrets::Result::ErrorCode>("Sailfish::Secrets::Result::ErrorCode");
 
-    qRegisterMetaType<Sailfish::Secrets::Secret>("Secret");
+    qRegisterMetaType<Sailfish::Secrets::Secret>("Sailfish::Secrets::Secret");
     QMetaType::registerComparators<Sailfish::Secrets::Secret>();
     qmlRegisterUncreatableType<Sailfish::Secrets::Secret>(uri, 1, 0, "Secret", QStringLiteral("Secret objects cannot be constructed directly in QML"));
 
-    qmlRegisterUncreatableType<Sailfish::Secrets::Request>(uri, 1, 0, "SecretsRequest", QStringLiteral("Request is an abstract class, can't construct in QML"));
-    qRegisterMetaType<Sailfish::Secrets::Request::Status>("SecretsRequestStatus");
+    qmlRegisterUncreatableType<Sailfish::Secrets::Request>(uri, 1, 0, "Request", QStringLiteral("Request is an abstract class, can't construct in QML"));
+    qRegisterMetaType<Sailfish::Secrets::Request::Status>("Sailfish::Secrets::Request::Status");
     qmlRegisterUncreatableType<Sailfish::Secrets::PluginInfo>(uri, 1, 0, "PluginInfo", QStringLiteral("PluginInfo objects cannot be constructed directly in QML"));
     qmlRegisterType<Sailfish::Secrets::Plugin::PluginInfoRequestWrapper>(uri, 1, 0, "PluginInfoRequest");
     qmlRegisterType<Sailfish::Secrets::HealthCheckRequest>(uri, 1, 0, "HealthCheckRequest");

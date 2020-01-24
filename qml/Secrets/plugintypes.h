@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2018 Jolla Ltd.
+ * Copyright (C) 2018 - 2020 Jolla Ltd.
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  * Contact: Chris Adams <chris.adams@jollamobile.com>
  * All rights reserved.
  * BSD 3-Clause License, see LICENSE.
@@ -67,10 +68,10 @@ public:
     QString defaultEncryptedStoragePluginName() const;
 
     // QML API - allow clients to construct "uncreatable" value types
-    Q_INVOKABLE Result constructResult() const;
-    Q_INVOKABLE Secret constructSecret() const;
-    Q_INVOKABLE InteractionParameters constructInteractionParameters() const;
-    Q_INVOKABLE InteractionResponse constructInteractionResponse() const;
+    Q_INVOKABLE Sailfish::Secrets::Result constructResult() const;
+    Q_INVOKABLE Sailfish::Secrets::Secret constructSecret() const;
+    Q_INVOKABLE Sailfish::Secrets::InteractionParameters constructInteractionParameters() const;
+    Q_INVOKABLE Sailfish::Secrets::InteractionResponse constructInteractionResponse() const;
     Q_INVOKABLE Sailfish::Secrets::Secret::FilterData constructFilterData(const QVariantMap &v) const;
 };
 
