@@ -3,6 +3,7 @@
 #include "sf-secrets-manager-private.h"
 #include "sf-secrets-interaction.h"
 #include "sf-secrets-interaction-request.h"
+#include "sf-secrets-interaction-request-private.h"
 #include "sf-common-private.h"
 
 typedef struct SfSecretsManagerPrivate_ SfSecretsManagerPrivate;
@@ -51,6 +52,20 @@ static void sf_secrets_manager_init(SfSecretsManager *manager)
     (void)manager;
 }
 
+static gboolean _sf_secrets_manager_ptr_equal(gpointer key, gpointer value, gpointer user_data)
+{
+    (void)key;
+    return value == user_data;
+}
+
+static void _sf_secrets_manager_remove_request(SfSecretsManager *manager,
+        SfSecretsInteractionRequest *gone_request)
+{
+    SfSecretsManagerPrivate *priv = sf_secrets_manager_get_instance_private(manager);
+
+    g_hash_table_foreach_remove(priv->requests, _sf_secrets_manager_ptr_equal, gone_request);
+}
+
 static void _sf_secrets_manager_finalize(GObject *object)
 {
     SfSecretsManager *manager = SF_SECRETS_MANAGER(object);
@@ -61,6 +76,16 @@ static void _sf_secrets_manager_finalize(GObject *object)
 
     if (priv->server)
         g_object_unref(priv->server);
+
+    if (priv->requests) {
+        GHashTableIter i;
+        gpointer id;
+        gpointer request;
+        g_hash_table_iter_init(&i, priv->requests);
+        while (g_hash_table_iter_next(&i, &id, &request))
+            g_object_weak_unref(G_OBJECT(request), (GWeakNotify)_sf_secrets_manager_remove_request, manager);
+        g_hash_table_unref(priv->requests);
+    }
 
     if (priv->connections)
         g_hash_table_unref(priv->connections);
@@ -132,18 +157,22 @@ static gboolean _sf_secrets_manager_new_interaction_connection(SfSecretsManager 
     return TRUE;
 }
 
-static gboolean _sf_secrets_manager_ptr_equal(gpointer key, gpointer value, gpointer user_data)
+static GHashTable *_sf_prompt_text_from_variant_or_null(GVariant *variant)
 {
-    (void)key;
-    return value == user_data;
-}
+    GHashTable *rv;
+    GVariantIter i;
+    gint32 key;
+    gchar *value;
 
-static void _sf_secrets_manager_remove_request(SfSecretsManager *manager,
-        SfSecretsInteractionRequest *gone_request)
-{
-    SfSecretsManagerPrivate *priv = sf_secrets_manager_get_instance_private(manager);
+    g_variant_iter_init(&i, variant);
+    if (!g_variant_iter_next(&i, "{is}", &key, &value))
+        return NULL;
+    rv = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_free);
+    do {
+        g_hash_table_replace(rv, GINT_TO_POINTER(key), value);
+    } while (g_variant_iter_next(&i, "{is}", &key, &value));
 
-    g_hash_table_foreach_steal(priv->requests, _sf_secrets_manager_ptr_equal, gone_request);
+    return rv;
 }
 
 static gboolean _sf_secrets_manager_perform_interaction(SfSecretsManager *manager,
@@ -153,13 +182,46 @@ static gboolean _sf_secrets_manager_perform_interaction(SfSecretsManager *manage
     SfSecretsManagerPrivate *priv = sf_secrets_manager_get_instance_private(manager);
     gchar *id = g_uuid_string_random();
     gboolean *result;
-    SfSecretsInteractionRequest *request = g_object_new(SF_TYPE_SECRETS_INTERACTION_REQUEST,
+    SfSecretsInteractionRequest *request;
+    const gchar *secret_name;
+    const gchar *collection_name;
+    const gchar *plugin_name;
+    const gchar *application_id;
+    gint32 operation;
+    const gchar *authentication_plugin_name;
+    GVariant *prompt_text;
+    GHashTable *pt;
+    gint32 input_type;
+    gint32 echo_mode;
+
+    g_variant_get(args,
+            "(&s&s&s&s(i)&s@a{is}(i)(i))",
+            &secret_name,
+            &collection_name,
+            &plugin_name,
+            &application_id,
+            &operation,
+            &authentication_plugin_name,
+            &prompt_text,
+            &input_type,
+            &echo_mode);
+
+    pt = _sf_prompt_text_from_variant_or_null(prompt_text);
+    g_variant_unref(prompt_text);
+
+    request = g_object_new(SF_TYPE_SECRETS_INTERACTION_REQUEST,
             "id", id,
             "invocation", invocation,
+            "secret-name", secret_name,
+            "collection-name", collection_name,
+            "plugin-name", plugin_name,
+            "application-id", application_id,
+            "operation", operation,
+            "authentication-plugin-name", authentication_plugin_name,
+            "prompt-text", pt,
+            "input-type", input_type,
+            "echo-mode", echo_mode,
             NULL);
-
-    (void)args;
-
     g_object_add_weak_pointer(G_OBJECT(request), (gpointer *)&request);
     g_signal_emit(manager,
             _sf_secrets_manager_signals[SIGNAL_NEW_INTERACTION_REQUEST], 0,
@@ -167,12 +229,18 @@ static gboolean _sf_secrets_manager_perform_interaction(SfSecretsManager *manage
             &result);
     g_object_unref(request);
 
-    if ((request = g_object_ref(request))) {
+    if (request) {
+        request = g_object_ref(request);
         g_object_remove_weak_pointer(G_OBJECT(request), (gpointer *)&request);
         g_hash_table_insert(priv->requests, id, request);
         g_object_weak_ref(G_OBJECT(request), (GWeakNotify)_sf_secrets_manager_remove_request, manager);
         g_object_unref(request);
+    } else {
+        g_free(id);
     }
+
+    if (pt)
+        g_hash_table_unref(pt);
 
     return TRUE;
 }
@@ -184,15 +252,51 @@ static gboolean _sf_secrets_manager_continue_interaction(SfSecretsManager *manag
 {
     SfSecretsManagerPrivate *priv = sf_secrets_manager_get_instance_private(manager);
     SfSecretsInteractionRequest *request = g_hash_table_lookup(priv->requests, request_id);
-
-    (void)request_params;
+    const gchar *secret_name;
+    const gchar *collection_name;
+    const gchar *plugin_name;
+    const gchar *application_id;
+    gint32 operation;
+    const gchar *authentication_plugin_name;
+    GVariant *prompt_text;
+    gint32 input_type;
+    gint32 echo_mode;
+    GHashTable *pt;
 
     if (!request)
         return FALSE;
 
-    g_object_set(request,
-            "invocation", invocation,
-            NULL);
+    g_variant_get(request_params,
+            "(&s&s&s&s(i)&s@a{is}(i)(i))",
+            &secret_name,
+            &collection_name,
+            &plugin_name,
+            &application_id,
+            &operation,
+            &authentication_plugin_name,
+            &prompt_text,
+            &input_type,
+            &echo_mode);
+
+    pt = _sf_prompt_text_from_variant_or_null(prompt_text);
+
+    g_object_freeze_notify(G_OBJECT(request));
+    _sf_secrets_interaction_request_set(request,
+            invocation,
+            secret_name,
+            collection_name,
+            plugin_name,
+            application_id,
+            operation,
+            authentication_plugin_name,
+            pt,
+            input_type,
+            echo_mode);
+    g_object_thaw_notify(G_OBJECT(request));
+
+    if (pt)
+        g_hash_table_unref(pt);
+
     g_signal_emit_by_name(request, "continue");
 
     return TRUE;
@@ -204,16 +308,24 @@ static gboolean _sf_secrets_manager_cancel_interaction(SfSecretsManager *manager
 {
     SfSecretsManagerPrivate *priv = sf_secrets_manager_get_instance_private(manager);
     SfSecretsInteractionRequest *request = g_hash_table_lookup(priv->requests, request_id);
+    SfSecretsResultCode result = SF_SECRETS_RESULT_CODE_SUCCEEDED;
+    SfSecretsError error = SF_SECRETS_ERROR_NO;
+    const gchar *message = "";
 
     if (!request)
         return FALSE;
 
-    g_hash_table_remove(priv->requests, request_id);
-    g_object_weak_unref(G_OBJECT(request), (GWeakNotify)_sf_secrets_manager_remove_request, manager);
-    g_object_set(request,
-            "invocation", invocation,
-            NULL);
+    g_object_add_weak_pointer(G_OBJECT(request), (gpointer *)&request);
     g_signal_emit_by_name(request, "cancel");
+
+    if (request) {
+        result = SF_SECRETS_RESULT_CODE_FAILED;
+        error = SF_SECRETS_ERROR_INTERACTION_VIEW_UNAVAILABLE;
+        message = "Cannot cancel ui request: view busy or no view registered";
+    }
+
+    g_dbus_method_invocation_return_value(invocation,
+            g_variant_new("((iis))", result, error, message));
 
     return TRUE;
 }
@@ -224,16 +336,24 @@ static gboolean _sf_secrets_manager_finish_interaction(SfSecretsManager *manager
 {
     SfSecretsManagerPrivate *priv = sf_secrets_manager_get_instance_private(manager);
     SfSecretsInteractionRequest *request = g_hash_table_lookup(priv->requests, request_id);
+    SfSecretsResultCode result = SF_SECRETS_RESULT_CODE_SUCCEEDED;
+    SfSecretsError error = SF_SECRETS_ERROR_NO;
+    const gchar *message = "";
 
     if (!request)
         return FALSE;
 
-    g_hash_table_remove(priv->requests, request_id);
-    g_object_weak_unref(G_OBJECT(request), (GWeakNotify)_sf_secrets_manager_remove_request, manager);
-    g_object_set(request,
-            "invocation", invocation,
-            NULL);
+    g_object_add_weak_pointer(G_OBJECT(request), (gpointer *)&request);
     g_signal_emit_by_name(request, "finish");
+
+    if (request) {
+        result = SF_SECRETS_RESULT_CODE_FAILED;
+        error = SF_SECRETS_ERROR_INTERACTION_VIEW_UNAVAILABLE;
+        message = "Cannot finish ui request: view busy or no view registered";
+    }
+
+    g_dbus_method_invocation_return_value(invocation,
+            g_variant_new("((iis))", result, error, message));
 
     return TRUE;
 }
@@ -274,8 +394,8 @@ static void _sf_secrets_manager_set_property(GObject *object, guint property_id,
                         g_direct_equal,
                         g_object_unref,
                         NULL);
-                priv->requests = g_hash_table_new(g_str_hash,
-                        g_str_equal);
+                priv->requests = g_hash_table_new_full(g_str_hash,
+                        g_str_equal, (GDestroyNotify)g_free, NULL);
                 priv->interaction_service_address = g_strdup_printf("unix:path=%s/interaction-bus-%u",
                         g_get_user_runtime_dir(),
                         (guint)getpid());
@@ -567,7 +687,7 @@ gboolean _sf_secrets_manager_check_reply(GVariant *response, GError **error, GVa
     result = g_variant_iter_next_value(iter);
     g_variant_get(result, "(ii&s)", &result_code, &error_code, &error_msg);
 
-    if (result_code != 0) {
+    if (result_code != SF_SECRETS_RESULT_CODE_SUCCEEDED) {
         g_set_error(error,
                 SF_SECRETS_ERROR,
                 error_code, "%s", error_msg);

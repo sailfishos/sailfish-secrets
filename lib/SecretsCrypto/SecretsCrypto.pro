@@ -21,6 +21,7 @@ PUBLIC_HEADERS += \
 
 HEADERS += $$PUBLIC_HEADERS \
     $$PWD/sf-secrets-manager-private.h \
+    $$PWD/sf-secrets-interaction-request-private.h \
     \
     $$PWD/sf-crypto-manager-private.h \
     \
