@@ -322,6 +322,8 @@ static gboolean _sf_secrets_manager_cancel_interaction(SfSecretsManager *manager
         result = SF_SECRETS_RESULT_CODE_FAILED;
         error = SF_SECRETS_ERROR_INTERACTION_VIEW_UNAVAILABLE;
         message = "Cannot cancel ui request: view busy or no view registered";
+
+        g_object_remove_weak_pointer(G_OBJECT(request), (gpointer *)&request);
     }
 
     g_dbus_method_invocation_return_value(invocation,
