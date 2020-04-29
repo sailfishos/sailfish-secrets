@@ -229,6 +229,7 @@ static gboolean _sf_secrets_manager_perform_interaction(SfSecretsManager *manage
             &result);
     g_object_unref(request);
 
+    /* If our weak pointer is still alive, a signal handler grabbed a reference */
     if (request) {
         request = g_object_ref(request);
         g_object_remove_weak_pointer(G_OBJECT(request), (gpointer *)&request);
@@ -322,6 +323,8 @@ static gboolean _sf_secrets_manager_cancel_interaction(SfSecretsManager *manager
         result = SF_SECRETS_RESULT_CODE_FAILED;
         error = SF_SECRETS_ERROR_INTERACTION_VIEW_UNAVAILABLE;
         message = "Cannot cancel ui request: view busy or no view registered";
+
+        g_object_remove_weak_pointer(G_OBJECT(request), (gpointer *)&request);
     }
 
     g_dbus_method_invocation_return_value(invocation,
@@ -394,8 +397,7 @@ static void _sf_secrets_manager_set_property(GObject *object, guint property_id,
                         g_direct_equal,
                         g_object_unref,
                         NULL);
-                priv->requests = g_hash_table_new_full(g_str_hash,
-                        g_str_equal, (GDestroyNotify)g_free, NULL);
+                priv->requests = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
                 priv->interaction_service_address = g_strdup_printf("unix:path=%s/interaction-bus-%u",
                         g_get_user_runtime_dir(),
                         (guint)getpid());
