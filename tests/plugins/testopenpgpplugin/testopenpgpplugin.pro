@@ -19,5 +19,5 @@ SOURCES += $$PWD/../../../plugins/gnupgplugin/openpgpplugin/plugin.cpp \
            $$PWD/../../../plugins/gnupgplugin/gpgmebase.cpp \
            $$PWD/../../../plugins/gnupgplugin/gpgmestorage.cpp
 
-target.path=/usr/lib/Sailfish/Crypto/
+target.path=$$[QT_INSTALL_LIBS]/Sailfish/Crypto/
 INSTALLS += target

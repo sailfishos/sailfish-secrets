@@ -25,5 +25,5 @@ SOURCES += \
     $$PWD/encryptedstorageplugin.cpp \
     $$PWD/cryptoplugin.cpp
 
-target.path=/usr/lib/Sailfish/Secrets/
+target.path=$$[QT_INSTALL_LIBS]/Sailfish/Secrets/
 #INSTALLS += target # this is just an example, don't install / package it by default.

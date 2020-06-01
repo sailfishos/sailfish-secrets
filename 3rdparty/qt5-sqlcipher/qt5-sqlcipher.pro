@@ -21,5 +21,5 @@ OTHER_FILES += \
     $$PWD/LICENSE.LGPLv21 \
     $$PWD/README.md
 
-target.path=/usr/lib/qt5/plugins/sqldrivers
+target.path=$$[QT_INSTALL_LIBS]/qt5/plugins/sqldrivers
 INSTALLS += target

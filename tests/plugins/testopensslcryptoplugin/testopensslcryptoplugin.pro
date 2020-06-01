@@ -21,5 +21,5 @@ SOURCES += \
     $$PWD/../../../plugins/opensslcryptoplugin/evp/evp.cpp \
     $$PWD/../../../plugins/opensslcryptoplugin/opensslcryptoplugin.cpp
 
-target.path=/usr/lib/Sailfish/Crypto/
+target.path=$$[QT_INSTALL_LIBS]/Sailfish/Crypto/
 INSTALLS += target

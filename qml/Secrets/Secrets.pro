@@ -25,8 +25,8 @@ OTHER_FILES += \
 
 RESOURCES += $$PWD/resources.qrc
 
-target.path = /usr/lib/qt5/qml/Sailfish/Secrets/
-qmlfiles.path = /usr/lib/qt5/qml/Sailfish/Secrets/
+target.path = $$[QT_INSTALL_LIBS]/qt5/qml/Sailfish/Secrets/
+qmlfiles.path = $$[QT_INSTALL_LIBS]/qt5/qml/Sailfish/Secrets/
 qmlfiles.files += InteractionView.qml qmldir
 
 INSTALLS += target qmlfiles

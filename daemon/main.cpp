@@ -25,8 +25,8 @@ Q_LOGGING_CATEGORY(lcSailfishCryptoDaemonDBus, "org.sailfishos.crypto.daemon.dbu
 
 Q_DECL_EXPORT int main(int argc, char *argv[])
 {
-    const QString secretsPluginDir = QLatin1String("/usr/lib/Sailfish/Secrets/");
-    const QString cryptoPluginDir = QLatin1String("/usr/lib/Sailfish/Crypto/");
+    const QString secretsPluginDir = QLatin1String(PLUGIN_DIRECTORY_SECRETS);
+    const QString cryptoPluginDir = QLatin1String(PLUGIN_DIRECTORY_CRYPTO);
     QCoreApplication::addLibraryPath(secretsPluginDir);
     QCoreApplication::addLibraryPath(cryptoPluginDir);
     QCoreApplication app(argc, argv);

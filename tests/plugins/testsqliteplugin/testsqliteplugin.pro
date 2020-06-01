@@ -16,5 +16,5 @@ HEADERS += \
 SOURCES += \
     $$PWD/../../../plugins/sqliteplugin/plugin.cpp
 
-target.path=/usr/lib/Sailfish/Secrets/
+target.path=$$[QT_INSTALL_LIBS]/Sailfish/Secrets/
 INSTALLS += target

@@ -3,6 +3,8 @@ TARGET = authentication-client
 
 include($$PWD/../../../lib/libsailfishsecrets.pri)
 
+DEFINES += TEST_AUTHENTICATION_LIBRARY=\"\\\"$$[QT_INSTALL_LIBS]/Sailfish/Secrets/libsailfishsecrets-testpasswordagentauth.so\\\"\"
+
 CONFIG += link_pkgconfig
 PKGCONFIG += qt5-boostable
 

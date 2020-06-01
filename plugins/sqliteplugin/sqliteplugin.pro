@@ -10,5 +10,5 @@ include($$PWD/../../database/database.pri)
 HEADERS += $$PWD/sqlitedatabase_p.h $$PWD/plugin.h
 SOURCES += $$PWD/plugin.cpp
 
-target.path=/usr/lib/Sailfish/Secrets/
+target.path=$$[QT_INSTALL_LIBS]/Sailfish/Secrets/
 INSTALLS += target
