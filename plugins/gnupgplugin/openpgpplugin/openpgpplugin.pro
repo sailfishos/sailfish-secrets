@@ -12,5 +12,5 @@ INCLUDEPATH += ..
 HEADERS += $$PWD/plugin.h $$PWD/../gpgmebase.h $$PWD/../gpgmestorage.h $$PWD/../gpgme_p.h
 SOURCES += $$PWD/plugin.cpp $$PWD/../gpgmebase.cpp $$PWD/../gpgmestorage.cpp
 
-target.path = /usr/lib/Sailfish/Crypto/
+target.path = $$[QT_INSTALL_LIBS]/Sailfish/Crypto/
 INSTALLS += target

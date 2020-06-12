@@ -17,8 +17,8 @@ SOURCES += \
 
 OTHER_FILES += $$PWD/qmldir
 
-target.path = /usr/lib/qt5/qml/Sailfish/Crypto/
-qmlfiles.path = /usr/lib/qt5/qml/Sailfish/Crypto/
+target.path = $$[QT_INSTALL_LIBS]/qt5/qml/Sailfish/Crypto/
+qmlfiles.path = $$[QT_INSTALL_LIBS]/qt5/qml/Sailfish/Crypto/
 qmlfiles.files += qmldir
 
 INSTALLS += target qmlfiles

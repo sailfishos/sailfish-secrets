@@ -36,5 +36,5 @@ SOURCES += \
 OTHER_FILES += \
     $$PWD/../../plugins/opensslcryptoplugin/cryptoplugin_common.cpp
 
-target.path=/usr/lib/Sailfish/Secrets/
+target.path=$$[QT_INSTALL_LIBS]/Sailfish/Secrets/
 INSTALLS += target

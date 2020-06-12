@@ -14,5 +14,5 @@ SOURCES += \
 
 OTHER_FILES += $$PWD/rpm/examplecryptostorageplugin.spec
 
-target.path=/usr/lib/Sailfish/Secrets/
+target.path=$$[QT_INSTALL_LIBS]/Sailfish/Secrets/
 INSTALLS += target

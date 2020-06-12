@@ -1,7 +1,7 @@
 TEMPLATE = lib
 TARGET = sailfishsecretscrypto
 TARGET = $$qtLibraryTarget($$TARGET)
-target.path = /usr/lib
+target.path = $$[QT_INSTALL_LIBS]
 
 CONFIG -= qt
 CONFIG += create_pc create_pc create_prl no_install_prl link_pkgconfig

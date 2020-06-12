@@ -13,5 +13,5 @@ SOURCES += \
 
 OTHER_FILES += $$PWD/rpm/examplecryptoplugin.spec
 
-target.path=/usr/lib/Sailfish/Crypto/
+target.path=$$[QT_INSTALL_LIBS]/Sailfish/Crypto/
 INSTALLS += target

@@ -13,5 +13,5 @@ DEPENDPATH += $$PWD/evp/
 HEADERS += $$PWD/evp/evp_p.h $$PWD/evp/evp_helpers_p.h $$PWD/opensslcryptoplugin.h
 SOURCES += $$PWD/evp/evp.cpp $$PWD/opensslcryptoplugin.cpp
 
-target.path=/usr/lib/Sailfish/Crypto/
+target.path=$$[QT_INSTALL_LIBS]/Sailfish/Crypto/
 INSTALLS += target

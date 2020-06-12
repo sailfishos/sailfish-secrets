@@ -4,6 +4,10 @@ QT = core sql dbus concurrent
 CONFIG += link_pkgconfig hide_symbols
 PKGCONFIG += dbus-1 Qt5Concurrent Qt5DBus Qt5Core Qt5Sql systemsettings
 
+DEFINES += \
+    PLUGIN_DIRECTORY_SECRETS=\"\\\"$$[QT_INSTALL_LIBS]/Sailfish/Secrets\\\"\" \
+    PLUGIN_DIRECTORY_CRYPTO=\"\\\"$$[QT_INSTALL_LIBS]/Sailfish/Crypto\\\"\"
+
 packagesExist(qt5-boostable) {
     DEFINES += HAS_BOOSTER
     PKGCONFIG += qt5-boostable

@@ -1,11 +1,9 @@
 %global secretsdaemon sailfishsecretsdaemon
-%global user_unitdir %{_libdir}/systemd/user
 
 Name:       sailfish-secrets
 Summary:    Sailfish OS framework for secrets storage and cryptographic operations
-Version:    0.2.18
+Version:    0.2.19
 Release:    1
-Group:      System/Libraries
 License:    BSD-3-Clause
 URL:        https://github.com/sailfishos/sailfish-secrets
 Source0:    %{name}-%{version}.tar.bz2
@@ -15,7 +13,6 @@ Source0:    %{name}-%{version}.tar.bz2
 
 %package -n libsailfishsecrets
 Summary:    Sailfish OS secrets storage system functionality client library
-Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Sql)
 BuildRequires:  pkgconfig(Qt5DBus)
@@ -25,7 +22,6 @@ BuildRequires:  pkgconfig(Qt5DBus)
 
 %package -n libsailfishsecrets-devel
 Summary:    Development package for Sailfish OS Secrets Library
-Group:      System/Libraries
 Requires:   libsailfishsecrets = %{version}-%{release}
 
 %description -n libsailfishsecrets-devel
@@ -42,7 +38,6 @@ BuildRequires:  qt5-tools
 
 %package -n libsailfishsecrets-tests
 Summary:    Unit tests for the Sailfish OS Secrets Library
-Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5QuickTest)
 BuildRequires:  pkgconfig(libcrypto)
 BuildRequires:  pkgconfig(nemodevicelock)
@@ -57,13 +52,11 @@ Requires:   nemo-qml-plugin-devicelock
 
 %package   ts-devel
 Summary:   Translation source for Sailfish Secrets
-Group:     System/Libraries
 
 %description ts-devel
 
 %package -n libsailfishsecretspluginapi
 Summary:    Sailfish OS Secrets Library plugin abstract base classes
-Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
 Requires:   libsailfishsecrets = %{version}-%{release}
@@ -73,7 +66,6 @@ Requires:   libsailfishsecrets = %{version}-%{release}
 
 %package -n libsailfishsecretspluginapi-devel
 Summary:    Sailfish OS Secrets Library plugin abstract base class development headers
-Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
 Requires:   libsailfishsecrets = %{version}-%{release}
@@ -84,7 +76,6 @@ Requires:   libsailfishsecretspluginapi = %{version}-%{release}
 
 %package -n libsailfishsecretsplugin
 Summary:    QML plugin providing types for applications using libsailfishsecrets
-Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5Quick)
 BuildRequires:  pkgconfig(Qt5Gui)
 Requires:   libsailfishsecrets = %{version}-%{release}
@@ -94,7 +85,6 @@ Requires:   libsailfishsecrets = %{version}-%{release}
 
 %package -n libsailfishcrypto
 Summary:    Sailfish OS cryptographic operations system functionality client library
-Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Sql)
 BuildRequires:  pkgconfig(Qt5DBus)
@@ -104,7 +94,6 @@ BuildRequires:  pkgconfig(Qt5DBus)
 
 %package -n libsailfishcrypto-devel
 Summary:    Development package for Sailfish OS Crypto Library
-Group:      System/Libraries
 Requires:   libsailfishcrypto = %{version}-%{release}
 
 %description -n libsailfishcrypto-devel
@@ -121,7 +110,6 @@ BuildRequires:  qt5-tools
 
 %package -n libsailfishcrypto-tests
 Summary:    Unit tests for the libsailfishcrypto library
-Group:      System/Libraries
 BuildRequires: pkgconfig(Qt5QuickTest)
 BuildRequires: pkgconfig(libcrypto)
 Requires:   libsailfishcrypto = %{version}-%{release}
@@ -131,7 +119,6 @@ Requires:   libsailfishcrypto = %{version}-%{release}
 
 %package -n libsailfishcryptopluginapi
 Summary:    Sailfish OS Crypto Library plugin abstract base classes
-Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
 Requires:   libsailfishsecrets = %{version}-%{release}
@@ -142,7 +129,6 @@ Requires:   libsailfishsecretspluginapi = %{version}-%{release}
 
 %package -n libsailfishcryptopluginapi-devel
 Summary:    Sailfish OS Crypto Library plugin development headers
-Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
 Requires:   libsailfishsecrets = %{version}-%{release}
@@ -154,7 +140,6 @@ Requires:   libsailfishsecretspluginapi-devel = %{version}-%{release}
 
 %package -n libsailfishcryptoplugin
 Summary:    QML plugin providing types for applications using libsailfishcrypto
-Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5Qml)
 Requires:   libsailfishcrypto = %{version}-%{release}
 
@@ -163,7 +148,6 @@ Requires:   libsailfishcrypto = %{version}-%{release}
 
 %package -n libsailfishsecretscrypto
 Summary:    Sailfish OS Secrets And Crypto C API library
-Group:      System/Libraries
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(gio-2.0)
 BuildRequires:  pkgconfig(gio-unix-2.0)
@@ -176,7 +160,6 @@ Requires:  dbus-glib
 
 %package -n libsailfishsecretscrypto-devel
 Summary:    Development package for Sailfish OS Secrets And Crypto C API library
-Group:      System/Libraries
 Requires:   libsailfishsecretscrypto = %{version}-%{release}
 
 %description -n libsailfishsecretscrypto-devel
@@ -185,7 +168,6 @@ Requires:   libsailfishsecretscrypto = %{version}-%{release}
 
 %package -n libsailfishsecretscrypto-tests
 Summary:    Unit tests for the libsailfishsecretscrypto library.
-Group:      System/Libraries
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(gio-2.0)
 Requires:   libsailfishsecretscrypto = %{version}-%{release}
@@ -195,7 +177,6 @@ Requires:   libsailfishsecretscrypto = %{version}-%{release}
 
 %package -n %{secretsdaemon}
 Summary:    Sailfish OS secrets daemon
-Group:      Applications/System
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(Qt5Concurrent)
@@ -205,6 +186,7 @@ BuildRequires:  pkgconfig(qt5-boostable)
 BuildRequires:  pkgconfig(systemsettings)
 BuildRequires:  qt5-qttools-linguist
 BuildRequires:  qt5-plugin-sqldriver-sqlite
+BuildRequires:  systemd
 Requires:         libsailfishsecrets = %{version}-%{release}
 Requires:         systemd
 Requires(preun):  systemd
@@ -221,7 +203,6 @@ which exposes functionality provided by libsailfishsecrets and libsailfishcrypto
 
 %package -n %{secretsdaemon}-secretsplugins-default
 Summary:    Sailfish OS secrets daemon plugins
-Group:      Applications/System
 Provides: %{secretsdaemon}-secretsplugins
 Provides: %{secretsdaemon}-secretsplugin-ssl
 Provides: %{secretsdaemon}-secretsplugin-sql
@@ -240,7 +221,6 @@ Requires:   %{secretsdaemon}-secretsplugin-common = %{version}-%{release}
 
 %package -n %{secretsdaemon}-secretsplugin-common
 Summary:    Sailfish OS secrets plugins that are mandatory for all platforms
-Group:      Applications/System
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(nemodevicelock)
@@ -256,7 +236,6 @@ Requires:  polkit >= 0.105+git3
 
 %package -n %{secretsdaemon}-cryptoplugins-default
 Summary:    Sailfish OS crypto daemon plugins
-Group:      Applications/System
 Provides: %{secretsdaemon}-cryptoplugins
 Provides: %{secretsdaemon}-cryptoplugin-ssl
 BuildRequires:  pkgconfig(Qt5Core)
@@ -273,7 +252,6 @@ Requires:   libsailfishcryptopluginapi = %{version}-%{release}
 
 %package -n %{secretsdaemon}-cryptoplugins-gnupg
 Summary:    Sailfish OS crypto daemon plugins for GnuPG
-Group:      Applications/System
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(libcrypto)
 BuildRequires:  pkgconfig(libgpg-error)
@@ -291,7 +269,6 @@ Requires:   %{secretsdaemon}-secretsplugin-common
 
 %package -n sailfishsecrets-tool
 Summary:    Command line tool to interact with the Sailfish OS Secrets and Crypto service
-Group:      Applications/System
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
 Requires:   libsailfishcrypto = %{version}-%{release}
@@ -303,7 +280,6 @@ Requires:   libsailfishsecrets = %{version}-%{release}
 
 %package -n qt5-plugin-sqldriver-sqlcipher
 Summary:    QtSql driver plugin using SQLCipher
-Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5Sql)
 BuildRequires:  pkgconfig(sqlcipher)
 
@@ -324,17 +300,17 @@ rm -rf %{buildroot}
 
 mkdir -p %{buildroot}/%{_docdir}/Sailfish/Secrets/
 mkdir -p %{buildroot}/%{_docdir}/Sailfish/Crypto/
-mkdir -p %{buildroot}/%{user_unitdir}/user-session.target.wants/
+mkdir -p %{buildroot}%{_userunitdir}/user-session.target.wants/
 mkdir -p %{buildroot}/%{_datadir}/dbus-1/services/
 mkdir -p %{buildroot}/%{_datadir}/mapplauncherd/privileges.d/
 
 cp -R lib/Secrets/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Secrets/
 cp -R lib/Crypto/doc/html/* %{buildroot}/%{_docdir}/Sailfish/Crypto/
-install -m 0644 daemon/sailfish-secretsd.service %{buildroot}/%{user_unitdir}
+install -m 0644 daemon/sailfish-secretsd.service %{buildroot}%{_userunitdir}
 install -m 0644 daemon/sailfish-secretsd.privileges %{buildroot}/%{_datadir}/mapplauncherd/privileges.d/
 install -m 0644 daemon/org.sailfishos.secrets.daemon.discovery.service %{buildroot}/%{_datadir}/dbus-1/services/
 
-ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.target.wants/sailfish-secretsd.service
+ln -s ../sailfish-secretsd.service %{buildroot}%{_userunitdir}/user-session.target.wants/sailfish-secretsd.service
 
 %files -n libsailfishsecrets
 %defattr(-,root,root,-)
@@ -450,8 +426,8 @@ ln -s ../sailfish-secretsd.service %{buildroot}/%{user_unitdir}/user-session.tar
 %{_bindir}/sailfishsecretsd
 %{_datadir}/translations/sailfish-secrets_eng_en.qm
 %{_datadir}/mapplauncherd/privileges.d/sailfish-secretsd.privileges
-%{user_unitdir}/sailfish-secretsd.service
-%{user_unitdir}/user-session.target.wants/sailfish-secretsd.service
+%{_userunitdir}/sailfish-secretsd.service
+%{_userunitdir}/user-session.target.wants/sailfish-secretsd.service
 %{_datadir}/dbus-1/services/org.sailfishos.secrets.daemon.discovery.service
 
 %files -n %{secretsdaemon}-secretsplugins-default

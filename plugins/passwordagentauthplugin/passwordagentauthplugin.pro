@@ -14,7 +14,7 @@ OTHER_FILES += org.sailfishos.secrets.policy
 polkitactions.files = org.sailfishos.secrets.policy
 polkitactions.path = /usr/share/polkit-1/actions
 
-target.path=/usr/lib/Sailfish/Secrets/
+target.path=$$[QT_INSTALL_LIBS]/Sailfish/Secrets/
 
 INSTALLS += \
     polkitactions \
