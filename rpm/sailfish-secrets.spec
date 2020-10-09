@@ -44,7 +44,6 @@ BuildRequires:  pkgconfig(nemodevicelock)
 Requires:   qt5-qtdeclarative-import-qttest
 Requires:   qt5-qtdeclarative-devel-tools
 Requires:   libsailfishsecrets = %{version}-%{release}
-Requires:   openssl
 Requires:   nemo-qml-plugin-devicelock
 
 %description -n libsailfishsecrets-tests
@@ -151,7 +150,6 @@ Summary:    Sailfish OS Secrets And Crypto C API library
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(gio-2.0)
 BuildRequires:  pkgconfig(gio-unix-2.0)
-Requires:  glib2
 
 %description -n libsailfishsecretscrypto
 %{summary}.
