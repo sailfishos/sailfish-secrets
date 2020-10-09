@@ -6,7 +6,7 @@ target.path = $$[QT_INSTALL_LIBS]
 CONFIG -= qt
 CONFIG += create_pc create_pc create_prl no_install_prl link_pkgconfig
 CONFIG += debug
-PKGCONFIG += glib-2.0 gio-2.0
+PKGCONFIG += glib-2.0 gio-2.0 gio-unix-2.0
 
 PUBLIC_HEADERS += \
     $$PWD/sf-secrets-manager.h \
