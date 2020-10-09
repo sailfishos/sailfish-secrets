@@ -152,7 +152,6 @@ BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(gio-2.0)
 BuildRequires:  pkgconfig(gio-unix-2.0)
 Requires:  glib2
-Requires:  dbus-glib
 
 %description -n libsailfishsecretscrypto
 %{summary}.
