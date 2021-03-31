@@ -1,0 +1,7 @@
+sailfishcryptoqmlexample
+
+This is a simple application which utilises the Sailfish OS
+Secrets and Crypto framework from QML.  Note that the QML
+API for Sailfish OS Secrets and Crypto Framework is considered
+experimental / work in progress, and is subject to change.
+

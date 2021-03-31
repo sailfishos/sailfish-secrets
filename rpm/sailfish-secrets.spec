@@ -337,6 +337,7 @@ ln -s ../sailfish-secretsd.service %{buildroot}%{_userunitdir}/user-session.targ
 %files -n libsailfishcrypto-tests
 %defattr(-,root,root,-)
 %{_bindir}/sailfishcryptoexample
+%{_bindir}/sailfishcryptoqmlexample
 /opt/tests/Sailfish/Crypto/tst_crypto
 /opt/tests/Sailfish/Crypto/tst_cryptorequests
 /opt/tests/Sailfish/Crypto/tst_cryptosecrets

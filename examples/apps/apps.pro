@@ -1,2 +1,2 @@
 TEMPLATE = subdirs
-SUBDIRS += cryptoexample
+SUBDIRS += cryptoexample qmlexample

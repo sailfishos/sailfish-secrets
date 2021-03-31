@@ -70,10 +70,21 @@ public:
     Q_INVOKABLE Sailfish::Crypto::Key constructKey(const QString &name,
                                  const QString &collectionName,
                                  const QString &storagePluginName) const;
+    Q_INVOKABLE Sailfish::Crypto::Key constructKeyTemplate(
+            Sailfish::Crypto::CryptoManager::Algorithm algorithm = Sailfish::Crypto::CryptoManager::AlgorithmAes,
+            Sailfish::Crypto::CryptoManager::Operations operations = (Sailfish::Crypto::CryptoManager::OperationEncrypt
+                                                                     |Sailfish::Crypto::CryptoManager::OperationDecrypt),
+            Sailfish::Crypto::Key::Origin origin = Sailfish::Crypto::Key::OriginDevice) const;
     Q_INVOKABLE Sailfish::Crypto::Key::Identifier
         constructIdentifier(const QString &name,
                             const QString &collectionName,
                             const QString &storagePluginName) const;
+
+    Q_INVOKABLE QVariant constructPbkdf2Params(const QByteArray &data,
+                                               const QByteArray &salt,
+                                               int iterations = 16384,
+                                               int outputKeySize = 256) const;
+
     Q_INVOKABLE QVariant constructRsaKeygenParams() const;
     Q_INVOKABLE QVariant constructRsaKeygenParams(const QVariantMap &args) const;
 
