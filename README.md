@@ -305,7 +305,7 @@ Community contributions are very welcome, especially:
   - plugin implementation contributions (e.g. secure-peripheral device plugins)
   - daemon implementation improvements (e.g. request data marshalling structures)
 
-Please get in touch via IRC (#jollamobile@freenode) or email if you
+Please get in touch via IRC (#sailfishos@oftc.net) or email if you
 are willing to help out :-)
 
 Huge thanks in particular to Damien Caliste who has contributed a variety
