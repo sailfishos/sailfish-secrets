@@ -344,6 +344,8 @@ ln -s ../sailfish-secretsd.service %{buildroot}%{_userunitdir}/user-session.targ
 /opt/tests/Sailfish/Crypto/tst_evp
 /opt/tests/Sailfish/Crypto/tst_qml_signing
 /opt/tests/Sailfish/Crypto/tst_qml_signing.qml
+/opt/tests/Sailfish/Crypto/tst_qml_rsaencryptdecrypt
+/opt/tests/Sailfish/Crypto/tst_qml_rsaencryptdecrypt.qml
 /opt/tests/Sailfish/Crypto/tst_gnupgplugin
 /opt/tests/Sailfish/Crypto/matrix/run-matrix-tests.sh
 /opt/tests/Sailfish/Crypto/matrix/0*sh

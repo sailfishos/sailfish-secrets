@@ -96,6 +96,11 @@ public:
 
     Q_INVOKABLE QVariant constructDhKeygenParams() const;
     Q_INVOKABLE QVariant constructDhKeygenParams(const QVariantMap &args) const;
+
+    // QML API - allow clients to use QByteArray data in a meaningful way, not required in Qt >= 5.8
+    Q_INVOKABLE QString toBase64(const QByteArray &data) const;
+    Q_INVOKABLE QByteArray fromBase64(const QString &b64) const;
+    Q_INVOKABLE QString stringFromBytes(const QByteArray &stringData) const; // must be valid UTF-8 data!
 };
 
 } // Plugin

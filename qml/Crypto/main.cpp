@@ -207,3 +207,18 @@ QVariant Sailfish::Crypto::Plugin::CryptoManager::constructDhKeygenParams(const 
     params.setCustomParameters(customParams);
     return QVariant::fromValue<KeyPairGenerationParameters>(params);
 }
+
+QString Sailfish::Crypto::Plugin::CryptoManager::toBase64(const QByteArray &data) const
+{
+    return QString::fromUtf8(data.toBase64(QByteArray::KeepTrailingEquals | QByteArray::Base64UrlEncoding));
+}
+
+QByteArray Sailfish::Crypto::Plugin::CryptoManager::fromBase64(const QString &b64) const
+{
+    return b64.toUtf8().fromBase64(b64.toUtf8(), QByteArray::KeepTrailingEquals | QByteArray::Base64UrlEncoding);
+}
+
+QString Sailfish::Crypto::Plugin::CryptoManager::stringFromBytes(const QByteArray &stringData) const
+{
+    return QString::fromUtf8(stringData);
+}
