@@ -251,7 +251,7 @@ Requires:   libsailfishcryptopluginapi = %{version}-%{release}
 Summary:    Sailfish OS crypto daemon plugins for GnuPG
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(libcrypto)
-BuildRequires:  pkgconfig(libgpg-error)
+BuildRequires:  pkgconfig(gpg-error)
 BuildRequires:  pkgconfig(mlite5)
 BuildRequires:  gpgme-devel
 BuildRequires:  libassuan-devel
