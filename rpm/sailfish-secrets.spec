@@ -2,7 +2,7 @@
 
 Name:       sailfish-secrets
 Summary:    Sailfish OS framework for secrets storage and cryptographic operations
-Version:    0.2.19
+Version:    0.2.21
 Release:    1
 License:    BSD-3-Clause
 URL:        https://github.com/sailfishos/sailfish-secrets
@@ -44,7 +44,6 @@ BuildRequires:  pkgconfig(nemodevicelock)
 Requires:   qt5-qtdeclarative-import-qttest
 Requires:   qt5-qtdeclarative-devel-tools
 Requires:   libsailfishsecrets = %{version}-%{release}
-Requires:   openssl
 Requires:   nemo-qml-plugin-devicelock
 
 %description -n libsailfishsecrets-tests
@@ -151,8 +150,6 @@ Summary:    Sailfish OS Secrets And Crypto C API library
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(gio-2.0)
 BuildRequires:  pkgconfig(gio-unix-2.0)
-Requires:  glib2
-Requires:  dbus-glib
 
 %description -n libsailfishsecretscrypto
 %{summary}.
@@ -254,7 +251,7 @@ Requires:   libsailfishcryptopluginapi = %{version}-%{release}
 Summary:    Sailfish OS crypto daemon plugins for GnuPG
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(libcrypto)
-BuildRequires:  pkgconfig(libgpg-error)
+BuildRequires:  pkgconfig(gpg-error)
 BuildRequires:  pkgconfig(mlite5)
 BuildRequires:  gpgme-devel
 BuildRequires:  libassuan-devel
