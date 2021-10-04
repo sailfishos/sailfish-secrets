@@ -2,7 +2,7 @@
 
 Name:       sailfish-secrets
 Summary:    Sailfish OS framework for secrets storage and cryptographic operations
-Version:    0.2.21
+Version:    0.2.22
 Release:    1
 License:    BSD-3-Clause
 URL:        https://github.com/sailfishos/sailfish-secrets
