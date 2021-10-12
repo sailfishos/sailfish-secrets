@@ -181,14 +181,12 @@ BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(libsystemd)
 BuildRequires:  pkgconfig(qt5-boostable)
 BuildRequires:  pkgconfig(systemsettings)
+BuildRequires:  pkgconfig(systemd)
 BuildRequires:  qt5-qttools-linguist
 BuildRequires:  qt5-plugin-sqldriver-sqlite
-BuildRequires:  systemd
 Requires:         libsailfishsecrets = %{version}-%{release}
 Requires:         systemd
-Requires(preun):  systemd
-Requires(postun): systemd
-Requires(post):   systemd
+%{?systemd_requires}
 Requires:         mapplauncherd
 Requires:         libsailfishcrypto = %{version}-%{release}
 Requires:         qt5-plugin-sqldriver-sqlcipher
