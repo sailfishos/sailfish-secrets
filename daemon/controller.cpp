@@ -29,13 +29,13 @@ namespace {
             return QString();
         }
 
-        QDir dir(path);
-        if (!dir.mkpath(dir.absolutePath())) {
+        QDir dir(QDir(path).absoluteFilePath(QString::fromUtf8("sailfishsecretsd")));
+        if (!dir.mkpath(dir.path())) {
             qCWarning(lcSailfishSecretsDaemonDBus) << "Could not create socket file directory";
             return QString();
         }
 
-        const QString socketFile = QString::fromUtf8("%1/%2").arg(dir.absolutePath(), QLatin1String("sailfishsecretsd-p2pSocket"));
+        const QString socketFile = dir.absoluteFilePath(QLatin1String("p2pSocket"));
         const QString address = QString::fromUtf8("unix:path=%1").arg(socketFile);
 
         return address;

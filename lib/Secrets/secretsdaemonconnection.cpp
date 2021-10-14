@@ -42,7 +42,7 @@ bool Sailfish::Secrets::SecretsDaemonConnectionPrivate::connect()
     }
 
     // Step one: query the secret daemon's "discovery" SessionBusObject for the PeerToPeer address.
-    QString address(QStringLiteral("unix:path=") + QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation) + QStringLiteral("/sailfishsecretsd-p2pSocket"));
+    QString address(QStringLiteral("unix:path=") + QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation) + QStringLiteral("/sailfishsecretsd/p2pSocket"));
     QDBusInterface iface("org.sailfishos.secrets.daemon.discovery",
                          "/Sailfish/Secrets/Discovery",
                          "org.sailfishos.secrets.daemon.discovery",
