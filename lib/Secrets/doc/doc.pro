@@ -1,10 +1,10 @@
 TEMPLATE = aux
 
-CONFIG += mer-qdoc-template
-MER_QDOC.project = sailfish-secrets
-MER_QDOC.config = sailfish-secrets.qdocconf
-MER_QDOC.style = offline
-MER_QDOC.path = /usr/share/doc/Sailfish/Secrets/
+CONFIG += sailfish-qdoc-template
+SAILFISH_QDOC.project = sailfish-secrets
+SAILFISH_QDOC.config = sailfish-secrets.qdocconf
+SAILFISH_QDOC.style = offline
+SAILFISH_QDOC.path = /usr/share/doc/Sailfish/Secrets/
 
 OTHER_FILES += \
     $$PWD/sailfish-secrets.qdocconf \

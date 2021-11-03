@@ -1,10 +1,10 @@
 TEMPLATE = aux
 
-CONFIG += mer-qdoc-template
-MER_QDOC.project = sailfish-crypto
-MER_QDOC.config = sailfish-crypto.qdocconf
-MER_QDOC.style = offline
-MER_QDOC.path = /usr/share/doc/Sailfish/Crypto/
+CONFIG += sailfish-qdoc-template
+SAILFISH_QDOC.project = sailfish-crypto
+SAILFISH_QDOC.config = sailfish-crypto.qdocconf
+SAILFISH_QDOC.style = offline
+SAILFISH_QDOC.path = /usr/share/doc/Sailfish/Crypto/
 
 OTHER_FILES += \
     $$PWD/sailfish-crypto.qdocconf \
