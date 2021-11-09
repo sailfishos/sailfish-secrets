@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2017 Jolla Ltd.
+ * Copyright (C) 2017-2019 Jolla Ltd.
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  * Contact: Chris Adams <chris.adams@jollamobile.com>
  * All rights reserved.
  * BSD 3-Clause License, see LICENSE.
@@ -2659,21 +2660,23 @@ void Daemon::ApiImpl::SecretsRequestQueue::dealWithDataCorruption() const
     Notification n;
 
     n.setCategory(QStringLiteral("x-sailfish.secrets.error"));
-    n.setRemoteDBusCallServiceName(QStringLiteral("com.jolla.settings"));
-    n.setRemoteDBusCallObjectPath(QStringLiteral("/com/jolla/settings/ui"));
-    n.setRemoteDBusCallInterface(QStringLiteral("com.jolla.settings.ui"));
-    n.setRemoteDBusCallMethodName(QStringLiteral("showPage"));
-    n.setRemoteDBusCallArguments(QVariantList() << QStringLiteral("system_settings/security/keys"));
+    n.setRemoteAction(n.remoteAction("default",
+                                     //: Show the 'Keys' settings page
+                                     //% "Show settings"
+                                     qtTrId("sailfish_secrets-la-show_settings"),
+                                     QStringLiteral("com.jolla.settings"),
+                                     QStringLiteral("/com/jolla/settings/ui"),
+                                     QStringLiteral("com.jolla.settings.ui"),
+                                     QStringLiteral("showPage"),
+                                     QVariantList() << QStringLiteral("system_settings/security/keys")));
 
     //: Notification summary text that tells the user that their secrets data is corrupted and needs to be reset.
     //% "Corrupted secrets data"
     n.setSummary(qtTrId("sailfish_secrets-no-datacorruption_summary"));
-    n.setPreviewSummary(n.summary());
 
     //: Notification body text that tells the user that their secrets data is corrupted and needs to be reset.
     //% "Data corruption detected. Please reset your secrets data."
     n.setBody(qtTrId("sailfish_secrets-no-datacorruption_body"));
-    n.setPreviewBody(n.body());
 
     //: Notification application name for the data corruption notification
     //% "Sailfish OS"
