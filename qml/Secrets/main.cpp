@@ -126,3 +126,19 @@ Sailfish::Secrets::Secret::FilterData Sailfish::Secrets::Plugin::SecretManager::
     }
     return filter;
 }
+
+QString Sailfish::Secrets::Plugin::SecretManager::toBase64(const QByteArray &data) const
+{
+    return QString::fromUtf8(data.toBase64(QByteArray::KeepTrailingEquals | QByteArray::Base64UrlEncoding));
+}
+
+QByteArray Sailfish::Secrets::Plugin::SecretManager::fromBase64(const QString &b64) const
+{
+    return b64.toUtf8().fromBase64(b64.toUtf8(), QByteArray::KeepTrailingEquals | QByteArray::Base64UrlEncoding);
+}
+
+QString Sailfish::Secrets::Plugin::SecretManager::stringFromBytes(const QByteArray &stringData) const
+{
+    return QString::fromUtf8(stringData);
+}
+

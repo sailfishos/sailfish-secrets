@@ -4,9 +4,9 @@ import Sailfish.Secrets 1.0
 import Sailfish.Crypto 1.0
 
 TestCase {
-    name: "QmlSigningTests"
-    property string testCaseCollectionName: "TestSignCollection"
-    property string testKeyName: "MyAwesomeTestKey"
+    name: "QmlRsaEncryptDecryptTests"
+    property string testCaseCollectionName: "TestRsaEncryptDecryptCollection"
+    property string testKeyName: "TestRsaEncryptDecryptKey"
 
     function initTestCase() {
         // Query collection names
@@ -60,7 +60,7 @@ TestCase {
     }
 
     function test_createKey() {
-        testKeyName = "KeyCreationTest"
+        testKeyName = "CreateKeyTest"
 
         // Generate the key
         generateStoredKeyRequest.startRequest()
@@ -78,39 +78,40 @@ TestCase {
         compare(matchingKeyIds.length, 1, "The newly generated key must be present in the result from the StoredKeyIdentifiersRequest exactly once")
     }
 
-    function test_createKeyAndSign() {
-        testKeyName = "KeyCreationAndSigningTest"
+    function test_createKeyAndEncryptDecrypt() {
+        testKeyName = "CreateKeyAndEncryptDecryptTest"
 
         // Generate the key
         generateStoredKeyRequest.startRequest()
         generateStoredKeyRequest.waitForFinished()
         compare(generateStoredKeyRequest.result.code, 0, "GenerateStoredKeyRequest failed:" + String(generateStoredKeyRequest.result))
 
-        // Create data that will be signed
-        var str = "Hello world! Good morning Captain, are we awesome yet?"
+        // Create plaintext data
+        var str = "Plain text test data which will be encrypted and then decrypted"
         var buffer = new ArrayBuffer(str.length)
         var view   = new Uint8Array(buffer)
         for (var i = 0; i < str.length; i++) {
             view[i] = str.charCodeAt(i)
         }
 
-        // Sign the data
-        signRequest.data = buffer
-        signRequest.startRequest()
-        signRequest.waitForFinished()
-        compare(signRequest.result.code, 0, "SignRequest failed:" + String(signRequest.result))
-        compare(signRequest.signatureLength > 0, true, "The signature MUST have a non-zero length")
+        // Encrypt the data
+        encryptRequest.data = buffer
+        encryptRequest.startRequest()
+        encryptRequest.waitForFinished()
+        compare(encryptRequest.result.code, 0, "EncryptRequest failed:" + String(encryptRequest.result))
+        compare(secretManager.toBase64(encryptRequest.ciphertext).length >= str.length, true, "The ciphertext MUST have a non-zero length")
 
-        // NOTE: signRequest.signature is a QByteArray, which is only accessible from QML as of Qt 5.8 (so not on Sailfish 2.1.x)
+        // Decrypt the data
+        decryptRequest.data = encryptRequest.ciphertext
+        decryptRequest.startRequest()
+        decryptRequest.waitForFinished()
+        compare(decryptRequest.result.code, 0, "DecryptRequest failed:" + String(decryptRequest.result))
 
-        // Verify signature
-        verifyRequest.data = buffer
-        verifyRequest.signature = signRequest.signature
-        verifyRequest.startRequest()
-        verifyRequest.waitForFinished()
-        compare(verifyRequest.result.code, 0, "VerifyRequest failed:" + String(verifyRequest.result))
-
-        compare(verifyRequest.verified, CryptoManager.VerificationSuccess, "The signature MUST be verified successfully")
+        // using trick to work around QML QByteArray support (in Qt < 5.8)
+        // note that Qt.atob(Qt.btoa(data)) isn't round trip stable in some cases (URL-encoded data), so should not be used!
+        // if the data is not valid UTF-8 data, use secretManager.toBase64() first.
+        compare(secretManager.stringFromBytes(decryptRequest.plaintext) == str, true,
+                "The round-trip was NOT equal! " + str + " != " + secretManager.stringFromBytes(decryptRequest.plaintext))
     }
 
     SecretManager {
@@ -158,6 +159,7 @@ TestCase {
             size: 4096
             origin: Key.OriginDevice
             algorithm: CryptoManager.AlgorithmRsa
+            operations: CryptoManager.OperationEncrypt | CryptoManager.OperationDecrypt
             name: testKeyName
             collectionName: testCaseCollectionName
             storagePluginName: cryptoManager.defaultCryptoStoragePluginName + ".test"
@@ -165,8 +167,8 @@ TestCase {
         keyPairGenerationParameters: cryptoManager.constructRsaKeygenParams()
     }
 
-    SignRequest {
-        id: signRequest
+    EncryptRequest {
+        id: encryptRequest
         manager: cryptoManager
         cryptoPluginName: cryptoManager.defaultCryptoStoragePluginName + ".test"
         key {
@@ -175,12 +177,12 @@ TestCase {
             collectionName: testCaseCollectionName
             storagePluginName: cryptoManager.defaultCryptoStoragePluginName + ".test"
         }
-        digestFunction: CryptoManager.DigestSha512
-        padding: CryptoManager.SignaturePaddingNone
+        padding: CryptoManager.EncryptionPaddingRsaPkcs1
+        blockMode: CryptoManager.BlockModeUnknown
     }
 
-    VerifyRequest {
-        id: verifyRequest
+    DecryptRequest {
+        id: decryptRequest
         manager: cryptoManager
         cryptoPluginName: cryptoManager.defaultCryptoStoragePluginName + ".test"
         key {
@@ -189,7 +191,7 @@ TestCase {
             collectionName: testCaseCollectionName
             storagePluginName: cryptoManager.defaultCryptoStoragePluginName + ".test"
         }
-        digestFunction: CryptoManager.DigestSha512
-        padding: CryptoManager.SignaturePaddingNone
+        padding: CryptoManager.EncryptionPaddingRsaPkcs1
+        blockMode: CryptoManager.BlockModeUnknown
     }
 }

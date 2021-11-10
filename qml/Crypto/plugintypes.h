@@ -70,10 +70,21 @@ public:
     Q_INVOKABLE Sailfish::Crypto::Key constructKey(const QString &name,
                                  const QString &collectionName,
                                  const QString &storagePluginName) const;
+    Q_INVOKABLE Sailfish::Crypto::Key constructKeyTemplate(
+            Sailfish::Crypto::CryptoManager::Algorithm algorithm = Sailfish::Crypto::CryptoManager::AlgorithmAes,
+            Sailfish::Crypto::CryptoManager::Operations operations = (Sailfish::Crypto::CryptoManager::OperationEncrypt
+                                                                     |Sailfish::Crypto::CryptoManager::OperationDecrypt),
+            Sailfish::Crypto::Key::Origin origin = Sailfish::Crypto::Key::OriginDevice) const;
     Q_INVOKABLE Sailfish::Crypto::Key::Identifier
         constructIdentifier(const QString &name,
                             const QString &collectionName,
                             const QString &storagePluginName) const;
+
+    Q_INVOKABLE QVariant constructPbkdf2Params(const QByteArray &data,
+                                               const QByteArray &salt,
+                                               int iterations = 16384,
+                                               int outputKeySize = 256) const;
+
     Q_INVOKABLE QVariant constructRsaKeygenParams() const;
     Q_INVOKABLE QVariant constructRsaKeygenParams(const QVariantMap &args) const;
 
@@ -85,6 +96,11 @@ public:
 
     Q_INVOKABLE QVariant constructDhKeygenParams() const;
     Q_INVOKABLE QVariant constructDhKeygenParams(const QVariantMap &args) const;
+
+    // QML API - allow clients to use QByteArray data in a meaningful way, not required in Qt >= 5.8
+    Q_INVOKABLE QString toBase64(const QByteArray &data) const;
+    Q_INVOKABLE QByteArray fromBase64(const QString &b64) const;
+    Q_INVOKABLE QString stringFromBytes(const QByteArray &stringData) const; // must be valid UTF-8 data!
 };
 
 } // Plugin
