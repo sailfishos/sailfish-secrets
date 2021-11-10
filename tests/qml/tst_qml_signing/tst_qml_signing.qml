@@ -54,6 +54,11 @@ TestCase {
         compare(i >= 0, true, "Collection names MUST contain the desired collection")
     }
 
+    function cleanupTestCase() {
+        deleteCollectionRequest.startRequest()
+        deleteCollectionRequest.waitForFinished()
+    }
+
     function test_createKey() {
         testKeyName = "KeyCreationTest"
 
@@ -130,6 +135,7 @@ TestCase {
     DeleteCollectionRequest {
         id: deleteCollectionRequest
         manager: secretManager
+        storagePluginName: cryptoManager.defaultCryptoStoragePluginName + ".test"
         userInteractionMode: SecretManager.PreventInteraction
         collectionName: testCaseCollectionName
     }
