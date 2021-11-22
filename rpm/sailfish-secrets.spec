@@ -4,7 +4,7 @@ Name:       sailfish-secrets
 Summary:    Sailfish OS framework for secrets storage and cryptographic operations
 Version:    0.2.23
 Release:    1
-License:    BSD-3-Clause
+License:    BSD
 URL:        https://github.com/sailfishos/sailfish-secrets
 Source0:    %{name}-%{version}.tar.bz2
 BuildRequires:  pkgconfig(Qt5Core)
@@ -271,6 +271,7 @@ ln -s ../sailfish-secretsd.service %{buildroot}%{_userunitdir}/user-session.targ
 
 %files -n libsailfishsecrets
 %defattr(-,root,root,-)
+%license LICENSE
 %{_libdir}/libsailfishsecrets.so.*
 
 %files -n libsailfishsecrets-devel
