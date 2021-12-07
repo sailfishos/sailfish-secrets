@@ -418,7 +418,7 @@ PasswordAgentPlugin::PasswordAgentPlugin(QObject *parent)
 
 void PasswordAgentPlugin::initialize()
 {
-    m_server.reset(new QDBusServer(QStringLiteral("unix:path=%1/sailfishsecretsd/p2pSocket").arg(
+    m_server.reset(new QDBusServer(QStringLiteral("unix:path=%1/sailfishsecretsd/p2pSocket-agent").arg(
                 QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation))));
 
     qDBusRegisterMetaType<PolkitSubject>();
