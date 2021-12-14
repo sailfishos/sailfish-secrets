@@ -18,6 +18,9 @@ static const char *setupEncryptionKey =
 static const char *setupReEncryptionKey =
         "\n PRAGMA rekey = \"x\'%1\'\";";
 
+static const char *setupCompatibilityTo3 =
+        "\n PRAGMA cipher_compatibility = 3;";
+
 static const char *setupEnforceForeignKeys =
         "\n PRAGMA foreign_keys = ON;";
 
@@ -108,6 +111,7 @@ bool Daemon::ApiImpl::MetadataDatabase::openDatabase(const QByteArray &hexKey)
     const char *setupKeyStatementData = setupKeyStatement.constData();
     const char *setupStatements[] = {
         setupKeyStatementData,
+        setupCompatibilityTo3,
         setupEnforceForeignKeys,
         setupEncoding,
         setupTempStore,
