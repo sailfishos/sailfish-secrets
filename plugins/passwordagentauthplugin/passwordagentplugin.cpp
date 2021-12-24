@@ -18,6 +18,7 @@
 #include <QtDBus/QDBusReply>
 
 #include <QtCore/QFile>
+#include <QtCore/QDir>
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QTimer>
 
@@ -418,8 +419,12 @@ PasswordAgentPlugin::PasswordAgentPlugin(QObject *parent)
 
 void PasswordAgentPlugin::initialize()
 {
-    m_server.reset(new QDBusServer(QStringLiteral("unix:path=%1/sailfishsecretsd/p2pSocket-agent").arg(
-                QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation))));
+    QDir dir(QStringLiteral("%1/sailfishsecretsd").arg(QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation)));
+    if (!dir.mkpath(dir.path())) {
+        qCWarning(lcPasswordAgent) << "Could not create socket file directory";
+        return;
+    }
+    m_server.reset(new QDBusServer(QStringLiteral("unix:path=%1/p2pSocket-agent").arg(dir.path())));
 
     qDBusRegisterMetaType<PolkitSubject>();
     qDBusRegisterMetaType<PolkitAuthorizationResult>();
