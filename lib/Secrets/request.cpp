@@ -15,6 +15,7 @@ using namespace Sailfish::Secrets;
   \class Request
   \brief Base-class of specific secrets service requests.
   \inmodule SailfishSecrets
+  \inheaderfile Secrets/request.h
  */
 
 /*!

@@ -25,6 +25,7 @@ ImportKeyRequestPrivate::ImportKeyRequestPrivate()
   \class ImportKeyRequest
   \brief Allows a client request that the system crypto service import a key from some data.
   \inmodule SailfishCrypto
+  \inheaderfile Crypto/importkeyrequest.h
 
   This key will not be stored securely by the crypto daemon, but instead will
   be returned in its complete form to the caller.

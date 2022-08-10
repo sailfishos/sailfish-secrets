@@ -26,6 +26,7 @@ PluginInfoRequestPrivate::PluginInfoRequestPrivate()
   \class PluginInfoRequest
   \brief Allows a client request information about available storage, encryption and authentication plugins
   \inmodule SailfishSecrets
+  \inheaderfile Secrets/plugininforequest.h
 
   An example of retrieving information about available plugins follows:
 

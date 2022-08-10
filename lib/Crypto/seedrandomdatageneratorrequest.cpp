@@ -30,6 +30,7 @@ SeedRandomDataGeneratorRequestPrivate::SeedRandomDataGeneratorRequestPrivate()
   \class SeedRandomDataGeneratorRequest
   \brief Allows a client request that the system crypto service seed its RNG with specific data.
   \inmodule SailfishCrypto
+  \inheaderfile Crypto/seedrandomdatageneratorrequest.h
  */
 
 /*!

@@ -655,6 +655,7 @@ CryptoManagerPrivate *CryptoManager::pimpl() const
   \class CryptoManager
   \brief Allows clients to make requests of the system crypto service.
   \inmodule SailfishCrypto
+  \inheaderfile Crypto/cryptomanager.h
 
   The CryptoManager class provides an interface to the system crypto service.
   In order to perform requests, clients should use the \l Request

@@ -249,6 +249,7 @@ namespace Sailfish {
   \class InteractionView
   \brief Interface for implementing in-app authentication
   \inmodule SailfishSecrets
+  \inheaderfile Secrets/interactionview.h
 
   If a client application wishes to use in-app authentication, they
   must instantiate an InteractionView and register it via a

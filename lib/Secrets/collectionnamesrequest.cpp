@@ -26,6 +26,7 @@ CollectionNamesRequestPrivate::CollectionNamesRequestPrivate()
   \class CollectionNamesRequest
   \brief Allows a client request the names of collections of secrets from the system secrets service
   \inmodule SailfishSecrets
+  \inheaderfile Secrets/collectionnamesrequest.h
 
   This class allows clients to request the Secrets service return the names of
   collections of secrets which are stored in a particular storage plugin.

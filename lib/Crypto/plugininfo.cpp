@@ -37,6 +37,7 @@ PluginInfoPrivate::~PluginInfoPrivate()
   \class PluginInfo
   \brief Information about a plugin
   \inmodule SailfishCrypto
+  \inheaderfile Crypto/plugininfo.h
 
   The result encapsulates the name and version of a plugin.
   Instances of this object which contain information about

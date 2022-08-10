@@ -26,6 +26,7 @@ InteractionRequestPrivate::InteractionRequestPrivate()
   \class InteractionRequest
   \brief Allows a client request user input, mediated by the secrets service
   \inmodule SailfishSecrets
+  \inheaderfile Secrets/interactionrequest.h
 
   This class allows clients to request user input, via a system-mediated
   user interaction flow.  The user will be explicitly informed that the
