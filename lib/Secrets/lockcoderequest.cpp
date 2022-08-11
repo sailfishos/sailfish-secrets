@@ -33,6 +33,7 @@ LockCodeRequestPrivate::LockCodeRequestPrivate()
          device, an extension plugin, a standalone secret or a
          collection.
   \inmodule SailfishSecrets
+  \inheaderfile Secrets/lockcoderequest.h
 
   \b{Note: most clients will never need to use this class, as the
   other request types automatically trigger locking and relocking

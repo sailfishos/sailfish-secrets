@@ -72,6 +72,7 @@ KeyPrivate::~KeyPrivate()
   \class Key::Identifier
   \brief An identifier for a key
   \inmodule SailfishCrypto
+  \inheaderfile Crypto/key.h
 
   The identifier consists of the name (alias) of the key, along with
   the name of the collection in which the key is stored (note that the
@@ -199,6 +200,7 @@ void Key::Identifier::setStoragePluginName(const QString &storagePluginName)
   \class Key
   \brief An instance of a key which can be used for cryptographic operations.
   \inmodule SailfishCrypto
+  \inheaderfile Crypto/key.h
 
   The Key class encapsulates information about a
   cryptographic key, including metadata such as the cryptosystem algorithm

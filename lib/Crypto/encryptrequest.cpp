@@ -26,6 +26,7 @@ EncryptRequestPrivate::EncryptRequestPrivate()
  * \class EncryptRequest
  * \brief Allows a client request that the system crypto service encrypt data with a specific key.
  * \inmodule SailfishCrypto
+ * \inheaderfile Crypto/encryptrequest.h
  */
 
 /*!

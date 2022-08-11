@@ -27,6 +27,7 @@ DeleteSecretRequestPrivate::DeleteSecretRequestPrivate()
   \class DeleteSecretRequest
   \brief Allows a client request that a secret be deleted from the system's secure secret storage service
   \inmodule SailfishSecrets
+  \inheaderfile Secrets/deletesecretrequest.h
 
   If the calling application is the creator of the secret, or alternatively
   if the user has granted the application permission to delete the secret,

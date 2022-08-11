@@ -61,6 +61,7 @@ void KeyPairGenerationParametersPrivate::setSubclassParameters(
   \class KeyPairGenerationParameters
   \brief Encapsulates parameters related to the generation of an asymmetric cryptographic key pair
   \inmodule SailfishCrypto
+  \inheaderfile Crypto/keypairgenerationparameters.h
 
   This class encapsulates a variety of parameters which will affect how
   the crypto plugin generates a key pair when fulfilling a
@@ -189,6 +190,7 @@ void KeyPairGenerationParameters::setCustomParameters(const QVariantMap &params)
   \brief Encapsulates parameters related to the generation of an asymmetric
          cryptographic key pair based on an elliptic curve
   \inmodule SailfishCrypto
+  \inheaderfile Crypto/keypairgenerationparameters.h
 
   This class encapsulates a variety of parameters which will affect how
   the crypto plugin generates a key pair.  Usually, an instance of this class
@@ -285,6 +287,7 @@ void EcKeyPairGenerationParameters::setEllipticCurve(
   \brief Encapsulates parameters related to the generation of an asymmetric
          cryptographic key pair based on the RSA algorithm
   \inmodule SailfishCrypto
+  \inheaderfile Crypto/keypairgenerationparameters.h
 
   This class encapsulates a variety of parameters which will affect how
   the crypto plugin generates a key pair.  Usually, an instance of this class
@@ -413,6 +416,7 @@ void RsaKeyPairGenerationParameters::setPublicExponent(quint64 exponent)
   \brief Encapsulates parameters related to the generation of an asymmetric
          cryptographic key pair based on the DSA algorithm
   \inmodule SailfishCrypto
+  \inheaderfile Crypto/keypairgenerationparameters.h
 
   This class encapsulates a variety of parameters which will affect how
   the crypto plugin generates a key pair.  Usually, an instance of this class
@@ -632,6 +636,7 @@ void DsaKeyPairGenerationParameters::setBase(const QByteArray &g)
   \brief Encapsulates parameters related to the generation of an asymmetric
          cryptographic key pair based on the Diffie-Hellman algorithm
   \inmodule SailfishCrypto
+  \inheaderfile Crypto/keypairgenerationparameters.h
 
   This class encapsulates a variety of parameters which will affect how
   the crypto plugin generates a key pair.  Usually, an instance of this class

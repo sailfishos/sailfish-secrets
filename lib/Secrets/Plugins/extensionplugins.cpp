@@ -19,6 +19,7 @@ using namespace Sailfish::Secrets;
   \class PluginBase
   \brief Provides the base interface for extension plugins for the Sailfish OS Secrets and Crypto Framework.
   \inmodule SailfishSecrets
+  \inheaderfile Secrets/Plugins/extensionplugins.h
 
   PluginBase is an abstract base class which provides an interface which all extension plugins
   must implement.  This interface includes some information about the plugin (including its
@@ -240,6 +241,7 @@ bool PluginBase::setLockCode(const QByteArray &oldLockCode,
   \brief Specifies an interface to derive an encryption key from
          input data, and encrypt or decrypt secret data.
   \inmodule SailfishSecrets
+  \inheaderfile Secrets/Plugins/extensionplugins.h
 
   The EncryptionPlugin type specifies a simple interface which includes key
   derivation, encryption and decryption operations.
@@ -348,6 +350,7 @@ EncryptionPlugin::~EncryptionPlugin()
   \class StoragePlugin
   \brief Specifies an interface allowing storage and retrieval of secrets
   \inmodule SailfishSecrets
+  \inheaderfile Secrets/Plugins/extensionplugins.h
 
   The StoragePlugin type specifies an interface which includes a variety
   of operations on secrets and collections of secrets.
@@ -703,6 +706,7 @@ StoragePlugin::~StoragePlugin()
   \brief Specifies an interface allowing storage and retrieval of secrets
          into and from an encrypted backing store.
   \inmodule SailfishSecrets
+  \inheaderfile Secrets/Plugins/extensionplugins.h
 
   The EncryptedStoragePlugin type specifies an interface which includes a
   variety of operations on secrets and collections of secrets, where the
@@ -1289,6 +1293,7 @@ EncryptedStoragePlugin::~EncryptedStoragePlugin()
          retrieval of an authentication code or passphrase from a user,
          or both.
   \inmodule SailfishSecrets
+  \inheaderfile Secrets/Plugins/extensionplugins.h
 
   The AuthenticationPlugin type specifies an interface which includes
   operations to verify the identity of a user and to retrieve authentication

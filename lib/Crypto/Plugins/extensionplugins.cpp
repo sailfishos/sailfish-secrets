@@ -23,6 +23,7 @@ using namespace Sailfish::Crypto;
          operations to clients which will be exposed via the Sailfish OS
          Crypto API.
   \inmodule SailfishCrypto
+  \inheaderfile Crypto/Plugins/extensionplugins.h
 
   The CryptoPlugin type specifies an interface which provides encryption,
   decryption, signing, verification, key derivation, key pair generation,

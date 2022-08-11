@@ -55,6 +55,7 @@ SecretPrivate::~SecretPrivate()
   \class Secret::Identifier
   \brief An identifier for a secret
   \inmodule SailfishSecrets
+  \inheaderfile Secrets/secret.h
 
   The identifier consists of the name (alias) of the secret, along with
   the name of the collection in which the secret is stored (note that the
@@ -190,6 +191,7 @@ void Secret::Identifier::setStoragePluginName(const QString &storagePluginName)
   \class Secret
   \brief An instance of a secret
   \inmodule SailfishSecrets
+  \inheaderfile Secrets/secret.h
 
   The Secret class encapsulates a piece of data stored by an application
   with the system secrets storage service.  Each secret is identified by

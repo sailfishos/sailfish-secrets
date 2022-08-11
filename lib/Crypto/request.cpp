@@ -15,6 +15,7 @@ using namespace Sailfish::Crypto;
   \class Request
   \brief Base-class of specific crypto service requests.
   \inmodule SailfishCrypto
+  \inheaderfile Crypto/request.h
  */
 
 /*!

@@ -28,6 +28,7 @@ GenerateInitializationVectorRequestPrivate::GenerateInitializationVectorRequestP
   \class GenerateInitializationVectorRequest
   \brief Allows the client to request an Initialization Vector from the system crypto service
   \inmodule SailfishCrypto
+  \inheaderfile Crypto/generateinitializationvectorrequest.h
  */
 
 /*!

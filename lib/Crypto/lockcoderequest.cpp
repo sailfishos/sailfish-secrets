@@ -30,6 +30,7 @@ LockCodeRequestPrivate::LockCodeRequestPrivate()
   \brief Allows a client to request that the system service either
          unlock, lock, or modify the lock code associated with a plugin.
   \inmodule SailfishCrypto
+  \inheaderfile Crypto/lockcoderequest.h
 
   \b{Note: most clients will never need to use this class, as the
   other request types automatically trigger locking and relocking

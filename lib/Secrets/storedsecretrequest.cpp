@@ -27,6 +27,7 @@ StoredSecretRequestPrivate::StoredSecretRequestPrivate()
   \class StoredSecretRequest
   \brief Allows a client request a secret from the system's secure secret storage service
   \inmodule SailfishSecrets
+  \inheaderfile Secrets/storedsecretrequest.h
 
   This class allows clients to request the Secrets service to retrieve a secret
   identified by a given identifier().  The identifier() will identify either a
