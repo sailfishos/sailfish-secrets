@@ -23,6 +23,13 @@ CollectionNamesRequestPrivate::CollectionNamesRequestPrivate()
 }
 
 /*!
+  \qmltype CollectionNamesRequest
+  \inqmlmodule Sailfish.Secrets
+  \brief Allows a client request the names of collections of secrets from the system secrets service
+  \inherits Request
+*/
+
+/*!
   \class CollectionNamesRequest
   \brief Allows a client request the names of collections of secrets from the system secrets service
   \inmodule SailfishSecrets
@@ -64,6 +71,11 @@ CollectionNamesRequest::~CollectionNamesRequest()
 }
 
 /*!
+  \qmlproperty string CollectionNamesRequest::storagePluginName
+  \brief The name of the storage plugin from which the client wishes to retrieve collection names
+ */
+
+/*!
   \brief Returns the name of the storage plugin from which the client wishes to retrieve collection names
  */
 QString CollectionNamesRequest::storagePluginName() const
@@ -89,6 +101,11 @@ void CollectionNamesRequest::setStoragePluginName(const QString &pluginName)
 }
 
 /*!
+  \qmlproperty array CollectionNamesRequest::collectionNames
+  \brief Provides the names of the collections stored by the specified storage plugin
+ */
+
+/*!
   \brief Returns the names of the collections stored by the specified storage plugin
  */
 QStringList CollectionNamesRequest::collectionNames() const
@@ -96,6 +113,12 @@ QStringList CollectionNamesRequest::collectionNames() const
     Q_D(const CollectionNamesRequest);
     return d->m_collectionNames.keys();
 }
+
+/*!
+  \qmlmethod bool CollectionNamesRequest::isCollectionLocked(string collectionName)
+  \brief Returns true if the collection with the specified \a collectionName was locked
+         when this request was performed.
+ */
 
 /*!
   \brief Returns true if the collection with the specified \a collectionName was locked

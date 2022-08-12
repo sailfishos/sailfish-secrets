@@ -26,6 +26,12 @@ InteractionResponsePrivate::~InteractionResponsePrivate()
 }
 
 /*!
+  \qmltype InteractionResponse
+  \inqmlmodule Sailfish.Secrets
+  \brief Encapsulates a user-input response from an authentication plugin
+*/
+
+/*!
   \class InteractionResponse
   \brief Encapsulates a user-input response from an authentication plugin
   \inmodule SailfishSecrets
@@ -75,6 +81,11 @@ InteractionResponse& InteractionResponse::operator=(const InteractionResponse &o
 }
 
 /*!
+  \qmlproperty Result InteractionResponse::result
+  \brief The result of the request
+*/
+
+/*!
   \brief Returns the result of the request
  */
 Result InteractionResponse::result() const
@@ -91,6 +102,11 @@ void InteractionResponse::setResult(const Result &result)
         d_ptr->m_result = result;
     }
 }
+
+/*!
+  \qmlproperty ArrayBuffer InteractionResponse::responseData
+  \brief The data which was retrieved from the user
+*/
 
 /*!
   \brief Returns the data which was retrieved from the user

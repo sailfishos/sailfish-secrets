@@ -24,6 +24,13 @@ StoredSecretRequestPrivate::StoredSecretRequestPrivate()
 }
 
 /*!
+  \qmltype StoredSecretRequest
+  \inqmlmodule Sailfish.Secrets
+  \brief Allows a client request a secret from the system's secure secret storage service
+  \inherits Request
+*/
+
+/*!
   \class StoredSecretRequest
   \brief Allows a client request a secret from the system's secure secret storage service
   \inmodule SailfishSecrets
@@ -90,6 +97,11 @@ StoredSecretRequest::~StoredSecretRequest()
 }
 
 /*!
+  \qmlproperty Secret.Identifier StoredSecretRequest::identifier
+  \brief The identifier of the secret which the client wishes to retrieve
+*/
+
+/*!
   \brief Returns the identifier of the secret which the client wishes to retrieve
  */
 Secret::Identifier StoredSecretRequest::identifier() const
@@ -115,6 +127,11 @@ void StoredSecretRequest::setIdentifier(const Secret::Identifier &ident)
 }
 
 /*!
+  \qmlproperty Secret StoredSecretRequest::secret
+  \brief The secret which was retrieved for the client
+*/
+
+/*!
   \brief Returns the secret which was retrieved for the client
  */
 Secret StoredSecretRequest::secret() const
@@ -122,6 +139,14 @@ Secret StoredSecretRequest::secret() const
     Q_D(const StoredSecretRequest);
     return d->m_secret;
 }
+
+/*!
+  \qmlproperty enumeration StoredSecretRequest::UserInteractionMode
+  \brief The user interaction mode required when retrieving the secret (e.g. if a custom lock code must be requested from the user)
+  \value PreventInteraction no user interaction allowed, operation will fail if interaction is required
+  \value SystemInteraction system-mediated user interaction via system UI if required
+  \value ApplicationInteraction in-process application UI will handle interaction, ApplicationSpecificAuthentication only.
+*/
 
 /*!
   \brief Returns the user interaction mode required when retrieving the secret (e.g. if a custom lock code must be requested from the user)

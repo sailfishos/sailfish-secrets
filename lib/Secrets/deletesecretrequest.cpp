@@ -24,6 +24,13 @@ DeleteSecretRequestPrivate::DeleteSecretRequestPrivate()
 }
 
 /*!
+  \qmltype DeleteSecretRequest
+  \brief Allows a client request that a secret be deleted from the system's secure secret storage service
+  \inqmlmodule Sailfish.Secrets
+  \inherits Request
+*/
+
+/*!
   \class DeleteSecretRequest
   \brief Allows a client request that a secret be deleted from the system's secure secret storage service
   \inmodule SailfishSecrets
@@ -68,6 +75,11 @@ DeleteSecretRequest::~DeleteSecretRequest()
 }
 
 /*!
+  \qmlproperty Secret.Identifier DeleteSecretRequest::identifier
+  \brief The identifier of the secret which the client wishes to delete
+*/
+
+/*!
   \brief Returns the identifier of the secret which the client wishes to delete
  */
 Secret::Identifier DeleteSecretRequest::identifier() const
@@ -91,6 +103,14 @@ void DeleteSecretRequest::setIdentifier(const Secret::Identifier &ident)
         emit identifierChanged();
     }
 }
+
+/*!
+  \qmlproperty enumeration DeleteSecretRequest::userInteractionMode
+  \brief The user interaction mode required when deleting the secret (e.g. if a custom lock code must be requested from the user)
+  \value PreventInteraction no user interaction allowed, operation will fail if interaction is required
+  \value SystemInteraction system-mediated user interaction via system UI if required
+  \value ApplicationInteraction in-process application UI will handle interaction, ApplicationSpecificAuthentication only.
+*/
 
 /*!
   \brief Returns the user interaction mode required when deleting the secret (e.g. if a custom lock code must be requested from the user)

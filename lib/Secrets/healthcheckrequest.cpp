@@ -25,6 +25,13 @@ HealthCheckRequestPrivate::HealthCheckRequestPrivate()
 }
 
 /*!
+  \qmltype HealthCheckRequest
+  \brief Allows a client request information about the well-being of secrets data.
+  \inqmlmodule Sailfish.Secrets
+  \inherits Request
+ */
+
+/*!
   \class HealthCheckRequest
   \brief Allows a client request information about the well-being of secrets data.
   \inmodule SailfishSecrets
@@ -67,6 +74,15 @@ HealthCheckRequest::~HealthCheckRequest()
 }
 
 /*!
+ \qmlproperty enumeration HealthCheckRequest::saltDataHealth
+ \brief Provides information about salt data health.
+ \value HealthOK
+ \value HealthUnknown
+ \value HealthCorrupted
+ \value HealthOtherError
+ */
+
+/*!
   \brief Returns information about salt data health.
 
   The result can be used to decuce whether a data corruption happened
@@ -79,6 +95,15 @@ HealthCheckRequest::Health HealthCheckRequest::saltDataHealth() const
 }
 
 /*!
+ \qmlproperty enumeration HealthCheckRequest::masterLockHealth
+ \brief Provides information about masterlock health.
+ \value HealthOK
+ \value HealthUnknown
+ \value HealthCorrupted
+ \value HealthOtherError
+ */
+
+/*!
   \brief Returns information about masterlock health.
 
   The result can be used to decuce whether a data corruption happened
@@ -89,6 +114,11 @@ HealthCheckRequest::Health HealthCheckRequest::masterlockHealth() const
     Q_D(const HealthCheckRequest);
     return d->m_masterlockHealth;
 }
+
+/*!
+ \qmlproperty bool HealthCheckRequest::isHealthy
+ \brief Tells whether the secrets data is completely healthy.
+ */
 
 /*!
   \brief Tells whether the secrets data is completely healthy.

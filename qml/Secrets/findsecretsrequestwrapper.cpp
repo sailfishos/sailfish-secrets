@@ -25,10 +25,22 @@ QString Sailfish::Secrets::Plugin::KeyIdentifier::collectionName() const
     return m_collectionName;
 }
 
+/*!
+  \qmltype FindSecretsRequest
+  \inqmlmodule Sailfish.Secrets
+  \brief Allows a client find the identifiers of secrets which match a specific filter
+         from the system's secure secret storage service
+  \inherits Request
+ */
+
 Sailfish::Secrets::Plugin::FindSecretsRequestWrapper::FindSecretsRequestWrapper(QObject *parent) : Sailfish::Secrets::FindSecretsRequest(parent)
 {
     connect(this, &Sailfish::Secrets::FindSecretsRequest::identifiersChanged, this, &Sailfish::Secrets::Plugin::FindSecretsRequestWrapper::identifiersChanged);
 }
+
+/*!
+  \qmlproperty array FindSecretsRequest::identifiers
+*/
 
 QVariantList Sailfish::Secrets::Plugin::FindSecretsRequestWrapper::identifiers() const
 {
@@ -42,6 +54,13 @@ QVariantList Sailfish::Secrets::Plugin::FindSecretsRequestWrapper::identifiers()
     return results;
 }
 
+/*!
+ \qmltype PluginInfoRequest
+ \inqmlmodule Sailfish.Secrets
+ \brief Allows a client request information about available storage, encryption and authentication plugins
+ \inherits Request
+ */
+
 Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::PluginInfoRequestWrapper(QObject *parent) : Sailfish::Secrets::PluginInfoRequest(parent)
 {
     connect(this, &Sailfish::Secrets::PluginInfoRequest::storagePluginsChanged, this, &Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::storagePluginsChanged);
@@ -49,6 +68,11 @@ Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::PluginInfoRequestWrapper(QO
     connect(this, &Sailfish::Secrets::PluginInfoRequest::encryptedStoragePluginsChanged, this, &Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::encryptedStoragePluginsChanged);
     connect(this, &Sailfish::Secrets::PluginInfoRequest::authenticationPluginsChanged, this, &Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::authenticationPluginsChanged);
 }
+
+/*!
+ \qmlproperty array PluginInfoRequest::storagePlugins
+ \brief Provides information about available storage plugins.
+*/
 
 QVariantList Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::storagePlugins() const
 {
@@ -62,6 +86,11 @@ QVariantList Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::storagePlugins
     return results;
 }
 
+/*!
+ \qmlproperty array PluginInfoRequest::encryptionPlugins
+ \brief Provides information about available encryption plugins.
+*/
+
 QVariantList Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::encryptionPlugins() const
 {
     auto resultsFromBase = Sailfish::Secrets::PluginInfoRequest::encryptionPlugins();
@@ -74,6 +103,11 @@ QVariantList Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::encryptionPlug
     return results;
 }
 
+/*!
+ \qmlproperty array PluginInfoRequest::encryptedStoragePlugins
+ \brief Provides information about available encrypted storage plugins.
+*/
+
 QVariantList Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::encryptedStoragePlugins() const
 {
     auto resultsFromBase = Sailfish::Secrets::PluginInfoRequest::encryptedStoragePlugins();
@@ -85,6 +119,11 @@ QVariantList Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::encryptedStora
 
     return results;
 }
+
+/*!
+ \qmlproperty array PluginInfoRequest::authenticationPlugins
+ \brief Provides information about available authentication plugins.
+*/
 
 QVariantList Sailfish::Secrets::Plugin::PluginInfoRequestWrapper::authenticationPlugins() const
 {

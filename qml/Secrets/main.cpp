@@ -60,6 +60,12 @@ void Sailfish::Secrets::Plugin::SecretsPlugin::registerTypes(const char *uri)
     qmlRegisterType<Sailfish::Secrets::Plugin::SecretManager>(uri, 1, 0, "SecretManager");
 }
 
+/*!
+  \qmltype SecretManager
+  \brief Allows clients to make requests of the system secrets service.
+  \inqmlmodule Sailfish.Secrets
+*/
+
 Sailfish::Secrets::Plugin::SecretManager::SecretManager(QObject *parent)
     : Sailfish::Secrets::SecretManager(parent)
 {
@@ -69,50 +75,90 @@ Sailfish::Secrets::Plugin::SecretManager::~SecretManager()
 {
 }
 
+/*!
+  \qmlproperty string SecretManager::inAppAuthenticationPluginName
+ */
+
 QString Sailfish::Secrets::Plugin::SecretManager::inAppAuthenticationPluginName() const
 {
     return InAppAuthenticationPluginName;
 }
+
+/*!
+  \qmlproperty string SecretManager::defaultAuthenticationPluginName
+ */
 
 QString Sailfish::Secrets::Plugin::SecretManager::defaultAuthenticationPluginName() const
 {
     return DefaultAuthenticationPluginName;
 }
 
+/*!
+  \qmlproperty string SecretManager::defaultStoragePluginName
+ */
+
 QString Sailfish::Secrets::Plugin::SecretManager::defaultStoragePluginName() const
 {
     return DefaultStoragePluginName;
 }
+
+/*!
+  \qmlproperty string SecretManager::defaultEncryptionPluginName
+ */
 
 QString Sailfish::Secrets::Plugin::SecretManager::defaultEncryptionPluginName() const
 {
     return DefaultEncryptionPluginName;
 }
 
+/*!
+  \qmlproperty string SecretManager::defaultEncryptedStoragePluginName
+ */
+
 QString Sailfish::Secrets::Plugin::SecretManager::defaultEncryptedStoragePluginName() const
 {
     return DefaultEncryptedStoragePluginName;
 }
+
+/*!
+  \qmlmethod Result SecretManager::constructResult()
+*/
 
 Sailfish::Secrets::Result Sailfish::Secrets::Plugin::SecretManager::constructResult() const
 {
     return Sailfish::Secrets::Result();
 }
 
+/*!
+  \qmlmethod Secret SecretManager::constructSecret()
+*/
+
 Sailfish::Secrets::Secret Sailfish::Secrets::Plugin::SecretManager::constructSecret() const
 {
     return Sailfish::Secrets::Secret();
 }
+
+/*!
+  \qmlmethod InteractionParameters SecretManager::constructInteractionParameters()
+*/
 
 Sailfish::Secrets::InteractionParameters Sailfish::Secrets::Plugin::SecretManager::constructInteractionParameters() const
 {
     return Sailfish::Secrets::InteractionParameters();
 }
 
+/*!
+  \qmlmethod InteractionResponse SecretManager::constructInteractionResponse()
+*/
+
 Sailfish::Secrets::InteractionResponse Sailfish::Secrets::Plugin::SecretManager::constructInteractionResponse() const
 {
     return Sailfish::Secrets::InteractionResponse();
 }
+
+/*!
+  \qmlmethod FilterData SecretManager::constructFilterData(object v)
+*/
 
 Sailfish::Secrets::Secret::FilterData Sailfish::Secrets::Plugin::SecretManager::constructFilterData(const QVariantMap &v) const
 {
@@ -127,15 +173,27 @@ Sailfish::Secrets::Secret::FilterData Sailfish::Secrets::Plugin::SecretManager::
     return filter;
 }
 
+/*!
+  \qmlmethod string SecretManager::toBase64(ArrayBuffer data)
+*/
+
 QString Sailfish::Secrets::Plugin::SecretManager::toBase64(const QByteArray &data) const
 {
     return QString::fromUtf8(data.toBase64(QByteArray::KeepTrailingEquals | QByteArray::Base64UrlEncoding));
 }
 
+/*!
+  \qmlmethod ArrayBuffer SecretManager::fromBase64(string b64)
+*/
+
 QByteArray Sailfish::Secrets::Plugin::SecretManager::fromBase64(const QString &b64) const
 {
     return b64.toUtf8().fromBase64(b64.toUtf8(), QByteArray::KeepTrailingEquals | QByteArray::Base64UrlEncoding);
 }
+
+/*!
+  \qmlmethod string SecretManager::stringFromBytes(ArrayBuffer stringData)
+*/
 
 QString Sailfish::Secrets::Plugin::SecretManager::stringFromBytes(const QByteArray &stringData) const
 {

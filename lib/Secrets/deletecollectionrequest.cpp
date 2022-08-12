@@ -24,6 +24,13 @@ DeleteCollectionRequestPrivate::DeleteCollectionRequestPrivate()
 }
 
 /*!
+  \qmltype DeleteCollectionRequest
+  \inqmlmodule Sailfish.Secrets
+  \brief Allows a client request that the system secrets service delete a collection from secrets storage
+  \inherits Request
+*/
+
+/*!
   \class DeleteCollectionRequest
   \brief Allows a client request that the system secrets service delete a collection from secrets storage
   \inmodule SailfishSecrets
@@ -76,6 +83,11 @@ DeleteCollectionRequest::~DeleteCollectionRequest()
 }
 
 /*!
+  \qmlproperty string DeleteCollectionRequest::collectionName
+  \brief The name of the collection which the client wishes delete
+ */
+
+/*!
   \brief Returns the name of the collection which the client wishes delete
  */
 QString DeleteCollectionRequest::collectionName() const
@@ -101,6 +113,11 @@ void DeleteCollectionRequest::setCollectionName(const QString &name)
 }
 
 /*!
+  \qmlproperty string DeleteCollectionRequest::storagePluginName
+  \brief The name of the storage plugin from which the client wishes to delete the collection
+*/
+
+/*!
   \brief Returns the name of the storage plugin from which the client wishes to delete the collection
  */
 QString DeleteCollectionRequest::storagePluginName() const
@@ -124,6 +141,14 @@ void DeleteCollectionRequest::setStoragePluginName(const QString &pluginName)
         emit storagePluginNameChanged();
     }
 }
+
+/*!
+  \qmlproperty enumeration DeleteCollectionRequest::userInteractionMode
+  \brief The user interaction mode required when creating the collection (e.g. if a custom lock code must be requested from the user)
+  \value SecretManager.PreventInteraction no user interaction allowed, operation will fail if interaction is required
+  \value SecretManager.SystemInteraction system-mediated user interaction via system UI if required
+  \value SecretManager.ApplicationInteraction in-process application UI will handle interaction, ApplicationSpecificAuthentication only.
+ */
 
 /*!
   \brief Returns the user interaction mode required when deleting the collection (e.g. if a custom lock code must be requested from the user)

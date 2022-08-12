@@ -22,6 +22,12 @@ Q_LOGGING_CATEGORY(lcSailfishSecretsInteractionView, "org.sailfishos.secrets.int
 
 using namespace Sailfish::Secrets;
 
+/*!
+  \qmltype ApplicationInteractionView
+  \inqmlmodule Sailfish.Secrets
+  \inherits InteractionView
+*/
+
 Plugin::ApplicationInteractionView::ApplicationInteractionView(QQuickItem *parent)
     : QQuickItem(parent), InteractionView()
     , m_childItem(Q_NULLPTR)
@@ -37,6 +43,10 @@ Plugin::ApplicationInteractionView::~ApplicationInteractionView()
     }
 }
 
+/*!
+  \qmlproperty object ApplicationInteractionView::adapter
+*/
+
 QObject *Plugin::ApplicationInteractionView::adapter() const
 {
     return m_adapter;
@@ -51,6 +61,10 @@ void Plugin::ApplicationInteractionView::setSecretManager(QObject *manager)
         emit secretManagerChanged();
     }
 }
+
+/*!
+  \qmlproperty object ApplicationInteractionView::secretManager
+*/
 
 QObject *Plugin::ApplicationInteractionView::secretManager() const
 {

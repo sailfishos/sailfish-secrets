@@ -188,6 +188,12 @@ void Secret::Identifier::setStoragePluginName(const QString &storagePluginName)
 //--------------------------------------------
 
 /*!
+  \qmltype Secret
+  \inqmlmodule Sailfish.Secrets
+  \brief An instance of a secret
+*/
+
+/*!
   \class Secret
   \brief An instance of a secret
   \inmodule SailfishSecrets
@@ -265,6 +271,11 @@ Secret& Secret::operator=(const Secret &other)
 }
 
 /*!
+  \qmlproperty string Secret::type
+  \brief The type of the secret
+*/
+
+/*!
   \brief Returns the type of the secret
 
   This metadata is informational only, and doesn't affect its storage.
@@ -299,6 +310,11 @@ void Secret::setIdentifier(const Secret::Identifier &identifier)
 }
 
 /*!
+  \qmlproperty string Secret::name
+  \brief The name field from the identifier of the secret
+*/
+
+/*!
   \brief Returns the name field from the identifier of the secret
  */
 QString Secret::name() const
@@ -313,6 +329,11 @@ void Secret::setName(const QString &name)
 {
     d_ptr->m_identifier.setName(name);
 }
+
+/*!
+  \qmlproperty string Secret::collectionName
+  \brief The collection name field from the identifier of the secret
+*/
 
 /*!
   \brief Returns the collection name field from the identifier of the secret
@@ -331,6 +352,11 @@ void Secret::setCollectionName(const QString &cname)
 }
 
 /*!
+  \qmlproperty string Secret::storagePluginName
+  \brief The storage plugin name field from the identifier of the secret
+*/
+
+/*!
   \brief Returns the storage plugin name field from the identifier of the secret
  */
 QString Secret::storagePluginName() const
@@ -345,6 +371,11 @@ void Secret::setStoragePluginName(const QString &pname)
 {
     d_ptr->m_identifier.setStoragePluginName(pname);
 }
+
+/*!
+  \qmlproperty ArrayBuffer Secret::data
+  \brief This is the data which will be stored securely by the secrets service
+*/
 
 /*!
   \brief Returns the secret data from the secret
@@ -383,12 +414,22 @@ void Secret::setFilterData(const Secret::FilterData &filterData)
 }
 
 /*!
+  \qmlproperty array Secret::filterDataFields
+  \brief Returns the fields (keys) of filter data associated with the secret
+*/
+
+/*!
   \brief Returns the fields (keys) of filter data associated with the secret
  */
 QStringList Secret::filterDataFields() const
 {
     return d_ptr->m_filterData.keys();
 }
+
+/*!
+  \qmlmethod string Secret::filterData(string field)
+  \brief Returns the filter data value associated with the secret for the given filter \a field
+*/
 
 /*!
   \brief Returns the filter data value associated with the secret for the given filter \a field
@@ -399,12 +440,22 @@ QString Secret::filterData(const QString &field) const
 }
 
 /*!
+  \qmlmethod void Secret::setFilterData(string field, string value)
+  \brief Sets the filter data value associated with the secret for the given filter \a field to \a value
+*/
+
+/*!
   \brief Sets the filter data value associated with the secret for the given filter \a field to \a value
  */
 void Secret::setFilterData(const QString &field, const QString &value)
 {
     d_ptr->m_filterData.insert(field, value);
 }
+
+/*!
+  \qmlmethod bool Secret::hasFilterData(string field)
+  \brief Returns true if the secret has filter data associated with it for the given filter \a field
+*/
 
 /*!
   \brief Returns true if the secret has filter data associated with it for the given filter \a field

@@ -28,6 +28,13 @@ StoreSecretRequestPrivate::StoreSecretRequestPrivate()
 }
 
 /*!
+  \qmltype StoreSecretRequest
+  \inqmlmodule Sailfish.Secrets
+  \brief Allows a client request that the system secrets service securely store a secret
+  \inherits Request
+*/
+
+/*!
   \class StoreSecretRequest
   \brief Allows a client request that the system secrets service securely store a secret
   \inmodule SailfishSecrets
@@ -181,6 +188,14 @@ StoreSecretRequest::~StoreSecretRequest()
 }
 
 /*!
+  \qmlproperty enumeration StoreSecretRequest::secretStorageType
+  \brief The type of storage which will apply to the stored secret
+  \value CollectionSecret
+  \value StandaloneDeviceLockSecret
+  \value StandaloneCustomLockSecret
+*/
+
+/*!
   \brief Returns the type of storage which will apply to the stored secret
 
   A secret whose storage type is StoreSecretRequest::CollectionSecret will
@@ -220,6 +235,11 @@ void StoreSecretRequest::setSecretStorageType(StoreSecretRequest::SecretStorageT
 }
 
 /*!
+  \qmlproperty string StoreSecretRequest::encryptionPluginName
+  \brief The name of the encryption plugin which the client wishes to use to encrypt the standalone secret
+*/
+
+/*!
   \brief Returns the name of the encryption plugin which the client wishes to use to encrypt the standalone secret
  */
 QString StoreSecretRequest::encryptionPluginName() const
@@ -249,6 +269,11 @@ void StoreSecretRequest::setEncryptionPluginName(const QString &pluginName)
 }
 
 /*!
+  \qmlproperty string StoreSecretRequest::authenticationPluginName
+  \brief The name of the authentication plugin which the client wishes to use to authenticate the user (in order to unlock the secret)
+*/
+
+/*!
   \brief Returns the name of the authentication plugin which the client wishes to use to authenticate the user (in order to unlock the secret)
  */
 QString StoreSecretRequest::authenticationPluginName() const
@@ -274,6 +299,11 @@ void StoreSecretRequest::setAuthenticationPluginName(const QString &pluginName)
         emit authenticationPluginNameChanged();
     }
 }
+
+/*!
+  \qmlproperty Sailfish.Secrets.Secret StoreSecretRequest::secret
+  \brief The secret which the client wishes to store securely
+*/
 
 /*!
   \brief Returns the secret which the client wishes to store securely
@@ -306,6 +336,11 @@ void StoreSecretRequest::setSecret(const Secret &secret)
         emit secretChanged();
     }
 }
+
+/*!
+  \qmlproperty Sailfish.Secrets.InteractionParameters StoreSecretRequest::interactionParameters
+  \brief The user input parameters which should be used when requesting the secret data from the user
+*/
 
 /*!
   \brief Returns the user input parameters which should be used when requesting the secret data from the user
@@ -349,6 +384,14 @@ void StoreSecretRequest::setInteractionParameters(const InteractionParameters &p
 }
 
 /*!
+  \qmlproperty enumeration StoreSecretRequest::DeviceLockUnlockSemantic
+  \brief The unlock semantic which will apply to the secret if it is protected by the device lock.
+  \value SecretManager.DeviceLockKeepUnlocked unlock after first successful device unlock, stay unlocked.  e.g. background processes.
+  \value SecretManager.DeviceLockVerifyLock unlock on device unlock, relock on device lock requiring verify (not passphrase) to unlock on subsequent access.
+  \value SecretManager.DeviceLockRelock unlock on device unlock, relock on device lock requiring passphrase to unlock on subsequent access.
+*/
+
+/*!
   \brief Returns the unlock semantic which will apply to the secret if it is protected by the device lock.
  */
 SecretManager::DeviceLockUnlockSemantic StoreSecretRequest::deviceLockUnlockSemantic() const
@@ -376,6 +419,16 @@ void StoreSecretRequest::setDeviceLockUnlockSemantic(SecretManager::DeviceLockUn
 }
 
 /*!
+  \qmlproperty enumeration StoreSecretRequest::customLockUnlockSemantic
+  \brief The unlock semantic which will apply to the secret if it is protected by a custom lock.
+  \value SecretManager.CustomLockKeepUnlocked unlock after first successful access (with UI flow), stay unlocked.  e.g. background processes.
+  \value SecretManager.CustomLockDeviceLockRelock unlock after successful access (with UI flow) after device unlock, relock on device lock.
+  \value SecretManager.CustomLockTimoutRelock unlock after successful access (with UI flow) after device unlock, relock after timeout.
+  \value SecretManager.CustomLockAccessRelock unlock and relock on every successful access (with UI flow).
+*/
+
+
+/*!
   \brief Returns the unlock semantic which will apply to the secret if it is protected by a custom lock.
  */
 SecretManager::CustomLockUnlockSemantic StoreSecretRequest::customLockUnlockSemantic() const
@@ -401,6 +454,14 @@ void StoreSecretRequest::setCustomLockUnlockSemantic(SecretManager::CustomLockUn
         emit customLockUnlockSemanticChanged();
     }
 }
+
+/*!
+  \qmlproperty enumeration StoreSecretRequest::accessControlMode
+  \brief The access control mode which will be enforced for the secret
+  \value SecretManager.OwnerOnlyMode no fine-grained access control necessary, only the creating application can access/write/delete.
+  \value SecretManager.SystemAccessControlMode access control via system access control, other applications can access if user gives permission.
+  \value SecretManager.NoAccessControlMode other applications can access; use with care (prefer CustomLockAccessRelock)
+*/
 
 /*!
   \brief Returns the access control mode which will be enforced for the secret
@@ -431,6 +492,13 @@ void StoreSecretRequest::setAccessControlMode(SecretManager::AccessControlMode m
     }
 }
 
+/*!
+  \qmlproperty enumeration StoreSecretRequest::userInteractionMode
+  \brief The user interaction mode required when storing the secret (e.g. if a custom lock code must be requested from the user)
+  \value SecretManager.PreventInteraction no user interaction allowed, operation will fail if interaction is required
+  \value SecretManager.SystemInteraction  system-mediated user interaction via system UI if required
+  \value SecretManager.ApplicationInteraction  in-process application UI will handle interaction, ApplicationSpecificAuthentication only.
+*/
 /*!
   \brief Returns the user interaction mode required when storing the secret (e.g. if a custom lock code must be requested from the user)
  */

@@ -2,6 +2,14 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 import Sailfish.Secrets 1.0 as Secrets
 
+/*!
+  \qmltype InteractionView
+  \brief Interface for implementing in-app authentication
+  \note A concrete implementation of InteractionView is provided
+        as \l {ApplicationInteractionView}
+  \inqmlmodule Sailfish.Secrets
+  */
+
 // TODO: replace this with "actual UI" which allows user to confirm/deny or enter a custom password!
 Item {
     Rectangle {
