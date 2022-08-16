@@ -4,8 +4,8 @@ versionsym      =
 version         = 0.0.1
 url             = https://sailfishos.org/develop/docs/sailfish-crypto
 
-sourcedirs += $$PWD/../ $$PWD/../doc $$PWD/../../../doc $$PWD/../../Crypto/Plugins/
-headerdirs += $$PWD/../ $$PWD/../../Crypto/Plugins/
+sourcedirs += $$PWD/../ $$PWD/../doc $$PWD/../../../doc $$PWD/../../Crypto/Plugins/ $$PWD/../../../qml/Crypto/
+headerdirs += $$PWD/../ $$PWD/../../Crypto/Plugins/ $$PWD/../../../qml/Crypto/
 
 Cpp.ignoretokens += SAILFISH_CRYPTO_API
 
@@ -25,7 +25,7 @@ qhp.SailfishCrypto.virtualFolder = sailfish-crypto
 qhp.SailfishCrypto.indexTitle = Sailfish OS Crypto Library
 qhp.SailfishCrypto.indexRoot =
 
-qhp.SailfishCrypto.subprojects        = overview classes
+qhp.SailfishCrypto.subprojects        = overview classes qmltypes
 
 qhp.SailfishCrypto.subprojects.overview.title = Sailfish OS Crypto Library
 qhp.SailfishCrypto.subprojects.overview.indexTitle = Sailfish OS Crypto Library Contents
@@ -36,13 +36,18 @@ qhp.SailfishCrypto.subprojects.classes.indexTitle = Sailfish Crypto C++ Classes
 qhp.SailfishCrypto.subprojects.classes.selectors = class fake:headerfile
 qhp.SailfishCrypto.subprojects.classes.sortPages = true
 
+qhp.SailfishSecrets.subprojects.classes.title = QML Types
+qhp.SailfishSecrets.subprojects.classes.indexTitle = Sailfish.Crypto QML Types
+qhp.SailfishSecrets.subprojects.classes.selectors = qmlclass
+qhp.SailfishSecrets.subprojects.classes.sortPages = true
+
 qhp.SailfishCrypto.filterAttributes = sailfish-crypto 1.0.0
 qhp.SailfishCrypto.customFilters.SailfishCrypto.name = Sailfish OS Crypto Library 0.0.1
 qhp.SailfishCrypto.customFilters.SailfishCrypto.filterAttributes = sailfish-crypto 0.0.1
 
 HTML.footer += \
     "<div class=\"footer\">\n" \
-    "  <p><acronym title=\"Copyright\">&copy;</acronym> 2018 Jolla Ltd.</p>\n" \
+    "  <p><acronym title=\"Copyright\">&copy;</acronym> 2018 - 2022 Jolla Ltd.</p>\n" \
     "  <p>All other trademarks are property of their respective owners.</p>\n" \
     "  <p>\n" \
     "    This document may be used under the terms of the " \
