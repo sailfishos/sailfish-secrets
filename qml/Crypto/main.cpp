@@ -60,6 +60,21 @@ void Sailfish::Crypto::Plugin::CryptoPlugin::registerTypes(const char *uri)
     qmlRegisterType<Sailfish::Crypto::Plugin::CryptoManager>(uri, 1, 0, "CryptoManager");
 }
 
+/*!
+  \qmltype CryptoManager
+  \brief Allows clients to make requests of the system crypto service.
+  \inqmlmodule Sailfish.Crypto
+  \instantiates Sailfish::Crypto::CryptoManager
+*/
+
+/*!
+  \qmlproperty string CryptoManager::defaultCryptoPluginName
+*/
+
+/*!
+  \qmlproperty string CryptoManager::defaultCryptoStoragePluginName
+*/
+
 Sailfish::Crypto::Plugin::CryptoManager::CryptoManager(QObject *parent)
     : Sailfish::Crypto::CryptoManager(parent)
 {
@@ -69,21 +84,34 @@ Sailfish::Crypto::Plugin::CryptoManager::~CryptoManager()
 {
 }
 
+/*!
+  \qmlmethod Result CryptoManager::constructResult()
+*/
+
 Sailfish::Crypto::Result Sailfish::Crypto::Plugin::CryptoManager::constructResult() const
 {
     return Sailfish::Crypto::Result();
 }
 
+/*!
+  \qmlmethod Key CryptoManager::constructKey()
+*/
 Sailfish::Crypto::Key Sailfish::Crypto::Plugin::CryptoManager::constructKey() const
 {
     return Sailfish::Crypto::Key();
 }
 
+/*!
+  \qmlmethod Key CryptoManager::constructKey(string name, string collectionName, string storagePluginName)
+*/
 Sailfish::Crypto::Key Sailfish::Crypto::Plugin::CryptoManager::constructKey(const QString &name, const QString &collectionName, const QString &storagePluginName) const
 {
     return Sailfish::Crypto::Key(name, collectionName, storagePluginName);
 }
 
+/*!
+  \qmlmethod Key CryptoManager::constructKeyTemplate(Algorithm algorithm, Operations operations, Key.Origin origin)
+*/
 Sailfish::Crypto::Key Sailfish::Crypto::Plugin::CryptoManager::constructKeyTemplate(
             Sailfish::Crypto::CryptoManager::Algorithm algorithm,
             Sailfish::Crypto::CryptoManager::Operations operations,
@@ -96,10 +124,18 @@ Sailfish::Crypto::Key Sailfish::Crypto::Plugin::CryptoManager::constructKeyTempl
     return keyTemplate;
 }
 
+/*!
+  \qmlmethod Key.Identifier CryptoManager::constructIdentifier(string name, string collectionName, string storagePluginName)
+*/
+  
 Sailfish::Crypto::Key::Identifier Sailfish::Crypto::Plugin::CryptoManager::constructIdentifier(const QString &name, const QString &collectionName, const QString &storagePluginName) const
 {
     return Sailfish::Crypto::Key::Identifier(name, collectionName, storagePluginName);
 }
+
+/*!
+  \qmlmethod KeyDerivationParameters CryptoManager::constructPbkdf2Params(ArrayBuffer data, ArrayBuffer salt, int iterations, int outputKeySize)
+*/
 
 QVariant Sailfish::Crypto::Plugin::CryptoManager::constructPbkdf2Params(const QByteArray &data, const QByteArray &salt, int iterations, int outputKeySize) const
 {
@@ -114,10 +150,18 @@ QVariant Sailfish::Crypto::Plugin::CryptoManager::constructPbkdf2Params(const QB
     return QVariant::fromValue<KeyDerivationParameters>(kdfParams);
 }
 
+/*!
+  \qmlmethod KeyPairGenerationParameters CryptoManager::constructRsaKeygenParams()
+*/
+
 QVariant Sailfish::Crypto::Plugin::CryptoManager::constructRsaKeygenParams() const
 {
     return QVariant::fromValue<KeyPairGenerationParameters>(RsaKeyPairGenerationParameters());
 }
+
+/*!
+  \qmlmethod KeyPairGenerationParameters CryptoManager::constructRsaKeygenParams(object args)
+*/
 
 QVariant Sailfish::Crypto::Plugin::CryptoManager::constructRsaKeygenParams(const QVariantMap &args) const
 {
@@ -138,11 +182,18 @@ QVariant Sailfish::Crypto::Plugin::CryptoManager::constructRsaKeygenParams(const
     return QVariant::fromValue<KeyPairGenerationParameters>(params);
 }
 
+/*!
+  \qmlmethod KeyPairGenerationParameters CryptoManager::constructEcKeygenParams()
+*/
+
 QVariant Sailfish::Crypto::Plugin::CryptoManager::constructEcKeygenParams() const
 {
     return QVariant::fromValue<KeyPairGenerationParameters>(EcKeyPairGenerationParameters());
 }
 
+/*!
+  \qmlmethod KeyPairGenerationParameters CryptoManager::constructEcKeygenParams(args)
+*/
 QVariant Sailfish::Crypto::Plugin::CryptoManager::constructEcKeygenParams(const QVariantMap &args) const
 {
     EcKeyPairGenerationParameters params;
@@ -150,11 +201,17 @@ QVariant Sailfish::Crypto::Plugin::CryptoManager::constructEcKeygenParams(const 
     return QVariant::fromValue<KeyPairGenerationParameters>(params);
 }
 
+/*!
+  \qmlmethod KeyPairGenerationParameters CryptoManager::constructDsaKeygenParams()
+*/
 QVariant Sailfish::Crypto::Plugin::CryptoManager::constructDsaKeygenParams() const
 {
     return QVariant::fromValue<KeyPairGenerationParameters>(DsaKeyPairGenerationParameters());
 }
 
+/*!
+  \qmlmethod KeyPairGenerationParameters CryptoManager::constructDsaKeygenParams(args)
+*/
 QVariant Sailfish::Crypto::Plugin::CryptoManager::constructDsaKeygenParams(const QVariantMap &args) const
 {
     QVariantMap customParams;
@@ -180,11 +237,17 @@ QVariant Sailfish::Crypto::Plugin::CryptoManager::constructDsaKeygenParams(const
     return QVariant::fromValue<KeyPairGenerationParameters>(params);
 }
 
+/*!
+  \qmlmethod KeyPairGenerationParameters CryptoManager::constructDhKeygenParams()
+*/
 QVariant Sailfish::Crypto::Plugin::CryptoManager::constructDhKeygenParams() const
 {
     return QVariant::fromValue<KeyPairGenerationParameters>(DhKeyPairGenerationParameters());
 }
 
+/*!
+  \qmlmethod KeyPairGenerationParameters CryptoManager::constructDhKeygenParams(args)
+*/
 QVariant Sailfish::Crypto::Plugin::CryptoManager::constructDhKeygenParams(const QVariantMap &args) const
 {
     QVariantMap customParams;
@@ -208,16 +271,25 @@ QVariant Sailfish::Crypto::Plugin::CryptoManager::constructDhKeygenParams(const 
     return QVariant::fromValue<KeyPairGenerationParameters>(params);
 }
 
+/*!
+  \qmlmethod string CryptoManager::toBase64(ArrayBuffer data)
+*/
 QString Sailfish::Crypto::Plugin::CryptoManager::toBase64(const QByteArray &data) const
 {
     return QString::fromUtf8(data.toBase64(QByteArray::KeepTrailingEquals | QByteArray::Base64UrlEncoding));
 }
 
+/*!
+  \qmlmethod ArrayBuffer CryptoManager::fromBase64(string b64)
+*/
 QByteArray Sailfish::Crypto::Plugin::CryptoManager::fromBase64(const QString &b64) const
 {
     return b64.toUtf8().fromBase64(b64.toUtf8(), QByteArray::KeepTrailingEquals | QByteArray::Base64UrlEncoding);
 }
 
+/*!
+  \qmlmethod string CryptoManager::stringFromBytes(ArrayBuffer stringData)
+*/
 QString Sailfish::Crypto::Plugin::CryptoManager::stringFromBytes(const QByteArray &stringData) const
 {
     return QString::fromUtf8(stringData);

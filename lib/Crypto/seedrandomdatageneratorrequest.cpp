@@ -27,6 +27,14 @@ SeedRandomDataGeneratorRequestPrivate::SeedRandomDataGeneratorRequestPrivate()
 }
 
 /*!
+  \qmltype SeedRandomDataGeneratorRequest
+  \brief Allows a client request that the system crypto service seed its RNG with specific data.
+  \inqmlmodule Sailfish.Crypto
+  \inherits Request
+  \instantiates Sailfish::Crypto::SeedRandomDataGeneratorRequest
+*/
+
+/*!
   \class SeedRandomDataGeneratorRequest
   \brief Allows a client request that the system crypto service seed its RNG with specific data.
   \inmodule SailfishCrypto
@@ -48,6 +56,11 @@ SeedRandomDataGeneratorRequest::SeedRandomDataGeneratorRequest(QObject *parent)
 SeedRandomDataGeneratorRequest::~SeedRandomDataGeneratorRequest()
 {
 }
+
+/*!
+  \qmlproperty string SeedRandomDataGeneratorRequest::cryptoPluginName
+  \brief The name of the crypto plugin which the client wishes to perform the key generation operation
+*/
 
 /*!
   \brief Returns the name of the crypto plugin which the client wishes to perform the key generation operation
@@ -73,6 +86,12 @@ void SeedRandomDataGeneratorRequest::setCryptoPluginName(const QString &pluginNa
         emit cryptoPluginNameChanged();
     }
 }
+
+/*!
+  \qmlproperty string SeedRandomDataGeneratorRequest::csprngEngineName
+  \brief The name of the cryptographically secure random number generator engine
+         offered by the crypto plugin which the client wishes to seed.
+*/
 
 /*!
   \brief Returns the name of the cryptographically secure random number generator engine
@@ -104,6 +123,11 @@ void SeedRandomDataGeneratorRequest::setCsprngEngineName(const QString &engineNa
         emit csprngEngineNameChanged();
     }
 }
+
+/*!
+  \qmlproperty double SeedRandomDataGeneratorRequest::entropyEstimate
+  \brief The client's estimate for how much entropy is contained in the seed data
+*/
 
 /*!
   \brief Returns the client's estimate for how much entropy is contained in the seed data
@@ -141,6 +165,11 @@ void SeedRandomDataGeneratorRequest::setEntropyEstimate(double estimate)
         emit entropyEstimateChanged();
     }
 }
+
+/*!
+  \qmlproperty ArrayBuffer SeedRandomDataGeneratorRequest::seedData
+  \brief The seed data
+*/
 
 /*!
   \brief Returns the seed data

@@ -37,6 +37,12 @@ ResultPrivate::~ResultPrivate()
 //--------------------------------------------
 
 /*!
+  \qmltype Result
+  \brief The result of a crypto operation
+  \inqmlmodule Sailfish.Crypto
+*/
+
+/*!
   \class Result
   \brief The result of a crypto operation
   \inmodule SailfishCrypto
@@ -124,6 +130,11 @@ void Result::setErrorMessage(const QString &m)
 }
 
 /*!
+  \qmlproperty string Result::errorMessage
+  \brief The error message associated with the result
+*/
+
+/*!
   \brief Returns the error message associated with the result
 
   The error message is not meant for consumption by users of
@@ -143,6 +154,11 @@ void Result::setStorageErrorCode(int c)
 {
     d_ptr->m_storageErrorCode = c;
 }
+
+/*!
+  \qmlproperty int Result::storageErrorCode
+  \brief The storage error code associated with the result
+*/
 
 /*!
   \brief Returns the storage error code associated with the result
@@ -177,6 +193,107 @@ void Result::setErrorCode(Result::ErrorCode c)
 }
 
 /*!
+  \qmlproperty enumeration Result::errorCode
+  \brief The error code associated with the result
+  \value NoError
+  \value UnknownError
+  \value SerializationError
+  \value StorageError
+  \value DaemonError
+  \value DiscoveryError
+
+  \value InvalidCryptographicServiceProvider
+  \value InvalidStorageProvider
+  \value InvalidKeyIdentifier
+  \value DuplicateKeyIdentifier
+  \value CryptoManagerNotInitializedError
+  \value InvalidInitializationVectorError
+  \value InvalidAuthenticationTagError
+
+  \value OperationNotSupportedError
+  \value BlockModeNotSupportedError
+  \value EncryptionPaddingNotSupportedError
+  \value SignaturePaddingNotSupportedError
+  \value DigestNotSupportedError
+
+  \value EmptySecretKeyError
+  \value EmptyPrivateKeyError
+  \value EmptyPublicKeyError
+  \value EmptyDataError
+  \value EmptySignatureError
+
+  \value CryptoPluginEncryptionError
+  \value CryptoPluginDecryptionError
+  \value CryptoPluginRandomDataError
+  \value CryptoPluginCipherSessionError
+  \value CryptoPluginKeyGenerationError
+  \value CryptoPluginKeyImportError
+  \value CryptoPluginDigestError
+  \value CryptoPluginSigningError
+  \value CryptoPluginVerificationError
+  \value CryptoPluginAuthenticationTagError
+  \value CryptoPluginInvalidCipherSessionToken
+  \value CryptoPluginIncorrectPassphrase
+  \value CryptoPluginIsLockedError
+
+  \value NetworkError
+  \value NetworkSslError
+  \value HttpContinue
+  \value HttpSwitchingProtocol
+  \value HttpOk
+  \value HttpCreated
+  \value HttpAccepted
+  \value HttpNonAuthoritativeInformation
+  \value HttpNoContent
+  \value HttpResetContent
+  \value HttpPartialContent
+  \value HttpMultipleChoice
+  \value HttpMovedPermanently
+  \value HttpFound
+  \value HttpSeeOther
+  \value HttpNotModified
+  \value HttpUseProxy
+  \value HttpUnused
+  \value HttpTemporaryRedirect
+  \value HttpPermanentRedirect
+  \value HttpBadRequest
+  \value HttpUnauthorized
+  \value HttpPaymentRequired
+  \value HttpForbidden
+  \value HttpNotFound
+  \value HttpMethodNotAllowed
+  \value HttpNotAcceptable
+  \value HttpProxyAuthenticationRequired
+  \value HttpRequestTimeout
+  \value HttpConflict
+  \value HttpGone
+  \value HttpLengthRequired
+  \value HttpPreconditionFailed
+  \value HttpPayloadTooLarge
+  \value HttpUriTooLong
+  \value HttpUnsupportedMediaType
+  \value HttpRequestRangeNotSatisfiable
+  \value HttpExpectationFailed
+  \value HttpMisdirectedRequest
+  \value HttpUpgradeRequired
+  \value HttpPreconditionRequired
+  \value HttpTooManyRequests
+  \value HttpRequestHeaderFieldsTooLarge
+  \value HttpUnavailableForLegalReasons
+  \value HttpInternalServerError
+  \value HttpNotImplemented
+  \value HttpBadGateway
+  \value HttpServiceUnavailable
+  \value HttpGatewayTimeout
+  \value HttpVersionNotSupported
+  \value HttpVariantAlsoNegotiates
+  \value HttpInsufficientStorage
+  \value HttpNetworkAuthenticationRequired
+
+  \value OtherError
+*/
+
+/*!
   \brief Returns the error code associated with the result
  */
 Result::ErrorCode Result::errorCode() const
@@ -199,6 +316,14 @@ void Result::setCode(Result::ResultCode c)
 {
     d_ptr->m_code = c;
 }
+
+/*!
+  \qmlproperty enumeration Result::code
+  \brief The result code associated with the result
+  \value Succeeded
+  \value Pending
+  \value Failed
+*/
 
 /*!
   \brief Returns the result code associated with the result

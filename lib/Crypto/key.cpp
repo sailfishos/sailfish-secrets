@@ -197,6 +197,13 @@ void Key::Identifier::setStoragePluginName(const QString &storagePluginName)
 //--------------------------------------------
 
 /*!
+  \qmltype Key
+  \brief An instance of a key which can be used for cryptographic operations.
+  \inqmlmodule Sailfish.Crypto
+  \instantiates Sailfish::Crypto::Key
+*/
+
+/*!
   \class Key
   \brief An instance of a key which can be used for cryptographic operations.
   \inmodule SailfishCrypto
@@ -281,7 +288,10 @@ void Key::setIdentifier(const Key::Identifier &identifier)
     d_ptr->m_identifier = identifier;
 }
 
-
+/*!
+  \qmlproperty string Key::name
+  \brief The name field from the identifier of the key
+*/
 
 /*!
   \brief Returns the name field from the identifier of the key
@@ -300,6 +310,11 @@ void Key::setName(const QString &name)
 }
 
 /*!
+  \qmlproperty string Key::collectionName
+  \brief The collection name field from the identifier of the key
+*/
+
+/*!
   \brief Returns the collection name field from the identifier of the key
  */
 QString Key::collectionName() const
@@ -314,6 +329,11 @@ void Key::setCollectionName(const QString &cname)
 {
     d_ptr->m_identifier.setCollectionName(cname);
 }
+
+/*!
+  \qmlproperty string Key::storagePluginName
+  \brief The storage plugin name field from the identifier of the key
+*/
 
 /*!
   \brief Returns the storage plugin name field from the identifier of the key
@@ -332,6 +352,15 @@ void Key::setStoragePluginName(const QString &pname)
 }
 
 /*!
+  \qmlproperty enumeration Key::origin
+  \brief Ynformation about the origin of the key
+  \value OriginUnknown
+  \value OriginImported
+  \value OriginDevice
+  \value OriginSecureDevice
+*/
+
+/*!
   \brief Returns information about the origin of the key
  */
 Key::Origin Key::origin() const
@@ -348,6 +377,36 @@ void Key::setOrigin(Key::Origin origin)
 }
 
 /*!
+  \qmlproperty enumeration Key::algorithm
+  \brief the cryptosystem algorithm this key is intended to be used with
+  \value AlgorithmUnknown
+  \value AlgorithmCustom
+  \value AlgorithmRsa
+  \value AlgorithmDsa
+  \value AlgorithmDh
+  \value AlgorithmEc
+  \value AlgorithmEcDsa
+  \value AlgorithmEdDsa
+  \value AlgorithmEcDh
+  \value AlgorithmEcMqv
+  \value AlgorithmAes
+  \value AlgorithmGost
+  \value AlgorithmTdea
+  \value AlgorithmTdes  = AlgorithmTdea
+  \value AlgorithmBlowfish
+  \value AlgorithmSalsa
+  \value AlgorithmSalsa20 = AlgorithmSalsa
+  \value AlgorithmChaCha
+  \value AlgorithmChaCha20 = AlgorithmChaCh
+  \value AlgorithmRc4
+  \value AlgorithmRc5
+  \value AlgorithmRc6
+  \value AlgorithmSquare
+  \value AlgorithmSerpent
+  \value AlgorithmPanama
+*/
+
+/*!
   \brief Returns the cryptosystem algorithm this key is intended to be used with
  */
 CryptoManager::Algorithm Key::algorithm() const
@@ -362,6 +421,20 @@ void Key::setAlgorithm(CryptoManager::Algorithm algorithm)
 {
     d_ptr->m_algorithm = algorithm;
 }
+
+/*!
+  \qmlproperty flags Key::operations
+  \brief The set of operations which are supported for this key
+  \value OperationUnknown
+  \value OperationCustom
+  \value OperationSign
+  \value OperationVerify
+  \value OperationEncrypt
+  \value OperationDecrypt
+  \value OperationCalculateDigest
+  \value OperationCalculateMac
+  \value OperationDeriveKey
+*/
 
 /*!
   \brief Returns the set of operations which are supported for this key
@@ -389,6 +462,17 @@ void Key::setOperations(CryptoManager::Operations operations)
 {
     d_ptr->m_operations = operations;
 }
+
+/*!
+  \qmlproperty flags Key::componentConstraints
+  \brief The types of key components which the client is allowed to retrieve after the key has been stored
+  \value NoData
+  \value MetaData
+  \value PublicKeyData
+  \value PrivateKeyData
+  \value SecretKeyData   = PrivateKeyData
+*/
+
 
 /*!
   \brief Returns the types of key components which the client is allowed to retrieve after the key has been stored
@@ -431,6 +515,11 @@ void Key::setComponentConstraints(Key::Components components)
 {
     d_ptr->m_componentConstraints = components;
 }
+
+/*!
+  \qmlproperty int Key::size
+  \brief The security size, in bits, of the key.
+*/
 
 /*!
   \brief Returns the security size, in bits, of the key.
@@ -482,6 +571,11 @@ void Key::setSize(int size)
 }
 
 /*!
+  \qmlproperty ArrayBuffer Key::publicKey
+  \brief The public key data associated with this key (asymmetric cryptosystems only)
+*/
+
+/*!
   \brief Returns the public key data associated with this key (asymmetric cryptosystems only)
  */
 QByteArray Key::publicKey() const
@@ -496,6 +590,11 @@ void Key::setPublicKey(const QByteArray &key)
 {
     d_ptr->m_publicKey = key;
 }
+
+/*!
+  \qmlproperty ArrayBuffer Key::privateKey
+  \brief The private key data associated with this key (asymmetric cryptosystems only)
+*/
 
 /*!
   \brief Returns the private key data associated with this key (asymmetric cryptosystems only)
@@ -517,6 +616,11 @@ void Key::setPrivateKey(const QByteArray &key)
 }
 
 /*!
+  \qmlproperty ArrayBuffer Key::secretKey
+  \brief The private key data associated with this key (symmetric cryptosystems only)
+*/
+
+/*!
   \brief Returns the private key data associated with this key (symmetric cryptosystems only)
  */
 QByteArray Key::secretKey() const
@@ -534,6 +638,11 @@ void Key::setSecretKey(const QByteArray &key)
 {
     d_ptr->m_secretKey = key;
 }
+
+/*!
+  \qmlproperty Array Key::customParameters
+  \brief The custom parameters associated with this key
+*/
 
 /*!
   \brief Returns the custom parameters associated with this key
@@ -571,6 +680,11 @@ Key::FilterData Key::filterData() const
 }
 
 /*!
+  \qmlmethod string Key::filterData(string field)
+  \brief Returns the filter data value for the given \a field.
+*/
+
+/*!
   \brief Returns the filter data value for the given \a field.
  */
 QString Key::filterData(const QString &field) const
@@ -592,12 +706,22 @@ void Key::setFilterData(const Key::FilterData &data)
 }
 
 /*!
+  \qmlproperty Array Key::filterDataFields
+  \brief Returns the fields (keys) of filter data associated with the secret
+*/
+
+/*!
   \brief Returns the fields (keys) of filter data associated with the secret
  */
 QStringList Key::filterDataFields() const
 {
     return d_ptr->m_filterData.keys();
 }
+
+/*!
+  \qmlmethod void Key::setFilterData(string field, string value)
+  \brief Sets filter data for the given \a field to the given \a value.
+*/
 
 /*!
   \brief Sets filter data for the given \a field to the given \a value.
@@ -611,6 +735,11 @@ void Key::setFilterData(const QString &field, const QString &value)
         d_ptr->m_filterData.insert(field, value);
     }
 }
+
+/*!
+  \qmlmethod bool Key::hasFilterData(string field)
+  \brief Returns true if the key has a filter data value specified for the given \a field.
+*/
 
 /*!
   \brief Returns true if the key has a filter data value specified for the given \a field.

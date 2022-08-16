@@ -24,6 +24,14 @@ DecryptRequestPrivate::DecryptRequestPrivate()
 }
 
 /*!
+  \qmltype DecryptRequest
+  \brief Allows a client request that the system crypto service decrypt data with a specific key.
+  \inqmlmodule Sailfish.Crypto
+  \inherits Request
+  \instantiates Sailfish::Crypto::DecryptRequest
+*/
+
+/*!
   \class DecryptRequest
   \brief Allows a client request that the system crypto service decrypt data with a specific key.
   \inmodule SailfishCrypto
@@ -45,6 +53,11 @@ DecryptRequest::DecryptRequest(QObject *parent)
 DecryptRequest::~DecryptRequest()
 {
 }
+
+/*!
+  \qmlproperty ArrayBuffer DecryptRequest::data
+  \brief The data which the client wishes to decrypt
+*/
 
 /*!
   \brief Returns the data which the client wishes to decrypt
@@ -70,6 +83,11 @@ void DecryptRequest::setData(const QByteArray &data)
         emit dataChanged();
     }
 }
+
+/*!
+  \qmlproperty ArrayBuffer DecryptRequest::initializationVector
+  \brief The initialization vector which the client wishes to use when decrypting the data
+*/
 
 /*!
   \brief Returns the initialization vector which the client wishes to use when decrypting the data
@@ -107,6 +125,11 @@ void DecryptRequest::setInitializationVector(const QByteArray &iv)
 }
 
 /*!
+  \qmlproperty Key DecryptRequest::key
+  \brief The key the client wishes to be used to decrypt data
+*/
+
+/*!
   \brief Returns the key the client wishes to be used to decrypt data
  */
 Key DecryptRequest::key() const
@@ -130,6 +153,28 @@ void DecryptRequest::setKey(const Key &key)
         emit keyChanged();
     }
 }
+
+/*!
+  \qmlproperty enumeration DecryptRequest::blockMode
+  \brief The block mode which should be used when decrypting the data
+  \value BlockModeUnknown
+  \value BlockModeCustom
+  \value BlockModeEcb
+  \value BlockModeCbc
+  \value BlockModePcbc
+  \value BlockModeCfb1
+  \value BlockModeCfb8
+  \value BlockModeCfb128
+  \value BlockModeOfb
+  \value BlockModeCtr
+  \value BlockModeGcm
+  \value BlockModeLrw
+  \value BlockModeXex
+  \value BlockModeXts
+  \value BlockModeCmc
+  \value BlockModeEme
+  \value BlockModeCcm
+*/
 
 /*!
   \brief Returns the block mode to be used when decrypting the data
@@ -157,6 +202,19 @@ void DecryptRequest::setBlockMode(Sailfish::Crypto::CryptoManager::BlockMode mod
 }
 
 /*!
+  \qmlproperty enumeration DecryptRequest::padding
+  \brief The encryption padding mode which should be used when decrypting the data
+  \value EncryptionPaddingUnknown
+  \value EncryptionPaddingCustom
+  \value EncryptionPaddingNone
+  \value EncryptionPaddingPkcs7
+  \value EncryptionPaddingRsaOaep
+  \value EncryptionPaddingRsaOaepMgf1
+  \value EncryptionPaddingRsaPkcs1
+  \value EncryptionPaddingAnsiX923
+*/
+
+/*!
   \brief Returns the encryption padding mode to be used when decrypting the data
  */
 Sailfish::Crypto::CryptoManager::EncryptionPadding DecryptRequest::padding() const
@@ -180,6 +238,11 @@ void DecryptRequest::setPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddi
         emit paddingChanged();
     }
 }
+
+/*!
+  \qmlproperty ArrayBuffer DecryptRequest::authenticationData
+  \brief The authentication data for the decrypt operation
+*/
 
 /*!
   \brief Returns the authentication data for the decrypt operation
@@ -209,6 +272,11 @@ void DecryptRequest::setAuthenticationData(const QByteArray &data)
 }
 
 /*!
+  \qmlproperty ArrayBuffer DecryptRequest::authenticationTag
+  \brief The authentication tag for the decrypt operation
+*/
+
+/*!
   \brief Returns the authentication tag for the decrypt operation
  */
 QByteArray DecryptRequest::authenticationTag() const
@@ -236,6 +304,11 @@ void DecryptRequest::setAuthenticationTag(const QByteArray &authenticationTag)
 }
 
 /*!
+  \qmlproperty string DecryptRequest::cryptoPluginName
+  \brief The name of the crypto plugin which the client wishes to perform the decryption operation
+*/
+
+/*!
   \brief Returns the name of the crypto plugin which the client wishes to perform the decryption operation
  */
 QString DecryptRequest::cryptoPluginName() const
@@ -261,6 +334,12 @@ void DecryptRequest::setCryptoPluginName(const QString &pluginName)
 }
 
 /*!
+  \qmlproperty ArrayBuffer DecryptRequest::plaintext
+  \brief Returns the plaintext result of the decryption operation.
+  \note this value is only valid if the status of the request is \c Request.Finished
+*/
+
+/*!
   \brief Returns the plaintext result of the decryption operation.
 
   Note: this value is only valid if the status of the request is Request::Finished.
@@ -271,6 +350,21 @@ QByteArray DecryptRequest::plaintext() const
     return d->m_plaintext;
 }
 
+/*!
+  \qmlproperty Sailfish::Crypto::CryptoManager::VerificationStatus DecryptRequest::verificationStatus
+  \brief Returns the verification result of the decryption operation.
+  \note this value is only valid if the status of the request is \c Request.Finished
+  \value VerificationStatusUnknown
+  \value VerificationSucceeded
+  \value VerificationFailed
+  \value VerificationSignatureInvalid
+  \value VerificationSignatureExpired
+  \value VerificationKeyExpired
+  \value VerificationKeyRevoked
+  \value VerificationKeyInvalid
+*/
+
+  
 /*!
   \brief Returns the verification result of the decryption operation.
 

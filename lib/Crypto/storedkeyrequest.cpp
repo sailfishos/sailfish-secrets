@@ -24,6 +24,14 @@ StoredKeyRequestPrivate::StoredKeyRequestPrivate()
 }
 
 /*!
+  \qmltype StoredKeyRequest
+  \brief Allows a client request a securely-stored key from the system crypto service.
+  \inqmlmodule Sailfish.Crypto
+  \inherits Request
+  \instantiates Sailfish::Crypto::StoredKeyRequest
+*/
+
+/*!
   \class StoredKeyRequest
   \brief Allows a client request a securely-stored key from the system crypto service.
   \inmodule SailfishCrypto
@@ -45,6 +53,11 @@ StoredKeyRequest::StoredKeyRequest(QObject *parent)
 StoredKeyRequest::~StoredKeyRequest()
 {
 }
+
+/*!
+  \qmlproperty Key.Identifier StoredKeyRequest::identifier
+  \brief Returns the identifier of the securely-stored key which the client wishes to retrieve
+*/
 
 /*!
   \brief Returns the identifier of the securely-stored key which the client wishes to retrieve
@@ -71,6 +84,16 @@ void StoredKeyRequest::setIdentifier(const Key::Identifier &ident)
         emit identifierChanged();
     }
 }
+
+/*!
+  \qmlproperty Sailfish::Crypto::Key::Components StoredKeyRequest::keyComponents
+  \brief Returns the flags describing which components of the stored key the client wishes to retrieve
+  \value NoData
+  \value MetaData
+  \value PublicKeyData
+  \value PrivateKeyData
+*/
+
 
 /*!
   \brief Returns the flags describing which components of the stored key the client wishes to retrieve
@@ -111,6 +134,12 @@ void StoredKeyRequest::setKeyComponents(Key::Components components)
         emit keyComponentsChanged();
     }
 }
+
+/*!
+  \qmlproperty Key StoredKeyRequest::storedKey
+  \brief Returns the retrieved key
+  \note this value is only valid if the status of the request is \c Request.Finished.
+*/
 
 /*!
   \brief Returns the retrieved key

@@ -46,6 +46,11 @@ StoredKeyIdentifiersRequest::~StoredKeyIdentifiersRequest()
 }
 
 /*!
+  \qmlproperty string StoredKeyIdentifiersRequest::storagePluginName
+  \brief The name of the storage plugin from which the client wishes to retrieve key identifiers
+*/
+
+/*!
   \brief Returns the name of the storage plugin from which the client wishes to retrieve key identifiers
  */
 QString StoredKeyIdentifiersRequest::storagePluginName() const
@@ -69,6 +74,11 @@ void StoredKeyIdentifiersRequest::setStoragePluginName(const QString &pluginName
         emit storagePluginNameChanged();
     }
 }
+
+/*!
+  \qmlproperty string StoredKeyIdentifiersRequest::collectionName
+  \brief The name of the collection from which the client wishes to retrieve key identifiers
+*/
 
 /*!
   \brief Returns the name of the collection from which the client wishes to retrieve key identifiers

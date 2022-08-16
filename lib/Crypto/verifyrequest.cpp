@@ -26,6 +26,14 @@ VerifyRequestPrivate::VerifyRequestPrivate()
 }
 
 /*!
+  \qmltype VerifyRequest
+  \brief Allows a client request the system crypto service to verify that data was signed with a specific key
+  \inqmlmodule Sailfish.Crypto
+  \inherits Request
+  \instantiates Sailfish::Crypto::VerifyRequest
+*/
+
+/*!
   \class VerifyRequest
   \brief Allows a client request the system crypto service to verify that data was signed with a specific key
   \inmodule SailfishCrypto
@@ -47,6 +55,11 @@ VerifyRequest::VerifyRequest(QObject *parent)
 VerifyRequest::~VerifyRequest()
 {
 }
+
+/*!
+  \qmlproperty ArrayBuffer VerifyRequest::signature
+  \brief The signature which the client wishes the system service to verify
+*/
 
 /*!
   \brief Returns the signature which the client wishes the system service to verify
@@ -78,6 +91,11 @@ void VerifyRequest::setSignature(const QByteArray &sig)
 }
 
 /*!
+  \qmlproperty ArrayBuffer VerifyRequest::data
+  \brief The data which was signed by the remote party
+*/
+
+/*!
   \brief Returns the data which was signed by the remote party
  */
 QByteArray VerifyRequest::data() const
@@ -105,6 +123,11 @@ void VerifyRequest::setData(const QByteArray &data)
         emit dataChanged();
     }
 }
+
+/*!
+  \qmlproperty Key VerifyRequest::key
+  \brief The key which the client wishes the system service to use to verify the data
+*/
 
 /*!
   \brief Returns the key which the client wishes the system service to use to verify the data
@@ -136,6 +159,17 @@ void VerifyRequest::setKey(const Key &key)
 }
 
 /*!
+  \qmlproperty enumeration VerifyRequest::padding
+  \brief The signature padding mode which was used when signing the data
+  \value SignaturePaddingUnknown
+  \value SignaturePaddingCustom
+  \value SignaturePaddingNone
+  \value SignaturePaddingRsaPss
+  \value SignaturePaddingRsaPkcs1    = EncryptionPaddingRsaPkcs1
+  \value SignaturePaddingAnsiX923    = EncryptionPaddingAnsiX923
+*/
+
+/*!
   \brief Returns the signature padding mode which was used when signing the data
  */
 Sailfish::Crypto::CryptoManager::SignaturePadding VerifyRequest::padding() const
@@ -163,6 +197,50 @@ void VerifyRequest::setPadding(Sailfish::Crypto::CryptoManager::SignaturePadding
         emit paddingChanged();
     }
 }
+
+/*!
+  \qmlproperty enumeration VerifyRequest::digestFunction
+  \brief The digest which was used to generate the signature
+  \value DigestUnknown
+  \value DigestCustom
+  \value DigestMd5
+  \value DigestSha1
+  \value DigestSha2_224
+  \value DigestSha2_256
+  \value DigestSha256        = DigestSha2_256
+  \value DigestSha2_384
+  \value DigestSha2_512
+  \value DigestSha512        = DigestSha2_512
+  \value DigestSha2_512_224
+  \value DigestSha2_512_256
+  \value DigestSha3_224
+  \value DigestSha3_256
+  \value DigestSha3_384
+  \value DigestSha3_512
+  \value DigestShake128
+  \value DigestShake256
+  \value DigestGost_94
+  \value DigestGost_2012_256
+  \value DigestGost_2012_512
+  \value DigestBlake
+  \value DigestBlake2
+  \value DigestBlake2b
+  \value DigestBlake2s
+  \value DigestWhirlpool
+  \value DigestRipeMd
+  \value DigestRipeMd128_256
+  \value DigestRipeMd160
+  \value DigestRipeMd320
+  \value DigestTiger
+  \value DigestTiger128
+  \value DigestTiger160
+  \value DigestTiger192
+  \value DigestTiger2
+  \value DigestTiger2_128
+  \value DigestTiger2_160
+  \value DigestTiger2_192
+  \value DigestRadioGatun
+*/
 
 /*!
   \brief Returns the digest which was used to generate the signature
@@ -194,6 +272,11 @@ void VerifyRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFun
 }
 
 /*!
+  \qmlproperty string VerifyRequest::cryptoPluginName
+  \brief The name of the crypto plugin which the client wishes to perform the verification operation
+*/
+
+/*!
   \brief Returns the name of the crypto plugin which the client wishes to perform the verification operation
  */
 QString VerifyRequest::cryptoPluginName() const
@@ -221,6 +304,20 @@ void VerifyRequest::setCryptoPluginName(const QString &pluginName)
         emit cryptoPluginNameChanged();
     }
 }
+
+/*!
+  \qmlproperty Sailfish::Crypto::CryptoManager::VerificationStatus VerifyRequest::verificationStatus
+  \brief Returns verification result
+  \note this value is only valid if the status of the request is \c Request.Finished
+  \value VerificationStatusUnknown
+  \value VerificationSucceeded
+  \value VerificationFailed
+  \value VerificationSignatureInvalid
+  \value VerificationSignatureExpired
+  \value VerificationKeyExpired
+  \value VerificationKeyRevoked
+  \value VerificationKeyInvalid
+*/
 
 /*!
   \brief Returns true if signature data was determined to have been signed with the specified key.

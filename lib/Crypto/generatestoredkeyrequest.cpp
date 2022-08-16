@@ -23,6 +23,14 @@ GenerateStoredKeyRequestPrivate::GenerateStoredKeyRequestPrivate()
 }
 
 /*!
+  \qmltype GenerateStoredKeyRequest
+  \brief Allows a client request that the system crypto service generate and secure store a key based on a template.
+  \inqmlmodule Sailfish.Crypto
+  \inherits Request
+  \instantiates Sailfish::Crypto::GenerateStoredKeyRequest
+*/
+
+/*!
   \class GenerateKeyRequest
   \brief Allows a client request that the system crypto service generate and secure store a key based on a template.
   \inmodule SailfishCrypto
@@ -156,6 +164,11 @@ GenerateStoredKeyRequest::~GenerateStoredKeyRequest()
 }
 
 /*!
+  \qmlproperty string GenerateStoredKeyRequest::cryptoPluginName
+  \brief The name of the crypto plugin which the client wishes to perform the key generation operation
+*/
+
+/*!
   \brief Returns the name of the crypto plugin which the client wishes to perform the key generation operation
  */
 QString GenerateStoredKeyRequest::cryptoPluginName() const
@@ -179,6 +192,11 @@ void GenerateStoredKeyRequest::setCryptoPluginName(const QString &pluginName)
         emit cryptoPluginNameChanged();
     }
 }
+
+/*!
+  \qmlproperty InteractionParameters GenerateStoredKeyRequest::interactionParameters
+  \brief The user input parameters which should be used when requesting the input data from the user
+*/
 
 /*!
   \brief Returns the user input parameters which should be used when requesting the input data from the user
@@ -216,6 +234,11 @@ void GenerateStoredKeyRequest::setInteractionParameters(
 }
 
 /*!
+  \qmlproperty KeyDerivationParameters GenerateStoredKeyRequest::keyDerivationParameters
+  \brief The symmetric key derivation parameters which should be used to generate the secret key data
+*/
+
+/*!
   \brief Returns the symmetric key derivation parameters which should be used to generate the secret key data
 
   These interaction parameters are only meaningful if the template key
@@ -244,6 +267,12 @@ void GenerateStoredKeyRequest::setKeyDerivationParameters(
         emit keyDerivationParametersChanged();
     }
 }
+
+/*!
+  \qmlproperty KeyPairGenerationParameters GenerateStoredKeyRequest::keyPairGenerationParameters
+  \brief The asymmetric key pair generation parameters which
+         should be used to generate the public and private key data
+*/
 
 /*!
   \brief Returns the asymmetric key pair generation parameters which
@@ -278,6 +307,11 @@ void GenerateStoredKeyRequest::setKeyPairGenerationParameters(
 }
 
 /*!
+  \qmlproperty Key GenerateStoredKeyRequest::keyTemplate
+  \brief The key which should be used as a template when generating the full key
+*/
+
+/*!
   \brief Returns the key which should be used as a template when generating the full key
  */
 Key GenerateStoredKeyRequest::keyTemplate() const
@@ -301,6 +335,12 @@ void GenerateStoredKeyRequest::setKeyTemplate(const Key &key)
         emit keyTemplateChanged();
     }
 }
+
+/*!
+  \qmlproperty Key GenerateStoredKeyRequest::generatedKeyReference
+  \brief Returns a key reference to the securely-stored generated key
+  \note this value is only valid if the status of the request is \c Request.Finished.
+*/
 
 /*!
   \brief Returns a key reference to the securely-stored generated key

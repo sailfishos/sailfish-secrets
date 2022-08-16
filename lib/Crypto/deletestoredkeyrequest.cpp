@@ -23,6 +23,14 @@ DeleteStoredKeyRequestPrivate::DeleteStoredKeyRequestPrivate()
 }
 
 /*!
+  \qmltype DeleteStoredKeyRequest
+  \brief Allows a client request that the system crypto service delete a stored key
+  \inqmlmodule Sailfish.Crypto
+  \inherits Request
+  \instantiates Sailfish::Crypto::DeleteStoredKeyRequest
+*/
+
+/*!
   \class DeleteStoredKeyRequest
   \brief Allows a client request that the system crypto service delete a stored key
   \inmodule SailfishCrypto
@@ -44,6 +52,11 @@ DeleteStoredKeyRequest::DeleteStoredKeyRequest(QObject *parent)
 DeleteStoredKeyRequest::~DeleteStoredKeyRequest()
 {
 }
+
+/*!
+  \qmlproperty Key.Identifier DeleteStoredKeyRequest::identifier
+  \brief The identifier of the stored key which the client wishes to be deleted
+*/
 
 /*!
   \brief Returns the identifier of the stored key which the client wishes to be deleted
