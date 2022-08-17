@@ -320,7 +320,7 @@ void VerifyRequest::setCryptoPluginName(const QString &pluginName)
 */
 
 /*!
-  \brief Returns true if signature data was determined to have been signed with the specified key.
+  \brief Returns VerificationSucceeded if signature data was determined to have been signed with the specified key.
 
   Note: this value is only valid if the status of the request is Request::Finished.
  */
