@@ -23,6 +23,13 @@ InteractionRequestPrivate::InteractionRequestPrivate()
 }
 
 /*!
+  \qmltype InteractionRequest
+  \brief Allows a client request user input, mediated by the secrets service
+  \inqmlmodule Sailfish.Secrets
+  \inherits Request
+*/
+
+/*!
   \class InteractionRequest
   \brief Allows a client request user input, mediated by the secrets service
   \inmodule SailfishSecrets
@@ -78,6 +85,11 @@ InteractionRequest::InteractionRequest(QObject *parent)
 InteractionRequest::~InteractionRequest()
 {
 }
+
+/*!
+  \qmlproperty InteractionParameters InteractionRequest::interactionParameters
+  \brief The interaction parameters which allow customisation of the input prompt
+*/
 
 /*!
   \brief Returns the interaction parameters which allow customisation of the input prompt

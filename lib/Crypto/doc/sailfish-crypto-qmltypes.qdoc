@@ -1,0 +1,27 @@
+/****************************************************************************************
+**
+** Copyright (C) 2022 Jolla Ltd.
+** All rights reserved.
+**
+****************************************************************************************/
+
+/*!
+\qmlmodule Sailfish.Crypto 1.0
+\title Sailfish.Crypto QML Types
+
+This module includes the following types:
+
+*/
+
+/*!
+\page sailfish-crypto-qmltypes.html
+\title Sailfish.Crypto QML Types
+\brief Provides QML types for Sailfish OS Crypto Library
+
+The Sailfish.Crypto module includes the following types:
+
+\generatelist{qmltypesbymodule Sailfish.Crypto}
+
+\note The QML API follows very closely the C++ API. Many of the details are only described in the C++ API documentation.
+
+*/

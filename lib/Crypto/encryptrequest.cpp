@@ -23,6 +23,14 @@ EncryptRequestPrivate::EncryptRequestPrivate()
 }
 
 /*!
+  \qmltype EncryptRequest
+  \brief Allows a client request that the system crypto service encrypt data with a specific key.
+  \inqmlmodule Sailfish.Crypto
+  \inherits Request
+  \instantiates Sailfish::Crypto::EncryptRequest
+*/
+
+/*!
  * \class EncryptRequest
  * \brief Allows a client request that the system crypto service encrypt data with a specific key.
  * \inmodule SailfishCrypto
@@ -45,6 +53,11 @@ EncryptRequest::EncryptRequest(QObject *parent)
 EncryptRequest::~EncryptRequest()
 {
 }
+
+/*!
+  \qmlproperty ArrayBuffer EncryptRequest::data
+  \brief The data which the client wishes the system service to encrypt
+*/
 
 /*!
  * \brief Returns the data which the client wishes the system service to encrypt
@@ -70,6 +83,11 @@ void EncryptRequest::setData(const QByteArray &data)
         emit dataChanged();
     }
 }
+
+/*!
+  \qmlproperty ArrayBuffer EncryptRequest::initializationVector
+  \brief The initialization vector which the client wishes to use when encrypting the data
+*/
 
 /*!
  * \brief Returns the initialization vector which the client wishes to use when encrypting the data
@@ -107,6 +125,11 @@ void EncryptRequest::setInitializationVector(const QByteArray &iv)
 }
 
 /*!
+  \qmlproperty Key EncryptRequest::key
+  \brief The key which the client wishes the system service to use to encrypt the data
+*/
+
+/*!
  * \brief Returns the key which the client wishes the system service to use to encrypt the data
  */
 Key EncryptRequest::key() const
@@ -130,6 +153,28 @@ void EncryptRequest::setKey(const Key &key)
         emit keyChanged();
     }
 }
+
+/*!
+  \qmlproperty enumeration EncryptRequest::blockMode
+  \brief The block mode which should be used when encrypting the data
+  \value BlockModeUnknown
+  \value BlockModeCustom
+  \value BlockModeEcb
+  \value BlockModeCbc
+  \value BlockModePcbc
+  \value BlockModeCfb1
+  \value BlockModeCfb8
+  \value BlockModeCfb128
+  \value BlockModeOfb
+  \value BlockModeCtr
+  \value BlockModeGcm
+  \value BlockModeLrw
+  \value BlockModeXex
+  \value BlockModeXts
+  \value BlockModeCmc
+  \value BlockModeEme
+  \value BlockModeCcm
+*/
 
 /*!
  * \brief Returns the block mode which should be used when encrypting the data
@@ -157,6 +202,19 @@ void EncryptRequest::setBlockMode(Sailfish::Crypto::CryptoManager::BlockMode mod
 }
 
 /*!
+  \qmlproperty enumeration EncryptRequest::padding
+  \brief The encryption padding mode which should be used when encrypting the data
+  \value EncryptionPaddingUnknown
+  \value EncryptionPaddingCustom
+  \value EncryptionPaddingNone
+  \value EncryptionPaddingPkcs7
+  \value EncryptionPaddingRsaOaep
+  \value EncryptionPaddingRsaOaepMgf1
+  \value EncryptionPaddingRsaPkcs1
+  \value EncryptionPaddingAnsiX923
+*/
+
+/*!
  * \brief Returns the encryption padding mode which should be used when encrypting the data
  */
 Sailfish::Crypto::CryptoManager::EncryptionPadding EncryptRequest::padding() const
@@ -180,6 +238,11 @@ void EncryptRequest::setPadding(Sailfish::Crypto::CryptoManager::EncryptionPaddi
         emit paddingChanged();
     }
 }
+
+/*!
+  \qmlproperty ArrayBuffer EncryptRequest::authenticationData
+  \brief The authentication data for the encrypt operation
+*/
 
 /*!
  * \brief Returns the authentication data for the encrypt operation
@@ -209,6 +272,11 @@ void EncryptRequest::setAuthenticationData(const QByteArray &data)
 }
 
 /*!
+  \qmlproperty string EncryptRequest::cryptoPluginName
+  \brief The name of the crypto plugin which the client wishes to perform the encryption operation
+*/
+
+/*!
  * \brief Returns the name of the crypto plugin which the client wishes to perform the encryption operation
  */
 QString EncryptRequest::cryptoPluginName() const
@@ -234,6 +302,12 @@ void EncryptRequest::setCryptoPluginName(const QString &pluginName)
 }
 
 /*!
+  \qmlproperty ArrayBuffer EncryptRequest::cipherText
+  \brief The ciphertext result of the encryption operation.
+  \note this value is only valid if the status of the request is \c Request.Finished.
+*/
+
+/*!
  * \brief Returns the ciphertext result of the encryption operation.
  *
  * Note: this value is only valid if the status of the request is Request::Finished.
@@ -243,6 +317,13 @@ QByteArray EncryptRequest::ciphertext() const
     Q_D(const EncryptRequest);
     return d->m_ciphertext;
 }
+
+/*!
+  \qmlproperty ArrayBuffer EncryptRequest::authenticationTag
+  \brief Returns the authentication tag for the encryption operation
+  \note this value is only valid if an authenticated encryption was performed and
+  the status of the request is \c Request.Finished
+*/
 
 /*!
  * \brief Returns the authentication tag for the encryption operation.

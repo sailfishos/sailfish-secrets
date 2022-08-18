@@ -30,6 +30,14 @@ CipherRequestPrivate::CipherRequestPrivate()
 }
 
 /*!
+  \qmltype CipherRequest
+  \brief Allows the client to request a cipher session from the system crypto service
+  \inqmlmodule Sailfish.Crypto
+  \inherits Request
+  \instantiates Sailfish::Crypto::CipherRequest
+*/
+
+/*!
   \class CipherRequest
   \brief Allows the client to request a cipher session from the system crypto service
   \inmodule SailfishCrypto
@@ -51,6 +59,15 @@ CipherRequest::CipherRequest(QObject *parent)
 CipherRequest::~CipherRequest()
 {
 }
+
+/*!
+  \qmlproperty enumeration CipherRequest::cipherMode
+  \brief The mode which the client wishes to apply to the cipher session
+  \value InitializeCipher
+  \value UpdateCipherAuthentication
+  \value UpdateCipher
+  \value FinalizeCipher
+*/
 
 /*!
   \brief Returns the mode which the client wishes to apply to the cipher session
@@ -193,6 +210,20 @@ void CipherRequest::setCipherMode(CipherRequest::CipherMode mode)
 }
 
 /*!
+  \qmlproperty enumeration CipherRequest::operation
+  \brief The operation which the client wishes to perform with the cipher session
+  \value OperationUnknown
+  \value OperationCustom
+  \value OperationSign
+  \value OperationVerify
+  \value OperationEncrypt
+  \value OperationDecrypt
+  \value OperationCalculateDigest
+  \value OperationCalculateMac
+  \value OperationDeriveKey
+*/
+
+/*!
   \brief Returns the operation which the client wishes to perform with the cipher session
  */
 CryptoManager::Operation CipherRequest::operation() const
@@ -221,6 +252,11 @@ void CipherRequest::setOperation(CryptoManager::Operation op)
 }
 
 /*!
+  \qmlproperty ArrayBuffer CipherRequest::data
+  \brief The data which the client wishes the system service to operate on
+*/
+
+/*!
   \brief Returns the data which the client wishes the system service to operate on
  */
 QByteArray CipherRequest::data() const
@@ -244,6 +280,11 @@ void CipherRequest::setData(const QByteArray &data)
         emit dataChanged();
     }
 }
+
+/*!
+  \qmlproperty ArrayBuffer CipherRequest::initializationVector
+  \brief The initialization vector which the client wishes to use when encrypting or decrypting the data
+*/
 
 /*!
   \brief Returns the initialization vector which the client wishes to use when encrypting or decrypting the data
@@ -284,6 +325,11 @@ void CipherRequest::setInitializationVector(const QByteArray &iv)
 }
 
 /*!
+  \qmlproperty Key CipherRequest::key
+  \brief The key which the client wishes the system service to use to encrypt the data
+*/
+
+/*!
   \brief Returns the key which the client wishes the system service to use to encrypt the data
  */
 Key CipherRequest::key() const
@@ -307,6 +353,28 @@ void CipherRequest::setKey(const Key &key)
         emit keyChanged();
     }
 }
+
+/*!
+  \qmlproperty enumeration CipherRequest::blockMode
+  \brief The block mode which should be used when encrypting the data
+  \value BlockModeUnknown
+  \value BlockModeCustom
+  \value BlockModeEcb
+  \value BlockModeCbc
+  \value BlockModePcbc
+  \value BlockModeCfb1
+  \value BlockModeCfb8
+  \value BlockModeCfb128
+  \value BlockModeOfb
+  \value BlockModeCtr
+  \value BlockModeGcm
+  \value BlockModeLrw
+  \value BlockModeXex
+  \value BlockModeXts
+  \value BlockModeCmc
+  \value BlockModeEme
+  \value BlockModeCcm
+*/
 
 /*!
   \brief Returns the block mode which should be used when encrypting the data
@@ -334,6 +402,19 @@ void CipherRequest::setBlockMode(Sailfish::Crypto::CryptoManager::BlockMode mode
 }
 
 /*!
+  \qmlproperty enumeration CipherRequest::encryptionPadding
+  \brief The encryption padding mode which should be used when encrypting or decrypting the data
+  \value EncryptionPaddingUnknown
+  \value EncryptionPaddingCustom
+  \value EncryptionPaddingNone
+  \value EncryptionPaddingPkcs7
+  \value EncryptionPaddingRsaOaep
+  \value EncryptionPaddingRsaOaepMgf1
+  \value EncryptionPaddingRsaPkcs1
+  \value EncryptionPaddingAnsiX923
+*/
+
+/*!
   \brief Returns the encryption padding mode which should be used when encrypting or decrypting the data
  */
 Sailfish::Crypto::CryptoManager::EncryptionPadding CipherRequest::encryptionPadding() const
@@ -357,6 +438,17 @@ void CipherRequest::setEncryptionPadding(Sailfish::Crypto::CryptoManager::Encryp
         emit encryptionPaddingChanged();
     }
 }
+
+/*!
+  \qmlproperty enumeration CipherRequest::signaturePadding
+  \brief The signature padding mode which should be used when signing or verifying the data
+  \value SignaturePaddingUnknown
+  \value SignaturePaddingCustom
+  \value SignaturePaddingNone
+  \value SignaturePaddingRsaPss
+  \value SignaturePaddingRsaPkcs1    = EncryptionPaddingRsaPkcs1
+  \value SignaturePaddingAnsiX923    = EncryptionPaddingAnsiX923
+*/
 
 /*!
   \brief Returns the signature padding mode which should be used when signing or verifying the data
@@ -384,6 +476,50 @@ void CipherRequest::setSignaturePadding(Sailfish::Crypto::CryptoManager::Signatu
 }
 
 /*!
+  \qmlproperty enumeration CipherRequest::digestFunction
+  \brief The digest which should be used when signing or verifying the data
+  \value DigestUnknown
+  \value DigestCustom
+  \value DigestMd5
+  \value DigestSha1
+  \value DigestSha2_224
+  \value DigestSha2_256
+  \value DigestSha256        = DigestSha2_256
+  \value DigestSha2_384
+  \value DigestSha2_512
+  \value DigestSha512        = DigestSha2_512
+  \value DigestSha2_512_224
+  \value DigestSha2_512_256
+  \value DigestSha3_224
+  \value DigestSha3_256
+  \value DigestSha3_384
+  \value DigestSha3_512
+  \value DigestShake128
+  \value DigestShake256
+  \value DigestGost_94
+  \value DigestGost_2012_256
+  \value DigestGost_2012_512
+  \value DigestBlake
+  \value DigestBlake2
+  \value DigestBlake2b
+  \value DigestBlake2s
+  \value DigestWhirlpool
+  \value DigestRipeMd
+  \value DigestRipeMd128_256
+  \value DigestRipeMd160
+  \value DigestRipeMd320
+  \value DigestTiger
+  \value DigestTiger128
+  \value DigestTiger160
+  \value DigestTiger192
+  \value DigestTiger2
+  \value DigestTiger2_128
+  \value DigestTiger2_160
+  \value DigestTiger2_192
+  \value DigestRadioGatun
+*/
+
+/*!
   \brief Returns the digest which should be used when signing or verifying the data
  */
 Sailfish::Crypto::CryptoManager::DigestFunction CipherRequest::digestFunction() const
@@ -407,6 +543,11 @@ void CipherRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::DigestFun
         emit digestFunctionChanged();
     }
 }
+
+/*!
+  \qmlproperty string CipherRequest::cryptoPluginName
+  \brief The name of the crypto plugin which the client wishes to perform the encryption operation
+*/
 
 /*!
   \brief Returns the name of the crypto plugin which the client wishes to perform the encryption operation
@@ -434,6 +575,12 @@ void CipherRequest::setCryptoPluginName(const QString &pluginName)
 }
 
 /*!
+  \qmlproperty ArrayBuffer CipherRequest::generatedData
+  \brief Returns the generated data result of the cipher operation.
+  \note this value is only valid if the status of the request is \c Request.Finished
+*/
+
+/*!
   \brief Returns the generated data result of the cipher operation.
 
   Note: this value is only valid if the status of the request is Request::Finished.
@@ -443,6 +590,22 @@ QByteArray CipherRequest::generatedData() const
     Q_D(const CipherRequest);
     return d->m_generatedData;
 }
+
+/*!
+  \qmlproperty Sailfish::Crypto::CryptoManager::VerificationStatus CipherRequest::verificationStatus
+  \brief Returns the result of the verify operation.
+  \note this value is only valid if the status of the request is \c Request.Finished
+  and the cipher session has been finalized and the \c operation was
+  CryptoManager.OperationVerify
+  \value VerificationStatusUnknown
+  \value VerificationSucceeded
+  \value VerificationFailed
+  \value VerificationSignatureInvalid
+  \value VerificationSignatureExpired
+  \value VerificationKeyExpired
+  \value VerificationKeyRevoked
+  \value VerificationKeyInvalid
+*/
 
 /*!
   \brief Returns the result of the verify operation.

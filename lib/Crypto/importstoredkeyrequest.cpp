@@ -22,6 +22,14 @@ ImportStoredKeyRequestPrivate::ImportStoredKeyRequestPrivate()
 }
 
 /*!
+  \qmltype ImportStoredKeyRequest
+  \brief Allows a client request that the system crypto service import and securely store a key.
+  \inqmlmodule Sailfish.Crypto
+  \inherits Request
+  \instantiates Sailfish::Crypto::ImportStoredKeyRequest
+*/
+
+/*!
   \class ImportStoredKeyRequest
   \brief Allows a client request that the system crypto service import and securely store a key.
   \inmodule SailfishCrypto
@@ -98,6 +106,11 @@ ImportStoredKeyRequest::~ImportStoredKeyRequest()
 }
 
 /*!
+  \qmlproperty string ImportStoredKeyRequest::cryptoPluginName
+  \brief The name of the crypto plugin which the client wishes to perform the key generation operation
+*/
+
+/*!
   \brief Returns the name of the crypto plugin which the client wishes to perform the key generation operation
  */
 QString ImportStoredKeyRequest::cryptoPluginName() const
@@ -121,6 +134,11 @@ void ImportStoredKeyRequest::setCryptoPluginName(const QString &pluginName)
         emit cryptoPluginNameChanged();
     }
 }
+
+/*!
+  \qmlproperty InteractionParameters ImportStoredKeyRequest::InteractionParameters
+  \brief The user input parameters which should be used when requesting the input data from the user
+*/
 
 /*!
   \brief Returns the user input parameters which should be used when requesting the input data from the user
@@ -153,6 +171,11 @@ void ImportStoredKeyRequest::setInteractionParameters(
 }
 
 /*!
+  \qmlproperty ArrayBuffer ImportStoredKeyRequest::data
+  \brief The data which should be imported as a key.
+*/
+
+/*!
   \brief Returns the data which should be imported as a key.
  */
 QByteArray ImportStoredKeyRequest::data() const
@@ -176,6 +199,11 @@ void ImportStoredKeyRequest::setData(const QByteArray &data)
         emit dataChanged();
     }
 }
+
+/*!
+  \qmlproperty Key ImportStoredKeyRequest::keyTemplate
+  \brief Returns the key which should be used as a template when storing the imported key
+*/
 
 /*!
   \brief Returns the key which should be used as a template when storing the imported key
@@ -208,6 +236,12 @@ void ImportStoredKeyRequest::setKeyTemplate(const Key &keyTemplate)
         emit keyTemplateChanged();
     }
 }
+
+/*!
+  \qmlproperty Key ImportStoredKeyRequest::importedKeyReference
+  \brief Returns a key reference to the securely-stored imported key
+  \note this value is only valid if the status of the request is \c Request.Finished.
+*/
 
 /*!
   \brief Returns a key reference to the securely-stored imported key

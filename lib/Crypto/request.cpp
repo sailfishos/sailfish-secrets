@@ -12,6 +12,13 @@
 using namespace Sailfish::Crypto;
 
 /*!
+  \qmltype Request
+  \brief Base-class of specific crypto service requests.
+  \inqmlmodule Sailfish.Crypto
+  \instantiates Sailfish::Crypto::Request
+*/
+
+/*!
   \class Request
   \brief Base-class of specific crypto service requests.
   \inmodule SailfishCrypto
@@ -49,6 +56,11 @@ Request::~Request()
  */
 
 /*!
+  \qmlproperty CryptoManager Request::manager
+  \brief The manager through which the request interfaces to the system crypto service
+*/
+
+/*!
   \fn Request::manager() const
   \brief Returns the manager through which the request interfaces to the system crypto service
  */
@@ -64,14 +76,33 @@ Request::~Request()
  */
 
 /*!
+  \qmlproperty object Request::customParameters
+  \brief The plugin-specific custom parameters associated with the request
+*/
+
+/*!
   \fn Request::customParameters() const
   \brief Returns the plugin-specific custom parameters associated with the request
  */
 
 /*!
+  \qmlproperty enumeration Request::status
+  \brief Returns the current status of the Request
+  \value Inactive
+  \value Active
+  \value Finished
+*/
+
+/*!
   \fn Request::status() const
   \brief Returns the current status of the Request
  */
+
+/*!
+  \qmlproperty Result Request::result
+  \brief Returns the result of the Request
+  \note this value is only valid if the status of the request is \c Finished
+*/
 
 /*!
   \fn Request::result() const
@@ -81,8 +112,16 @@ Request::~Request()
  */
 
 /*!
+  \qmlmethod void Request::startRequest()
+*/
+
+/*!
   \fn Request::startRequest()
   \brief Starts the request
+ */
+
+/*!
+  \qmlmethod void Request::waitForFinished()
  */
 
 /*!

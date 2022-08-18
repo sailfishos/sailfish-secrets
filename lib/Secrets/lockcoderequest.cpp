@@ -27,6 +27,16 @@ LockCodeRequestPrivate::LockCodeRequestPrivate()
 }
 
 /*!
+  \qmltype LockCodeRequest
+  \brief Allows a client to request that the system service either
+         unlock, lock, or modify the lock code associated with the
+         device, an extension plugin, a standalone secret or a
+         collection.
+  \inqmlmodule Sailfish.Secrets
+  \inherits Request
+*/
+
+/*!
   \class LockCodeRequest
   \brief Allows a client to request that the system service either
          unlock, lock, or modify the lock code associated with the
@@ -103,6 +113,15 @@ LockCodeRequest::~LockCodeRequest()
 }
 
 /*!
+  \qmlproperty enumeration lockCodeRequestType
+  \brief The type of lock code operation being requested
+  \value QueryLockStatus
+  \value ModifyLockCode
+  \value ProvideLockCode
+  \valie ForgetLockCode
+*/
+
+/*!
   \brief Returns the type of lock code operation being requested
  */
 LockCodeRequest::LockCodeRequestType LockCodeRequest::lockCodeRequestType() const
@@ -130,6 +149,13 @@ void LockCodeRequest::setLockCodeRequestType(LockCodeRequest::LockCodeRequestTyp
         emit lockCodeRequestTypeChanged();
     }
 }
+
+/*!
+  \qmlproperty enumeration LockCodeRequest::lockCodeTargetType
+  \brief The type of the target of the lock code operation
+  \value MetadataDatabase
+  \value ExtensionPlugin
+*/
 
 /*!
   \brief Returns the type of the target of the lock code operation
@@ -164,6 +190,14 @@ void LockCodeRequest::setLockCodeTargetType(LockCodeRequest::LockCodeTargetType 
         emit lockCodeTargetTypeChanged();
     }
 }
+
+/*!
+  \qmlproperty enumeration LockCodeRequest::userInteractionMode
+  \brief The user interaction mode required when retrieving lock codes from the user
+  \value PreventInteraction no user interaction allowed, operation will fail if interaction is required
+  \value SystemInteraction system-mediated user interaction via system UI if required
+  \value ApplicationInteraction in-process application UI will handle interaction, ApplicationSpecificAuthentication only.
+*/
 
 /*!
   \brief Returns the user interaction mode required when retrieving lock codes from the user
@@ -203,6 +237,11 @@ void LockCodeRequest::setUserInteractionMode(SecretManager::UserInteractionMode 
 }
 
 /*!
+  \qmlproperty InteractionParameters LockCodeRequest::interactionParameters
+  \brief The user input parameters which should be used when requesting the secret data from the user
+*/
+
+/*!
   \brief Returns the user input parameters which should be used when requesting the secret data from the user
  */
 InteractionParameters LockCodeRequest::interactionParameters() const
@@ -235,6 +274,11 @@ void LockCodeRequest::setInteractionParameters(const InteractionParameters &para
 // e.g. to allow changing the type of lock code (from PIN to ALPHANUM, etc)?
 
 /*!
+  \qmlproperty string LockCodeRequest::lockCodeTarget
+  \brief The name of the target to which the lock code operation should be applied
+*/
+
+/*!
   \brief Returns the name of the target to which the lock code operation should be applied
  */
 QString LockCodeRequest::lockCodeTarget() const
@@ -263,6 +307,15 @@ void LockCodeRequest::setLockCodeTarget(const QString &targetName)
         emit lockCodeTargetChanged();
     }
 }
+
+/*!
+  \qmlproperty enumeration LockCodeRequest::lockStatus
+  \brief The current lock status of the target plugin or metadata database
+  \value Unknown 
+  \value Unsupported
+  \value Unlocked
+  \value Locked
+*/
 
 /*!
   \brief Returns the current lock status of the target plugin or metadata database

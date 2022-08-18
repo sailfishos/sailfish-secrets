@@ -22,6 +22,14 @@ ImportKeyRequestPrivate::ImportKeyRequestPrivate()
 }
 
 /*!
+  \qmltype ImportKeyRequest
+  \brief Allows a client request that the system crypto service import a key from some data.
+  \inqmlmodule Sailfish.Crypto
+  \inherits Request
+  \instantiates Sailfish::Crypto::ImportKeyRequest
+*/
+
+/*!
   \class ImportKeyRequest
   \brief Allows a client request that the system crypto service import a key from some data.
   \inmodule SailfishCrypto
@@ -48,6 +56,11 @@ ImportKeyRequest::~ImportKeyRequest()
 }
 
 /*!
+  \qmlproperty string ImportKeyRequest::cryptoPluginName
+  \brief The name of the crypto plugin which the client wishes to perform the key import operation
+*/
+
+/*!
   \brief Returns the name of the crypto plugin which the client wishes to perform the key import operation
  */
 QString ImportKeyRequest::cryptoPluginName() const
@@ -71,6 +84,11 @@ void ImportKeyRequest::setCryptoPluginName(const QString &pluginName)
         emit cryptoPluginNameChanged();
     }
 }
+
+/*!
+  \qmlproperty InteractionParameters ImportKeyRequest::InteractionParameters
+  \brief Returns the user input parameters which should be used when requesting the input data from the user
+*/
 
 /*!
   \brief Returns the user input parameters which should be used when requesting the input data from the user
@@ -103,6 +121,11 @@ void ImportKeyRequest::setInteractionParameters(
 }
 
 /*!
+  \qmlproperty ArrayBuffer ImportKeyRequest::data
+  \brief Returns the data which should be imported as a key.
+*/
+
+/*!
   \brief Returns the data which should be imported as a key.
  */
 QByteArray ImportKeyRequest::data() const
@@ -126,6 +149,12 @@ void ImportKeyRequest::setData(const QByteArray &data)
         emit dataChanged();
     }
 }
+
+/*!
+  \qmlproperty Key ImportKeyRequest::importedKey
+  \brief Returns the imported key
+  \note This value is only valid if the status of the request is \c Request.Finished.
+*/
 
 /*!
   \brief Returns the imported key

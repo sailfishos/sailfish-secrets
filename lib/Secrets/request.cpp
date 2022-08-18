@@ -12,6 +12,25 @@
 using namespace Sailfish::Secrets;
 
 /*!
+  \qmltype Request
+  \inqmlmodule Sailfish.Secrets
+  \brief Base-class of specific secrets service requests.
+*/
+
+/*!
+  \qmlproperty SecretManager Request::manager
+*/
+/*!
+  \qmlproperty enumeration  Request::status
+  \value Inactive
+  \value Active
+  \value Finished
+*/
+/*!
+  \qmlproperty Result Request::result
+*/
+
+/*!
   \class Request
   \brief Base-class of specific secrets service requests.
   \inmodule SailfishSecrets
@@ -56,9 +75,20 @@ Request::~Request()
  */
 
 /*!
+  \qmlmethod void Request::startRequest()
+  \brief Starts the request
+*/
+
+/*!
   \fn Request::startRequest()
   \brief Starts the request
  */
+
+/*!
+  \qmlmethod void Request::waitForFinished()
+  \brief Blocks the current thread of execution until the status of the request is \qml Finished \endqml
+  \note this method is generally unsafe and should be avoided.
+*/
 
 /*!
   \fn Request::waitForFinished()

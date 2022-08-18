@@ -23,6 +23,14 @@ GenerateKeyRequestPrivate::GenerateKeyRequestPrivate()
 }
 
 /*!
+  \qmltype GenerateKeyRequest
+  \brief Allows a client request that the system crypto service generate a key based on a template.
+  \inqmlmodule Sailfish.Crypto
+  \inherits Request
+  \instantiates Sailfish::Crypto::GenerateKeyRequest
+*/
+
+/*!
   \class GenerateKeyRequest
   \brief Allows a client request that the system crypto service generate a key based on a template.
   \inmodule SailfishCrypto
@@ -49,6 +57,11 @@ GenerateKeyRequest::~GenerateKeyRequest()
 }
 
 /*!
+  \qmlproperty string GenerateKeyRequest::cryptoPluginName
+  \brief The name of the crypto plugin which the client wishes to perform the key generation operation
+*/
+
+/*!
   \brief Returns the name of the crypto plugin which the client wishes to perform the key generation operation
  */
 QString GenerateKeyRequest::cryptoPluginName() const
@@ -72,6 +85,11 @@ void GenerateKeyRequest::setCryptoPluginName(const QString &pluginName)
         emit cryptoPluginNameChanged();
     }
 }
+
+/*!
+  \qmlproperty KeyDerivationParameters GenerateKeyRequest::keyDerivationParameters
+  \brief The symmetric key derivation parameters which should be used to generate the secret key data
+*/
 
 /*!
   \brief Returns the symmetric key derivation parameters which should be used to generate the secret key data
@@ -102,6 +120,12 @@ void GenerateKeyRequest::setKeyDerivationParameters(
         emit keyDerivationParametersChanged();
     }
 }
+
+/*!
+  \qmlproperty KeyPairGenerationParameters GenerateKeyRequest::keyPairGenerationParameters
+  \brief The asymmetric key pair generation parameters which
+         should be used to generate the public and private key data
+*/
 
 /*!
   \brief Returns the asymmetric key pair generation parameters which
@@ -136,6 +160,11 @@ void GenerateKeyRequest::setKeyPairGenerationParameters(
 }
 
 /*!
+  \qmlproperty Key GenerateKeyRequest::keyTemplate
+  \brief The key which should be used as a template when generating the full key
+*/
+
+/*!
   \brief Returns the key which should be used as a template when generating the full key
  */
 Key GenerateKeyRequest::keyTemplate() const
@@ -159,6 +188,12 @@ void GenerateKeyRequest::setKeyTemplate(const Key &key)
         emit keyTemplateChanged();
     }
 }
+
+/*!
+  \qmlproperty Key GenerateKeyRequest::generatedKey
+  \brief Returns the generated key
+  \note this value is only valid if the status of the request is \c Request.Finished.
+*/
 
 /*!
   \brief Returns the generated key

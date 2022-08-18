@@ -28,6 +28,13 @@ CreateCollectionRequestPrivate::CreateCollectionRequestPrivate()
 }
 
 /*!
+  \qmltype CreateCollectionRequest
+  \inqmlmodule Sailfish.Secrets
+  \brief Allows a client request that the system secrets service create a collection for secrets storage
+  \inherits Request
+ */
+
+/*!
   \class CreateCollectionRequest
   \brief Allows a client request that the system secrets service create a collection for secrets storage
   \inmodule SailfishSecrets
@@ -88,6 +95,13 @@ CreateCollectionRequest::~CreateCollectionRequest()
 }
 
 /*!
+  \qmlproperty enumeration CreateCollectionRequest::collectionLockType
+  \brief The type of lock which will be applied to the created collection.
+  \value DeviceLock
+  \value CustomLock
+ */
+
+/*!
   \brief Returns the type of lock which will be applied to the created collection.
 
   A collection whose lock type is CreateCollectionRequest::DeviceLock will use the
@@ -118,6 +132,11 @@ void CreateCollectionRequest::setCollectionLockType(CreateCollectionRequest::Col
 }
 
 /*!
+  \qmlproperty string CreateCollectionRequest::collectionName
+  \brief The name of the collection which the client wishes create
+ */
+
+/*!
   \brief Returns the name of the collection which the client wishes create
  */
 QString CreateCollectionRequest::collectionName() const
@@ -141,6 +160,11 @@ void CreateCollectionRequest::setCollectionName(const QString &name)
         emit collectionNameChanged();
     }
 }
+
+/*!
+  \qmlproperty string CreateCollectionRequest::storagePluginName
+  \brief The name of the storage plugin which the client wishes to use to create the collection
+ */
 
 /*!
   \brief Returns the name of the storage plugin which the client wishes to use to create the collection
@@ -169,6 +193,11 @@ void CreateCollectionRequest::setStoragePluginName(const QString &pluginName)
 }
 
 /*!
+  \qmlproperty string CreateCollectionRequest::encryptionPluginName
+  \brief The name of the encryption plugin which the client wishes to use to encrypt secrets stored in the collection
+ */
+
+/*!
   \brief Returns the name of the encryption plugin which the client wishes to use to encrypt secrets stored in the collection
   \note When storagePluginName is the same as encryptionPluginName, then it is assumed that the user means an EncryptedStoragePlugin.
  */
@@ -193,6 +222,11 @@ void CreateCollectionRequest::setEncryptionPluginName(const QString &pluginName)
         emit encryptionPluginNameChanged();
     }
 }
+
+/*!
+  \qmlproperty string CreateCollectionRequest::authenticationPluginName
+  \brief The name of the authentication plugin which the client wishes to use to authenticate the user (in order to unlock the collection)
+ */
 
 /*!
   \brief Returns the name of the authentication plugin which the client wishes to use to authenticate the user (in order to unlock the collection)
@@ -222,6 +256,14 @@ void CreateCollectionRequest::setAuthenticationPluginName(const QString &pluginN
 }
 
 /*!
+  \qmlproperty enumeration CreateCollectionRequest::deviceLockUnlockSemantic
+  \brief The unlock semantic which will apply to the collection if it is protected by the device lock.
+  \value SecretManager.DeviceLockKeepUnlocked unlock after first successful device unlock, stay unlocked.  e.g. background processes.
+  \value SecretManager.DeviceLockVerifyLock unlock on device unlock, relock on device lock requiring verify (not passphrase) to unlock on subsequent access.
+  \value SecretManager.DeviceLockRelock unlock on device unlock, relock on device lock requiring passphrase to unlock on subsequent access.
+ */
+
+/*!
   \brief Returns the unlock semantic which will apply to the collection if it is protected by the device lock.
  */
 SecretManager::DeviceLockUnlockSemantic CreateCollectionRequest::deviceLockUnlockSemantic() const
@@ -247,6 +289,15 @@ void CreateCollectionRequest::setDeviceLockUnlockSemantic(SecretManager::DeviceL
         emit deviceLockUnlockSemanticChanged();
     }
 }
+
+/*!
+  \qmlproperty enumeration CreateCollectionRequest::customLockUnlockSemantic
+  \brief The unlock semantic which will apply to the collection if it is protected by a custom lock.
+  \value SecretManager.CustomLockKeepUnlocked unlock after first successful access (with UI flow), stay unlocked.  e.g. background processes.
+  \value SecretManager.CustomLockDeviceLockRelock unlock after successful access (with UI flow) after device unlock, relock on device lock.
+  \value SecretManager.CustomLockTimoutRelock unlock after successful access (with UI flow) after device unlock, relock after timeout.
+  \value SecretManager.CustomLockAccessRelock unlock and relock on every successful access (with UI flow).
+ */
 
 /*!
   \brief Returns the unlock semantic which will apply to the collection if it is protected by a custom lock.
@@ -276,6 +327,14 @@ void CreateCollectionRequest::setCustomLockUnlockSemantic(SecretManager::CustomL
 }
 
 /*!
+  \qmlproperty enumeration CreateCollectionRequest::accessControlMode
+  \brief The access control mode which will be enforced for the collection
+  \value SecretManager.OwnerOnlyMode no fine-grained access control necessary, only the creating application can access/write/delete.
+  \value SecretManager.SystemAccessControlMode  access control via system access control, other applications can access if user gives permission.
+  \value SecretManager.NoAccessControlMode other applications can access; use with care (prefer CustomLockAccessRelock)
+ */
+
+/*!
   \brief Returns the access control mode which will be enforced for the collection
  */
 SecretManager::AccessControlMode CreateCollectionRequest::accessControlMode() const
@@ -299,6 +358,14 @@ void CreateCollectionRequest::setAccessControlMode(SecretManager::AccessControlM
         emit accessControlModeChanged();
     }
 }
+
+/*!
+  \qmlproperty enumeration CreateCollectionRequest::userInteractionMode
+  \brief The user interaction mode required when creating the collection (e.g. if a custom lock code must be requested from the user)
+  \value SecretManager.PreventInteraction no user interaction allowed, operation will fail if interaction is required
+  \value SecretManager.SystemInteraction system-mediated user interaction via system UI if required
+  \value SecretManager.ApplicationInteraction in-process application UI will handle interaction, ApplicationSpecificAuthentication only.
+ */
 
 /*!
   \brief Returns the user interaction mode required when creating the collection (e.g. if a custom lock code must be requested from the user)

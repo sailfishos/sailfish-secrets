@@ -95,6 +95,11 @@ FindSecretsRequest::~FindSecretsRequest()
 }
 
 /*!
+  \qmlproperty string FindSecretsRequest::collectionName
+  \brief The name of the collection that the client wishes to search for secrets matching some filter
+*/
+
+/*!
   \brief Returns the name of the collection that the client wishes to search for secrets matching some filter
  */
 QString FindSecretsRequest::collectionName() const
@@ -122,6 +127,11 @@ void FindSecretsRequest::setCollectionName(const QString &name)
 }
 
 /*!
+  \qmlproperty string FindSecretsRequest::storagePluginName
+  \brief The name of the storage plugin within which the client wishes to find secrets
+*/
+
+/*!
   \brief Returns the name of the storage plugin within which the client wishes to find secrets
  */
 QString FindSecretsRequest::storagePluginName() const
@@ -145,6 +155,11 @@ void FindSecretsRequest::setStoragePluginName(const QString &pluginName)
         emit storagePluginNameChanged();
     }
 }
+
+/*!
+  \qmlproperty FilterData FindSecretsRequest::filter
+  \brief The filter which will be used when searching for matching secrets
+*/
 
 /*!
   \brief Returns the filter which will be used when searching for matching secrets
@@ -181,6 +196,13 @@ void FindSecretsRequest::setFilter(const Sailfish::Secrets::Secret::FilterData &
 }
 
 /*!
+  \qmlproperty enumeration FindSecretsRequest::filterOperator
+  \brief The filter operator which will be used when searching for matching secrets
+  \value OperatorOr
+  \value OperatorAnd
+*/
+
+/*!
   \brief Returns the filter operator which will be used when searching for matching secrets
  */
 Sailfish::Secrets::SecretManager::FilterOperator FindSecretsRequest::filterOperator() const
@@ -213,6 +235,14 @@ void FindSecretsRequest::setFilterOperator(Sailfish::Secrets::SecretManager::Fil
 }
 
 /*!
+  \qmlproperty enumeration FindSecretsRequest::userInteractionMode
+  \brief The user interaction mode required when filtering the secrets (e.g. if a custom lock code must be requested from the user)
+  \value PreventInteraction no user interaction allowed, operation will fail if interaction is required
+  \value SystemInteraction system-mediated user interaction via system UI if required
+  \value ApplicationInteraction in-process application UI will handle interaction, ApplicationSpecificAuthentication only.
+*/
+
+/*!
   \brief Returns the user interaction mode required when filtering the secrets (e.g. if a custom lock code must be requested from the user)
  */
 SecretManager::UserInteractionMode FindSecretsRequest::userInteractionMode() const
@@ -236,6 +266,11 @@ void FindSecretsRequest::setUserInteractionMode(SecretManager::UserInteractionMo
         emit userInteractionModeChanged();
     }
 }
+
+/*!
+  \qmlproperty Array FindSecretsRequest::identifiers
+  \brief The identifiers of secrets which matched the filter
+*/
 
 /*!
   \brief Returns the identifiers of secrets which matched the filter.

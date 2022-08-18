@@ -44,6 +44,13 @@ KeyDerivationParametersPrivate::~KeyDerivationParametersPrivate()
 }
 
 /*!
+  \qmltype KeyDerivationParameters
+  \brief Encapsulates parameters related to the derivation of a symmetric encryption key
+  \inqmlmodule Sailfish.Crypto
+  \instantiates Sailfish::Crypto::KeyDerivationParameters
+*/
+
+/*!
   \class KeyDerivationParameters
   \brief Encapsulates parameters related to the derivation of a symmetric encryption key
   \inmodule SailfishCrypto
@@ -140,6 +147,11 @@ bool KeyDerivationParameters::isValid() const
 }
 
 /*!
+  \qmlproperty ArrayBuffer KeyDerivationParameters::inputData
+  \brief The input data which will be used by the key derivation function to generate the output key
+*/
+
+/*!
   \brief Returns the input data which will be used by the key derivation function to generate the output key
 
   For example, often a passphrase is used to generate a key.
@@ -157,6 +169,11 @@ void KeyDerivationParameters::setInputData(const QByteArray &data)
 {
     d_ptr->m_inputData = data;
 }
+
+/*!
+  \qmlproperty ArrayBuffer KeyDerivationParameters::salt
+  \brief The salt which will be used during key derivation
+ */
 
 /*!
   \brief Returns the salt which will be used during key derivation
@@ -182,6 +199,22 @@ void KeyDerivationParameters::setSalt(const QByteArray &salt)
 {
     d_ptr->m_salt = salt;
 }
+
+/*!
+  \qmlproperty enumeration KeyDerivationParameters::keyDerivationFunction
+  \brief The key derivation function which should be used to derive the key
+  \value KdfUnknown
+  \value KdfCustom
+  \value KdfPkcs5Pbkdf2
+  \value KdfHkdf
+  \value KdfBcrypt
+  \value KdfScrypt
+  \value KdfArgon2
+  \value KdfArgon2d          = KdfArgon2
+  \value KdfArgon2i
+  \value KdfArgon2id
+  \value KdfLyra2
+*/
 
 /*!
   \brief Returns the key derivation function which should be used to derive the key
@@ -215,6 +248,17 @@ void KeyDerivationParameters::setKeyDerivationFunction(
 }
 
 /*!
+  \qmlproperty enumeration KeyDerivationParameters::keyDerivationMac
+  \brief The message authentication code function which will be used by the key derivation function
+  \value MacUnknown
+  \value MacCustom
+  \value MacHmac
+  \value MacCmac
+  \value MacVmac
+  \value MacPoly1305
+*/
+
+/*!
   \brief Returns the message authentication code function which will be used by the key derivation function
 
   Some key derivation functions work by applying a MAC function multiple
@@ -244,6 +288,36 @@ void KeyDerivationParameters::setKeyDerivationMac(
 {
     d_ptr->m_keyDerivationMac = mac;
 }
+
+/*!
+  \qmlproperty enumeration KeyDerivationParameters::keyDerivationAlgorithm
+  \brief The algorithm which will be used by the key derivation function
+  \value AlgorithmUnknown
+  \value AlgorithmCustom
+  \value AlgorithmRsa
+  \value AlgorithmDsa
+  \value AlgorithmDh
+  \value AlgorithmEc
+  \value AlgorithmEcDsa
+  \value AlgorithmEdDsa
+  \value AlgorithmEcDh
+  \value AlgorithmEcMqv
+  \value AlgorithmAes
+  \value AlgorithmGost
+  \value AlgorithmTdea
+  \value AlgorithmTdes           = AlgorithmTdea
+  \value AlgorithmBlowfish
+  \value AlgorithmSalsa
+  \value AlgorithmSalsa20        = AlgorithmSalsa
+  \value AlgorithmChaCha
+  \value AlgorithmChaCha20       = AlgorithmChaCha
+  \value AlgorithmRc4
+  \value AlgorithmRc5
+  \value AlgorithmRc6
+  \value AlgorithmSquare
+  \value AlgorithmSerpent
+  \value AlgorithmPanama
+*/
 
 /*!
   \brief Returns the algorithm which will be used by the key derivation function
@@ -282,6 +356,50 @@ void KeyDerivationParameters::setKeyDerivationAlgorithm(
 {
     d_ptr->m_keyDerivationAlgorithm = algo;
 }
+
+/*!
+  \qmlproperty enumeration KeyDerivationParameters::keyDerivationDigestFunction
+  \brief The digest function which will be used by the key derivation function
+  \value DigestUnknown
+  \value DigestCustom
+  \value DigestMd5
+  \value DigestSha1
+  \value DigestSha2_224
+  \value DigestSha2_256
+  \value DigestSha256        = DigestSha2_256
+  \value DigestSha2_384
+  \value DigestSha2_512
+  \value DigestSha512        = DigestSha2_512
+  \value DigestSha2_512_224
+  \value DigestSha2_512_256
+  \value DigestSha3_224
+  \value DigestSha3_256
+  \value DigestSha3_384
+  \value DigestSha3_512
+  \value DigestShake128
+  \value DigestShake256
+  \value DigestGost_94
+  \value DigestGost_2012_256
+  \value DigestGost_2012_512
+  \value DigestBlake
+  \value DigestBlake2
+  \value DigestBlake2b
+  \value DigestBlake2s
+  \value DigestWhirlpool
+  \value DigestRipeMd
+  \value DigestRipeMd128_256
+  \value DigestRipeMd160
+  \value DigestRipeMd320
+  \value DigestTiger
+  \value DigestTiger128
+  \value DigestTiger160
+  \value DigestTiger192
+  \value DigestTiger2
+  \value DigestTiger2_128
+  \value DigestTiger2_160
+  \value DigestTiger2_192
+  \value DigestRadioGatun
+*/
 
 /*!
   \brief Returns the digest function which will be used by the key derivation function
@@ -323,6 +441,11 @@ void KeyDerivationParameters::setKeyDerivationDigestFunction(
 }
 
 /*!
+  \qmlproperty int KeyDerivationParameters::memorySize
+  \brief The memory size parameter to be used when deriving the key
+*/
+
+/*!
   \brief Returns the memory size parameter to be used when deriving the key
 
   Some key derivation functions (e.g. Argon2) allow clients to provide
@@ -351,6 +474,11 @@ void KeyDerivationParameters::setMemorySize(qint64 size)
 }
 
 /*!
+  \qmlproperty int KeyDerivationParameters::iterations
+  \brief The number of iterations of the hash function or cipher to be used when deriving the key
+*/
+
+/*!
   \brief Returns the number of iterations of the hash function or cipher to be used when deriving the key
 
   Some key derivation functions (e.g. Argon2) allow clients to provide
@@ -373,6 +501,11 @@ void KeyDerivationParameters::setIterations(int iterations)
 {
     d_ptr->m_iterations = iterations;
 }
+
+/*!
+  \qmlproperty int KeyDerivationParameters::parallelism
+  \brief The amount of parallelism (threads) to be used when deriving the key
+*/
 
 /*!
   \brief Returns the amount of parallelism (threads) to be used when deriving the key
@@ -399,6 +532,11 @@ void KeyDerivationParameters::setParallelism(int parallelism)
 }
 
 /*!
+  \qmlproperty int KeyDerivationParameters::outputKeySize
+  \brief The security size (in bits) of the output key
+*/
+
+/*!
   \brief Returns the security size (in bits) of the output key
 
   Note that the security size is not necessarily the same as the
@@ -417,6 +555,11 @@ void KeyDerivationParameters::setOutputKeySize(int size)
 {
     d_ptr->m_outputKeySize = size;
 }
+
+/*!
+  \qmlproperty object KeyDerivationParameters::customParameters
+  \brief The plugin-specific custom parameters which will be used during key generation
+*/
 
 /*!
   \brief Returns the plugin-specific custom parameters which will be used during key generation

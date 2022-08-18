@@ -27,6 +27,14 @@ GenerateRandomDataRequestPrivate::GenerateRandomDataRequestPrivate()
 }
 
 /*!
+  \qmltype GenerateRandomDataRequest
+  \brief Allows a client request that the system crypto service generate random data.
+  \inqmlmodule Sailfish.Crypto
+  \inherits Request
+  \instantiates Sailfish::Crypto::GenerateRandomDataRequest
+*/
+
+/*!
   \class GenerateRandomDataRequest
   \brief Allows a client request that the system crypto service generate random data.
   \inmodule SailfishCrypto
@@ -74,6 +82,11 @@ GenerateRandomDataRequest::~GenerateRandomDataRequest()
 }
 
 /*!
+  \qmlproperty string GenerateRandomDataRequest::cryptoPluginName
+  \brief The name of the crypto plugin which the client wishes to perform the key generation operation
+*/
+
+/*!
   \brief Returns the name of the crypto plugin which the client wishes to perform the key generation operation
  */
 QString GenerateRandomDataRequest::cryptoPluginName() const
@@ -97,6 +110,13 @@ void GenerateRandomDataRequest::setCryptoPluginName(const QString &pluginName)
         emit cryptoPluginNameChanged();
     }
 }
+
+/*!
+  \qmlproperty string GenerateRandomDataRequest::csprngEngineName
+  \brief The name of the cryptographically secure random number generator engine
+         offered by the crypto plugin which the client wishes to be used to generate
+         the random data
+*/
 
 /*!
   \brief Returns the name of the cryptographically secure random number generator engine
@@ -132,6 +152,11 @@ void GenerateRandomDataRequest::setCsprngEngineName(const QString &engineName)
 }
 
 /*!
+  \qmlproperty int GenerateRandomDataRequest::numberBytes
+  \brief The number of bytes of random data that the client wishes to be generated
+*/
+
+/*!
   \brief Returns the number of bytes of random data that the client wishes to be generated
  */
 quint64 GenerateRandomDataRequest::numberBytes() const
@@ -155,6 +180,13 @@ void GenerateRandomDataRequest::setNumberBytes(quint64 nbrBytes)
         emit numberBytesChanged();
     }
 }
+
+/*!
+  \qmlproperty ArrayBuffer GenerateRandomDataRequest::generatedData
+  \brief Returns the generated random data
+
+  \note this value is only valid if the status of the request is \c Request.Finished.
+*/
 
 /*!
   \brief Returns the generated random data

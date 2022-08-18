@@ -23,6 +23,14 @@ CalculateDigestRequestPrivate::CalculateDigestRequestPrivate()
 }
 
 /*!
+  \qmltype CalculateDigestRequest
+  \brief Allows a client request the system crypto service to calculate a digest from data
+  \inqmlmodule Sailfish.Crypto
+  \inherits Request
+  \instantiates Sailfish::Crypto::CalculateDigestRequest
+*/
+
+/*!
   \class CalculateDigestRequest
   \brief Allows a client request the system crypto service to calculate a digest from data
   \inmodule SailfishCrypto
@@ -53,6 +61,11 @@ CalculateDigestRequest::~CalculateDigestRequest()
 }
 
 /*!
+  \qmlproperty ArrayBuffer CalculateDigestRequest::data
+  \brief The data which the client wishes the system service to calculate the digest from
+*/
+
+/*!
   \brief Returns the data which the client wishes the system service to calculate the digest from
  */
 QByteArray CalculateDigestRequest::data() const
@@ -76,6 +89,17 @@ void CalculateDigestRequest::setData(const QByteArray &data)
         emit dataChanged();
     }
 }
+
+/*!
+  \qmlproperty enumeration CalculateDigestRequest::padding
+  \brief The signature padding mode which should be used when calculating the digest of the data
+  \value SignaturePaddingUnknown
+  \value SignaturePaddingCustom
+  \value SignaturePaddingNone
+  \value SignaturePaddingRsaPss
+  \value SignaturePaddingRsaPkcs1    = EncryptionPaddingRsaPkcs1
+  \value SignaturePaddingAnsiX923    = EncryptionPaddingAnsiX923
+*/
 
 /*!
   \brief Returns the signature padding mode which should be used when calculating the digest of the data
@@ -103,6 +127,50 @@ void CalculateDigestRequest::setPadding(Sailfish::Crypto::CryptoManager::Signatu
 }
 
 /*!
+  \qmlproperty enumeration CalculateDigestRequest::digestFunction
+  \brief The digest function which should be used to generate the digest
+  \value DigestUnknown
+  \value DigestCustom
+  \value DigestMd5
+  \value DigestSha1
+  \value DigestSha2_224
+  \value DigestSha2_256
+  \value DigestSha256        = DigestSha2_256
+  \value DigestSha2_384
+  \value DigestSha2_512
+  \value DigestSha512        = DigestSha2_512
+  \value DigestSha2_512_224
+  \value DigestSha2_512_256
+  \value DigestSha3_224
+  \value DigestSha3_256
+  \value DigestSha3_384
+  \value DigestSha3_512
+  \value DigestShake128
+  \value DigestShake256
+  \value DigestGost_94
+  \value DigestGost_2012_256
+  \value DigestGost_2012_512
+  \value DigestBlake
+  \value DigestBlake2
+  \value DigestBlake2b
+  \value DigestBlake2s
+  \value DigestWhirlpool
+  \value DigestRipeMd
+  \value DigestRipeMd128_256
+  \value DigestRipeMd160
+  \value DigestRipeMd320
+  \value DigestTiger
+  \value DigestTiger128
+  \value DigestTiger160
+  \value DigestTiger192
+  \value DigestTiger2
+  \value DigestTiger2_128
+  \value DigestTiger2_160
+  \value DigestTiger2_192
+  \value DigestRadioGatun
+*/
+
+/*!
   \brief Returns the digest function which should be used to generate the digest
  */
 Sailfish::Crypto::CryptoManager::DigestFunction CalculateDigestRequest::digestFunction() const
@@ -128,6 +196,11 @@ void CalculateDigestRequest::setDigestFunction(Sailfish::Crypto::CryptoManager::
 }
 
 /*!
+  \qmlproperty string CalculateDigestRequest::cryptoPluginName
+  \brief string The name of the crypto plugin which the client wishes to perform the digest calculation operation
+*/
+
+/*!
   \brief Returns the name of the crypto plugin which the client wishes to perform the digest calculation operation
  */
 QString CalculateDigestRequest::cryptoPluginName() const
@@ -151,6 +224,12 @@ void CalculateDigestRequest::setCryptoPluginName(const QString &pluginName)
         emit cryptoPluginNameChanged();
     }
 }
+
+/*!
+  \qmlproperty ArrayBuffer CalculateDigestRequest::digest
+  \brief Returns the digest result of the calculate digest operation.
+  \note this value is only valid if the status of the request is \c Request.Finished
+*/
 
 /*!
   \brief Returns the digest result of the calculate digest operation.

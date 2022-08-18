@@ -31,6 +31,13 @@ InteractionParametersPrivate::~InteractionParametersPrivate()
 }
 
 /*!
+  \qmltype InteractionParameters
+  \brief Encapsulates parameters related to requesting input from the user
+  \inqmlmodule Sailfish.Crypto
+  \instantiates Sailfish::Crypto::InteractionParameters
+*/
+
+/*!
   \class InteractionParameters
   \brief Encapsulates parameters related to requesting input from the user
   \inmodule SailfishCrypto
@@ -61,6 +68,13 @@ InteractionParametersPrivate::~InteractionParametersPrivate()
  */
 
 /*!
+  \qmltype PromptText
+  \brief Encapsulates a collection of labels which will be shown to the user when requesting input.
+  \inqmlmodule Sailfish.Crypto
+  \instantiates Sailfish::Crypto::InteractionParameters::PromptText
+*/
+
+/*!
   \class InteractionParameters::PromptText
   \brief Encapsulates a collection of labels which will be shown to the user when requesting input.
   \inmodule SailfishCrypto
@@ -72,8 +86,18 @@ InteractionParametersPrivate::~InteractionParametersPrivate()
  */
 
 /*!
+  \qmlproperty string PromptText::message
+  \brief A message describing the reason for the prompt.
+ */
+
+/*!
   \property InteractionParameters::PromptText::message
   \brief A message describing the reason for the prompt.
+ */
+
+/*!
+  \qmlproperty string PromptText::instruction
+  \brief An instruction asking the user to enter a passphrase.
  */
 
 /*!
@@ -82,8 +106,18 @@ InteractionParametersPrivate::~InteractionParametersPrivate()
  */
 
 /*!
+  \qmlproperty string PromptText::newInstruction
+  \brief An instruction asking the user to enter a new passphrase.
+ */
+
+/*!
   \property InteractionParameters::PromptText::newInstruction
   \brief An instruction asking the user to enter a new passphrase.
+ */
+
+/*!
+  \qmlproperty string PromptText::repeatInstruction
+  \brief An instruction asking the user to repeat a new passphrase.
  */
 
 /*!
@@ -92,8 +126,18 @@ InteractionParametersPrivate::~InteractionParametersPrivate()
  */
 
 /*!
+  \qmlproperty string PromptText::accept
+  \brief A label for the prompt accept action.
+ */
+
+/*!
   \property InteractionParameters::PromptText::accept
   \brief A label for the prompt accept action.
+ */
+
+/*!
+  \qmlproperty string PromptText::cancel
+  \brief A label for the prompt cancel action.
  */
 
 /*!
@@ -142,6 +186,11 @@ bool InteractionParameters::isValid() const
 }
 
 /*!
+  \qmlproperty string InteractionParameters::keyName
+  \brief The name of the key associated with the user input request
+*/
+
+/*!
   \brief Returns the name of the key associated with the user input request
  */
 QString InteractionParameters::keyName() const
@@ -161,6 +210,11 @@ void InteractionParameters::setKeyName(const QString &name)
         d_ptr->m_keyName = name;
     }
 }
+
+/*!
+  \qmlproperty string InteractionParameters::collectionName
+  \brief The name of the collection in which the key is stored, which is associated with the user input request
+*/
 
 /*!
   \brief Returns the name of the collection in which the key is stored, which is associated with the user input request
@@ -184,6 +238,11 @@ void InteractionParameters::setCollectionName(const QString &name)
 }
 
 /*!
+  \qmlproperty string InteractionParameters::pluginName
+  \brief The name of the extension plugin which is associated with the user input request
+*/
+
+/*!
   \brief Returns the name of the extension plugin which is associated with the user input request
  */
 QString InteractionParameters::pluginName() const
@@ -203,6 +262,11 @@ void InteractionParameters::setPluginName(const QString &name)
         d_ptr->m_pluginName = name;
     }
 }
+
+/*!
+  \qmlproperty string InteractionParameters::applicationId
+  \brief The identifier of the client application making the request
+*/
 
 /*!
   \brief Returns the identifier of the client application making the request
@@ -226,6 +290,45 @@ void InteractionParameters::setApplicationId(const QString &id)
 }
 
 /*!
+  \qmlproperty enumeration InteractionParameters::operation
+  \brief The type of operation which will be performed with the user input once received
+  \value UnknownOperation
+
+  \value RequestUserData     usually used in conjunction with StoreSecret, i.e. store data requested from user.
+
+  \value UnlockDatabase
+  \value LockDatabase
+  \value ModifyLockDatabase
+
+  \value UnlockPlugin
+  \value LockPlugin
+  \value ModifyLockPlugin
+
+  \value CreateCollection
+  \value UnlockCollection
+  \value LockCollection
+  \value ModifyLockCollection
+  \value DeleteCollection
+
+  \value ReadSecret
+  \value StoreSecret
+  \value UnlockSecret
+  \value LockSecret
+  \value ModifyLockSecret
+  \value DeleteSecret
+
+  \value Encrypt
+  \value Decrypt
+  \value Sign
+  \value Verify
+  \value DeriveDigest
+  \value DeriveMac
+  \value DeriveKey
+  \value StoreKey
+  \value ImportKey
+*/
+
+/*!
   \brief Returns the type of operation which will be performed with the user input once received
  */
 InteractionParameters::Operation InteractionParameters::operation() const
@@ -247,6 +350,11 @@ void InteractionParameters::setOperation(Operation op)
 }
 
 /*!
+  \qmlproperty string InteractionParameters::authenticationPluginName
+  \brief The name of the authentication plugin which will provide the user input flow
+*/
+
+/*!
   \brief Returns the name of the authentication plugin which will provide the user input flow
  */
 QString InteractionParameters::authenticationPluginName() const
@@ -266,6 +374,11 @@ void InteractionParameters::setAuthenticationPluginName(const QString &pluginNam
         d_ptr->m_authenticationPluginName = pluginName;
     }
 }
+
+/*!
+  \qmlproperty PromptText InteractionParameters::promptText
+  \brief The application-specified prompt text to be displayed as part of the user input flow
+*/
 
 /*!
   \brief Returns the application-specified prompt text to be displayed as part of the user input flow
@@ -300,6 +413,19 @@ void InteractionParameters::setPromptText(const QString &message)
 }
 
 /*!
+  \qmlproperty enumeration InteractionParameters::inputType
+  \brief The type of input required from the user
+  \value UnknownInput
+  \value AuthenticationInput returns non-empty data if the user authenticates via system dialog
+  \value ConfirmationInput returns non-empty data if the user allows the operation
+  \value NumericInput returns the numeric (e.g. PIN) data from the user
+  \value AlphaNumericInput returns the alphanumeric (e.g. passphrase) data from the user
+  \value FingerprintInput returns the fingerprint data from the user
+  \value IrisInput returns the iris data from the user
+  \value RetinaInput returns the retina data from the user
+*/
+
+/*!
   \brief Returns the type of input required from the user
  */
 InteractionParameters::InputType InteractionParameters::inputType() const
@@ -316,6 +442,15 @@ void InteractionParameters::setInputType(InteractionParameters::InputType type)
         d_ptr->m_inputType = type;
     }
 }
+
+/*!
+  \qmlproperty enumeration InteractionParameters::echoMode
+  \brief The echo mode which should apply as the user provides the input
+  \value UnknownEcho
+  \value NormalEcho
+  \value PasswordEcho
+  \value NoEcho
+*/
 
 /*!
   \brief Returns the echo mode which should apply as the user provides the input

@@ -58,6 +58,13 @@ void KeyPairGenerationParametersPrivate::setSubclassParameters(
 }
 
 /*!
+  \qmltype KeyPairGenerationParameters
+  \brief Encapsulates parameters related to the generation of an asymmetric cryptographic key pair
+  \inqmlmodule Sailfish.Crypto
+  \instantiates Sailfish::Crypto::KeyPairGenerationParameters
+*/
+
+/*!
   \class KeyPairGenerationParameters
   \brief Encapsulates parameters related to the generation of an asymmetric cryptographic key pair
   \inmodule SailfishCrypto
@@ -146,6 +153,17 @@ bool KeyPairGenerationParameters::isValid() const
 }
 
 /*!
+  \qmlproperty enumeration KeyPairGenerationParameters::keyPairType
+  \brief The type of key pair which should be generated
+  \value KeyPairUnknown          = CryptoManager::AlgorithmUnknown
+  \value KeyPairCustom           = CryptoManager::AlgorithmCustom
+  \value KeyPairDh               = CryptoManager::AlgorithmDh
+  \value KeyPairDsa              = CryptoManager::AlgorithmDsa
+  \value KeyPairRsa              = CryptoManager::AlgorithmRsa
+  \value KeyPairEc               = CryptoManager::AlgorithmEc
+*/
+
+/*!
   \brief Returns the type of key pair which should be generated
  */
 KeyPairGenerationParameters::KeyPairType KeyPairGenerationParameters::keyPairType() const
@@ -160,6 +178,11 @@ void KeyPairGenerationParameters::setKeyPairType(KeyPairGenerationParameters::Ke
 {
     d_ptr->m_keyPairType = type;
 }
+
+/*!
+  \qmlproperty object KeyPairGenerationParameters::customParameters
+  \brief The plugin-specific custom parameters which will be used during key generation
+*/
 
 /*!
   \brief Returns the plugin-specific custom parameters which will be used during key generation
