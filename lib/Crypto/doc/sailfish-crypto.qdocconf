@@ -1,7 +1,7 @@
 project         = sailfish-crypto
 description     = Sailfish OS Secrets and Crypto Framework - Crypto Library Reference Documentation
 versionsym      =
-version         = 0.0.1
+version         = 0.2
 url             = https://sailfishos.org/develop/docs/sailfish-crypto
 
 sourcedirs += $$PWD/../ $$PWD/../doc $$PWD/../../../doc $$PWD/../../Crypto/Plugins/ $$PWD/../../../qml/Crypto/
@@ -20,7 +20,7 @@ outputprefixes.QML = qml-sailfishcrypto-
 qhp.projects = SailfishCrypto
 
 qhp.SailfishCrypto.file = sailfish-crypto.qhp
-qhp.SailfishCrypto.namespace = org.sailfishos.crypto.0.0.1
+qhp.SailfishCrypto.namespace = org.sailfishos.crypto.0.2
 qhp.SailfishCrypto.virtualFolder = sailfish-crypto
 qhp.SailfishCrypto.indexTitle = Sailfish OS Crypto Library
 qhp.SailfishCrypto.indexRoot =
@@ -41,13 +41,13 @@ qhp.SailfishSecrets.subprojects.classes.indexTitle = Sailfish.Crypto QML Types
 qhp.SailfishSecrets.subprojects.classes.selectors = qmlclass
 qhp.SailfishSecrets.subprojects.classes.sortPages = true
 
-qhp.SailfishCrypto.filterAttributes = sailfish-crypto 1.0.0
-qhp.SailfishCrypto.customFilters.SailfishCrypto.name = Sailfish OS Crypto Library 0.0.1
-qhp.SailfishCrypto.customFilters.SailfishCrypto.filterAttributes = sailfish-crypto 0.0.1
+qhp.SailfishCrypto.filterAttributes = sailfish-crypto 0.2
+qhp.SailfishCrypto.customFilters.SailfishCrypto.name = Sailfish OS Crypto Library 0.2
+qhp.SailfishCrypto.customFilters.SailfishCrypto.filterAttributes = sailfish-crypto 0.2
 
 HTML.footer += \
     "<div class=\"footer\">\n" \
-    "  <p><acronym title=\"Copyright\">&copy;</acronym> 2018 - 2022 Jolla Ltd.</p>\n" \
+    "  <p><acronym title=\"Copyright\">&copy;</acronym> 2018 - 2023 Jolla Ltd.</p>\n" \
     "  <p>All other trademarks are property of their respective owners.</p>\n" \
     "  <p>\n" \
     "    This document may be used under the terms of the " \
