@@ -318,6 +318,7 @@ ln -s ../sailfish-secretsd.service %{buildroot}%{_userunitdir}/user-session.targ
 %defattr(-,root,root,-)
 %{_libdir}/qt5/qml/Sailfish/Secrets/libsailfishsecretsplugin.so
 %{_libdir}/qt5/qml/Sailfish/Secrets/qmldir
+%{_libdir}/qt5/qml/Sailfish/Secrets/plugins.qmltypes
 %{_libdir}/qt5/qml/Sailfish/Secrets/InteractionView.qml
 
 %files -n libsailfishcrypto
