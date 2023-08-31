@@ -77,15 +77,17 @@ gpg_error_t _assuan_cmd_setdesc(assuan_context_t ctx, char *line)
 {
     qCDebug(lcSailfishPinentry) << __func__ << line;
     QAssuanServer *self = static_cast<QAssuanServer*>(assuan_get_pointer(ctx));
-    self->prompt.setMessage(QByteArray::fromPercentEncoding(line));
+    self->prompt.setMessage(QByteArray::fromPercentEncoding(line).simplified());
 
     // Ugly hack here due to GnuPG being stuck in 2.0.4
-    // and not having SETKEYINFO command yet. Description may contain "ID xxxxx".
+    // and not having SETKEYINFO command yet. Description looks like:
+    // "user: "John Dow <john.dow@example.org>""
+    // "2048-bit RSA key, ID A099539B, created 2018-04-13 (main key ID 41123AA4)"
     {
         const QString &str(self->prompt.message());
-        int id = str.lastIndexOf("ID ");
+        int id = str.lastIndexOf(", ID ");
         if (id > 0) {
-            self->cacheId.setName(str.mid(id + 3, 8));
+            self->cacheId.setName(str.mid(id + 5, 8));
             qCDebug(lcSailfishPinentry) << "cacheID" << self->cacheId.name();
         }
     }
