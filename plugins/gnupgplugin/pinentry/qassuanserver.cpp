@@ -373,6 +373,11 @@ Sailfish::Secrets::Result QAssuanServer::requestPassphrase(QByteArray *passphras
             qCDebug(lcSailfishPinentry) << "found cached secret";
             *passphrase = request.secret().data();
             return request.result();
+        } else if (request.result().code() == Sailfish::Secrets::Result::Failed
+                   && request.result().errorCode() == Sailfish::Secrets::Result::InteractionViewUserCanceledError) {
+            // Later on, in case of a valid key, don't ask again the
+            // user to grant access to key caching.
+            useCache = false;
         }
     }
 
