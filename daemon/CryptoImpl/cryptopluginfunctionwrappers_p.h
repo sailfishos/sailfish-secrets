@@ -73,6 +73,7 @@ struct KeyResult {
         : result(r), key(k) {}
     KeyResult(const KeyResult &other)
         : result(other.result), key(other.key) {}
+    KeyResult &operator=(const KeyResult &) = default;
     Sailfish::Crypto::Result result;
     Sailfish::Crypto::Key key;
 };
