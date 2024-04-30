@@ -1311,8 +1311,7 @@ int OpenSslEvp::generate_ec_key(int curveNid,
 bool OpenSslEvp::key_is_rsa(EVP_PKEY *pkey)
 {
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
-    RSA *rsa = EVP_PKEY_get0_RSA(pkey);
-    return rsa != NULL;
+    return EVP_PKEY_id(pkey) == EVP_PKEY_RSA;
 #else
     return pkey->type == EVP_PKEY_RSA;
 #endif

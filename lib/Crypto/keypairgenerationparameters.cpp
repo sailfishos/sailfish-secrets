@@ -702,7 +702,7 @@ DhKeyPairGenerationParameters::DhKeyPairGenerationParameters()
  */
 DhKeyPairGenerationParameters::DhKeyPairGenerationParameters(
         const KeyPairGenerationParameters &other)
-    :KeyPairGenerationParameters(other)
+    : KeyPairGenerationParameters(other)
 {
 }
 
