@@ -71,6 +71,7 @@ class SAILFISH_CRYPTO_API EcKeyPairGenerationParameters : public KeyPairGenerati
 public:
     EcKeyPairGenerationParameters();
     EcKeyPairGenerationParameters(const KeyPairGenerationParameters &other);
+    EcKeyPairGenerationParameters(const EcKeyPairGenerationParameters &other) = default;
     ~EcKeyPairGenerationParameters();
 
     EcKeyPairGenerationParameters& operator=(const EcKeyPairGenerationParameters &other);
@@ -89,6 +90,7 @@ class SAILFISH_CRYPTO_API RsaKeyPairGenerationParameters : public KeyPairGenerat
 public:
     RsaKeyPairGenerationParameters();
     RsaKeyPairGenerationParameters(const KeyPairGenerationParameters &other);
+    RsaKeyPairGenerationParameters(const RsaKeyPairGenerationParameters &other) = default;
     ~RsaKeyPairGenerationParameters();
 
     RsaKeyPairGenerationParameters& operator=(const RsaKeyPairGenerationParameters &other);
@@ -116,6 +118,7 @@ class SAILFISH_CRYPTO_API DsaKeyPairGenerationParameters : public KeyPairGenerat
 public:
     DsaKeyPairGenerationParameters();
     DsaKeyPairGenerationParameters(const KeyPairGenerationParameters &other);
+    DsaKeyPairGenerationParameters(const DsaKeyPairGenerationParameters &other) = default;
     ~DsaKeyPairGenerationParameters();
 
     DsaKeyPairGenerationParameters& operator=(const DsaKeyPairGenerationParameters &other);
@@ -154,6 +157,7 @@ class SAILFISH_CRYPTO_API DhKeyPairGenerationParameters : public KeyPairGenerati
 public:
     DhKeyPairGenerationParameters();
     DhKeyPairGenerationParameters(const KeyPairGenerationParameters &other);
+    DhKeyPairGenerationParameters(const DhKeyPairGenerationParameters &other) = default;
     ~DhKeyPairGenerationParameters();
 
     DhKeyPairGenerationParameters& operator=(const DhKeyPairGenerationParameters &other);
