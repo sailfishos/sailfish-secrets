@@ -962,7 +962,11 @@ bool Daemon::ApiImpl::SecretsRequestQueue::initializeKeyData(
     // now we want to malloc a contiguous chunk of memory large enough
     // to contain both keys data, then mlock() it.
     if (m_bkdbLockKeyData == Q_NULLPTR) {
-        m_bkdbLockKeyData = (char*)malloc(bkdbKey.size()+deviceLockKey.size());
+        /*
+         * The use of malloc() triggers a spurious gcc 11 -Wmaybe-uninitialized
+         * warning in the mlock() function call below, so use calloc().
+         */
+        m_bkdbLockKeyData = (char*)calloc(bkdbKey.size()+deviceLockKey.size(), 1);
         if (mlock(m_bkdbLockKeyData, bkdbKey.size()+deviceLockKey.size()) < 0) {
             qCWarning(lcSailfishSecretsDaemon) << "Warning: unable to mlock secretsd key memory!";
         }
