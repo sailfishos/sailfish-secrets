@@ -121,14 +121,14 @@ bool PluginWrapper::lock()
 bool PluginWrapper::unlock(const QByteArray &lockCode)
 {
     bool ps = m_plugin->unlock(lockCode);
-    initialize(); // may need to synchronize data between metadataDb and plugin.
+    initialize(QByteArray()); // may need to synchronize data between metadataDb and plugin.
     return ps;
 }
 
 bool PluginWrapper::setLockCode(const QByteArray &oldLockCode, const QByteArray &newLockCode)
 {
     bool ps = m_plugin->setLockCode(oldLockCode, newLockCode);
-    initialize(); // may need to synchronize data between metadataDb and plugin.
+    initialize(QByteArray()); // may need to synchronize data between metadataDb and plugin.
     return ps;
 }
 
@@ -680,7 +680,7 @@ Result EncryptedStoragePluginWrapper::setEncryptionKey(
     Result result = m_encryptedStoragePlugin->setEncryptionKey(collectionName, key);
     // We have unlocked a collection, and may be able to retrieve more data
     // from the plugin.  Ensure that our metadata is in sync.
-    initialize();
+    initialize(QByteArray());
     return result;
 }
 

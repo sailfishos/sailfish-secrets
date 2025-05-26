@@ -249,7 +249,7 @@ Summary:    QtSql driver plugin using SQLCipher
 
 %build
 %qmake5 "VERSION=%{version}"
-make %{?_smp_mflags}
+%make_build
 
 %install
 rm -rf %{buildroot}
@@ -269,24 +269,64 @@ install -m 0644 daemon/org.sailfishos.secrets.daemon.discovery.service %{buildro
 
 ln -s ../sailfish-secretsd.service %{buildroot}%{_userunitdir}/user-session.target.wants/sailfish-secretsd.service
 
+%post -p /sbin/ldconfig
+
+%postun -p /sbin/ldconfig
+
+%post -n libsailfishsecrets -p /sbin/ldconfig
+
+%postun -n libsailfishsecrets -p /sbin/ldconfig
+
+%post -n libsailfishsecretspluginapi -p /sbin/ldconfig
+
+%postun -n libsailfishsecretspluginapi -p /sbin/ldconfig
+
+%post -n libsailfishcrypto -p /sbin/ldconfig
+
+%postun -n libsailfishcrypto -p /sbin/ldconfig
+
+%post -n libsailfishcryptopluginapi -p /sbin/ldconfig
+
+%postun -n libsailfishcryptopluginapi -p /sbin/ldconfig
+
+%post -n libsailfishsecretscrypto -p /sbin/ldconfig
+
+%postun -n libsailfishsecretscrypto -p /sbin/ldconfig
+
+%post -n libsailfishsecretsplugin -p /sbin/ldconfig
+
+%postun -n libsailfishsecretsplugin -p /sbin/ldconfig
+
+%post -n libsailfishcryptoplugin -p /sbin/ldconfig
+
+%postun -n libsailfishcryptoplugin -p /sbin/ldconfig
+
+%post -n %{secretsdaemon}
+systemctl-user daemon-reload || :
+systemctl-user reload-or-try-restart sailfish-secretsd || :
+
+%preun -n %{secretsdaemon}
+if [ "$1" -eq 0 ]; then
+    systemctl stop sailfish-secretsd || :
+fi
+
+%postun -n %{secretsdaemon}
+systemctl daemon-reload || :
+
 %files -n libsailfishsecrets
-%defattr(-,root,root,-)
 %license LICENSE
 %{_libdir}/libsailfishsecrets.so.*
 
 %files -n libsailfishsecrets-devel
-%defattr(-,root,root,-)
 %{_libdir}/libsailfishsecrets.so
 %{_libdir}/pkgconfig/sailfishsecrets.pc
 %exclude %{_includedir}/Sailfish/Secrets/Plugins/extensionplugins.h
 %{_includedir}/Sailfish/Secrets/*
 
 %files -n libsailfishsecrets-doc
-%defattr(-,root,root,-)
 %{_docdir}/Sailfish/Secrets/*
 
 %files -n libsailfishsecrets-tests
-%defattr(-,root,root,-)
 /opt/tests/Sailfish/Secrets/authentication-client
 /opt/tests/Sailfish/Secrets/tst_secrets
 /opt/tests/Sailfish/Secrets/tst_dataprotection
@@ -301,43 +341,35 @@ ln -s ../sailfish-secretsd.service %{buildroot}%{_userunitdir}/user-session.targ
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-testsqlite.so
 
 %files ts-devel
-%defattr(-,root,root,-)
 %{_datadir}/translations/source/sailfish-secrets.ts
 
 %files -n libsailfishsecretspluginapi
-%defattr(-,root,root,-)
 %{_libdir}/libsailfishsecretspluginapi.so.*
 
 %files -n libsailfishsecretspluginapi-devel
-%defattr(-,root,root,-)
 %{_libdir}/libsailfishsecretspluginapi.so
 %{_libdir}/pkgconfig/sailfishsecretspluginapi.pc
 %{_includedir}/Sailfish/Secrets/Plugins/extensionplugins.h
 
 %files -n libsailfishsecretsplugin
-%defattr(-,root,root,-)
 %{_libdir}/qt5/qml/Sailfish/Secrets/libsailfishsecretsplugin.so
 %{_libdir}/qt5/qml/Sailfish/Secrets/qmldir
 %{_libdir}/qt5/qml/Sailfish/Secrets/plugins.qmltypes
 %{_libdir}/qt5/qml/Sailfish/Secrets/InteractionView.qml
 
 %files -n libsailfishcrypto
-%defattr(-,root,root,-)
 %{_libdir}/libsailfishcrypto.so.*
 
 %files -n libsailfishcrypto-devel
-%defattr(-,root,root,-)
 %{_libdir}/libsailfishcrypto.so
 %{_libdir}/pkgconfig/sailfishcrypto.pc
 %exclude %{_includedir}/Sailfish/Crypto/Plugins/extensionplugins.h
 %{_includedir}/Sailfish/Crypto/*
 
 %files -n libsailfishcrypto-doc
-%defattr(-,root,root,-)
 %{_docdir}/Sailfish/Crypto/*
 
 %files -n libsailfishcrypto-tests
-%defattr(-,root,root,-)
 %{_bindir}/sailfishcryptoexample
 %{_bindir}/sailfishcryptoqmlexample
 /opt/tests/Sailfish/Crypto/tst_crypto
@@ -355,37 +387,30 @@ ln -s ../sailfish-secretsd.service %{buildroot}%{_userunitdir}/user-session.targ
 %{_libdir}/Sailfish/Crypto/libsailfishcrypto-testopenpgp.so
 
 %files -n libsailfishcryptopluginapi
-%defattr(-,root,root,-)
 %{_libdir}/libsailfishcryptopluginapi.so.*
 
 %files -n libsailfishcryptopluginapi-devel
-%defattr(-,root,root,-)
 %{_libdir}/libsailfishcryptopluginapi.so
 %{_libdir}/pkgconfig/sailfishcryptopluginapi.pc
 %{_includedir}/Sailfish/Crypto/Plugins/extensionplugins.h
 
 %files -n libsailfishcryptoplugin
-%defattr(-,root,root,-)
 %{_libdir}/qt5/qml/Sailfish/Crypto/libsailfishcryptoplugin.so
 %{_libdir}/qt5/qml/Sailfish/Crypto/qmldir
 %{_libdir}/qt5/qml/Sailfish/Crypto/plugins.qmltypes
 
 %files -n libsailfishsecretscrypto
-%defattr(-,root,root,-)
 %{_libdir}/libsailfishsecretscrypto.so.*
 
 %files -n libsailfishsecretscrypto-devel
-%defattr(-,root,root,-)
 %{_libdir}/libsailfishsecretscrypto.so
 %{_libdir}/pkgconfig/sailfishsecretscrypto.pc
 %{_includedir}/Sailfish/SecretsCrypto/*
 
 %files -n libsailfishsecretscrypto-tests
-%defattr(-,root,root,-)
 /opt/tests/Sailfish/SecretsCrypto/tst_secretscrypto
 
 %files -n %{secretsdaemon}
-%defattr(-,root,root,-)
 %{_bindir}/sailfishsecretsd
 %{_datadir}/translations/sailfish-secrets_eng_en.qm
 %{_datadir}/mapplauncherd/privileges.d/sailfish-secretsd.privileges
@@ -394,7 +419,6 @@ ln -s ../sailfish-secretsd.service %{buildroot}%{_userunitdir}/user-session.targ
 %{_datadir}/dbus-1/services/org.sailfishos.secrets.daemon.discovery.service
 
 %files -n %{secretsdaemon}-secretsplugins-default
-%defattr(-,root,root,-)
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-openssl.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-sqlite.so
 
@@ -405,79 +429,15 @@ ln -s ../sailfish-secretsd.service %{buildroot}%{_userunitdir}/user-session.targ
 %{_datadir}/polkit-1/actions/org.sailfishos.secrets.policy
 
 %files -n %{secretsdaemon}-cryptoplugins-default
-%defattr(-,root,root,-)
 %{_libdir}/Sailfish/Crypto/libsailfishcrypto-openssl.so
 
 %files -n %{secretsdaemon}-cryptoplugins-gnupg
-%defattr(-,root,root,-)
 %{_libdir}/Sailfish/Crypto/libsailfishcrypto-openpgp.so
 %{_libdir}/Sailfish/Crypto/libsailfishcrypto-smime.so
 %{_bindir}/pinentry
 
 %files -n sailfishsecrets-tool
-%defattr(-,root,root,-)
 %{_bindir}/secrets-tool
 
 %files -n qt5-plugin-sqldriver-sqlcipher
-%defattr(-,root,root,-)
 %{_libdir}/qt5/plugins/sqldrivers/libqsqlcipher.so
-
-%post
-/sbin/ldconfig || :
-
-%postun
-/sbin/ldconfig || :
-
-%post -n libsailfishsecrets
-/sbin/ldconfig || :
-
-%postun -n libsailfishsecrets
-/sbin/ldconfig || :
-
-%post -n libsailfishsecretspluginapi
-/sbin/ldconfig || :
-
-%postun -n libsailfishsecretspluginapi
-/sbin/ldconfig || :
-
-%post -n libsailfishcrypto
-/sbin/ldconfig || :
-
-%postun -n libsailfishcrypto
-/sbin/ldconfig || :
-
-%post -n libsailfishcryptopluginapi
-/sbin/ldconfig || :
-
-%postun -n libsailfishcryptopluginapi
-/sbin/ldconfig || :
-
-%post -n libsailfishsecretscrypto
-/sbin/ldconfig
-
-%postun -n libsailfishsecretscrypto
-/sbin/ldconfig
-
-%post -n libsailfishsecretsplugin
-/sbin/ldconfig || :
-
-%postun -n libsailfishsecretsplugin
-/sbin/ldconfig || :
-
-%post -n libsailfishcryptoplugin
-/sbin/ldconfig || :
-
-%postun -n libsailfishcryptoplugin
-/sbin/ldconfig || :
-
-%post -n %{secretsdaemon}
-systemctl-user daemon-reload || :
-systemctl-user reload-or-try-restart sailfish-secretsd || :
-
-%preun -n %{secretsdaemon}
-if [ "$1" -eq 0 ]; then
-    systemctl stop sailfish-secretsd || :
-fi
-
-%postun -n %{secretsdaemon}
-systemctl daemon-reload || :
