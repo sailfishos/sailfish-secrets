@@ -72,6 +72,7 @@ protected:
     bool m_initialized;
 
 private:
+    using Sailfish::Secrets::PluginBase::initialize;
     Sailfish::Secrets::PluginBase *m_plugin;
 };
 

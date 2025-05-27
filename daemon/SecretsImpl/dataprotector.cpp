@@ -144,7 +144,7 @@ DataProtector::Status DataProtector::getData(QByteArray *result)
         return file->readAll();
     });
 
-    std::remove_if(fileContents.begin(), fileContents.end(), [](QByteArray &byteArray) {
+    (void)std::remove_if(fileContents.begin(), fileContents.end(), [](QByteArray &byteArray) {
         return byteArray.isEmpty();
     });
 
