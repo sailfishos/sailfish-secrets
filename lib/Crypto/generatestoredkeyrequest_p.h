@@ -16,10 +16,11 @@
 #include "Crypto/keyderivationparameters.h"
 
 #include <QtCore/QPointer>
-#include <QtCore/QScopedPointer>
 #include <QtCore/QString>
 
 #include <QtDBus/QDBusPendingCallWatcher>
+
+#include <memory>
 
 namespace Sailfish {
 
@@ -41,7 +42,7 @@ public:
     Sailfish::Crypto::Key m_keyTemplate;
     Sailfish::Crypto::Key m_generatedKeyReference;
 
-    QScopedPointer<QDBusPendingCallWatcher> m_watcher;
+    std::unique_ptr<QDBusPendingCallWatcher> m_watcher;
     Sailfish::Crypto::Request::Status m_status;
     Sailfish::Crypto::Result m_result;
 };

@@ -13,10 +13,11 @@
 #include "Crypto/cryptomanager.h"
 
 #include <QtCore/QPointer>
-#include <QtCore/QScopedPointer>
 #include <QtCore/QString>
 
 #include <QtDBus/QDBusPendingCallWatcher>
+
+#include <memory>
 
 namespace Sailfish {
 
@@ -35,7 +36,7 @@ public:
     Key::Components m_keyComponents;
     Sailfish::Crypto::Key m_storedKey;
 
-    QScopedPointer<QDBusPendingCallWatcher> m_watcher;
+    std::unique_ptr<QDBusPendingCallWatcher> m_watcher;
     Sailfish::Crypto::Request::Status m_status;
     Sailfish::Crypto::Result m_result;
 };

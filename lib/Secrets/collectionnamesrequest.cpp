@@ -190,9 +190,9 @@ void CollectionNamesRequest::startRequest()
             emit resultChanged();
         } else {
             d->m_watcher.reset(new QDBusPendingCallWatcher(reply));
-            connect(d->m_watcher.data(), &QDBusPendingCallWatcher::finished,
+            connect(d->m_watcher.get(), &QDBusPendingCallWatcher::finished,
                     [this] {
-                QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.take();
+                QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.release();
                 QDBusPendingReply<Result, QMap<QString, bool> > reply = *watcher;
                 this->d_ptr->m_status = Request::Finished;
                 if (reply.isError()) {
@@ -214,7 +214,7 @@ void CollectionNamesRequest::startRequest()
 void CollectionNamesRequest::waitForFinished()
 {
     Q_D(CollectionNamesRequest);
-    if (d->m_status == Request::Active && !d->m_watcher.isNull()) {
+    if (d->m_status == Request::Active && d->m_watcher) {
         d->m_watcher->waitForFinished();
     }
 }

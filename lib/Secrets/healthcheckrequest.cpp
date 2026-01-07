@@ -200,8 +200,8 @@ void HealthCheckRequest::startRequest()
             emit resultChanged();
         } else {
             d->m_watcher.reset(new QDBusPendingCallWatcher(reply));
-            connect(d->m_watcher.data(), &QDBusPendingCallWatcher::finished, [this] {
-                QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.take();
+            connect(d->m_watcher.get(), &QDBusPendingCallWatcher::finished, [this] {
+                QDBusPendingCallWatcher *watcher = this->d_ptr->m_watcher.release();
                 QDBusPendingReply<Result,
                                   HealthCheckRequest::Health,
                                   HealthCheckRequest::Health> reply = *watcher;
@@ -228,7 +228,7 @@ void HealthCheckRequest::startRequest()
 void HealthCheckRequest::waitForFinished()
 {
     Q_D(HealthCheckRequest);
-    if (d->m_status == Request::Active && !d->m_watcher.isNull()) {
+    if (d->m_status == Request::Active && d->m_watcher) {
         d->m_watcher->waitForFinished();
     }
 }

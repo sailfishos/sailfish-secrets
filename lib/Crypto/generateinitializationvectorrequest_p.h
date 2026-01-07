@@ -13,11 +13,12 @@
 #include "Crypto/cryptomanager.h"
 
 #include <QtCore/QPointer>
-#include <QtCore/QScopedPointer>
 #include <QtCore/QString>
 #include <QtCore/QQueue>
 
 #include <QtDBus/QDBusPendingCallWatcher>
+
+#include <memory>
 
 namespace Sailfish {
 
@@ -31,7 +32,7 @@ public:
     explicit GenerateInitializationVectorRequestPrivate();
 
     QPointer<Sailfish::Crypto::CryptoManager> m_manager;
-    QScopedPointer<QDBusPendingCallWatcher> m_watcher;
+    std::unique_ptr<QDBusPendingCallWatcher> m_watcher;
 
     QVariantMap m_customParameters;
     QByteArray m_generatedIv;

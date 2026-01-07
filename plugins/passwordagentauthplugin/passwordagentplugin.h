@@ -19,6 +19,8 @@
 #include <QDBusContext>
 #include <QDBusServer>
 
+#include <memory>
+
 QT_BEGIN_NAMESPACE
 class QDBusPendingCallWatcher;
 class QDBusObjectPath;
@@ -96,7 +98,7 @@ private:
     class PasswordResponse;
     class PolkitResponse;
 
-    QScopedPointer<Agent> m_sessionAgent;
+    std::unique_ptr<Agent> m_sessionAgent;
     QScopedPointer<QDBusServer> m_server;
     QHash<QString, PolkitResponse *> m_polkitResponses;
     QHash<QPair<uint, quint64>, QTimer *> m_nemoTimers;
