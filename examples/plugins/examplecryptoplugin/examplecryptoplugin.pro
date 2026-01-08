@@ -1,5 +1,5 @@
 TEMPLATE = lib
-CONFIG += qt plugin hide_symbols link_pkgconfig c++11
+CONFIG += qt plugin hide_symbols link_pkgconfig
 TARGET = sailfishcrypto-examplecryptoplugin
 TARGET = $$qtLibraryTarget($$TARGET)
 PKGCONFIG += sailfishcryptopluginapi

@@ -662,7 +662,7 @@ Result PasswordAgentPlugin::beginUserInputInteraction(
         const InteractionParameters &interactionParameters,
         const QString &interactionServiceAddress)
 {
-    Agent * const agent = m_sessionAgent.data();
+    Agent * const agent = m_sessionAgent.get();
 
     if (!agent) {
         return Result(Result::InteractionViewError, QStringLiteral("No password agent is registered"));
@@ -796,7 +796,7 @@ void PasswordAgentPlugin::addConnection(const QDBusConnection &connection)
 void PasswordAgentPlugin::removeConnection(const QString &name)
 {
     if (m_sessionAgent && m_sessionAgent->connection.name() == name) {
-        destroyAgent(m_sessionAgent.take());
+        destroyAgent(m_sessionAgent.release());
     }
 }
 
@@ -818,7 +818,7 @@ void PasswordAgentPlugin::UnregisterSessionAgent(const QDBusObjectPath &agent)
             && m_sessionAgent->connection.name() == QDBusContext::connection().name()
             && m_sessionAgent->service == QDBusContext::message().service()
             && m_sessionAgent->path == agent.path()) {
-        destroyAgent(m_sessionAgent.take());
+        destroyAgent(m_sessionAgent.release());
     }
 }
 

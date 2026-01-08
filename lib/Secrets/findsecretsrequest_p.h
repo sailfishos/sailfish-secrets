@@ -13,11 +13,12 @@
 #include "Secrets/secret.h"
 
 #include <QtCore/QPointer>
-#include <QtCore/QScopedPointer>
 #include <QtCore/QString>
 #include <QtCore/QVector>
 
 #include <QtDBus/QDBusPendingCallWatcher>
+
+#include <memory>
 
 namespace Sailfish {
 
@@ -38,7 +39,7 @@ public:
     Sailfish::Secrets::SecretManager::UserInteractionMode m_userInteractionMode;
     QVector<Sailfish::Secrets::Secret::Identifier> m_identifiers;
 
-    QScopedPointer<QDBusPendingCallWatcher> m_watcher;
+    std::unique_ptr<QDBusPendingCallWatcher> m_watcher;
     Sailfish::Secrets::Request::Status m_status;
     Sailfish::Secrets::Result m_result;
 };

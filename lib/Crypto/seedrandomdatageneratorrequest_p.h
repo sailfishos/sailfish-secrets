@@ -13,11 +13,12 @@
 #include "Crypto/cryptomanager.h"
 
 #include <QtCore/QPointer>
-#include <QtCore/QScopedPointer>
 #include <QtCore/QString>
 #include <QtCore/QByteArray>
 
 #include <QtDBus/QDBusPendingCallWatcher>
+
+#include <memory>
 
 namespace Sailfish {
 
@@ -37,7 +38,7 @@ public:
     double m_entropyEstimate;
     QByteArray m_seedData;
 
-    QScopedPointer<QDBusPendingCallWatcher> m_watcher;
+    std::unique_ptr<QDBusPendingCallWatcher> m_watcher;
     Sailfish::Crypto::Request::Status m_status;
     Sailfish::Crypto::Result m_result;
 };
