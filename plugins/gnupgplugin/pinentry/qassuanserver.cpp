@@ -268,7 +268,7 @@ static gpg_error_t register_commands(assuan_context_t ctx)
 QAssuanServer::QAssuanServer(QObject *parent)
     : QThread(parent)
     , secretManager()
-    , m_useCache(new MGConfItem("/desktop/sailfish/secrets/storeGnuPGPassphrases", this))
+    , m_useCache(new MDConfItem("/desktop/sailfish/secrets/storeGnuPGPassphrases", this))
     , m_connected(false)
     , m_request_stop(false)
 {
