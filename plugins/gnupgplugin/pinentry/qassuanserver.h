@@ -20,7 +20,7 @@
 #include <Secrets/result.h>
 #include <Secrets/interactionparameters.h>
 
-#include <MGConfItem>
+#include <MDConfItem>
 
 class QAssuanServer: public QThread
 {
@@ -51,7 +51,7 @@ class QAssuanServer: public QThread
     Sailfish::Secrets::SecretManager secretManager;
     Sailfish::Secrets::Secret::Identifier cacheId;
     Sailfish::Secrets::InteractionParameters::PromptText prompt;
-    MGConfItem *m_useCache;
+    MDConfItem *m_useCache;
 
     bool m_connected;
     assuan_context_t m_ctx;
