@@ -73,6 +73,9 @@ public:
     Q_INVOKABLE Sailfish::Secrets::InteractionParameters constructInteractionParameters() const;
     Q_INVOKABLE Sailfish::Secrets::InteractionResponse constructInteractionResponse() const;
     Q_INVOKABLE Sailfish::Secrets::Secret::FilterData constructFilterData(const QVariantMap &v) const;
+    Q_INVOKABLE Sailfish::Secrets::Secret::Identifier constructIdentifier(const QString &name,
+                                                                          const QString &collection,
+                                                                          const QString &encryptedStoragePluginName) const;
 
     // QML API - allow clients to use QByteArray data in a meaningful way, not required in Qt >= 5.8
     Q_INVOKABLE QString toBase64(const QByteArray &data) const;

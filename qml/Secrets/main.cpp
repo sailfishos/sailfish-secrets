@@ -174,6 +174,15 @@ Sailfish::Secrets::Secret::FilterData Sailfish::Secrets::Plugin::SecretManager::
 }
 
 /*!
+  \qmlmethod Identifier SecretManager::constructIdentifier(QString name, QString collection, QString encryptedStoragePluginName)
+*/
+
+Sailfish::Secrets::Secret::Identifier Sailfish::Secrets::Plugin::SecretManager::constructIdentifier(const QString &name, const QString &collection, const QString &encryptedStoragePluginName) const;
+{
+    return Sailfish::Secrets::Secret::Identifier(name, collection, encryptedStoragePluginName);
+}
+
+/*!
   \qmlmethod string SecretManager::toBase64(ArrayBuffer data)
 */
 
