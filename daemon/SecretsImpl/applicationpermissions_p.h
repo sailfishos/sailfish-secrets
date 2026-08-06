@@ -38,6 +38,7 @@ public:
     }
 
     QString applicationId(pid_t pid) const;
+    QString exactApplicationId(pid_t pid) const;
     QString platformApplicationId() const { return m_osName; }
     bool applicationIsPlatformApplication(pid_t pid) const;
 

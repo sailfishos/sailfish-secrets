@@ -23,10 +23,13 @@
 #include <QtCore/QVector>
 #include <QtCore/QHash>
 #include <QtCore/QMap>
+#include <QtCore/QVariant>
 #include <QtCore/QSharedDataPointer>
 #include <QtCore/QLoggingCategory>
 
 #define Sailfish_Crypto_CryptoPlugin_IID "org.sailfishos.crypto.CryptoPlugin/1.0"
+#define Sailfish_Crypto_MasterKeyPluginExtension_IID "org.sailfishos.crypto.MasterKeyPluginExtension/1.0"
+#define Sailfish_Crypto_KeyMintOperationExtension_IID "org.sailfishos.crypto.KeyMintOperationExtension/1.0"
 
 SAILFISH_CRYPTO_API Q_DECLARE_LOGGING_CATEGORY(lcSailfishCryptoPlugin)
 
@@ -197,12 +200,76 @@ public:
             Sailfish::Crypto::CryptoManager::VerificationStatus *verificationStatus) = 0;
 };
 
+// Optional interfaces used by providers whose key material remains opaque to
+// sailfishsecretsd.  They are deliberately separate from CryptoPlugin so an
+// existing plugin does not gain new mandatory virtual methods.
+class SAILFISH_CRYPTO_API MasterKeyPluginExtension
+{
+public:
+    virtual ~MasterKeyPluginExtension() {}
+
+    virtual Sailfish::Crypto::Result beginCreateMasterKey(
+            const QByteArray &rootKey,
+            quint32 sailfishUserId,
+            quint64 secureUserId,
+            const QByteArray &identityEpoch,
+            quint64 *operationHandle,
+            QByteArray *operationContext) = 0;
+
+    virtual Sailfish::Crypto::Result finishCreateMasterKey(
+            const QByteArray &operationContext,
+            const QByteArray &serializedHardwareAuthToken,
+            QByteArray *serializedEnvelope) = 0;
+
+    virtual Sailfish::Crypto::Result beginOpenMasterKey(
+            const QByteArray &serializedEnvelope,
+            quint64 *operationHandle,
+            QByteArray *operationContext) = 0;
+
+    virtual Sailfish::Crypto::Result finishOpenMasterKey(
+            const QByteArray &operationContext,
+            const QByteArray &serializedHardwareAuthToken,
+            QByteArray *rootKey) = 0;
+};
+
+class SAILFISH_CRYPTO_API KeyMintOperationExtension
+{
+public:
+    virtual ~KeyMintOperationExtension() {}
+
+    virtual Sailfish::Crypto::Result keyMintOneShot(
+            quint32 operation,
+            const QByteArray &request,
+            qint32 *keyMintError,
+            QByteArray *response) = 0;
+    virtual Sailfish::Crypto::Result keyMintBegin(
+            const QByteArray &request,
+            qint32 *keyMintError,
+            quint64 *operationHandle,
+            QByteArray *response) = 0;
+    virtual Sailfish::Crypto::Result keyMintUpdate(
+            quint64 operationHandle,
+            const QByteArray &request,
+            qint32 *keyMintError,
+            QByteArray *response) = 0;
+    virtual Sailfish::Crypto::Result keyMintFinish(
+            quint64 operationHandle,
+            const QByteArray &request,
+            qint32 *keyMintError,
+            QByteArray *response) = 0;
+    virtual Sailfish::Crypto::Result keyMintAbort(
+            quint64 operationHandle,
+            qint32 *keyMintError) = 0;
+};
+
 } // namespace Crypto
 
 } // namespace Sailfish
 
 QT_BEGIN_NAMESPACE
 Q_DECLARE_INTERFACE(Sailfish::Crypto::CryptoPlugin, Sailfish_Crypto_CryptoPlugin_IID)
+Q_DECLARE_INTERFACE(Sailfish::Crypto::MasterKeyPluginExtension, Sailfish_Crypto_MasterKeyPluginExtension_IID)
+Q_DECLARE_INTERFACE(Sailfish::Crypto::KeyMintOperationExtension, Sailfish_Crypto_KeyMintOperationExtension_IID)
 QT_END_NAMESPACE
 
 #endif // LIBSAILFISHCRYPTO_PLUGINAPI_EXTENSIONPLUGINS_H

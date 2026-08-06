@@ -75,6 +75,7 @@ public:
                      Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *parent = Q_NULLPTR);
 
     bool initializePlugins();
+    bool lockPlugins();
 
     // retrieve information about available plugins
     Sailfish::Secrets::Result getPluginInfo(

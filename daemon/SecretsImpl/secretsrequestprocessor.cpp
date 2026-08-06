@@ -85,6 +85,35 @@ namespace {
         return authPluginName;
     }
 
+    QString ownerApplicationId(
+            Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *permissions,
+            pid_t callerPid,
+            bool callerIsPlatformApplication,
+            SecretManager::AccessControlMode accessControlMode)
+    {
+        if (accessControlMode == SecretManager::ExactApplicationOwnerMode) {
+            return permissions->exactApplicationId(callerPid);
+        }
+        return callerIsPlatformApplication
+                ? permissions->platformApplicationId()
+                : permissions->applicationId(callerPid);
+    }
+
+    bool ownerOnlyAccessDenied(
+            Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions *permissions,
+            pid_t callerPid,
+            const QString &storedOwnerApplicationId,
+            const QString &callerApplicationId,
+            SecretManager::AccessControlMode accessControlMode)
+    {
+        if (accessControlMode == SecretManager::ExactApplicationOwnerMode) {
+            const QString exactId = permissions->exactApplicationId(callerPid);
+            return exactId.isEmpty() || storedOwnerApplicationId != exactId;
+        }
+        return accessControlMode == SecretManager::OwnerOnlyMode
+                && storedOwnerApplicationId != callerApplicationId;
+    }
+
     inline HealthCheckRequest::Health dataProtectorStatusToHealth(::Sailfish::Secrets::Daemon::ApiImpl::DataProtector::Status status)
     {
         switch (status) {
@@ -186,6 +215,17 @@ bool Daemon::ApiImpl::RequestProcessor::initializePlugins()
         // the OLD lock code, and some with the NEW lock code...
         qCWarning(lcSailfishSecretsDaemon) << "Critical Error! Failed to initialize metadata plugins";
     }
+    return future.result();
+}
+
+bool Daemon::ApiImpl::RequestProcessor::lockPlugins()
+{
+    QFuture<bool> future = QtConcurrent::run(
+                m_requestQueue->secretsThreadPool().data(),
+                &Daemon::ApiImpl::masterLockPlugins,
+                m_storagePlugins.values(),
+                m_encryptedStoragePlugins.values());
+    future.waitForFinished();
     return future.result();
 }
 
@@ -353,9 +393,13 @@ Daemon::ApiImpl::RequestProcessor::createDeviceLockCollection(
 
     // TODO: perform access control request to see if the application has permission to write secure storage data.
     const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
-    const QString callerApplicationId = applicationIsPlatformApplication
-                ? m_appPermissions->platformApplicationId()
-                : m_appPermissions->applicationId(callerPid);
+    const QString callerApplicationId = ownerApplicationId(
+                m_appPermissions, callerPid, applicationIsPlatformApplication, accessControlMode);
+    if (accessControlMode == SecretManager::ExactApplicationOwnerMode
+            && callerApplicationId.isEmpty()) {
+        return Result(Result::InvalidApplicationIdError,
+                      QLatin1String("Unable to determine the exact caller identity"));
+    }
 
     CollectionMetadata metadata;
     metadata.collectionName = collectionName;
@@ -450,9 +494,13 @@ Daemon::ApiImpl::RequestProcessor::createCustomLockCollection(
 
     // TODO: perform access control request to see if the application has permission to write secure storage data.
     const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
-    const QString callerApplicationId = applicationIsPlatformApplication
-                ? m_appPermissions->platformApplicationId()
-                : m_appPermissions->applicationId(callerPid);
+    const QString callerApplicationId = ownerApplicationId(
+                m_appPermissions, callerPid, applicationIsPlatformApplication, accessControlMode);
+    if (accessControlMode == SecretManager::ExactApplicationOwnerMode
+            && callerApplicationId.isEmpty()) {
+        return Result(Result::InvalidApplicationIdError,
+                      QLatin1String("Unable to determine the exact caller identity"));
+    }
 
     // perform the user input flow required to get the input key data which will be used
     // to encrypt the data in this collection.
@@ -576,9 +624,16 @@ Daemon::ApiImpl::RequestProcessor::createCustomLockCollectionWithEncryptionKey(
 
     // TODO: perform access control request to see if the application has permission to write secure storage data.
     const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
-    const QString callerApplicationId = applicationIsPlatformApplication
-                ? m_appPermissions->platformApplicationId()
-                : m_appPermissions->applicationId(callerPid);
+    const QString callerApplicationId = ownerApplicationId(
+                m_appPermissions, callerPid, applicationIsPlatformApplication, accessControlMode);
+    if (accessControlMode == SecretManager::ExactApplicationOwnerMode
+            && callerApplicationId.isEmpty()) {
+        const Result result(Result::InvalidApplicationIdError,
+                            QLatin1String("Unable to determine the exact caller identity"));
+        m_requestQueue->requestFinished(requestId,
+                                        QVariantList() << QVariant::fromValue<Result>(result));
+        return;
+    }
 
     CollectionMetadata metadata;
     metadata.collectionName = collectionName;
@@ -718,8 +773,10 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionWithMetadata(
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (collectionMetadata.accessControlMode == SecretManager::OwnerOnlyMode
-               && collectionMetadata.ownerApplicationId != callerApplicationId) {
+    } else if (ownerOnlyAccessDenied(m_appPermissions, callerPid,
+                                     collectionMetadata.ownerApplicationId,
+                                     callerApplicationId,
+                                     collectionMetadata.accessControlMode)) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Collection %1 is owned by a different application")
                       .arg(collectionName));
@@ -1065,8 +1122,10 @@ Daemon::ApiImpl::RequestProcessor::storedKeyIdentifiersWithMetadata(
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (collectionMetadata.accessControlMode == SecretManager::OwnerOnlyMode
-               && collectionMetadata.ownerApplicationId != callerApplicationId) {
+    } else if (ownerOnlyAccessDenied(m_appPermissions, callerPid,
+                                     collectionMetadata.ownerApplicationId,
+                                     callerApplicationId,
+                                     collectionMetadata.accessControlMode)) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Collection %1 is owned by a different application")
                       .arg(collectionName));
@@ -1461,8 +1520,10 @@ Daemon::ApiImpl::RequestProcessor::setCollectionSecretWithMetadata(
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (collectionMetadata.accessControlMode == SecretManager::OwnerOnlyMode
-               && collectionMetadata.ownerApplicationId != callerApplicationId) {
+    } else if (ownerOnlyAccessDenied(m_appPermissions, callerPid,
+                                     collectionMetadata.ownerApplicationId,
+                                     callerApplicationId,
+                                     collectionMetadata.accessControlMode)) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Collection %1 in plugin %2 is owned by a different application")
                       .arg(secret.identifier().collectionName(), secret.identifier().storagePluginName()));
@@ -1947,9 +2008,13 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSecret(
 
     // TODO: perform access control request to see if the application has permission to write secure storage data.
     const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
-    const QString callerApplicationId = applicationIsPlatformApplication
-                ? m_appPermissions->platformApplicationId()
-                : m_appPermissions->applicationId(callerPid);
+    const QString callerApplicationId = ownerApplicationId(
+                m_appPermissions, callerPid, applicationIsPlatformApplication, accessControlMode);
+    if (accessControlMode == SecretManager::ExactApplicationOwnerMode
+            && callerApplicationId.isEmpty()) {
+        return Result(Result::InvalidApplicationIdError,
+                      QLatin1String("Unable to determine the exact caller identity"));
+    }
 
     // this is the metadata which we want to store for the secret.
     SecretMetadata secretMetadata;
@@ -2177,9 +2242,13 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneCustomLockSecret(
 
     // TODO: perform access control request to see if the application has permission to write secure storage data.
     const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
-    const QString callerApplicationId = applicationIsPlatformApplication
-                ? m_appPermissions->platformApplicationId()
-                : m_appPermissions->applicationId(callerPid);
+    const QString callerApplicationId = ownerApplicationId(
+                m_appPermissions, callerPid, applicationIsPlatformApplication, accessControlMode);
+    if (accessControlMode == SecretManager::ExactApplicationOwnerMode
+            && callerApplicationId.isEmpty()) {
+        return Result(Result::InvalidApplicationIdError,
+                      QLatin1String("Unable to determine the exact caller identity"));
+    }
 
     // this is the metadata which we want to store for the secret.
     SecretMetadata secretMetadata;
@@ -2577,8 +2646,10 @@ Daemon::ApiImpl::RequestProcessor::getCollectionSecretWithMetadata(
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (collectionMetadata.accessControlMode == SecretManager::OwnerOnlyMode
-               && collectionMetadata.ownerApplicationId != callerApplicationId) {
+    } else if (ownerOnlyAccessDenied(m_appPermissions, callerPid,
+                                     collectionMetadata.ownerApplicationId,
+                                     callerApplicationId,
+                                     collectionMetadata.accessControlMode)) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Collection %1 in plugin %2 is owned by a different application")
                       .arg(identifier.collectionName(), identifier.storagePluginName()));
@@ -3364,8 +3435,10 @@ Daemon::ApiImpl::RequestProcessor::findCollectionSecretsWithMetadata(
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (collectionMetadata.accessControlMode == SecretManager::OwnerOnlyMode
-               && collectionMetadata.ownerApplicationId != callerApplicationId) {
+    } else if (ownerOnlyAccessDenied(m_appPermissions, callerPid,
+                                     collectionMetadata.ownerApplicationId,
+                                     callerApplicationId,
+                                     collectionMetadata.accessControlMode)) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Collection %1 is owned by a different application")
                       .arg(collectionName));
@@ -3860,8 +3933,10 @@ Daemon::ApiImpl::RequestProcessor::deleteCollectionSecretWithMetadata(
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (collectionMetadata.accessControlMode == SecretManager::OwnerOnlyMode
-               && collectionMetadata.ownerApplicationId != callerApplicationId) {
+    } else if (ownerOnlyAccessDenied(m_appPermissions, callerPid,
+                                     collectionMetadata.ownerApplicationId,
+                                     callerApplicationId,
+                                     collectionMetadata.accessControlMode)) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Collection %1 is owned by a different application")
                       .arg(identifier.collectionName()));
@@ -4263,8 +4338,10 @@ Daemon::ApiImpl::RequestProcessor::deleteStandaloneSecretWithMetadata(
         Q_UNUSED(userInteractionMode);
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (secretMetadata.accessControlMode == SecretManager::OwnerOnlyMode
-               && secretMetadata.ownerApplicationId != callerApplicationId) {
+    } else if (ownerOnlyAccessDenied(m_appPermissions, callerPid,
+                                     secretMetadata.ownerApplicationId,
+                                     callerApplicationId,
+                                     secretMetadata.accessControlMode)) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Secret %1 from collection %2 in storage plugin %3 is owned by a different application")
                       .arg(identifier.name(), identifier.collectionName(), identifier.storagePluginName()));
@@ -4373,6 +4450,11 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCode(
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress)
 {
+    if (lockCodeTargetType == LockCodeRequest::MetadataDatabase
+            && m_requestQueue->keyMintManaged()) {
+        return Result(Result::OperationNotSupportedError,
+                      QLatin1String("The Secrets master key follows the Sailfish device lock"));
+    }
     // TODO: perform access control request to see if the application has permission to modify plugin locks.
     const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
     const QString callerApplicationId = applicationIsPlatformApplication
@@ -4481,6 +4563,11 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCode(
         const QString &interactionServiceAddress,
         const QByteArray &oldLockCode)
 {
+    if (lockCodeTargetType == LockCodeRequest::MetadataDatabase
+            && m_requestQueue->keyMintManaged()) {
+        return Result(Result::OperationNotSupportedError,
+                      QLatin1String("The Secrets master key follows the Sailfish device lock"));
+    }
     // TODO: access control, check the application is allowed to modify plugin locks.
     const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
     const QString callerApplicationId = applicationIsPlatformApplication
@@ -4564,6 +4651,11 @@ Daemon::ApiImpl::RequestProcessor::modifyLockCodeWithLockCodes(
         const QByteArray &oldLockCode,
         const QByteArray &newLockCode)
 {
+    if (lockCodeTargetType == LockCodeRequest::MetadataDatabase
+            && m_requestQueue->keyMintManaged()) {
+        return Result(Result::OperationNotSupportedError,
+                      QLatin1String("The Secrets master key follows the Sailfish device lock"));
+    }
     // TODO: support secret/collection flows
     Q_UNUSED(callerPid);
     Q_UNUSED(requestId);
@@ -4687,6 +4779,11 @@ Daemon::ApiImpl::RequestProcessor::provideLockCode(
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress)
 {
+    if (lockCodeTargetType == LockCodeRequest::MetadataDatabase
+            && m_requestQueue->keyMintManaged()) {
+        return Result(Result::OperationNotSupportedError,
+                      QLatin1String("Use the Sailfish device-lock authentication prompt"));
+    }
     // TODO: perform access control request to see if the application has permission to access secure storage data.
     const bool applicationIsPlatformApplication = m_appPermissions->applicationIsPlatformApplication(callerPid);
     const QString callerApplicationId = applicationIsPlatformApplication
@@ -4828,6 +4925,11 @@ Daemon::ApiImpl::RequestProcessor::provideLockCodeWithLockCode(
         const QString &interactionServiceAddress,
         const QByteArray &lockCode)
 {
+    if (lockCodeTargetType == LockCodeRequest::MetadataDatabase
+            && m_requestQueue->keyMintManaged()) {
+        return Result(Result::OperationNotSupportedError,
+                      QLatin1String("Secrets does not accept the Sailfish security code"));
+    }
     // TODO: support the secret/collection flows.
     Q_UNUSED(callerPid);
     Q_UNUSED(requestId);
@@ -5089,8 +5191,10 @@ Daemon::ApiImpl::RequestProcessor::useCollectionKeyPreCheckWithMetadata(
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (collectionMetadata.accessControlMode == SecretManager::OwnerOnlyMode
-               && collectionMetadata.ownerApplicationId != callerApplicationId) {
+    } else if (ownerOnlyAccessDenied(m_appPermissions, callerPid,
+                                     collectionMetadata.ownerApplicationId,
+                                     callerApplicationId,
+                                     collectionMetadata.accessControlMode)) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Collection %1 in plugin %2 is owned by a different application")
                       .arg(identifier.collectionName(), identifier.storagePluginName()));
@@ -5547,8 +5651,10 @@ Daemon::ApiImpl::RequestProcessor::setCollectionKeyPreCheckWithMetadata(
         // TODO: perform access control request, to ask for permission to set the secret in the collection.
         return Result(Result::OperationNotSupportedError,
                       QLatin1String("Access control requests are not currently supported. TODO!"));
-    } else if (collectionMetadata.accessControlMode == SecretManager::OwnerOnlyMode
-               && collectionMetadata.ownerApplicationId != callerApplicationId) {
+    } else if (ownerOnlyAccessDenied(m_appPermissions, callerPid,
+                                     collectionMetadata.ownerApplicationId,
+                                     callerApplicationId,
+                                     collectionMetadata.accessControlMode)) {
         return Result(Result::PermissionsError,
                       QString::fromLatin1("Collection %1 in plugin %2 is owned by a different application")
                       .arg(identifier.collectionName(), identifier.storagePluginName()));

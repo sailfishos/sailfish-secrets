@@ -12,6 +12,7 @@
 #include "CryptoImpl/crypto_p.h"
 #include "SecretsImpl/secrets_p.h"
 #include "SecretsImpl/metadatadb_p.h"
+#include "SecretsImpl/masterkeycontroller_p.h"
 #include "SecretsImpl/pluginfunctionwrappers_p.h"
 
 #include <QtCore/QString>
@@ -44,6 +45,12 @@ namespace {
 
 Sailfish::Secrets::Daemon::Controller::Controller(bool autotestMode, QObject *parent)
     : QObject(parent)
+    , m_dbusServer(Q_NULLPTR)
+    , m_secretsDiscoveryObject(Q_NULLPTR)
+    , m_cryptoDiscoveryObject(Q_NULLPTR)
+    , m_secrets(Q_NULLPTR)
+    , m_crypto(Q_NULLPTR)
+    , m_masterKeys(Q_NULLPTR)
     , m_autotestMode(autotestMode)
     , m_isValid(false)
 {
@@ -55,16 +62,24 @@ Sailfish::Secrets::Daemon::Controller::Controller(bool autotestMode, QObject *pa
     m_secrets = new Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue(this, autotestMode);
     m_crypto = new Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue(this, m_secrets, autotestMode);
 
-    // We may need to do this again once we know the real lock code.
-    // see the comment below for more details.
-    // Unless the user has not provided a master-lock code, we don't expect
-    // that we have the "correct" bookkeeping database lock key here,
-    // but that's ok - we can unlock the database at some later point in
-    // time after performing a UI flow asking the user to unlock.
-    if (m_secrets->initialize(
-                QByteArray(),
-                Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::UnlockMode)) {
-        m_secrets->initializePlugins();
+    if (m_autotestMode) {
+        // Existing API tests deliberately exercise the legacy password-based
+        // master-lock flow.  Production never derives the database key from
+        // an empty or user-visible PIN.
+        if (m_secrets->initialize(
+                    QByteArray(),
+                    Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue::UnlockMode)) {
+            m_secrets->initializePlugins();
+        }
+    } else {
+        m_masterKeys = new Sailfish::Secrets::Daemon::ApiImpl::MasterKeyController(
+                    m_secrets, m_crypto, false, this);
+        QString masterKeyError;
+        if (!m_masterKeys->start(&masterKeyError)) {
+            qCWarning(lcSailfishSecretsDaemon)
+                    << "Secrets master-key initialization failed closed:"
+                    << masterKeyError;
+        }
     }
 
     // Determine the p2p socket address.
@@ -105,6 +120,11 @@ Sailfish::Secrets::Daemon::Controller::Controller(bool autotestMode, QObject *pa
 
 Sailfish::Secrets::Daemon::Controller::~Controller()
 {
+    // The master-key controller owns session state backed by both request
+    // queues.  Destroy it before QObject tears down the queues in child
+    // insertion order.
+    delete m_masterKeys;
+    m_masterKeys = Q_NULLPTR;
 }
 
 Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue*

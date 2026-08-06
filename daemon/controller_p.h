@@ -52,6 +52,7 @@ namespace Daemon {
 class DiscoveryObject;
 namespace ApiImpl {
     class SecretsRequestQueue;
+    class MasterKeyController;
 }
 
 class Controller : public QObject
@@ -82,6 +83,7 @@ private:
     Sailfish::Crypto::Daemon::DiscoveryObject *m_cryptoDiscoveryObject;
     Sailfish::Secrets::Daemon::ApiImpl::SecretsRequestQueue *m_secrets;
     Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *m_crypto;
+    Sailfish::Secrets::Daemon::ApiImpl::MasterKeyController *m_masterKeys;
     bool m_autotestMode;
     bool m_isValid;
 };

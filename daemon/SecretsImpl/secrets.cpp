@@ -35,6 +35,7 @@
 #include <QtConcurrent>
 
 #include <sys/mman.h>
+#include <openssl/crypto.h>
 
 #if defined(HAS_NEMO_NOTIFICATIONS)
 #include <notification.h>
@@ -529,10 +530,14 @@ Daemon::ApiImpl::SecretsRequestQueue::SecretsRequestQueue(
     , m_autotestMode(autotestMode)
     , m_bkdbLockKeyData(Q_NULLPTR)
     , m_deviceLockKeyData(Q_NULLPTR)
+    , m_appSupportDatabaseKeyData(Q_NULLPTR)
     , m_bkdbLockKeyLen(0)
     , m_deviceLockKeyLen(0)
+    , m_appSupportDatabaseKeyLen(0)
+    , m_keyDataCapacity(0)
     , m_noLockCode(false)
     , m_locked(true)
+    , m_keyMintManaged(false)
 {
     SecretsDaemonConnection::registerDBusTypes();
 
@@ -548,6 +553,10 @@ Daemon::ApiImpl::SecretsRequestQueue::SecretsRequestQueue(
 
 Daemon::ApiImpl::SecretsRequestQueue::~SecretsRequestQueue()
 {
+    clearKeyData();
+    if (m_bkdbLockKeyData) {
+        ::munlock(m_bkdbLockKeyData, m_keyDataCapacity);
+    }
     free(m_bkdbLockKeyData);
 }
 
@@ -749,6 +758,11 @@ bool Daemon::ApiImpl::SecretsRequestQueue::initialize(
         const QByteArray &lockCode,
         SecretsRequestQueue::InitializationMode mode)
 {
+    if (mode == SecretsRequestQueue::LockMode) {
+        lockMasterKey();
+        return true;
+    }
+
     QByteArray bkdbKey, deviceLockKey, testCipherText;
     QString cipherPluginName, usedCipherPluginName;
     bool firstTimeInitialization = false;
@@ -804,9 +818,61 @@ bool Daemon::ApiImpl::SecretsRequestQueue::initialize(
     return true;
 }
 
+bool Daemon::ApiImpl::SecretsRequestQueue::initializeFromKeyMintRoot(
+        const QByteArray &rootKey,
+        const MasterKeyEnvelope &envelope)
+{
+    QByteArray bookkeepingDatabaseKey;
+    QByteArray deviceLockKey;
+    QByteArray appSupportDatabaseKey;
+    if (!MasterKeyDerivation::derive(rootKey, envelope,
+                                     &bookkeepingDatabaseKey, &deviceLockKey,
+                                     &appSupportDatabaseKey)) {
+        qCWarning(lcSailfishSecretsDaemon) << "Unable to derive KeyMint master keys";
+        return false;
+    }
+
+    const bool initialized = initializeKeyData(bookkeepingDatabaseKey, deviceLockKey,
+                                               appSupportDatabaseKey);
+    MasterKeyDerivation::clear(&bookkeepingDatabaseKey);
+    MasterKeyDerivation::clear(&deviceLockKey);
+    MasterKeyDerivation::clear(&appSupportDatabaseKey);
+    if (!initialized) {
+        qCWarning(lcSailfishSecretsDaemon) << "Unable to cache KeyMint-derived master keys";
+        return false;
+    }
+
+    m_noLockCode = false;
+    m_locked = false;
+    return true;
+}
+
+void Daemon::ApiImpl::SecretsRequestQueue::lockMasterKey()
+{
+    clearKeyData();
+    m_locked = true;
+    m_noLockCode = false;
+    emit masterKeyLocked();
+}
+
+bool Daemon::ApiImpl::SecretsRequestQueue::lockPlugins()
+{
+    return m_requestProcessor->lockPlugins();
+}
+
 bool Daemon::ApiImpl::SecretsRequestQueue::initializePlugins()
 {
     return m_requestProcessor->initializePlugins();
+}
+
+void Daemon::ApiImpl::SecretsRequestQueue::setKeyMintManaged(bool managed)
+{
+    m_keyMintManaged = managed;
+}
+
+bool Daemon::ApiImpl::SecretsRequestQueue::keyMintManaged() const
+{
+    return m_keyMintManaged;
 }
 
 bool Daemon::ApiImpl::SecretsRequestQueue::masterLocked() const
@@ -957,28 +1023,62 @@ bool Daemon::ApiImpl::SecretsRequestQueue::compareTestCipherText(
 
 bool Daemon::ApiImpl::SecretsRequestQueue::initializeKeyData(
         const QByteArray &bkdbKey,
-        const QByteArray &deviceLockKey)
+        const QByteArray &deviceLockKey,
+        const QByteArray &appSupportDatabaseKey)
 {
     // now we want to malloc a contiguous chunk of memory large enough
     // to contain both keys data, then mlock() it.
-    if (m_bkdbLockKeyData == Q_NULLPTR) {
+    const int requiredCapacity = bkdbKey.size() + deviceLockKey.size()
+            + appSupportDatabaseKey.size();
+    if (requiredCapacity <= 0) {
+        return false;
+    }
+    if (m_bkdbLockKeyData == Q_NULLPTR || requiredCapacity != m_keyDataCapacity) {
+        clearKeyData();
+        if (m_bkdbLockKeyData) {
+            ::munlock(m_bkdbLockKeyData, m_keyDataCapacity);
+            free(m_bkdbLockKeyData);
+            m_bkdbLockKeyData = Q_NULLPTR;
+            m_deviceLockKeyData = Q_NULLPTR;
+            m_keyDataCapacity = 0;
+        }
         /*
          * The use of malloc() triggers a spurious gcc 11 -Wmaybe-uninitialized
          * warning in the mlock() function call below, so use calloc().
          */
-        m_bkdbLockKeyData = (char*)calloc(bkdbKey.size()+deviceLockKey.size(), 1);
-        if (mlock(m_bkdbLockKeyData, bkdbKey.size()+deviceLockKey.size()) < 0) {
+        m_bkdbLockKeyData = static_cast<char *>(calloc(requiredCapacity, 1));
+        if (!m_bkdbLockKeyData) {
+            return false;
+        }
+        m_keyDataCapacity = requiredCapacity;
+        if (mlock(m_bkdbLockKeyData, m_keyDataCapacity) < 0) {
             qCWarning(lcSailfishSecretsDaemon) << "Warning: unable to mlock secretsd key memory!";
         }
-        m_deviceLockKeyData = m_bkdbLockKeyData + bkdbKey.size();
     }
 
+    m_deviceLockKeyData = m_bkdbLockKeyData + bkdbKey.size();
+    m_appSupportDatabaseKeyData = m_deviceLockKeyData + deviceLockKey.size();
     memcpy(m_bkdbLockKeyData, bkdbKey.constData(), bkdbKey.size());
     memcpy(m_deviceLockKeyData, deviceLockKey.constData(), deviceLockKey.size());
+    memcpy(m_appSupportDatabaseKeyData, appSupportDatabaseKey.constData(),
+           appSupportDatabaseKey.size());
     m_bkdbLockKeyLen = bkdbKey.size();
     m_deviceLockKeyLen = deviceLockKey.size();
+    m_appSupportDatabaseKeyLen = appSupportDatabaseKey.size();
 
     return true;
+}
+
+void Daemon::ApiImpl::SecretsRequestQueue::clearKeyData()
+{
+    if (m_bkdbLockKeyData && m_keyDataCapacity > 0) {
+        OPENSSL_cleanse(m_bkdbLockKeyData, m_keyDataCapacity);
+    }
+    m_bkdbLockKeyLen = 0;
+    m_deviceLockKeyLen = 0;
+    m_appSupportDatabaseKeyLen = 0;
+    m_deviceLockKeyData = Q_NULLPTR;
+    m_appSupportDatabaseKeyData = Q_NULLPTR;
 }
 
 QByteArray Daemon::ApiImpl::SecretsRequestQueue::saltData() const
@@ -1049,12 +1149,27 @@ void Daemon::ApiImpl::SecretsRequestQueue::setNoLockCode(bool value)
 
 const QByteArray Daemon::ApiImpl::SecretsRequestQueue::bkdbLockKey() const
 {
+    if (!m_bkdbLockKeyData || m_bkdbLockKeyLen <= 0) {
+        return QByteArray();
+    }
     return QByteArray::fromRawData(m_bkdbLockKeyData, m_bkdbLockKeyLen);
 }
 
 const QByteArray Daemon::ApiImpl::SecretsRequestQueue::deviceLockKey() const
 {
+    if (!m_deviceLockKeyData || m_deviceLockKeyLen <= 0) {
+        return QByteArray();
+    }
     return QByteArray::fromRawData(m_deviceLockKeyData, m_deviceLockKeyLen);
+}
+
+const QByteArray Daemon::ApiImpl::SecretsRequestQueue::appSupportDatabaseKey() const
+{
+    if (!m_appSupportDatabaseKeyData || m_appSupportDatabaseKeyLen <= 0) {
+        return QByteArray();
+    }
+    return QByteArray::fromRawData(m_appSupportDatabaseKeyData,
+                                   m_appSupportDatabaseKeyLen);
 }
 
 Result Daemon::ApiImpl::SecretsRequestQueue::lockCryptoPlugin(

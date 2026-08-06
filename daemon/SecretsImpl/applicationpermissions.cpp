@@ -11,6 +11,7 @@
 #include <QtCore/QFile>
 #include <QtCore/QDir>
 #include <QtCore/QFileInfo>
+#include <QtCore/QUrl>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -79,6 +80,26 @@ namespace {
         return retn;
     }
 
+    QString readExactExeSymlink(pid_t pid)
+    {
+        const QByteArray path = QStringLiteral("/proc/%1/exe").arg(pid).toUtf8();
+        QByteArray target(256, '\0');
+        for (;;) {
+            const ssize_t size = readlink(path.constData(), target.data(), target.size());
+            if (size < 0) {
+                return QString();
+            }
+            if (size < target.size()) {
+                target.truncate(static_cast<int>(size));
+                return QString::fromUtf8(target);
+            }
+            if (target.size() >= 65536) {
+                return QString();
+            }
+            target.resize(target.size() * 2);
+        }
+    }
+
     QString readCmdline(pid_t pid)
     {
         const QString pidFile(QStringLiteral("/proc/%1/cmdline").arg(pid));
@@ -106,6 +127,29 @@ namespace {
         qCDebug(lcSailfishSecretsDaemon) << "caller with pid" << pid << "has cmdline applicationId:" << retn;
         return retn;
     }
+}
+
+QString Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions::exactApplicationId(pid_t pid) const
+{
+    if (pid <= 0) {
+        qCWarning(lcSailfishSecretsDaemon) << "Cannot determine an exact application id for pid" << pid;
+        return QString();
+    }
+
+    const QFileInfo processInfo(QStringLiteral("/proc/%1").arg(pid));
+    const QString executable = readExactExeSymlink(pid);
+    if (!processInfo.exists() || executable.isEmpty()) {
+        qCWarning(lcSailfishSecretsDaemon) << "Incomplete exact application identity for pid" << pid;
+        return QString();
+    }
+
+    const QByteArray encodedExecutable = QUrl::toPercentEncoding(executable);
+    const QByteArray encodedCgroup = QUrl::toPercentEncoding(readBoosterCgroup(pid));
+    return QString::fromLatin1("exact:v1;uid=%1;gid=%2;exe=%3;cgroup=%4")
+            .arg(processInfo.ownerId())
+            .arg(processInfo.groupId())
+            .arg(QString::fromLatin1(encodedExecutable))
+            .arg(QString::fromLatin1(encodedCgroup));
 }
 
 QString Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions::applicationId(pid_t pid) const

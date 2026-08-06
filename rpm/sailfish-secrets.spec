@@ -15,6 +15,7 @@ BuildRequires:  pkgconfig(Qt5Qml)
 BuildRequires:  pkgconfig(Qt5Quick)
 BuildRequires:  pkgconfig(Qt5QuickTest)
 BuildRequires:  pkgconfig(Qt5Concurrent)
+BuildRequires:  pkgconfig(Qt5Network)
 BuildRequires:  pkgconfig(qt5-boostable)
 BuildRequires:  qt5-qttools-qthelp-devel
 BuildRequires:  qt5-tools
@@ -176,6 +177,7 @@ Requires:         mapplauncherd
 Requires:         libsailfishcrypto = %{version}-%{release}
 Requires:         qt5-plugin-sqldriver-sqlcipher
 Requires:         nemo-qml-plugin-systemsettings
+Requires:         nemo-devicelock-security-broker >= 1
 
 %description -n %{secretsdaemon}
 Provides a secrets storage and cryptographic operations system daemon service,
@@ -330,6 +332,7 @@ systemctl daemon-reload || :
 /opt/tests/Sailfish/Secrets/authentication-client
 /opt/tests/Sailfish/Secrets/tst_secrets
 /opt/tests/Sailfish/Secrets/tst_dataprotection
+/opt/tests/Sailfish/Secrets/tst_masterkey
 /opt/tests/Sailfish/Secrets/tst_secrets.qml
 /opt/tests/Sailfish/Secrets/tst_secretsrequests
 /opt/tests/Sailfish/Secrets/tst_secretsrequests.qml
@@ -430,6 +433,7 @@ systemctl daemon-reload || :
 
 %files -n %{secretsdaemon}-cryptoplugins-default
 %{_libdir}/Sailfish/Crypto/libsailfishcrypto-openssl.so
+%{_libdir}/Sailfish/Crypto/libsailfishcrypto-keymint.so
 
 %files -n %{secretsdaemon}-cryptoplugins-gnupg
 %{_libdir}/Sailfish/Crypto/libsailfishcrypto-openpgp.so

@@ -7,5 +7,6 @@ SUBDIRS += \
     $$PWD/opensslplugin \
     $$PWD/sqlcipherplugin \
     $$PWD/opensslcryptoplugin \
+    $$PWD/keymintcryptoplugin \
     $$PWD/exampleusbtokenplugin \
     $$PWD/gnupgplugin

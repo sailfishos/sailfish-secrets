@@ -1,8 +1,8 @@
 TEMPLATE = app
 TARGET = sailfishsecretsd
-QT = core sql dbus concurrent
+QT = core network sql dbus concurrent
 CONFIG += link_pkgconfig hide_symbols
-PKGCONFIG += dbus-1 Qt5Concurrent Qt5DBus Qt5Core Qt5Sql systemsettings
+PKGCONFIG += dbus-1 Qt5Concurrent Qt5DBus Qt5Core Qt5Network Qt5Sql libcrypto systemsettings
 
 DEFINES += \
     PLUGIN_DIRECTORY_SECRETS=\"\\\"$$[QT_INSTALL_LIBS]/Sailfish/Secrets\\\"\" \

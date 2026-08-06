@@ -48,7 +48,8 @@ public:
     enum AccessControlMode {
         OwnerOnlyMode = 0,                  // no fine-grained access control necessary, only the creating application can access/write/delete.
         SystemAccessControlMode,            // access control via system access control, other applications can access if user gives permission.
-        NoAccessControlMode                 // other applications can access; use with care (prefer CustomLockAccessRelock)
+        NoAccessControlMode,                // other applications can access; use with care (prefer CustomLockAccessRelock)
+        ExactApplicationOwnerMode           // only the exact executable/cgroup identity which created the datum can access/write/delete.
     };
     Q_ENUM(AccessControlMode)
 

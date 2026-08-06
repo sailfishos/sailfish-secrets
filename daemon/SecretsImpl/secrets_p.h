@@ -13,6 +13,7 @@
 
 #include "Secrets/secret.h"
 #include "Secrets/interactionparameters.h"
+#include "masterkeymanager_p.h"
 #include "Secrets/plugininfo.h"
 #include "Secrets/healthcheckrequest.h"
 #include "Secrets/secretmanager.h"
@@ -436,7 +437,13 @@ public:
     Sailfish::Secrets::Daemon::Controller *controller() const;
     QWeakPointer<QThreadPool> secretsThreadPool();
     bool initialize(const QByteArray &lockCode, InitializationMode mode);
+    bool initializeFromKeyMintRoot(const QByteArray &rootKey,
+                                   const MasterKeyEnvelope &envelope);
+    void lockMasterKey();
+    bool lockPlugins();
     bool initializePlugins();
+    void setKeyMintManaged(bool managed);
+    bool keyMintManaged() const;
 
     void handleCancelation(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request) Q_DECL_OVERRIDE;
     void handlePendingRequest(Sailfish::Secrets::Daemon::ApiImpl::RequestQueue::RequestData *request, bool *completed) Q_DECL_OVERRIDE;
@@ -460,13 +467,20 @@ private:
     // mlock() data for the bookkeeping database lock key and device lock key
     char *m_bkdbLockKeyData;
     char *m_deviceLockKeyData;
+    char *m_appSupportDatabaseKeyData;
     int m_bkdbLockKeyLen;
     int m_deviceLockKeyLen;
+    int m_appSupportDatabaseKeyLen;
+    int m_keyDataCapacity;
     bool m_noLockCode;
     bool m_locked;
+    bool m_keyMintManaged;
     mutable QByteArray m_saltData;
     bool generateKeyData(const QByteArray &lockCode, const QString &cipherPluginName, QByteArray *bkdbKey, QByteArray *deviceLockKey, QByteArray *testCipherText, QString *usedCipherPluginName) const;
-    bool initializeKeyData(const QByteArray &bkdkKey, const QByteArray &deviceLockKey);
+    bool initializeKeyData(const QByteArray &bkdkKey,
+                           const QByteArray &deviceLockKey,
+                           const QByteArray &appSupportDatabaseKey = QByteArray());
+    void clearKeyData();
     void dealWithDataCorruption() const;
 
 public: // For use by the secrets request processor to handle device-locked collection/secret semantics
@@ -480,6 +494,7 @@ public: // For use by the secrets request processor to handle device-locked coll
     void setNoLockCode(bool value);
     const QByteArray bkdbLockKey() const;
     const QByteArray deviceLockKey() const;
+    const QByteArray appSupportDatabaseKey() const;
 
     Sailfish::Secrets::Result queryLockStatusCryptoPlugin(const QString &pluginName, Sailfish::Secrets::LockCodeRequest::LockStatus *lockStatus);
     Sailfish::Secrets::Result lockCryptoPlugin(const QString &pluginName);
@@ -508,6 +523,7 @@ public: // Crypto API helper methods.
     Sailfish::Secrets::Result forgetCryptoPluginLockCode(pid_t callerPid, quint64 cryptoRequestId, const QString &cryptoPluginName, const Sailfish::Secrets::InteractionParameters &uiParams);
 
 Q_SIGNALS:
+    void masterKeyLocked();
     void useKeyPreCheckCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &collectionDecryptionKey);
     void storedKeyCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &serializedKey, const QMap<QString,QString> &filterData);
     void storeKeyPreCheckCompleted(quint64 cryptoRequestId, const Sailfish::Secrets::Result &result, const QByteArray &collectionDecryptionKey);

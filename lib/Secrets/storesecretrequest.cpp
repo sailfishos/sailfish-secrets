@@ -461,6 +461,7 @@ void StoreSecretRequest::setCustomLockUnlockSemantic(SecretManager::CustomLockUn
   \value SecretManager.OwnerOnlyMode no fine-grained access control necessary, only the creating application can access/write/delete.
   \value SecretManager.SystemAccessControlMode access control via system access control, other applications can access if user gives permission.
   \value SecretManager.NoAccessControlMode other applications can access; use with care (prefer CustomLockAccessRelock)
+  \value SecretManager.ExactApplicationOwnerMode only the exact executable/cgroup identity which created the secret can access/write/delete.
 */
 
 /*!
