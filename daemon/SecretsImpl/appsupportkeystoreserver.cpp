@@ -18,6 +18,11 @@
 #include <QtCore/QSocketNotifier>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QtEndian>
+#include <QtDBus/QDBusConnection>
+#include <QtDBus/QDBusConnectionInterface>
+#include <QtDBus/QDBusInterface>
+#include <QtDBus/QDBusObjectPath>
+#include <QtDBus/QDBusReply>
 
 #include <errno.h>
 #include <cstring>
@@ -37,6 +42,124 @@ const quint32 MaximumAuthSetEntries = 1024;
 const int MaximumPendingRequests = 32;
 const int MaximumRecentBeginRequests = 32;
 const char ProductionPeerExecutable[] = "/usr/libexec/appsupport/apkd-bridge";
+const char ProductionPeerBusName[] = "com.jolla.apkd";
+const char ProductionPeerUnit[] = "apkd-bridge.service";
+const char ProductionPeerUnitFile[] = "/usr/lib/systemd/user/apkd-bridge.service";
+const char UserManagerBusName[] = "org.freedesktop.systemd1";
+const char UserManagerInterface[] = "org.freedesktop.systemd1.Manager";
+const char UserManagerPath[] = "/org/freedesktop/systemd1";
+const char UserServiceInterface[] = "org.freedesktop.systemd1.Service";
+const char UserUnitInterface[] = "org.freedesktop.systemd1.Unit";
+
+QDBusConnection securityUserBus()
+{
+    static const QDBusConnection connection = QDBusConnection::connectToBus(
+                QStringLiteral("unix:path=/run/user/%1/dbus/user_bus_socket")
+                    .arg(::getuid()),
+                QStringLiteral("sailfish-secrets-appsupport-peer-validation"));
+    return connection;
+}
+
+pid_t parentProcessId(pid_t pid)
+{
+    QFile statusFile(QStringLiteral("/proc/%1/status").arg(pid));
+    if (!statusFile.open(QIODevice::ReadOnly)) {
+        return 0;
+    }
+    const QList<QByteArray> lines = statusFile.readAll().split('\n');
+    for (const QByteArray &line : lines) {
+        if (line.startsWith("PPid:")) {
+            bool ok = false;
+            const qlonglong parent = line.mid(5).trimmed().toLongLong(&ok);
+            return ok && parent > 0 ? static_cast<pid_t>(parent) : 0;
+        }
+    }
+    return 0;
+}
+
+bool processIsAncestor(uint expectedPid)
+{
+    pid_t ancestor = ::getppid();
+    for (int depth = 0; ancestor > 0 && depth < 32; ++depth) {
+        if (static_cast<uint>(ancestor) == expectedPid) {
+            return true;
+        }
+        const pid_t parent = parentProcessId(ancestor);
+        if (parent == ancestor) {
+            return false;
+        }
+        ancestor = parent;
+    }
+    return false;
+}
+
+bool processIsProductionPeer(pid_t pid)
+{
+    // AppSupport 15 on the Jolla Phone runs the bridge from this root-installed
+    // user unit.  Bind all property calls to the verified unique manager owner
+    // so that a replacement well-known D-Bus name cannot answer them.
+    const QDBusConnection connection = securityUserBus();
+    QDBusConnectionInterface *busInterface = connection.interface();
+    if (!busInterface) {
+        return false;
+    }
+
+    const QDBusReply<QString> managerOwner = busInterface->serviceOwner(
+                QString::fromLatin1(UserManagerBusName));
+    if (!managerOwner.isValid() || managerOwner.value().isEmpty()) {
+        return false;
+    }
+    const QDBusReply<uint> managerPid = busInterface->servicePid(managerOwner.value());
+    if (!managerPid.isValid() || !managerPid.value()
+            || !processIsAncestor(managerPid.value())) {
+        return false;
+    }
+
+    const QString expectedManagerCgroup = QStringLiteral(
+                "/user.slice/user-%1.slice/user@%1.service/init.scope")
+            .arg(::getuid());
+    const QByteArray expectedManagerCgroupSuffix = QByteArray(":")
+            + expectedManagerCgroup.toLocal8Bit();
+    QFile cgroupFile(QStringLiteral("/proc/%1/cgroup").arg(managerPid.value()));
+    bool managerCgroupMatches = false;
+    if (cgroupFile.open(QIODevice::ReadOnly)) {
+        const QList<QByteArray> cgroups = cgroupFile.readAll().split('\n');
+        for (const QByteArray &cgroup : cgroups) {
+            if (cgroup.endsWith(expectedManagerCgroupSuffix)) {
+                managerCgroupMatches = true;
+                break;
+            }
+        }
+    }
+    if (!managerCgroupMatches) {
+        return false;
+    }
+
+    QDBusInterface manager(managerOwner.value(), QString::fromLatin1(UserManagerPath),
+                           QString::fromLatin1(UserManagerInterface), connection);
+    const QDBusReply<QDBusObjectPath> unitReply = manager.call(
+                QStringLiteral("GetUnit"), QString::fromLatin1(ProductionPeerUnit));
+    if (!unitReply.isValid()) {
+        return false;
+    }
+
+    const QString unitPath = unitReply.value().path();
+    QDBusInterface unit(managerOwner.value(), unitPath,
+                        QString::fromLatin1(UserUnitInterface), connection);
+    QDBusInterface service(managerOwner.value(), unitPath,
+                           QString::fromLatin1(UserServiceInterface), connection);
+    const QVariant dropInPaths = unit.property("DropInPaths");
+    return unit.isValid() && service.isValid()
+            && unit.property("LoadState").toString() == QStringLiteral("loaded")
+            && unit.property("ActiveState").toString() == QStringLiteral("active")
+            && unit.property("FragmentPath").toString()
+                    == QString::fromLatin1(ProductionPeerUnitFile)
+            && dropInPaths.isValid() && dropInPaths.toStringList().isEmpty()
+            && service.property("Type").toString() == QStringLiteral("dbus")
+            && service.property("BusName").toString()
+                    == QString::fromLatin1(ProductionPeerBusName)
+            && service.property("MainPID").toUInt() == static_cast<uint>(pid);
+}
 
 template<typename T>
 void appendLittleEndian(QByteArray *output, T value)
@@ -392,8 +515,13 @@ void AppSupportKeyStoreServer::acceptConnections()
         const QString expectedExecutable = m_autotestMode
                 ? QString::fromLocal8Bit(qgetenv("SAILFISH_SECRETSD_TEST_APPSUPPORT_PEER"))
                 : QString::fromLatin1(ProductionPeerExecutable);
+        const bool executableMatches = executable == expectedExecutable;
+        const bool serviceMainPidMatches = credentialsOk && !m_autotestMode
+                && executable.isEmpty()
+                && processIsProductionPeer(credentials.pid);
         if (!credentialsOk || credentials.uid != ::getuid()
-                || expectedExecutable.isEmpty() || executable != expectedExecutable) {
+                || expectedExecutable.isEmpty()
+                || (!executableMatches && !serviceMainPidMatches)) {
             ::close(descriptor);
             continue;
         }
@@ -404,7 +532,9 @@ void AppSupportKeyStoreServer::acceptConnections()
             m_nextConnectionId = 1;
         }
         ApplicationPermissions permissions;
-        client->applicationId = permissions.exactApplicationId(credentials.pid);
+        client->applicationId = permissions.exactApplicationId(
+                    credentials.pid, credentials.uid, credentials.gid,
+                    expectedExecutable);
         client->instance = peerInstance(credentials.pid);
         if (client->applicationId.isEmpty() || client->instance.isEmpty()
                 || client->instance.size() > 128) {

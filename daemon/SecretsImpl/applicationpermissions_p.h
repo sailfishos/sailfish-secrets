@@ -39,6 +39,9 @@ public:
 
     QString applicationId(pid_t pid) const;
     QString exactApplicationId(pid_t pid) const;
+    // The caller must authenticate these credentials independently.
+    QString exactApplicationId(pid_t pid, uid_t trustedUid, gid_t trustedGid,
+                               const QString &trustedExecutable) const;
     QString platformApplicationId() const { return m_osName; }
     bool applicationIsPlatformApplication(pid_t pid) const;
 

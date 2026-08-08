@@ -142,12 +142,24 @@ QString Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions::exactApplica
         qCWarning(lcSailfishSecretsDaemon) << "Incomplete exact application identity for pid" << pid;
         return QString();
     }
+    return exactApplicationId(pid, processInfo.ownerId(), processInfo.groupId(),
+                              executable);
+}
 
-    const QByteArray encodedExecutable = QUrl::toPercentEncoding(executable);
+QString Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions::exactApplicationId(
+        pid_t pid, uid_t trustedUid, gid_t trustedGid,
+        const QString &trustedExecutable) const
+{
+    if (pid <= 0 || trustedExecutable.isEmpty()) {
+        qCWarning(lcSailfishSecretsDaemon) << "Incomplete exact application identity for pid" << pid;
+        return QString();
+    }
+
+    const QByteArray encodedExecutable = QUrl::toPercentEncoding(trustedExecutable);
     const QByteArray encodedCgroup = QUrl::toPercentEncoding(readBoosterCgroup(pid));
     return QString::fromLatin1("exact:v1;uid=%1;gid=%2;exe=%3;cgroup=%4")
-            .arg(processInfo.ownerId())
-            .arg(processInfo.groupId())
+            .arg(trustedUid)
+            .arg(trustedGid)
             .arg(QString::fromLatin1(encodedExecutable))
             .arg(QString::fromLatin1(encodedCgroup));
 }
