@@ -34,12 +34,16 @@ public:
                         QString *errorMessage = Q_NULLPTR);
 
 private:
-    bool notify(bool passwordOnly, QString *errorMessage);
+    bool notifyLocked(bool passwordOnly, QString *errorMessage);
+    bool updateAuthenticationState(quint64 secureUserId,
+                                   quint64 fingerprintAuthenticatorId,
+                                   QString *errorMessage);
 
     Sailfish::Crypto::KeyMintOperationExtension *m_provider;
     DeviceLockBrokerClient::State m_state;
     bool m_haveState;
-    bool m_retryRequired;
+    bool m_lockRetryRequired;
+    bool m_stateRetryRequired;
 };
 
 } // namespace ApiImpl

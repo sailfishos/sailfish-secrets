@@ -29,7 +29,7 @@
 
 #define Sailfish_Crypto_CryptoPlugin_IID "org.sailfishos.crypto.CryptoPlugin/1.0"
 #define Sailfish_Crypto_MasterKeyPluginExtension_IID "org.sailfishos.crypto.MasterKeyPluginExtension/1.0"
-#define Sailfish_Crypto_KeyMintOperationExtension_IID "org.sailfishos.crypto.KeyMintOperationExtension/1.1"
+#define Sailfish_Crypto_KeyMintOperationExtension_IID "org.sailfishos.crypto.KeyMintOperationExtension/1.2"
 
 SAILFISH_CRYPTO_API Q_DECLARE_LOGGING_CATEGORY(lcSailfishCryptoPlugin)
 
@@ -262,6 +262,10 @@ public:
             qint32 *keyMintError) = 0;
     virtual Sailfish::Crypto::Result keyMintDeviceLocked(
             bool passwordOnly,
+            qint32 *keyMintError) = 0;
+    virtual Sailfish::Crypto::Result keyMintSetAuthenticationState(
+            quint64 secureUserId,
+            quint64 fingerprintAuthenticatorId,
             qint32 *keyMintError) = 0;
 };
 

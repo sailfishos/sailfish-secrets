@@ -10,10 +10,38 @@
 
 using namespace Sailfish::Secrets::Daemon::ApiImpl;
 
+namespace {
+
+const quint32 AndroidBiometricStrong = 0x000f;
+
+bool validIdentity(const DeviceLockBrokerClient::State &state)
+{
+    const quint32 required = DeviceLockBrokerClient::SecurityCodeEnabled
+            | DeviceLockBrokerClient::GatekeeperSelected
+            | DeviceLockBrokerClient::IdentityValid
+            | DeviceLockBrokerClient::BootstrapAllowed;
+    return state.status == DeviceLockBrokerClient::Ok
+            && (state.flags & required) == required
+            && state.secureUserId != 0;
+}
+
+quint64 activeFingerprintAuthenticatorId(
+        const DeviceLockBrokerClient::State &state)
+{
+    return validIdentity(state)
+            && (state.flags & DeviceLockBrokerClient::FingerprintEnrolled)
+            && (state.supportedMethods & DeviceLockBrokerClient::Fingerprint)
+            && state.fingerprintStrength == AndroidBiometricStrong
+            ? state.fingerprintAuthenticatorId : 0;
+}
+
+}
+
 KeyMintDeviceLockNotifier::KeyMintDeviceLockNotifier()
     : m_provider(Q_NULLPTR)
     , m_haveState(false)
-    , m_retryRequired(false)
+    , m_lockRetryRequired(false)
+    , m_stateRetryRequired(false)
 {
 }
 
@@ -23,10 +51,12 @@ void KeyMintDeviceLockNotifier::setProvider(
     m_provider = provider;
 }
 
-bool KeyMintDeviceLockNotifier::notify(bool passwordOnly, QString *errorMessage)
+bool KeyMintDeviceLockNotifier::notifyLocked(
+        bool passwordOnly,
+        QString *errorMessage)
 {
     if (!m_provider) {
-        m_retryRequired = true;
+        m_lockRetryRequired = true;
         if (errorMessage) {
             *errorMessage = QStringLiteral("No KeyMint device-lock provider is available");
         }
@@ -37,7 +67,7 @@ bool KeyMintDeviceLockNotifier::notify(bool passwordOnly, QString *errorMessage)
     const Sailfish::Crypto::Result result = m_provider->keyMintDeviceLocked(
                 passwordOnly, &keyMintError);
     if (result.code() != Sailfish::Crypto::Result::Succeeded || keyMintError != 0) {
-        m_retryRequired = true;
+        m_lockRetryRequired = true;
         if (errorMessage) {
             *errorMessage = result.errorMessage().isEmpty()
                     ? QStringLiteral("KeyMint deviceLocked failed (%1)").arg(keyMintError)
@@ -46,7 +76,43 @@ bool KeyMintDeviceLockNotifier::notify(bool passwordOnly, QString *errorMessage)
         return false;
     }
 
-    m_retryRequired = false;
+    m_lockRetryRequired = false;
+    if (errorMessage) {
+        errorMessage->clear();
+    }
+    return true;
+}
+
+bool KeyMintDeviceLockNotifier::updateAuthenticationState(
+        quint64 secureUserId,
+        quint64 fingerprintAuthenticatorId,
+        QString *errorMessage)
+{
+    if (!m_provider) {
+        m_stateRetryRequired = true;
+        if (errorMessage) {
+            *errorMessage = QStringLiteral(
+                        "No KeyMint authentication-state provider is available");
+        }
+        return false;
+    }
+
+    qint32 keyMintError = 0;
+    const Sailfish::Crypto::Result result
+            = m_provider->keyMintSetAuthenticationState(
+                secureUserId, fingerprintAuthenticatorId, &keyMintError);
+    if (result.code() != Sailfish::Crypto::Result::Succeeded || keyMintError != 0) {
+        m_stateRetryRequired = true;
+        if (errorMessage) {
+            *errorMessage = result.errorMessage().isEmpty()
+                    ? QStringLiteral("KeyMint authentication-state update failed (%1)")
+                        .arg(keyMintError)
+                    : result.errorMessage();
+        }
+        return false;
+    }
+
+    m_stateRetryRequired = false;
     if (errorMessage) {
         errorMessage->clear();
     }
@@ -56,13 +122,27 @@ bool KeyMintDeviceLockNotifier::notify(bool passwordOnly, QString *errorMessage)
 bool KeyMintDeviceLockNotifier::startup(QString *errorMessage)
 {
     m_haveState = false;
-    return notify(true, errorMessage);
+    QString stateError;
+    QString lockError;
+    const bool stateUpdated = updateAuthenticationState(0, 0, &stateError);
+    const bool lockUpdated = notifyLocked(true, &lockError);
+    if (errorMessage) {
+        *errorMessage = stateUpdated ? lockError : stateError;
+    }
+    return stateUpdated && lockUpdated;
 }
 
 bool KeyMintDeviceLockNotifier::brokerUnavailable(QString *errorMessage)
 {
     m_haveState = false;
-    return notify(true, errorMessage);
+    QString stateError;
+    QString lockError;
+    const bool stateUpdated = updateAuthenticationState(0, 0, &stateError);
+    const bool lockUpdated = notifyLocked(true, &lockError);
+    if (errorMessage) {
+        *errorMessage = stateUpdated ? lockError : stateError;
+    }
+    return stateUpdated && lockUpdated;
 }
 
 bool KeyMintDeviceLockNotifier::stateChanged(
@@ -71,6 +151,13 @@ bool KeyMintDeviceLockNotifier::stateChanged(
         QString *errorMessage)
 {
     const bool firstState = !m_haveState;
+    const quint64 previousSecureUserId = m_haveState && validIdentity(m_state)
+            ? m_state.secureUserId : 0;
+    const quint64 previousFingerprintAuthenticatorId = m_haveState
+            ? activeFingerprintAuthenticatorId(m_state) : 0;
+    const quint64 secureUserId = validIdentity(state) ? state.secureUserId : 0;
+    const quint64 fingerprintAuthenticatorId
+            = activeFingerprintAuthenticatorId(state);
     const bool changedIdentity = m_haveState
             && (state.sailfishUserId != m_state.sailfishUserId
                 || state.gatekeeperUserId != m_state.gatekeeperUserId
@@ -94,20 +181,36 @@ bool KeyMintDeviceLockNotifier::stateChanged(
         *identityChanged = changedIdentity;
     }
 
-    if (m_retryRequired || becameUnavailable || becameLocked
+    QString stateError;
+    QString lockError;
+    bool stateUpdated = true;
+    bool lockUpdated = true;
+    if (m_stateRetryRequired || firstState
+            || previousSecureUserId != secureUserId
+            || previousFingerprintAuthenticatorId
+                    != fingerprintAuthenticatorId) {
+        stateUpdated = updateAuthenticationState(
+                    secureUserId, fingerprintAuthenticatorId, &stateError);
+    }
+    if (m_lockRetryRequired || becameUnavailable || becameLocked
             || pinRequiredAsserted || changedIdentity) {
-        return notify(stateUnavailable || pinRequired, errorMessage);
+        lockUpdated = notifyLocked(stateUnavailable || pinRequired, &lockError);
     }
     if (errorMessage) {
-        errorMessage->clear();
+        *errorMessage = stateUpdated ? lockError : stateError;
     }
-    return true;
+    return stateUpdated && lockUpdated;
 }
 
 bool KeyMintDeviceLockNotifier::lifecycleEvent(
         DeviceLockBrokerClient::LifecycleEvent event,
         QString *errorMessage)
 {
+    m_haveState = false;
+    QString stateError;
+    QString lockError;
+    const bool stateUpdated = updateAuthenticationState(0, 0, &stateError);
+    bool lockUpdated = true;
     switch (event) {
     case DeviceLockBrokerClient::Provisioned:
     case DeviceLockBrokerClient::Changed:
@@ -117,10 +220,11 @@ bool KeyMintDeviceLockNotifier::lifecycleEvent(
     case DeviceLockBrokerClient::UserChanged:
         // Every lifecycle event changes or invalidates the authentication
         // identity.  Require the next unlock to include a PIN HAT.
-        return notify(true, errorMessage);
+        lockUpdated = notifyLocked(true, &lockError);
+        break;
     }
     if (errorMessage) {
-        errorMessage->clear();
+        *errorMessage = stateUpdated ? lockError : stateError;
     }
-    return true;
+    return stateUpdated && lockUpdated;
 }

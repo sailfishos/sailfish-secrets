@@ -62,6 +62,8 @@ public:
                       QByteArray *response);
     CallResult abort(quint64 operationHandle);
     CallResult deviceLocked(bool passwordOnly);
+    CallResult setAuthenticationState(quint64 secureUserId,
+                                      quint64 fingerprintAuthenticatorId);
 
 private:
     Q_DISABLE_COPY(KeyMintBinderClient)
