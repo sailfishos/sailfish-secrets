@@ -171,6 +171,7 @@ const qint32 AlgorithmAes = 32;
 const qint32 BlockModeGcm = 32;
 const qint32 PaddingNone = 1;
 const qint32 AuthenticatorPassword = 1;
+const qint32 AuthenticatorFingerprint = 2;
 
 enum BinderException {
     ExceptionNone = 0,
@@ -463,21 +464,54 @@ QByteArray serializeCharacteristics(const Characteristics &characteristics)
 }
 
 bool policyMatchesIdentity(const QVector<Parameter> &parameters,
-                           quint64 activeSecureUserId)
+                           quint64 activeSecureUserId,
+                           quint64 activeFingerprintAuthenticatorId)
 {
     bool noAuthenticationRequired = false;
-    bool matchingSecureUserId = false;
+    bool fingerprintAuthenticationAllowed = false;
+    bool haveSecureUserId = false;
+    bool secureUserIdsValid = true;
     for (const Parameter &parameter : parameters) {
         if (parameter.tag == TagNoAuthRequired
                 && parameter.valueTag == ValueBool && parameter.scalar == 1) {
             noAuthenticationRequired = true;
-        } else if (parameter.tag == TagUserSecureId
-                   && parameter.valueTag == ValueLongInteger
-                   && parameter.scalar == activeSecureUserId) {
-            matchingSecureUserId = true;
+        } else if (parameter.tag == TagUserAuthType
+                   && parameter.valueTag == ValueHardwareAuthenticatorType
+                   && (parameter.scalar & AuthenticatorFingerprint) != 0) {
+            fingerprintAuthenticationAllowed = true;
         }
     }
-    return noAuthenticationRequired || matchingSecureUserId;
+    for (const Parameter &parameter : parameters) {
+        if (parameter.tag == TagUserSecureId
+                && parameter.valueTag == ValueLongInteger) {
+            haveSecureUserId = true;
+            if (parameter.scalar != activeSecureUserId
+                    && (!fingerprintAuthenticationAllowed
+                        || !activeFingerprintAuthenticatorId
+                        || parameter.scalar != activeFingerprintAuthenticatorId)) {
+                secureUserIdsValid = false;
+            }
+        }
+    }
+    return noAuthenticationRequired
+            ? !haveSecureUserId : haveSecureUserId && secureUserIdsValid;
+}
+
+bool tokenMatchesIdentity(const HardwareAuthToken &token,
+                          quint64 activeSecureUserId,
+                          quint64 activeFingerprintAuthenticatorId)
+{
+    if (token.userId != activeSecureUserId) {
+        return false;
+    }
+    if (token.authenticatorType == AuthenticatorPassword) {
+        return token.authenticatorId == 0;
+    }
+    if (token.authenticatorType == AuthenticatorFingerprint) {
+        return activeFingerprintAuthenticatorId
+                && token.authenticatorId == activeFingerprintAuthenticatorId;
+    }
+    return false;
 }
 
 bool readRandom(QByteArray *output, int size)
@@ -1007,6 +1041,8 @@ public:
         , remote(Q_NULLPTR)
         , client(Q_NULLPTR)
         , activeSecureUserId(0)
+        , brokerSecureUserId(0)
+        , activeFingerprintAuthenticatorId(0)
         , nextOperationHandle(0x8000000000000001ULL)
     {
     }
@@ -1106,12 +1142,17 @@ public:
         delete operation;
     }
 
-    void clearOperations()
+    void clearAppOperations(bool sendAbort)
     {
         for (BinderOperation *operation : appOperations) {
-            destroyOperation(operation, false);
+            destroyOperation(operation, sendAbort);
         }
         appOperations.clear();
+    }
+
+    void clearOperations()
+    {
+        clearAppOperations(false);
         for (MasterOperation *operation : masterOperations) {
             destroyMasterOperation(operation, false);
         }
@@ -1747,13 +1788,14 @@ public:
 
     CallResult validatePolicy(const QVector<Parameter> &parameters) const
     {
-        if (!activeSecureUserId) {
+        if (!activeSecureUserId || brokerSecureUserId != activeSecureUserId) {
             return CallResult(true, KmNotConfigured,
                               QStringLiteral("No active Sailfish Gatekeeper identity"));
         }
-        if (!policyMatchesIdentity(parameters, activeSecureUserId)) {
+        if (!policyMatchesIdentity(parameters, activeSecureUserId,
+                                   activeFingerprintAuthenticatorId)) {
             return CallResult(true, KmInvalidUserId,
-                              QStringLiteral("Key policy does not contain the active Sailfish SID"));
+                              QStringLiteral("Key policy contains an inactive authenticator ID"));
         }
         return CallResult(true, KmOk);
     }
@@ -1764,17 +1806,13 @@ public:
         if (!token.present) {
             return CallResult(true, KmOk);
         }
-        if (!activeSecureUserId) {
+        if (!activeSecureUserId || brokerSecureUserId != activeSecureUserId) {
             return CallResult(true, KmNotConfigured,
                               QStringLiteral("No active Sailfish Gatekeeper identity"));
         }
-        if (token.userId != activeSecureUserId) {
-            return CallResult(true, KmInvalidUserId,
-                              QStringLiteral("Hardware auth token has the wrong Sailfish SID"));
-        }
         if (!token.timestamp || token.mac.size() != 32
-                || (token.authenticatorType != AuthenticatorPassword
-                    && token.authenticatorType != 2)) {
+                || !tokenMatchesIdentity(token, activeSecureUserId,
+                                         activeFingerprintAuthenticatorId)) {
             return CallResult(true, KmKeyUserNotAuthenticated,
                               QStringLiteral("Invalid Sailfish hardware auth token"));
         }
@@ -1790,6 +1828,8 @@ public:
     GBinderRemoteObject *remote;
     GBinderClient *client;
     quint64 activeSecureUserId;
+    quint64 brokerSecureUserId;
+    quint64 activeFingerprintAuthenticatorId;
     quint64 nextOperationHandle;
     QHash<quint64, BinderOperation *> appOperations;
     QHash<QByteArray, MasterOperation *> masterOperations;
@@ -2152,12 +2192,18 @@ KeyMintBinderClient::CallResult KeyMintBinderClient::oneShot(
                 || !parseAuthSet(serializedParameters, &parameters)) {
             return CallResult(true, KmInvalidArgument);
         }
-        if (!d->activeSecureUserId) {
+        if (!d->activeSecureUserId
+                || d->brokerSecureUserId != d->activeSecureUserId) {
             return CallResult(true, KmNotConfigured);
         }
         if (passwordSid && passwordSid != d->activeSecureUserId) {
             return CallResult(true, KmInvalidUserId,
                               QStringLiteral("Wrapped-key password SID is not the Sailfish SID"));
+        }
+        if (biometricSid
+                && biometricSid != d->activeFingerprintAuthenticatorId) {
+            return CallResult(true, KmInvalidUserId,
+                              QStringLiteral("Wrapped-key biometric SID is not active"));
         }
         KeyCreation creation;
         CallResult result = d->importWrappedKey(
@@ -2498,4 +2544,23 @@ KeyMintBinderClient::CallResult KeyMintBinderClient::deviceLocked(
     }
     gbinder_local_request_unref(request);
     return result;
+}
+
+KeyMintBinderClient::CallResult KeyMintBinderClient::setAuthenticationState(
+        quint64 secureUserId,
+        quint64 fingerprintAuthenticatorId)
+{
+    QMutexLocker locker(&d->mutex);
+    if (!secureUserId && fingerprintAuthenticatorId) {
+        return CallResult(true, KmInvalidArgument,
+                          QStringLiteral("Fingerprint identity has no Gatekeeper SID"));
+    }
+    if (d->brokerSecureUserId != secureUserId
+            || d->activeFingerprintAuthenticatorId
+                    != fingerprintAuthenticatorId) {
+        d->clearAppOperations(true);
+        d->brokerSecureUserId = secureUserId;
+        d->activeFingerprintAuthenticatorId = fingerprintAuthenticatorId;
+    }
+    return CallResult(true, KmOk);
 }

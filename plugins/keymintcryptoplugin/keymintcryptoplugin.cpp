@@ -239,3 +239,13 @@ Result KeyMintCryptoPlugin::keyMintDeviceLocked(
 {
     return keyMintResult(m_client->deviceLocked(passwordOnly), keyMintError);
 }
+
+Result KeyMintCryptoPlugin::keyMintSetAuthenticationState(
+        quint64 secureUserId,
+        quint64 fingerprintAuthenticatorId,
+        qint32 *keyMintError)
+{
+    return keyMintResult(m_client->setAuthenticationState(
+                             secureUserId, fingerprintAuthenticatorId),
+                         keyMintError);
+}

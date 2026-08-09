@@ -15,6 +15,7 @@ class tst_keymintbinderclient : public QObject
 private slots:
     void capabilityPayloadIsStrict();
     void authSetRoundTripAndPolicy();
+    void authenticationIdentityPolicy();
     void opaqueKeyAndEnvelopeRoundTrip();
     void hardwareAuthTokenParsing();
     void attestationFailsClosed();
@@ -66,12 +67,12 @@ void tst_keymintbinderclient::authSetRoundTripAndPolicy()
     QCOMPARE(parsed.at(3).valueTag, qint32(ValueBlob));
     QCOMPARE(parsed.at(3).blob, QByteArray("aad"));
 
-    QVERIFY(policyMatchesIdentity(parsed, secureUserId));
-    QVERIFY(!policyMatchesIdentity(parsed, secureUserId + 1));
+    QVERIFY(policyMatchesIdentity(parsed, secureUserId, 0));
+    QVERIFY(!policyMatchesIdentity(parsed, secureUserId + 1, 0));
 
     QVector<Parameter> noAuthentication;
     noAuthentication << scalarParameter(TagNoAuthRequired, 1);
-    QVERIFY(policyMatchesIdentity(noAuthentication, secureUserId + 1));
+    QVERIFY(policyMatchesIdentity(noAuthentication, secureUserId + 1, 0));
 
     QByteArray truncated = serialized;
     truncated.chop(1);
@@ -86,6 +87,60 @@ void tst_keymintbinderclient::authSetRoundTripAndPolicy()
     QByteArray trailing = serialized;
     trailing.append('\0');
     QVERIFY(!parseAuthSet(trailing, &parsed));
+}
+
+void tst_keymintbinderclient::authenticationIdentityPolicy()
+{
+    const quint64 secureUserId = Q_UINT64_C(0x1020304050607080);
+    const quint64 fingerprintAuthenticatorId
+            = Q_UINT64_C(0x2122232425262728);
+
+    QVector<Parameter> biometric;
+    biometric << scalarParameter(TagUserSecureId,
+                                 fingerprintAuthenticatorId)
+              << scalarParameter(TagUserAuthType,
+                                 AuthenticatorFingerprint);
+    QVERIFY(policyMatchesIdentity(biometric, secureUserId,
+                                  fingerprintAuthenticatorId));
+    QVERIFY(!policyMatchesIdentity(biometric, secureUserId,
+                                   fingerprintAuthenticatorId + 1));
+
+    QVector<Parameter> wrongType = biometric;
+    wrongType[1] = scalarParameter(TagUserAuthType, AuthenticatorPassword);
+    QVERIFY(!policyMatchesIdentity(wrongType, secureUserId,
+                                   fingerprintAuthenticatorId));
+
+    QVector<Parameter> mixed = biometric;
+    mixed << scalarParameter(TagUserSecureId,
+                             fingerprintAuthenticatorId + 1);
+    QVERIFY(!policyMatchesIdentity(mixed, secureUserId,
+                                   fingerprintAuthenticatorId));
+
+    QVector<Parameter> rootFingerprint;
+    rootFingerprint << scalarParameter(TagUserSecureId, secureUserId)
+                    << scalarParameter(TagUserAuthType,
+                                       AuthenticatorFingerprint);
+    QVERIFY(policyMatchesIdentity(rootFingerprint, secureUserId,
+                                  fingerprintAuthenticatorId));
+
+    HardwareAuthToken token;
+    token.present = true;
+    token.userId = secureUserId;
+    token.authenticatorType = AuthenticatorPassword;
+    QVERIFY(tokenMatchesIdentity(token, secureUserId,
+                                 fingerprintAuthenticatorId));
+    token.authenticatorId = fingerprintAuthenticatorId;
+    QVERIFY(!tokenMatchesIdentity(token, secureUserId,
+                                  fingerprintAuthenticatorId));
+
+    token.authenticatorType = AuthenticatorFingerprint;
+    QVERIFY(tokenMatchesIdentity(token, secureUserId,
+                                 fingerprintAuthenticatorId));
+    QVERIFY(!tokenMatchesIdentity(token, secureUserId,
+                                  fingerprintAuthenticatorId + 1));
+    ++token.userId;
+    QVERIFY(!tokenMatchesIdentity(token, secureUserId,
+                                  fingerprintAuthenticatorId));
 }
 
 void tst_keymintbinderclient::opaqueKeyAndEnvelopeRoundTrip()

@@ -114,6 +114,8 @@ public:
                                           QByteArray *) Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result keyMintAbort(quint64, qint32 *) Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result keyMintDeviceLocked(bool, qint32 *) Q_DECL_OVERRIDE;
+    Sailfish::Crypto::Result keyMintSetAuthenticationState(
+            quint64, quint64, qint32 *) Q_DECL_OVERRIDE;
 
 private:
     KeyMintBinderClient *m_client;
