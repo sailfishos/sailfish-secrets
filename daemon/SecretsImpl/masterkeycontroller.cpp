@@ -95,6 +95,12 @@ bool MasterKeyController::start(QString *errorMessage)
     m_secrets->setKeyMintManaged(true);
     m_appSupport.setMasterKeyStore(&m_store);
     findKeyMintProvider();
+    QString keyMintLockError;
+    if (!m_keyMintDeviceLock.startup(&keyMintLockError)) {
+        qCWarning(lcSailfishSecretsDaemon)
+                << "Unable to establish the startup KeyMint lock state:"
+                << keyMintLockError;
+    }
 
     QString socketError;
     if (!m_appSupport.start(&socketError)) {
@@ -126,6 +132,7 @@ bool MasterKeyController::findKeyMintProvider()
         if (masterKey && keyMint) {
             m_masterKey = masterKey;
             m_keyMint = keyMint;
+            m_keyMintDeviceLock.setProvider(keyMint);
             m_appSupport.setKeyMintProvider(provider);
             return true;
         }
@@ -143,6 +150,12 @@ void MasterKeyController::brokerConnected()
 
 void MasterKeyController::brokerUnavailable()
 {
+    QString keyMintLockError;
+    if (!m_keyMintDeviceLock.brokerUnavailable(&keyMintLockError)) {
+        qCWarning(lcSailfishSecretsDaemon)
+                << "Unable to propagate broker loss to KeyMint:"
+                << keyMintLockError;
+    }
     m_haveState = false;
     lockSession();
     updateAppSupportState();
@@ -162,9 +175,19 @@ void MasterKeyController::retryBrokerConnection()
 void MasterKeyController::brokerStateChanged(
         const DeviceLockBrokerClient::State &state)
 {
+    bool identityChanged = false;
+    QString keyMintLockError;
+    const bool keyMintLockUpdated = m_keyMintDeviceLock.stateChanged(
+                state, &identityChanged, &keyMintLockError);
     m_state = state;
     m_haveState = true;
-    if (m_sessionUnlocked && !stateCanBootstrap()) {
+    if (!keyMintLockUpdated) {
+        qCWarning(lcSailfishSecretsDaemon)
+                << "Unable to propagate the device-lock state to KeyMint:"
+                << keyMintLockError;
+    }
+    if (!keyMintLockUpdated || identityChanged
+            || (m_sessionUnlocked && !stateCanBootstrap())) {
         lockSession();
     }
     updateAppSupportState();
@@ -401,6 +424,14 @@ void MasterKeyController::brokerLifecycleEvent(
     Q_UNUSED(sailfishUserId)
     Q_UNUSED(secureUserId)
     Q_UNUSED(identityEpoch)
+
+    QString keyMintLockError;
+    if (!m_keyMintDeviceLock.lifecycleEvent(event, &keyMintLockError)) {
+        qCWarning(lcSailfishSecretsDaemon)
+                << "Unable to propagate a device-lock lifecycle event to KeyMint:"
+                << keyMintLockError;
+        lockSession();
+    }
 
     if (event == DeviceLockBrokerClient::RemovePending
             || event == DeviceLockBrokerClient::IdentityInvalidated) {

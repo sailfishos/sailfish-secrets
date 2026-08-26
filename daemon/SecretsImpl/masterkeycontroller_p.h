@@ -9,6 +9,7 @@
 
 #include "appsupportkeystoreserver_p.h"
 #include "devicelockbrokerclient_p.h"
+#include "keymintdevicelocknotifier_p.h"
 #include "masterkeymanager_p.h"
 
 #include <QtCore/QObject>
@@ -96,6 +97,7 @@ private:
     Sailfish::Crypto::Daemon::ApiImpl::CryptoRequestQueue *m_crypto;
     MasterKeyStore m_store;
     DeviceLockBrokerClient m_broker;
+    KeyMintDeviceLockNotifier m_keyMintDeviceLock;
     AppSupportKeyStoreServer m_appSupport;
     Sailfish::Crypto::MasterKeyPluginExtension *m_masterKey;
     Sailfish::Crypto::KeyMintOperationExtension *m_keyMint;
