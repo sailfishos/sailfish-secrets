@@ -5,6 +5,7 @@
  */
 
 #include "keymintcryptoplugin.h"
+#include "keymintbinderclient_p.h"
 
 using namespace Sailfish::Crypto;
 using namespace Sailfish::Crypto::Daemon::Plugins;
@@ -14,18 +15,50 @@ namespace {
 Result notSupported()
 {
     return Result(Result::OperationNotSupportedError,
-                  QStringLiteral("Physical AIDL KeyMint transport is unavailable"));
+                  QStringLiteral("Operation is not exposed by the KeyMint plugin"));
+}
+
+Result masterKeyResult(const KeyMintBinderClient::CallResult &result,
+                       Result::ErrorCode keyMintError)
+{
+    if (result.succeeded()) {
+        return Result(Result::Succeeded);
+    }
+    if (!result.transportSucceeded) {
+        return Result(result.keyMintError == -68
+                      ? Result::CryptoManagerNotInitializedError
+                      : Result::DaemonError,
+                      result.errorMessage);
+    }
+    return Result(keyMintError, result.errorMessage);
+}
+
+Result keyMintResult(const KeyMintBinderClient::CallResult &result,
+                     qint32 *keyMintError)
+{
+    if (keyMintError) {
+        *keyMintError = result.keyMintError;
+    }
+    if (result.transportSucceeded) {
+        return Result(Result::Succeeded);
+    }
+    return Result(result.keyMintError == -68
+                  ? Result::CryptoManagerNotInitializedError
+                  : Result::DaemonError,
+                  result.errorMessage);
 }
 
 } // namespace
 
 KeyMintCryptoPlugin::KeyMintCryptoPlugin(QObject *parent)
     : QObject(parent)
+    , m_client(new KeyMintBinderClient)
 {
 }
 
 KeyMintCryptoPlugin::~KeyMintCryptoPlugin()
 {
+    delete m_client;
 }
 
 QString KeyMintCryptoPlugin::displayName() const
@@ -107,21 +140,102 @@ Result KeyMintCryptoPlugin::updateCipherSession(quint64, const QByteArray &,
 Result KeyMintCryptoPlugin::finalizeCipherSession(quint64, const QByteArray &,
                                                   const QVariantMap &, quint32, QByteArray *,
                                                   CryptoManager::VerificationStatus *) { return notSupported(); }
-Result KeyMintCryptoPlugin::beginCreateMasterKey(const QByteArray &, quint32, quint64,
-                                                 const QByteArray &, quint64 *,
-                                                 QByteArray *) { return notSupported(); }
-Result KeyMintCryptoPlugin::finishCreateMasterKey(const QByteArray &, const QByteArray &,
-                                                  QByteArray *) { return notSupported(); }
-Result KeyMintCryptoPlugin::beginOpenMasterKey(const QByteArray &, quint64 *,
-                                               QByteArray *) { return notSupported(); }
-Result KeyMintCryptoPlugin::finishOpenMasterKey(const QByteArray &, const QByteArray &,
-                                                QByteArray *) { return notSupported(); }
-Result KeyMintCryptoPlugin::keyMintOneShot(quint32, const QByteArray &, qint32 *,
-                                          QByteArray *) { return notSupported(); }
-Result KeyMintCryptoPlugin::keyMintBegin(const QByteArray &, qint32 *, quint64 *,
-                                        QByteArray *) { return notSupported(); }
-Result KeyMintCryptoPlugin::keyMintUpdate(quint64, const QByteArray &, qint32 *,
-                                         QByteArray *) { return notSupported(); }
-Result KeyMintCryptoPlugin::keyMintFinish(quint64, const QByteArray &, qint32 *,
-                                         QByteArray *) { return notSupported(); }
-Result KeyMintCryptoPlugin::keyMintAbort(quint64, qint32 *) { return notSupported(); }
+Result KeyMintCryptoPlugin::beginCreateMasterKey(
+        const QByteArray &rootKey,
+        quint32 sailfishUserId,
+        quint64 secureUserId,
+        const QByteArray &identityEpoch,
+        quint64 *challenge,
+        QByteArray *operationContext)
+{
+    return masterKeyResult(m_client->beginCreateMasterKey(
+                               rootKey, sailfishUserId, secureUserId,
+                               identityEpoch, challenge, operationContext),
+                           Result::CryptoPluginKeyGenerationError);
+}
+
+Result KeyMintCryptoPlugin::finishCreateMasterKey(
+        const QByteArray &operationContext,
+        const QByteArray &serializedHardwareAuthToken,
+        QByteArray *serializedEnvelope)
+{
+    return masterKeyResult(m_client->finishCreateMasterKey(
+                               operationContext, serializedHardwareAuthToken,
+                               serializedEnvelope),
+                           Result::CryptoPluginKeyGenerationError);
+}
+
+Result KeyMintCryptoPlugin::beginOpenMasterKey(
+        const QByteArray &serializedEnvelope,
+        quint64 *challenge,
+        QByteArray *operationContext)
+{
+    return masterKeyResult(m_client->beginOpenMasterKey(
+                               serializedEnvelope, challenge, operationContext),
+                           Result::CryptoPluginDecryptionError);
+}
+
+Result KeyMintCryptoPlugin::finishOpenMasterKey(
+        const QByteArray &operationContext,
+        const QByteArray &serializedHardwareAuthToken,
+        QByteArray *rootKey)
+{
+    return masterKeyResult(m_client->finishOpenMasterKey(
+                               operationContext, serializedHardwareAuthToken,
+                               rootKey),
+                           Result::CryptoPluginDecryptionError);
+}
+
+Result KeyMintCryptoPlugin::keyMintOneShot(
+        quint32 operation,
+        const QByteArray &request,
+        qint32 *keyMintError,
+        QByteArray *response)
+{
+    return keyMintResult(m_client->oneShot(operation, request, response),
+                         keyMintError);
+}
+
+Result KeyMintCryptoPlugin::keyMintBegin(
+        const QByteArray &request,
+        qint32 *keyMintError,
+        quint64 *operationHandle,
+        QByteArray *response)
+{
+    return keyMintResult(m_client->begin(request, operationHandle, response),
+                         keyMintError);
+}
+
+Result KeyMintCryptoPlugin::keyMintUpdate(
+        quint64 operationHandle,
+        const QByteArray &request,
+        qint32 *keyMintError,
+        QByteArray *response)
+{
+    return keyMintResult(m_client->update(operationHandle, request, response),
+                         keyMintError);
+}
+
+Result KeyMintCryptoPlugin::keyMintFinish(
+        quint64 operationHandle,
+        const QByteArray &request,
+        qint32 *keyMintError,
+        QByteArray *response)
+{
+    return keyMintResult(m_client->finish(operationHandle, request, response),
+                         keyMintError);
+}
+
+Result KeyMintCryptoPlugin::keyMintAbort(
+        quint64 operationHandle,
+        qint32 *keyMintError)
+{
+    return keyMintResult(m_client->abort(operationHandle), keyMintError);
+}
+
+Result KeyMintCryptoPlugin::keyMintDeviceLocked(
+        bool passwordOnly,
+        qint32 *keyMintError)
+{
+    return keyMintResult(m_client->deviceLocked(passwordOnly), keyMintError);
+}

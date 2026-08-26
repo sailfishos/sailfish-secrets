@@ -14,6 +14,7 @@ HEADERS += \
     $$PWD/appsupportkeystoreserver_p.h \
     $$PWD/dataprotector_p.h \
     $$PWD/devicelockbrokerclient_p.h \
+    $$PWD/keymintdevicelocknotifier_p.h \
     $$PWD/masterkeymanager_p.h \
     $$PWD/masterkeycontroller_p.h
 
@@ -28,6 +29,7 @@ SOURCES += \
     $$PWD/appsupportkeystoreserver.cpp \
     $$PWD/dataprotector.cpp \
     $$PWD/devicelockbrokerclient.cpp \
+    $$PWD/keymintdevicelocknotifier.cpp \
     $$PWD/masterkeymanager.cpp \
     $$PWD/masterkeycontroller.cpp
 

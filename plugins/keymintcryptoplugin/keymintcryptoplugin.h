@@ -16,6 +16,8 @@ namespace Crypto {
 namespace Daemon {
 namespace Plugins {
 
+class KeyMintBinderClient;
+
 class KeyMintCryptoPlugin : public QObject,
         public virtual Sailfish::Crypto::CryptoPlugin,
         public virtual Sailfish::Crypto::MasterKeyPluginExtension,
@@ -111,6 +113,10 @@ public:
     Sailfish::Crypto::Result keyMintFinish(quint64, const QByteArray &, qint32 *,
                                           QByteArray *) Q_DECL_OVERRIDE;
     Sailfish::Crypto::Result keyMintAbort(quint64, qint32 *) Q_DECL_OVERRIDE;
+    Sailfish::Crypto::Result keyMintDeviceLocked(bool, qint32 *) Q_DECL_OVERRIDE;
+
+private:
+    KeyMintBinderClient *m_client;
 };
 
 } // namespace Plugins

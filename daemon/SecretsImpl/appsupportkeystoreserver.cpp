@@ -173,7 +173,7 @@ bool takeVerificationToken(Cursor *cursor)
             && nested.take(&challenge) && nested.take(&timestamp)
             && nested.take(&securityLevel)
             && nested.takeBlob(&parameters) && validAuthSet(parameters)
-            && nested.takeBlob(&mac, 32) && mac.size() == 32
+            && nested.takeBlob(&mac, 32) && (mac.isEmpty() || mac.size() == 32)
             && nested.atEnd();
 }
 
@@ -662,6 +662,12 @@ qint32 AppSupportKeyStoreServer::processRequest(
     if (operation == Reset) {
         return KmSecureHardwareAccessDenied;
     }
+    if (operation == Capabilities) {
+        if (!cursor.atEnd()) {
+            return KmInvalidArgument;
+        }
+        return callOneShot(operation, operationPayload, response);
+    }
     if (!m_store.isOpen()) {
         return KmKeymasterNotConfigured;
     }
@@ -674,15 +680,10 @@ qint32 AppSupportKeyStoreServer::processRequest(
         return KmKeymasterNotConfigured;
     }
 
-    if (operation == Capabilities || operation == AddEntropy) {
-        if (operation == Capabilities && !cursor.atEnd()) {
+    if (operation == AddEntropy) {
+        QByteArray entropy;
+        if (!cursor.takeBlob(&entropy) || !cursor.atEnd()) {
             return KmInvalidArgument;
-        }
-        if (operation == AddEntropy) {
-            QByteArray entropy;
-            if (!cursor.takeBlob(&entropy) || !cursor.atEnd()) {
-                return KmInvalidArgument;
-            }
         }
         return callOneShot(operation, operationPayload, response);
     }
@@ -830,7 +831,7 @@ qint32 AppSupportKeyStoreServer::processRequest(
                 client->operationHandles.insert(operationHandle);
                 QByteArray beginResponse;
                 appendLittleEndian(&beginResponse, operationHandle);
-                beginResponse.append(*response);
+                appendBlob(&beginResponse, *response);
                 *response = beginResponse;
             }
             return status;

@@ -22,6 +22,7 @@ BuildRequires:  qt5-tools
 BuildRequires:  qt5-qttools-linguist
 BuildRequires:  qt5-plugin-sqldriver-sqlite
 BuildRequires:  pkgconfig(libcrypto)
+BuildRequires:  pkgconfig(libgbinder) >= 1.1.47
 BuildRequires:  pkgconfig(nemodevicelock)
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(gio-2.0)
@@ -332,6 +333,7 @@ systemctl daemon-reload || :
 /opt/tests/Sailfish/Secrets/authentication-client
 /opt/tests/Sailfish/Secrets/tst_secrets
 /opt/tests/Sailfish/Secrets/tst_dataprotection
+/opt/tests/Sailfish/Secrets/tst_keymintdevicelock
 /opt/tests/Sailfish/Secrets/tst_masterkey
 /opt/tests/Sailfish/Secrets/tst_secrets.qml
 /opt/tests/Sailfish/Secrets/tst_secretsrequests
@@ -379,6 +381,7 @@ systemctl daemon-reload || :
 /opt/tests/Sailfish/Crypto/tst_cryptorequests
 /opt/tests/Sailfish/Crypto/tst_cryptosecrets
 /opt/tests/Sailfish/Crypto/tst_evp
+/opt/tests/Sailfish/Crypto/tst_keymintbinderclient
 /opt/tests/Sailfish/Crypto/tst_qml_signing
 /opt/tests/Sailfish/Crypto/tst_qml_signing.qml
 /opt/tests/Sailfish/Crypto/tst_qml_rsaencryptdecrypt
