@@ -213,6 +213,7 @@ Requires:  polkit >= 0.105+git3
 Summary:    Sailfish OS crypto daemon plugins
 Provides: %{secretsdaemon}-cryptoplugins
 Provides: %{secretsdaemon}-cryptoplugin-ssl
+Provides: %{secretsdaemon}-cryptoplugin-keymint
 Requires:   %{secretsdaemon} = %{version}-%{release}
 Requires:   libsailfishcrypto = %{version}-%{release}
 Requires:   libsailfishcryptopluginapi = %{version}-%{release}
