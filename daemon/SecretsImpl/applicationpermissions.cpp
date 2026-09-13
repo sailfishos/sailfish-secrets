@@ -15,6 +15,8 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/fsuid.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -85,7 +87,16 @@ namespace {
         const QByteArray path = QStringLiteral("/proc/%1/exe").arg(pid).toUtf8();
         QByteArray target(256, '\0');
         for (;;) {
-            const ssize_t size = readlink(path.constData(), target.data(), target.size());
+            ssize_t size = readlink(path.constData(), target.data(), target.size());
+            if (size < 0 && errno == EACCES) {
+                // Invoker gives us a privileged effective/filesystem group, but
+                // procfs requires the reader's filesystem group to match all of
+                // an ordinary caller's gids. Use our real user group only for
+                // this lookup, then restore this thread's filesystem credentials.
+                const gid_t previous = setfsgid(getgid());
+                size = readlink(path.constData(), target.data(), target.size());
+                setfsgid(previous);
+            }
             if (size < 0) {
                 return QString();
             }
@@ -140,6 +151,13 @@ QString Sailfish::Secrets::Daemon::ApiImpl::ApplicationPermissions::exactApplica
     const QString executable = readExactExeSymlink(pid);
     if (!processInfo.exists() || executable.isEmpty()) {
         qCWarning(lcSailfishSecretsDaemon) << "Incomplete exact application identity for pid" << pid;
+        return QString();
+    }
+    if (executable.startsWith(QStringLiteral("/usr/libexec/mapplauncherd/"))
+            && readBoosterCgroup(pid).isEmpty()) {
+        // The executable is shared by boosted applications. Without the
+        // launcher's per-application cgroup it cannot identify an exact owner.
+        qCWarning(lcSailfishSecretsDaemon) << "Missing application cgroup for boosted pid" << pid;
         return QString();
     }
     return exactApplicationId(pid, processInfo.ownerId(), processInfo.groupId(),
