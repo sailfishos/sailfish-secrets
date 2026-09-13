@@ -57,6 +57,7 @@ public:
         DeviceLockKeepUnlocked = 0,         // unlock after first successful device unlock, stay unlocked.  e.g. background processes.
         DeviceLockVerifyLock,               // unlock on device unlock, relock on device lock requiring verify (not passphrase) to unlock on subsequent access.
         DeviceLockRelock,                   // unlock on device unlock, relock on device lock requiring passphrase to unlock on subsequent access.
+        DeviceLockAccessRelock,             // standalone secrets only: exact owner and fresh system authentication on every read.
     };
     Q_ENUM(DeviceLockUnlockSemantic)
 

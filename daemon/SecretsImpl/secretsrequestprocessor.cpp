@@ -375,6 +375,11 @@ Daemon::ApiImpl::RequestProcessor::createDeviceLockCollection(
         SecretManager::DeviceLockUnlockSemantic unlockSemantic,
         SecretManager::AccessControlMode accessControlMode)
 {
+    if (unlockSemantic == SecretManager::DeviceLockAccessRelock) {
+        return Result(Result::OperationNotSupportedError,
+                      QStringLiteral("Fresh authentication is supported only for standalone secrets"));
+    }
+
     Q_UNUSED(requestId); // the request would only be asynchronous if we needed to perform the access control request, so until then it's always synchronous.
 
     if (collectionName.compare(QStringLiteral("standalone"), Qt::CaseInsensitive) == 0) {
@@ -1970,6 +1975,14 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSecret(
         SecretManager::UserInteractionMode userInteractionMode,
         const QString &interactionServiceAddress)
 {
+    if (unlockSemantic == SecretManager::DeviceLockAccessRelock
+            && (accessControlMode != SecretManager::ExactApplicationOwnerMode
+                || !m_authenticationPlugins.contains(QStringLiteral(
+                    "org.sailfishos.secrets.plugin.authentication.deviceauth")))) {
+        return Result(Result::OperationNotSupportedError,
+                      QStringLiteral("Fresh authentication requires exact ownership and the device authentication plugin"));
+    }
+
     // TODO: Access Control requests to see if the application is permitted to set the secret.
     Q_UNUSED(userInteractionMode);
 
@@ -2026,6 +2039,10 @@ Daemon::ApiImpl::RequestProcessor::setStandaloneDeviceLockSecret(
     secretMetadata.authenticationPluginName = m_requestQueue->controller()->mappedPluginName(
             m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
                            : SecretManager::DefaultAuthenticationPluginName);
+    if (unlockSemantic == SecretManager::DeviceLockAccessRelock) {
+        secretMetadata.authenticationPluginName = QStringLiteral(
+                    "org.sailfishos.secrets.plugin.authentication.deviceauth");
+    }
     secretMetadata.unlockSemantic = unlockSemantic;
     secretMetadata.accessControlMode = accessControlMode;
     secretMetadata.secretType = secret.type();
@@ -3082,6 +3099,17 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithMetadata(
                 ? m_appPermissions->platformApplicationId()
                 : m_appPermissions->applicationId(callerPid);
 
+    const bool freshAuthentication = secretMetadata.usesDeviceLockKey
+            && secretMetadata.unlockSemantic == SecretManager::DeviceLockAccessRelock;
+    if (freshAuthentication
+            && (secretMetadata.accessControlMode != SecretManager::ExactApplicationOwnerMode
+                || ownerOnlyAccessDenied(m_appPermissions, callerPid,
+                                         secretMetadata.ownerApplicationId, callerApplicationId,
+                                         secretMetadata.accessControlMode))) {
+        return Result(Result::PermissionsError,
+                      QStringLiteral("The secret belongs to a different application"));
+    }
+
     const QString authPluginName = determineAuthPlugin(
                 m_requestQueue->controller(),
                 secretMetadata.ownerApplicationId,
@@ -3095,7 +3123,7 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithMetadata(
                 Secret::Identifier(identifier.name(),
                                    QStringLiteral("standalone"),
                                    identifier.storagePluginName()));
-    if (m_standaloneSecretEncryptionKeys.contains(hashedSecretName)) {
+    if (!freshAuthentication && m_standaloneSecretEncryptionKeys.contains(hashedSecretName)) {
         getStandaloneSecretWithEncryptionKey(
                     callerPid,
                     requestId,
@@ -3129,9 +3157,15 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithMetadata(
         }
 
         // always use the system authentication plugin for device lock authentication requests.
-        const QString systemAuthenticationPlugin = m_requestQueue->controller()->mappedPluginName(
+        const QString systemAuthenticationPlugin = freshAuthentication
+                ? QStringLiteral("org.sailfishos.secrets.plugin.authentication.deviceauth")
+                : m_requestQueue->controller()->mappedPluginName(
                 m_autotestMode ? (SecretManager::DefaultAuthenticationPluginName + QLatin1String(".test"))
                                : SecretManager::DefaultAuthenticationPluginName);
+        if (!m_authenticationPlugins.contains(systemAuthenticationPlugin)) {
+            return Result(Result::InvalidExtensionPluginError,
+                          QStringLiteral("Required device authentication plugin is unavailable"));
+        }
         Result result = m_authenticationPlugins[systemAuthenticationPlugin]->beginAuthentication(
                     callerPid,
                     requestId,
@@ -3274,6 +3308,17 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithEncryptionKey(
     Q_UNUSED(userInteractionMode);
     Q_UNUSED(interactionServiceAddress);
 
+    // Authentication may outlive the original caller executable.
+    if (secretMetadata.usesDeviceLockKey
+            && secretMetadata.unlockSemantic == SecretManager::DeviceLockAccessRelock
+            && ownerOnlyAccessDenied(m_appPermissions, callerPid,
+                                     secretMetadata.ownerApplicationId, QString(),
+                                     secretMetadata.accessControlMode)) {
+        m_requestQueue->requestFinished(requestId, QVariantList() << QVariant::fromValue(
+                Result(Result::PermissionsError, QStringLiteral("The caller identity changed during authentication"))));
+        return;
+    }
+
     if (identifier.storagePluginName() == secretMetadata.encryptionPluginName
             || secretMetadata.encryptionPluginName.isEmpty()) {
         QFutureWatcher<SecretDataResult> *watcher
@@ -3300,7 +3345,8 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithEncryptionKey(
     } else {
         const QString hashedSecretName = calculateSecretNameHash(
                     Secret::Identifier(identifier.name(), QStringLiteral("standalone"), identifier.storagePluginName()));
-        if (!m_standaloneSecretEncryptionKeys.contains(hashedSecretName)) {
+        if (secretMetadata.unlockSemantic != SecretManager::DeviceLockAccessRelock
+                && !m_standaloneSecretEncryptionKeys.contains(hashedSecretName)) {
             m_standaloneSecretEncryptionKeys.insert(hashedSecretName, encryptionKey);
         }
 
@@ -3313,7 +3359,7 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithEncryptionKey(
                 m_encryptionPlugins[secretMetadata.encryptionPluginName],
                 m_storagePlugins[identifier.storagePluginName()],
                 Secret::Identifier(identifier.name(), QStringLiteral("standalone"), identifier.storagePluginName()),
-                m_standaloneSecretEncryptionKeys.value(hashedSecretName));
+                encryptionKey);
 
         connect(watcher, &QFutureWatcher<SecretResult>::finished, [=] {
             watcher->deleteLater();
@@ -6628,6 +6674,17 @@ void Daemon::ApiImpl::RequestProcessor::cancelRequest(pid_t callerPid,
         // call the appropriate method to complete the request
         Daemon::ApiImpl::RequestProcessor::PendingRequest pr = m_pendingRequests.take(requestId);
         Q_ASSERT(pr.callerPid == callerPid);
+        if (pr.requestType == GetStandaloneSecretRequest && pr.parameters.size() == 4) {
+            const SecretMetadata metadata = pr.parameters.at(3).value<SecretMetadata>();
+            if (metadata.usesDeviceLockKey
+                    && metadata.unlockSemantic == SecretManager::DeviceLockAccessRelock) {
+                const QString pluginName = QStringLiteral("org.sailfishos.secrets.plugin.authentication.deviceauth");
+                if (m_authenticationPlugins.contains(pluginName)) {
+                    m_authenticationPlugins[pluginName]->cancelAuthentication(callerPid, requestId);
+                }
+                return;
+            }
+        }
         switch (pr.requestType) {
         case UserInputRequest: {
             if (pr.parameters.size() != 1) {

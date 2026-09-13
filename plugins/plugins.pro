@@ -3,6 +3,7 @@ SUBDIRS += \
     $$PWD/systemauthplugin \
     $$PWD/inappauthplugin \
     $$PWD/passwordagentauthplugin \
+    $$PWD/deviceauthplugin \
     $$PWD/sqliteplugin \
     $$PWD/opensslplugin \
     $$PWD/sqlcipherplugin \

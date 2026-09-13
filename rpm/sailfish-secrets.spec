@@ -333,6 +333,7 @@ systemctl daemon-reload || :
 %files -n libsailfishsecrets-tests
 /opt/tests/Sailfish/Secrets/authentication-client
 /opt/tests/Sailfish/Secrets/tst_secrets
+/opt/tests/Sailfish/Secrets/tst_freshauth
 /opt/tests/Sailfish/Secrets/tst_dataprotection
 /opt/tests/Sailfish/Secrets/tst_keymintdevicelock
 /opt/tests/Sailfish/Secrets/tst_masterkey
@@ -432,6 +433,7 @@ systemctl daemon-reload || :
 %files -n %{secretsdaemon}-secretsplugin-common
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-inappauth.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-passwordagentauth.so
+%{_libdir}/Sailfish/Secrets/libsailfishsecrets-deviceauth.so
 %{_libdir}/Sailfish/Secrets/libsailfishsecrets-sqlcipher.so
 %{_datadir}/polkit-1/actions/org.sailfishos.secrets.policy
 
