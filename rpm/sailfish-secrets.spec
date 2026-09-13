@@ -175,6 +175,8 @@ Requires:         libsailfishsecrets = %{version}-%{release}
 Requires:         systemd
 %{?systemd_requires}
 Requires:         mapplauncherd
+Requires:         mapplauncherd-cgroup
+Requires(post):   mapplauncherd-cgroup
 Requires:         libsailfishcrypto = %{version}-%{release}
 Requires:         qt5-plugin-sqldriver-sqlcipher
 Requires:         nemo-qml-plugin-systemsettings
@@ -306,6 +308,8 @@ ln -s ../sailfish-secretsd.service %{buildroot}%{_userunitdir}/user-session.targ
 %postun -n libsailfishcryptoplugin -p /sbin/ldconfig
 
 %post -n %{secretsdaemon}
+systemctl daemon-reload || :
+systemctl start booster-cgroup-mount.service || :
 systemctl-user daemon-reload || :
 systemctl-user reload-or-try-restart sailfish-secretsd || :
 
