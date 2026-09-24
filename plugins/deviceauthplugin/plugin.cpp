@@ -41,7 +41,9 @@ Result DeviceAuthPlugin::beginAuthentication(uint callerPid, qint64 requestId,
     // Allow the daemon to register its pending request before any completion.
     QTimer::singleShot(0, authenticator, [authenticator, callerPid, promptText] {
         authenticator->requestPermission(promptText.message(),
-                {{QStringLiteral("authenticatingPid"), QVariant::fromValue(callerPid)}},
+                {{QStringLiteral("authenticatingPid"), QVariant::fromValue(callerPid)},
+                 {QStringLiteral("secretsPrompt"), true},
+                 {QStringLiteral("instruction"), promptText.instruction()}},
                 Authenticator::SecurityCode | Authenticator::Fingerprint);
     });
     return Result(Result::Pending);

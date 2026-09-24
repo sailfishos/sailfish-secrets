@@ -3141,11 +3141,16 @@ Daemon::ApiImpl::RequestProcessor::getStandaloneSecretWithMetadata(
         { InteractionParameters::Message, qtTrId("sailfish_secrets-get_standalone_secret-la-message")
                     .arg(callerApplicationId,
                             identifier.name(),
-                            identifier.collectionName(),
                             m_requestQueue->controller()->displayNameForPlugin(identifier.storagePluginName())) },
         //% "Enter the passphrase to unlock the secret."
         { InteractionParameters::Instruction, qtTrId("sailfish_secrets-get_standalone_secret-la-enter_secret_passphrase") }
     });
+
+    if (freshAuthentication) {
+        //: Short description of a request to read a device-authenticated secret.
+        //% "Access a saved secret"
+        promptText.setInstruction(qtTrId("sailfish_secrets-get_standalone_secret-la-access_saved_secret"));
+    }
 
     if (secretMetadata.usesDeviceLockKey) {
         // Perform a "verify" UI flow (if the user interaction mode allows).
